@@ -38,6 +38,7 @@ MAX_PER_SOURCE = int(os.environ.get("MAX_PER_SOURCE", "2"))
 MAX_WORDS = int(os.environ.get("MAX_WORDS", "0"))          # 0 = no ceiling
 # Set once from --max-words before any episode is processed; process() reads it.
 _ceiling = {"words": MAX_WORDS}
+_tiers = {"allow": T.ORDER}
 MAX_FAILS = 3          # genuine failures: no transcript exists, or the gate says no
 MAX_SOFT_FAILS = 8     # infrastructure hiccups: a 429, a dropped connection, a
                        # model call that died. These must not burn an episode's
@@ -203,7 +204,7 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
         state["done"][key] = {"skip": "duplicate", "of": claimed, "at": iso(now())}
         return "duplicate"
 
-    tr = T.acquire(ep, s.get("lang", "en"), src=s)
+    tr = T.acquire(ep, s.get("lang", "en"), src=s, allow=_tiers["allow"])
     cap_words = _ceiling["words"]
     if tr and cap_words and tr["words"] > cap_words:
         # Cost scales with transcript length, and a 35k-word episode costs as
@@ -279,6 +280,11 @@ def main() -> int:
                     help="how many episodes to publish this run")
     ap.add_argument("--days", type=int, default=int(os.environ.get("LOOKBACK_DAYS", "10")))
     ap.add_argument("--only", help="restrict to one source id")
+    ap.add_argument("--tiers", default=os.environ.get("TIERS", ""),
+                    help="restrict transcript tiers, comma separated "
+                         "(feed,notes,page,youtube,asr). Empty = all. "
+                         "CI should exclude youtube: YouTube blocks datacenter "
+                         "IPs and asks for cookies.")
     ap.add_argument("--max-words", type=int, default=MAX_WORDS,
                     help="skip episodes whose transcript is longer than this "
                          "(cost scales with length; 0 = no limit)")
@@ -293,6 +299,10 @@ def main() -> int:
     ap.add_argument("--no-build", action="store_true")
     a = ap.parse_args()
     _ceiling["words"] = a.max_words
+    if a.tiers:
+        want = tuple(t.strip() for t in a.tiers.split(",") if t.strip() in T.ORDER)
+        if want:
+            _tiers["allow"] = want
 
     if not a.dry_run and llm.provider() == "claude-cli" and not a.spend_subscription:
         per = min(a.max_words or 20000, 20000) * 1.35 / 1000
@@ -324,6 +334,7 @@ def main() -> int:
     log(f"run · {iso(now())} · {llm.provider()}:{llm.model_name()} · "
         f"asr={'on' if T.ASR_KEY else 'off'} · budget={a.limit}")
     log(f"  endpoint: {llm.endpoint()}")
+    log(f"  文稿层: {', '.join(_tiers['allow'])}")
     log(f"scanning {len(srcs)} sources, {a.days}d lookback")
 
     cands = candidates(srcs, state, a.days, a.only)
