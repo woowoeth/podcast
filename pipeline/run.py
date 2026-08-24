@@ -22,7 +22,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from lib import digest as D, feeds, gate, llm, transcript as T   # noqa: E402
+from lib import digest as D, feeds, gate, llm, transcript as T, triage  # noqa: E402
 from lib.util import (eid, fingerprint, hhmmss, iso, log, now,   # noqa: E402
                       slugify, squeeze)
 
@@ -39,6 +39,8 @@ MAX_WORDS = int(os.environ.get("MAX_WORDS", "0"))          # 0 = no ceiling
 # Set once from --max-words before any episode is processed; process() reads it.
 _ceiling = {"words": MAX_WORDS}
 _tiers = {"allow": T.ORDER}
+_triage = {"on": True, "min": triage.MIN_SCORE}
+_last_triage: dict[str, dict] = {}
 MAX_FAILS = 3          # genuine failures: no transcript exists, or the gate says no
 MAX_SOFT_FAILS = 8     # infrastructure hiccups: a 429, a dropped connection, a
                        # model call that died. These must not burn an episode's
@@ -204,6 +206,22 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
         state["done"][key] = {"skip": "duplicate", "of": claimed, "at": iso(now())}
         return "duplicate"
 
+    # 选题闸门放在取稿之前：只喂标题和节目介绍（约 600 token），比下载音频、
+    # 拉字幕、再喂几万 token 的逐字稿便宜两个数量级。不合格的集在这里就停。
+    if _triage["on"]:
+        v = triage.score(ep, s)
+        if v is not None:
+            _last_triage[key] = v
+            mark = "通过" if v["score"] >= _triage["min"] else "不做"
+            log(f"    选题 {v['score']:.0f}/10 · {v['kind']} · {v['why']} → {mark}")
+            if v["score"] < _triage["min"]:
+                state["done"][key] = {"skip": "off-brief", "score": v["score"],
+                                      "why": v["why"], "kind": v["kind"],
+                                      "title": ep["title"][:120], "src": s["id"],
+                                      "at": iso(now())}
+                _release(state, fp, key)
+                return "off-brief"
+
     tr = T.acquire(ep, s.get("lang", "en"), src=s, allow=_tiers["allow"])
     cap_words = _ceiling["words"]
     if tr and cap_words and tr["words"] > cap_words:
@@ -275,6 +293,7 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
         "youtube_id": ep.get("youtube_id") or "",
         "transcript_url": tr.get("url", ""),
         "digest": d, "generated": iso(now()),
+        "triage": _last_triage.get(key),
         "model": f"{llm.provider()}:{llm.model_name()}",
     }
     EPS.mkdir(parents=True, exist_ok=True)
@@ -291,6 +310,10 @@ def main() -> int:
                     help="how many episodes to publish this run")
     ap.add_argument("--days", type=int, default=int(os.environ.get("LOOKBACK_DAYS", "10")))
     ap.add_argument("--only", help="restrict to one source id")
+    ap.add_argument("--triage-min", type=float, default=triage.MIN_SCORE,
+                    help="选题闸门的及格线（0-10）。低于这个分数的集不做深读。")
+    ap.add_argument("--no-triage", action="store_true",
+                    help="关掉选题闸门（会把不合格的集也做成深读）")
     ap.add_argument("--tiers", default=os.environ.get("TIERS", ""),
                     help="restrict transcript tiers, comma separated "
                          "(feed,notes,page,youtube,asr). Empty = all. "
@@ -310,6 +333,8 @@ def main() -> int:
     ap.add_argument("--no-build", action="store_true")
     a = ap.parse_args()
     _ceiling["words"] = a.max_words
+    _triage["on"] = not a.no_triage
+    _triage["min"] = a.triage_min
     if a.tiers:
         want = tuple(t.strip() for t in a.tiers.split(",") if t.strip() in T.ORDER)
         if want:
@@ -346,6 +371,7 @@ def main() -> int:
         f"asr={'on' if T.ASR_KEY else 'off'} · budget={a.limit}")
     log(f"  endpoint: {llm.endpoint()}")
     log(f"  文稿层: {', '.join(_tiers['allow'])}")
+    log(f"  选题闸门: {'及格线 ' + str(_triage['min']) if _triage['on'] else '关闭'}")
     log(f"scanning {len(srcs)} sources, {a.days}d lookback")
 
     cands = candidates(srcs, state, a.days, a.only)

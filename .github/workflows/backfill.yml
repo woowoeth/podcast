@@ -15,6 +15,9 @@ on:
       per_source:
         description: "单个信源最多取几集"
         default: "4"
+      triage_min:
+        description: "选题闸门及格线 0-10（建档从几千集里挑，建议 8）"
+        default: "8"
       only:
         description: "只补某一个信源 id（留空= 全部）"
         default: ""
@@ -57,6 +60,7 @@ jobs:
             --days "${{ github.event.inputs.days }}" \
             --limit "${{ github.event.inputs.limit }}" \
             --per-source "${{ github.event.inputs.per_source }}" \
+            --triage-min "${{ github.event.inputs.triage_min || '8' }}" \
             2>&1 | tee "${RUNNER_TEMP}/backfill.log"
       - name: Commit and push
         run: |

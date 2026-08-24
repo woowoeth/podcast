@@ -16,6 +16,9 @@ on:
       days:
         description: "回溯多少天"
         default: "10"
+      triage_min:
+        description: "选题闸门及格线 0-10（建档从几千集里挑，建议 8）"
+        default: "7"
       only:
         description: "只跑某一个信源 id（留空跑全部）"
         default: ""
@@ -70,6 +73,7 @@ jobs:
           # 实测拿不到字幕。依赖 YouTube 的信源（几档中文播客）由本机的
           # scripts/local-daily.sh 负责，那边是住宅 IP。
           python pipeline/run.py $ONLY --tiers feed,notes,page,asr \
+            --triage-min "${{ github.event.inputs.triage_min || '7' }}" \
             2>&1 | tee "${RUNNER_TEMP}/run.log"
 
       - name: Commit
