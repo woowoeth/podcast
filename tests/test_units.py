@@ -353,6 +353,15 @@ class Gates(unittest.TestCase):
         self.assertFalse(triage.passes({"score": 6.0}))
         self.assertTrue(triage.passes({"score": 8.0}))
 
+    def test_reasoning_models_are_detected(self):
+        # 推理模型的思考 token 算进 max_tokens；不识别就会拿到空 content，
+        # 而报错只会说"没返回 JSON"，查不到真因（实测 12/12 全挂）
+        from lib import llm
+        for m in ("deepseek-reasoner", "qwen3-235b-thinking", "o3", "glm-4.7-r1"):
+            self.assertTrue(llm._REASONING.search(m), m)
+        for m in ("deepseek-chat", "gpt-4o-mini", "claude-sonnet-5", "glm-4.7"):
+            self.assertIsNone(llm._REASONING.search(m), m)
+
     def test_cli_backend_accepts_a_model(self):
         # 加分角色模型时签名替换的锚点没匹配上，静默失败；CI 走 API 路径所以
         # 只在本机炸，10 篇补评全废

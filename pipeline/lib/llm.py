@@ -155,13 +155,22 @@ _TRANSIENT = re.compile(r"(529|overloaded|rate.?limit|too many requests|"
 _json_mode = [True]
 
 
+# 推理模型把思考 token 也算进 max_tokens。8000 的预算会被思考吃光，
+# content 返回空字符串——报错只会说"没返回 JSON"，根本查不到真因。
+_REASONING = re.compile(r"reason|-r1|thinking|\bo[134]\b", re.I)
+
+
 def _openai(system: str, user: str, max_tokens: int, temperature: float,
             model: str, *, json_mode: bool) -> str:
     url = (BASE or "https://api.openai.com/v1") + "/chat/completions"
+    if _REASONING.search(model):
+        max_tokens = max(max_tokens * 4, 16000)
     body = {"model": model, "max_tokens": max_tokens,
-            "temperature": temperature,
             "messages": [{"role": "system", "content": system},
                          {"role": "user", "content": user}]}
+    if not _REASONING.search(model):
+        # 推理模型普遍不接受 temperature（DeepSeek reasoner 直接忽略或报错）
+        body["temperature"] = temperature
     if json_mode:
         body["response_format"] = {"type": "json_object"}
     h = {"Authorization": "Bearer " + KEY}
@@ -179,7 +188,17 @@ def _openai(system: str, user: str, max_tokens: int, temperature: float,
             _json_mode[0] = False
             return _openai(system, user, max_tokens, temperature, model, json_mode=False)
         raise
-    return (r.get("choices") or [{}])[0].get("message", {}).get("content", "") or ""
+    msg = (r.get("choices") or [{}])[0].get("message", {}) or {}
+    out = msg.get("content") or ""
+    if not out.strip():
+        fin = (r.get("choices") or [{}])[0].get("finish_reason")
+        why = "内容为空"
+        if msg.get("reasoning_content"):
+            why = (f"内容为空，但 reasoning_content 有 "
+                   f"{len(msg['reasoning_content'])} 字符——推理把 max_tokens "
+                   f"({max_tokens}) 用光了，没留给答案")
+        raise RuntimeError(f"{model} {why}（finish_reason={fin}）")
+    return out
 
 
 def _cli(system: str, user: str, *, model: str = "", tries: int = 4) -> str:
