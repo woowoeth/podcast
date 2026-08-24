@@ -47,6 +47,38 @@ class Numbers(unittest.TestCase):
         for v in ["估值 2 万亿美元", "准确率 87%", "共 45 万用户"]:
             self.assertFalse(gate._num_in(v, self.HAY), v)
 
+    # 下面这些字符串是 Odd Lots《Nigerian Industrial Behemoth》逐字稿的原句。
+    # 这一集的四条数字曾被全部误删——口语里数字是念出来的，不是写出来的。
+    SPOKEN = ("africa as a continent now has one point five billion people. that's about "
+              "seven times more than after the second world war when africa had two hundred "
+              "and twenty million people. nigeria is about two hundred and fifty people per "
+              "square kilometer. china put twelve and a half billion dollars into "
+              "manufacturing in africa. india's grown at four point two percent year "
+              "average. an economy that grew for thirty years at ten percent a year.")
+
+    def test_decimals_are_spoken_not_written(self):
+        # "1.5" 是念成 "one point five" 的
+        self.assertTrue(gate._num_in("15亿 vs 2.2亿", self.SPOKEN))
+        self.assertTrue(gate._num_in("年均 4.2%", self.SPOKEN))
+
+    def test_hundreds_take_an_and(self):
+        # 只生成 "two hundred fifty" 会漏掉 "two hundred and fifty"
+        self.assertTrue(gate._num_in("约 250 人/平方公里", self.SPOKEN))
+
+    def test_fraction_idioms(self):
+        # 125亿 念成 "twelve and a half billion"
+        self.assertTrue(gate._num_in("125 亿美元", self.SPOKEN))
+
+    def test_float_noise_does_not_break_integer_scaling(self):
+        # 2.2 * 1e8 / 1e6 == 220.00000000000003，精确比较会把整数误判成小数，
+        # 于是 "two hundred and twenty million" 永远匹配不上
+        self.assertTrue(gate._num_in("2.2 亿人", self.SPOKEN))
+
+    def test_a_year_the_transcript_never_states_is_still_rejected(self):
+        # 逐字稿只说 "since india's reforms began"，没说 1991——
+        # 那是模型的外部知识，该删
+        self.assertFalse(gate._num_in("印度 1991 年以来年均 4.2%", self.SPOKEN))
+
     def test_qualitative_facts_need_no_number(self):
         self.assertTrue(gate._num_in("没有任何数字的定性判断", self.HAY))
 

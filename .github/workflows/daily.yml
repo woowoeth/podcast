@@ -1,13 +1,14 @@
 name: daily digest
 
+# 定时已停用：这个仓库目前没有可用的 LLM_API_KEY，开着 cron 只会每天红灯发邮件。
+# 生成改在本机跑（scripts/local-daily.sh + launchd，用已登录的 claude CLI，不需要 key）。
+#
+# 拿到任何 OpenAI 兼容的 key 之后（DeepSeek / 通义 / 智谱 / Kimi / Groq 都行，
+# 配 LLM_BASE_URL + LLM_MODEL + LLM_API_KEY 即可），把下面三行 cron 取消注释就恢复云端日更：
+#   - cron: "40 0 * * *"     # 北京 08:40
+#   - cron: "10 1 * * *"     # 补跑
+#   - cron: "40 12 * * *"    # 北京 20:40
 on:
-  schedule:
-    # 一天两班（北京时间约 08:40 / 20:40）。GitHub 的定时会漂，各配一个补跑档。
-    # 不要再加频次：同域的 skill 仓踩过坑——高频自动化会招来账号停用，
-    # 而且播客本身一天也出不了那么多值得写的东西。
-    - cron: "40 0 * * *"
-    - cron: "10 1 * * *"
-    - cron: "40 12 * * *"
   workflow_dispatch:
     inputs:
       limit:

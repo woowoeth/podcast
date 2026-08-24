@@ -77,46 +77,78 @@ _SCALES = ((10 ** 12, ("trillion", "万亿")), (10 ** 9, ("billion",)),
 _SCALE_RE = re.compile(r"(trillion|billion|million|thousand|万亿|亿|万|千|[kmb]\b)", re.I)
 
 
-def _en_under_1000(n: int) -> str:
+def _en_under_100(n: int) -> str:
     if n < 20:
         return _ONES[n]
+    t, r = divmod(n, 10)
+    return _TENS[t] + (" " + _ONES[r] if r else "")
+
+
+def _en_under_1000(n: int) -> set[str]:
+    """Both "two hundred fifty" and "two hundred and fifty" — transcribers write
+    the second one and the first spelling alone missed every such number."""
     if n < 100:
-        t, r = divmod(n, 10)
-        return _TENS[t] + (" " + _ONES[r] if r else "")
+        return {_en_under_100(n)}
     h, r = divmod(n, 100)
-    return _ONES[h] + " hundred" + (" " + _en_under_1000(r) if r else "")
+    head = _ONES[h] + " hundred"
+    if not r:
+        return {head}
+    tail = _en_under_100(r)
+    return {f"{head} {tail}", f"{head} and {tail}"}
 
 
 def _en_words(n: int) -> set[str]:
     """Plausible spoken renderings of an integer, including the year reading
-    ("twenty fourteen") that transcribers use and digit matching never catches."""
+    ("nineteen ninety one") that transcribers use."""
     out: set[str] = set()
     if n < 0 or n >= 10 ** 12:
         return out
     if n < 1000:
-        out.add(_en_under_1000(n))
+        out |= _en_under_1000(n)
     else:
         for scale, word in ((10 ** 9, "billion"), (10 ** 6, "million"), (10 ** 3, "thousand")):
             if n >= scale:
                 q, r = divmod(n, scale)
                 if q < 1000:
-                    head = _en_under_1000(q) + " " + word
-                    out.add(head)
-                    if r:
-                        out.add(head + " " + _en_words_first(r))
-                        out.add(head + " and " + _en_words_first(r))
+                    for qh in _en_under_1000(q):
+                        head = f"{qh} {word}"
+                        out.add(head)
+                        if r:
+                            for rt in _en_words(r):
+                                out.add(f"{head} {rt}")
+                                out.add(f"{head} and {rt}")
                 break
-    if 1100 <= n <= 2099:                       # "twenty fourteen", "nineteen ninety"
+    if 1100 <= n <= 2099:                       # "nineteen ninety one"
         hi, lo = divmod(n, 100)
-        if lo:
-            out.add(_en_under_1000(hi) + " " + _en_under_1000(lo))
-            if lo < 10:
-                out.add(_en_under_1000(hi) + " oh " + _ONES[lo])
+        for a in _en_under_1000(hi):
+            if lo:
+                for b in _en_under_1000(lo):
+                    out.add(f"{a} {b}")
+                if lo < 10:
+                    out.add(f"{a} oh {_ONES[lo]}")
     return out
 
 
-def _en_words_first(n: int) -> str:
-    return next(iter(_en_words(n)), str(n))
+_IDIOM = {0.5: "and a half", 0.25: "and a quarter", 0.75: "and three quarters"}
+
+
+def _en_decimal(val: float) -> set[str]:
+    """Decimals are spoken, not written: "one point five", "four point two",
+    and the fraction idioms "twelve and a half"."""
+    if val == int(val) or val < 0:
+        return set()
+    txt = f"{val:g}"
+    if "." not in txt:
+        return set()
+    ip, fp = txt.split(".", 1)
+    n = int(ip or 0)
+    heads = _en_words(n) or {_en_under_100(n)} if n < 100 else _en_words(n)
+    digits = " ".join(_ONES[int(d)] for d in fp if d.isdigit())
+    out = {f"{h} point {digits}" for h in heads if digits}
+    idiom = _IDIOM.get(round(val - n, 4))
+    if idiom:
+        out |= {f"{h} {idiom}" for h in heads}
+    return out
 
 
 def _cn_words(n: int) -> set[str]:
@@ -141,21 +173,29 @@ def _renderings(tok: str, scale: float) -> set[str]:
         if val == int(val):
             n = int(val)
             out |= {f"{n:,}", str(n)} | _en_words(n) | _cn_words(n)
+        else:
+            out |= _en_decimal(val)
     mag = val * scale
     # Restate the magnitude in each scale, so 1e11 matches "100 billion" too.
     for s, words in _SCALES:
         if mag < s:
             continue
         q = mag / s
+        # Float noise matters here: 2.2 * 1e8 / 1e6 is 220.00000000000003, and
+        # comparing that to int(q) exactly sent a whole integer down the decimal
+        # path, where "%g" printed "220" with no point and produced nothing. So
+        # snap to a tolerance before deciding integer vs decimal.
+        q = round(q, 6)
         if abs(q - round(q, 2)) > 1e-9 or q >= 1000:
             continue
-        q_txt = f"{q:g}"
+        whole = abs(q - round(q)) < 1e-6
+        q_txt = f"{round(q) if whole else q:g}"
         for w in words:
             sep = "" if re.match(r"[\u4e00-\u9fff]", w) else " "
             out.add(q_txt + sep + w)
-            if q == int(q):
-                for wd in _en_words(int(q)) | _cn_words(int(q)):
-                    out.add(wd + sep + w)
+            for wd in (_en_words(round(q)) | _cn_words(round(q)) if whole
+                       else _en_decimal(q)):
+                out.add(wd + sep + w)
     return {o for o in out if len(o) >= 1}
 
 

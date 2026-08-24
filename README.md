@@ -51,6 +51,42 @@
 
 同一集经常同时出现在 RSS 和节目的 YouTube 频道。指纹 = 归一化标题 + 时长按 2 分钟分桶，命中就跳过。（对照站点没做这个，同一集出现过两次。）
 
+## 怎么自动更新
+
+有两条路，看你能不能拿到 key。
+
+**A · 本机定时（不需要任何 key，当前采用）**
+
+用本机已登录的 `claude` CLI 生成。不产生 API 账单，但会花 Claude 订阅额度，
+所以刻意压小：每天 2 篇、模型 sonnet、跳过超过 2 万词的超长集，约 5 万
+input tokens/天。
+
+```bash
+cp scripts/com.ourword.podcast.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.ourword.podcast.plist
+```
+
+每天 10:30 自己跑完整链路并推送。日志在 `.cache/logs/`。停掉用 `launchctl unload`。
+代价：机器睡着或断网时不跑（launchd 会在唤醒后补跑）。
+
+**B · GitHub Actions 云端日更（需要一个 key，当前定时已停用）**
+
+`.github/workflows/daily.yml` 的 cron 已注释掉——没有可用 key 时开着只会天天
+红灯。拿到 key 后取消注释即可。**不限 Anthropic**：任何 OpenAI 兼容端点都行，
+配三个 secret 就跑：
+
+| 供应商 | `LLM_BASE_URL` | `LLM_MODEL` 示例 |
+|---|---|---|
+| Anthropic | 留空 | `claude-opus-5` |
+| DeepSeek | `https://api.deepseek.com/v1` | `deepseek-chat` |
+| 阿里云百炼 | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-plus` |
+| 智谱 | `https://open.bigmodel.cn/api/paas/v4` | `glm-4.6` |
+| Moonshot | `https://api.moonshot.cn/v1` | `kimi-k2-0905-preview` |
+| Groq | `https://api.groq.com/openai/v1` | 见其模型列表 |
+
+配完先跑 `python3 pipeline/whoami.py` 验证凭证形态，再跑 `python3 pipeline/selftest.py`
+验证全链路。
+
 ## 架构
 
 纯静态站 + GitHub Actions 定时任务。Python 只用标准库（`certifi` / `truststore` / `yt-dlp` 是可选增强）。
