@@ -81,6 +81,7 @@ data/
 
 ```bash
 python3 -m pip install certifi truststore yt-dlp
+python3 pipeline/selftest.py                    # 先自检：信源、模型、转写、取稿全链路
 python3 pipeline/resolve_sources.py --check     # 体检信源，顺手修好迁移的 feed
 python3 pipeline/run.py --dry-run --days 4      # 只到取稿，不调模型
 python3 pipeline/run.py --limit 3               # 真跑三篇
@@ -98,7 +99,25 @@ python3 pipeline/build.py                       # 只重建站点
 | `TRANSCRIBE_API_KEY` | 第 5 层音频转写（Whisper 兼容） | 第 5 层关闭，只靠前四层 |
 | `TRANSCRIBE_BASE_URL` / `TRANSCRIBE_MODEL` | 默认 Groq `whisper-large-v3-turbo` | — |
 | `MAX_NEW` / `LOOKBACK_DAYS` | 每次发布上限 / 回溯天数 | 8 / 10 |
+| `JOBS` | 并发处理几集 | 3（claude CLI 后端会自动压到 1——多个 headless 会话并跑会直接退出） |
 | `PODCAST_BASE` / `PODCAST_SITE` | 部署路径与域名 | `/podcast` · `https://ourword.ai` |
+
+配完 secrets 跑一次 `python3 pipeline/selftest.py`，它会分别报"阻塞"和"降级"：
+阻塞项不修定时任务必失败；降级项能跑，但会损失覆盖率。**没有
+`TRANSCRIBE_API_KEY` 时，纯音频节目（全部中文播客、Lenny's、Dwarkesh、
+Invest Like the Best）拿不到文稿，按规矩就不会上站**——这不是 bug，是那条
+"验不过就不发"的规则在起作用。
+
+## 测试
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+38 个用例，只覆盖"决定什么能发"的纯函数，不碰网络和模型。用例都是开发中真实
+踩到的坑：口语数字（"twenty fourteen"）被当成未验证而删掉、YouTube 滚动字幕
+把每句说两遍、章节表冒充逐字稿、同一集算出两个指纹、185 词的一分钟视频被做成
+六条要点的深读。
 
 ## 版权
 
