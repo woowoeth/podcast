@@ -269,13 +269,20 @@ def check(d: dict, tr: dict, ep: dict) -> tuple[bool, list[str], dict]:
         fatal.append(f"only {len(d['points'])} usable points (need {MIN_POINTS})")
     if len(d["quotes"]) < MIN_QUOTES:
         fatal.append(f"only {len(d['quotes'])} verifiable quotes (need {MIN_QUOTES})")
-    distinct = len({p["t"] for p in d["points"]})
-    if len(d["points"]) >= MIN_POINTS and distinct < MIN_DISTINCT_TS:
-        fatal.append(f"points share only {distinct} distinct timestamp(s) — not anchored")
-    elif dur and dur > 600 and d["points"]:
-        span = max(p["t"] for p in d["points"]) - min(p["t"] for p in d["points"])
-        if span < dur * 0.2:
-            fatal.append(f"points span {span}s of a {dur}s episode — one passage, not the episode")
+    # Only demand real spread when the transcript actually carries real times.
+    # An essay read aloud has no cue timings, so its anchors are estimated from
+    # position in the text — requiring four distinct ones would reject a
+    # perfectly good episode for a property it cannot have.
+    timed = bool(tr.get("timed"))
+    if timed:
+        distinct = len({p["t"] for p in d["points"]})
+        if len(d["points"]) >= MIN_POINTS and distinct < MIN_DISTINCT_TS:
+            fatal.append(f"points share only {distinct} distinct timestamp(s) — not anchored")
+        elif dur and dur > 600 and d["points"]:
+            span = max(p["t"] for p in d["points"]) - min(p["t"] for p in d["points"])
+            if span < dur * 0.2:
+                fatal.append(f"points span {span}s of a {dur}s episode — "
+                             f"one passage, not the episode")
     if len(d.get("title", "")) < 6:
         fatal.append("title missing or too short")
     if len(d.get("dek", "")) < 20:
@@ -288,6 +295,7 @@ def check(d: dict, tr: dict, ep: dict) -> tuple[bool, list[str], dict]:
         "words": tr.get("words"), "wpm": tr.get("wpm"), "timed": tr.get("timed"),
         "verified_quotes": len(d["quotes"]), "grounded_facts": len(d["facts"]),
         "points": len(d["points"]), "pruned": len(problems),
+        "approx_timestamps": not tr.get("timed"),
     }
     return (not fatal), (fatal + problems), d
 

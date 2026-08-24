@@ -281,6 +281,21 @@ class Anchoring(unittest.TestCase):
         self.assertFalse(ok)
         self.assertTrue(any("one passage" in p for p in probs), probs)
 
+    def test_an_untimed_transcript_is_exempt_from_the_spread_rule(self):
+        # A newsletter read aloud has no cue timings; its anchors are estimated
+        # from position in the text. Demanding spread would reject it for a
+        # property the source cannot provide.
+        tr = dict(self._tr(), timed=False)
+        ok, probs, out = gate.check(self._digest([0] * 6), tr, {"duration": 900})
+        self.assertTrue(ok, probs)
+        self.assertTrue(out["quality"]["approx_timestamps"])
+
+    def test_a_timed_transcript_records_exact_timestamps(self):
+        ok, _, out = gate.check(self._digest([60, 600, 1200, 1800, 2400, 3000]),
+                                self._tr(), {"duration": 3600})
+        self.assertTrue(ok)
+        self.assertFalse(out["quality"]["approx_timestamps"])
+
     def test_points_spread_across_a_long_episode_pass(self):
         ok, probs, _ = gate.check(self._digest([60, 600, 1200, 1800, 2400, 3000]),
                                   self._tr(), {"duration": 3600})

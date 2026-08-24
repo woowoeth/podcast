@@ -278,7 +278,7 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
 
 {f'<section class="section"><div class="why">{e(d.get("why"))}</div></section>' if d.get('why') else ''}
 
-<section class="section"><h3>核心论点 · 点时间戳可跳到原声</h3>{points}</section>
+<section class="section"><h3>核心论点 · {'时间戳为按文稿位置估算' if q.get('approx_timestamps') else '点时间戳可跳到原声'}</h3>{points}</section>
 {f'<section class="section"><h3>原话 · 已逐字校验</h3>{quotes}</section>' if quotes else ''}
 {facts}
 {terms}
@@ -309,7 +309,8 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
 <div class="row"><span>逐字校验金句</span><span>{q.get('verified_quotes', 0)} 条</span></div>
 <div class="row"><span>回溯校验数字</span><span>{q.get('grounded_facts', 0)} 条</span></div>
 {f'<div class="row"><span>质检剔除</span><span>{q["pruned"]} 处</span></div>' if q.get('pruned') else ''}
-<p class="note">金句在逐字稿里逐字比对过，数字回原文核对过；对不上的当场删掉，不上站。</p>
+<p class="note">金句在逐字稿里逐字比对过，数字回原文核对过；对不上的当场删掉，不上站。
+{'这一集的文稿没有原始时间码，页面上的时间戳是按文稿位置估算的，只作粗略定位。' if q.get('approx_timestamps') else ''}</p>
 </div>
 </aside>
 </div></main>

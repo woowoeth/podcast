@@ -296,30 +296,49 @@ def from_page(ep: dict, lang: str) -> dict | None:
     if ep.get("link"):
         urls.append(ep["link"])
     dur_min = max((ep.get("duration") or 0) / 60, 1)
-    for u in urls[:2]:
+    lo, hi = MIN_WPM.get(lang, 70), MAX_WPM.get(lang, 300)
+    for u in dict.fromkeys(urls):
         try:
             html = net.get_text(u, timeout=60, cache_ttl=86400)
         except Exception:
             continue
-        body = strip_html(_main_block(html))
-        wpm = _count(body, lang) / dur_min
-        if not (MIN_WPM.get(lang, 70) <= wpm <= MAX_WPM.get(lang, 300)):
+        # Try every plausible container AND the whole document, then keep the
+        # densest one that still looks like speech. Picking the first matching
+        # <article> loses Substack transcripts, where <article> is a teaser card
+        # and the 26k-word transcript sits outside it.
+        best, best_words = None, 0
+        for cand in _candidate_blocks(html):
+            body = strip_html(cand)
+            words = _count(body, lang)
+            if words <= best_words:
+                continue
+            if not (lo <= words / dur_min <= hi):
+                continue
+            if not _is_this_episode(body, ep.get("title", "")):
+                continue
+            best, best_words = body, words
+        if best is None:
             continue
-        if not _is_this_episode(body, ep.get("title", "")):
-            log("    page tier: fetched document is not this episode — skipped")
-            continue
-        segs = _timestamped_notes(body) or _plain_to_segs(body, ep.get("duration"))
+        segs = _timestamped_notes(best) or _plain_to_segs(best, ep.get("duration"))
         return {"segments": segs, "source": "page", "detail": "show page", "url": u}
     return None
 
 
-def _main_block(html: str) -> str:
-    for pat in (r"(?is)<article\b.*?</article>", r"(?is)<main\b.*?</main>",
-                r'(?is)<div[^>]+class="[^"]*(?:transcript|post-content|entry-content)[^"]*".*?</div>'):
-        m = re.search(pat, html)
-        if m and len(m.group(0)) > 3000:
-            return m.group(0)
-    return html
+_BLOCK_PATS = (
+    r'(?is)<div[^>]+class="[^"]*(?:transcript|post-content|entry-content|'
+    r'available-content|body markup)[^"]*".*?</div>',
+    r"(?is)<article\b.*?</article>",
+    r"(?is)<main\b.*?</main>",
+)
+
+
+def _candidate_blocks(html: str):
+    """Containers worth trying, densest-looking first, then the full document."""
+    for pat in _BLOCK_PATS:
+        for m in re.finditer(pat, html):
+            if len(m.group(0)) > 3000:
+                yield m.group(0)
+    yield html
 
 
 # ------------------------------------------------------------ tier 4: youtube
