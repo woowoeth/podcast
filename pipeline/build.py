@@ -24,10 +24,7 @@ DATA = ROOT / "data"
 BASE = os.environ.get("PODCAST_BASE", "/podcast").rstrip("/")
 SITE = os.environ.get("PODCAST_SITE", "https://ourword.ai") + BASE
 NAME = "原声"
-# slogan 要一句话干两件事：给一个来的理由（省时间），并解释站名——
-# 「原声」就是原始录音，而这里每一句都留着跳回去的路。「跳回」不是修辞，
-# 是页面上真实发生的事：点时间戳直接跳到那一秒。
-TAGLINE = "省下两小时，每句都能跳回原声"
+TAGLINE = "世界太吵，来原声听播客"
 BLURB = ("每天从 49 档中英文播客里挑出值得记住的判断。要点和金句都带时间戳，点一下"
          "就回到它在原声里被说出的那一秒；金句逐字校验过、数字回原文核对过——"
          "查不到出处的，一律不上站。")
@@ -148,7 +145,7 @@ def card(ep: dict, *, hero: bool) -> str:
 <p class="dek">{e(d.get('dek'))}</p>
 <div class="card-foot">
 <span class="badge"><b>{q.get('points', 0)}</b> 要点</span>
-<span class="badge"><b>{q.get('verified_quotes', 0)}</b> 校验金句</span>
+<span class="badge"><b>{q.get('verified_quotes', 0)}</b> 金句</span>
 {tags}
 </div></div></a>"""
 
@@ -193,7 +190,8 @@ def index_page(eps: list[dict], srcs: dict) -> str:
                          f'{CAT_LABEL[c]}<span class="n">{counts[c]}</span></button>')
     cards = "\n".join(card(x, hero=(i == 0)) for i, x in enumerate(eps))
     n_src = len(srcs.get("sources") or [])
-    return (head(f"{NAME} — {TAGLINE}", BLURB, path="/",
+    # TAGLINE 里已经有"原声"，再前缀 NAME 会让标题出现两次品牌名
+    return (head(TAGLINE, BLURB, path="/",
                  image=(eps[0].get("image") if eps else ""))
             + masthead(len(eps), home=True)
             + f"""
