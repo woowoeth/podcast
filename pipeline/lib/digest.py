@@ -16,8 +16,20 @@ import re
 from . import llm
 from .util import hhmmss, log, squeeze
 
-MAX_CHARS = int(__import__("os").environ.get("DIGEST_MAX_CHARS", "150000"))
-CHUNK_CHARS = 60000
+def _default_max_chars() -> int:
+    """How much transcript fits in one call.
+
+    Anthropic's current models take 1M tokens, so a whole 35k-word transcript
+    fits with room to spare. DeepSeek/Qwen/GLM are 64-128K, where the same
+    transcript would overflow — so those providers hand long episodes to the
+    map-reduce path instead of failing at the API.
+    """
+    from . import llm
+    return 150000 if llm.provider() in ("anthropic", "claude-cli") else 80000
+
+
+MAX_CHARS = int(__import__("os").environ.get("DIGEST_MAX_CHARS", "0")) or _default_max_chars()
+CHUNK_CHARS = int(__import__("os").environ.get("DIGEST_CHUNK_CHARS", "0")) or min(MAX_CHARS // 2, 60000)
 
 SYSTEM = """你是一个中文科技播客深读编辑。读者是中国的创业者、投资人和工程师：时间很贵，英文能读但不想读两万字逐字稿，最想要的是"这集里有什么我不知道、且能改变判断的东西"。
 

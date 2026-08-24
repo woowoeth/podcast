@@ -109,7 +109,7 @@ def safe_jobs() -> int:
 
 
 def call(system: str, user: str, *, max_tokens: int = 6000,
-         temperature: float = 0.3) -> str:
+         temperature: float = 0.3, want_json: bool = False) -> str:
     p = provider()
     if p == "anthropic":
         base = BASE if "anthropic" in BASE else "https://api.anthropic.com"
@@ -120,13 +120,8 @@ def call(system: str, user: str, *, max_tokens: int = 6000,
             anthropic_headers()))
         return "".join(b.get("text", "") for b in r.get("content", []))
     if p == "openai":
-        r = _guard(lambda: net.post_json((BASE or "https://api.openai.com/v1") + "/chat/completions", {
-            "model": model_name(), "max_tokens": max_tokens,
-            "temperature": temperature,
-            "messages": [{"role": "system", "content": system},
-                         {"role": "user", "content": user}]},
-            {"Authorization": "Bearer " + KEY}))
-        return (r.get("choices") or [{}])[0].get("message", {}).get("content", "") or ""
+        return _openai(system, user, max_tokens, temperature,
+                       json_mode=want_json and _json_mode[0])
     if p == "claude-cli":
         return _cli(system, user)
     raise RuntimeError("no LLM backend: set LLM_API_KEY or install the claude CLI")
@@ -137,6 +132,35 @@ def call(system: str, user: str, *, max_tokens: int = 6000,
 # same way post_json() does for the HTTP backends.
 _TRANSIENT = re.compile(r"(529|overloaded|rate.?limit|too many requests|"
                         r"502|503|504|timed? ?out|connection reset)", re.I)
+
+
+# DeepSeek, Qwen, GLM and friends support response_format=json_object, which
+# removes most "model did not return JSON" retries. A few OpenAI-compatible
+# proxies reject the field, so the first rejection turns it off for the process
+# rather than failing the episode.
+_json_mode = [True]
+
+
+def _openai(system: str, user: str, max_tokens: int, temperature: float,
+            *, json_mode: bool) -> str:
+    url = (BASE or "https://api.openai.com/v1") + "/chat/completions"
+    body = {"model": model_name(), "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": [{"role": "system", "content": system},
+                         {"role": "user", "content": user}]}
+    if json_mode:
+        body["response_format"] = {"type": "json_object"}
+    try:
+        r = _guard(lambda: net.post_json(url, body, {"Authorization": "Bearer " + KEY}))
+    except AuthError:
+        raise
+    except Exception as ex:
+        if json_mode and re.search(r"response_format|json_object|400", str(ex), re.I):
+            log("    这个端点不接受 response_format，本次起改用纯提示词约束 JSON")
+            _json_mode[0] = False
+            return _openai(system, user, max_tokens, temperature, json_mode=False)
+        raise
+    return (r.get("choices") or [{}])[0].get("message", {}).get("content", "") or ""
 
 
 def _cli(system: str, user: str, *, tries: int = 4) -> str:
@@ -216,7 +240,7 @@ def call_json(system: str, user: str, *, retries: int = 2, **kw) -> dict:
     prompt = user
     last = ""
     for attempt in range(retries + 1):
-        raw = call(system + JSON_RULE, prompt, **kw)
+        raw = call(system + JSON_RULE, prompt, want_json=True, **kw)
         for cand in _candidates(raw):
             try:
                 v = json.loads(cand)
