@@ -269,9 +269,22 @@ def main() -> int:
                     help="max episodes from any one show in this run")
     ap.add_argument("--jobs", type=int, default=int(os.environ.get("JOBS", "3")),
                     help="how many episodes to process concurrently")
+    ap.add_argument("--spend-subscription", action="store_true",
+                    help="confirm that running on the local claude CLI may spend your "
+                         "Claude subscription allowance (required above --limit 3)")
     ap.add_argument("--dry-run", action="store_true", help="stop before any model call")
     ap.add_argument("--no-build", action="store_true")
     a = ap.parse_args()
+
+    if not a.dry_run and llm.provider() == "claude-cli" and not a.spend_subscription:
+        est = a.limit * 22
+        log("这一轮会用本机 claude CLI 生成，也就是花你的 Claude 订阅额度，不是 API 账单。")
+        log(f"  每集要把整份逐字稿喂进模型（1-3.6 万词），{a.limit} 集大约 {est}k input tokens。")
+        log("  确认要花订阅额度就加 --spend-subscription；不想花就配 LLM_API_KEY 走 API。")
+        if a.limit > 3:
+            log(f"\n拒绝执行：--limit {a.limit} 超过 3，必须显式加 --spend-subscription。")
+            return 3
+        log("  （limit ≤ 3，继续。）\n")
 
     if not a.dry_run and not llm.available():
         log("no LLM backend configured — nothing can be generated.\n"

@@ -88,13 +88,18 @@ python3 pipeline/run.py --limit 3               # 真跑三篇
 python3 pipeline/build.py                       # 只重建站点
 ```
 
-没有配任何 API key 时，`lib/llm.py` 会自动改用本机已登录的 `claude` CLI（`claude -p`），所以本地跑是零成本的。
+没有配任何 API key 时，`lib/llm.py` 会自动改用本机已登录的 `claude` CLI（`claude -p`）。
+
+**这不是零成本。** 不产生 API 账单，但**会花掉你的 Claude 订阅额度**，而且花得很快：
+每集要把整份逐字稿（1–3.6 万词）塞进 prompt，超长节目还要按分片各喂一遍。所以
+`--limit` 超过 3 时必须显式加 `--spend-subscription`，否则拒绝执行。批量建档请配
+`LLM_API_KEY` 走 API。
 
 ## 环境变量 / Secrets
 
 | 变量 | 作用 | 不设会怎样 |
 |---|---|---|
-| `LLM_API_KEY` | `sk-ant-*` 走 Anthropic Messages API，其他走 OpenAI 兼容 `/chat/completions` | 回退到本机 `claude` CLI |
+| `LLM_API_KEY` | `sk-ant-*` 走 Anthropic Messages API，其他走 OpenAI 兼容 `/chat/completions` | 回退到本机 `claude` CLI，**花订阅额度而不是 API 账单** |
 | `LLM_BASE_URL` / `LLM_MODEL` | 覆盖端点与模型 | Anthropic 默认 `claude-opus-5` |
 | `TRANSCRIBE_API_KEY` | 第 5 层音频转写（Whisper 兼容） | 第 5 层关闭，只靠前四层 |
 | `TRANSCRIBE_BASE_URL` / `TRANSCRIBE_MODEL` | 默认 Groq `whisper-large-v3-turbo` | — |

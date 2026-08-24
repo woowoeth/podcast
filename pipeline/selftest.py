@@ -60,7 +60,8 @@ def check_model() -> None:
         fail("没有任何生成后端：CI 里要设 LLM_API_KEY；本机装 claude CLI 并登录即可")
         return
     log(OK + f"后端 {p}，模型 {llm.model_name()}"
-        + ("（本机 CLI，不消耗 API 额度）" if p == "claude-cli" else ""))
+        + ("（本机 CLI：不产生 API 账单，但会花你的 Claude 订阅额度）"
+           if p == "claude-cli" else ""))
     if p == "claude-cli":
         log("       注意：GitHub Actions 的 runner 上没有 claude CLI，"
             "定时任务必须配 LLM_API_KEY")
