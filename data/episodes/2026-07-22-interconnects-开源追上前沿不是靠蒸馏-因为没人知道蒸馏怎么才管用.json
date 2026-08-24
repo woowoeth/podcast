@@ -1,0 +1,189 @@
+{
+ "id": "interconnects-7d7f0c09d3",
+ "slug": "2026-07-22-interconnects-开源追上前沿不是靠蒸馏-因为没人知道蒸馏怎么才管用",
+ "fingerprint": "5f35322b92ba4bfe",
+ "source_id": "interconnects",
+ "source": "Interconnects",
+ "source_zh": "Interconnects",
+ "cat": "ai",
+ "tier": 1,
+ "lang": "en",
+ "title_original": "Open models recap: more on Kimi K3, Qwen 3.8, Xi's WAIC speech, distillation, the open-closed gap, and what's next",
+ "published": "2026-07-22T14:09:04Z",
+ "duration": 2945,
+ "audio": "https://pscrb.fm/rss/p/prfx.byspotify.com/e/claritaspod.com/measure/api.substack.com/feed/podcast/207969620/1d5fdee9def25ada35a283e20b098ba9.mp3",
+ "link": "https://www.interconnects.ai/p/open-models-recap-more-on-kimi-k3",
+ "image": "https://substackcdn.com/feed/podcast/48206/post/207969620/4bba19be6ee947d2dc101a9d656ef582.jpg",
+ "youtube_id": "XsBy8UGIY-I",
+ "transcript_url": "https://www.interconnects.ai/p/open-models-recap-more-on-kimi-k3",
+ "digest": {
+  "title": "开源追上前沿不是靠蒸馏，因为没人知道蒸馏怎么才管用",
+  "dek": "Nathan Lambert 逐条拆掉「中国开源模型只是蒸馏出来的」这个叙事：RL 阶段用 Fable/GPT 5.6 当裁判在成本上根本跑不通，而即便白送最强模型的 reasoning traces，学界至今不知道怎么把它变成能力提升。",
+  "why": "这集给出的是判断依据而不是结论：蒸馏的成本账、中国实验室的资本效率差、以及禁开源权重反而削弱美国防守方的具体案例。",
+  "who": "在做 agentic coding 工具选型、评估开源权重模型能否替换 Claude/Codex，或需要判断中美开源格局的创业者与后训练工程师。",
+  "skip": "19:47-24:08 中国厂商逐个点评，信息密度偏低。",
+  "points": [
+   {
+    "t": 444,
+    "h": "Kimi 当主 agent，GLM 当子 agent",
+    "body": "Florian 实际用的分层很具体。Kimi K3 写的代码明显更简单、可读性更好，但会漏边缘情况——他的定位是 GPT 5.4 到 5.5 的水平，做法是先让 Kimi 写，再让 Codex 过一遍捡漏。GLM 5.2 是 Sonnet 级别，胜在快：走内部端点或每秒两三百 token 的 API，比在 Codex 里挑模型、挑 reasoning effort、挑 fast 更省事，清理类和体力活直接交给它。合起来就是 Kimi K3 做主 agent、GLM 做子 agent。Kimi 的短板是墙上时间——服务器在中国加 API 挤爆，比 GPT 慢很多，但没到不可用。",
+    "spk": "Florian Brand"
+   },
+   {
+    "t": 624,
+    "h": "模型变大反而拖慢开源扩散",
+    "body": "这里有明确分歧。Nathan 认为 Kimi K3 这个量级改变了游戏规则：过去中国模型 RL 跑完到开权重只隔几小时到一周，生态立刻知道怎么接；现在光加载权重就要一整个 node 的 B300，基础设施抬升会额外吃掉一个月，闭源实验室是在发布前把这些活干完的，所以时间差被人为操纵了。而且 Kimi API 现在完全被挤爆，模型并没有在扩散。Florian 不同意：开源生态过去几个月专业化了很多，首发就带推理伙伴、vLLM patch 提前几周就出，day-one 可用性会还行，随后是各家比拼速度的军备竞赛。",
+    "spk": "Nathan Lambert"
+   },
+   {
+    "t": 837,
+    "h": "资本效率差可能是结构性的",
+    "body": "Nathan 承认自己去年的判断错了：他原以为训练的资本密集度会把开源和闭源的差距拉大，结果方向相反。他现在倾向于认为中国实验室在把资本转成算力、数据、人才这条链上更高效——如果下一代模型 Anthropic 要花 100 亿美元而 Kimi 只要 40 亿，随着迭代轮数增加这会是巨大的差异。但成因不清楚：可能是教育体系产出的人才更对口，可能是算力人力成本本身低，可能是补贴。Kimi 工程师 Big Eagle 的回应给了第四种解释——他们不是在推前沿，只是在追赶，目标范围本身就便宜。",
+    "spk": "Nathan Lambert"
+   },
+   {
+    "t": 1846,
+    "h": "前沿正在裂成两层",
+    "body": "Florian 的基准判断是能力曲线正在分叉。编码这类任务上，开源和闭源的当前前沿都已经「够用」，继续提升的边际价值在下降。而真正的前沿——找新的数学证明、找新药、发明新东西——是另一种生物，会在相当长时间里被最前沿垄断。他的推论是这块会越来越封死：Mythos 在网络安全和生物方向已经不对所有人开放，如果 Anthropic 真在内部组建药物研发实验室，那连外部合作方都拿不到。结果是真前沿对所有人不可及，而近前沿能力持续商品化。",
+    "spk": "Florian Brand"
+   },
+   {
+    "t": 1929,
+    "h": "guardrail 把防守方逼去用 GLM",
+    "body": "Hugging Face 报告他们被一个 agent 攻击后想复盘攻击数据，用 GPT 和 Claude 都被 guardrail 拦下来，最后只能改用 GLM——一个能力更弱但对这类防御性分析没有拦阻的模型。Florian 把这称为一个糟糕的状态：美国公司因为闭源前沿对自己不可用，反而要依赖更弱的模型。Nathan 接过去把它变成反禁令论证的核心：如果全世界都能用这些开源权重、只有美国公司被禁，那就是在结构上让防守方停止变强、而攻击方不受限制——这才是让 cyber 风险从假变真的路径。",
+    "spk": "Florian Brand"
+   },
+   {
+    "t": 2201,
+    "h": "蒸馏在 RL 阶段算不过账",
+    "body": "Ben Thompson 在《Who's afraid of Chinese models》里主张蒸馏随着 RL 占比上升而变得更重要——理由是中国实验室可能拿 Fable、GPT 5.6 当 RL 里的打分模型，去评判 rollout 轨迹的每一步。Nathan 的反驳是纯算术：一次大规模 RL run 是数百万到数千万条 rollout，Thinking Machines 公布的最终 RL run 就有两千到四千万条。把这个量级挂到外部 API 上不只是贵到荒谬，慢也会变成时间瓶颈，而且未必比自己训的定制 grader 效果更好。",
+    "spk": "Nathan Lambert"
+   },
+   {
+    "t": 2448,
+    "h": "拿到最强 traces 也不会用",
+    "body": "比成本更狠的一层：即便蒸馏数据免费到手，也没人知道怎么用。Open Thoughts 3 和 Open Thoughts Agent 这条 scaling reasoning SFT 的主线工作，反复得到的结论都不是「你领域内最强的模型就是最好的老师」——当下最强的开源 SFT 数据集还建立在 QwQ-32B 这种老 reasoning 模型上。为什么不能直接用 GLM 5.2 生成 completions 做 SFT 把模型顶上去？不知道。Nathan 的猜测是 mid-training 和 reasoning SFT 纠缠太深，要一起重做。他的原话是：给他一个魔法 API 吐出 Claude/Gemini 的 reasoning traces，他也不确定拿去微调 OLMo 会不会让 OLMo 更聪明。",
+    "spk": "Nathan Lambert"
+   },
+   {
+    "t": 2738,
+    "h": "年底可能首次有美国公司进 top cluster",
+    "body": "两人重做了去年的 tier list。前沿是 Kimi 和 Zhipu，DeepSeek 和 Qwen 算 close competitor。Florian 押 MiniMax 年底会有惊喜——不是 M3 那个尺寸，而是万亿参数以上的大模型；他的 wild card 是 Tencent，换了新领导层，Hunyuan 这次改成 Apache 许可（此前的自定义许可把 EU、英国、韩国全排除在外），250B 左右已经很能打。美国这边，Nathan 猜到 11 月底大概会有一家（Nvidia、Thinking Machines 或 Reflection）挤进这个大致 top five 的集群，那会是很久以来的第一次。Florian 的理由不同：Nemotron 和 Thinking Machines 的价值在于当可微调的底座，而不是像前沿模型那样直接用。",
+    "spk": "Florian Brand"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 444,
+    "spk": "Florian Brand",
+    "raw": "the main thing I found with Kimi is its code is a lot simpler uh which makes it way more readable uh but it misses some things that Codex just or like we’re talking 56, 55 and especially 54 would be on those levels. So, I would say that Kimi K3 is like 54-55 level for these kind of tasks.",
+    "zh": "我在 Kimi 上发现的主要一点是，它的代码简单得多，因此可读性好得多，但它会漏掉一些 Codex 能抓到的东西——大概是 5.6、5.5、尤其 5.4 那个水平。所以我会说，在这类任务上 Kimi K3 相当于 5.4 到 5.5 的水平。"
+   },
+   {
+    "t": 837,
+    "spk": "Nathan Lambert",
+    "raw": "And if a next generation model costs $10 billion for Anthropic but only $4 billion for Kimi like this this is like could be very huge but it’s not clear why this is the case.",
+    "zh": "如果下一代模型对 Anthropic 来说要花 100 亿美元，而对 Kimi 只要 40 亿，这可能是极其巨大的差异——但为什么会这样，并不清楚。"
+   },
+   {
+    "t": 1929,
+    "spk": "Florian Brand",
+    "raw": "So they had to use GLM, a lesser capable model, but it had no guardrails for this kind of defensive action. … which is a horrible state to be in that we have US-based companies now relying on lesser models because the closed frontier is inaccessible to them.",
+    "zh": "所以他们只能用 GLM——一个能力更弱的模型，但它对这类防御性操作没有设护栏。……这是一个糟糕的处境：美国公司现在因为闭源前沿对自己不可用，只能依赖更弱的模型。"
+   },
+   {
+    "t": 2201,
+    "spk": "Nathan Lambert",
+    "raw": "The problem is that big RL runs are millions and millions of rollouts. I think Thinking Machines blog post had like 20 to 40 million or something for their final RL run. So to do this on an API like Fable or GPT 5.6 would be insanely expensive",
+    "zh": "问题在于大规模 RL run 是数百万上千万条 rollout。我记得 Thinking Machines 那篇博文里，最终 RL run 大概是两千万到四千万条。所以要在 Fable 或 GPT 5.6 这种 API 上做这件事，成本会贵到荒谬。"
+   },
+   {
+    "t": 2519,
+    "spk": "Nathan Lambert",
+    "raw": "if I had a magical API that gave me reasoning traces from Claude/Gemini. I actually don’t know if me like fine-tuning an OLMo model on that would make OLMo smarter. It’s one of the most wild unanswered research questions.",
+    "zh": "假如我有一个魔法 API，能吐出 Claude 或 Gemini 的 reasoning traces——我其实不知道拿它去微调一个 OLMo 模型会不会让 OLMo 更聪明。这是最离谱的未解研究问题之一。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "下一代模型训练成本对比",
+    "v": "Anthropic 约 100 亿美元 vs Kimi 约 40 亿美元",
+    "t": 837
+   },
+   {
+    "k": "Kimi K3 加载权重的硬件门槛",
+    "v": "一个 node 的 B300",
+    "t": 243
+   },
+   {
+    "k": "Kimi K3 最高档订阅（$200 计划）上下文",
+    "v": "100 万 token",
+    "t": 278
+   },
+   {
+    "k": "Thinking Machines Inkling 参数量",
+    "v": "1 万亿（总参数）",
+    "t": 1512
+   },
+   {
+    "k": "中国实验室研究团队规模",
+    "v": "200-300 人，多为 25 岁上下",
+    "t": 921
+   }
+  ],
+  "terms": [
+   {
+    "term": "distillation",
+    "zh": "蒸馏",
+    "def": "用更强模型的输出（尤其推理轨迹）当训练数据，喂给自己的模型。"
+   },
+   {
+    "term": "rollout",
+    "zh": "轨迹采样",
+    "def": "RL 训练中模型完整跑一遍任务产生的一条行为轨迹。"
+   },
+   {
+    "term": "grading model / judge",
+    "zh": "打分模型",
+    "def": "RL 中负责评判 rollout 各步是否达成奖励的模型。"
+   },
+   {
+    "term": "mid-training",
+    "zh": "中期训练",
+    "def": "预训练与 SFT 之间的阶段，Nathan 认为它与 reasoning SFT 难以分割。"
+   },
+   {
+    "term": "shadow ban",
+    "zh": "影子禁令",
+    "def": "不明确立法，用法律行动或惩罚的威胁事实上禁止使用。"
+   },
+   {
+    "term": "fine-tunability",
+    "zh": "可微调性",
+    "def": "模型作为领域微调底座的易用程度，与榜单分数不同。"
+   }
+  ],
+  "tags": [
+   "开源模型",
+   "蒸馏",
+   "后训练",
+   "算力",
+   "中美博弈",
+   "网络安全"
+  ],
+  "quality": {
+   "transcript_source": "notes",
+   "transcript_detail": "feed item full text",
+   "words": 8864,
+   "wpm": 180.6,
+   "timed": false,
+   "verified_quotes": 5,
+   "grounded_facts": 5,
+   "points": 8,
+   "pruned": 3,
+   "approx_timestamps": true
+  }
+ },
+ "generated": "2026-08-24T08:10:03Z",
+ "model": "claude-cli:opus"
+}

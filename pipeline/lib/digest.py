@@ -134,8 +134,26 @@ _LIST_FIELDS = {"points": ("t", "h", "body", "spk"),
                 "terms": ("term", "zh", "def")}
 
 
+_TITLE_TAIL = re.compile(r"[\s，,、；;：。.…／/｜|]+$")
+_WRAPPED = re.compile(r"^([「『\"“])(.+)([」』\"”])$")
+
+
+def _clean_title(t: str) -> str:
+    """A title should not end mid-clause, and should not be wrapped in quotes.
+
+    Unwrap only when the whole title is quoted: 「大脑是计算机」不是哲学立场
+    uses the same marks for an internal quotation, and stripping the opening one
+    leaves a dangling 」."""
+    t = squeeze(t)
+    m = _WRAPPED.match(t)
+    if m and m.group(2) and not any(c in m.group(2) for c in "「」『』“”"):
+        t = m.group(2)
+    return _TITLE_TAIL.sub("", t)
+
+
 def normalize(raw: dict) -> dict:
     out = {k: squeeze(str(raw.get(k) or "")) for k in ("title", "dek", "why", "who", "skip")}
+    out["title"] = _clean_title(out["title"])
     for name, keys in _LIST_FIELDS.items():
         items = raw.get(name)
         rows = []

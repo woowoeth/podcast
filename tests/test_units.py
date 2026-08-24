@@ -14,6 +14,7 @@ import unittest
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "pipeline"))
 
 from lib import gate, transcript as T                     # noqa: E402
+from lib.digest import _clean_title, normalize            # noqa: E402
 from lib.util import fingerprint, norm_title, parse_duration, parse_ts, hhmmss  # noqa: E402
 
 
@@ -300,6 +301,32 @@ class Anchoring(unittest.TestCase):
         ok, probs, _ = gate.check(self._digest([60, 600, 1200, 1800, 2400, 3000]),
                                   self._tr(), {"duration": 3600})
         self.assertTrue(ok, probs)
+
+
+class Titles(unittest.TestCase):
+    def test_a_fully_quoted_title_is_unwrapped(self):
+        self.assertEqual(_clean_title("「整个标题都被引号包住」"), "整个标题都被引号包住")
+        self.assertEqual(_clean_title('"A fully quoted title"'), "A fully quoted title")
+
+    def test_an_internal_quotation_is_left_alone(self):
+        # Stripping the leading 「 here leaves a dangling 」 — worse than the
+        # thing it was trying to fix.
+        t = "「大脑是计算机」不是哲学立场，是绕开生物学的商业路线"
+        self.assertEqual(_clean_title(t), t)
+
+    def test_a_trailing_comma_is_removed(self):
+        self.assertEqual(_clean_title("结尾多了个逗号，"), "结尾多了个逗号")
+
+    def test_internal_punctuation_survives(self):
+        t = "ChatGPT Work 与 Codex 是同一个 harness，差的只是 UX"
+        self.assertEqual(_clean_title(t), t)
+
+    def test_normalize_drops_malformed_rows(self):
+        out = normalize({"title": "标题", "points": ["not a dict", {"h": "有内容"}],
+                         "tags": ["a", "", "b"], "quotes": None})
+        self.assertEqual(len(out["points"]), 1)
+        self.assertEqual(out["tags"], ["a", "b"])
+        self.assertEqual(out["quotes"], [])
 
 
 class Density(unittest.TestCase):
