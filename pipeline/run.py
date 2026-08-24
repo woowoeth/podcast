@@ -215,11 +215,22 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
         return "too-long"
     if not tr:
         prev = state["fail"].get(key, {})
-        n = prev.get("n", 0) + 1
-        state["fail"][key] = {"n": n, "soft": prev.get("soft", 0), "why": "no-transcript",
-                              "at": iso(now()), "title": ep["title"][:120], "src": s["id"]}
+        transient = T.last_was_transient()
+        if transient:
+            # 被限流／被要求登录／连接断了，不代表这一集没有文稿。算软失败，
+            # 否则一次网络不好就会把有字幕的集永久拉黑。
+            rec = {"n": prev.get("n", 0), "soft": prev.get("soft", 0) + 1,
+                   "why": "transcript-transient"}
+            log(f"    这次没拿到（限流或被拦），不计入重试预算 "
+                f"(soft {rec['soft']}/{MAX_SOFT_FAILS})")
+        else:
+            rec = {"n": prev.get("n", 0) + 1, "soft": prev.get("soft", 0),
+                   "why": "no-transcript"}
+            log(f"    not published: no usable transcript "
+                f"(attempt {rec['n']}/{MAX_FAILS})")
+        rec.update(at=iso(now()), title=ep["title"][:120], src=s["id"])
+        state["fail"][key] = rec
         _release(state, fp, key)
-        log(f"    not published: no usable transcript (attempt {n}/{MAX_FAILS})")
         return "no-transcript"
 
     ch = T.chapters(ep)

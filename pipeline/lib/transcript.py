@@ -448,6 +448,14 @@ def _search_youtube(ep: dict, src: dict) -> str | None:
 # Serialising this one tier costs a little wall-clock and removes the failure.
 _YT_LOCK = threading.Lock()
 
+# 区分"这一集本来就没有文稿"和"这次没拿到"。前者该消耗重试预算（试三次就别再试），
+# 后者不该——限流、机器人拦截、连接中断都属于后者，而它们在日志里长得跟前者一样。
+_transient = {"hit": False}
+
+
+def last_was_transient() -> bool:
+    return _transient["hit"]
+
 
 def from_youtube(vid: str, lang: str) -> dict | None:
     if not vid or not shutil.which("yt-dlp"):
@@ -480,9 +488,11 @@ def _from_youtube(vid: str, lang: str) -> dict | None:
             if files:
                 break
             err = squeeze(((r.stderr or "") + " " + (r.stdout or ""))[-260:])
-            if re.search(r"429|too many requests|rate.?limit", err, re.I):
+            if re.search(r"429|too many requests|rate.?limit|sign in|cookies|"
+                         r"bot|captcha|confirm you", err, re.I):
+                _transient["hit"] = True
                 wait = 30 * (2 ** attempt)
-                log(f"    YouTube 限流，等 {wait}s 再试（{attempt + 1}/3）")
+                log(f"    YouTube 限流或要求登录，等 {wait}s 再试（{attempt + 1}/3）")
                 time.sleep(wait)
                 continue
             break
@@ -491,6 +501,7 @@ def _from_youtube(vid: str, lang: str) -> dict | None:
                 low = err.lower()
                 if "no automatic captions" in low or "no subtitles" in low:
                     log("    这个视频没有字幕轨")
+                    _transient["hit"] = False
                 else:
                     log(f"    yt-dlp: 拿不到字幕（{err[:120]}）")
             return None
@@ -514,6 +525,7 @@ def from_audio(ep: dict, lang: str) -> dict | None:
         raw = net.get(ep["audio"], timeout=600, tries=2)
     except Exception as e:
         log(f"    audio download failed: {type(e).__name__}")
+        _transient["hit"] = True
         return None
     mb = len(raw) / 1e6
     log(f"    audio {mb:.1f}MB -> {ASR_MODEL}")
@@ -570,6 +582,7 @@ def _asr_one(path: pathlib.Path, lang: str) -> list[dict] | None:
                                {"Authorization": "Bearer " + ASR_KEY})
     except Exception as e:
         log(f"    ASR failed: {type(e).__name__}: {str(e)[:120]}")
+        _transient["hit"] = True
         return None
     segs = [{"t": int(s.get("start") or 0), "text": squeeze(s.get("text") or "")}
             for s in (r.get("segments") or []) if squeeze(s.get("text") or "")]
@@ -616,6 +629,7 @@ def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
     """Walk the tiers and return the first transcript that passes the density
     check. Returns None when nothing does — the caller must then NOT publish."""
     attempts = []
+    _transient["hit"] = False
     if src and not ep.get("youtube_id") and "youtube" in allow:
         vid = match_youtube(ep, src)
         if vid:
