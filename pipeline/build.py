@@ -67,6 +67,8 @@ def head(title: str, desc: str, *, path: str = "/", image: str = "",
 <meta property="og:url" content="{e(url)}">
 {f'<meta property="og:image" content="{e(image)}">' if image else ''}
 <meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/svg+xml" href="{BASE}/icon.svg">
+<link rel="apple-touch-icon" href="{BASE}/icon.svg">
 <link rel="alternate" type="application/rss+xml" title="{e(NAME)}" href="{BASE}/feed.xml">
 <link rel="stylesheet" href="{BASE}/assets/site.css">
 <script>try{{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}}catch(e){{}}</script>
