@@ -335,6 +335,32 @@ class Anchoring(unittest.TestCase):
         self.assertTrue(ok, probs)
 
 
+class Gates(unittest.TestCase):
+    """闸门失灵时的方向：必须拦下，不能放行。"""
+
+    def test_review_unavailable_does_not_pass(self):
+        # 原来是失灵即放行，等于评审一坏闸门就不存在了
+        from lib import review
+        self.assertFalse(review.passes(None))
+        self.assertTrue(review.passes({"score": 7.0}))    # 及格线 7
+        self.assertFalse(review.passes({"score": 6.0}))
+
+    def test_triage_unavailable_does_pass(self):
+        # 选题闸门方向相反：它只是省钱的预筛，失灵时放行让稿子走到成稿评分那道
+        # 真闸门去，不该因为预筛坏了就整体空转
+        from lib import triage
+        self.assertTrue(triage.passes(None))
+        self.assertFalse(triage.passes({"score": 6.0}))
+        self.assertTrue(triage.passes({"score": 8.0}))
+
+    def test_cli_backend_accepts_a_model(self):
+        # 加分角色模型时签名替换的锚点没匹配上，静默失败；CI 走 API 路径所以
+        # 只在本机炸，10 篇补评全废
+        import inspect
+        from lib import llm
+        self.assertIn("model", inspect.signature(llm._cli).parameters)
+
+
 class Titles(unittest.TestCase):
     def test_a_fully_quoted_title_is_unwrapped(self):
         self.assertEqual(_clean_title("「整个标题都被引号包住」"), "整个标题都被引号包住")

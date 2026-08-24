@@ -182,14 +182,14 @@ def _openai(system: str, user: str, max_tokens: int, temperature: float,
     return (r.get("choices") or [{}])[0].get("message", {}).get("content", "") or ""
 
 
-def _cli(system: str, user: str, *, tries: int = 4) -> str:
+def _cli(system: str, user: str, *, model: str = "", tries: int = 4) -> str:
     # stdin carries the payload so a long transcript never hits ARG_MAX.
     #
     # No --max-turns: at 1 the CLI can spend the single turn on setup and exit
     # with "Reached max turns" before writing anything — it happened on sonnet
     # while opus got away with it. Tools are switched off instead, which is the
     # actual intent (one generation, no file access, no wasted turns).
-    cmd = ["claude", "-p", "--model", model_name(),
+    cmd = ["claude", "-p", "--model", model or model_name(),
            "--append-system-prompt", system,
            "--allowed-tools", ""]
     last = ""

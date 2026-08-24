@@ -8,7 +8,7 @@ on:
     inputs:
       min:
         description: "及格线 0-10"
-        default: "8"
+        default: "7"
       dry_run:
         description: "true = 只看分数不动文件"
         default: "false"
@@ -41,7 +41,7 @@ jobs:
           set -o pipefail
           DRY=""
           [ "${{ github.event.inputs.dry_run }}" = "true" ] && DRY="--dry-run"
-          python pipeline/rescore.py --min "${{ github.event.inputs.min || '8' }}" \
+          python pipeline/rescore.py --min "${{ github.event.inputs.min || '7' }}" \
             --tiers feed,notes,page $DRY 2>&1 | tee "${RUNNER_TEMP}/rescore.log"
       - name: Commit
         if: ${{ github.event.inputs.dry_run != 'true' }}

@@ -17,7 +17,7 @@ on:
         default: "4"
       review_min:
         description: "成稿评分及格线 0-10（低于此分不上站）"
-        default: "8"
+        default: "7"
       triage_min:
         description: "选题闸门及格线 0-10（建档从几千集里挑，建议 8）"
         default: "8"
@@ -67,7 +67,7 @@ jobs:
             --limit "${{ github.event.inputs.limit }}" \
             --per-source "${{ github.event.inputs.per_source }}" \
             --triage-min "${{ github.event.inputs.triage_min || '8' }}" \
-            --review-min "${{ github.event.inputs.review_min || '8' }}" \
+            --review-min "${{ github.event.inputs.review_min || '7' }}" \
             2>&1 | tee "${RUNNER_TEMP}/backfill.log"
       - name: Commit and push
         run: |

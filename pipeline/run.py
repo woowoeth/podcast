@@ -309,7 +309,14 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
                 _release(state, fp, key)
                 return "below-bar"
         else:
-            log("    成稿评分不可用，本篇未经评审（记录里会标出来）")
+            # 评审不可用不能当成通过——否则评审一坏，闸门就等于不存在。
+            prev = state["fail"].get(key, {})
+            state["fail"][key] = {"n": prev.get("n", 0), "soft": prev.get("soft", 0) + 1,
+                                  "why": "review-unavailable", "at": iso(now()),
+                                  "title": ep["title"][:120], "src": s["id"]}
+            log("    成稿评分不可用 → 不上站，记软失败，下一轮重试")
+            _release(state, fp, key)
+            return "review-unavailable"
 
     slug = f"{iso(ep['published'])[:10]}-{s['id']}-{slugify(d['title'], 40)}"
     rec = {

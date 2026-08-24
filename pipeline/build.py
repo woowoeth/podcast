@@ -371,7 +371,7 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
 <div class="row"><span>回溯校验数字</span><span>{q.get('grounded_facts', 0)} 条</span></div>
 {f'<div class="row"><span>质检剔除</span><span>{q["pruned"]} 处</span></div>' if q.get('pruned') else ''}
 <p class="note">金句在逐字稿里逐字比对过，数字回原文核对过；对不上的当场删掉，不上站。
-{f'成稿另经一道独立评审（信息密度／忠实度／选择力／具体性／中文），低于 8 分不展示。' if rvs else ''}
+{f'成稿另经一道独立评审（信息密度／忠实度／选择力／具体性／中文），低于 7 分不展示。' if rvs else ''}
 {'这一集的文稿没有原始时间码，页面上的时间戳是按文稿位置估算的，只作粗略定位。' if q.get('approx_timestamps') else ''}</p>
 </div>
 </aside>
