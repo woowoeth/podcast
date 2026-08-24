@@ -14,6 +14,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 
 from . import net
 from .util import log
@@ -81,17 +82,41 @@ def call(system: str, user: str, *, max_tokens: int = 6000,
             {"Authorization": "Bearer " + KEY})
         return (r.get("choices") or [{}])[0].get("message", {}).get("content", "") or ""
     if p == "claude-cli":
-        # stdin carries the payload so a long transcript never hits ARG_MAX.
-        cmd = ["claude", "-p", "--model", model_name(),
-               "--append-system-prompt", system, "--max-turns", "1"]
-        r = subprocess.run(cmd, input=user, capture_output=True, text=True, timeout=1800)
-        if r.returncode != 0:
-            detail = ((r.stderr or "").strip() or (r.stdout or "").strip() or
-                      "no output — the CLI usually exits like this when several "
-                      "headless sessions run at once")
-            raise RuntimeError(f"claude cli exited {r.returncode}: {detail[:300]}")
-        return r.stdout
+        return _cli(system, user)
     raise RuntimeError("no LLM backend: set LLM_API_KEY or install the claude CLI")
+
+
+# The CLI has no retry of its own, so a 529 from the provider surfaces as a
+# plain non-zero exit and would drop the episode. Back off and try again, the
+# same way post_json() does for the HTTP backends.
+_TRANSIENT = re.compile(r"(529|overloaded|rate.?limit|too many requests|"
+                        r"502|503|504|timed? ?out|connection reset)", re.I)
+
+
+def _cli(system: str, user: str, *, tries: int = 4) -> str:
+    # stdin carries the payload so a long transcript never hits ARG_MAX.
+    cmd = ["claude", "-p", "--model", model_name(),
+           "--append-system-prompt", system, "--max-turns", "1"]
+    last = ""
+    for i in range(tries):
+        try:
+            r = subprocess.run(cmd, input=user, capture_output=True, text=True, timeout=1800)
+        except subprocess.TimeoutExpired:
+            last = "timed out after 1800s"
+        else:
+            if r.returncode == 0 and (r.stdout or "").strip():
+                return r.stdout
+            last = ((r.stderr or "").strip() or (r.stdout or "").strip() or
+                    f"exit {r.returncode} with no output — the CLI does this when "
+                    f"several headless sessions run at once")
+        if i < tries - 1 and _TRANSIENT.search(last):
+            wait = 20 * (2 ** i)
+            log(f"    provider busy ({last[:70]}) — retrying in {wait}s "
+                f"({i + 1}/{tries - 1})")
+            time.sleep(wait)
+            continue
+        break
+    raise RuntimeError(f"claude cli failed: {last[:300]}")
 
 
 _FENCE = re.compile(r"```(?:json)?\s*(.*?)```", re.S)
