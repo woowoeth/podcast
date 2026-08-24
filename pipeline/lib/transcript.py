@@ -43,7 +43,11 @@ ASR_KEY = os.environ.get("TRANSCRIBE_API_KEY", "").strip()
 ASR_BASE = os.environ.get("TRANSCRIBE_BASE_URL", "https://api.groq.com/openai/v1").strip().rstrip("/")
 ASR_MODEL = os.environ.get("TRANSCRIBE_MODEL", "whisper-large-v3-turbo").strip()
 ASR_MAX_MB = int(os.environ.get("TRANSCRIBE_MAX_MB", "24"))
-CHUNK_SEC = int(os.environ.get("TRANSCRIBE_CHUNK_SEC", "900"))
+# 切片长度决定时间戳的最坏粒度。不是所有转写模型都返回逐句时间戳——
+# SenseVoice 只给整段文本，于是"段"数等于切片数：900 秒切片意味着时间戳可能差
+# 15 分钟，"点时间戳跳回原声"就成了空话。300 秒 + 片内按字数插值把最坏误差压到
+# 一分钟级。代价只是请求数变多，音频总时长不变，所以按时长计费的价格不变。
+CHUNK_SEC = int(os.environ.get("TRANSCRIBE_CHUNK_SEC", "300"))
 
 
 # ---------------------------------------------------------------- caption files
@@ -539,7 +543,8 @@ def from_audio(ep: dict, lang: str) -> dict | None:
             return None
         segs: list[dict] = []
         for offset, path in chunks:
-            got = _asr_one(path, lang)
+            got = _asr_one(path, lang, span=CHUNK_SEC if len(chunks) > 1 else
+                           int(ep.get("duration") or CHUNK_SEC))
             if got is None:
                 return None
             for s in got:
@@ -573,7 +578,7 @@ def _split(src: pathlib.Path, mb: float, td: str) -> list[tuple[int, pathlib.Pat
     return out or None
 
 
-def _asr_one(path: pathlib.Path, lang: str) -> list[dict] | None:
+def _asr_one(path: pathlib.Path, lang: str, span: int = CHUNK_SEC) -> list[dict] | None:
     fields = {"model": ASR_MODEL, "response_format": "verbose_json",
               "timestamp_granularities[]": "segment"}
     if lang in ("en", "zh"):
@@ -588,9 +593,27 @@ def _asr_one(path: pathlib.Path, lang: str) -> list[dict] | None:
         return None
     segs = [{"t": int(s.get("start") or 0), "text": squeeze(s.get("text") or "")}
             for s in (r.get("segments") or []) if squeeze(s.get("text") or "")]
-    if not segs and r.get("text"):
-        segs = _plain_to_segs(r["text"], None)
-    return segs
+    if segs:
+        return segs
+    # 模型只返回整段文本（SenseVoice 就是这样）。按句切开，用字数在片内线性
+    # 插值出时间。标 approx=True，页面上会明说时间戳是估算的。
+    text = squeeze(r.get("text") or "")
+    if not text:
+        return []
+    return _spread(text, span)
+
+
+def _spread(text: str, span: int) -> list[dict]:
+    """把一段无时间码的文本按句子切开，按字数在 span 秒内线性铺开。"""
+    parts = [p for p in re.split(r"(?<=[。！？!?；;])\s*|\n+", text) if p and p.strip()]
+    if len(parts) < 2:
+        parts = [text[i:i + 220] for i in range(0, len(text), 220)] or [text]
+    total = sum(len(p) for p in parts) or 1
+    out, run = [], 0
+    for p in parts:
+        out.append({"t": int(span * run / total), "text": squeeze(p), "approx": True})
+        run += len(p)
+    return out
 
 
 # ------------------------------------------------------------------ orchestrate
