@@ -91,12 +91,15 @@ export LLM_MODEL
     exit 0
   fi
 
-  git add -A data
+  # 只加数据。原来这里是 git add -A，会把工作区里未提交的源码改动一起扫进
+  # bot 的提交，历史就变成误导性的（"build: regenerate site" 里躺着 run.py 的改动）。
+  git add data/episodes data/state.json data/sources.json 2>/dev/null || true
   n=$(git diff --cached --name-only | grep -c 'data/episodes/' || true)
   git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
       commit -q -m "digest: $n new (local)"
   python3 pipeline/build.py
-  git add -A
+  git add index.html sources s p feed.xml sitemap.xml robots.txt 404.html \
+          search.json icon.svg .nojekyll 2>/dev/null || true
   git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
       commit -q -m "build: regenerate site" || true
 
@@ -104,7 +107,9 @@ export LLM_MODEL
     if git push -q origin main; then echo "已推送"; exit 0; fi
     echo "push 重试 $i"
     git pull --rebase --autostash -q origin main || true
-    python3 pipeline/build.py; git add -A
+    python3 pipeline/build.py
+    git add index.html sources s p feed.xml sitemap.xml robots.txt 404.html \
+            search.json icon.svg .nojekyll 2>/dev/null || true
     git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
         commit -q --amend --no-edit || true
     sleep $((RANDOM % 5 + 3))
