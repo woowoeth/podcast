@@ -45,6 +45,13 @@ FAMILIES = (
 )
 
 
+def shape_of(k: str) -> str:
+    n = len(k)
+    fam = next((label for pre, label in FAMILIES if k.startswith(pre)),
+               "前缀不在已知名单里")
+    return f"长度 {n} · 判断为：{fam}"
+
+
 def shape() -> str:
     n = len(KEY)
     if not KEY:
@@ -90,7 +97,72 @@ def try_openai() -> tuple[bool, str]:
         return False, str(ex)[:150]
 
 
+ASR_CANDIDATES = [
+    ("硅基流动 SiliconFlow", "https://api.siliconflow.cn/v1", "FunAudioLLM/SenseVoiceSmall"),
+    ("Groq", "https://api.groq.com/openai/v1", "whisper-large-v3-turbo"),
+    ("OpenAI", "https://api.openai.com/v1", "whisper-1"),
+    ("Fireworks", "https://api.fireworks.ai/inference/v1", "whisper-v3-turbo"),
+    ("Together", "https://api.together.xyz/v1", "openai/whisper-large-v3"),
+]
+
+
+def _silence_wav(seconds: float = 0.4) -> bytes:
+    """一段静音 WAV：足够证明鉴权和路由通了，不产生实际转写费用。"""
+    import struct
+    n = int(16000 * seconds)
+    pcm = b"\x00\x00" * n
+    return (b"RIFF" + struct.pack("<I", 36 + len(pcm)) + b"WAVEfmt "
+            + struct.pack("<IHHIIHH", 16, 1, 1, 16000, 32000, 2, 16)
+            + b"data" + struct.pack("<I", len(pcm)) + pcm)
+
+
+def probe_asr() -> int:
+    """把转写 key 往各家 OpenAI 兼容端点上试，报哪家能用。"""
+    key = (os.environ.get("TRANSCRIBE_API_KEY") or "").strip()
+    base = (os.environ.get("TRANSCRIBE_BASE_URL") or "").strip().rstrip("/")
+    model = (os.environ.get("TRANSCRIBE_MODEL") or "").strip()
+    log("转写端点探测（不会打印密钥本身）")
+    if not key:
+        log("  TRANSCRIBE_API_KEY 未设置。")
+        log("  拿到任意一家的 key 后：")
+        for name, b, m in ASR_CANDIDATES:
+            log(f"    {name:<22} BASE_URL={b}  MODEL={m}")
+        return 2
+    log(f"  TRANSCRIBE_API_KEY : {shape_of(key)}")
+    wav = _silence_wav()
+    tries = [(base, model or "whisper-large-v3-turbo")] if base else \
+            [(b, m) for _, b, m in ASR_CANDIDATES]
+    ok_any = None
+    for b, m in tries:
+        label = next((n for n, bb, _ in ASR_CANDIDATES if bb == b), b)
+        try:
+            r = net.post_multipart(b + "/audio/transcriptions",
+                                   {"model": m, "response_format": "verbose_json"},
+                                   "probe.wav", wav,
+                                   {"Authorization": "Bearer " + key},
+                                   timeout=90, tries=1)
+            segs = len(r.get("segments") or [])
+            log(f"  ✓ {label} · model={m} · 返回 {segs} 段（静音样本本该 0-1 段）")
+            ok_any = (b, m)
+            break
+        except Exception as ex:
+            log(f"  ✗ {label} · {str(ex)[:110]}")
+    log("\n" + "—" * 52)
+    if ok_any:
+        b, m = ok_any
+        log("这个 key 可用。配上这两个 secret：")
+        log(f"  TRANSCRIBE_BASE_URL = {b}")
+        log(f"  TRANSCRIBE_MODEL    = {m}")
+        log("注意：转写只在本机跑（GitHub 机房 IP 拉不到 YouTube，但音频是直连原站，")
+        log("      所以云端其实也能转写——两边都行）。")
+        return 0
+    log("都被拒了。可能是 key 不属于上面任何一家，或者需要显式指定 BASE_URL 和 MODEL。")
+    return 1
+
+
 def main() -> int:
+    if "--asr" in sys.argv:
+        return probe_asr()
     log("凭证探测（不会打印密钥本身）")
     log(f"  LLM_API_KEY  : {shape()}")
     log(f"  LLM_BASE_URL : {BASE or '（未设置 → 走 Anthropic）'}")

@@ -20,7 +20,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from lib import feeds, llm, review, transcript as T                # noqa: E402
-from lib.util import iso, log, now                                 # noqa: E402
+from lib.util import eid, iso, log, now                            # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 EPS = ROOT / "data" / "episodes"
@@ -35,11 +35,15 @@ def find_episode(rec: dict, src: dict) -> dict | None:
     except Exception as ex:
         log(f"    取 feed 失败：{type(ex).__name__}")
         return None
+    # rec["id"] 是 eid(source_id, guid)，也就是 guid 的哈希——不能拿去和 guid
+    # 直接比。原来那行 split("-")[-1] 取到的是哈希片段，永远匹配不上。
+    want_id = rec.get("id")
     for e in eps:
-        if e["guid"] == rec.get("id", "").split("-", 1)[-1] or e["title"] == rec.get("title_original"):
+        if eid(src["id"], e["guid"]) == want_id:
             return e
+    want_title = (rec.get("title_original") or "").strip()
     for e in eps:
-        if e["title"].strip() == (rec.get("title_original") or "").strip():
+        if e["title"].strip() == want_title:
             return e
     return None
 

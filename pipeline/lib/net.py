@@ -22,6 +22,16 @@ import zlib
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
 
+# Substack 对机房 IP 上的浏览器 UA 一律 403，而对播客客户端／抓取器通常放行。
+# 403 时依次换这几个再试——静默丢掉 Latent Space 和 Interconnects 这两个
+# 自带官方逐字稿的信源，代价太大。
+UA_FALLBACKS = (
+    "PodcastIndex/1.0 (+https://podcastindex.org)",
+    "Overcast/1.0 Podcasts/1.0",
+    "Mozilla/5.0 (compatible; Feedly/1.0; +http://www.feedly.com/fetcher.html)",
+    "curl/8.7.1",
+)
+
 _CTX: ssl.SSLContext | None = None
 
 
@@ -77,6 +87,7 @@ def get(url: str, *, timeout: int = 45, tries: int = 3, headers: dict | None = N
     if headers:
         h.update(headers)
     last: Exception | None = None
+    tried_uas = False
     for i in range(tries):
         try:
             req = urllib.request.Request(url, headers=h)
@@ -88,6 +99,20 @@ def get(url: str, *, timeout: int = 45, tries: int = 3, headers: dict | None = N
             return body
         except urllib.error.HTTPError as e:
             last = e
+            if e.code == 403 and not tried_uas:
+                tried_uas = True
+                for alt in UA_FALLBACKS:
+                    try:
+                        req = urllib.request.Request(url, headers={**h, "User-Agent": alt})
+                        with urllib.request.urlopen(req, timeout=timeout, context=ctx()) as r:
+                            body = _decode(r, r.read())
+                        if cache_ttl:
+                            CACHE.mkdir(parents=True, exist_ok=True)
+                            cf.write_bytes(body)
+                        return body
+                    except Exception:
+                        continue
+                raise
             if e.code in (403, 404, 401, 410):      # not worth retrying
                 raise
             time.sleep(1.5 * (2 ** i))
