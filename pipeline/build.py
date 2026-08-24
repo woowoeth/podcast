@@ -24,9 +24,9 @@ DATA = ROOT / "data"
 BASE = os.environ.get("PODCAST_BASE", "/podcast").rstrip("/")
 SITE = os.environ.get("PODCAST_SITE", "https://ourword.ai") + BASE
 NAME = "原声"
-TAGLINE = "每天从中英文播客里挑出值得记住的判断"
-BLURB = ("要点、金句、数字全部锚定到原始录音的时间戳，"
-         "金句逐字校验过才发——查不到出处的一律不上站。")
+TAGLINE = "省下两小时，不省掉出处"
+BLURB = ("每天从 49 档中英文播客里挑出值得记住的判断。金句逐字校验过、数字回原文"
+         "核对过、要点带可点击的时间戳——查不到出处的，一律不上站。")
 
 CAT_ORDER = ["ai", "biz", "cn"]
 CAT_LABEL = {"ai": "AI / 技术", "biz": "投资 / 商业", "cn": "中国视角"}
@@ -88,9 +88,9 @@ ICON_THEME = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
 
 def masthead(n: int, *, home: bool) -> str:
     brand = (f'<div class="brand"><h1>{NAME}<span class="dot">.</span></h1>'
-             f'<p class="tag">{TAGLINE}</p></div>') if home else \
+             f'<p class="slogan">{TAGLINE}</p></div>') if home else \
             (f'<a class="brand" href="{BASE}/"><h1>{NAME}<span class="dot">.</span></h1>'
-             f'<p class="tag">{TAGLINE}</p></a>')
+             f'<p class="slogan">{TAGLINE}</p></a>')
     return f"""<header class="mast"><div class="wrap"><div class="mast-top">
 {brand}
 <div class="mast-side">

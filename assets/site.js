@@ -13,9 +13,10 @@
   try { apply(localStorage.getItem(KEY)); } catch (e) {}
 
   function current() {
-    var t = document.documentElement.getAttribute('data-theme');
-    if (t) return t;
-    return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    // 站点默认浅色，不跟随系统，所以没有属性就是浅色——
+    // 这样第一次点击一定进深色，而不是"看系统而定"。
+    return document.documentElement.getAttribute('data-theme') === 'dark'
+      ? 'dark' : 'light';
   }
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('[data-theme-toggle]');
