@@ -525,20 +525,62 @@ def _ffmpeg() -> str | None:
     return shutil.which("ffmpeg")
 
 
+def _yt_audio(vid: str, td: str) -> pathlib.Path | None:
+    """从 YouTube 抓音频。纯 YouTube 频道没有 RSS enclosure，没有这一步，
+    没开字幕的频道就完全取不到文稿——而"频道有没有开字幕"不该决定选题。"""
+    if not shutil.which("yt-dlp"):
+        return None
+    out = pathlib.Path(td) / "yt.m4a"
+    cmd = ["yt-dlp", "-f", "bestaudio[abr<=96]/bestaudio/best",
+           "-x", "--audio-format", "m4a", "--audio-quality", "5",
+           "--no-warnings", "--retries", "2", "--socket-timeout", "40",
+           "-o", str(out.with_suffix("")), f"https://www.youtube.com/watch?v={vid}"]
+    with _YT_LOCK:
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
+        except Exception as ex:
+            log(f"    YouTube 音频下载失败：{type(ex).__name__}")
+            return None
+    hits = sorted(pathlib.Path(td).glob("yt*"), key=lambda x: x.stat().st_size, reverse=True)
+    hits = [h for h in hits if h.stat().st_size > 100_000]
+    if not hits:
+        err = squeeze(((r.stderr or "") + " " + (r.stdout or ""))[-200:])
+        if re.search(r"429|too many|sign in|cookies|bot", err, re.I):
+            _transient["hit"] = True
+            log(f"    YouTube 拦了音频下载（限流或要求登录）")
+        else:
+            log(f"    YouTube 音频下载没产出：{err[:110]}")
+        return None
+    return hits[0]
+
+
 def from_audio(ep: dict, lang: str) -> dict | None:
-    if not ASR_KEY or not ep.get("audio"):
+    if not ASR_KEY:
         return None
-    try:
-        raw = net.get(ep["audio"], timeout=600, tries=2)
-    except Exception as e:
-        log(f"    audio download failed: {type(e).__name__}")
-        _transient["hit"] = True
+    src_url = ep.get("audio") or ""
+    if not src_url and not ep.get("youtube_id"):
         return None
-    mb = len(raw) / 1e6
-    log(f"    audio {mb:.1f}MB -> {ASR_MODEL}")
+    if src_url:
+        try:
+            raw = net.get(src_url, timeout=600, tries=2)
+        except Exception as e:
+            log(f"    audio download failed: {type(e).__name__}")
+            _transient["hit"] = True
+            return None
+    else:
+        raw = None      # 走 YouTube 抓音频，见下
     with tempfile.TemporaryDirectory() as td:
-        src = pathlib.Path(td) / "a.mp3"
-        src.write_bytes(raw)
+        if raw is None:
+            got = _yt_audio(ep["youtube_id"], td)
+            if not got:
+                return None
+            src = got
+            src_url = f"https://www.youtube.com/watch?v={ep['youtube_id']}"
+        else:
+            src = pathlib.Path(td) / "a.mp3"
+            src.write_bytes(raw)
+        mb = src.stat().st_size / 1e6
+        log(f"    audio {mb:.1f}MB ({'YouTube' if raw is None else 'RSS'}) -> {ASR_MODEL}")
         chunks = _split(src, mb, td)
         if chunks is None:
             return None
@@ -551,7 +593,7 @@ def from_audio(ep: dict, lang: str) -> dict | None:
             for s in got:
                 segs.append({"t": int(s["t"] + offset), "text": s["text"]})
         if segs:
-            return {"segments": segs, "source": "asr", "detail": ASR_MODEL, "url": ep["audio"]}
+            return {"segments": segs, "source": "asr", "detail": ASR_MODEL, "url": src_url}
     return None
 
 
