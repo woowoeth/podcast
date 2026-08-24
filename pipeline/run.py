@@ -31,13 +31,18 @@ DATA = ROOT / "data"
 EPS = DATA / "episodes"
 STATE = DATA / "state.json"
 
+# A run must not turn the front page into one show's archive. Odd Lots ships an
+# official transcript for every episode, so on a wide lookback it would take
+# every slot on quality alone; breadth is part of what the reader is here for.
+MAX_PER_SOURCE = int(os.environ.get("MAX_PER_SOURCE", "2"))
 MAX_FAILS = 3          # genuine failures: no transcript exists, or the gate says no
 MAX_SOFT_FAILS = 8     # infrastructure hiccups: a 429, a dropped connection, a
                        # model call that died. These must not burn an episode's
                        # retry budget, or one bad afternoon blacklists good shows.
 # Trailers, teasers and paywall stubs: never worth a page.
 SKIP_TITLE = ("(preview)", "[preview]", "trailer", "coming soon", "announcement:",
-              "subscriber-only", "teaser", "预告", "试听")
+              "subscriber-only", "teaser", "预告", "试听",
+              "sponsored content", "(sponsored", "[sponsored", "广告")
 MIN_SECONDS = 8 * 60
 
 
@@ -85,6 +90,26 @@ def reconcile(state: dict) -> int:
     if fixed:
         log(f"  state was behind disk in {fixed} place(s) — rebuilt from data/episodes/")
     return fixed
+
+
+def spread(ranked: list[dict], limit: int, per_source: int) -> list[dict]:
+    """Take the best `limit` episodes, but no more than `per_source` from any one
+    show. Overflow is left for the next run rather than dropped."""
+    out, used, held = [], {}, []
+    for ep in ranked:
+        sid = ep["_src"]["id"]
+        if used.get(sid, 0) >= per_source:
+            held.append(sid)
+            continue
+        used[sid] = used.get(sid, 0) + 1
+        out.append(ep)
+        if len(out) >= limit:
+            break
+    if held:
+        from collections import Counter
+        top = ", ".join(f"{k}×{v}" for k, v in Counter(held).most_common(4))
+        log(f"  held back for a later run (per-source cap): {top}")
+    return out
 
 
 def _release(state: dict, fp: str, key: str) -> None:
@@ -240,6 +265,8 @@ def main() -> int:
                     help="how many episodes to publish this run")
     ap.add_argument("--days", type=int, default=int(os.environ.get("LOOKBACK_DAYS", "10")))
     ap.add_argument("--only", help="restrict to one source id")
+    ap.add_argument("--per-source", type=int, default=MAX_PER_SOURCE,
+                    help="max episodes from any one show in this run")
     ap.add_argument("--jobs", type=int, default=int(os.environ.get("JOBS", "3")),
                     help="how many episodes to process concurrently")
     ap.add_argument("--dry-run", action="store_true", help="stop before any model call")
@@ -267,11 +294,12 @@ def main() -> int:
 
     cands = candidates(srcs, state, a.days, a.only)
     cands.sort(key=score, reverse=True)
-    log(f"\n{len(cands)} candidates; taking the top {a.limit} by tier/freshness/transcript")
+    cands = spread(cands, a.limit, a.per_source)
+    log(f"\n{len(cands)} picked (≤{a.per_source} per source) by tier/freshness/transcript")
 
     tally: dict[str, int] = {}
     published = 0
-    picked = cands[:a.limit]
+    picked = cands
 
     def one(ep):
         try:
