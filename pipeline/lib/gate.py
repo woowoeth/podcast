@@ -130,13 +130,13 @@ def _renderings(tok: str, scale: float) -> set[str]:
         val = float(tok.replace(",", ""))
     except ValueError:
         return set()
-    out = {tok, tok.replace(",", "")}
-    if val == int(val):
-        n = int(val)
-        out.add(f"{n:,}")
-        out.add(str(n))
-        out |= _en_words(n)
-        out |= _cn_words(n)
+    out: set[str] = set()
+    if scale == 1.0:
+        # No scale word attached, so the digits themselves are the claim.
+        out |= {tok, tok.replace(",", "")}
+        if val == int(val):
+            n = int(val)
+            out |= {f"{n:,}", str(n)} | _en_words(n) | _cn_words(n)
     mag = val * scale
     # Restate the magnitude in each scale, so 1e11 matches "100 billion" too.
     for s, words in _SCALES:

@@ -18,7 +18,8 @@ import os
 import pathlib
 import sys
 import traceback
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import Lock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from lib import digest as D, feeds, gate, llm, transcript as T   # noqa: E402
@@ -30,7 +31,10 @@ DATA = ROOT / "data"
 EPS = DATA / "episodes"
 STATE = DATA / "state.json"
 
-MAX_FAILS = 3
+MAX_FAILS = 3          # genuine failures: no transcript exists, or the gate says no
+MAX_SOFT_FAILS = 8     # infrastructure hiccups: a 429, a dropped connection, a
+                       # model call that died. These must not burn an episode's
+                       # retry budget, or one bad afternoon blacklists good shows.
 # Trailers, teasers and paywall stubs: never worth a page.
 SKIP_TITLE = ("(preview)", "[preview]", "trailer", "coming soon", "announcement:",
               "subscriber-only", "teaser", "预告", "试听")
@@ -46,9 +50,48 @@ def load_state() -> dict:
     return {"done": {}, "fp": {}, "fail": {}}
 
 
+_STATE_LOCK = Lock()
+
+
 def save_state(s: dict) -> None:
-    STATE.parent.mkdir(parents=True, exist_ok=True)
-    STATE.write_text(json.dumps(s, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
+    with _STATE_LOCK:
+        STATE.parent.mkdir(parents=True, exist_ok=True)
+        tmp = STATE.with_suffix(".tmp")
+        tmp.write_text(json.dumps(s, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
+        tmp.replace(STATE)                    # atomic: a killed run never truncates state
+
+
+def reconcile(state: dict) -> int:
+    """Make state agree with what is actually on disk.
+
+    The episode files are the source of truth: state.json is an index. If a run
+    is killed between writing a record and saving state — or two runs overlap —
+    the index can fall behind, and a stale index means republishing an episode
+    that is already on the site. Re-derive it instead of trusting it."""
+    fixed = 0
+    for f in EPS.glob("*.json"):
+        try:
+            r = json.loads(f.read_text())
+        except Exception:
+            continue
+        key, fp = r.get("id"), r.get("fingerprint")
+        if key and state["done"].get(key, {}).get("slug") != r.get("slug"):
+            state["done"][key] = {"slug": r["slug"], "at": r.get("generated") or iso(now())}
+            fixed += 1
+        if fp and state["fp"].get(fp) != key:
+            state["fp"][fp] = key
+            fixed += 1
+        state["fail"].pop(key, None)
+    if fixed:
+        log(f"  state was behind disk in {fixed} place(s) — rebuilt from data/episodes/")
+    return fixed
+
+
+def _release(state: dict, fp: str, key: str) -> None:
+    """Give the fingerprint back after a failure, so the next run can retry it."""
+    with _STATE_LOCK:
+        if state["fp"].get(fp) == key:
+            state["fp"].pop(fp, None)
 
 
 def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> list[dict]:
@@ -79,7 +122,7 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
             if key in state["done"]:
                 continue
             f = state["fail"].get(key)
-            if f and f.get("n", 0) >= MAX_FAILS:
+            if f and (f.get("n", 0) >= MAX_FAILS or f.get("soft", 0) >= MAX_SOFT_FAILS):
                 continue
             low = ep["title"].lower()
             if any(w in low for w in SKIP_TITLE):
@@ -118,20 +161,27 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
     """Return 'published' | 'duplicate' | 'no-transcript' | 'rejected' | 'error'."""
     s = ep["_src"]
     key = ep["_key"]
-    log(f"\n> [{s['id']}] {ep['title'][:78]}")
-    log(f"    {iso(ep['published'])[:10]} · {hhmmss(ep.get('duration')) or '时长未知'}")
+    log(f"\n> [{s['id']}] {ep['title'][:78]}\n"
+        f"    [{s['id']}] {iso(ep['published'])[:10]} · "
+        f"{hhmmss(ep.get('duration')) or '时长未知'}")
 
     fp = fingerprint(ep["title"], ep.get("duration"))
-    if fp in state["fp"] and state["fp"][fp] != key:
-        log(f"    duplicate of {state['fp'][fp]} — same episode from another source")
-        state["done"][key] = {"skip": "duplicate", "of": state["fp"][fp], "at": iso(now())}
+    with _STATE_LOCK:
+        claimed = state["fp"].get(fp)
+        if claimed is None:
+            state["fp"][fp] = key            # claim it before the slow work starts
+    if claimed is not None and claimed != key:
+        log(f"    duplicate of {claimed} — same episode from another source")
+        state["done"][key] = {"skip": "duplicate", "of": claimed, "at": iso(now())}
         return "duplicate"
 
     tr = T.acquire(ep, s.get("lang", "en"), src=s)
     if not tr:
-        n = state["fail"].get(key, {}).get("n", 0) + 1
-        state["fail"][key] = {"n": n, "why": "no-transcript", "at": iso(now()),
-                              "title": ep["title"][:120], "src": s["id"]}
+        prev = state["fail"].get(key, {})
+        n = prev.get("n", 0) + 1
+        state["fail"][key] = {"n": n, "soft": prev.get("soft", 0), "why": "no-transcript",
+                              "at": iso(now()), "title": ep["title"][:120], "src": s["id"]}
+        _release(state, fp, key)
         log(f"    not published: no usable transcript (attempt {n}/{MAX_FAILS})")
         return "no-transcript"
 
@@ -143,18 +193,24 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
     try:
         d = D.build(ep, s, tr, ch)
     except Exception as ex:
-        n = state["fail"].get(key, {}).get("n", 0) + 1
-        state["fail"][key] = {"n": n, "why": f"digest:{type(ex).__name__}", "at": iso(now()),
+        prev = state["fail"].get(key, {})
+        state["fail"][key] = {"n": prev.get("n", 0), "soft": prev.get("soft", 0) + 1,
+                              "why": f"digest:{type(ex).__name__}", "at": iso(now()),
                               "title": ep["title"][:120], "src": s["id"]}
         log(f"    digest failed: {type(ex).__name__}: {str(ex)[:160]}")
+        log("    (counted as an infrastructure hiccup, not against the retry budget)")
+        _release(state, fp, key)
         return "error"
 
     ok, problems, d = gate.check(d, tr, ep)
     gate.report(problems, ok)
     if not ok:
-        n = state["fail"].get(key, {}).get("n", 0) + 1
-        state["fail"][key] = {"n": n, "why": "gate:" + (problems[0] if problems else "?")[:80],
+        prev = state["fail"].get(key, {})
+        n = prev.get("n", 0) + 1
+        state["fail"][key] = {"n": n, "soft": prev.get("soft", 0),
+                              "why": "gate:" + (problems[0] if problems else "?")[:80],
                               "at": iso(now()), "title": ep["title"][:120], "src": s["id"]}
+        _release(state, fp, key)
         return "rejected"
 
     slug = f"{iso(ep['published'])[:10]}-{s['id']}-{slugify(d['title'], 40)}"
@@ -173,7 +229,6 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
     EPS.mkdir(parents=True, exist_ok=True)
     (EPS / f"{slug}.json").write_text(json.dumps(rec, ensure_ascii=False, indent=1) + "\n")
     state["done"][key] = {"slug": slug, "at": iso(now())}
-    state["fp"][fp] = key
     state["fail"].pop(key, None)
     log(f"    published -> /p/{slug}/")
     return "published"
@@ -185,16 +240,27 @@ def main() -> int:
                     help="how many episodes to publish this run")
     ap.add_argument("--days", type=int, default=int(os.environ.get("LOOKBACK_DAYS", "10")))
     ap.add_argument("--only", help="restrict to one source id")
+    ap.add_argument("--jobs", type=int, default=int(os.environ.get("JOBS", "3")),
+                    help="how many episodes to process concurrently")
     ap.add_argument("--dry-run", action="store_true", help="stop before any model call")
     ap.add_argument("--no-build", action="store_true")
     a = ap.parse_args()
 
     if not a.dry_run and not llm.available():
-        log("no LLM backend configured (set LLM_API_KEY, or install the claude CLI)")
+        log("no LLM backend configured — nothing can be generated.\n"
+            "  In CI: add the LLM_API_KEY secret (sk-ant-* uses the Anthropic\n"
+            "         Messages API; anything else is treated as OpenAI-compatible,\n"
+            "         set LLM_BASE_URL and LLM_MODEL alongside it).\n"
+            "  Locally: install the claude CLI and sign in — no key needed.")
         return 2
 
     srcs = json.loads((DATA / "sources.json").read_text())["sources"]
     state = load_state()
+    reconcile(state)
+    cap = llm.safe_jobs()
+    if a.jobs > cap:
+        log(f"--jobs {a.jobs} clamped to {cap} for the {llm.provider()} backend")
+        a.jobs = cap
     log(f"run · {iso(now())} · {llm.provider()}:{llm.model_name()} · "
         f"asr={'on' if T.ASR_KEY else 'off'} · budget={a.limit}")
     log(f"scanning {len(srcs)} sources, {a.days}d lookback")
@@ -205,21 +271,45 @@ def main() -> int:
 
     tally: dict[str, int] = {}
     published = 0
-    for ep in cands:
-        if published >= a.limit:
-            break
+    picked = cands[:a.limit]
+
+    def one(ep):
         try:
-            r = process(ep, state, dry=a.dry_run)
-        except KeyboardInterrupt:
-            log("\ninterrupted")
-            break
+            return process(ep, state, dry=a.dry_run)
         except Exception:
             log("    unhandled:\n" + traceback.format_exc()[-900:])
-            r = "error"
-        tally[r] = tally.get(r, 0) + 1
-        if r == "published":
-            published += 1
-        save_state(state)
+            return "error"
+
+    if a.jobs > 1 and len(picked) > 1:
+        # Each episode is independent; the only shared state is the dict, and
+        # duplicate detection is the one ordering-sensitive part — so a second
+        # pass over fingerprints runs after the pool drains.
+        log(f"processing {len(picked)} episodes with {a.jobs} workers")
+        with ThreadPoolExecutor(max_workers=a.jobs) as pool:
+            futs = {pool.submit(one, ep): ep for ep in picked}
+            try:
+                for f in as_completed(futs):
+                    r = f.result()
+                    tally[r] = tally.get(r, 0) + 1
+                    if r == "published":
+                        published += 1
+                    save_state(state)
+            except KeyboardInterrupt:
+                log("\ninterrupted — cancelling queued episodes")
+                for f in futs:
+                    f.cancel()
+    else:
+        for ep in picked:
+            try:
+                r = one(ep)
+            except KeyboardInterrupt:
+                log("\ninterrupted")
+                break
+            tally[r] = tally.get(r, 0) + 1
+            if r == "published":
+                published += 1
+            save_state(state)
+    save_state(state)
 
     log("\n" + " · ".join(f"{k}={v}" for k, v in sorted(tally.items())) or "nothing to do")
     if published and not a.no_build:

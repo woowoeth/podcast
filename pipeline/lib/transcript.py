@@ -23,6 +23,7 @@ import html as html_mod
 import shutil
 import subprocess
 import tempfile
+import threading
 
 from . import net
 from .util import hhmmss, log, parse_ts, squeeze, strip_html
@@ -369,9 +370,20 @@ def match_youtube(ep: dict, src: dict) -> str | None:
     return None
 
 
+# YouTube rate-limits hard (429) the moment two caption pulls overlap, which is
+# how a YouTube-only pipeline ends up publishing "captions unavailable" posts.
+# Serialising this one tier costs a little wall-clock and removes the failure.
+_YT_LOCK = threading.Lock()
+
+
 def from_youtube(vid: str, lang: str) -> dict | None:
     if not vid or not shutil.which("yt-dlp"):
         return None
+    with _YT_LOCK:
+        return _from_youtube(vid, lang)
+
+
+def _from_youtube(vid: str, lang: str) -> dict | None:
     langs = "zh-Hans,zh,en" if lang == "zh" else "en,en-US,en-GB"
     with tempfile.TemporaryDirectory() as td:
         cmd = ["yt-dlp", "--skip-download", "--write-auto-subs", "--write-subs",

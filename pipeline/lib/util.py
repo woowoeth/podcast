@@ -12,7 +12,9 @@ _TAG = re.compile(r"<[^>]+>")
 # Punctuation/casing/spacing all vary between an RSS title and a YouTube title
 # for the same episode, so the dedupe key strips everything but letters+digits.
 _NOISE = re.compile(r"[^0-9a-z一-鿿]+")
-_EPNUM = re.compile(r"^\s*(?:ep(?:isode)?\.?\s*)?#?\d{1,4}\s*[-–—:|.]\s*", re.I)
+# Leading episode numbers: "#430 Title", "430. Title", "Ep 12 - Title", "151. Title".
+_EPNUM = re.compile(r"^\s*(?:#|ep(?:isode)?\.?\s*)?\d{1,4}\s*[-–—:|.]\s*"
+                    r"|^\s*#\d{1,4}\s+", re.I)
 
 
 def strip_html(s: str | None) -> str:
@@ -34,8 +36,6 @@ def norm_title(t: str) -> str:
     """Canonical form of an episode title, for cross-source dedupe."""
     t = unicodedata.normalize("NFKC", strip_html(t)).lower()
     t = _EPNUM.sub("", t)
-    # drop the show name that RSS often appends: "Title | Show Name"
-    t = re.split(r"\s[|–—]\s", t)[0] if len(t) > 40 else t
     return _NOISE.sub("", t)
 
 
@@ -69,8 +69,7 @@ def parse_duration(v: str | int | None) -> int | None:
     if not v:
         return None
     if v.isdigit():
-        n = int(v)
-        return n or None
+        return int(v)
     parts = v.split(":")
     try:
         nums = [float(p) for p in parts]
@@ -79,7 +78,9 @@ def parse_duration(v: str | int | None) -> int | None:
     sec = 0.0
     for n in nums:
         sec = sec * 60 + n
-    return int(sec) or None
+    # 0 is a valid timestamp. Callers that mean "duration unknown" already test
+    # truthiness, so returning 0 here keeps parse_ts("0:00") == 0 honest.
+    return int(sec)
 
 
 def hhmmss(sec: float | int | None) -> str:

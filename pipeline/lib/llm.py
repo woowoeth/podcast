@@ -52,6 +52,15 @@ def available() -> bool:
     return provider() != "none"
 
 
+def safe_jobs() -> int:
+    """How many of these calls may run at once.
+
+    The HTTP backends are happy in parallel. `claude -p` is not: several
+    headless sessions at once exit non-zero with no message, so the CLI backend
+    runs one at a time even when a larger --jobs was asked for."""
+    return 1 if provider() == "claude-cli" else 4
+
+
 def call(system: str, user: str, *, max_tokens: int = 6000,
          temperature: float = 0.3) -> str:
     p = provider()
@@ -75,9 +84,12 @@ def call(system: str, user: str, *, max_tokens: int = 6000,
         # stdin carries the payload so a long transcript never hits ARG_MAX.
         cmd = ["claude", "-p", "--model", model_name(),
                "--append-system-prompt", system, "--max-turns", "1"]
-        r = subprocess.run(cmd, input=user, capture_output=True, text=True, timeout=1200)
+        r = subprocess.run(cmd, input=user, capture_output=True, text=True, timeout=1800)
         if r.returncode != 0:
-            raise RuntimeError(f"claude cli exited {r.returncode}: {(r.stderr or '')[:300]}")
+            detail = ((r.stderr or "").strip() or (r.stdout or "").strip() or
+                      "no output — the CLI usually exits like this when several "
+                      "headless sessions run at once")
+            raise RuntimeError(f"claude cli exited {r.returncode}: {detail[:300]}")
         return r.stdout
     raise RuntimeError("no LLM backend: set LLM_API_KEY or install the claude CLI")
 

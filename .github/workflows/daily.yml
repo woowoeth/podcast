@@ -55,6 +55,9 @@ jobs:
           TRANSCRIBE_BASE_URL: ${{ secrets.TRANSCRIBE_BASE_URL }}
           TRANSCRIBE_MODEL:    ${{ secrets.TRANSCRIBE_MODEL }}
           MAX_NEW:       ${{ github.event.inputs.limit || '8' }}
+          # Episodes are independent; 3 in flight keeps the run inside the job
+          # timeout without leaning on the model provider's rate limit.
+          JOBS: "3"
           LOOKBACK_DAYS: ${{ github.event.inputs.days  || '10' }}
         run: |
           set -o pipefail
