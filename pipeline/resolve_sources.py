@@ -23,6 +23,10 @@ from lib.util import log, now                                 # noqa: E402
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "sources.json"
 
+# residential=True：这个 feed 拒绝机房 IP（Substack 对 GitHub Actions 一律 403，
+# 换 UA 无效，是按 IP 拦的）。云端跳过它们，交给本机那条线，否则每天都会静默
+# 丢掉 Latent Space 和 Interconnects——恰好是自带完整官方逐字稿的两个。
+#
 # tier 1 = always ingest · 2 = ingest when the episode looks substantive
 # 3 = only on an unusually strong episode.  `kind`: rss | youtube
 # `itunes` lets --check re-resolve a moved feed from the Apple directory.
@@ -30,13 +34,13 @@ CURATED: list[dict] = [
   # ---------- AI / 技术 ----------
   dict(id="latentspace", name="Latent Space", zh="Latent Space", cat="ai", tier=1, lang="en",
        itunes=1674008350, feed="https://api.substack.com/feed/podcast/1084089.rss",
-       yt="UCxBcwypKK-W3GHd_RZ9FZrQ", desc="AI 工程师视角的技术深访，是把论文和产品接起来的少数节目"),
+       yt="UCxBcwypKK-W3GHd_RZ9FZrQ", residential=True, desc="AI 工程师视角的技术深访，是把论文和产品接起来的少数节目"),
   dict(id="dwarkesh", name="Dwarkesh Podcast", zh="Dwarkesh", cat="ai", tier=1, lang="en",
        itunes=1516093381, feed="https://apple.dwarkesh-podcast.workers.dev/feed.rss",
        yt="UCZa18YV7qayTh-MRIrBhDpA", desc="准备最充分的长访谈，逼受访者给出可反驳的具体判断"),
   dict(id="lennys", name="Lenny's Podcast", zh="Lenny's Podcast", cat="ai", tier=1, lang="en",
        itunes=1627920305, feed="https://api.substack.com/feed/podcast/10845.rss",
-       yt="UC6t1O76G0jYXOAoYCm153dA", desc="产品、增长与组织，一手操盘者的方法论"),
+       yt="UC6t1O76G0jYXOAoYCm153dA", residential=True, desc="产品、增长与组织，一手操盘者的方法论"),
   dict(id="nopriors", name="No Priors", zh="No Priors", cat="ai", tier=1, lang="en",
        itunes=1668002688, feed="https://feeds.megaphone.fm/nopriors",
        yt="UCSI7h9hydQ40K5MJHnCrQvw", desc="Sarah Guo 与 Elad Gil 对 AI 创业者的投资人式追问"),
@@ -48,7 +52,7 @@ CURATED: list[dict] = [
        yt="UCoPTBQlwUm0m7gSbBW9wN6A", desc="对 AI 应用层与 agent 工程细节挖得最深的一档"),
   dict(id="interconnects", name="Interconnects", zh="Interconnects", cat="ai", tier=1, lang="en",
        itunes=1719789201, feed="https://api.substack.com/feed/podcast/48206.rss",
-       yt="UCMhPRKnK8S_ruoGSt3vm1sQ", desc="Nathan Lambert 的后训练与开源模型分析，技术判断少有水分"),
+       yt="UCMhPRKnK8S_ruoGSt3vm1sQ", residential=True, desc="Nathan Lambert 的后训练与开源模型分析，技术判断少有水分"),
   dict(id="trainingdata", name="Training Data", zh="Training Data", cat="ai", tier=2, lang="en",
        itunes=1750736528, feed="https://feeds.megaphone.fm/trainingdata",
        yt="UCWrF0oN6unbXrWsTN7RctTw", desc="Sequoia 的 AI 研究与创业访谈"),
@@ -66,7 +70,7 @@ CURATED: list[dict] = [
        yt="UCddiUEpeqJcYeBxX1IVBKvQ", desc="Nilay Patel 追问平台与组织的决策结构"),
   dict(id="pragmatic", name="The Pragmatic Engineer", zh="The Pragmatic Engineer", cat="ai", tier=2, lang="en",
        itunes=1769051199, feed="https://api.substack.com/feed/podcast/458709.rss",
-       desc="工程组织与研发实践，面向写代码的人"),
+       residential=True, desc="工程组织与研发实践，面向写代码的人"),
   dict(id="aiandi", name="AI & I", zh="AI & I（Every）", cat="ai", tier=2, lang="en",
        itunes=1719789201, feed="https://feeds.transistor.fm/how-do-you-use-chatgpt",
        yt="UCjIMtrzxYc0lblGhmOgC_CA", desc="Every 的 Dan Shipper，聚焦真实工作流里怎么用 AI"),

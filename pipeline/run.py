@@ -42,6 +42,7 @@ _tiers = {"allow": T.ORDER}
 _triage = {"on": True, "min": triage.MIN_SCORE}
 _last_triage: dict[str, dict] = {}
 _review = {"on": True, "min": review.MIN_SCORE}
+_skip_res = {"on": False}
 MAX_FAILS = 3          # genuine failures: no transcript exists, or the gate says no
 MAX_SOFT_FAILS = 8     # infrastructure hiccups: a 429, a dropped connection, a
                        # model call that died. These must not burn an episode's
@@ -131,6 +132,11 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
     12MB, takes minutes and dominates the whole run."""
     cutoff = now() - dt.timedelta(days=days)
     todo = [s for s in srcs if not only or s["id"] == only]
+    if _skip_res["on"]:
+        blocked = [s["id"] for s in todo if s.get("residential")]
+        if blocked:
+            log(f"  跳过需要住宅 IP 的信源（云端会被 403）：{', '.join(blocked)}")
+            todo = [s for s in todo if not s.get("residential")]
 
     def pull(s):
         try:
@@ -333,6 +339,8 @@ def main() -> int:
                     help="how many episodes to publish this run")
     ap.add_argument("--days", type=int, default=int(os.environ.get("LOOKBACK_DAYS", "10")))
     ap.add_argument("--only", help="restrict to one source id")
+    ap.add_argument("--skip-residential", action="store_true",
+                    help="跳过标了 residential 的信源（云端用：那些 feed 拒绝机房 IP）")
     ap.add_argument("--review-min", type=float, default=review.MIN_SCORE,
                     help="成稿评分的及格线（0-10）。低于这个分数不上站。")
     ap.add_argument("--no-review", action="store_true",
@@ -362,6 +370,7 @@ def main() -> int:
     _ceiling["words"] = a.max_words
     _triage["on"] = not a.no_triage
     _triage["min"] = a.triage_min
+    _skip_res["on"] = a.skip_residential
     _review["on"] = not a.no_review
     _review["min"] = a.review_min
     if a.tiers:

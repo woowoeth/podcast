@@ -78,7 +78,7 @@ jobs:
           # 不含 youtube：GitHub 的机房 IP 会被 YouTube 判成机器人并索要 cookie，
           # 实测拿不到字幕。依赖 YouTube 的信源（几档中文播客）由本机的
           # scripts/local-daily.sh 负责，那边是住宅 IP。
-          python pipeline/run.py $ONLY --tiers feed,notes,page,asr \
+          python pipeline/run.py $ONLY --tiers feed,notes,page,asr --skip-residential \
             --triage-min "${{ github.event.inputs.triage_min || '7' }}" \
             --review-min "${{ github.event.inputs.review_min || '8' }}" \
             2>&1 | tee "${RUNNER_TEMP}/run.log"
