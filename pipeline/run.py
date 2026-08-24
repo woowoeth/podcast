@@ -42,7 +42,7 @@ _tiers = {"allow": T.ORDER}
 _triage = {"on": True, "min": triage.MIN_SCORE}
 _last_triage: dict[str, dict] = {}
 _review = {"on": True, "min": review.MIN_SCORE}
-_skip_res = {"on": False}
+_skip_res = {"on": False, "only": False}
 _cat = {"v": ""}
 MAX_FAILS = 3          # genuine failures: no transcript exists, or the gate says no
 MAX_SOFT_FAILS = 8     # infrastructure hiccups: a 429, a dropped connection, a
@@ -141,6 +141,9 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
         if blocked:
             log(f"  跳过需要住宅 IP 的信源（云端会被 403）：{', '.join(blocked)}")
             todo = [s for s in todo if not s.get("residential")]
+    elif _skip_res["only"]:
+        todo = [s for s in todo if s.get("residential")]
+        log(f"  只跑需要住宅 IP 的 {len(todo)} 档（本机专属：YouTube 与 Substack）")
 
     def pull(s):
         try:
@@ -352,6 +355,8 @@ def main() -> int:
     ap.add_argument("--only", help="限定信源 id，逗号分隔可给多个")
     ap.add_argument("--cat", default="", choices=["", "ai", "biz", "cn"],
                     help="限定分类：ai / biz / cn")
+    ap.add_argument("--only-residential", action="store_true",
+                    help="只跑标了 residential 的信源（本机专属：YouTube 与 Substack）")
     ap.add_argument("--skip-residential", action="store_true",
                     help="跳过标了 residential 的信源（云端用：那些 feed 拒绝机房 IP）")
     ap.add_argument("--review-min", type=float, default=review.MIN_SCORE,
@@ -385,6 +390,7 @@ def main() -> int:
     _triage["min"] = a.triage_min
     _cat["v"] = a.cat
     _skip_res["on"] = a.skip_residential
+    _skip_res["only"] = a.only_residential
     _review["on"] = not a.no_review
     _review["min"] = a.review_min
     if a.tiers:
