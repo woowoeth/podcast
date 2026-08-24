@@ -63,7 +63,7 @@ def score(ep: dict, src: dict) -> dict | None:
         return None
     try:
         r = llm.call_json(SYSTEM, _brief(ep, src) + "\n\n" + SCHEMA,
-                          max_tokens=300, temperature=0.1, retries=1)
+                          max_tokens=300, temperature=0.1, retries=1, role="triage")
     except Exception as ex:
         log(f"    选题闸门调用失败（放行）：{type(ex).__name__}")
         return None

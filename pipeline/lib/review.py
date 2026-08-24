@@ -117,7 +117,8 @@ def check(d: dict, tr: dict, ep: dict, src: dict) -> dict | None:
             f"=== 成稿 ===\n{_draft(d)}\n\n"
             f"=== 成稿引用处的原文片段 ===\n{ev or '（拿不到原文片段）'}\n\n{SCHEMA}")
     try:
-        r = llm.call_json(SYSTEM, user, max_tokens=900, temperature=0.1, retries=1)
+        r = llm.call_json(SYSTEM, user, max_tokens=900, temperature=0.1,
+                          retries=1, role="review")
     except Exception as ex:
         log(f"    成稿评分调用失败（放行）：{type(ex).__name__}: {str(ex)[:90]}")
         return None

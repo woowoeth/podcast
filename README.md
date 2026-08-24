@@ -81,6 +81,7 @@ launchctl load ~/Library/LaunchAgents/com.ourword.podcast.plist
 |---|---|---|
 | Anthropic | 留空 | `claude-opus-5` |
 | DeepSeek | `https://api.deepseek.com/v1` | `deepseek-chat` |
+| **OpenRouter** | `https://openrouter.ai/api/v1` | `deepseek/deepseek-v3.2` |
 | 阿里云百炼 | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-plus` |
 | 智谱 | `https://open.bigmodel.cn/api/paas/v4` | `glm-4.6` |
 | Moonshot | `https://api.moonshot.cn/v1` | `kimi-k2-0905-preview` |
@@ -140,6 +141,8 @@ python3 pipeline/build.py                       # 只重建站点
 |---|---|---|
 | `LLM_API_KEY` | `sk-ant-*` 走 Anthropic Messages API，其他走 OpenAI 兼容 `/chat/completions` | 回退到本机 `claude` CLI，**花订阅额度而不是 API 账单** |
 | `LLM_BASE_URL` / `LLM_MODEL` | 覆盖端点与模型。**只有设了非 anthropic 的 BASE_URL 才走 OpenAI 兼容路径**，否则一律 Anthropic | Anthropic 默认 `claude-opus-5` |
+| `LLM_MODEL_TRIAGE` / `LLM_MODEL_REVIEW` | 选题闸门和成稿评分分别用哪个模型。评审最好换一家——同一个模型给自己的作业打分会偏袒 | 都回落到 `LLM_MODEL` |
+| `REVIEW_MIN` / `TRIAGE_MIN` | 成稿评分与选题闸门的及格线 | 8 / 7 |
 | `LLM_AUTH` | `bearer` = 把 key 当 OAuth token 发（`Authorization: Bearer` + oauth beta 头）；`api-key` = 发 `x-api-key` | 按前缀自动判断 |
 | `TRANSCRIBE_API_KEY` | 第 5 层音频转写（Whisper 兼容） | 第 5 层关闭，只靠前四层 |
 | `TRANSCRIBE_BASE_URL` / `TRANSCRIBE_MODEL` | 默认 Groq `whisper-large-v3-turbo` | — |

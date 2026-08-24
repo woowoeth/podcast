@@ -22,6 +22,11 @@ from .util import log
 KEY = (os.environ.get("LLM_API_KEY") or os.environ.get("ANTHROPIC_API_KEY") or "").strip()
 BASE = (os.environ.get("LLM_BASE_URL") or "").strip().rstrip("/")
 MODEL = (os.environ.get("LLM_MODEL") or "").strip()
+# 分工用不同模型：选题是廉价分类，深读要质量，成稿评分最好换一家——
+# 同一个模型给自己的作业打分，天然偏袒。OpenRouter 这类聚合端点一个 key
+# 就能切换，所以这个拆分几乎没有额外成本。
+MODEL_TRIAGE = (os.environ.get("LLM_MODEL_TRIAGE") or "").strip()
+MODEL_REVIEW = (os.environ.get("LLM_MODEL_REVIEW") or "").strip()
 FORCE = (os.environ.get("LLM_PROVIDER") or "").strip().lower()
 # Anthropic accepts two credential shapes on different headers. An API key goes
 # on x-api-key; an OAuth token (from `ant auth login` / Claude Code) goes on
@@ -87,12 +92,19 @@ def endpoint() -> str:
     return p
 
 
-def model_name() -> str:
-    p = provider()
+def model_name(role: str = "digest") -> str:
+    """role: digest | triage | review。未单独配置时回落到 LLM_MODEL。"""
+    override = {"triage": MODEL_TRIAGE, "review": MODEL_REVIEW}.get(role, "")
+    if override:
+        return override
     if MODEL:
         return MODEL
     return {"anthropic": DEFAULT_ANTHROPIC, "openai": DEFAULT_OPENAI,
-            "claude-cli": DEFAULT_CLI}.get(p, "none")
+            "claude-cli": DEFAULT_CLI}.get(provider(), "none")
+
+
+def roles() -> dict:
+    return {r: model_name(r) for r in ("digest", "triage", "review")}
 
 
 def available() -> bool:
@@ -109,21 +121,23 @@ def safe_jobs() -> int:
 
 
 def call(system: str, user: str, *, max_tokens: int = 6000,
-         temperature: float = 0.3, want_json: bool = False) -> str:
+         temperature: float = 0.3, want_json: bool = False,
+         role: str = "digest") -> str:
     p = provider()
+    model = model_name(role)
     if p == "anthropic":
         base = BASE if "anthropic" in BASE else "https://api.anthropic.com"
         r = _guard(lambda: net.post_json(base + "/v1/messages", {
-            "model": model_name(), "max_tokens": max_tokens,
+            "model": model, "max_tokens": max_tokens,
             "temperature": temperature, "system": system,
             "messages": [{"role": "user", "content": user}]},
             anthropic_headers()))
         return "".join(b.get("text", "") for b in r.get("content", []))
     if p == "openai":
-        return _openai(system, user, max_tokens, temperature,
+        return _openai(system, user, max_tokens, temperature, model,
                        json_mode=want_json and _json_mode[0])
     if p == "claude-cli":
-        return _cli(system, user)
+        return _cli(system, user, model=model)
     raise RuntimeError("no LLM backend: set LLM_API_KEY or install the claude CLI")
 
 
@@ -142,23 +156,28 @@ _json_mode = [True]
 
 
 def _openai(system: str, user: str, max_tokens: int, temperature: float,
-            *, json_mode: bool) -> str:
+            model: str, *, json_mode: bool) -> str:
     url = (BASE or "https://api.openai.com/v1") + "/chat/completions"
-    body = {"model": model_name(), "max_tokens": max_tokens,
+    body = {"model": model, "max_tokens": max_tokens,
             "temperature": temperature,
             "messages": [{"role": "system", "content": system},
                          {"role": "user", "content": user}]}
     if json_mode:
         body["response_format"] = {"type": "json_object"}
+    h = {"Authorization": "Bearer " + KEY}
+    if "openrouter" in url:
+        # OpenRouter 用这两个头做用量归属，也让请求不容易被当成匿名滥用
+        h["HTTP-Referer"] = "https://ourword.ai/podcast/"
+        h["X-Title"] = "OurWord Podcast"
     try:
-        r = _guard(lambda: net.post_json(url, body, {"Authorization": "Bearer " + KEY}))
+        r = _guard(lambda: net.post_json(url, body, h))
     except AuthError:
         raise
     except Exception as ex:
         if json_mode and re.search(r"response_format|json_object|400", str(ex), re.I):
             log("    这个端点不接受 response_format，本次起改用纯提示词约束 JSON")
             _json_mode[0] = False
-            return _openai(system, user, max_tokens, temperature, json_mode=False)
+            return _openai(system, user, max_tokens, temperature, model, json_mode=False)
         raise
     return (r.get("choices") or [{}])[0].get("message", {}).get("content", "") or ""
 

@@ -396,7 +396,9 @@ def main() -> int:
     if a.jobs > cap:
         log(f"--jobs {a.jobs} clamped to {cap} for the {llm.provider()} backend")
         a.jobs = cap
-    log(f"run · {iso(now())} · {llm.provider()}:{llm.model_name()} · "
+    rl = llm.roles()
+    log(f"run · {iso(now())} · {llm.provider()} · 深读 {rl['digest']} / "
+        f"选题 {rl['triage']} / 评审 {rl['review']} · "
         f"asr={'on' if T.ASR_KEY else 'off'} · budget={a.limit}")
     log(f"  endpoint: {llm.endpoint()}")
     log(f"  文稿层: {', '.join(_tiers['allow'])}")
