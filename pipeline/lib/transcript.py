@@ -24,6 +24,7 @@ import shutil
 import subprocess
 import tempfile
 import threading
+import time
 
 from . import net
 from .util import hhmmss, log, parse_ts, squeeze, strip_html
@@ -390,6 +391,55 @@ def match_youtube(ep: dict, src: dict) -> str | None:
     if best and best_score >= 0.55:
         log(f"    matched on YouTube ({best_score:.2f}): {best['title'][:60]}")
         return best.get("youtube_id")
+    return _search_youtube(ep, src)
+
+
+def _search_youtube(ep: dict, src: dict) -> str | None:
+    """Fall back to a YouTube search when the channel feed does not have it.
+
+    The channel feed only carries the 15 newest uploads, and shows that post
+    clips between episodes push the real episode out of it within days — which
+    is why several Chinese shows looked like they had no video at all. Duration
+    is the guard against matching a clip: a two-minute excerpt shares most of
+    the title with the hour-long episode it came from.
+    """
+    if not shutil.which("yt-dlp"):
+        return None
+    title = re.sub(r"^\s*\d{1,4}\s*[.、|｜:：-]\s*", "", ep.get("title", ""))[:60]
+    if not title:
+        return None
+    show = src.get("zh") or src["name"]
+    dur = ep.get("duration")
+    with _YT_LOCK:
+        try:
+            r = subprocess.run(
+                ["yt-dlp", f"ytsearch5:{show} {title}", "--flat-playlist",
+                 "--no-warnings", "--socket-timeout", "30",
+                 "--print", "%(id)s\t%(title)s\t%(duration)s"],
+                capture_output=True, text=True, timeout=180)
+        except Exception as ex:
+            log(f"    youtube search failed: {type(ex).__name__}")
+            return None
+    want = _tokens(ep.get("title", ""))
+    for line in (r.stdout or "").strip().split("\n"):
+        parts = line.split("\t")
+        if len(parts) < 3 or not parts[0]:
+            continue
+        vid, vtitle, vdur = parts[0], parts[1], parts[2]
+        try:
+            vdur = int(float(vdur))
+        except (TypeError, ValueError):
+            vdur = 0
+        # A clip carries the episode's title but not its length.
+        if dur and vdur and abs(vdur - dur) > 90:
+            continue
+        have = _tokens(vtitle)
+        if not have:
+            continue
+        inter = len(want & have)
+        if inter >= max(3, int(len(want) * 0.6)):
+            log(f"    found via YouTube search: {vtitle[:56]} ({vdur}s vs {dur}s)")
+            return vid
     return None
 
 
@@ -413,16 +463,36 @@ def _from_youtube(vid: str, lang: str) -> dict | None:
                "--sub-langs", langs, "--sub-format", "vtt", "--no-warnings",
                "--retries", "2", "--socket-timeout", "30",
                "-o", str(pathlib.Path(td) / "c"), "https://www.youtube.com/watch?v=" + vid]
-        try:
-            r = subprocess.run(cmd, capture_output=True, timeout=300, text=True)
-        except Exception as e:
-            log(f"    yt-dlp failed: {type(e).__name__}")
-            return None
-        files = sorted(pathlib.Path(td).glob("*.vtt"), key=lambda p: p.stat().st_size, reverse=True)
+        # YouTube 429s readily, and a 429 is indistinguishable from "no captions"
+        # unless you read stderr. For the Chinese shows YouTube is the only
+        # transcript path, so a rate limit must be waited out, not mistaken for
+        # an absent track.
+        files: list[pathlib.Path] = []
+        err = ""
+        for attempt in range(3):
+            try:
+                r = subprocess.run(cmd, capture_output=True, timeout=300, text=True)
+            except Exception as e:
+                log(f"    yt-dlp failed: {type(e).__name__}")
+                return None
+            files = sorted(pathlib.Path(td).glob("*.vtt"),
+                           key=lambda p: p.stat().st_size, reverse=True)
+            if files:
+                break
+            err = squeeze(((r.stderr or "") + " " + (r.stdout or ""))[-260:])
+            if re.search(r"429|too many requests|rate.?limit", err, re.I):
+                wait = 30 * (2 ** attempt)
+                log(f"    YouTube 限流，等 {wait}s 再试（{attempt + 1}/3）")
+                time.sleep(wait)
+                continue
+            break
         if not files:
-            err = squeeze((r.stderr or "")[-160:])
             if err:
-                log(f"    yt-dlp: no captions ({err})")
+                low = err.lower()
+                if "no automatic captions" in low or "no subtitles" in low:
+                    log("    这个视频没有字幕轨")
+                else:
+                    log(f"    yt-dlp: 拿不到字幕（{err[:120]}）")
             return None
         segs = _vtt_srt(files[0].read_text("utf-8", "replace"))
         if segs:
