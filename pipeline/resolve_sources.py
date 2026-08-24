@@ -185,8 +185,10 @@ CURATED: list[dict] = [
   # ---------- 2026-08 新增：按评分标准过 8 分的。文稿可得性全部实测过，
   # 不是"官网应该有文稿"这种假设——Conversations with Tyler 和半拿铁就是这么被
   # 挡下来的（假设有、实测没有）。----------
+  # 云端 page 层 3/3 失败、本机实测可取 13771 字，先按需要住宅 IP 路由。
+  # 具体原因待新加的 page 层日志下一轮跑批给出。
   dict(id="complexsys", name="Complex Systems", zh="Complex Systems", cat="biz", tier=1, lang="en",
-       itunes=1753399812, feed="https://feeds.transistor.fm/complex-systems-with-patrick-mckenzie-patio11",
+       residential=True, itunes=1753399812, feed="https://feeds.transistor.fm/complex-systems-with-patrick-mckenzie-patio11",
        desc="patio11 拆支付、风控、银行与运营的实际机制，几乎每期都能直接拿去用"),
   dict(id="oxide", name="Oxide and Friends", zh="Oxide and Friends", cat="ai", tier=1, lang="en",
        itunes=1625932222, feed="https://feeds.transistor.fm/oxide-and-friends",

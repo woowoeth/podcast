@@ -301,7 +301,8 @@ def from_page(ep: dict, lang: str) -> dict | None:
     for u in dict.fromkeys(urls):
         try:
             html = net.get_text(u, timeout=60, cache_ttl=86400)
-        except Exception:
+        except Exception as ex:
+            log(f"    page 层取不到 {u[:60]}：{type(ex).__name__} {str(ex)[:60]}")
             continue
         # Try every plausible container AND the whole document, then keep the
         # densest one that still looks like speech. Picking the first matching
@@ -319,6 +320,7 @@ def from_page(ep: dict, lang: str) -> dict | None:
                 continue
             best, best_words = body, words
         if best is None:
+            log(f"    page 层拿到了页面但没有够密的文稿（{u[:56]}）")
             continue
         segs = _timestamped_notes(best) or _plain_to_segs(best, ep.get("duration"))
         return {"segments": segs, "source": "page", "detail": "show page", "url": u}
