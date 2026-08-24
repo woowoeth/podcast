@@ -43,6 +43,7 @@ _triage = {"on": True, "min": triage.MIN_SCORE}
 _last_triage: dict[str, dict] = {}
 _review = {"on": True, "min": review.MIN_SCORE}
 _skip_res = {"on": False}
+_cat = {"v": ""}
 MAX_FAILS = 3          # genuine failures: no transcript exists, or the gate says no
 MAX_SOFT_FAILS = 8     # infrastructure hiccups: a 429, a dropped connection, a
                        # model call that died. These must not burn an episode's
@@ -131,7 +132,10 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
     """Fetch every feed concurrently — a serial pass over 49 feeds, some of them
     12MB, takes minutes and dominates the whole run."""
     cutoff = now() - dt.timedelta(days=days)
-    todo = [s for s in srcs if not only or s["id"] == only]
+    # --only 支持逗号分隔的多个 id；--cat 按分类跑（ai / biz / cn）
+    want = {x.strip() for x in (only or "").split(",") if x.strip()}
+    todo = [s for s in srcs if (not want or s["id"] in want)
+            and (not _cat["v"] or s.get("cat") == _cat["v"])]
     if _skip_res["on"]:
         blocked = [s["id"] for s in todo if s.get("residential")]
         if blocked:
@@ -345,7 +349,9 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=int(os.environ.get("MAX_NEW", "8")),
                     help="how many episodes to publish this run")
     ap.add_argument("--days", type=int, default=int(os.environ.get("LOOKBACK_DAYS", "10")))
-    ap.add_argument("--only", help="restrict to one source id")
+    ap.add_argument("--only", help="限定信源 id，逗号分隔可给多个")
+    ap.add_argument("--cat", default="", choices=["", "ai", "biz", "cn"],
+                    help="限定分类：ai / biz / cn")
     ap.add_argument("--skip-residential", action="store_true",
                     help="跳过标了 residential 的信源（云端用：那些 feed 拒绝机房 IP）")
     ap.add_argument("--review-min", type=float, default=review.MIN_SCORE,
@@ -377,6 +383,7 @@ def main() -> int:
     _ceiling["words"] = a.max_words
     _triage["on"] = not a.no_triage
     _triage["min"] = a.triage_min
+    _cat["v"] = a.cat
     _skip_res["on"] = a.skip_residential
     _review["on"] = not a.no_review
     _review["min"] = a.review_min
@@ -420,7 +427,9 @@ def main() -> int:
     log(f"  文稿层: {', '.join(_tiers['allow'])}")
     log(f"  选题闸门: {'及格线 ' + str(_triage['min']) if _triage['on'] else '关闭'}"
         f" · 成稿评分: {'及格线 ' + str(_review['min']) if _review['on'] else '关闭'}")
-    log(f"scanning {len(srcs)} sources, {a.days}d lookback")
+    log(f"scanning {len(srcs)} sources, {a.days}d lookback"
+        + (f", 限定分类 {a.cat}" if a.cat else "")
+        + (f", 限定信源 {a.only}" if a.only else ""))
 
     cands = candidates(srcs, state, a.days, a.only)
     cands.sort(key=score, reverse=True)

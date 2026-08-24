@@ -22,7 +22,10 @@ on:
         description: "选题闸门及格线 0-10（建档从几千集里挑，建议 8）"
         default: "8"
       only:
-        description: "只补某一个信源 id（留空= 全部）"
+        description: "限定信源 id，逗号分隔可给多个（留空=全部）"
+        default: ""
+      cat:
+        description: "限定分类：ai / biz / cn（留空=全部）"
         default: ""
 
 permissions:
@@ -62,6 +65,7 @@ jobs:
           set -o pipefail
           ONLY=""
           if [ -n "${{ github.event.inputs.only }}" ]; then ONLY="--only ${{ github.event.inputs.only }}"; fi
+          if [ -n "${{ github.event.inputs.cat }}" ]; then ONLY="$ONLY --cat ${{ github.event.inputs.cat }}"; fi
           python pipeline/run.py $ONLY --tiers feed,notes,page,asr --skip-residential \
             --days "${{ github.event.inputs.days }}" \
             --limit "${{ github.event.inputs.limit }}" \
