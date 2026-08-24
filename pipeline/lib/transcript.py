@@ -390,11 +390,12 @@ def match_youtube(ep: dict, src: dict) -> str | None:
         score = inter / len(want | have)
         # A YouTube title is often the RSS title plus the guest and show name,
         # so containment counts as strongly as symmetric overlap.
-        if inter >= max(3, int(len(want) * 0.7)):
-            score = max(score, 0.62)
+        if inter >= max(4, int(len(want) * 0.8)):
+            score = max(score, 0.75)
         if score > best_score:
             best, best_score = v, score
-    if best and best_score >= 0.55:
+    # 0.55 太松：频道 feed 是 Atom，不带时长，没法用时长兜底，所以标题必须很像。
+    if best and best_score >= 0.72:
         log(f"    matched on YouTube ({best_score:.2f}): {best['title'][:60]}")
         return best.get("youtube_id")
     return _search_youtube(ep, src)
@@ -646,6 +647,38 @@ def chapters(ep: dict) -> list[dict]:
     return dedup if len(dedup) >= 3 else []
 
 
+# 标题里的"识别性词"——专有名词、长词、CJK 串。用来验证到手的文稿真的属于这一集。
+_DISTINCT = re.compile(r"[A-Z][A-Za-z]{3,}|[A-Za-z]{6,}|[\u4e00-\u9fff]{3,}")
+_TITLE_STOP = {"podcast", "episode", "interview", "conversation", "special",
+               "regrets", "product", "management", "exists", "building", "about",
+               "become", "should", "really", "better", "things", "people"}
+
+
+def belongs_to(text: str, title: str) -> bool | None:
+    """到手的文稿是不是这一集的？
+
+    起因：YouTube 匹配把 Bezos 的访谈配给了 Lenny's 一集 Whatnot CPO 的节目，
+    整篇深读因此基于另一集写成，署着错的嘉宾发出去了。标题相似度和时长都拦不住
+    这种情况（Atom feed 不带时长），所以在文稿到手后再验一次：标题里的识别性词
+    至少要有一个出现在文稿里。
+
+    返回 None 表示标题里挑不出可验证的词，此时不做判断（不能因为标题太普通就拒稿）。
+    """
+    words = [w for w in _DISTINCT.findall(title or "")
+             if w.lower() not in _TITLE_STOP]
+    # 去掉纯小写的普通英文词，保留专有名词与 CJK
+    keys = [w for w in words if (w[0].isupper() or not w.isascii())]
+    keys = [w for w in keys if len(w) >= 3][:10]
+    if len(keys) < 2:
+        return None
+    low = text.lower()
+    hits = sum(1 for k in keys if k.lower() in low)
+    # 英文标题是 Title Case，每个词首字母都大写，所以 keys 里混着 Coming、Historic
+    # 这类普通词——单个命中不足以证明归属。按 keys 数量按比例要求命中数。
+    need = max(1, len(keys) // 4)
+    return hits >= need
+
+
 ORDER = ("feed", "notes", "page", "youtube", "asr")
 
 
@@ -696,6 +729,16 @@ def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
             log(f"    tier {tier}: {words} words = {wpm:.0f} wpm — that is not this "
                 f"episode's transcript, rejected")
             continue
+        # 归属校验：拿到的文稿必须能和这一集的标题对上，否则就是配错了集。
+        # 官方 feed 里带的逐字稿天然属于这一集，不必验。
+        if tier != "feed":
+            ok = belongs_to(text, ep.get("title", ""))
+            if ok is False:
+                attempts.append(f"{tier}:wrong-episode")
+                log(f"    tier {tier}: 文稿里找不到标题中的任何识别性词——"
+                    f"这份文稿不属于这一集，丢弃")
+                _transient["hit"] = False
+                continue
         got.update(words=words, wpm=round(wpm, 1), chars=len(text),
                    timed=not all(s.get("approx") for s in got["segments"]),
                    attempts=attempts + [f"{tier}:ok"])

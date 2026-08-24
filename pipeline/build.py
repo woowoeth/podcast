@@ -64,9 +64,25 @@ def load() -> tuple[list[dict], dict]:
 
 # --------------------------------------------------------------------- chrome
 
+GA_ID = os.environ.get("GA_ID", "G-DHD3WEXQ8T")   # 与 ourword.ai 其他站同一个属性
+
+# max-snippet/max-image-preview 放开：答案引擎和搜索结果都靠这个决定能引多少。
+# 对这个站尤其重要——它的价值就是被引用时能带出可核对的判断。
+ROBOTS = "index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1"
+
+
 def head(title: str, desc: str, *, path: str = "/", image: str = "",
-         extra: str = "") -> str:
+         extra: str = "", robots: str = ROBOTS, published: str = "",
+         modified: str = "") -> str:
     url = SITE + path
+    ga = (f'<script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>\n'
+          f'<script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments)}}\n'
+          f"gtag('js',new Date());gtag('config','{GA_ID}');</script>") if GA_ID else ""
+    dates = ""
+    if published:
+        dates += f'<meta property="article:published_time" content="{e(published)}">\n'
+    if modified:
+        dates += f'<meta property="article:modified_time" content="{e(modified)}">\n'
     return f"""<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -74,18 +90,25 @@ def head(title: str, desc: str, *, path: str = "/", image: str = "",
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{e(title)}</title>
 <meta name="description" content="{e(desc)}">
+<meta name="robots" content="{e(robots)}">
 <link rel="canonical" href="{e(url)}">
-<meta property="og:type" content="website">
+<meta property="og:type" content="{'article' if published else 'website'}">
+<meta property="og:site_name" content="{e(NAME)}">
+<meta property="og:locale" content="zh_CN">
 <meta property="og:title" content="{e(title)}">
 <meta property="og:description" content="{e(desc)}">
 <meta property="og:url" content="{e(url)}">
 {f'<meta property="og:image" content="{e(image)}">' if image else ''}
-<meta name="twitter:card" content="summary_large_image">
+{dates}<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{e(title)}">
+<meta name="twitter:description" content="{e(desc)}">
+{f'<meta name="twitter:image" content="{e(image)}">' if image else ''}
 <link rel="icon" type="image/svg+xml" href="{BASE}/icon.svg">
 <link rel="apple-touch-icon" href="{BASE}/icon.svg">
 <link rel="alternate" type="application/rss+xml" title="{e(NAME)}" href="{BASE}/feed.xml">
 <link rel="stylesheet" href="{BASE}/assets/site.css">
 <script>try{{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}}catch(e){{}}</script>
+{ga}
 {extra}
 </head>
 <body>
@@ -107,7 +130,10 @@ def masthead(n: int | None, *, home: bool) -> str:
     单独一行。把 slogan 提出来做兄弟节点，字标左、入口右，任何宽度都成立。
     n 为 None 时不显示篇数（单集页用）。
     """
-    mark = f'<h1>{NAME}<span class="dot">.</span></h1>'
+    # 字标只在首页是 h1。单集页的 h1 必须是文章标题——一页两个 h1 会让搜索引擎
+    # 和读屏软件都拿不准这一页在讲什么。
+    mark = (f'<h1>{NAME}<span class="dot">.</span></h1>' if home
+            else f'<span class="wordmark">{NAME}<span class="dot">.</span></span>')
     brand = (f'<div class="brand">{mark}</div>' if home
              else f'<a class="brand" href="{BASE}/">{mark}</a>')
     count = f'<span class="stat">{n} 篇深读</span>' if n else ""
@@ -129,7 +155,8 @@ def foot() -> str:
 <div>{NAME} · <a href="https://ourword.ai">OurWord.ai</a> 的播客线。内容为原播客的中文深读，
 版权归各节目所有；每篇都附原节目链接，请去支持原作者。</div>
 <div class="links"><a href="{BASE}/">首页</a><a href="{BASE}/sources/">信源</a>
-<a href="{BASE}/feed.xml">RSS</a><a href="https://github.com/woowoeth/podcast">源码</a></div>
+<a href="{BASE}/feed.xml">RSS</a><a href="{BASE}/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源码</a></div>
 </div></div></footer>
 <script src="{BASE}/assets/site.js" defer></script>
 </body></html>
@@ -202,6 +229,15 @@ def search_index(eps: list[dict]) -> str:
     return json.dumps(rows, ensure_ascii=False, separators=(",", ":"))
 
 
+def _ld(obj: dict) -> str:
+    return ('<script type="application/ld+json">'
+            + json.dumps(obj, ensure_ascii=False) + "</script>")
+
+
+def _publisher() -> dict:
+    return {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}
+
+
 def index_page(eps: list[dict], srcs: dict) -> str:
     counts = {c: sum(1 for x in eps if x.get("cat") == c) for c in CAT_ORDER}
     chips = [f'<button class="chip" data-cat-chip="all" aria-pressed="true">全部'
@@ -212,8 +248,28 @@ def index_page(eps: list[dict], srcs: dict) -> str:
                          f'{CAT_LABEL[c]}<span class="n">{counts[c]}</span></button>')
     cards = "\n".join(card(x, hero=(i == 0)) for i, x in enumerate(eps))
     # TAGLINE 里已经有"原声"，再前缀 NAME 会让标题出现两次品牌名
+    # WebSite + CollectionPage + ItemList：让搜索与答案引擎知道这是一个持续更新的
+    # 条目集合，而不是一张零散的落地页。SearchAction 指向 ?q=，那是站内搜索真实
+    # 用的参数，所以这个声明是可用的而不是装饰。
+    ld = _ld({"@context": "https://schema.org", "@graph": [
+        {"@type": "WebSite", "@id": SITE + "/#site", "url": SITE + "/",
+         "name": NAME, "alternateName": "OurWord Podcast", "description": BLURB,
+         "inLanguage": "zh-CN", "publisher": _publisher(),
+         "potentialAction": {"@type": "SearchAction",
+                             "target": {"@type": "EntryPoint",
+                                        "urlTemplate": SITE + "/?q={search_term_string}"},
+                             "query-input": "required name=search_term_string"}},
+        {"@type": "CollectionPage", "@id": SITE + "/#page", "url": SITE + "/",
+         "name": f"{NAME} — {TAGLINE}", "isPartOf": {"@id": SITE + "/#site"},
+         "inLanguage": "zh-CN",
+         "mainEntity": {"@type": "ItemList", "numberOfItems": len(eps),
+                        "itemListElement": [
+                            {"@type": "ListItem", "position": i + 1,
+                             "url": f"{SITE}/p/{x['slug']}/",
+                             "name": x["digest"].get("title")}
+                            for i, x in enumerate(eps[:60])]}}]})
     return (head(TAGLINE, BLURB, path="/",
-                 image=(eps[0].get("image") if eps else ""))
+                 image=(eps[0].get("image") if eps else ""), extra=ld)
             + masthead(len(eps), home=True)
             + f"""
 <div class="toolbar"><div class="wrap"><div class="toolbar-in">
@@ -273,14 +329,14 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
             f'<tr><td class="k">{e(f["k"])}</td><td class="v">{e(f["v"])}</td>'
             f'<td class="t">{ts(f["t"]) if f.get("t") is not None else ""}</td></tr>'
             for f in d["facts"])
-        facts = f'<section class="section"><h3>数字与实体</h3><table class="facts">{rows}</table></section>'
+        facts = f'<section class="section"><h2>数字与实体</h3><table class="facts">{rows}</table></section>'
 
     terms = ""
     if d.get("terms"):
         items = "\n".join(
             f'<div><dt>{e(t["term"])}<span>{e(t["zh"])}</span></dt>'
             f'<dd>{e(t.get("def"))}</dd></div>' for t in d["terms"])
-        terms = f'<section class="section"><h3>术语</h3><dl class="terms">{items}</dl></section>'
+        terms = f'<section class="section"><h2>术语</h3><dl class="terms">{items}</dl></section>'
 
     toc = "\n".join(f'<a href="#p{i}"><span class="t">{hhmmss(p["t"])}</span>'
                     f'<span>{e(p["h"])}</span></a>'
@@ -305,18 +361,44 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
                  f'<strong>{e(nxt["digest"]["title"])}</strong></a>' if nxt else "<span></span>")
         prevnext = f'<nav class="prevnext">{left}{right}</nav>'
 
-    ld = json.dumps({
-        "@context": "https://schema.org", "@type": "PodcastEpisode",
-        "name": d.get("title"), "description": d.get("dek"),
-        "datePublished": ep.get("published"), "url": f"{SITE}/p/{ep['slug']}/",
-        "timeRequired": f"PT{int((ep.get('duration') or 0)//60)}M",
-        "partOfSeries": {"@type": "PodcastSeries", "name": ep.get("source")},
+    # 关键词给答案引擎用：标签 + 术语 + facts 的指标名，都是这一篇真实覆盖的实体
+    kw = [t for t in (d.get("tags") or [])]
+    kw += [t.get("term") for t in (d.get("terms") or []) if t.get("term")]
+    kw += [f.get("k") for f in (d.get("facts") or []) if f.get("k")][:6]
+    graph = [{
+        "@type": "PodcastEpisode",
+        "@id": f"{SITE}/p/{ep['slug']}/#episode",
+        "name": d.get("title"), "headline": d.get("title"),
+        "description": d.get("dek"), "abstract": d.get("dek"),
+        "datePublished": ep.get("published"),
+        "dateModified": ep.get("generated") or ep.get("published"),
+        "url": f"{SITE}/p/{ep['slug']}/",
+        "timeRequired": f"PT{int((ep.get('duration') or 0) // 60)}M",
+        "partOfSeries": {"@type": "PodcastSeries", "name": ep.get("source"),
+                         "url": f"{SITE}/s/{ep.get('source_id')}/"},
         "inLanguage": "zh-CN",
         "isBasedOn": orig or None,
-    }, ensure_ascii=False)
+        "publisher": _publisher(),
+        "keywords": ", ".join(x for x in kw if x) or None,
+        "isAccessibleForFree": True,
+        # 答案引擎优先朗读/引用这两块——正好是本站最该被引用的部分
+        "speakable": {"@type": "SpeakableSpecification",
+                      "cssSelector": [".dek-lead", ".point .body"]},
+    }]
+    if ep.get("audio"):
+        graph[0]["associatedMedia"] = {"@type": "AudioObject", "contentUrl": ep["audio"]}
+    graph.append({"@type": "BreadcrumbList", "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "首页", "item": SITE + "/"},
+        {"@type": "ListItem", "position": 2, "name": src_label,
+         "item": f"{SITE}/s/{ep.get('source_id')}/"},
+        {"@type": "ListItem", "position": 3, "name": d.get("title")}]})
+    ld = json.dumps({"@context": "https://schema.org", "@graph": graph},
+                    ensure_ascii=False)
 
     return (head(f"{d.get('title')} — {src_label} · {NAME}", d.get("dek", ""),
                  path=f"/p/{ep['slug']}/", image=ep.get("image", ""),
+                 published=ep.get("published", ""),
+                 modified=ep.get("generated") or ep.get("published", ""),
                  extra=f'<script type="application/ld+json">{ld}</script>')
             + masthead(None, home=False)
             + f"""
@@ -329,7 +411,7 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
 <article>
 <div class="ep-head">
 <div class="kicker" data-cat="{e(ep.get('cat'))}"><span class="src">{e(src_label)}</span>
-<span class="date">{e(date)}</span></div>
+<time class="date" datetime="{e(ep.get('published'))}">{e(date)}</time></div>
 <h1>{e(d.get('title'))}</h1>
 <p class="dek-lead">{e(d.get('dek'))}</p>
 <div class="ep-meta">{tags}</div>
@@ -337,11 +419,11 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
 
 {f'<section class="section"><div class="why">{e(d.get("why"))}</div></section>' if d.get('why') else ''}
 
-<section class="section"><h3>核心论点 · {'时间戳为按文稿位置估算' if q.get('approx_timestamps') else '点时间戳可跳到原声'}</h3>{points}</section>
-{f'<section class="section"><h3>原话 · 已逐字校验</h3>{quotes}</section>' if quotes else ''}
+<section class="section"><h2>核心论点 · {'时间戳为按文稿位置估算' if q.get('approx_timestamps') else '点时间戳可跳到原声'}</h2>{points}</section>
+{f'<section class="section"><h2>原话 · 已逐字校验</h2>{quotes}</section>' if quotes else ''}
 {facts}
 {terms}
-{f'''<section class="section"><h3>收听指南</h3>
+{f'''<section class="section"><h2>收听指南</h3>
 <div class="panel guide">
 <div><span class="k">谁该听</span><p>{e(d.get("who"))}</p></div>
 {f'<div><span class="k">可跳过</span><p>{e(d.get("skip"))}</p></div>' if d.get('skip') else ''}
@@ -426,11 +508,23 @@ def sources_page(srcs: dict, eps: list[dict]) -> str:
                       f'style="margin-left:10px">{len(rows)} 档</span></h2>'
                       f'<div class="src-grid">{"".join(cards)}</div>')
     n = len(srcs["sources"])
+    ld = _ld({"@context": "https://schema.org", "@type": "CollectionPage",
+              "url": SITE + "/sources/", "name": f"信源 — {NAME}",
+              "inLanguage": "zh-CN", "isPartOf": {"@id": SITE + "/#site"},
+              "mainEntity": {"@type": "ItemList", "numberOfItems": n,
+                             "itemListElement": [
+                                 {"@type": "ListItem", "position": i + 1,
+                                  "item": {"@type": "PodcastSeries",
+                                           "name": s0.get("zh") or s0["name"],
+                                           "description": s0.get("desc", ""),
+                                           "url": (f"{SITE}/s/{s0['id']}/" if per.get(s0["id"])
+                                                   else None)}}
+                                 for i, s0 in enumerate(srcs["sources"])]}})
     return (head(f"信源 — {NAME}", f"{NAME} 目前追踪 {n} 档中英文播客的完整信源清单与抓取健康度。",
-                 path="/sources/")
+                 path="/sources/", extra=ld)
             + masthead(len(eps), home=False)
             + f"""<main class="wrap">
-<h2 class="sec-title" style="margin-top:34px">信源 · {n} 档</h2>
+<h1 class="sec-title" style="margin-top:34px">信源 · {n} 档</h1>
 <p class="lede">以 Apple Podcasts 官方 RSS 为主干，而不是只抓 YouTube 频道——这样纯音频节目
 （Acquired、Odd Lots、Invest Like the Best）和中文播客才不会整块缺失。feed 地址不写死在代码里，
 节目换托管商时会自动从 Apple 目录重新解析，所以不会悄悄断更。</p>
@@ -461,17 +555,157 @@ def source_page(src: dict, eps: list[dict], total_known: int | None) -> str:
     rows.append(("优先级", f"T{src.get('tier', 3)}"))
     meta = "".join(f'<div class="row"><span>{e(k)}</span><span>{e(v)}</span></div>'
                    for k, v in rows)
-    return (head(f"{name} — {NAME}", src.get("desc", ""), path=f"/s/{src['id']}/")
+    ld = _ld({"@context": "https://schema.org", "@graph": [
+        {"@type": "PodcastSeries", "name": name, "description": src.get("desc", ""),
+         "url": f"{SITE}/s/{src['id']}/", "inLanguage":
+             "zh-CN" if src.get("lang") == "zh" else "en",
+         "webFeed": src.get("feed")},
+        {"@type": "BreadcrumbList", "itemListElement": [
+            {"@type": "ListItem", "position": 1, "name": "首页", "item": SITE + "/"},
+            {"@type": "ListItem", "position": 2, "name": "信源", "item": SITE + "/sources/"},
+            {"@type": "ListItem", "position": 3, "name": name}]}]})
+    return (head(f"{name} — {NAME}", src.get("desc", ""), path=f"/s/{src['id']}/", extra=ld)
             + masthead(len(eps), home=False)
             + f"""<main class="wrap">
 <nav class="crumb" style="margin-top:26px"><a href="{BASE}/">首页</a><span class="sep">/</span>
 <a href="{BASE}/sources/">信源</a><span class="sep">/</span><span>{e(name)}</span></nav>
-<h2 class="sec-title" style="margin-top:0">{e(name)}</h2>
+<h1 class="sec-title" style="margin-top:0">{e(name)}</h1>
 <p class="lede">{e(src.get('desc'))}</p>
 <div class="panel" style="max-width:420px;margin:18px 0 4px">{meta}</div>
 <div class="feed" data-feed>{cards or
   '<div class="empty"><b>这档还没有深读</b>取不到可核对的文稿时不会发，等文稿到位再上。</div>'}</div>
 </main>""" + foot())
+
+
+# ------------------------------------------------------------- llms.txt (GEO)
+
+def llms_txt(eps: list[dict], srcs: dict) -> str:
+    """给答案引擎读的导览。
+
+    搜索引擎爬 HTML，答案引擎更愿意先读一份说明"这站是什么、内容怎么组织、
+    凭什么可信"的纯文本。对这个站尤其重要：它的差异化是可核对性，而那一点在
+    HTML 里散落在侧栏和角标上，说明白反而更容易被引用。
+    """
+    n = len(srcs.get("sources") or [])
+    per: dict[str, int] = {}
+    for x in eps:
+        per[x["source_id"]] = per.get(x["source_id"], 0) + 1
+    L = [f"# {NAME} (Yuansheng)", "",
+         f"> {TAGLINE}", "> Chinese deep-reads of Chinese and English podcasts, "
+         "every claim anchored to a timestamp in the original audio.", "",
+         f"每天从 {n} 档中英文播客里挑出值得记住的判断。要点和金句都带时间戳，"
+         "点一下就回到它在原声里被说出的那一秒。", "",
+         "A daily digest of podcasts, written in Chinese. Each entry carries 5-8 argued "
+         "points with clickable timestamps, verbatim quotes in the original language plus "
+         "a Chinese translation, and the numbers stated in the episode. "
+         "Quotes are checked character-by-character against the transcript and numbers are "
+         "traced back to it; anything that cannot be located is deleted before publishing.",
+         "", "## Read it", "",
+         f"- Site: {SITE}/",
+         f"- Every source, with coverage and fetch health: {SITE}/sources/",
+         f"- One page per source: {SITE}/s/<source-id>/",
+         f"- One page per episode: {SITE}/p/<slug>/",
+         f"- Full text of every entry, one file: {SITE}/llms-full.txt",
+         f"- All URLs: {SITE}/sitemap.xml",
+         f"- RSS: {SITE}/feed.xml",
+         f"- Search index (JSON, one row per entry): {SITE}/search.json",
+         "", "## How an entry is made", "",
+         "1. 文稿 / transcript, in strict order of quality: the show's own machine-readable "
+         "transcript from its RSS feed; the full text when the feed carries it; a transcript "
+         "page on the show's site; YouTube auto-captions; audio transcription as the last "
+         "resort. Every entry states which one it used.",
+         "2. 选题 / triage: an editorial pass on the title and show notes decides whether the "
+         "episode carries anything worth writing about before any expensive work happens.",
+         "3. 机器闸门 / mechanical gate: quotes must occur verbatim in the transcript "
+         "(spoken numbers included — \"twenty fourteen\" counts as 2014); every number in the "
+         "facts table must be traceable to the transcript; every timestamp must fall inside "
+         "the episode's duration. Whatever fails is deleted, not softened.",
+         "4. 成稿评分 / review: a separate model scores the finished piece 0-10 against the "
+         "transcript around every citation plus an even sample of the whole episode, judging "
+         "information density, faithfulness, selection, concreteness and Chinese prose. "
+         "Below 7 does not publish. The score is shown on each page.",
+         "",
+         "Nothing is published when the transcript cannot be verified. A day with no "
+         "verifiable material is a day with no new entries.",
+         "", f"## Sources ({n})", ""]
+    for c in CAT_ORDER:
+        rows = [x for x in srcs["sources"] if x.get("cat") == c]
+        if not rows:
+            continue
+        L.append(f"### {CAT_LABEL[c]} ({len(rows)})")
+        L.append("")
+        rows.sort(key=lambda x: (x.get("tier", 3), x["name"]))
+        for x in rows:
+            mine = per.get(x["id"], 0)
+            url = f"{SITE}/s/{x['id']}/" if mine else ""
+            L.append(f"- {x.get('zh') or x['name']} — {x.get('desc','')}"
+                     + (f" ({mine} entries: {url})" if mine else " (not yet covered)"))
+        L.append("")
+    L += [f"## Entries ({len(eps)})", ""]
+    for x in eps:
+        d = x["digest"]
+        L.append(f"- [{d.get('title')}]({SITE}/p/{x['slug']}/) — {d.get('dek')} "
+                 f"[{x.get('source_zh') or x.get('source')}, {(x.get('published') or '')[:10]}]")
+    L.append("")
+    return "\n".join(L)
+
+
+def llms_full_txt(eps: list[dict]) -> str:
+    """全部条目的完整正文，一个文件。答案引擎要引用时不必逐页抓。"""
+    out = [f"# {NAME} — {TAGLINE}", "",
+           f"{len(eps)} entries. Source: {SITE}/ · Generated from the sources listed in "
+           f"{SITE}/llms.txt", ""]
+    for x in eps:
+        d = x["digest"]
+        q = d.get("quality") or {}
+        rv = x.get("review") or {}
+        out += ["=" * 78, "",
+                f"## {d.get('title')}", "",
+                f"- URL: {SITE}/p/{x['slug']}/",
+                f"- 节目 / show: {x.get('source_zh') or x.get('source')}"
+                f" ({SITE}/s/{x.get('source_id')}/)",
+                f"- 原集标题 / original episode: {x.get('title_original')}",
+                f"- 发布 / published: {(x.get('published') or '')[:10]}"
+                f" · 时长 / duration: {hhmmss(x.get('duration')) or '—'}",
+                f"- 文稿来源 / transcript: {TSRC_LABEL.get(q.get('transcript_source'), q.get('transcript_source') or '—')}"
+                f" · {q.get('words') or '?'} words"
+                + (" · timestamps are estimated from position in the transcript"
+                   if q.get("approx_timestamps") else " · timestamps are exact"),
+                f"- 校验 / verification: {q.get('verified_quotes', 0)} quotes matched verbatim,"
+                f" {q.get('grounded_facts', 0)} numbers traced to the transcript"
+                + (f", review score {rv['score']:.0f}/10" if isinstance(rv.get("score"), (int, float)) else ""),
+                "", f"**{d.get('dek')}**", ""]
+        if d.get("why"):
+            out += [f"为什么听 / why: {d['why']}", ""]
+        out.append("### 核心论点 / points")
+        out.append("")
+        for pt in d.get("points") or []:
+            spk = f" ({pt['spk']})" if pt.get("spk") else ""
+            out.append(f"[{hhmmss(pt.get('t'))}]{spk} **{pt.get('h')}** — {pt.get('body')}")
+            out.append("")
+        if d.get("quotes"):
+            out += ["### 原话 / verbatim quotes", ""]
+            for qq in d["quotes"]:
+                out.append(f"[{hhmmss(qq.get('t'))}] {qq.get('spk')}: \"{qq.get('raw')}\"")
+                out.append(f"    译 / zh: {qq.get('zh')}")
+                out.append("")
+        if d.get("facts"):
+            out += ["### 数字 / figures", ""]
+            for f in d["facts"]:
+                t = f" [{hhmmss(f['t'])}]" if f.get("t") is not None else ""
+                out.append(f"- {f.get('k')}: {f.get('v')}{t}")
+            out.append("")
+        if d.get("terms"):
+            out += ["### 术语 / glossary", ""]
+            for t in d["terms"]:
+                out.append(f"- {t.get('term')} ({t.get('zh')}): {t.get('def')}")
+            out.append("")
+        if d.get("who"):
+            out += [f"谁该听 / who: {d['who']}"]
+        if d.get("skip"):
+            out += [f"可跳过 / skip: {d['skip']}"]
+        out += [f"标签 / tags: {', '.join(d.get('tags') or [])}", ""]
+    return "\n".join(out)
 
 
 # ---------------------------------------------------------------- feed / seo
@@ -518,23 +752,30 @@ def rss(eps: list[dict]) -> str:
 
 
 def sitemap(eps: list[dict]) -> str:
-    urls = [f"<url><loc>{xesc(SITE)}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>",
-            f"<url><loc>{xesc(SITE)}/sources/</loc><changefreq>weekly</changefreq></url>"]
+    newest = max((x.get("published") or "" for x in eps), default="")[:10]
+    urls = [f"<url><loc>{xesc(SITE)}/</loc>"
+            + (f"<lastmod>{xesc(newest)}</lastmod>" if newest else "")
+            + "<changefreq>daily</changefreq><priority>1.0</priority></url>",
+            f"<url><loc>{xesc(SITE)}/sources/</loc>"
+            + (f"<lastmod>{xesc(newest)}</lastmod>" if newest else "")
+            + "<changefreq>weekly</changefreq><priority>0.6</priority></url>"]
     for sid in sorted({x["source_id"] for x in eps}):
         urls.append(f"<url><loc>{xesc(SITE)}/s/{xesc(sid)}/</loc><changefreq>weekly</changefreq></url>")
     for x in eps:
         urls.append(f"<url><loc>{xesc(SITE)}/p/{xesc(x['slug'])}/</loc>"
-                    f"<lastmod>{xesc((x.get('published') or '')[:10])}</lastmod></url>")
+                    f"<lastmod>{xesc((x.get('published') or '')[:10])}</lastmod>"
+                    f"<changefreq>monthly</changefreq><priority>0.8</priority></url>")
     return ('<?xml version="1.0" encoding="UTF-8"?>\n'
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
             + "\n".join(urls) + "\n</urlset>\n")
 
 
 def not_found() -> str:
-    return (head(f"找不到这一页 — {NAME}", "", path="/404.html")
+    return (head(f"找不到这一页 — {NAME}", "", path="/404.html",
+                 robots="noindex,follow")
             + masthead(0, home=False)
             + f"""<main class="wrap"><div class="empty" style="padding:110px 0">
-<b>这一页不在了</b><p>回 <a href="{BASE}/" style="color:var(--accent)">首页</a> 看最新深读。</p>
+<h1><b>这一页不在了</b></h1><p>回 <a href="{BASE}/" style="color:var(--accent)">首页</a> 看最新深读。</p>
 </div></main>""" + foot())
 
 
@@ -570,8 +811,23 @@ def main() -> int:
                 shutil.rmtree(d)
     log(f"  {len(live_src)} source pages")
 
-    (ROOT / "robots.txt").write_text(
-        f"User-agent: *\nAllow: /\nSitemap: {SITE}/sitemap.xml\n")
+    # 显式放行答案引擎的爬虫。这个站的价值就是被引用时能带出可核对的判断，
+    # 所以默认允许而不是默认拦——沉默的 User-agent: * 在有些爬虫那里等于不确定。
+    ai_bots = ["GPTBot", "OAI-SearchBot", "ChatGPT-User", "ClaudeBot", "Claude-User",
+               "Claude-SearchBot", "anthropic-ai", "PerplexityBot", "Perplexity-User",
+               "Google-Extended", "Googlebot", "Bingbot", "Applebot", "Applebot-Extended",
+               "Amazonbot", "meta-externalagent", "Bytespider", "Baiduspider",
+               "YisouSpider", "CCBot", "DuckDuckBot", "cohere-ai", "Diffbot",
+               "Timpibot", "omgili"]
+    rb = ["# 允许被搜索与答案引擎抓取和引用。", "",
+          "User-agent: *", "Allow: /", ""]
+    for b in ai_bots:
+        rb += [f"User-agent: {b}", "Allow: /", ""]
+    rb += [f"Sitemap: {SITE}/sitemap.xml",
+           f"# 给模型读的导览：{SITE}/llms.txt", ""]
+    (ROOT / "robots.txt").write_text("\n".join(rb))
+    (ROOT / "llms.txt").write_text(llms_txt(eps, srcs))
+    (ROOT / "llms-full.txt").write_text(llms_full_txt(eps))
     (ROOT / ".nojekyll").write_text("")
 
     pdir = ROOT / "p"
