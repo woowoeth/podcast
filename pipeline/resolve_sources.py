@@ -182,6 +182,24 @@ CURATED: list[dict] = [
   dict(id="peteryang", name="Peter Yang", zh="Peter Yang", cat="ai", tier=3, lang="en", kind="youtube",
        yt="UCnpBg7yqNauHtlNSpOl5-cg", feed="https://www.youtube.com/feeds/videos.xml?channel_id=UCnpBg7yqNauHtlNSpOl5-cg",
        desc="产品经理视角的 AI 工具实操"),
+  # ---------- 2026-08 新增：按评分标准过 8 分的。文稿可得性全部实测过，
+  # 不是"官网应该有文稿"这种假设——Conversations with Tyler 和半拿铁就是这么被
+  # 挡下来的（假设有、实测没有）。----------
+  dict(id="complexsys", name="Complex Systems", zh="Complex Systems", cat="biz", tier=1, lang="en",
+       itunes=1753399812, feed="https://feeds.transistor.fm/complex-systems-with-patrick-mckenzie-patio11",
+       desc="patio11 拆支付、风控、银行与运营的实际机制，几乎每期都能直接拿去用"),
+  dict(id="oxide", name="Oxide and Friends", zh="Oxide and Friends", cat="ai", tier=1, lang="en",
+       itunes=1625932222, feed="https://feeds.transistor.fm/oxide-and-friends",
+       desc="做服务器的人聊硬件、固件与系统工程，具体到芯片型号和踩过的坑"),
+  dict(id="eightythousand", name="80,000 Hours Podcast", zh="80,000 Hours", cat="ai", tier=1, lang="en",
+       itunes=1245002988, feed="https://feeds.transistor.fm/80000-hours-podcast",
+       desc="超长深访 AI 安全与治理的研究者，准备程度接近学术，自带官方全文"),
+  dict(id="mastersinbiz", name="Masters in Business", zh="Masters in Business", cat="biz", tier=2, lang="en",
+       itunes=730188152, feed="https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/4e4cd910-40a1-4619-a5f3-ae2b0012ffff/5873a3cb-298f-40bc-b71f-ae2b0013000d/podcast.rss",
+       desc="Bloomberg 访谈顶级资产管理人，讲清他们的决策框架而不是业绩"),
+  dict(id="moneystuff", name="Money Stuff", zh="Money Stuff", cat="biz", tier=2, lang="en",
+       itunes=1739582836, feed="https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/ee4336cb-155f-4488-90e0-b1400134e40e/77e6a3a7-290d-4a82-8164-b14001353ef2/podcast.rss",
+       desc="Matt Levine 讲金融里那些结构性荒谬，监管与套利的机制"),
 ]
 
 CATS = {"ai": "AI / 技术", "biz": "投资 / 商业", "cn": "中国视角"}

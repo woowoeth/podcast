@@ -25,12 +25,25 @@ BASE = os.environ.get("PODCAST_BASE", "/podcast").rstrip("/")
 SITE = os.environ.get("PODCAST_SITE", "https://ourword.ai") + BASE
 NAME = "原声"
 TAGLINE = "世界太吵，来原声听播客"
-BLURB = ("每天从 49 档中英文播客里挑出值得记住的判断。要点和金句都带时间戳，点一下"
-         "就回到它在原声里被说出的那一秒；金句逐字校验过、数字回原文核对过——"
-         "查不到出处的，一律不上站。")
+def _n_sources() -> int:
+    """信源数从 sources.json 读，别写死——加了源之后文案会悄悄过期。"""
+    try:
+        return len(json.loads((DATA / "sources.json").read_text())["sources"])
+    except Exception:
+        return 0
+
+
+def _blurb() -> str:
+    n = _n_sources()
+    head = f"每天从 {n} 档中英文播客里挑出值得记住的判断。" if n else "每天从中英文播客里挑出值得记住的判断。"
+    return (head + "要点和金句都带时间戳，点一下就回到它在原声里被说出的那一秒；"
+            "金句逐字校验过、数字回原文核对过——查不到出处的，一律不上站。")
 
 CAT_ORDER = ["ai", "biz", "cn"]
 CAT_LABEL = {"ai": "AI / 技术", "biz": "投资 / 商业", "cn": "中国视角"}
+
+
+BLURB = ""          # 首次 build 时填充（要先读到 data/sources.json）
 
 
 def e(s) -> str:
@@ -526,6 +539,8 @@ def not_found() -> str:
 
 
 def main() -> int:
+    global BLURB
+    BLURB = _blurb()
     eps, srcs = load()
     log(f"building {len(eps)} episodes, {len(srcs.get('sources') or [])} sources")
     (ROOT / "index.html").write_text(index_page(eps, srcs))
