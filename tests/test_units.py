@@ -14,7 +14,7 @@ import unittest
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "pipeline"))
 
 from lib import gate, transcript as T                     # noqa: E402
-from lib.digest import _clean_title, normalize            # noqa: E402
+from lib.digest import _clean_title, _cn_punct, normalize  # noqa: E402
 from lib.util import fingerprint, norm_title, parse_duration, parse_ts, hhmmss  # noqa: E402
 
 
@@ -352,6 +352,27 @@ class Titles(unittest.TestCase):
     def test_internal_punctuation_survives(self):
         t = "ChatGPT Work 与 Codex 是同一个 harness，差的只是 UX"
         self.assertEqual(_clean_title(t), t)
+
+    def test_half_width_punctuation_between_cjk_is_widened(self):
+        # 国产模型稳定地在中文里写半角逗号，中文站上很扎眼
+        self.assertEqual(_cn_punct("非洲工业化不缺资源,缺的是人口密度"),
+                         "非洲工业化不缺资源，缺的是人口密度")
+        self.assertEqual(_cn_punct("第一点:成本下降了"), "第一点：成本下降了")
+        self.assertEqual(_cn_punct("真的吗?我不信"), "真的吗？我不信")
+        self.assertEqual(_cn_punct("这句话结束了."), "这句话结束了。")
+
+    def test_numbers_and_latin_keep_half_width(self):
+        for t in ("我们融了200,000美元", "用的是gpt-4.1模型",
+                  "Anthropic 的 ARR 是 1.2 billion", "E249｜Token经济转点"):
+            self.assertEqual(_cn_punct(t), t)
+
+    def test_verbatim_quote_is_never_rewritten(self):
+        # quotes.raw 要逐字校验，改一个字符就通不过
+        out = normalize({"title": "标题",
+                         "quotes": [{"t": "0:10", "spk": "A",
+                                     "raw": "他说,这是原话.", "zh": "译文,如此."}]})
+        self.assertEqual(out["quotes"][0]["raw"], "他说,这是原话.")
+        self.assertEqual(out["quotes"][0]["zh"], "译文，如此。")
 
     def test_normalize_drops_malformed_rows(self):
         out = normalize({"title": "标题", "points": ["not a dict", {"h": "有内容"}],

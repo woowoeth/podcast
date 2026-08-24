@@ -156,6 +156,20 @@ _LIST_FIELDS = {"points": ("t", "h", "body", "spk"),
                 "terms": ("term", "zh", "def")}
 
 
+# 中文里夹半角标点在中文站上很扎眼，而且模型（尤其是国产模型）会稳定地这么写。
+# 只在两侧都是汉字时才换成全角，所以 "1,200"、"gpt-4.1"、"E249｜..." 不受影响。
+_CJK = r"\u4e00-\u9fff\u3005\u3007\u3400-\u4dbf"
+_HALF = {",": "，", ";": "；", ":": "：", "!": "！", "?": "？"}
+_HALF_RE = re.compile(rf"(?<=[{_CJK}])([,;:!?])(?=[{_CJK}])")
+_DOT_RE = re.compile(rf"(?<=[{_CJK}])\.(?=[{_CJK}]|\s|$)")
+
+
+def _cn_punct(t: str) -> str:
+    """半角标点转全角——只在汉字之间。绝不用于 quotes[].raw：那一栏要逐字校验。"""
+    t = _HALF_RE.sub(lambda m: _HALF[m.group(1)], t)
+    return _DOT_RE.sub("。", t)
+
+
 _TITLE_TAIL = re.compile(r"[\s，,、；;：。.…／/｜|]+$")
 _WRAPPED = re.compile(r"^([「『\"“])(.+)([」』\"”])$")
 
@@ -173,8 +187,13 @@ def _clean_title(t: str) -> str:
     return _TITLE_TAIL.sub("", t)
 
 
+# 每一栏都过全角化，除了 quotes.raw —— 那是逐字原文，改一个字符就通不过校验。
+_VERBATIM = {("quotes", "raw"), ("terms", "term")}
+
+
 def normalize(raw: dict) -> dict:
-    out = {k: squeeze(str(raw.get(k) or "")) for k in ("title", "dek", "why", "who", "skip")}
+    out = {k: _cn_punct(squeeze(str(raw.get(k) or "")))
+           for k in ("title", "dek", "why", "who", "skip")}
     out["title"] = _clean_title(out["title"])
     for name, keys in _LIST_FIELDS.items():
         items = raw.get(name)
@@ -183,7 +202,10 @@ def normalize(raw: dict) -> dict:
             for it in items:
                 if not isinstance(it, dict):
                     continue
-                row = {k: squeeze(str(it.get(k) or "")) for k in keys}
+                row = {}
+                for k in keys:
+                    v = squeeze(str(it.get(k) or ""))
+                    row[k] = v if (name, k) in _VERBATIM else _cn_punct(v)
                 if any(row.values()):
                     rows.append(row)
         out[name] = rows
