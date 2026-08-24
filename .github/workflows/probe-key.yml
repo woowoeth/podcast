@@ -5,6 +5,9 @@ name: probe key
 on:
   workflow_dispatch:
     inputs:
+      what:
+        description: "探测哪个：llm 或 asr"
+        default: "llm"
       auth:
         description: "强制 header 模式：留空=自动判断，api-key，bearer"
         default: ""
@@ -29,4 +32,12 @@ jobs:
           LLM_BASE_URL: ${{ github.event.inputs.base_url || secrets.LLM_BASE_URL }}
           LLM_MODEL:    ${{ github.event.inputs.model || secrets.LLM_MODEL }}
           LLM_AUTH:     ${{ github.event.inputs.auth || secrets.LLM_AUTH }}
-        run: python pipeline/whoami.py
+          TRANSCRIBE_API_KEY:  ${{ secrets.TRANSCRIBE_API_KEY }}
+          TRANSCRIBE_BASE_URL: ${{ github.event.inputs.base_url || secrets.TRANSCRIBE_BASE_URL }}
+          TRANSCRIBE_MODEL:    ${{ github.event.inputs.model || secrets.TRANSCRIBE_MODEL }}
+        run: |
+          if [ "${{ github.event.inputs.what }}" = "asr" ]; then
+            python pipeline/whoami.py --asr
+          else
+            python pipeline/whoami.py
+          fi
