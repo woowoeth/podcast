@@ -1,0 +1,566 @@
+"""Transcript acquisition, in strict quality order.
+
+The whole platform stands on this file. A summary is only as good as the text it
+was written from, so every transcript carries provenance (`source`) and a
+measured `wpm`; anything that fails the density check is treated as *no
+transcript at all* rather than quietly summarised into a thin post.
+
+Tiers, best first:
+  1. feed        - <podcast:transcript> shipped by the show (VTT/SRT/JSON)
+  2. notes       - the feed item already contains the full text (Substack shows
+                   routinely paste the whole transcript into content:encoded)
+  3. page        - a transcript link in the show notes, fetched and extracted
+  4. youtube     - auto-captions via yt-dlp, if it is installed and not blocked
+  5. asr         - download the audio and transcribe it (Whisper-compatible API)
+"""
+from __future__ import annotations
+
+import json
+import os
+import pathlib
+import re
+import html as html_mod
+import shutil
+import subprocess
+import tempfile
+
+from . import net
+from .util import hhmmss, log, parse_ts, squeeze, strip_html
+
+# Below this words-per-minute a "transcript" is really show notes or a partial
+# capture. English conversation runs 130-170 wpm; Chinese ~220 chars/min.
+MIN_WPM = {"en": 70, "zh": 110}
+# And an upper bound: nobody speaks at 300 wpm. Exceeding it means we grabbed
+# the wrong document — a show's archive page, a combined feed, an index.
+MAX_WPM = {"en": 300, "zh": 520}
+ASR_KEY = os.environ.get("TRANSCRIBE_API_KEY", "").strip()
+ASR_BASE = os.environ.get("TRANSCRIBE_BASE_URL", "https://api.groq.com/openai/v1").strip().rstrip("/")
+ASR_MODEL = os.environ.get("TRANSCRIBE_MODEL", "whisper-large-v3-turbo").strip()
+ASR_MAX_MB = int(os.environ.get("TRANSCRIBE_MAX_MB", "24"))
+CHUNK_SEC = int(os.environ.get("TRANSCRIBE_CHUNK_SEC", "900"))
+
+
+# ---------------------------------------------------------------- caption files
+
+def _vtt_srt(text: str) -> list[dict]:
+    """Parse WebVTT or SubRip into [{t, text}] with seconds."""
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"^WEBVTT.*?\n\n", "", text, flags=re.S)
+    segs: list[dict] = []
+    pat = re.compile(r"(\d{1,2}:\d{2}:\d{2}[.,]\d{1,3}|\d{1,2}:\d{2}[.,]\d{1,3})"
+                     r"\s*-->\s*(\d{1,2}:\d{2}:\d{2}[.,]\d{1,3}|\d{1,2}:\d{2}[.,]\d{1,3})")
+    blocks = re.split(r"\n\s*\n", text)
+    for b in blocks:
+        m = pat.search(b)
+        if not m:
+            continue
+        start = m.group(1).replace(",", ".")
+        parts = start.split(":")
+        sec = 0.0
+        for p in parts:
+            sec = sec * 60 + float(p)
+        # Cut from the end of the timing LINE, not the end of the match: WebVTT
+        # puts cue settings (align:start position:0%) after the timestamps, and
+        # YouTube emits them on every cue.
+        nl = b.find("\n", m.end())
+        body = b[nl + 1:] if nl != -1 else ""
+        body = re.sub(r"<[^>]+>", "", body)                  # karaoke/word tags
+        body = html_mod.unescape(body)
+        body = re.sub(r"(?:^|\s)>>\s*", " ", body)            # caption speaker marker
+        body = squeeze(body.replace("\n", " "))
+        if body:
+            segs.append({"t": int(sec), "text": body})
+    return _dedupe_rolling(segs)
+
+
+_OVERLAP_MAX = 40
+
+
+def _dedupe_rolling(segs: list[dict]) -> list[dict]:
+    """Undo YouTube's rolling captions.
+
+    Auto-captions scroll: cue N carries "A", cue N+1 carries "A B", cue N+2
+    "B C". Naive concatenation therefore says everything twice. For each cue we
+    find the longest suffix of what we have already emitted that is also a
+    prefix of the incoming cue, and drop that prefix.
+    """
+    out: list[dict] = []
+    tail: list[str] = []                       # last few words actually emitted
+    for s in segs:
+        words = s["text"].split()
+        if not words:
+            continue
+        k = 0
+        for cand in range(min(len(tail), len(words), _OVERLAP_MAX), 0, -1):
+            if tail[-cand:] == words[:cand]:
+                k = cand
+                break
+        words = words[k:]
+        if not words:
+            continue
+        text = " ".join(words)
+        out.append({"t": s["t"], "text": text})
+        tail = (tail + words)[-_OVERLAP_MAX:]
+    return out
+
+
+def _json_captions(raw: str) -> list[dict]:
+    """Transistor/OpenAI-style JSON transcripts. Shapes vary; probe for one."""
+    try:
+        d = json.loads(raw)
+    except Exception:
+        return []
+    cands = None
+    if isinstance(d, dict):
+        for k in ("segments", "results", "transcript", "cues", "items", "data"):
+            v = d.get(k)
+            if isinstance(v, list) and v:
+                cands = v
+                break
+    elif isinstance(d, list):
+        cands = d
+    if not cands:
+        return []
+    segs = []
+    for c in cands:
+        if not isinstance(c, dict):
+            continue
+        t = None
+        for k in ("start", "startTime", "start_time", "begin", "offset", "t", "startMs"):
+            if k in c:
+                t = parse_ts(c[k])
+                if t is not None and k.endswith("Ms") and t > 100000:
+                    t //= 1000
+                break
+        body = ""
+        for k in ("text", "body", "utterance", "content", "transcript"):
+            if isinstance(c.get(k), str):
+                body = c[k]
+                break
+        if not body and isinstance(c.get("speaker"), str) and isinstance(c.get("words"), list):
+            body = " ".join(w.get("word", "") for w in c["words"])
+        spk = c.get("speaker") or c.get("speaker_label") or ""
+        body = squeeze(body)
+        if body:
+            seg = {"t": int(t or 0), "text": body}
+            if isinstance(spk, str) and spk:
+                seg["spk"] = spk
+            segs.append(seg)
+    return segs
+
+
+# -------------------------------------------------------------- tier 1: in-feed
+
+_TYPE_RANK = [("application/json", 0), ("json", 0), ("text/vtt", 1), ("vtt", 1),
+              ("srt", 2), ("subrip", 2), ("text/html", 4), ("text/plain", 3)]
+
+
+def _rank(t: str) -> int:
+    t = (t or "").lower()
+    for needle, r in _TYPE_RANK:
+        if needle in t:
+            return r
+    return 5
+
+
+def from_feed(ep: dict) -> dict | None:
+    cands = sorted(ep.get("transcripts") or [], key=lambda x: (_rank(x.get("type")),
+                                                              0 if "en" in (x.get("lang") or "en") else 1))
+    for c in cands:
+        try:
+            raw = net.get_text(c["url"], timeout=60, cache_ttl=86400)
+        except Exception as e:
+            log(f"    feed transcript {c.get('type')} failed: {type(e).__name__}")
+            continue
+        ty = (c.get("type") or "").lower()
+        segs: list[dict] = []
+        if "json" in ty:
+            segs = _json_captions(raw)
+        if not segs and ("vtt" in ty or "srt" in ty or "subrip" in ty or "-->" in raw[:2000]):
+            segs = _vtt_srt(raw)
+        if not segs:
+            body = strip_html(raw) if "<" in raw[:400] else raw
+            if len(body) > 2000:
+                segs = _plain_to_segs(body, ep.get("duration"))
+        if segs:
+            return {"segments": segs, "source": "feed", "detail": c.get("type") or "",
+                    "url": c["url"]}
+    return None
+
+
+def _plain_to_segs(body: str, duration: int | None) -> list[dict]:
+    """Untimed text: keep paragraphs, spread timestamps evenly so the reader
+    still gets a rough anchor. Marked `approx` so the gate knows not to trust
+    them to the second."""
+    paras = [squeeze(p) for p in re.split(r"\n{2,}", body) if squeeze(p)]
+    if len(paras) < 3:
+        paras = [squeeze(p) for p in re.split(r"(?<=[.!?。！？])\s+", body) if squeeze(p)]
+        paras = ["\n".join(paras[i:i + 8]) for i in range(0, len(paras), 8)]
+    total = sum(len(p) for p in paras) or 1
+    segs, run = [], 0
+    for p in paras:
+        t = int((duration or 0) * run / total) if duration else 0
+        segs.append({"t": t, "text": p, "approx": True})
+        run += len(p)
+    return segs
+
+
+# ------------------------------------------------- tier 2/3: notes & linked page
+
+_NOTE_NOISE = re.compile(
+    r"(?i)^(subscribe|sponsored|thanks to our sponsor|brought to you by|"
+    r"follow (us|me)|timestamps?|chapters?|links?|mentioned|where to find|"
+    r"referenced|production and marketing|advertise)\b")
+
+
+def from_notes(ep: dict, lang: str) -> dict | None:
+    body = strip_html(ep.get("notes"))
+    if not body:
+        return None
+    lines = [ln for ln in body.split("\n") if not _NOTE_NOISE.match(ln.strip())]
+    body = "\n".join(lines)
+    words = _count(body, lang)
+    dur_min = (ep.get("duration") or 0) / 60
+    if not dur_min:
+        return None
+    # Only accept notes as the primary text when they are dense enough to be
+    # the actual transcript or the full essay the episode reads out.
+    if words / dur_min < MIN_WPM.get(lang, 70):
+        return None
+    segs = _timestamped_notes(body) or _plain_to_segs(body, ep.get("duration"))
+    return {"segments": segs, "source": "notes", "detail": "feed item full text", "url": ep.get("link", "")}
+
+
+# "0:31:12 Label" / "[00:31] Label" — a chapter list or a bare timed transcript.
+_TS_LINE = re.compile(r"^\s*[\[\(]?(\d{1,2}:\d{2}(?::\d{2})?)[\]\)]?\s*[-–—:]?\s*(.+)$")
+# "Joon [00:31:12]: ..." / "Swyx (31:12): ..." — the Substack transcript house
+# style, and the only free source that hands us speaker attribution for nothing.
+_SPK_LINE = re.compile(
+    r"^\s*([^\n\[\](){}:]{1,28}?)\s*[\[\(](\d{1,2}:\d{2}(?::\d{2})?)[\]\)]\s*:?\s*(.*)$")
+
+
+def _timestamped_notes(body: str) -> list[dict]:
+    """Pull timed segments out of prose. Speaker-prefixed lines win, because
+    they carry attribution; a bare chapter list is the weaker fallback."""
+    spk_segs, ts_segs = [], []
+    for ln in body.split("\n"):
+        m = _SPK_LINE.match(ln)
+        if m:
+            t, name, txt = parse_ts(m.group(2)), squeeze(m.group(1)), squeeze(m.group(3))
+            if t is not None and txt:
+                seg = {"t": t, "text": txt}
+                if name and not name[0].isdigit():
+                    seg["spk"] = name
+                spk_segs.append(seg)
+                continue
+        m = _TS_LINE.match(ln)
+        if m:
+            t, txt = parse_ts(m.group(1)), squeeze(m.group(2))
+            if t is not None and txt:
+                ts_segs.append({"t": t, "text": txt})
+    segs = spk_segs if len(spk_segs) >= 5 else ts_segs
+    if len(segs) < 5:
+        return []
+    # A chapter list matches _TS_LINE too but covers a fraction of the text.
+    # Only trust these segments if they actually *are* most of the document.
+    if sum(len(s["text"]) for s in segs) < 0.5 * len(body):
+        return []
+    return segs
+
+
+_TR_LINK = re.compile(r'(?i)href="([^"]+)"[^>]*>\s*(?:full\s+)?transcript')
+
+
+def _is_this_episode(body: str, title: str) -> bool:
+    """A show's link often points at an archive or index page that happens to
+    contain plenty of text. Require a distinctive run of the episode title to
+    appear in the document before believing it is the right one."""
+    words = [w for w in re.findall(r"[A-Za-z0-9\u4e00-\u9fff]{4,}", title)][:12]
+    if len(words) < 3:
+        return True
+    low = body.lower()
+    hits = sum(1 for w in words if w.lower() in low)
+    return hits >= max(3, int(len(words) * 0.5))
+
+
+def from_page(ep: dict, lang: str) -> dict | None:
+    urls = []
+    m = _TR_LINK.search(ep.get("notes") or "")
+    if m:
+        urls.append(m.group(1))
+    if ep.get("link"):
+        urls.append(ep["link"])
+    dur_min = max((ep.get("duration") or 0) / 60, 1)
+    for u in urls[:2]:
+        try:
+            html = net.get_text(u, timeout=60, cache_ttl=86400)
+        except Exception:
+            continue
+        body = strip_html(_main_block(html))
+        wpm = _count(body, lang) / dur_min
+        if not (MIN_WPM.get(lang, 70) <= wpm <= MAX_WPM.get(lang, 300)):
+            continue
+        if not _is_this_episode(body, ep.get("title", "")):
+            log("    page tier: fetched document is not this episode — skipped")
+            continue
+        segs = _timestamped_notes(body) or _plain_to_segs(body, ep.get("duration"))
+        return {"segments": segs, "source": "page", "detail": "show page", "url": u}
+    return None
+
+
+def _main_block(html: str) -> str:
+    for pat in (r"(?is)<article\b.*?</article>", r"(?is)<main\b.*?</main>",
+                r'(?is)<div[^>]+class="[^"]*(?:transcript|post-content|entry-content)[^"]*".*?</div>'):
+        m = re.search(pat, html)
+        if m and len(m.group(0)) > 3000:
+            return m.group(0)
+    return html
+
+
+# ------------------------------------------------------------ tier 4: youtube
+
+_TOKEN = re.compile(r"[0-9a-z\u4e00-\u9fff]+")
+_STOP = {"the", "a", "an", "and", "or", "of", "to", "in", "on", "with", "for", "is",
+         "how", "why", "what", "podcast", "episode", "ep", "part", "feat", "ft"}
+
+
+def _tokens(t: str) -> set[str]:
+    return {w for w in _TOKEN.findall(t.lower()) if w not in _STOP and len(w) > 1}
+
+
+def match_youtube(ep: dict, src: dict) -> str | None:
+    """Find this RSS episode on the show's own YouTube channel.
+
+    Most shows publish the same episode to both, but only the video has
+    captions. The RSS item rarely links to it, so match on the title: the
+    channel feed carries the 15 newest videos, which always covers a
+    freshly-published episode.
+    """
+    chan = src.get("yt")
+    if not chan:
+        return None
+    try:
+        from . import feeds
+        vids = feeds.fetch({"id": src["id"], "name": src["name"],
+                            "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=" + chan},
+                           cache_ttl=1800)
+    except Exception as ex:
+        log(f"    youtube channel lookup failed: {type(ex).__name__}")
+        return None
+    want = _tokens(ep.get("title", ""))
+    if len(want) < 3:
+        return None
+    best, best_score = None, 0.0
+    for v in vids:
+        have = _tokens(v.get("title", ""))
+        if not have:
+            continue
+        inter = len(want & have)
+        score = inter / len(want | have)
+        # A YouTube title is often the RSS title plus the guest and show name,
+        # so containment counts as strongly as symmetric overlap.
+        if inter >= max(3, int(len(want) * 0.7)):
+            score = max(score, 0.62)
+        if score > best_score:
+            best, best_score = v, score
+    if best and best_score >= 0.55:
+        log(f"    matched on YouTube ({best_score:.2f}): {best['title'][:60]}")
+        return best.get("youtube_id")
+    return None
+
+
+def from_youtube(vid: str, lang: str) -> dict | None:
+    if not vid or not shutil.which("yt-dlp"):
+        return None
+    langs = "zh-Hans,zh,en" if lang == "zh" else "en,en-US,en-GB"
+    with tempfile.TemporaryDirectory() as td:
+        cmd = ["yt-dlp", "--skip-download", "--write-auto-subs", "--write-subs",
+               "--sub-langs", langs, "--sub-format", "vtt", "--no-warnings",
+               "--retries", "2", "--socket-timeout", "30",
+               "-o", str(pathlib.Path(td) / "c"), "https://www.youtube.com/watch?v=" + vid]
+        try:
+            r = subprocess.run(cmd, capture_output=True, timeout=300, text=True)
+        except Exception as e:
+            log(f"    yt-dlp failed: {type(e).__name__}")
+            return None
+        files = sorted(pathlib.Path(td).glob("*.vtt"), key=lambda p: p.stat().st_size, reverse=True)
+        if not files:
+            err = squeeze((r.stderr or "")[-160:])
+            if err:
+                log(f"    yt-dlp: no captions ({err})")
+            return None
+        segs = _vtt_srt(files[0].read_text("utf-8", "replace"))
+        if segs:
+            return {"segments": segs, "source": "youtube", "detail": files[0].name.split(".")[-2],
+                    "url": "https://www.youtube.com/watch?v=" + vid}
+    return None
+
+
+# ---------------------------------------------------------------- tier 5: ASR
+
+def _ffmpeg() -> str | None:
+    return shutil.which("ffmpeg")
+
+
+def from_audio(ep: dict, lang: str) -> dict | None:
+    if not ASR_KEY or not ep.get("audio"):
+        return None
+    try:
+        raw = net.get(ep["audio"], timeout=600, tries=2)
+    except Exception as e:
+        log(f"    audio download failed: {type(e).__name__}")
+        return None
+    mb = len(raw) / 1e6
+    log(f"    audio {mb:.1f}MB -> {ASR_MODEL}")
+    with tempfile.TemporaryDirectory() as td:
+        src = pathlib.Path(td) / "a.mp3"
+        src.write_bytes(raw)
+        chunks = _split(src, mb, td)
+        if chunks is None:
+            return None
+        segs: list[dict] = []
+        for offset, path in chunks:
+            got = _asr_one(path, lang)
+            if got is None:
+                return None
+            for s in got:
+                segs.append({"t": int(s["t"] + offset), "text": s["text"]})
+        if segs:
+            return {"segments": segs, "source": "asr", "detail": ASR_MODEL, "url": ep["audio"]}
+    return None
+
+
+def _split(src: pathlib.Path, mb: float, td: str) -> list[tuple[int, pathlib.Path]] | None:
+    if mb <= ASR_MAX_MB:
+        return [(0, src)]
+    ff = _ffmpeg()
+    if not ff:
+        log(f"    audio is {mb:.0f}MB (limit {ASR_MAX_MB}MB) and ffmpeg is absent — skipping")
+        return None
+    out = []
+    i = 0
+    while True:
+        dst = pathlib.Path(td) / f"c{i}.mp3"
+        r = subprocess.run([ff, "-nostdin", "-v", "error", "-ss", str(i * CHUNK_SEC),
+                           "-t", str(CHUNK_SEC), "-i", str(src),
+                           "-ac", "1", "-ar", "16000", "-b:a", "48k", str(dst)],
+                          capture_output=True)
+        if r.returncode != 0 or not dst.exists() or dst.stat().st_size < 20000:
+            break
+        out.append((i * CHUNK_SEC, dst))
+        i += 1
+        if i > 40:                       # 10h ceiling; nothing legitimate is longer
+            break
+    return out or None
+
+
+def _asr_one(path: pathlib.Path, lang: str) -> list[dict] | None:
+    fields = {"model": ASR_MODEL, "response_format": "verbose_json",
+              "timestamp_granularities[]": "segment"}
+    if lang in ("en", "zh"):
+        fields["language"] = lang
+    try:
+        r = net.post_multipart(ASR_BASE + "/audio/transcriptions", fields,
+                               path.name, path.read_bytes(),
+                               {"Authorization": "Bearer " + ASR_KEY})
+    except Exception as e:
+        log(f"    ASR failed: {type(e).__name__}: {str(e)[:120]}")
+        return None
+    segs = [{"t": int(s.get("start") or 0), "text": squeeze(s.get("text") or "")}
+            for s in (r.get("segments") or []) if squeeze(s.get("text") or "")]
+    if not segs and r.get("text"):
+        segs = _plain_to_segs(r["text"], None)
+    return segs
+
+
+# ------------------------------------------------------------------ orchestrate
+
+def _count(text: str, lang: str) -> int:
+    if lang == "zh":
+        return len(re.findall(r"[一-鿿]", text)) + len(re.findall(r"[A-Za-z]+", text))
+    return len(re.findall(r"[A-Za-z0-9']+", text))
+
+
+def chapters(ep: dict) -> list[dict]:
+    """Chapter markers the show already published — free, exact anchors."""
+    out = []
+    for ln in strip_html(ep.get("notes")).split("\n"):
+        m = _TS_LINE.match(ln)
+        if not m:
+            continue
+        t, label = parse_ts(m.group(1)), squeeze(m.group(2))
+        if t is None or not label or len(label) > 120:
+            continue
+        if ep.get("duration") and t > ep["duration"] + 60:
+            continue
+        out.append({"t": t, "label": label})
+    seen, dedup = set(), []
+    for c in sorted(out, key=lambda c: c["t"]):
+        if c["t"] in seen:
+            continue
+        seen.add(c["t"])
+        dedup.append(c)
+    return dedup if len(dedup) >= 3 else []
+
+
+ORDER = ("feed", "notes", "page", "youtube", "asr")
+
+
+def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
+            src: dict | None = None) -> dict | None:
+    """Walk the tiers and return the first transcript that passes the density
+    check. Returns None when nothing does — the caller must then NOT publish."""
+    dur_min = max((ep.get("duration") or 0) / 60, 1)
+    attempts = []
+    if src and not ep.get("youtube_id") and "youtube" in allow:
+        vid = match_youtube(ep, src)
+        if vid:
+            ep["youtube_id"] = vid          # also gives the page clickable timestamps
+    for tier in ORDER:
+        if tier not in allow:
+            continue
+        try:
+            got = {"feed": lambda: from_feed(ep),
+                   "notes": lambda: from_notes(ep, lang),
+                   "page": lambda: from_page(ep, lang),
+                   "youtube": lambda: from_youtube(ep.get("youtube_id") or "", lang),
+                   "asr": lambda: from_audio(ep, lang)}[tier]()
+        except Exception as e:
+            log(f"    tier {tier} raised {type(e).__name__}: {str(e)[:100]}")
+            got = None
+        if not got or not got.get("segments"):
+            attempts.append(f"{tier}:none")
+            continue
+        text = "\n".join(s["text"] for s in got["segments"])
+        words = _count(text, lang)
+        wpm = words / dur_min
+        if wpm < MIN_WPM.get(lang, 70):
+            attempts.append(f"{tier}:thin({wpm:.0f}wpm)")
+            log(f"    tier {tier}: {words} words = {wpm:.0f} wpm, too thin — rejected")
+            continue
+        if wpm > MAX_WPM.get(lang, 300):
+            attempts.append(f"{tier}:bloated({wpm:.0f}wpm)")
+            log(f"    tier {tier}: {words} words = {wpm:.0f} wpm — that is not this "
+                f"episode's transcript, rejected")
+            continue
+        got.update(words=words, wpm=round(wpm, 1), chars=len(text),
+                   timed=not all(s.get("approx") for s in got["segments"]),
+                   attempts=attempts + [f"{tier}:ok"])
+        log(f"    transcript via {tier} ({got['detail']}): {words} words, "
+            f"{wpm:.0f} wpm, {len(got['segments'])} segments")
+        return got
+    log(f"    no usable transcript ({', '.join(attempts)})")
+    return None
+
+
+def flatten(segs: list[dict], *, stamp_every: int = 60) -> str:
+    """Transcript rendered for the model: a [mm:ss] anchor roughly every minute
+    so quoted timestamps can be grounded instead of invented."""
+    out, last = [], -10 ** 9
+    for s in segs:
+        if s["t"] - last >= stamp_every:
+            out.append(f"\n[{hhmmss(s['t'])}] ")
+            last = s["t"]
+        spk = s.get("spk")
+        out.append((f"{spk}: " if spk else "") + s["text"] + " ")
+    return squeeze("".join(out).replace(" \n", "\n"))
