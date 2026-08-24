@@ -29,16 +29,38 @@ DEFAULT_OPENAI = "gpt-4o-mini"
 DEFAULT_CLI = "opus"
 
 
+class AuthError(RuntimeError):
+    """The credentials are wrong or pointed at the wrong service. Not transient —
+    retrying or moving to the next episode just repeats the failure."""
+
+
 def provider() -> str:
+    """Anthropic unless a base URL says otherwise.
+
+    The earlier rule was "sk-ant-* means Anthropic, anything else means OpenAI",
+    which silently shipped a perfectly good Anthropic key to api.openai.com and
+    got a 401. This project's default model is claude-opus-5, so Anthropic is
+    the default; an OpenAI-compatible endpoint has to be named explicitly with
+    LLM_BASE_URL, which is what the README asks for.
+    """
     if FORCE:
         return FORCE
     if KEY:
-        if KEY.startswith("sk-ant-") or "anthropic" in BASE:
-            return "anthropic"
-        return "openai"
+        if BASE and "anthropic" not in BASE:
+            return "openai"
+        return "anthropic"
     if shutil.which("claude"):
         return "claude-cli"
     return "none"
+
+
+def endpoint() -> str:
+    p = provider()
+    if p == "anthropic":
+        return (BASE if "anthropic" in BASE else "https://api.anthropic.com") + "/v1/messages"
+    if p == "openai":
+        return (BASE or "https://api.openai.com/v1") + "/chat/completions"
+    return p
 
 
 def model_name() -> str:
@@ -67,19 +89,19 @@ def call(system: str, user: str, *, max_tokens: int = 6000,
     p = provider()
     if p == "anthropic":
         base = BASE if "anthropic" in BASE else "https://api.anthropic.com"
-        r = net.post_json(base + "/v1/messages", {
+        r = _guard(lambda: net.post_json(base + "/v1/messages", {
             "model": model_name(), "max_tokens": max_tokens,
             "temperature": temperature, "system": system,
             "messages": [{"role": "user", "content": user}]},
-            {"x-api-key": KEY, "anthropic-version": "2023-06-01"})
+            {"x-api-key": KEY, "anthropic-version": "2023-06-01"}))
         return "".join(b.get("text", "") for b in r.get("content", []))
     if p == "openai":
-        r = net.post_json((BASE or "https://api.openai.com/v1") + "/chat/completions", {
+        r = _guard(lambda: net.post_json((BASE or "https://api.openai.com/v1") + "/chat/completions", {
             "model": model_name(), "max_tokens": max_tokens,
             "temperature": temperature,
             "messages": [{"role": "system", "content": system},
                          {"role": "user", "content": user}]},
-            {"Authorization": "Bearer " + KEY})
+            {"Authorization": "Bearer " + KEY}))
         return (r.get("choices") or [{}])[0].get("message", {}).get("content", "") or ""
     if p == "claude-cli":
         return _cli(system, user)
@@ -117,6 +139,26 @@ def _cli(system: str, user: str, *, tries: int = 4) -> str:
             continue
         break
     raise RuntimeError(f"claude cli failed: {last[:300]}")
+
+
+_AUTH = re.compile(r"HTTP (401|403)|invalid[ _-]?(x-)?api[ _-]?key|"
+                   r"authentication|unauthorized|incorrect api key", re.I)
+
+
+def _guard(fn):
+    """Turn a credentials failure into AuthError so the caller stops instead of
+    repeating it on every remaining episode."""
+    try:
+        return fn()
+    except Exception as ex:
+        if _AUTH.search(str(ex)):
+            raise AuthError(
+                f"{endpoint()} rejected the credentials: {str(ex)[:180]}\n"
+                f"  provider={provider()} model={model_name()}\n"
+                f"  An Anthropic key needs no LLM_BASE_URL. For any other provider set\n"
+                f"  LLM_BASE_URL and LLM_MODEL too, or force it with LLM_PROVIDER."
+            ) from None
+        raise
 
 
 _FENCE = re.compile(r"```(?:json)?\s*(.*?)```", re.S)

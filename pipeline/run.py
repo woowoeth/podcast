@@ -217,6 +217,9 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
 
     try:
         d = D.build(ep, s, tr, ch)
+    except llm.AuthError:
+        _release(state, fp, key)
+        raise                                 # abort the run; config is broken
     except Exception as ex:
         prev = state["fail"].get(key, {})
         state["fail"][key] = {"n": prev.get("n", 0), "soft": prev.get("soft", 0) + 1,
@@ -303,6 +306,7 @@ def main() -> int:
         a.jobs = cap
     log(f"run · {iso(now())} · {llm.provider()}:{llm.model_name()} · "
         f"asr={'on' if T.ASR_KEY else 'off'} · budget={a.limit}")
+    log(f"  endpoint: {llm.endpoint()}")
     log(f"scanning {len(srcs)} sources, {a.days}d lookback")
 
     cands = candidates(srcs, state, a.days, a.only)
@@ -317,6 +321,8 @@ def main() -> int:
     def one(ep):
         try:
             return process(ep, state, dry=a.dry_run)
+        except llm.AuthError:
+            raise
         except Exception:
             log("    unhandled:\n" + traceback.format_exc()[-900:])
             return "error"
@@ -330,7 +336,7 @@ def main() -> int:
             futs = {pool.submit(one, ep): ep for ep in picked}
             try:
                 for f in as_completed(futs):
-                    r = f.result()
+                    r = f.result()   # AuthError propagates and fails the run
                     tally[r] = tally.get(r, 0) + 1
                     if r == "published":
                         published += 1
@@ -343,6 +349,9 @@ def main() -> int:
         for ep in picked:
             try:
                 r = one(ep)
+            except llm.AuthError as ex:
+                log(f"\n凭证被拒，停止本轮：\n{ex}")
+                return 4
             except KeyboardInterrupt:
                 log("\ninterrupted")
                 break
@@ -353,6 +362,10 @@ def main() -> int:
     save_state(state)
 
     log("\n" + " · ".join(f"{k}={v}" for k, v in sorted(tally.items())) or "nothing to do")
+    if tally.get("error") and not published:
+        log(f"\n每一次模型调用都失败了（error={tally['error']}），这不是"
+            f"「今天没内容」，是部署有问题。")
+        return 5
     if published and not a.no_build:
         import build
         build.main()
