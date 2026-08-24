@@ -55,6 +55,54 @@ def ctx() -> ssl.SSLContext:
     return _CTX
 
 
+def _trust_everything() -> None:
+    """把系统信任库装到整个进程上，不只是我们自己的 urllib。
+
+    起因：本机有 TLS 拦截代理，自签根证书在 macOS keychain 里。ctx() 只给我们
+    自己的请求建了 truststore 上下文，于是 huggingface_hub（本地转写要下模型）
+    照样 CERTIFICATE_VERIFY_FAILED。两手都上：
+      1. truststore.inject_into_ssl() —— 覆盖走 stdlib ssl 的库
+      2. 把 keychain 根证书导成 PEM，并设 SSL_CERT_FILE / REQUESTS_CA_BUNDLE
+         等环境变量 —— 覆盖自己拼证书路径、不吃 monkeypatch 的库
+    CI 上没有代理，两步都是无害的空转。
+    """
+    try:
+        import truststore
+        truststore.inject_into_ssl()
+    except Exception:
+        pass
+    if os.environ.get("SSL_CERT_FILE") and os.environ.get("REQUESTS_CA_BUNDLE"):
+        return
+    bundle = pathlib.Path(os.environ.get("PODCAST_CACHE", ".cache")) / "ca-bundle.pem"
+    try:
+        if not bundle.exists() or bundle.stat().st_size < 10_000:
+            import subprocess
+            parts = []
+            try:
+                import certifi
+                parts.append(pathlib.Path(certifi.where()).read_text())
+            except Exception:
+                pass
+            for kc in ("/System/Library/Keychains/SystemRootCertificates.keychain",
+                       "/Library/Keychains/System.keychain"):
+                r = subprocess.run(["security", "find-certificate", "-a", "-p", kc],
+                                   capture_output=True, text=True, timeout=60)
+                if r.returncode == 0 and r.stdout:
+                    parts.append(r.stdout)
+            blob = "\n".join(parts)
+            if "BEGIN CERTIFICATE" not in blob:
+                return
+            bundle.parent.mkdir(parents=True, exist_ok=True)
+            bundle.write_text(blob)
+        for k in ("SSL_CERT_FILE", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE",
+                  "HF_HUB_CA_BUNDLE"):
+            os.environ.setdefault(k, str(bundle.resolve()))
+    except Exception:
+        pass
+
+
+_trust_everything()
+
 CACHE = pathlib.Path(os.environ.get("PODCAST_CACHE", ".cache"))
 
 

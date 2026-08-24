@@ -169,6 +169,33 @@ class NotesTranscripts(unittest.TestCase):
         self.assertNotIn(5940, [c["t"] for c in T.chapters(ep)])
 
 
+class Belonging(unittest.TestCase):
+    """文稿到手后要验证它属于这一集。两个真实事故各占一个方向。"""
+
+    def test_wrong_episode_is_caught(self):
+        # 真实事故：YouTube 匹配把 Bezos 访谈配给了 Whatnot CPO 那一集，
+        # 整篇深读基于错的内容写成、署着错的嘉宾发出去了
+        self.assertFalse(T.belongs_to(
+            "the advantage of compromise as a resolution mechanism is that it's low energy",
+            "This CPO regrets that product management exists | Tom Verrilli (CPO of Whatnot)"))
+
+    def test_chinese_title_is_not_falsely_rejected(self):
+        # 真实事故：中文标题被贪婪匹配切成整句（「这是你该知道的一切」），
+        # 逐字稿里不会有这种标题式说法，于是一份正确的 80 分钟转写被误杀
+        self.assertTrue(T.belongs_to(
+            "今天我们请到了理想汽车的CTO谢炎，聊理想为什么要自己造芯片",
+            "关于理想造芯，这是你该知道的一切：对话理想汽车CTO谢炎"))
+
+    def test_latin_tokens_carry_mixed_titles(self):
+        # 中英混排的技术标题，真信号在拉丁词上
+        self.assertTrue(T.belongs_to(
+            "欢迎收听硅谷101，今天聊 OpenClaw 和 Hermes，还有 Token 经济的转点",
+            "E249｜Token经济转点：OpenClaw、Hermes到本地自研的Agent进化之路"))
+
+    def test_unverifiable_title_makes_no_judgement(self):
+        self.assertIsNone(T.belongs_to("some transcript text here", "第五期"))
+
+
 class Dedupe(unittest.TestCase):
     def test_same_episode_from_two_sources_shares_a_fingerprint(self):
         # Identical wording, different punctuation and a few seconds of intro:

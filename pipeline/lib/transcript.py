@@ -20,6 +20,7 @@ import os
 import pathlib
 import re
 import html as html_mod
+import json
 import shutil
 import subprocess
 import tempfile
@@ -519,10 +520,72 @@ def _from_youtube(vid: str, lang: str) -> dict | None:
     return None
 
 
+# --------------------------------------------------- tier 5a: 本地转写（无需 key）
+
+LOCAL_MODEL = os.environ.get("TRANSCRIBE_LOCAL_MODEL",
+                             "mlx-community/whisper-large-v3-turbo")
+LOCAL_ON = os.environ.get("TRANSCRIBE_LOCAL", "auto").lower()
+
+
+def local_available() -> bool:
+    """本机能不能自己转写。凭证在云端的 secrets 里读不到，所以本机这条线
+    只能靠本地模型——mlx-whisper 在 Apple Silicon 上够快，且不需要任何 key。"""
+    if LOCAL_ON in ("0", "off", "no"):
+        return False
+    try:
+        import mlx_whisper                                   # noqa: F401
+    except Exception:
+        return False
+    return _ffmpeg() is not None
+
+
+def _local_asr(path: pathlib.Path, lang: str) -> list[dict] | None:
+    try:
+        import mlx_whisper
+    except Exception:
+        return None
+    ff = _ffmpeg()
+    if ff:
+        # openai-whisper 系的 load_audio 直接调 "ffmpeg"，系统里没有就得把
+        # 静态二进制所在目录塞进 PATH
+        os.environ["PATH"] = str(pathlib.Path(ff).parent) + os.pathsep + os.environ.get("PATH", "")
+        if pathlib.Path(ff).name != "ffmpeg":
+            link = pathlib.Path(ff).parent / "ffmpeg"
+            if not link.exists():
+                try:
+                    link.symlink_to(ff)
+                except Exception:
+                    pass
+    try:
+        r = mlx_whisper.transcribe(str(path), path_or_hf_repo=LOCAL_MODEL,
+                                   language=lang if lang in ("en", "zh") else None,
+                                   word_timestamps=False, verbose=False)
+    except Exception as ex:
+        log(f"    本地转写失败：{type(ex).__name__}: {str(ex)[:110]}")
+        return None
+    segs = [{"t": int(x.get("start") or 0), "text": squeeze(x.get("text") or "")}
+            for x in (r.get("segments") or []) if squeeze(x.get("text") or "")]
+    if not segs and r.get("text"):
+        segs = _spread(squeeze(r["text"]), 0)
+    return segs
+
+
 # ---------------------------------------------------------------- tier 5: ASR
 
 def _ffmpeg() -> str | None:
-    return shutil.which("ffmpeg")
+    """系统 ffmpeg 优先；没有就用 imageio-ffmpeg 自带的静态二进制。
+
+    这台机器没有 brew，装系统 ffmpeg 要动包管理器；而切片和音频解码都需要它，
+    没有它长音频根本没法转写。pip 包里那个静态二进制刚好解决。
+    """
+    got = shutil.which("ffmpeg")
+    if got:
+        return got
+    try:
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        return None
 
 
 def _yt_audio(vid: str, td: str) -> pathlib.Path | None:
@@ -555,7 +618,8 @@ def _yt_audio(vid: str, td: str) -> pathlib.Path | None:
 
 
 def from_audio(ep: dict, lang: str) -> dict | None:
-    if not ASR_KEY:
+    use_local = not ASR_KEY and local_available()
+    if not ASR_KEY and not use_local:
         return None
     src_url = ep.get("audio") or ""
     if not src_url and not ep.get("youtube_id"):
@@ -581,6 +645,14 @@ def from_audio(ep: dict, lang: str) -> dict | None:
             src.write_bytes(raw)
         mb = src.stat().st_size / 1e6
         log(f"    audio {mb:.1f}MB ({'YouTube' if raw is None else 'RSS'}) -> {ASR_MODEL}")
+        if use_local:
+            # 本地模型直接给逐句时间戳，不用切片，也不用按字数插值
+            log(f"    本地转写 {LOCAL_MODEL.split('/')[-1]}")
+            segs = _local_asr(src, lang)
+            if segs:
+                return {"segments": segs, "source": "asr",
+                        "detail": "local:" + LOCAL_MODEL.split("/")[-1], "url": src_url}
+            return None
         chunks = _split(src, mb, td)
         if chunks is None:
             return None
@@ -689,11 +761,11 @@ def chapters(ep: dict) -> list[dict]:
     return dedup if len(dedup) >= 3 else []
 
 
-# 标题里的"识别性词"——专有名词、长词、CJK 串。用来验证到手的文稿真的属于这一集。
-_DISTINCT = re.compile(r"[A-Z][A-Za-z]{3,}|[A-Za-z]{6,}|[\u4e00-\u9fff]{3,}")
-_TITLE_STOP = {"podcast", "episode", "interview", "conversation", "special",
+_LAT = re.compile(r"[A-Z]{2,}|[A-Z][A-Za-z]{2,}|[a-z]{6,}")
+_TITLE_STOP = {"podcast", "episode", "interview", "conversation", "special", "the",
                "regrets", "product", "management", "exists", "building", "about",
-               "become", "should", "really", "better", "things", "people"}
+               "become", "should", "really", "better", "things", "people", "everything",
+               "history", "coming", "finally", "biggest", "myths", "personal"}
 
 
 def belongs_to(text: str, title: str) -> bool | None:
@@ -701,27 +773,39 @@ def belongs_to(text: str, title: str) -> bool | None:
 
     起因：YouTube 匹配把 Bezos 的访谈配给了 Lenny's 一集 Whatnot CPO 的节目，
     整篇深读因此基于另一集写成，署着错的嘉宾发出去了。标题相似度和时长都拦不住
-    这种情况（Atom feed 不带时长），所以在文稿到手后再验一次：标题里的识别性词
-    至少要有一个出现在文稿里。
+    （Atom feed 不带时长），所以文稿到手后再验一次。
 
-    返回 None 表示标题里挑不出可验证的词，此时不做判断（不能因为标题太普通就拒稿）。
+    两个通道一起看，因为单靠哪一个都会误杀：
+      拉丁词    专有名词与长词。中英混排的技术标题真信号几乎都在这里
+                （OpenClaw / Hermes / ICML / Simile）
+      中文 3-gram  中文标题没有空格，整句匹配会切出「这是你该知道的一切」这种
+                标题式说法，逐字稿里永远不会出现——第一版就是这么把一份正确的
+                80 分钟转写误杀的。3-gram 才对得上「理想汽车」这类实体。
+
+    命中任一通道即通过；两个通道都挑不出特征时返回 None，不做判断。
     """
-    words = [w for w in _DISTINCT.findall(title or "")
-             if w.lower() not in _TITLE_STOP]
-    # 去掉纯小写的普通英文词，保留专有名词与 CJK
-    keys = [w for w in words if (w[0].isupper() or not w.isascii())]
-    keys = [w for w in keys if len(w) >= 3][:10]
-    if len(keys) < 2:
+    title, low = title or "", (text or "").lower()
+    if not low:
         return None
-    low = text.lower()
-    hits = sum(1 for k in keys if k.lower() in low)
-    # 英文标题是 Title Case，每个词首字母都大写，所以 keys 里混着 Coming、Historic
-    # 这类普通词——单个命中不足以证明归属。按 keys 数量按比例要求命中数。
-    need = max(1, len(keys) // 4)
-    return hits >= need
+    lat = [w for w in _LAT.findall(title) if w.lower() not in _TITLE_STOP and len(w) >= 3]
+    lat_hit = sum(1 for w in lat if w.lower() in low)
+    runs = re.findall(r"[\u4e00-\u9fff]{3,}", title)
+    grams = {r[i:i + 3] for r in runs for i in range(len(r) - 2)}
+    cjk_hit = sum(1 for g in grams if g in low)
+    if not lat and len(grams) < 3:
+        return None
+    # 配错集的文稿在两个通道上都会接近 0；标题修饰语不会被念出来，所以门槛压低，
+    # 宁可放过个别错配（后面还有成稿评审对照原文），也不要误杀正确的文稿。
+    return lat_hit >= 1 or cjk_hit >= 2
 
 
 ORDER = ("feed", "notes", "page", "youtube", "asr")
+
+
+def _cache_path(ep: dict) -> pathlib.Path:
+    import hashlib
+    key = hashlib.sha1((ep.get("guid") or ep.get("link") or ep["title"]).encode()).hexdigest()[:20]
+    return pathlib.Path(os.environ.get("PODCAST_CACHE", ".cache")) / "tr" / (key + ".json")
 
 
 def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
@@ -730,6 +814,18 @@ def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
     check. Returns None when nothing does — the caller must then NOT publish."""
     attempts = []
     _transient["hit"] = False
+    # 本地转写一集要几分钟，重跑（改了提示词、调了闸门）不该重做一遍。
+    # 只缓存在本机 .cache 下，不进仓库——原文是第三方版权内容。
+    cp = _cache_path(ep)
+    if cp.exists():
+        try:
+            cached = json.loads(cp.read_text())
+            if cached.get("segments"):
+                log(f"    文稿取自本地缓存（{cached.get('source')}，"
+                    f"{cached.get('words')} 字）")
+                return cached
+        except Exception:
+            pass
     if src and not ep.get("youtube_id") and "youtube" in allow:
         vid = match_youtube(ep, src)
         if vid:
@@ -786,6 +882,11 @@ def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
                    attempts=attempts + [f"{tier}:ok"])
         log(f"    transcript via {tier} ({got['detail']}): {words} words, "
             f"{wpm:.0f} wpm, {len(got['segments'])} segments")
+        try:
+            cp.parent.mkdir(parents=True, exist_ok=True)
+            cp.write_text(json.dumps(got, ensure_ascii=False))
+        except Exception:
+            pass
         return got
     log(f"    no usable transcript ({', '.join(attempts)})")
     return None
