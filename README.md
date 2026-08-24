@@ -81,7 +81,8 @@ data/
 
 ```bash
 python3 -m pip install certifi truststore yt-dlp
-python3 pipeline/selftest.py                    # 先自检：信源、模型、转写、取稿全链路
+python3 pipeline/whoami.py                      # 凭证探测：两种 header 都试，不打印密钥
+python3 pipeline/selftest.py                    # 全链路自检：信源、模型、转写、取稿
 python3 pipeline/resolve_sources.py --check     # 体检信源，顺手修好迁移的 feed
 python3 pipeline/run.py --dry-run --days 4      # 只到取稿，不调模型
 python3 pipeline/run.py --limit 3               # 真跑三篇
@@ -100,7 +101,8 @@ python3 pipeline/build.py                       # 只重建站点
 | 变量 | 作用 | 不设会怎样 |
 |---|---|---|
 | `LLM_API_KEY` | `sk-ant-*` 走 Anthropic Messages API，其他走 OpenAI 兼容 `/chat/completions` | 回退到本机 `claude` CLI，**花订阅额度而不是 API 账单** |
-| `LLM_BASE_URL` / `LLM_MODEL` | 覆盖端点与模型 | Anthropic 默认 `claude-opus-5` |
+| `LLM_BASE_URL` / `LLM_MODEL` | 覆盖端点与模型。**只有设了非 anthropic 的 BASE_URL 才走 OpenAI 兼容路径**，否则一律 Anthropic | Anthropic 默认 `claude-opus-5` |
+| `LLM_AUTH` | `bearer` = 把 key 当 OAuth token 发（`Authorization: Bearer` + oauth beta 头）；`api-key` = 发 `x-api-key` | 按前缀自动判断 |
 | `TRANSCRIBE_API_KEY` | 第 5 层音频转写（Whisper 兼容） | 第 5 层关闭，只靠前四层 |
 | `TRANSCRIBE_BASE_URL` / `TRANSCRIBE_MODEL` | 默认 Groq `whisper-large-v3-turbo` | — |
 | `MAX_NEW` / `LOOKBACK_DAYS` | 每次发布上限 / 回溯天数 | 8 / 10 |

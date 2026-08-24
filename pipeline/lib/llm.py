@@ -23,6 +23,30 @@ KEY = (os.environ.get("LLM_API_KEY") or os.environ.get("ANTHROPIC_API_KEY") or "
 BASE = (os.environ.get("LLM_BASE_URL") or "").strip().rstrip("/")
 MODEL = (os.environ.get("LLM_MODEL") or "").strip()
 FORCE = (os.environ.get("LLM_PROVIDER") or "").strip().lower()
+# Anthropic accepts two credential shapes on different headers. An API key goes
+# on x-api-key; an OAuth token (from `ant auth login` / Claude Code) goes on
+# Authorization: Bearer plus a beta header. Sending one on the other's header
+# returns "API key is invalid", which reads like a bad key rather than a bad
+# header — so auto-detect, and let LLM_AUTH override.
+AUTH = (os.environ.get("LLM_AUTH") or "").strip().lower()
+
+
+def auth_mode() -> str:
+    if AUTH in ("bearer", "oauth"):
+        return "bearer"
+    if AUTH in ("api-key", "apikey", "x-api-key"):
+        return "api-key"
+    # OAuth access tokens are not sk-ant-api* keys; treat those prefixes as OAuth.
+    if KEY.startswith(("sk-ant-oat", "sk-ant-ort", "sk-ant-sid")):
+        return "bearer"
+    return "api-key"
+
+
+def anthropic_headers() -> dict:
+    if auth_mode() == "bearer":
+        return {"Authorization": "Bearer " + KEY, "anthropic-version": "2023-06-01",
+                "anthropic-beta": "oauth-2025-04-20"}
+    return {"x-api-key": KEY, "anthropic-version": "2023-06-01"}
 
 DEFAULT_ANTHROPIC = "claude-opus-5"
 DEFAULT_OPENAI = "gpt-4o-mini"
@@ -93,7 +117,7 @@ def call(system: str, user: str, *, max_tokens: int = 6000,
             "model": model_name(), "max_tokens": max_tokens,
             "temperature": temperature, "system": system,
             "messages": [{"role": "user", "content": user}]},
-            {"x-api-key": KEY, "anthropic-version": "2023-06-01"}))
+            anthropic_headers()))
         return "".join(b.get("text", "") for b in r.get("content", []))
     if p == "openai":
         r = _guard(lambda: net.post_json((BASE or "https://api.openai.com/v1") + "/chat/completions", {
@@ -152,11 +176,18 @@ def _guard(fn):
         return fn()
     except Exception as ex:
         if _AUTH.search(str(ex)):
+            other = "bearer" if auth_mode() == "api-key" else "api-key"
             raise AuthError(
-                f"{endpoint()} rejected the credentials: {str(ex)[:180]}\n"
-                f"  provider={provider()} model={model_name()}\n"
-                f"  An Anthropic key needs no LLM_BASE_URL. For any other provider set\n"
-                f"  LLM_BASE_URL and LLM_MODEL too, or force it with LLM_PROVIDER."
+                f"{endpoint()} 拒绝了这套凭证：{str(ex)[:170]}\n"
+                f"  provider={provider()} model={model_name()} auth={auth_mode()}\n"
+                f"  逐个排掉：\n"
+                f"  1) 这是 Claude Code / ant auth 的 OAuth token，而不是 API key？\n"
+                f"     那就设 LLM_AUTH={other}（换 header，不换 key）。\n"
+                f"  2) 这是 console.anthropic.com 建的 API key（sk-ant-api…）？\n"
+                f"     确认没有多余空格换行，且没被吊销、所属组织有额度。\n"
+                f"  3) 这是别家的 key？必须同时设 LLM_BASE_URL 和 LLM_MODEL。\n"
+                f"  本地跑 `python3 pipeline/whoami.py` 会把两种 header 都试一遍，\n"
+                f"  只报哪种能用，不打印密钥。"
             ) from None
         raise
 
