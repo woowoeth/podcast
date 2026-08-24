@@ -87,19 +87,28 @@ ICON_THEME = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
               '<circle cx="12" cy="12" r="4"/></svg>')
 
 
-def masthead(n: int, *, home: bool) -> str:
-    brand = (f'<div class="brand"><h1>{NAME}<span class="dot">.</span></h1>'
-             f'<p class="slogan">{TAGLINE}</p></div>') if home else \
-            (f'<a class="brand" href="{BASE}/"><h1>{NAME}<span class="dot">.</span></h1>'
-             f'<p class="slogan">{TAGLINE}</p></a>')
-    return f"""<header class="mast"><div class="wrap"><div class="mast-top">
+def masthead(n: int | None, *, home: bool) -> str:
+    """字标和右侧那几个入口同一行，slogan 独占下一行。
+
+    原来 slogan 在 .brand 里面，于是 .brand 整块占满宽度，右侧那几项在窄屏被挤到
+    单独一行。把 slogan 提出来做兄弟节点，字标左、入口右，任何宽度都成立。
+    n 为 None 时不显示篇数（单集页用）。
+    """
+    mark = f'<h1>{NAME}<span class="dot">.</span></h1>'
+    brand = (f'<div class="brand">{mark}</div>' if home
+             else f'<a class="brand" href="{BASE}/">{mark}</a>')
+    count = f'<span class="stat">{n} 篇深读</span>' if n else ""
+    return f"""<header class="mast"><div class="wrap">
+<div class="mast-top">
 {brand}
 <div class="mast-side">
-<span class="stat">{n} 篇深读</span>
+{count}
 <a class="pill ghost" href="{BASE}/sources/">信源</a>
 <a class="pill ghost" href="{BASE}/feed.xml">RSS</a>
 <button class="icon-btn" data-theme-toggle aria-label="切换深浅色">{ICON_THEME}</button>
-</div></div></div></header>"""
+</div></div>
+<p class="slogan">{TAGLINE}</p>
+</div></header>"""
 
 
 def foot() -> str:
@@ -189,7 +198,6 @@ def index_page(eps: list[dict], srcs: dict) -> str:
             chips.append(f'<button class="chip" data-cat-chip="{c}" aria-pressed="false">'
                          f'{CAT_LABEL[c]}<span class="n">{counts[c]}</span></button>')
     cards = "\n".join(card(x, hero=(i == 0)) for i, x in enumerate(eps))
-    n_src = len(srcs.get("sources") or [])
     # TAGLINE 里已经有"原声"，再前缀 NAME 会让标题出现两次品牌名
     return (head(TAGLINE, BLURB, path="/",
                  image=(eps[0].get("image") if eps else ""))
@@ -200,7 +208,6 @@ def index_page(eps: list[dict], srcs: dict) -> str:
 <input data-search type="search" placeholder="搜正文、金句、数字、术语、节目…" aria-label="搜索">
 <kbd>/</kbd></label>
 <div class="chips">{''.join(chips)}</div>
-<span class="stat"><span data-count>{len(eps)}</span> / {n_src} 档</span>
 </div></div></div>
 
 <main class="wrap"><div class="feed" data-feed>
@@ -296,7 +303,7 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
     return (head(f"{d.get('title')} — {src_label} · {NAME}", d.get("dek", ""),
                  path=f"/p/{ep['slug']}/", image=ep.get("image", ""),
                  extra=f'<script type="application/ld+json">{ld}</script>')
-            + masthead(0, home=False).replace('<span class="stat">0 篇深读</span>', "")
+            + masthead(None, home=False)
             + f"""
 <main class="wrap ep">
 <nav class="crumb"><a href="{BASE}/">首页</a><span class="sep">/</span>
@@ -320,8 +327,9 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
 {facts}
 {terms}
 {f'''<section class="section"><h3>收听指南</h3>
-<div class="panel"><div class="row"><span>谁该听</span><span>{e(d.get("who"))}</span></div>
-{f'<div class="row"><span>可跳过</span><span>{e(d.get("skip"))}</span></div>' if d.get('skip') else ''}
+<div class="panel guide">
+<div><span class="k">谁该听</span><p>{e(d.get("who"))}</p></div>
+{f'<div><span class="k">可跳过</span><p>{e(d.get("skip"))}</p></div>' if d.get('skip') else ''}
 </div></section>''' if d.get('who') else ''}
 {prevnext}
 </article>

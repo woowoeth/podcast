@@ -39,9 +39,11 @@ button{font:inherit; color:inherit; background:none; border:0; cursor:pointer}
 .wrap{max-width:var(--wrap); margin:0 auto; padding:0 clamp(18px,4vw,44px)}
 
 /* ---------------------------------------------------------------- masthead */
-.mast{padding:clamp(30px,5vw,58px) 0 0}
-.mast-top{display:flex; align-items:flex-start; justify-content:space-between; gap:20px; flex-wrap:wrap}
-.brand{display:block}
+.mast{padding:clamp(26px,5vw,54px) 0 0}
+/* 字标和右侧入口同一行；baseline 对齐让胶囊坐在字标的基线上而不是顶上。
+   不换行：窄屏字标只有 ~130px，右侧那几项放得下。 */
+.mast-top{display:flex; align-items:flex-end; justify-content:space-between; gap:14px}
+.brand{display:block; flex:none}
 .brand h1{
   font-family:var(--serif); font-weight:700; margin:0;
   font-size:clamp(34px,6.4vw,60px); line-height:.98; letter-spacing:-.015em;
@@ -49,8 +51,11 @@ button{font:inherit; color:inherit; background:none; border:0; cursor:pointer}
 .brand h1 .dot{color:var(--accent)}
 /* 叫 .slogan 而不是 .tag：.tag 是卡片上的标签小胶囊（带边框和底色），
    两者同名会让 masthead 的这行字莫名套上一个框。 */
-.brand .slogan{margin:10px 0 0; color:var(--muted); font-size:13.5px; letter-spacing:.02em}
-.mast-side{display:flex; align-items:center; gap:8px; padding-top:6px; flex-wrap:wrap}
+/* slogan 是 .mast-top 的兄弟节点，独占一行。放回 .brand 里会让字标那一块占满
+   宽度，把右侧入口挤到下一行去。 */
+.slogan{margin:9px 0 0; color:var(--muted); font-size:13.5px; letter-spacing:.02em}
+.mast-side{display:flex; align-items:center; gap:7px; flex-wrap:wrap;
+  justify-content:flex-end; padding-bottom:4px}
 .pill{
   display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 13px;
   border:1px solid var(--rule-2); border-radius:999px; font-size:12.5px;
@@ -68,7 +73,7 @@ button{font:inherit; color:inherit; background:none; border:0; cursor:pointer}
   backdrop-filter:saturate(180%) blur(14px);
   border-top:1px solid var(--rule); border-bottom:1px solid var(--rule);
 }
-.toolbar-in{display:flex; align-items:center; gap:14px; padding:11px 0; flex-wrap:wrap}
+.toolbar-in{display:flex; align-items:center; gap:12px; padding:10px 0; flex-wrap:wrap}
 .search{
   flex:1 1 240px; display:flex; align-items:center; gap:9px; min-width:0;
   height:38px; padding:0 14px; background:var(--surface);
@@ -239,6 +244,12 @@ dl.terms dd{margin:0; color:var(--ink-2); font-size:14px; line-height:1.68}
 .panel .row span:last-child{text-align:right; font-variant-numeric:tabular-nums}
 .panel a.row:hover{color:var(--accent)}
 .panel .note{color:var(--faint); font-size:12px; line-height:1.6; margin:11px 0 0}
+/* 收听指南是整句话，不是键值对。.panel .row 的右对齐是给「5 条」这种短值用的，
+   长句右对齐会留下参差不齐的左边缘。这里改成标签在上、正文在下，一律左对齐。 */
+.guide{display:grid; gap:16px}
+.guide > div{display:grid; gap:5px}
+.guide .k{font-size:12.5px; color:var(--muted)}
+.guide p{margin:0; font-size:15px; line-height:1.78; color:var(--ink-2); text-align:left}
 audio{width:100%; margin-top:4px; height:34px}
 .toc{display:grid; gap:1px}
 .toc a{display:flex; gap:9px; padding:5px 0; color:var(--muted); font-size:13px; line-height:1.5}
