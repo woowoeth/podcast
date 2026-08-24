@@ -25,12 +25,41 @@ MODEL = (os.environ.get("LLM_MODEL") or "claude-opus-5").strip()
 PING = {"max_tokens": 16, "messages": [{"role": "user", "content": "hi"}]}
 
 
+# Never print any part of the credential. Actions masks registered secrets, but
+# a substring can slip past the mask, and this runs in a public repo's log. A
+# length plus a prefix *family* is enough to identify the credential type.
+FAMILIES = (
+    ("sk-ant-api", "Anthropic API key（console 建的）"),
+    ("sk-ant-oat", "Anthropic OAuth access token（ant auth / Claude Code）"),
+    ("sk-ant-ort", "Anthropic OAuth refresh token"),
+    ("sk-ant-sid", "Anthropic session token"),
+    ("sk-ant-", "Anthropic 系，但子类型不认识"),
+    ("sk-proj-", "OpenAI 项目 key"),
+    ("sk-or-", "OpenRouter"),
+    ("gsk_", "Groq"),
+    ("glpat-", "GitLab token"),
+    ("gho_", "GitHub OAuth token（这不是模型 key）"),
+    ("ghp_", "GitHub PAT（这不是模型 key）"),
+    ("github_pat_", "GitHub PAT（这不是模型 key）"),
+    ("sk-", "OpenAI 兼容（通用 sk- 前缀）"),
+)
+
+
 def shape() -> str:
     n = len(KEY)
     if not KEY:
         return "（未设置）"
-    head = KEY[:11] if n > 20 else KEY[:4]
-    return f"前缀 {head}… 长度 {n}"
+    fam = next((label for pre, label in FAMILIES if KEY.startswith(pre)),
+               "前缀不在已知名单里")
+    dirty = []
+    if KEY != KEY.strip():
+        dirty.append("首尾有空白")
+    if "\n" in KEY or "\r" in KEY:
+        dirty.append("含换行")
+    if '"' in KEY or "'" in KEY:
+        dirty.append("含引号")
+    note = ("　⚠ " + "、".join(dirty)) if dirty else ""
+    return f"长度 {n} · 判断为：{fam}{note}"
 
 
 def try_anthropic(mode: str) -> tuple[bool, str]:

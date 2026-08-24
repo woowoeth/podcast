@@ -1,0 +1,32 @@
+name: probe key
+
+# 用仓库里已存的 LLM_API_KEY 判断它到底是哪种凭证，以及该配什么。
+# 只输出长度与前缀家族，绝不打印密钥片段。
+on:
+  workflow_dispatch:
+    inputs:
+      auth:
+        description: "强制 header 模式：留空=自动判断，api-key，bearer"
+        default: ""
+      base_url:
+        description: "临时试一个 OpenAI 兼容端点（留空=只试 Anthropic）"
+        default: ""
+      model:
+        description: "配合 base_url 使用的模型名"
+        default: ""
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python -m pip install --quiet certifi truststore
+      - name: Probe
+        env:
+          LLM_API_KEY:  ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ github.event.inputs.base_url || secrets.LLM_BASE_URL }}
+          LLM_MODEL:    ${{ github.event.inputs.model || secrets.LLM_MODEL }}
+          LLM_AUTH:     ${{ github.event.inputs.auth || secrets.LLM_AUTH }}
+        run: python pipeline/whoami.py
