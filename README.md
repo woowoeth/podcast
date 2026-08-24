@@ -115,6 +115,23 @@ python3 pipeline/build.py                       # 只重建站点
 Invest Like the Best）拿不到文稿，按规矩就不会上站**——这不是 bug，是那条
 "验不过就不发"的规则在起作用。
 
+## 追赶存量
+
+日更任务只看最近 10 天。要把存档做厚，用 `backfill` workflow（手动触发）从
+自带官方逐字稿的信源往回补——Odd Lots 1260 集、TBPN 649 集、Practical AI 369 集、
+Think Fast 322 集、Latent Space 220 集、Acquired 216 集、Dwarkesh 136 集，
+这些的文稿都是免费且带时间码的。
+
+```bash
+gh workflow run backfill.yml --repo woowoeth/podcast \
+  -f days=180 -f limit=12 -f per_source=4
+# 只补某一档
+gh workflow run backfill.yml --repo woowoeth/podcast -f only=oddlots -f days=365 -f limit=20
+```
+
+它和日更任务共用一把 concurrency 锁，不会互相踩。每源上限默认 4，避免首页被
+单一节目占满。
+
 ## 测试
 
 ```bash

@@ -149,6 +149,36 @@ def card(ep: dict, *, hero: bool) -> str:
 </div></div></a>"""
 
 
+def search_index(eps: list[dict]) -> str:
+    """Everything worth searching, in one lazily-fetched file.
+
+    The cards carry a short haystack inline so search works before the fetch
+    lands, but the real index includes the body of every point, every quote (in
+    both languages), the facts and the glossary. That is the whole point of
+    having verifiable structure: the reader can find the episode where someone
+    actually said a thing, which a title-only search cannot do.
+    """
+    rows = []
+    for x in eps:
+        d = x["digest"]
+        parts = [d.get("title", ""), d.get("dek", ""), d.get("why", ""),
+                 d.get("who", ""), x.get("source", ""), x.get("source_zh", ""),
+                 x.get("title_original", ""), " ".join(d.get("tags") or [])]
+        for p in d.get("points") or []:
+            parts += [p.get("h", ""), p.get("body", ""), p.get("spk", "")]
+        for q in d.get("quotes") or []:
+            parts += [q.get("raw", ""), q.get("zh", ""), q.get("spk", "")]
+        for f in d.get("facts") or []:
+            parts += [f.get("k", ""), f.get("v", "")]
+        for t in d.get("terms") or []:
+            parts += [t.get("term", ""), t.get("zh", ""), t.get("def", "")]
+        # Cap each row so the index stays fetchable as the archive grows:
+        # ~5KB per episode is 1MB raw at 200 episodes, and Pages serves it
+        # gzipped at roughly a fifth of that.
+        rows.append({"s": x["slug"], "h": squeeze(" ".join(parts)).lower()[:5000]})
+    return json.dumps(rows, ensure_ascii=False, separators=(",", ":"))
+
+
 def index_page(eps: list[dict], srcs: dict) -> str:
     counts = {c: sum(1 for x in eps if x.get("cat") == c) for c in CAT_ORDER}
     chips = [f'<button class="chip" data-cat-chip="all" aria-pressed="true">全部'
@@ -165,7 +195,7 @@ def index_page(eps: list[dict], srcs: dict) -> str:
             + f"""
 <div class="toolbar"><div class="wrap"><div class="toolbar-in">
 <label class="search">{ICON_SEARCH}
-<input data-search type="search" placeholder="搜标题、结论、节目、术语…" aria-label="搜索">
+<input data-search type="search" placeholder="搜正文、金句、数字、术语、节目…" aria-label="搜索">
 <kbd>/</kbd></label>
 <div class="chips">{''.join(chips)}</div>
 <span class="stat"><span data-count>{len(eps)}</span> / {n_src} 档</span>
@@ -173,7 +203,10 @@ def index_page(eps: list[dict], srcs: dict) -> str:
 
 <main class="wrap"><div class="feed" data-feed>
 {cards}
-<div class="empty" data-empty hidden><b>没有匹配的深读</b>换个词，或者清掉筛选再试。</div>
+<div class="empty" data-empty hidden><b>没有匹配的深读</b>
+<p>换个词，或者清掉筛选再试。搜索会搜进每条要点的正文、金句的中英文原文、
+数字和术语表——不只是标题。</p>
+<p data-deep-note hidden style="color:var(--faint);font-size:13px"></p></div>
 </div></main>
 """ + foot())
 
@@ -265,7 +298,7 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
             + f"""
 <main class="wrap ep">
 <nav class="crumb"><a href="{BASE}/">首页</a><span class="sep">/</span>
-<a href="{BASE}/sources/#{e(ep.get('source_id'))}">{e(src_label)}</a>
+<a href="{BASE}/s/{e(ep.get('source_id'))}/">{e(src_label)}</a>
 <span class="sep">/</span><span>{e(date)}</span></nav>
 
 <div class="ep-grid">
@@ -337,7 +370,11 @@ def sources_page(srcs: dict, eps: list[dict]) -> str:
             dead = st.get("ok") is False
             meta = [f'T{s.get("tier", 3)}']
             if per.get(s["id"]):
-                meta.append(f'本站 {per[s["id"]]} 篇')
+                total = (s.get("status") or {}).get("episodes")
+                meta.append(f'本站 {per[s["id"]]} / {total} 集' if total
+                            else f'本站 {per[s["id"]]} 篇')
+            else:
+                meta.append("本站尚未收录")
             if st.get("cadence_days"):
                 meta.append(f'约 {st["cadence_days"]} 天一集')
             if st.get("latest"):
@@ -350,10 +387,14 @@ def sources_page(srcs: dict, eps: list[dict]) -> str:
                 meta.append("中文")
             if dead:
                 meta.append("抓取异常")
-            cards.append(f"""<div class="src-card{' dead' if dead else ''}" id="{e(s['id'])}">
-<h3>{e(s.get('zh') or s['name'])}</h3>
+            mine = per.get(s["id"], 0)
+            body = f"""<h3>{e(s.get('zh') or s['name'])}</h3>
 <p>{e(s.get('desc'))}</p>
-<div class="meta">{' · '.join(e(m) for m in meta)}</div></div>""")
+<div class="meta">{' · '.join(e(m) for m in meta)}</div>"""
+            cards.append(
+                f'<a class="src-card{" dead" if dead else ""}" id="{e(s["id"])}" '
+                f'href="{BASE}/s/{e(s["id"])}/">{body}</a>' if mine else
+                f'<div class="src-card{" dead" if dead else ""}" id="{e(s["id"])}">{body}</div>')
         blocks.append(f'<h2 class="sec-title">{CAT_LABEL[c]}<span class="stat" '
                       f'style="margin-left:10px">{len(rows)} 档</span></h2>'
                       f'<div class="src-grid">{"".join(cards)}</div>')
@@ -369,6 +410,41 @@ def sources_page(srcs: dict, eps: list[dict]) -> str:
 <p class="lede">T1 表示每集必读，T2 有实质内容时收，T3 只在特别强的一集时收。</p>
 {''.join(blocks)}
 <div style="height:56px"></div></main>""" + foot())
+
+
+# ------------------------------------------------------------- source browse
+
+def source_page(src: dict, eps: list[dict], total_known: int | None) -> str:
+    """One show's own page. An aggregator is judged on whether you can follow a
+    single show through it, not only on the front page firehose."""
+    name = src.get("zh") or src["name"]
+    cards = "\n".join(card(x, hero=(i == 0)) for i, x in enumerate(eps))
+    st = src.get("status") or {}
+    rows = []
+    if st.get("episodes"):
+        covered = f"{len(eps)} / {st['episodes']}"
+        rows.append(("本站已深读", f"{covered} 集"))
+    if st.get("cadence_days"):
+        rows.append(("更新节奏", f"约 {st['cadence_days']} 天一集"))
+    if st.get("latest"):
+        rows.append(("最新一集", st["latest"]))
+    if st.get("official_transcripts"):
+        rows.append(("官方逐字稿", "自带"))
+    rows.append(("分类", CAT_LABEL[src["cat"]]))
+    rows.append(("优先级", f"T{src.get('tier', 3)}"))
+    meta = "".join(f'<div class="row"><span>{e(k)}</span><span>{e(v)}</span></div>'
+                   for k, v in rows)
+    return (head(f"{name} — {NAME}", src.get("desc", ""), path=f"/s/{src['id']}/")
+            + masthead(len(eps), home=False)
+            + f"""<main class="wrap">
+<nav class="crumb" style="margin-top:26px"><a href="{BASE}/">首页</a><span class="sep">/</span>
+<a href="{BASE}/sources/">信源</a><span class="sep">/</span><span>{e(name)}</span></nav>
+<h2 class="sec-title" style="margin-top:0">{e(name)}</h2>
+<p class="lede">{e(src.get('desc'))}</p>
+<div class="panel" style="max-width:420px;margin:18px 0 4px">{meta}</div>
+<div class="feed" data-feed>{cards or
+  '<div class="empty"><b>这档还没有深读</b>取不到可核对的文稿时不会发，等文稿到位再上。</div>'}</div>
+</main>""" + foot())
 
 
 # ---------------------------------------------------------------- feed / seo
@@ -417,6 +493,8 @@ def rss(eps: list[dict]) -> str:
 def sitemap(eps: list[dict]) -> str:
     urls = [f"<url><loc>{xesc(SITE)}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>",
             f"<url><loc>{xesc(SITE)}/sources/</loc><changefreq>weekly</changefreq></url>"]
+    for sid in sorted({x["source_id"] for x in eps}):
+        urls.append(f"<url><loc>{xesc(SITE)}/s/{xesc(sid)}/</loc><changefreq>weekly</changefreq></url>")
     for x in eps:
         urls.append(f"<url><loc>{xesc(SITE)}/p/{xesc(x['slug'])}/</loc>"
                     f"<lastmod>{xesc((x.get('published') or '')[:10])}</lastmod></url>")
@@ -442,6 +520,27 @@ def main() -> int:
     (ROOT / "404.html").write_text(not_found())
     (ROOT / "feed.xml").write_text(rss(eps))
     (ROOT / "sitemap.xml").write_text(sitemap(eps))
+    (ROOT / "search.json").write_text(search_index(eps))
+
+    sdir = ROOT / "s"
+    by_src: dict[str, list[dict]] = {}
+    for x in eps:
+        by_src.setdefault(x["source_id"], []).append(x)
+    live_src = set()
+    for src in srcs["sources"]:
+        rows = by_src.get(src["id"]) or []
+        if not rows:
+            continue
+        out = sdir / src["id"]
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "index.html").write_text(source_page(src, rows, None))
+        live_src.add(src["id"])
+    if sdir.exists():
+        for d in sdir.iterdir():
+            if d.is_dir() and d.name not in live_src:
+                shutil.rmtree(d)
+    log(f"  {len(live_src)} source pages")
+
     (ROOT / "robots.txt").write_text(
         f"User-agent: *\nAllow: /\nSitemap: {SITE}/sitemap.xml\n")
     (ROOT / ".nojekyll").write_text("")

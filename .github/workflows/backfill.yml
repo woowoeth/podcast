@@ -1,0 +1,84 @@
+name: backfill
+
+# 追赶存量：日更任务只看最近 10 天，建档要靠这个手动跑。
+# 从自带官方逐字稿的信源里往回补（Odd Lots 1260 集、Latent Space 220 集、
+# Dwarkesh 136 集、TBPN 649 集…），每源上限放宽，跑几轮就能把存档做厚。
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "回溯多少天（建档用 180 或 365）"
+        default: "180"
+      limit:
+        description: "本次最多处理几个候选"
+        default: "12"
+      per_source:
+        description: "单个信源最多取几集"
+        default: "4"
+      only:
+        description: "只补某一个信源 id（留空= 全部）"
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: podcast-write          # 与日更任务同一把锁，不会互相踩
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Install tooling
+        run: |
+          python -m pip install --quiet --upgrade pip
+          python -m pip install --quiet yt-dlp certifi truststore
+          sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg
+      - name: Backfill
+        env:
+          LLM_API_KEY:  ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_MODEL:    ${{ secrets.LLM_MODEL }}
+          LLM_AUTH:     ${{ secrets.LLM_AUTH }}
+          TRANSCRIBE_API_KEY:  ${{ secrets.TRANSCRIBE_API_KEY }}
+          TRANSCRIBE_BASE_URL: ${{ secrets.TRANSCRIBE_BASE_URL }}
+          TRANSCRIBE_MODEL:    ${{ secrets.TRANSCRIBE_MODEL }}
+          JOBS: "3"
+        run: |
+          set -o pipefail
+          ONLY=""
+          if [ -n "${{ github.event.inputs.only }}" ]; then ONLY="--only ${{ github.event.inputs.only }}"; fi
+          python pipeline/run.py $ONLY \
+            --days "${{ github.event.inputs.days }}" \
+            --limit "${{ github.event.inputs.limit }}" \
+            --per-source "${{ github.event.inputs.per_source }}" \
+            2>&1 | tee "${RUNNER_TEMP}/backfill.log"
+      - name: Commit and push
+        run: |
+          git config user.name  "podcast-bot"
+          git config user.email "podcast-bot@users.noreply.github.com"
+          git add -A data
+          if git diff --cached --quiet; then echo "nothing new"; exit 0; fi
+          git commit -m "backfill: $(git diff --cached --name-only | grep -c 'data/episodes/') new"
+          for i in $(seq 1 8); do
+            git pull --rebase --autostash origin main && git push && break
+            echo "push retry $i"; sleep $(( (RANDOM % 5) + 3 ))
+          done
+          python pipeline/build.py
+          git add -A
+          git diff --cached --quiet || git commit -m "build: regenerate site"
+          for i in $(seq 1 8); do
+            git push && break
+            git pull --rebase --autostash origin main || true
+            python pipeline/build.py; git add -A
+            git commit --amend --no-edit || true
+            echo "push retry $i"; sleep $(( (RANDOM % 5) + 3 ))
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: backfill-log, path: "${{ runner.temp }}/backfill.log", retention-days: 30 }

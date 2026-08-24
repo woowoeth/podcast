@@ -35,25 +35,62 @@
     var empty = feed.querySelector('[data-empty]');
     var cat = 'all';
 
-    // Pre-lowercase the haystack once; filtering then costs nothing.
-    cards.forEach(function (c) { c._hay = (c.getAttribute('data-hay') || '').toLowerCase(); });
+    // Pre-lowercase the inline haystack once; filtering then costs nothing.
+    // The inline text is title + dek + source + tags only, so search works
+    // immediately. The full index — every point body, every quote in both
+    // languages, the facts and the glossary — is fetched on the first
+    // keystroke and takes over once it lands.
+    cards.forEach(function (c) {
+      c._hay = (c.getAttribute('data-hay') || '').toLowerCase();
+      c._slug = decodeURIComponent((c.getAttribute('href') || '').replace(/.*\/p\/|\/$/g, ''));
+    });
+
+    var deep = null, deepState = 'idle';
+    var base = (document.querySelector('link[rel="alternate"]') || {}).href || '';
+    var indexUrl = base ? base.replace(/feed\.xml$/, 'search.json') : 'search.json';
+
+    function loadDeep() {
+      if (deepState !== 'idle') return;
+      deepState = 'loading';
+      fetch(indexUrl).then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (rows) {
+          if (!rows) { deepState = 'failed'; return; }
+          deep = Object.create(null);
+          rows.forEach(function (r) { deep[r.s] = r.h; });
+          deepState = 'ready';
+          run();                       // re-run so the current query deepens
+        })
+        .catch(function () { deepState = 'failed'; });
+    }
 
     function run() {
       var q = (input && input.value || '').trim().toLowerCase();
       var terms = q ? q.split(/\s+/) : [];
+      if (terms.length) loadDeep();
       var shown = 0;
       cards.forEach(function (c) {
         var okCat = cat === 'all' || c.getAttribute('data-cat') === cat;
+        var hay = c._hay;
+        if (deep && deep[c._slug]) hay = c._hay + ' ' + deep[c._slug];
         var okQ = true;
         for (var i = 0; i < terms.length; i++) {
-          if (c._hay.indexOf(terms[i]) === -1) { okQ = false; break; }
+          if (hay.indexOf(terms[i]) === -1) { okQ = false; break; }
         }
         var on = okCat && okQ;
         // The hero card can only span two columns while it is the first shown.
         c.style.display = on ? '' : 'none';
         if (on) shown++;
       });
-      if (empty) empty.hidden = shown !== 0;
+      if (empty) {
+        empty.hidden = shown !== 0;
+        var note = empty.querySelector('[data-deep-note]');
+        if (note) {
+          note.hidden = deepState === 'ready' || deepState === 'idle';
+          note.textContent = deepState === 'loading'
+            ? '正在载入全文索引，稍后会把正文和金句一起搜进来…'
+            : '全文索引没载入成功，现在只搜了标题、结论和标签。';
+        }
+      }
       if (count) count.textContent = shown;
       var hero = cards.filter(function (c) { return c.style.display !== 'none'; })[0];
       cards.forEach(function (c) { c.classList.toggle('hero', c === hero && !q && cat === 'all'); });
