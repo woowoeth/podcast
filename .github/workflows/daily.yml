@@ -73,7 +73,9 @@ jobs:
           # Per-episode JSON files have unique names and never conflict on rebase.
           # Everything derived (index.html, p/, feed.xml, sitemap.xml) is rebuilt
           # from the merged set in step 2, so a concurrent run cannot lose posts.
-          git add data/episodes data/state.json data/sources.json
+          # -A over the whole tree: .gitignore already excludes .cache/, and
+          # naming paths breaks on the first run when p/ does not exist yet.
+          git add -A data
           if git diff --cached --quiet; then
             echo "nothing published this run"; exit 0
           fi
@@ -89,13 +91,16 @@ jobs:
         run: |
           git pull --rebase --autostash origin main || true
           python pipeline/build.py
-          git add -A index.html sources p feed.xml sitemap.xml robots.txt 404.html .nojekyll
+          git add -A
           if git diff --cached --quiet; then echo "site unchanged"; exit 0; fi
           git commit -m "build: regenerate site"
           ok=0
           for i in $(seq 1 8); do
             if git push; then ok=1; break; fi
-            git pull --rebase --autostash origin main && python pipeline/build.py && git add -A && git commit --amend --no-edit || true
+            git pull --rebase --autostash origin main || true
+            python pipeline/build.py
+            git add -A
+            git commit --amend --no-edit || true
             echo "push retry $i"; sleep $(( (RANDOM % 5) + 3 ))
           done
           [ "$ok" = 1 ] || { echo "push failed"; exit 1; }

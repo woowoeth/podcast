@@ -246,10 +246,57 @@ class GateOutcomes(unittest.TestCase):
         self.assertFalse(ok)
 
 
+class Anchoring(unittest.TestCase):
+    """A "deep read" whose points all sit at one timestamp is a paraphrase of one
+    passage. This is how a 185-word clip got a six-point page."""
+
+    def _tr(self):
+        return {"segments": [{"t": 0, "text": "the incentive structure is what produces "
+                                             "the cheating, not the model's character"}],
+                "source": "youtube", "detail": "en", "words": 13, "wpm": 13, "timed": True}
+
+    def _digest(self, stamps):
+        return {"title": "一个足够长的中文标题", "dek": "这是一句足够长的中文导语，用来通过长度检查。",
+                "why": "", "who": "", "skip": "",
+                "points": [{"t": t, "h": f"小标题{i}",
+                            "body": "这是一段长度接近真实产出的正文，说明论证链条而不只是给结论。"
+                                    "质检要求正文至少六十个字符，因为更短的段落通常只是把小标题"
+                                    "换了个说法，读者拿不到任何新增信息。", "spk": ""}
+                           for i, t in enumerate(stamps)],
+                "quotes": [{"t": 0, "spk": "A",
+                            "raw": "the incentive structure is what produces the cheating",
+                            "zh": "译"},
+                           {"t": 0, "spk": "A",
+                            "raw": "not the model's character", "zh": "译"}],
+                "facts": [], "terms": [], "tags": []}
+
+    def test_all_points_at_the_same_timestamp_is_rejected(self):
+        ok, probs, _ = gate.check(self._digest([0] * 6), self._tr(), {"duration": 60})
+        self.assertFalse(ok)
+        self.assertTrue(any("not anchored" in p for p in probs), probs)
+
+    def test_points_crammed_into_one_stretch_of_a_long_episode_is_rejected(self):
+        ok, probs, _ = gate.check(self._digest([10, 20, 30, 40, 50, 60]),
+                                  self._tr(), {"duration": 3600})
+        self.assertFalse(ok)
+        self.assertTrue(any("one passage" in p for p in probs), probs)
+
+    def test_points_spread_across_a_long_episode_pass(self):
+        ok, probs, _ = gate.check(self._digest([60, 600, 1200, 1800, 2400, 3000]),
+                                  self._tr(), {"duration": 3600})
+        self.assertTrue(ok, probs)
+
+
 class Density(unittest.TestCase):
     def test_word_counting_handles_chinese(self):
         self.assertEqual(T._count("hello world", "en"), 2)
         self.assertGreater(T._count("这是一段中文文本用来测试计数", "zh"), 10)
+
+    def test_there_is_an_absolute_word_floor(self):
+        # The ratio check alone is useless when the feed omits duration: dur_min
+        # falls back to 1 minute and a 185-word clip reads as "185 wpm".
+        self.assertGreaterEqual(T.MIN_WORDS["en"], 1000)
+        self.assertGreaterEqual(T.MIN_WORDS["zh"], 1500)
 
     def test_the_wpm_window_brackets_real_speech(self):
         self.assertLess(T.MIN_WPM["en"], 130)     # real English conversation

@@ -34,6 +34,10 @@ MIN_WPM = {"en": 70, "zh": 110}
 # And an upper bound: nobody speaks at 300 wpm. Exceeding it means we grabbed
 # the wrong document — a show's archive page, a combined feed, an index.
 MAX_WPM = {"en": 300, "zh": 520}
+# An absolute floor as well as a ratio. YouTube's Atom feed carries no duration,
+# so the wpm ratio degenerates to "words per one minute" and a 185-word clip
+# sails through it. No real episode has a transcript this short.
+MIN_WORDS = {"en": 1200, "zh": 1800}
 ASR_KEY = os.environ.get("TRANSCRIBE_API_KEY", "").strip()
 ASR_BASE = os.environ.get("TRANSCRIBE_BASE_URL", "https://api.groq.com/openai/v1").strip().rstrip("/")
 ASR_MODEL = os.environ.get("TRANSCRIBE_MODEL", "whisper-large-v3-turbo").strip()
@@ -522,7 +526,6 @@ def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
             src: dict | None = None) -> dict | None:
     """Walk the tiers and return the first transcript that passes the density
     check. Returns None when nothing does — the caller must then NOT publish."""
-    dur_min = max((ep.get("duration") or 0) / 60, 1)
     attempts = []
     if src and not ep.get("youtube_id") and "youtube" in allow:
         vid = match_youtube(ep, src)
@@ -545,6 +548,16 @@ def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
             continue
         text = "\n".join(s["text"] for s in got["segments"])
         words = _count(text, lang)
+        if words < MIN_WORDS.get(lang, 1200):
+            attempts.append(f"{tier}:short({words}w)")
+            log(f"    tier {tier}: only {words} words — too short to be an episode "
+                f"transcript, rejected")
+            continue
+        # A timed transcript knows the runtime better than a feed that omits it.
+        if not ep.get("duration") and got["segments"] and not got["segments"][-1].get("approx"):
+            ep["duration"] = int(got["segments"][-1]["t"]) + 30
+            log(f"    duration was missing; taking {ep['duration']}s from the transcript")
+        dur_min = max((ep.get("duration") or 0) / 60, 1)
         wpm = words / dur_min
         if wpm < MIN_WPM.get(lang, 70):
             attempts.append(f"{tier}:thin({wpm:.0f}wpm)")

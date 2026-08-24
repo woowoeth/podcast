@@ -35,6 +35,10 @@ FILLER = re.compile(
 MIN_POINTS = 5
 MIN_QUOTES = 2
 MIN_QUOTE_CHARS = 24
+# Points must land in different places. When every one carries the same
+# timestamp the anchoring is decorative, and the "deep read" is really a
+# paraphrase of one short passage.
+MIN_DISTINCT_TS = 4
 
 
 def _norm(s: str) -> str:
@@ -265,6 +269,13 @@ def check(d: dict, tr: dict, ep: dict) -> tuple[bool, list[str], dict]:
         fatal.append(f"only {len(d['points'])} usable points (need {MIN_POINTS})")
     if len(d["quotes"]) < MIN_QUOTES:
         fatal.append(f"only {len(d['quotes'])} verifiable quotes (need {MIN_QUOTES})")
+    distinct = len({p["t"] for p in d["points"]})
+    if len(d["points"]) >= MIN_POINTS and distinct < MIN_DISTINCT_TS:
+        fatal.append(f"points share only {distinct} distinct timestamp(s) — not anchored")
+    elif dur and dur > 600 and d["points"]:
+        span = max(p["t"] for p in d["points"]) - min(p["t"] for p in d["points"])
+        if span < dur * 0.2:
+            fatal.append(f"points span {span}s of a {dur}s episode — one passage, not the episode")
     if len(d.get("title", "")) < 6:
         fatal.append("title missing or too short")
     if len(d.get("dek", "")) < 20:
