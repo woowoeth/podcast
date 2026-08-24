@@ -35,6 +35,9 @@ STATE = DATA / "state.json"
 # official transcript for every episode, so on a wide lookback it would take
 # every slot on quality alone; breadth is part of what the reader is here for.
 MAX_PER_SOURCE = int(os.environ.get("MAX_PER_SOURCE", "2"))
+MAX_WORDS = int(os.environ.get("MAX_WORDS", "0"))          # 0 = no ceiling
+# Set once from --max-words before any episode is processed; process() reads it.
+_ceiling = {"words": MAX_WORDS}
 MAX_FAILS = 3          # genuine failures: no transcript exists, or the gate says no
 MAX_SOFT_FAILS = 8     # infrastructure hiccups: a 429, a dropped connection, a
                        # model call that died. These must not burn an episode's
@@ -201,6 +204,14 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
         return "duplicate"
 
     tr = T.acquire(ep, s.get("lang", "en"), src=s)
+    cap_words = _ceiling["words"]
+    if tr and cap_words and tr["words"] > cap_words:
+        # Cost scales with transcript length, and a 35k-word episode costs as
+        # much as six ordinary ones. On a small budget, leave it for later
+        # rather than spending the whole run on it. Not a failure — no counter.
+        log(f"    {tr['words']} words > --max-words {cap_words}, 留给以后再发")
+        _release(state, fp, key)
+        return "too-long"
     if not tr:
         prev = state["fail"].get(key, {})
         n = prev.get("n", 0) + 1
@@ -268,6 +279,9 @@ def main() -> int:
                     help="how many episodes to publish this run")
     ap.add_argument("--days", type=int, default=int(os.environ.get("LOOKBACK_DAYS", "10")))
     ap.add_argument("--only", help="restrict to one source id")
+    ap.add_argument("--max-words", type=int, default=MAX_WORDS,
+                    help="skip episodes whose transcript is longer than this "
+                         "(cost scales with length; 0 = no limit)")
     ap.add_argument("--per-source", type=int, default=MAX_PER_SOURCE,
                     help="max episodes from any one show in this run")
     ap.add_argument("--jobs", type=int, default=int(os.environ.get("JOBS", "3")),
@@ -278,11 +292,14 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true", help="stop before any model call")
     ap.add_argument("--no-build", action="store_true")
     a = ap.parse_args()
+    _ceiling["words"] = a.max_words
 
     if not a.dry_run and llm.provider() == "claude-cli" and not a.spend_subscription:
-        est = a.limit * 22
-        log("这一轮会用本机 claude CLI 生成，也就是花你的 Claude 订阅额度，不是 API 账单。")
-        log(f"  每集要把整份逐字稿喂进模型（1-3.6 万词），{a.limit} 集大约 {est}k input tokens。")
+        per = min(a.max_words or 20000, 20000) * 1.35 / 1000
+        est = int(a.limit * per)
+        log(f"这一轮会用本机 claude CLI（{llm.model_name()}）生成，花的是你的 Claude "
+            f"订阅额度，不是 API 账单。")
+        log(f"  {a.limit} 集，每集上限 {a.max_words or '不限'} 词 → 大约 {est}k input tokens。")
         log("  确认要花订阅额度就加 --spend-subscription；不想花就配 LLM_API_KEY 走 API。")
         if a.limit > 3:
             log(f"\n拒绝执行：--limit {a.limit} 超过 3，必须显式加 --spend-subscription。")
