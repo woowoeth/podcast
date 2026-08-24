@@ -1,0 +1,64 @@
+name: rescore
+
+# 给已发布的稿子补成稿评分，不到 8 分的下站。
+# 云端限定 feed,notes,page 三层取稿——youtube 层在机房 IP 上取不到，
+# 那几篇会被标为"跳过"而不是误判成不合格。
+on:
+  workflow_dispatch:
+    inputs:
+      min:
+        description: "及格线 0-10"
+        default: "8"
+      dry_run:
+        description: "true = 只看分数不动文件"
+        default: "false"
+
+permissions:
+  contents: write
+concurrency:
+  group: podcast-write
+  cancel-in-progress: false
+
+jobs:
+  rescore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python -m pip install --quiet certifi truststore
+      - name: Rescore
+        env:
+          LLM_API_KEY:  ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_MODEL:    ${{ secrets.LLM_MODEL }}
+          LLM_AUTH:     ${{ secrets.LLM_AUTH }}
+        run: |
+          set -o pipefail
+          DRY=""
+          [ "${{ github.event.inputs.dry_run }}" = "true" ] && DRY="--dry-run"
+          python pipeline/rescore.py --min "${{ github.event.inputs.min || '8' }}" \
+            --tiers feed,notes,page $DRY 2>&1 | tee "${RUNNER_TEMP}/rescore.log"
+      - name: Commit
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          git config user.name  "podcast-bot"
+          git config user.email "podcast-bot@users.noreply.github.com"
+          git add -A data
+          git diff --cached --quiet && { echo "没有变化"; exit 0; }
+          git commit -m "rescore: 成稿评分不足的下站"
+          python pipeline/build.py
+          git add -A
+          git diff --cached --quiet || git commit -m "build: regenerate site"
+          for i in $(seq 1 8); do
+            git push && exit 0
+            git pull --rebase --autostash origin main || true
+            python pipeline/build.py; git add -A
+            git commit --amend --no-edit || true
+            sleep $(( (RANDOM % 5) + 3 ))
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: rescore-log, path: "${{ runner.temp }}/rescore.log", retention-days: 30 }

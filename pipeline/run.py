@@ -22,7 +22,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from lib import digest as D, feeds, gate, llm, transcript as T, triage  # noqa: E402
+from lib import digest as D, feeds, gate, llm, review, transcript as T, triage  # noqa: E402
 from lib.util import (eid, fingerprint, hhmmss, iso, log, now,   # noqa: E402
                       slugify, squeeze)
 
@@ -41,6 +41,7 @@ _ceiling = {"words": MAX_WORDS}
 _tiers = {"allow": T.ORDER}
 _triage = {"on": True, "min": triage.MIN_SCORE}
 _last_triage: dict[str, dict] = {}
+_review = {"on": True, "min": review.MIN_SCORE}
 MAX_FAILS = 3          # genuine failures: no transcript exists, or the gate says no
 MAX_SOFT_FAILS = 8     # infrastructure hiccups: a 429, a dropped connection, a
                        # model call that died. These must not burn an episode's
@@ -282,6 +283,28 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
         _release(state, fp, key)
         return "rejected"
 
+    # 成稿评分：机器闸门（gate）保证了可核对，这一层判机器判不了的——信息密度、
+    # 忠实度、选择力、具体性、中文。不到线就不上站。
+    rv = None
+    if _review["on"]:
+        rv = review.check(d, tr, ep, s)
+        if rv is not None:
+            dims = " ".join(f"{k[:4]}{v}" for k, v in rv["dims"].items() if v is not None)
+            log(f"    成稿评分 {rv['score']:.0f}/10 [{dims}] {rv['why']}")
+            if rv["worst"]:
+                log(f"      最该改：{rv['worst']}")
+            if rv["score"] < _review["min"]:
+                prev = state["fail"].get(key, {})
+                state["fail"][key] = {
+                    "n": prev.get("n", 0) + 1, "soft": prev.get("soft", 0),
+                    "why": f"review:{rv['score']:.0f}", "review": rv,
+                    "at": iso(now()), "title": ep["title"][:120], "src": s["id"]}
+                log(f"    不上站：成稿 {rv['score']:.0f} 分 < 及格线 {_review['min']}")
+                _release(state, fp, key)
+                return "below-bar"
+        else:
+            log("    成稿评分不可用，本篇未经评审（记录里会标出来）")
+
     slug = f"{iso(ep['published'])[:10]}-{s['id']}-{slugify(d['title'], 40)}"
     rec = {
         "id": key, "slug": slug, "fingerprint": fp,
@@ -293,7 +316,7 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
         "youtube_id": ep.get("youtube_id") or "",
         "transcript_url": tr.get("url", ""),
         "digest": d, "generated": iso(now()),
-        "triage": _last_triage.get(key),
+        "triage": _last_triage.get(key), "review": rv,
         "model": f"{llm.provider()}:{llm.model_name()}",
     }
     EPS.mkdir(parents=True, exist_ok=True)
@@ -310,6 +333,10 @@ def main() -> int:
                     help="how many episodes to publish this run")
     ap.add_argument("--days", type=int, default=int(os.environ.get("LOOKBACK_DAYS", "10")))
     ap.add_argument("--only", help="restrict to one source id")
+    ap.add_argument("--review-min", type=float, default=review.MIN_SCORE,
+                    help="成稿评分的及格线（0-10）。低于这个分数不上站。")
+    ap.add_argument("--no-review", action="store_true",
+                    help="关掉成稿评分（不建议：等于放弃质量下限）")
     ap.add_argument("--triage-min", type=float, default=triage.MIN_SCORE,
                     help="选题闸门的及格线（0-10）。低于这个分数的集不做深读。")
     ap.add_argument("--no-triage", action="store_true",
@@ -335,6 +362,8 @@ def main() -> int:
     _ceiling["words"] = a.max_words
     _triage["on"] = not a.no_triage
     _triage["min"] = a.triage_min
+    _review["on"] = not a.no_review
+    _review["min"] = a.review_min
     if a.tiers:
         want = tuple(t.strip() for t in a.tiers.split(",") if t.strip() in T.ORDER)
         if want:
@@ -371,7 +400,8 @@ def main() -> int:
         f"asr={'on' if T.ASR_KEY else 'off'} · budget={a.limit}")
     log(f"  endpoint: {llm.endpoint()}")
     log(f"  文稿层: {', '.join(_tiers['allow'])}")
-    log(f"  选题闸门: {'及格线 ' + str(_triage['min']) if _triage['on'] else '关闭'}")
+    log(f"  选题闸门: {'及格线 ' + str(_triage['min']) if _triage['on'] else '关闭'}"
+        f" · 成稿评分: {'及格线 ' + str(_review['min']) if _review['on'] else '关闭'}")
     log(f"scanning {len(srcs)} sources, {a.days}d lookback")
 
     cands = candidates(srcs, state, a.days, a.only)

@@ -278,6 +278,8 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
     player = (f'<audio data-player controls preload="none" src="{e(ep["audio"])}"></audio>'
               if ep.get("audio") else "")
     tsrc = TSRC_LABEL.get(q.get("transcript_source"), q.get("transcript_source") or "—")
+    rv = ep.get("review") or {}
+    rvs = f"{rv['score']:.0f}" if isinstance(rv.get("score"), (int, float)) else ""
     orig = ep.get("link") or (f"https://www.youtube.com/watch?v={ep['youtube_id']}"
                               if ep.get("youtube_id") else "")
 
@@ -348,6 +350,7 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
 {f'<div class="panel"><h4>本篇结构</h4><nav class="toc">{toc}</nav></div>' if toc else ''}
 
 <div class="panel"><h4>这篇是怎么来的</h4>
+{f'<div class="row"><span>成稿评分</span><span>{rvs} / 10</span></div>' if rvs else ''}
 <div class="row"><span>文稿来源</span><span>{e(tsrc)}</span></div>
 <div class="row"><span>文稿字数</span><span>{q.get('words') or '—'}</span></div>
 <div class="row"><span>语速核验</span><span>{q.get('wpm') or '—'} wpm</span></div>
@@ -355,6 +358,7 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
 <div class="row"><span>回溯校验数字</span><span>{q.get('grounded_facts', 0)} 条</span></div>
 {f'<div class="row"><span>质检剔除</span><span>{q["pruned"]} 处</span></div>' if q.get('pruned') else ''}
 <p class="note">金句在逐字稿里逐字比对过，数字回原文核对过；对不上的当场删掉，不上站。
+{f'成稿另经一道独立评审（信息密度／忠实度／选择力／具体性／中文），低于 8 分不展示。' if rvs else ''}
 {'这一集的文稿没有原始时间码，页面上的时间戳是按文稿位置估算的，只作粗略定位。' if q.get('approx_timestamps') else ''}</p>
 </div>
 </aside>
