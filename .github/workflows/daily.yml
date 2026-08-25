@@ -112,15 +112,18 @@ jobs:
           if git diff --cached --quiet; then echo "site unchanged"; exit 0; fi
           git commit -m "build: regenerate site"
           ok=0
-          for i in $(seq 1 8); do
+          for i in $(seq 1 10); do
             if git push; then ok=1; break; fi
-            git pull --rebase --autostash origin main || true
+            # 生成产物冲突一律以重建为准，不做三方合并
+            git fetch origin main
+            git reset --soft origin/main
             python pipeline/build.py
             git add -A
-            git commit --amend --no-edit || true
-            echo "push retry $i"; sleep $(( (RANDOM % 5) + 3 ))
+            git diff --cached --quiet && { ok=1; break; }
+            git commit -m "build: regenerate site"
+            echo "push retry $i"; sleep $(( (RANDOM % 7) + 3 ))
           done
-          [ "$ok" = 1 ] || { echo "push failed"; exit 1; }
+          [ "$ok" = 1 ] || { echo "::error::站点推送失败"; exit 1; }
 
       - name: Upload run log
         if: always()

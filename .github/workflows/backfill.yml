@@ -75,25 +75,57 @@ jobs:
             2>&1 | tee "${RUNNER_TEMP}/backfill.log"
       - name: Commit and push
         run: |
+          set -uo pipefail
           git config user.name  "podcast-bot"
           git config user.email "podcast-bot@users.noreply.github.com"
-          git add -A data
+
+          # 只提交数据。data/episodes 的文件名唯一，rebase 永远不冲突；
+          # 生成产物（index.html / p/ / feed.xml …）永远从合并后的数据重建，
+          # 不参与合并——这才是它们不该冲突的正确做法。
+          git add data/episodes data/state.json data/sources.json 2>/dev/null || true
           if git diff --cached --quiet; then echo "nothing new"; exit 0; fi
-          git commit -m "backfill: $(git diff --cached --name-only | grep -c 'data/episodes/') new"
-          for i in $(seq 1 8); do
-            git pull --rebase --autostash origin main && git push && break
-            echo "push retry $i"; sleep $(( (RANDOM % 5) + 3 ))
+          N=$(git diff --cached --name-only | grep -c 'data/episodes/' || true)
+          git commit -m "backfill: $N new"
+
+          ok=0
+          for i in $(seq 1 10); do
+            git pull --rebase --autostash origin main || {
+              # state.json 是派生索引，冲突时取远端再由 reconcile 从落盘记录校准
+              git checkout --theirs data/state.json 2>/dev/null || true
+              git add data/state.json 2>/dev/null || true
+              git -c core.editor=true rebase --continue || git rebase --abort || true
+            }
+            if git push; then ok=1; break; fi
+            echo "push retry $i"; sleep $(( (RANDOM % 7) + 3 ))
           done
+          if [ "$ok" != 1 ]; then
+            echo "::error::数据推送失败 —— 本轮 $N 篇内容会随 runner 一起销毁"
+            exit 1
+          fi
+
+          # 站点从合并后的全量数据重建
           python pipeline/build.py
-          git add -A
-          git diff --cached --quiet || git commit -m "build: regenerate site"
-          for i in $(seq 1 8); do
-            git push && break
-            git pull --rebase --autostash origin main || true
-            python pipeline/build.py; git add -A
-            git commit --amend --no-edit || true
-            echo "push retry $i"; sleep $(( (RANDOM % 5) + 3 ))
+          git add index.html sources s p feed.xml sitemap.xml robots.txt 404.html \
+                  search.json llms.txt llms-full.txt icon.svg .nojekyll 2>/dev/null || true
+          git diff --cached --quiet && { echo "site unchanged"; exit 0; }
+          git commit -m "build: regenerate site"
+          ok=0
+          for i in $(seq 1 10); do
+            if git push; then ok=1; break; fi
+            # 生成产物冲突一律以重建为准，不做三方合并
+            git fetch origin main
+            git reset --soft origin/main
+            python pipeline/build.py
+            git add index.html sources s p feed.xml sitemap.xml robots.txt 404.html \
+                    search.json llms.txt llms-full.txt icon.svg .nojekyll 2>/dev/null || true
+            git diff --cached --quiet && { echo "site unchanged after rebuild"; ok=1; break; }
+            git commit -m "build: regenerate site"
+            echo "push retry $i"; sleep $(( (RANDOM % 7) + 3 ))
           done
+          if [ "$ok" != 1 ]; then
+            echo "::error::站点重建推送失败（数据已入库，下一轮会重建）"
+            exit 1
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: backfill-log, path: "${{ runner.temp }}/backfill.log", retention-days: 30 }
