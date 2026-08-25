@@ -53,11 +53,30 @@
 
 同一集经常同时出现在 RSS 和节目的 YouTube 频道。指纹 = 归一化标题 + 时长按 2 分钟分桶，命中就跳过。（对照站点没做这个，同一集出现过两次。）
 
+## 事故记录
+
+踩过的坑都在 [POSTMORTEM.md](POSTMORTEM.md)，按错误类型分组，每条写清现象、根因、
+以及现在靠什么防住。前三类各自重复发生过三到四次（失败却报成功、基础设施抖动被当成
+内容缺失、校验规则误杀真内容），改这个项目之前值得先读一遍。
+
+能自动化的都变成了检查：`tests/test_guards.py` 直接断言那些教训——推送重试循环必须
+检查结果、评审失灵必须拦下而选题失灵必须放行、每页恰好一个 h1、cron 还开着、
+本机脚本含提交推送。纯文档防不住重犯。
+
 ## 怎么自动更新
 
 有两条路，看你能不能拿到 key。
 
-**A · 本机定时（不需要任何 key，当前采用）**
+两条线**同时**在跑，分工由 IP 决定，互不重复：
+
+| | 跑什么 | 频率 |
+|---|---|---|
+| 云端 GitHub Actions | 45 档（官方逐字稿 / feed 全文 / 官网文稿页 / RSS 音频转写） | 每天三班 cron |
+| 本机 launchd | 16 档（YouTube 与 Substack，机房 IP 抓不到） | 每天 10:30 与 21:30 |
+
+state.json 在 git 里，本机跑前先 `git pull`，所以不会重复发同一集。
+
+**A · 本机定时（已装，不需要任何 key）**
 
 用本机已登录的 `claude` CLI 生成。不产生 API 账单，但会花 Claude 订阅额度，
 所以刻意压小：每天 2 篇、模型 sonnet、跳过超过 2 万词的超长集，约 5 万
@@ -68,8 +87,14 @@ cp scripts/com.ourword.podcast.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.ourword.podcast.plist
 ```
 
-每天 10:30 自己跑完整链路并推送。日志在 `.cache/logs/`。停掉用 `launchctl unload`。
-代价：机器睡着或断网时不跑（launchd 会在唤醒后补跑）。
+每天 10:30 与 21:30 各跑一次（`--only-residential`，每次上限 6 篇），完整链路并推送。
+日志在 `.cache/logs/`。停掉用 `launchctl unload`。代价：机器睡着或断网时不跑
+（launchd 会在唤醒后补跑）。
+
+转写用本机模型，**不需要任何 key**：`mlx-whisper`（Apple Silicon）+ `imageio-ffmpeg`
+自带的静态 ffmpeg。它返回逐句真实时间码，比云端 SenseVoice 那条更准（后者只给整段
+文本，得按字数插值）。`~/.config/podcast/env` 里若放了 `LLM_API_KEY` 就走 API 账单，
+否则回退到本机 claude CLI（会花订阅额度，因此刻意压小篇数并用 sonnet）。
 
 **B · GitHub Actions 云端日更（需要一个 key，当前定时已停用）**
 

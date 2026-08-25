@@ -54,6 +54,7 @@ if [ -f "$ENV_FILE" ]; then
 fi
 
 : "${ONLY:=}"
+: "${ONLY_RESIDENTIAL:=}"
 : "${LIMIT:=2}"
 : "${DAYS:=21}"
 # 中文的"字数"按字统计，天然比英文词数高（一集中文播客常 2-3 万字，
@@ -79,6 +80,8 @@ export LLM_MODEL
 
   ONLY_ARG=""
   [ -n "$ONLY" ] && ONLY_ARG="--only $ONLY"
+  # 默认只跑云端抓不到的那批，避免和云端重复劳动
+  [ -n "$ONLY_RESIDENTIAL" ] && ONLY_ARG="$ONLY_ARG --only-residential"
 
   python3 pipeline/run.py $ONLY_ARG \
       --limit "$LIMIT" --days "$DAYS" --max-words "$MAX_WORDS" $EXTRA
@@ -98,22 +101,27 @@ export LLM_MODEL
   git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
       commit -q -m "digest: $n new (local)"
   python3 pipeline/build.py
-  git add index.html sources s p feed.xml sitemap.xml robots.txt 404.html \
-          search.json icon.svg .nojekyll 2>/dev/null || true
+  SITE_FILES="index.html sources s p feed.xml sitemap.xml robots.txt 404.html
+              search.json llms.txt llms-full.txt icon.svg .nojekyll"
+  git add $SITE_FILES 2>/dev/null || true
   git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
       commit -q -m "build: regenerate site" || true
 
+  # 冲突时不做三方合并：生成产物永远从合并后的数据重建。原来这里用
+  # `git pull --rebase` + `commit --amend`，两轮跑批同时重建站点必然在
+  # index.html / feed.xml 上冲突，rebase 反复失败——云端就是这么丢掉 11 篇的。
   for i in 1 2 3 4 5; do
     if git push -q origin main; then echo "已推送"; exit 0; fi
     echo "push 重试 $i"
-    git pull --rebase --autostash -q origin main || true
-    python3 pipeline/build.py
-    git add index.html sources s p feed.xml sitemap.xml robots.txt 404.html \
-            search.json icon.svg .nojekyll 2>/dev/null || true
+    git fetch -q origin main
+    git reset -q --soft origin/main
+    python3 pipeline/build.py >/dev/null
+    git add data/episodes data/state.json data/sources.json $SITE_FILES 2>/dev/null || true
+    if git diff --cached --quiet; then echo "已是最新，无需推送"; exit 0; fi
     git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
-        commit -q --amend --no-edit || true
+        commit -q -m "digest + build (local)"
     sleep $((RANDOM % 5 + 3))
   done
-  echo "push 失败"
+  echo "push 失败——本轮产出仍在本地，下次跑批会带上"
   exit 1
 } 2>&1 | tee -a "$LOG"

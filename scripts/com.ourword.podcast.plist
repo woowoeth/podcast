@@ -9,8 +9,18 @@
     <string>/Users/jerryma/Desktop/boke/podcast/scripts/local-daily.sh</string>
   </array>
   <!-- 每天 10:30 跑一次。机器当时是睡着的，launchd 会在唤醒后补跑。 -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <!-- 本机只跑云端做不到的那批（YouTube 与 Substack）。云端负责其余 45 档。 -->
+    <key>ONLY_RESIDENTIAL</key><string>1</string>
+    <key>LIMIT</key><string>6</string>
+    <key>DAYS</key><string>21</string>
+  </dict>
   <key>StartCalendarInterval</key>
-  <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>30</integer></dict>
+  <array>
+    <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>30</integer></dict>
+    <dict><key>Hour</key><integer>21</integer><key>Minute</key><integer>30</integer></dict>
+  </array>
   <key>RunAtLoad</key><false/>
   <key>StandardOutPath</key><string>/Users/jerryma/Desktop/boke/podcast/.cache/logs/launchd.out</string>
   <key>StandardErrorPath</key><string>/Users/jerryma/Desktop/boke/podcast/.cache/logs/launchd.err</string>
