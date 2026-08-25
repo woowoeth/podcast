@@ -1,6 +1,6 @@
 # 原声 — 世界太吵，来原声听播客
 
-65 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
+69 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
 
 ==============================================================================
 
@@ -1413,6 +1413,83 @@
 
 ==============================================================================
 
+## 推理速度才是新护城河：Cerebras 机架化再提速
+
+- URL: https://ourword.ai/podcast/p/2026-08-19-techtechpotato-推理速度才是新护城河-cerebras-机架化再提速/
+- 节目 / show: TechTechPotato (https://ourword.ai/podcast/s/techtechpotato/)
+- 原集标题 / original episode: GPT-5.6 Sol Ultrafast.... Just Got UltraFaster (Cerebras 4th Gen)
+- 发布 / published: 2026-08-19 · 时长 / duration: 23:20
+- 文稿来源 / transcript: YouTube 字幕 · 3963 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 6 numbers traced to the transcript, review score 8/10
+
+**Cerebras 的 WSE 3.5 把单芯片速度推到 4400 tok/s，CS4 机架把三片晶圆塞进 120kW 机柜。核心理由：推理要拆成 prefill 和 decode，速度才是护城河。**
+
+为什么听 / why: Cerebras 很少把系统设计细节公开到这种程度，本集给出机架功耗、互连延迟、组件削减等硬数字，适合想验证 SRAM 推理路线是否成立的人听。
+
+### 核心论点 / points
+
+[6:11] **WSE 3.5：同节点翻倍** — Cerebras 没有等新制程，而是把 WSE3 做激进调频：频率接近翻倍，所以功耗也接近翻倍。它同时强调这不是简单挑体（binning），而是和台积电在同一个 N5 节点上做了针对电压和频率的设计优化。上一代 125 petlops 的稀疏 FP16 提到 250 petlops，核心数仍是 90 万、SRAM 仍是 44GB。物理良率靠缺陷核心动态绕行仍接近 100%，但参数良率一直是外部质疑点。
+
+[8:15] **CS4 机架：三片晶圆一柜** — 旧设计是 16U 整机、单芯片独立供电和液冷，数据中心侧只做风冷。CS4 改为机架级：前面板放风扇和电源，后面是名为 backpack 的模块，液冷管道从顶部连接到竖直放置的晶圆芯片。一个机架放三片，作者按电源数量估算单片约 40kW、整架约 120kW，听起来和 Nvidia NVL72 同级。这不是规格炫耀，而是把 wafer-scale 放进标准数据中心形态。
+
+[10:18] **2.4Tbps 模块化网络成平台** — 每片芯片的网络从上一代翻倍到 2.4Tbps，而且 IO 模块设计成可替换，未来若要支持 800G/200G/100G 或其他互联标准，可以直接换模块而不是重做系统。backpack 同时兼容未来 wafer 尺寸，因为晶圆已到物理极限，电源和液冷接口大致相似。作者认为 Cerebras 实际上在做一个机架级平台，这也是他们敢说 CS5 在 2027 下半年就能跟上的原因。
+
+[12:20] **OpenAI 订单大头在未来芯片** — WSE3 在能完整装进单芯片的模型上约 2300 tok/s，WSE 3.5 到 4400 tok/s；GPT-5.6 Sol 现在 750 tok/s，换新芯片后接近 1500 tok/s。CEO Andrew Feldman 明确说，OpenAI 这类协议虽有当期供货，但大头收入来自未来世代芯片，所以 CS4 这种平台化产品是履行订单的关键。此前公布与 OpenAI 的合作对应约 200 亿美元收入，这也是当初 IPO 讲的增长故事。
+
+[14:24] **组件砍半，产能瓶颈松绑** — 第一代 wafer-scale 系统因为量小，用了大量定制机加件，基础设施成本远超合理水平。CS4 把组件数量砍掉一半甚至 60%，并大幅自动化，让产线可以爬坡——产能一直是财报电话会被追问的问题。作者得到的口径是：新世代系统会比上一代贵，但没透露涨多少；早期系统已开始出货，年底前放量。
+
+[17:25] **别叫解聚，该叫分区** — Cerebras 推荐的用法是 GPU 负责 prefill、Cerebras 负责 decode。作者认为 disaggregation 这个词是错的，应该叫 workload partitioning：把需要算力的部分给算力硬件，把需要访存的部分给访存硬件。Nvidia 买 Groq 就是为了 SRAM 解码性能，但他更关心 Groq 集成 NVLink 之后能否真正竞争；他看到的幻灯片说每架 NVL72 需要 9 架 Groq。Cerebras 作为独立公司还能与 AMD、AWS 合作，这是它比 Groq 灵活的地方。
+
+[19:28] **速度本身就是商业模式** — Cerebras 的取舍是通用性交换功耗和部署。Talis 等专用芯片可以跑到 17000 tok/s，但只能跑单个小模型；Cerebras 能跑任何 transformer 模型。对写代码或 agentic workflow 来说，每次输入都要等结果，快不只是体验，而是能把多个 idea 并行跑起来，减少等待。Cerebras 的商业模式就是让客户为高速 token 付溢价——按百万 token 计价，速度需求永远存在。
+
+[21:32] **速度王座未变，看 CS5** — 作者总结：在 AI 硬件里 Cerebras 仍是速度之王，其他公司拼上下文长度或数学优化，但没有人在速度上超过它。这次从单台 16U 箱子升级为 120kW 三系统机架，等于把「怪东西」做成了标准数据中心形态。下一个看点是 CS5 在 2027 年下半年能否如期兑现，以及未来 10 万亿参数模型能不能靠这套平台支撑。
+
+### 原话 / verbatim quotes
+
+[9:16] : "I believe one of these chips is probably pushing based on how many power supplies there are, 40 kW. That means three in a rack is about 120, which kind of sounds like Nvidia's NVL72 of course."
+    译 / zh: 按电源数量推算，我认为每颗这样的芯片大概在 40kW。一个机架放三颗就是 120kW，这听起来当然有点像 Nvidia 的 NVL72。
+
+[11:18] : "what used to be five microsconds is now two microsconds uh for chip to chip in fast mode I think they have a regular mode which is more like three microsconds"
+    译 / zh: 芯片到芯片的延迟从原来的 5 微秒降到现在的 2 微秒（fast 模式），我记得还有一个普通模式，大概 3 微秒。
+
+[12:20] : "So, wave scale engine 3 previous generation did about 2300 tokens per second um on a standard model that fit all within memory I think in one chip. Um with this new chip, you can now get 4,400 tokens per second."
+    译 / zh: 上一代 WSE3 在能完整装进单颗芯片内存的标准模型上大约每秒 2300 token。新芯片能到每秒 4400 token。
+
+[13:22] : "look, when these, uh, agreements are made, there's obviously some supply that's of the current generation, but you go into it knowing that a lot of that uh, revenue is going to come from future generation chips."
+    译 / zh: 听着，签这些协议的时候，确实会有一些当前世代的供应，但你从一开始就知道，其中很大一部分收入将来自未来世代的芯片。
+
+[15:24] : "If you use GPU only, you might be getting 250 tokens per second. uh with Cerebrus with their new CS4 you can get over 4,500 tokens per second."
+    译 / zh: 如果只用 GPU，可能每秒 250 token；用 Cerebras 新 CS4，能到每秒 4500 token 以上。
+
+[16:25] : "I think disagregation is the wrong word to be talking about it. We should be talking about partitioning workloads."
+    译 / zh: 我认为 disaggregation 不是正确的词，我们应该说 partitioning workloads（分区工作负载）。
+
+[20:30] : "CUDA is not the moat. Speed is the moat and Cerebrus is one of those chips that gets you there with that speed."
+    译 / zh: CUDA 不是护城河，速度才是护城河。Cerebras 就是能用这种速度把你带到那里的芯片之一。
+
+### 数字 / figures
+
+- WSE3.5 稀疏 FP16 算力: 250 petlops（上代 125 petlops） [7:13]
+- CS4 单芯片/整机架功耗: 约 40kW / 约 120kW [9:16]
+- 每芯片网络带宽: 2.4 Tbps，两倍于上代 [10:18]
+- 芯片间互连延迟: fast 模式 2 微秒，regular 模式约 3 微秒（上代 5 微秒） [11:18]
+- CS4 组件数量: 减少约一半，可能达 60% [14:24]
+- NVL72 与 Groq 机架比: 每 1 架 NVL72 需 9 架 Groq [17:25]
+
+### 术语 / glossary
+
+- Wafer Scale Engine (WSE) (晶圆级引擎): 把一整片晶圆做成单颗芯片，用跨掩模拼接互联，避免多芯片间高延迟互连。
+- Cross-reticle stitching (跨掩模拼接技术): 把光刻掩模区域在晶圆上拼成一颗超大芯片，让面积超过单次曝光的极限。
+- Backpack (背包模块): CS4 机架后部的可插拔模块，集成了液冷、供电与可替换网络 IO，外形像背包。
+- Prefill/Decode (预填充/解码): LLM 推理两阶段：prefill 并行处理输入，decode 逐 token 生成，两者对硬件需求不同。
+- Parametric yield (参数良率): 晶圆上达到目标频率/电压的芯片比例，区别于物理良率。
+
+谁该听 / who: 关注 AI 推理芯片代际路线的创业者、做 Infra 选型的工程师、以及追踪 OpenAI 供应链的投资者。
+可跳过 / skip: 对 Cerebras 前几代历史很熟的听众，可跳过开头 0:01-3:09 的背景回顾，直接从 CS4 机架设计听起。
+标签 / tags: 推理芯片, Cerebras, 晶圆级计算, SRAM, OpenAI, 算力
+
+==============================================================================
+
 ## 模型越狱不是叛逆，是奖励机制逼出来的作弊
 
 - URL: https://ourword.ai/podcast/p/2026-08-17-oddlots-模型越狱不是叛逆-是奖励机制逼出来的作弊/
@@ -1777,6 +1854,82 @@
 
 ==============================================================================
 
+## SK hynix 靠 HBM 翻身：客户战略赢过周期
+
+- URL: https://ourword.ai/podcast/p/2026-08-13-asianometry-sk-hynix-靠-hbm-翻身-客户战略赢过周期/
+- 节目 / show: Asianometry (https://ourword.ai/podcast/s/asianometry/)
+- 原集标题 / original episode: SK hynix and the HBM Revolution
+- 发布 / published: 2026-08-13 · 时长 / duration: —
+- 文稿来源 / transcript: YouTube 字幕 · 5485 words · timestamps are exact
+- 校验 / verification: 6 quotes matched verbatim, 7 numbers traced to the transcript, review score 8/10
+
+**SK hynix 的翻身不是押中 HBM 技术，而是押中客户关系与长期投入；Samsung 押注 PIM 边缘推理，恰好把 ChatGPT 时刻的唯一供应商位置让给了对手。**
+
+为什么听 / why: 这集值得听的是封装工艺 MR-MUF 的取舍，以及 Chey 在内部反对下连续押注的决策机制；对理解 AI 存储供需和韩国财阀式并购，是稀缺样本。
+
+### 核心论点 / points
+
+[4:04] **董事会否决 Micron 收购** — 债权人主导重组后，Micron 提出以 1.08 亿股收购 Hynix 的存储业务。多数债权人支持，因为 Micron 的目的不是运营韩国厂房，而是关停产能、消灭竞争对手。2002 年 4 月末，十人董事会一致否决：作价低估、重组条件不可接受、存储价格正在回暖；公众也反对把韩国公司卖给美国公司。Hynix 随后只能卖 TFT-LCD 和系统 IC 业务续命。视频也给出反事实：如果当时接受 Micron，后续 HBM 历史可能就不存在了。
+
+[13:15] **SK 收购：内部反对与个人尽调** — SK 集团内部强烈反对：芯片与集团无协同，Hynix 已实质破产、债权人管理超十年。Chey 的判断来自产业整合：Qimonda 已倒、Elpida 岌岌可危，幸存者更有周期抗性；iPhone/Android 代表的移动市场能对冲 PC 周期。他亲自做尽调、读半导体，并飞台湾问 Morris Chang 是否做代工。Chey 回答不做代工后，Morris 才放松。2012 年 SK 以 30 亿美元买下 21% 控股股权。关键是这桩交易全靠董事长个人推动，内部阻力大到直到截止日才提交标书。
+
+[14:17] **从通用 DRAM 到不可替代** — Chey 解释收购 Hynix 的目标：把「commodity memory producer」变成「产品不可或缺的主流半导体公司」。上一轮教训是只做通用 DRAM 逃不开周期；对手可以用其他业务交叉补贴。他手写 memo 要求用技术创造经济价值，并从设计阶段与客户合作。这直接解释为什么 AMD 想做 HBM 时 SK hynix 愿意陪跑：即便 HBM 初期不赚钱、设备钱可能都没赚回，Chey 还是支持继续投入。这段讲的是战略连续性：先定客户原则，再等市场验证。
+
+[16:23] **HBM 的带宽逻辑与首发** — HBM 的物理逻辑：带宽由通道数和每条通道速率共同决定，用大量慢速通道比少数高速通道更划算。TITAN Black 的 GDDR5 是 384 条 7 Gbps 通道，总带宽约 336 GB/s；四个 HBM1 栈提供 4096 条通道，每条仅 1–2 Gbps，总带宽反而更高。TSV 缩短连线，电阻和功耗更低。HBM1 首发在 AMD R9 Fury X——约 1011 平方毫米的旗舰 GPU，集成 22 颗 die，性能最强但销量不大。SK hynix 与 AMD 把规格交给 JEDEC 建设生态，为后来的标准战做了铺垫。
+
+[22:36] **HBM2 交了三年学费** — HBM2 的灾难值得拆解：为省成本跳过 2y 节点直接做 2z，客户临时改规格导致重新设计，TSV 速度只有 500 Mbps（目标 2 Gbps 的 1/4），高端版本被砍。赶工让堆叠时 die 破裂或误切，良率约 50%，连客户认证都没过。CEO 被客户当面听「bitter criticism」，一年半内设计负责人换三次。2018 年量产后又撞上加密冬天：比特币跌 75%，挖矿 GPU 与 HBM 需求消失，新建的 P&T4 封装产线吃不饱。团队最后提炼成一句两难：成本还是性能，只能选一个。
+
+[27:43] **MR-MUF：把封装从串行变并行** — HBM2E 团队选性能：TSV 翻倍、加散热 dummy bump，但旧工艺 TC-NCF 是逐层热压，一次只压一层，8–9 层堆叠要反复加热加压，TSV 越多越容易压裂，不具备扩展性。Mass reflow 先把所有 die 堆好一次性回流熔融微凸块，解决了 bonding；但毛细 underfill 太慢，半年后放弃。改用 MUF——用 EMC 模塑料同时完成 underfill 和 overmold。MUF 以前只用在单颗小芯片，没人做过 8 层 DRAM 堆叠。SK hynix 从零与日本 Towa 做设备、与 NAMICS 做材料，EMC 材料迭代约五十次，最终 MR-MUF 成为 HBM2E 的差异化武器。
+
+[31:54] **Samsung 押错 HBM-PIM** — ChatGPT 之前 HBM 只占 DRAM 市场 1.5%–2%，多数人不认为它是主流。Samsung 在关键路口转向 HBM-PIM——把可编程 AI 引擎放进存储，瞄准语音识别和机器视觉的边缘推理，而不是大语言模型。PIM 还要大量软件投入。结果 2022 年 11 月 30 日 ChatGPT 发布时，能供 Nvidia GPU 用 HBM3 的只有 SK hynix 一家。这不是技术神话，而是对手在方向选择上把长线市场让了出来。
+
+[36:01] **从第五财阀到全球舞台** — 2026 年 7 月 SK hynix 以 ADR 登陆纳斯达克，募资 265 亿美元，创美国史上第二大募股。视频给出的判断是：韩国公司很少这样跨出本土市场；SK 集团上一代靠能源和电信成为第五大财阀，这一代靠 SK hynix 成为第二大。公司已在美国印第安纳州投 40 亿美元建先进封装厂，并宣布 1.1 quadrillion 韩元（1100 万亿韩元）中期投资计划，覆盖清州、龙仁和韩国西南新集群。DRAM 供给接下来两年已被订满，视频认为需要更多存储厂，SK hynix 正在 all in。
+
+### 原话 / verbatim quotes
+
+[12:13] Morris Chang（张忠谋）: "The deeper the downturn, the better you must connect with your customers; and in an upturn, never act as though you are above them."
+    译 / zh: 下行越深，越要跟客户联结；上行时，永远不要表现得你高高在上。
+
+[14:17] Chey Tae-won（崔泰源）: "What I really wanted to accomplish when we acquired Hynix was to transform it from a commodity memory producer into a mainstream semiconductor company whose products are indispensable"
+    译 / zh: 我收购 Hynix 时真正想完成的事，是把它从一家大宗商品式存储厂商，转变为一家产品不可或缺的主流半导体公司。
+
+[16:23] 旁白: "The design philosophy is that many slower channels will beat a few fast ones."
+    译 / zh: 设计哲学是：很多条慢速通道，胜过少数几条快速通道。
+
+[18:28] Bryan Black: "We will see more HBM in more AMD products. We didn't develop the technology just for this, we developed it for the future"
+    译 / zh: 我们会在更多 AMD 产品中看到更多 HBM。我们开发这项技术不只是为了这一个产品，而是为了未来。
+
+[23:38] 旁白: "Cost or Performance? Choose one. You can't have it all."
+    译 / zh: 成本还是性能？只能选一个。你不可能全都要。
+
+[37:02] 旁白: "Few companies have swung this hard between crisis and success. After years of losses, SK hynix was nearly written off. SK bought it anyway over many internal and external objections. It made HBM and for years, HBM sat as this niche product few cared about. But the company kept working on it, even when the market gave no sign that it will pay off."
+    译 / zh: 几乎没有公司像这样在危机与成功之间剧烈摇摆。连年亏损之后，SK hynix 几乎被放弃。SK 还是顶着内外的无数反对把它买了下来。它做出了 HBM；多年里 HBM 只是个没几个人在意的边缘产品，但公司一直做下去，即使市场没有任何迹象表明它会得到回报。
+
+### 数字 / figures
+
+- 纳斯达克 ADR 募资额: 265 亿美元；美国历史上第二大募股 [0:02]
+- Micron 初始收购对价（非约束性 MOU）: 1.08 亿股 Micron 股票 [3:02]
+- 2004–2005 年股价区间: 从每股 11 美分升至约 21 美元 [6:04]
+- HBM2 平均良率: 约 50% [22:36]
+- P&T4 封装厂投入: 超过 4 亿美元 [23:38]
+- ChatGPT 前 HBM 占 DRAM 市场比例: 1.5%–2% [31:54]
+- ChatGPT 发布当季 SK hynix 营业亏损: 15 亿美元，十年首次 [33:58]
+
+### 术语 / glossary
+
+- HBM (High Bandwidth Memory，高带宽存储): 把多层 DRAM 堆在逻辑基片上，用 TSV 和微凸块互联，带宽远高于 GDDR。
+- TSV (Through Silicon Via，硅通孔): 垂直穿过硅片的互连，堆叠 die 之间传信号和供电。
+- TC-NCF (Thermal Compression with Non-Conductive Film，热压合与非导电膜): 逐层堆叠时用非导电膜加加热加压完成 bonding 和 underfill，SK hynix 用于 HBM1/2。
+- MR-MUF (Mass Reflow Molded Underfill，批量回流+模塑下填料): 一次性回流熔融微凸块，再用模塑料同时完成 underfill 和 overmold，SK hynix 为 HBM2E 开发。
+- HBM-PIM (Processing-in-Memory，存内计算): 把 AI 计算引擎放入存储芯片，减少数据搬运；Samsung 转向此方向而放弃 HBM3。
+- ADR (American Depositary Receipt，美国存托凭证): 非美国公司在美股挂牌交易的凭证。
+
+谁该听 / who: 半导体创业者、AI 基础设施投资人、存储与封装工程师，以及所有正在做长期客户绑定决策的人。
+可跳过 / skip: 若只关心 HBM 技术与投资，9:13–10:13 的 SK 电信发展史可快进；但它解释了 Chey 的产业嗅觉。
+标签 / tags: 半导体, HBM, 存储芯片, 韩国财阀, 先进封装, AI算力
+
+==============================================================================
+
 ## 这轮卡车运价上涨来自供给被砍，不是需求回来了
 
 - URL: https://ourword.ai/podcast/p/2026-08-13-oddlots-这轮卡车运价上涨来自供给被砍-不是需求回来了/
@@ -2087,6 +2240,81 @@
 
 ==============================================================================
 
+## AI写作停滞：长文非虚构是模型能力的试金石
+
+- URL: https://ourword.ai/podcast/p/2026-08-12-interconnects-ai写作停滞-长文非虚构是模型能力的试金石/
+- 节目 / show: Interconnects (https://ourword.ai/podcast/s/interconnects/)
+- 原集标题 / original episode: I wrote an AI textbook — how long until AI can do it better?
+- 发布 / published: 2026-08-12 · 时长 / duration: 12:32
+- 文稿来源 / transcript: 官方全文 · 2452 words · timestamps are estimated from position in the transcript
+- 校验 / verification: 7 quotes matched verbatim, 4 numbers traced to the transcript, review score 8/10
+
+**模型在长文非虚构写作上进步缓慢，暴露了其组织知识能力的缺陷，这比代码和数学的进步更值得警惕，因为它关乎AI能否解决开放科学问题。**
+
+为什么听 / why: 作者以亲历写教科书的过程，揭示了AI在长文写作上的停滞，这一现象对依赖AI自主科研的人是个警示，值得关注。
+
+### 核心论点 / points
+
+[0:00] (Nathaniel) **AI写作批评的盲区** — 对AI写作的批评多集中在创意写作，认为好写作需要高辨识度、观点和人类深度表达。但非虚构写作，如填充文本，曾是LLM真正有用的能力之一。作者指出，模型在长文非虚构写作上的停滞，对依赖AI自主解决开放科学问题的人而言，是令人警惕的信号。模型难以组织和呈现其领域内最成熟科学，这应是解决开放问题的前提。
+
+[1:30] (Nathaniel) **科学进步的局限** — 作者认为，当前AI模型在科学上的进步更像摘取低垂果实和跨领域连接，而非革命性洞察。组织知识是一种压缩，是产生洞察的必要条件。而LLM在长文非虚构写作中增加了熵，这无法无限叠加。模型将依赖人类作为引导。尽管如此，作者仍对数学等窄领域科学进步向更广泛领域的转化持乐观态度。
+
+[2:30] (Nathaniel) **写作停滞的观察** — 作者刚完成一本关于RLHF的教科书，期间大量使用LLM辅助排版、校对和绘图。他原本预期2026年出版非虚构书会显得过时，但现实是模型在写作上的进步远低于预期。一些以写作能力著称的模型，如GPT-4.5和Kimi K2，已经算旧了。模型在编码和数学上已从平庸到超人，但写作能力却停滞不前，这感觉与其他技能正交。
+
+[3:30] (Nathaniel) **写作为何难提升** — 作者认为写作并非被忽视，而是挑战大且缺乏针对性训练数据。虽然存在一些低垂果实，如专门的工具链和提示，但不太可能带来能力的倍增。写作是一项非常困难的任务，遗憾的是我们尚未解锁推理时扩展在写作上的应用。当前模型在长文技术写作上表现糟糕，句子尚可，但整章则组织混乱、措辞含糊，还常犯概念错误。
+
+[4:30] (Nathaniel) **模型的编辑能力** — 作者观察到GPT模型在找错别字和细节问题上表现出色，而Claude模型作为编辑更有品味，更能理解任务的思维模型，提供有趣建议。这些例子表明，模型擅长检查每个单元的内容，但不擅长将组件串联起来，导致复合错误。在数学和代码中，RLVR（基于规则的验证强化学习）神奇地减少了这类错误，但写作中尚无对应方案。
+
+[5:42] (Nathaniel) **AI辅助写作的实践** — 作者分享在写书过程中，AI模型贡献了不到1%的技术解释句子，因为作者作为专家认可这些句子。在编辑过程中，他使用Claude Code导航编辑评论，区分简单错别字和复杂问题，并请求建议。作者认为，如果专家能严格把关，使用AI输出并非作弊，但这是一个滑坡，他最终在第二稿全面审阅时接受了一些AI建议。
+
+[7:30] (Nathaniel) **AI写作的平衡** — 作者强调，使用AI进行非虚构写作会削弱理解力的提升，而这种理解力（直觉、品味、本能）在未来更有价值。如果不是专家，就无法发现AI的缺陷。作者写书是为了回馈社区，因此即使使用AI，只要能完成就是胜利。他承认，如果投入更多人力，学习会更多，产品也会更好，但决定因素是担心书出版时已过时。
+
+[9:00] (Nathaniel) **技术写作的未来** — 作者认为，AI模型是很好的工具，能将知识转化为不同形式，适合创作填充材料或背景内容。但在非虚构写作的早期组织阶段，需要洞察力，这是LLM远远无法替代的。作者希望更多专家使用AI写书，以分享更多知识，但目前AI只能节省10-20%的努力，且短期内不会成为多数。社会压力让一些人认为写书无意义，但高质量教育内容始终匮乏。
+
+[10:30] (Nathaniel) **模型的适用场景** — 作者总结，模型在两种情况下表现出色：一是可验证的领域，二是有大量上下文的小编辑，如找bug或解决特定数学问题。但在开放式生成散文方面表现不佳。长文写作将先于创意写作被攻克，但这是模型无法在欠规范问题中表达全部知识的强烈信号。这限制了模型成为“数据中心天才”解决重大科学问题的能力。
+
+### 原话 / verbatim quotes
+
+[0:00] Nathaniel: "Models being stagnant in long-form, non-fiction writing should be alarming to those reliant on models autonomously solving grand, open science problems in the near future."
+    译 / zh: 模型在长文非虚构写作上的停滞，对于那些依赖模型在不久的将来自主解决重大开放科学问题的人来说，应该敲响警钟。
+
+[1:30] Nathaniel: "Today’s LLMs increase entropy in long-form non-fiction writing, and I don’t see how that can be stacked on top of itself endlessly."
+    译 / zh: 今天的LLM在长文非虚构写作中增加了熵，我看不出这如何能无限叠加。
+
+[3:30] Nathaniel: "Writing well is a very hard task! It’s a shame that we haven’t unlocked inference-time scaling for one of the great intellectual pursuits."
+    译 / zh: 写得好是一项非常困难的任务！遗憾的是，我们尚未解锁推理时扩展在伟大智力追求上的应用。
+
+[4:30] Nathaniel: "The models know how to check every unit of content, in this case usually a sentence or equation or figure, or make one, specific section where you are caught."
+    译 / zh: 模型知道如何检查每个内容单元，通常是一个句子、等式或图表，或者制作一个你卡住的特定部分。
+
+[7:30] Nathaniel: "Using AI for non-fiction writing takes away from that progression. Doubly, if you weren’t already an expert you won’t be able to catch its flaws."
+    译 / zh: 使用AI进行非虚构写作会削弱这种进步。再者，如果你还不是专家，你将无法发现它的缺陷。
+
+[9:00] Nathaniel: "The problem is that you can only use AI models to save 10-20% of the effort today, and I don’t see that percentage becoming the majority anytime soon."
+    译 / zh: 问题是，如今你只能使用AI模型节省10-20%的努力，而我看不到这个比例在短期内成为多数。
+
+[10:30] Nathaniel: "Long-form writing will definitely fall before creative writing, but it’s a strong tell that the models are not able to express the full extent of their knowledge in underspecified problems."
+    译 / zh: 长文写作肯定会在创意写作之前被攻克，但这是一个强烈的信号，表明模型无法在欠规范问题中表达其全部知识。
+
+### 数字 / figures
+
+- AI模型在书中贡献的句子比例: 不到1% [5:42]
+- AI模型节省写作努力的比例: 10-20% [9:00]
+- 书籍页数: 200-300页 [4:30]
+- 同步Markdown和LaTeX版本所需时间: 数十小时，使用AI代理后节省五倍时间 [7:00]
+
+### 术语 / glossary
+
+- RLVR (基于规则的验证强化学习): 一种强化学习方法，通过规则验证奖励模型，减少复合错误。
+- RLHF (基于人类反馈的强化学习): 一种训练方法，利用人类反馈优化模型行为。
+- inference-time scaling (推理时扩展): 在推理阶段增加计算量以提升模型性能的技术。
+
+谁该听 / who: 关注AI能力边界的研究者、技术写作者、以及依赖AI进行知识工作的创业者。
+可跳过 / skip: 开头对AI写作批评的概述可略读，重点在中后段对模型能力的分析。
+标签 / tags: AI写作, 非虚构, 技术写作, 模型能力, RLHF, 科学进步
+
+==============================================================================
+
 ## 0.33Å 误差背后的信号：药物发现正转向敏捷闭环
 
 - URL: https://ourword.ai/podcast/p/2026-08-11-latentspace-0-33å-误差背后的信号-药物发现正转向敏捷闭环/
@@ -2246,6 +2474,83 @@
 谁该听 / who: 在做 AI 安全、后训练或 RL 环境的工程师；需要判断算法进步与数据壁垒谁更重要的投资人；关心模型 spec 与商业条款的产品负责人。
 可跳过 / skip: 前 4 分钟的赞助商口播可跳。
 标签 / tags: 递归自我改进, 对齐, 奖励黑客, RL 环境, 算法进步, 模型规范
+
+==============================================================================
+
+## 暗光纤正在把海底变成全球最大窃听网
+
+- URL: https://ourword.ai/podcast/p/2026-08-09-asianometry-暗光纤正在把海底变成全球最大窃听网/
+- 节目 / show: Asianometry (https://ourword.ai/podcast/s/asianometry/)
+- 原集标题 / original episode: The Dark Fiber Listening Network
+- 发布 / published: 2026-08-09 · 时长 / duration: 20:29
+- 文稿来源 / transcript: YouTube 字幕 · 2943 words · timestamps are exact
+- 校验 / verification: 6 quotes matched verbatim, 8 numbers traced to the transcript, review score 8/10
+
+**分布式声学传感（DAS）让普通光缆变成连续振动监听器：油气井勘测、地震监测、鲸鱼追踪、船只反潜都用同一条技术链，海洋正在快速失去隐私。**
+
+为什么听 / why: 数字密集、技术演化链条完整，从井筒到鲸鱼到潜艇一条线讲清楚；但只讲做到什么，不计算商业账与经济性，别期待投资分析。
+
+### 核心论点 / points
+
+[3:10] **瑞利散射是 DAS 的物理地基** — 光在光纤里的衰减主要来自散射。Brillouin 散射由低频声子（温度或应变引发）产生，Raman 散射来自分子振动，后者常用于测温；但最显著的是瑞利散射——光被小于自身波长的密度涨落反射回来。这些涨落像撒在整根光纤里的微型镜子，把一小部分光原路反射。瑞利散射不转移能量也不改变频率，它是天空呈蓝色的原因，也是 DAS 一切信号的源头：后来的 OTDR 和 DAS 都在捡这些反射回来的光。
+
+[5:22] **从断点检测到偏振失败的弯路** — 1980 年代常用 OTDR 找光缆断点：发出一束光，测瑞利背散射回波的到达时间，从而定位断裂或高损耗点。1981 年英国中央电力研究实验室的 AJ Rogers 提出偏振光时域反射测量，想用偏振变化反推温度、应变、声波等外部因素；但在 80 年代这条路失败了——偏振变化的原因太多，无法把具体变化归因到单一因素。瑞利信号是整条光纤所有涨落的总和，信号过度平均化，温度传感也做不成。行业于是转向 Raman 和 Brillouin 散射：信号弱，但能通过 Stokes/anti-Stokes 频移确定地与温度和声应变对应。
+
+[7:25] **90 年代三股力量激活 DAS** — 三个突破让瑞利背散射从诊断工具变成传感手段：更窄线宽的激光器（光更纯）、每秒能采样数万次的算力，以及明确的商业需求。美国海军做过一些早期工作，至今仍半保密；真正让 DAS 商业化破局的是油气行业——1990 年代中期石油公司开始用光纤监测井筒。井下温度约 200°C、压力最高 2,000 bar，环境恶劣，任何电子设备都会磨损；而光纤方案把敏感设备全部放在地面，井下只有缆。
+
+[11:38] **油气 VSP：第一个商业场景** — 油气行业先是利用 Raman 散射和 anti-Stokes 信号做分布式温度传感（DTS），随后在 2000 年代末把瑞利散射 DAS 用于垂直地震剖面（VSP）。传统 VSP 靠下井的检波器阵列，一次要串约七个检波器、测完再重新布点，又慢又贵；光纤方案信噪比略低于有线检波器但已很接近，杀手级应用是速度：某些情况下几分钟完成，检波器方案要 10 小时。早期挑战在数据处理——DAS 每秒数据量可达普通温度传感器的 10,000 倍。
+
+[12:38] **暗光纤变身地震监测网** — Berkeley 和 Stanford 两个团队在 2010 年代初把 DAS 用于地震监测。传统地震台站成本高，无法大量布设；而电信和科技公司铺设了大量未使用的暗光纤，Berkeley Lab 的 Ajo-Franklin 估计全球约 100 万公里，每年还新增 10-20 万公里。这些缆在地下自由漂浮、并不固定，且地震是极低频信号，要从汽车和火车的噪声里分辨出来很难；但他们在校园和野外都成功追踪了上百次小地震，有些震中远在墨西哥。
+
+[15:46] **海底缆变出一万个传感器** — 海洋底部的地震监测网比陆地更稀缺。英国国家物理实验室的 Giuseppe Marra 团队用激光干涉（与 DAS 相关但不完全等同）在英国本土检测到意大利中部的大地震——用的不是为地震监测铺设的缆。Berkeley 团队更进一步：Nate Lindsey 利用 Monterey Bay 一根海底光缆的四天维护窗口，把 20 公里缆变成 10,000 个传感器，记录到一次小地震，还揭示了海底多条断层带。四天窗口、现成缆、一万个听点，这就是暗光纤翻身的范式。
+
+[16:50] **从地震学到鲸鱼与船只** — 用途很快超出地震。1993 年德州农工大学的 Taylor 和 Lee 就为基于瑞利背散射的入侵侦测申请了专利，覆盖机场、高铁周界这类大范围防护场景；印度铁路甚至用它检测走上铁轨的大象。最抓眼的是海洋生物：到 2022 年，DAS 已能用现成海底缆追踪开阔洋面上须鲸的歌声。海底声学环境比陆地更吵——内波、沉积物输送、风暴——但配合 Grid Search 和贝叶斯滤波，追踪已接近自动化。
+
+[18:55] **暗光纤背后是军事级监听** — 2021 年法国 Diane Rivet 团队发现，DAS 能追踪深度 2,000 米的油轮，85 米浅海效果最好，能听到 2 公里外油轮的引擎和设备噪声。传统被动声呐阵列——民用或军用——造价据报道可达数亿到数十亿美元；DAS 用现成缆就能覆盖更广范围，配合算力和 AI 识别能力会越来越强。船可以关掉应答器躲开卫星，但躲不开声学签名；锚在海底拖行这类威胁也能提前预警。主播的结论：也许不久之后，海洋会比以往任何时候更不私密。
+
+### 原话 / verbatim quotes
+
+[0:02] : "Now imagine a new technology that can turn all that into a massive network of listening sensors."
+    译 / zh: 现在想象一种新技术，能把这一切变成一张巨大的监听传感器网络。
+
+[5:22] : "Rather than sending probing signals into the sky or water, we send them into a glass fiber. We parse and analyze what comes back."
+    译 / zh: 与其向天空或水中发射探测信号，不如把它们送入一根玻璃光纤，再解析分析传回来的东西。
+
+[7:25] : "While some preliminary work was done by the US Navy - and remains somewhat shrouded - DAS did not find its big break commercially until it was adopted by the oil and gas industry."
+    译 / zh: 虽然美国海军做过一些前期工作——至今仍有些讳莫如深——但 DAS 的商业破局，要到油气行业采用它才真正到来。
+
+[11:38] : "But the real killer app is that fiber makes it far faster and easier to run a seismic survey. In some cases, just minutes as compared to up to 10 hours for a geophone-based survey."
+    译 / zh: 但真正的杀手级应用在于：光纤让地震勘测变得快得多、省事得多。某些情况下只要几分钟，而基于检波器的勘测最长要 10 小时。
+
+[14:46] Eileen Martin: "People didn’t believe this would work ... They always assumed that an uncoupled optical fiber would generate too much signal noise to be useful"
+    译 / zh: 「人们不相信这能行……他们总以为，一根没有固定耦合的光纤会产生太多信号噪声，不足以派上用场。」
+
+[19:59] : "Perhaps before long, DAS techniques can make the ocean a far less private place than it ever has been before. It is a game changer."
+    译 / zh: 也许用不了多久，DAS 技术就会让海洋变得远比以往任何时候都更不私密。这是一场游戏规则的改变。
+
+### 数字 / figures
+
+- 全球光纤总里程: 约 500 万 route-kilometers [0:02]
+- 油井井下温度/压力: 约 200°C / 最高 2,000 bar [8:30]
+- 传统 geophone VSP 单次需要: 约 7 个检波器串在一根钢缆上 [10:34]
+- DAS 完成 VSP 勘测耗时: 数分钟 vs geophone 方案 10 小时 [11:38]
+- DAS 每秒数据量: 可达普通温度传感器的 10,000 倍 [11:38]
+- Monterey Bay 海底实验规模: 20 公里电缆变为 10,000 个传感器 [15:46]
+- 法国团队追踪油轮的最远听距: 85 米浅海可捕捉 2 公里外油轮引擎噪声 [17:50]
+- 军用被动声呐阵列成本: 数亿至数十亿美元 [18:55]
+
+### 术语 / glossary
+
+- DAS (Distributed Acoustic Sensing) (分布式声学传感): 利用光纤中瑞利背散射信号随外界振动/应变变化，把整根光缆变成连续分布的振动传感器。
+- Dark Fiber (暗光纤): 已铺设但未承载业务的光纤，多由电信公司预埋备用，可临时用于 DAS。
+- OTDR (Optical Time Domain Reflectometry) (光时域反射计): 向光纤发脉冲并分析背散射回波到达时间，定位断裂或高损耗点的检测工具。
+- VSP (Vertical Seismic Profiling) (垂直地震剖面): 向地下发射声波、在井内接收反射信号，用于给储层周围岩石成像的技术。
+- Geophone (检波器): 传统地震勘测中下放到井内的电子振动传感器，昂贵、脆弱、只能离散布点。
+- Rayleigh Scattering (瑞利散射): 光被小于其波长的粒子或密度涨落散射，是天空呈蓝色的原因，也是 DAS 的信号来源。
+
+谁该听 / who: 投资海底光缆与海洋感知赛道的投资人、做地震监测或水下目标识别的工程师、关心海洋安全的政策研究者。
+可跳过 / skip: 开场 4 分钟的光纤物理与散射分类可快进；从油气 VSP 之后（约 7:25 起）都是精华。
+标签 / tags: 暗光纤, 分布式声学传感, 海洋监听, 地震监测, 海洋安全
 
 ==============================================================================
 
