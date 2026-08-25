@@ -713,8 +713,9 @@ class FailuresMustAnnounceThemselves(unittest.TestCase):
     def test_both_lines_write_a_heartbeat(self):
         sh = (ROOT / "scripts" / "local-daily.sh").read_text()
         yml = (ROOT / ".github" / "workflows" / "daily.yml").read_text()
-        self.assertIn("heartbeat-local.json", sh)
-        self.assertIn("heartbeat-cloud.json", yml)
+        # 文件名现在由 heartbeat.py 拼，两边只传线名
+        self.assertIn("heartbeat.py local", sh)
+        self.assertIn("heartbeat.py cloud", yml)
         # 空轮也要写心跳，否则"跑了但闸门全拦下"和"根本没跑"分不开
         self.assertIn("只推心跳", sh)
         # 云端跑批失败也要写，否则一失败就看起来像整条线死了
@@ -773,4 +774,36 @@ class StateJsonHasAMergeDriver(unittest.TestCase):
             src = (ROOT / f).read_text()
             self.assertIn("git ls-files -u", src, f"{f} 不会检测未合并状态")
             self.assertIn("rebase --abort", src, f"{f} 卡住之后没法脱身")
+
+
+class LocalLineCommitsEverythingItBuilds(unittest.TestCase):
+    """事故：本机脚本的 SITE_FILES 清单漏了 e（分享短链）和 log（更新日志），
+    于是本机跑批**永远不提交这两样**——日志里躺着一堆未跟踪的 e/ 目录。
+    云端用 git add -A 所以完全看不出来，只有本机线在悄悄少推东西。"""
+
+    def test_site_files_covers_every_built_directory(self):
+        sh = (ROOT / "scripts" / "local-daily.sh").read_text()
+        i = sh.index("SITE_FILES=")
+        decl = sh[i:i + 400]
+        # build.py 会写这些目录，清单里必须都有
+        for d in ("index.html", "sources", "s", "p", "e", "log",
+                  "feed.xml", "sitemap.xml", "search.json",
+                  "llms.txt", "llms-full.txt"):
+            self.assertIn(d, decl, f"SITE_FILES 漏了 {d}")
+
+    def test_heartbeat_is_a_script_not_a_heredoc(self):
+        # heredoc 版嵌在被管道接走的花括号块里，单独跑正常、真跑批一声不响没写出来
+        sh = (ROOT / "scripts" / "local-daily.sh").read_text()
+        yml = (ROOT / ".github" / "workflows" / "daily.yml").read_text()
+        self.assertIn("pipeline/heartbeat.py local", sh)
+        self.assertIn("pipeline/heartbeat.py cloud", yml)
+        self.assertNotIn("<<'HB'", sh, "又用回了 heredoc")
+        self.assertNotIn("<<'HB'", yml, "又用回了 heredoc")
+
+    def test_heartbeat_script_writes_and_says_so(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import heartbeat
+        src = (ROOT / "pipeline" / "heartbeat.py").read_text()
+        self.assertIn("print(", src, "心跳必须自己出声——它静默失效过一次")
+        self.assertTrue(hasattr(heartbeat, "write"))
 

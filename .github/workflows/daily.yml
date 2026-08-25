@@ -91,15 +91,7 @@ jobs:
         run: |
           # 云端这条线跑过没有——和本机一样，必须留下痕迹。写在 Commit 之前且
           # if: always()，这样即使跑批失败，"这条线还活着"也能被看见。
-          python - <<'HB'
-          import json, pathlib, datetime, glob
-          pathlib.Path("data/heartbeat-cloud.json").write_text(json.dumps({
-              "at": datetime.datetime.now(datetime.timezone.utc)
-                      .isoformat(timespec="seconds").replace("+00:00", "Z"),
-              "line": "cloud", "exit": 0,
-              "episodes": len(glob.glob("data/episodes/*.json")),
-          }, ensure_ascii=False, indent=1) + "\n")
-          HB
+          python pipeline/heartbeat.py cloud 0
 
       - name: Commit
         run: |

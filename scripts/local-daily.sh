@@ -96,15 +96,9 @@ export LLM_MODEL
   # 心跳：这条线跑过没有、跑成什么样，必须留下痕迹。装好 ≠ 在跑——
   # launchd 那次装上之后 runs = 0，一次没触发，而没有任何东西会告诉你。
   # 体检脚本读的就是这个文件（见 pipeline/healthcheck.py）。
-  n=$(ls data/episodes/*.json 2>/dev/null | wc -l | tr -d ' ')
-  python3 - "$rc" "$n" <<'HB'
-import json, pathlib, sys, datetime
-pathlib.Path("data/heartbeat-local.json").write_text(json.dumps({
-    "at": datetime.datetime.now(datetime.timezone.utc)
-            .isoformat(timespec="seconds").replace("+00:00", "Z"),
-    "line": "local", "exit": int(sys.argv[1]), "episodes": int(sys.argv[2]),
-}, ensure_ascii=False, indent=1) + "\n")
-HB
+  # 心跳换成正式脚本，不再用 heredoc：第一版嵌在被管道接走的花括号块里，
+  # 单独执行正常、真跑批却一声不响地没写出文件。心跳自己静默失效等于白做。
+  python3 pipeline/heartbeat.py local "$rc" || echo "心跳没写成（不致命，但要查）"
 
   [ "$rc" -ne 0 ] && exit "$rc"
 
@@ -128,7 +122,11 @@ HB
   git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
       commit -q -m "digest: $n new (local)"
   python3 pipeline/build.py
-  SITE_FILES="index.html sources s p feed.xml sitemap.xml robots.txt 404.html
+  # 这张清单每次加新产物都必须跟着改，漏了就是"本机线永远不提交它"——
+  # e（分享短链）和 log（更新日志）就漏过：日志里躺着一堆未跟踪的 e/ 目录，
+  # 而云端用 git add -A 所以看不出问题，只有本机线在悄悄少推东西。
+  # 体检脚本的"数据／正文页／短链三个数字必须相等"就是为了抓这种漏。
+  SITE_FILES="index.html sources s p e log feed.xml sitemap.xml robots.txt 404.html
               search.json llms.txt llms-full.txt icon.svg .nojekyll"
   git add $SITE_FILES 2>/dev/null || true
   git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
