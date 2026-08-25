@@ -96,6 +96,39 @@ def endpoint() -> str:
     return p
 
 
+# ------------------------------------------------------------------ 用量台账
+# "推理预算省着用"必须能被核对，否则就是一句话。按角色和模型分开记：哪一步花的钱，
+# 一眼看得出来。DeepSeek 会在 completion_tokens_details 里单独报思考用掉多少。
+_USE: dict = {}
+
+
+def note_usage(role: str, model: str, u: dict | None) -> None:
+    if not u:
+        return
+    k = (role, model)
+    row = _USE.setdefault(k, {"calls": 0, "in": 0, "out": 0, "think": 0})
+    row["calls"] += 1
+    row["in"] += int(u.get("prompt_tokens") or 0)
+    row["out"] += int(u.get("completion_tokens") or 0)
+    d = u.get("completion_tokens_details") or {}
+    row["think"] += int(d.get("reasoning_tokens") or 0)
+
+
+def usage_report() -> list[str]:
+    if not _USE:
+        return []
+    out, tin, tout, tthink = [], 0, 0, 0
+    for (role, model), r in sorted(_USE.items(), key=lambda x: -x[1]["out"]):
+        think = f"（思考 {r['think']:,}）" if r["think"] else ""
+        out.append(f"  {role:<7}{model:<20}{r['calls']:>3} 次 · "
+                   f"入 {r['in']:,} · 出 {r['out']:,}{think}")
+        tin += r["in"]; tout += r["out"]; tthink += r["think"]
+    out.append(f"  合计：入 {tin:,} · 出 {tout:,}"
+               + (f"（其中思考 {tthink:,}，占出的 {tthink * 100 // max(tout, 1)}%）"
+                  if tthink else ""))
+    return out
+
+
 def model_name(role: str = "digest") -> str:
     """role: digest | map | triage | review。未单独配置时回落到 LLM_MODEL。
 
@@ -141,10 +174,13 @@ def call(system: str, user: str, *, max_tokens: int = 6000,
             "temperature": temperature, "system": system,
             "messages": [{"role": "user", "content": user}]},
             anthropic_headers()))
+        u = r.get("usage") or {}
+        note_usage(role, model, {"prompt_tokens": u.get("input_tokens"),
+                                 "completion_tokens": u.get("output_tokens")})
         return "".join(b.get("text", "") for b in r.get("content", []))
     if p == "openai":
         return _openai(system, user, max_tokens, temperature, model,
-                       json_mode=want_json and _json_mode[0])
+                       json_mode=want_json and _json_mode[0], role=role)
     if p == "claude-cli":
         return _cli(system, user, model=model)
     raise RuntimeError("no LLM backend: set LLM_API_KEY or install the claude CLI")
@@ -170,7 +206,7 @@ _REASONING = re.compile(r"reason|-r1|thinking|\bo[134]\b", re.I)
 
 
 def _openai(system: str, user: str, max_tokens: int, temperature: float,
-            model: str, *, json_mode: bool) -> str:
+            model: str, *, json_mode: bool, role: str = "?") -> str:
     url = (BASE or "https://api.openai.com/v1") + "/chat/completions"
     if _REASONING.search(model):
         max_tokens = max(max_tokens * 4, 16000)
@@ -195,8 +231,10 @@ def _openai(system: str, user: str, max_tokens: int, temperature: float,
         if json_mode and re.search(r"response_format|json_object|400", str(ex), re.I):
             log("    这个端点不接受 response_format，本次起改用纯提示词约束 JSON")
             _json_mode[0] = False
-            return _openai(system, user, max_tokens, temperature, model, json_mode=False)
+            return _openai(system, user, max_tokens, temperature, model,
+                           json_mode=False, role=role)
         raise
+    note_usage(role, model, r.get("usage"))
     msg = (r.get("choices") or [{}])[0].get("message", {}) or {}
     out = msg.get("content") or ""
     if not out.strip():

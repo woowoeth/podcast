@@ -645,3 +645,44 @@ class BotPushMustNotRevertSourceCode(unittest.TestCase):
         j = src.index("_ceiling[\"words\"] = a.max_words")
         self.assertLess(i, j, "--reconcile 的早退必须在其余初始化之前")
 
+
+class TokenSpendMustBeMeasurable(unittest.TestCase):
+    """"推理预算省着用"原来是一句没法核对的话——一处用量都没记。
+    降没降、降在哪一步，必须能从跑批日志里直接看出来。"""
+
+    def test_usage_is_recorded_per_role_and_model(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib import llm
+        llm._USE.clear()
+        llm.note_usage("map", "cheap", {"prompt_tokens": 100, "completion_tokens": 20})
+        llm.note_usage("map", "cheap", {"prompt_tokens": 100, "completion_tokens": 20})
+        llm.note_usage("digest", "reasoner",
+                       {"prompt_tokens": 50, "completion_tokens": 80,
+                        "completion_tokens_details": {"reasoning_tokens": 60}})
+        rep = "\n".join(llm.usage_report())
+        llm._USE.clear()
+        self.assertIn("map", rep)
+        self.assertIn("digest", rep)
+        self.assertIn("2 次", rep)
+        self.assertIn("思考 60", rep, "思考 token 必须单列——那正是要省的东西")
+
+    def test_missing_usage_block_does_not_crash(self):
+        # 有些端点不返 usage，记账不能因此炸掉整轮
+        from lib import llm
+        llm._USE.clear()
+        llm.note_usage("map", "cheap", None)
+        llm.note_usage("map", "cheap", {})
+        self.assertEqual(llm.usage_report(), [])
+
+    def test_both_backends_record_usage(self):
+        src = (ROOT / "pipeline" / "lib" / "llm.py").read_text()
+        i = src.index("def call(")
+        body = src[i:src.index("def _openai")]
+        self.assertIn("note_usage", body, "anthropic 路径没记账")
+        j = src.index("def _openai")
+        self.assertIn("note_usage", src[j:j + 2600], "openai 路径没记账")
+
+    def test_run_prints_the_report(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        self.assertIn("usage_report()", src)
+

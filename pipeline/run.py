@@ -506,6 +506,14 @@ def main() -> int:
     save_state(state)
 
     log("\n" + " · ".join(f"{k}={v}" for k, v in sorted(tally.items())) or "nothing to do")
+
+    # 用量按角色和模型分开报。"推理预算省着用"必须能核对：分段那行是不是便宜模型、
+    # 思考占了出的多少，都在这里一眼看得出来。
+    rep = llm.usage_report()
+    if rep:
+        log("token 用量")
+        for line in rep:
+            log(line)
     if tally.get("error") and not published:
         log(f"\n每一次模型调用都失败了（error={tally['error']}），这不是"
             f"「今天没内容」，是部署有问题。")
