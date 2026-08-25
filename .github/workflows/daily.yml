@@ -86,10 +86,29 @@ jobs:
             --review-min "${{ github.event.inputs.review_min || '7' }}" \
             2>&1 | tee "${RUNNER_TEMP}/run.log"
 
+      - name: Heartbeat
+        if: always()
+        run: |
+          # 云端这条线跑过没有——和本机一样，必须留下痕迹。写在 Commit 之前且
+          # if: always()，这样即使跑批失败，"这条线还活着"也能被看见。
+          python - <<'HB'
+          import json, pathlib, datetime, glob
+          pathlib.Path("data/heartbeat-cloud.json").write_text(json.dumps({
+              "at": datetime.datetime.now(datetime.timezone.utc)
+                      .isoformat(timespec="seconds").replace("+00:00", "Z"),
+              "line": "cloud", "exit": 0,
+              "episodes": len(glob.glob("data/episodes/*.json")),
+          }, ensure_ascii=False, indent=1) + "\n")
+          HB
+
       - name: Commit
         run: |
           git config user.name  "podcast-bot"
           git config user.email "podcast-bot@users.noreply.github.com"
+          # state.json 是两条线唯一会真冲突的数据文件。没有这个驱动，
+          # 冲突会在工作区留下标记，之后每次 git pull --rebase 都报
+          # "unmerged files"，重试循环从此全撞在同一面墙上（真出过一次）。
+          git config merge.podcast-state.driver 'python pipeline/mergestate.py %O %A %B'
           # Per-episode JSON files have unique names and never conflict on rebase.
           # Everything derived (index.html, p/, feed.xml, sitemap.xml) is rebuilt
           # from the merged set in step 2, so a concurrent run cannot lose posts.
@@ -106,6 +125,12 @@ jobs:
           ok=0
           for i in $(seq 1 8); do
             if git pull --rebase --autostash origin main && git push; then ok=1; break; fi
+            # 驱动只防"能自动合的"。真留下未合并文件时必须先脱身，
+            # 否则之后每次 pull 都报 unmerged，重试循环全撞同一面墙。
+            if [ -n "$(git ls-files -u)" ]; then
+              git rebase --abort 2>/dev/null || git merge --abort 2>/dev/null || true
+              git checkout -- data/state.json 2>/dev/null || true
+            fi
             echo "push retry $i"; sleep $(( (RANDOM % 5) + 3 ))
           done
           [ "$ok" = 1 ] || { echo "push failed"; exit 1; }

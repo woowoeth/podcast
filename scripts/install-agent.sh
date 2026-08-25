@@ -25,6 +25,10 @@ else
 fi
 mkdir -p "$AGENT_DIR/.cache/logs"
 
+# state.json 的合并驱动：git config 是仓库本地设置，clone 不会带过来，
+# 所以每份工作副本都得配一次。
+git -C "$AGENT_DIR" config merge.podcast-state.driver 'python3 pipeline/mergestate.py %O %A %B'
+
 echo "写 $PLIST"
 mkdir -p "$(dirname "$PLIST")"
 sed -e "s#__DIR__#$AGENT_DIR#g" "$AGENT_DIR/scripts/com.ourword.podcast.plist" > "$PLIST"

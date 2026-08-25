@@ -1,0 +1,110 @@
+name: watchdog
+
+# 这个 workflow 的存在理由：过去每一次故障都是被人问起才发现的。
+# 站上不更新、部署卡死、本机定时任务一次没跑过——都没有任何信号。
+# 它不修任何东西，只负责把"坏了"变成一封邮件。
+on:
+  schedule:
+    # 一天三次，卡在两条线的班次之后（云端 00:40/01:10/12:40，本机 02:30/13:30 UTC）
+    - cron: "30 3 * * *"      # 北京 11:30，看早班有没有跑
+    - cron: "30 9 * * *"      # 北京 17:30，白天巡一次
+    - cron: "30 15 * * *"     # 北京 23:30，看晚班有没有跑
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: podcast-watch
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Health check
+        id: hc
+        run: |
+          set -o pipefail
+          # 连线上一起查：只看仓库的话，"推了但没部署"这类故障看不出来
+          python pipeline/healthcheck.py --online 2>&1 | tee "${RUNNER_TEMP}/hc.txt"
+
+      - name: 定时任务还开着吗
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # GitHub 会在仓库连续 60 天无活动后自动停用所有 cron，而且不通知任何人。
+          # 这个站靠 cron 活着，所以这一条必须查。
+          bad=0
+          for wf in daily.yml curate.yml sources.yml watch.yml; do
+            st=$(gh api "repos/${{ github.repository }}/actions/workflows/$wf" \
+                   --jq .state 2>/dev/null || echo missing)
+            echo "$wf: $st"
+            case "$st" in
+              active) ;;
+              *) echo "::error::$wf 的状态是 $st，不是 active"; bad=1 ;;
+            esac
+          done
+          exit $bad
+
+      - name: 坏了就开 issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # 一个长期 issue 反复追加，而不是每次新开一个——否则告警自己就变成噪音，
+          # 而噪音等于没有告警。
+          TITLE="原声播客站 · 体检不通过"
+          BODY_FILE="${RUNNER_TEMP}/body.md"
+          {
+            echo "体检时间：$(date -u '+%F %H:%M UTC')"
+            echo
+            echo '```'
+            cat "${RUNNER_TEMP}/hc.txt" 2>/dev/null || echo "（体检脚本本身没跑起来，见下面的 run 链接）"
+            echo '```'
+            echo
+            echo "运行记录：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          } > "$BODY_FILE"
+
+          num=$(gh issue list --state open --search "$TITLE in:title" \
+                  --json number --jq '.[0].number' 2>/dev/null || true)
+          if [ -n "$num" ] && [ "$num" != "null" ]; then
+            gh issue comment "$num" --body-file "$BODY_FILE"
+            echo "已在 issue #$num 追加"
+          else
+            gh issue create --title "$TITLE" --body-file "$BODY_FILE" \
+              --label "" 2>/dev/null || gh issue create --title "$TITLE" --body-file "$BODY_FILE"
+            echo "已开新 issue"
+          fi
+
+      - name: 好了就关掉 issue
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # 自愈之后要自己关掉，否则下次真坏了没人相信这个 issue
+          TITLE="原声播客站 · 体检不通过"
+          num=$(gh issue list --state open --search "$TITLE in:title" \
+                  --json number --jq '.[0].number' 2>/dev/null || true)
+          if [ -n "$num" ] && [ "$num" != "null" ]; then
+            gh issue comment "$num" --body "$(date -u '+%F %H:%M UTC') 体检全部通过，自动关闭。"
+            gh issue close "$num"
+            echo "已关闭 issue #$num"
+          fi
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: healthcheck
+          path: ${{ runner.temp }}/hc.txt
+          retention-days: 30

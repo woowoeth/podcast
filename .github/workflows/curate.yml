@@ -59,6 +59,10 @@ jobs:
           set -uo pipefail
           git config user.name  "podcast-bot"
           git config user.email "podcast-bot@users.noreply.github.com"
+          # state.json 是两条线唯一会真冲突的数据文件。没有这个驱动，
+          # 冲突会在工作区留下标记，之后每次 git pull --rebase 都报
+          # "unmerged files"，重试循环从此全撞在同一面墙上（真出过一次）。
+          git config merge.podcast-state.driver 'python pipeline/mergestate.py %O %A %B'
           git clean -fdq p s log 2>/dev/null || true
           git checkout -q -- index.html sources feed.xml sitemap.xml robots.txt 404.html \
                             search.json llms.txt llms-full.txt 2>/dev/null || true

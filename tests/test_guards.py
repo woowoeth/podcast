@@ -686,3 +686,91 @@ class TokenSpendMustBeMeasurable(unittest.TestCase):
         src = (ROOT / "pipeline" / "run.py").read_text()
         self.assertIn("usage_report()", src)
 
+
+class FailuresMustAnnounceThemselves(unittest.TestCase):
+    """过去每一次故障都是被人问起才发现的：Pages 卡死 20 分钟、本机定时任务
+    runs = 0、日更整轮失败、bot 回退源码。共同点不是难修，是**没有信号**。"""
+
+    def test_healthcheck_covers_the_failures_that_actually_happened(self):
+        src = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        for fn in ("check_heartbeats", "check_content_freshness",
+                   "check_build_consistency", "check_online"):
+            self.assertIn(f"def {fn}", src, f"体检少了 {fn}")
+
+    def test_healthcheck_exits_nonzero_and_emits_error_annotations(self):
+        src = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        self.assertIn("::error::", src, "坏了必须在 CI 里高亮")
+        self.assertIn("return 1", src, "坏了必须非零退出")
+
+    def test_online_check_compares_live_site_to_the_repo(self):
+        # 「推上去了但没部署」只有对比线上和仓库才看得出来
+        src = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        i = src.index("def check_online")
+        body = src[i:src.index("def main")]
+        self.assertIn("篇深读", body)
+        self.assertIn("n_data", body)
+
+    def test_both_lines_write_a_heartbeat(self):
+        sh = (ROOT / "scripts" / "local-daily.sh").read_text()
+        yml = (ROOT / ".github" / "workflows" / "daily.yml").read_text()
+        self.assertIn("heartbeat-local.json", sh)
+        self.assertIn("heartbeat-cloud.json", yml)
+        # 空轮也要写心跳，否则"跑了但闸门全拦下"和"根本没跑"分不开
+        self.assertIn("只推心跳", sh)
+        # 云端跑批失败也要写，否则一失败就看起来像整条线死了
+        self.assertIn("if: always()", yml)
+
+    def test_watchdog_is_scheduled_and_opens_an_issue(self):
+        yml = (ROOT / ".github" / "workflows" / "watch.yml").read_text()
+        self.assertIn("cron:", yml)
+        self.assertIn("issues: write", yml)
+        self.assertIn("gh issue create", yml)
+        # 复用同一个 issue，否则告警自己变成噪音
+        self.assertIn("gh issue comment", yml)
+        # 自愈之后要自己关掉
+        self.assertIn("gh issue close", yml)
+        # cron 被 GitHub 静默停用是真实风险，必须查
+        self.assertIn("--jq .state", yml)
+
+
+class StateJsonHasAMergeDriver(unittest.TestCase):
+    """事故：两条线同时跑，data/state.json 三方合并留下冲突标记，之后每次
+    git pull --rebase 都报 unmerged files——8 次重试全撞在同一面墙上，整轮产出全废。"""
+
+    def test_driver_registered_in_gitattributes(self):
+        ga = (ROOT / ".gitattributes").read_text()
+        self.assertIn("data/state.json merge=podcast-state", ga)
+
+    def test_driver_configured_in_every_environment(self):
+        # git config 是仓库本地设置，clone 不会带过来，每处都得配
+        for f in (".github/workflows/daily.yml", ".github/workflows/backfill.yml",
+                  ".github/workflows/curate.yml", "scripts/local-daily.sh",
+                  "scripts/install-agent.sh"):
+            self.assertIn("podcast-state", (ROOT / f).read_text(),
+                          f"{f} 没配 state.json 的合并驱动")
+
+    def test_merge_is_a_union_with_max_counters(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from mergestate import merge
+        m = merge({"done": {"a": {}}, "fail": {"x": {"n": 2, "soft": 1}},
+                   "fp": {"f1": "a"}},
+                  {"done": {"b": {}}, "fail": {"x": {"n": 1, "soft": 5}},
+                   "fp": {"f2": "b"}})
+        self.assertEqual(set(m["done"]), {"a", "b"})
+        self.assertEqual(set(m["fp"]), {"f1", "f2"})
+        # 计数取大：重试预算宁可少给不可多给
+        self.assertEqual(m["fail"]["x"], {"n": 2, "soft": 5})
+
+    def test_merge_survives_garbage_and_keeps_unknown_tables(self):
+        from mergestate import merge, _load
+        self.assertEqual(_load("/nonexistent/nope.json"), {})
+        m = merge({"future_table": {"k": 1}}, {})
+        self.assertEqual(m["future_table"], {"k": 1}, "以后加的表不该被静默抹掉")
+
+    def test_retry_loops_can_escape_a_stuck_rebase(self):
+        # 驱动只防能自动合的；真留下未合并文件时必须先脱身
+        for f in (".github/workflows/daily.yml", "scripts/local-daily.sh"):
+            src = (ROOT / f).read_text()
+            self.assertIn("git ls-files -u", src, f"{f} 不会检测未合并状态")
+            self.assertIn("rebase --abort", src, f"{f} 卡住之后没法脱身")
+
