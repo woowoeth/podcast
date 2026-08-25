@@ -10,6 +10,11 @@ on:
     - cron: "30 9 * * *"      # 北京 17:30，白天巡一次
     - cron: "30 15 * * *"     # 北京 23:30，看晚班有没有跑
   workflow_dispatch:
+    inputs:
+      selftest:
+        description: "演一次失败，验告警链路（会开 issue，下一轮绿了自动关）"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -36,6 +41,15 @@ jobs:
           set -o pipefail
           # 连线上一起查：只看仓库的话，"推了但没部署"这类故障看不出来
           python pipeline/healthcheck.py --online 2>&1 | tee "${RUNNER_TEMP}/hc.txt"
+          # 没试过的告警等于没有告警：这个开关专门用来验"坏了会不会开 issue"。
+          # 它必须放在真体检之后——先证明系统是好的，再演一次坏。
+          if [ "${{ github.event.inputs.selftest }}" = "true" ]; then
+            echo "::error::告警链路自检：这是一次人为触发的假故障" \
+              | tee -a "${RUNNER_TEMP}/hc.txt"
+            echo "（自检，不是真故障。下一轮体检通过会自动关闭这个 issue。）" \
+              >> "${RUNNER_TEMP}/hc.txt"
+            exit 1
+          fi
 
       - name: 定时任务还开着吗
         if: always()

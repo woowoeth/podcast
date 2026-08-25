@@ -732,6 +732,8 @@ class FailuresMustAnnounceThemselves(unittest.TestCase):
         self.assertIn("gh issue close", yml)
         # cron 被 GitHub 静默停用是真实风险，必须查
         self.assertIn("--jq .state", yml)
+        # 没试过的告警等于没有告警：必须有办法真触发一次
+        self.assertIn("selftest", yml)
 
 
 class StateJsonHasAMergeDriver(unittest.TestCase):
