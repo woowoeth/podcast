@@ -639,6 +639,9 @@ def discover(minimum: float, dry: bool = False) -> list[dict]:
             entry["itunes"] = c["itunes"]
         blob["sources"].append(entry)
         added.append({"at": iso(now()), "kind": "added", "id": sid, "name": c["name"],
+                      # 这个分是照着标题、分集说明和实测抽样打的，一篇成稿都还没过闸门。
+                      # 站上必须标明它是待验证的，否则读者会把它当成对内容的结论。
+                      "probation": True,
                       "cat": v["cat"], "score": v["score"], "why": v["why"],
                       "desc": v["desc"], "lead": ld.get("chart") or ld.get("why")})
     if added and not dry:

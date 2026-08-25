@@ -607,7 +607,11 @@ def log_page(eps: list[dict], srcs: dict) -> str:
         detail = e(r.get("why") or "")
         extra = ""
         if kind == "added" and r.get("score") is not None:
-            extra = f'<span class="ev-score">{r["score"]:.1f} 分</span>'
+            # 收录分是照着标题与分集说明打的，节目自己写的宣传文案也算在内。
+            # 不标出来，读者会把它当成对内容的结论——而这档节目可能一篇都跑不出来。
+            # 标记塞在同一个 span 里：.ev 是四列网格，多一个子元素会另起一行。
+            flag = '<em class="ev-flag">试用</em>' if r.get("probation") else ""
+            extra = f'<span class="ev-score">{r["score"]:.1f} 分{flag}</span>'
         elif kind in ("demoted", "dormant") and r.get("from_tier"):
             extra = f'<span class="ev-score">T{r["from_tier"]} → T{r["to_tier"]}</span>'
         items.append(f"""<li class="ev {tone}">
@@ -634,6 +638,9 @@ def log_page(eps: list[dict], srcs: dict) -> str:
 <p class="lede">信源清单每三天自动复查一次。判据全部来自实测数据，不靠印象：feed 是否
 失效、停更多少天、选题闸门的通过率、成稿评分的中位数。同时从近期发布的内容里挖新线索
 （被提到的其他节目、反复出现的受访者），实测文稿可得性后打分，只收 8 分以上。</p>
+<p class="lede">标着<em class="ev-flag">试用</em>的是刚收的：那个分数照着标题、分集说明和
+文稿抽样打的，还没有任何一篇成稿走完四道闸门。跑一段之后，出得来内容的提级，出不来的
+移除，两种结果都会记在下面。</p>
 <p class="lede">一个聚合站悄悄换掉信源，等于悄悄换掉它的口味，所以每一次改动都记在这里。
 完整清单见 <a href="{BASE}/sources/" style="color:var(--accent)">信源页</a>。</p>
 {body}

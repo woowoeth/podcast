@@ -89,13 +89,36 @@ class PageStructureStaysValid(unittest.TestCase):
         # 事故：masthead 的 slogan 和卡片标签胶囊都叫 .tag，slogan 因此套上了边框
         css = (ROOT / "assets/site.css").read_text()
         globals_ = set(re.findall(r"(?m)^\.([a-z][\w-]*)\s*[{,]", css))
-        nested = set(re.findall(r"\.([a-z][\w-]*)\s+\.([a-z][\w-]*)\s*\{", css))
+        # 父选择器要整段抓：`.ev.add .ev-what` 里的父是 `.ev.add`，只抓最后一节
+        # 会得到 "add"，同族判断就失效了。
+        nested = set(re.findall(
+            r"((?:\.[a-z][\w-]*)+)\s+\.([a-z][\w-]*)\s*\{", css))
         allowed = {("hero", "cover"), ("ep-head", "kicker"), ("brand", "slogan"),
                    ("brand", "wordmark"), ("guide", "k"), ("empty", "h1")}
+
+        def same_family(parent: str, child: str) -> bool:
+            """同族的作用域覆盖不算串味：`.ev.add .ev-what` 只是给 `.ev-what`
+            换个颜色，这是正常的层叠。当初的事故是**跨组件**撞名——报头的
+            slogan 撞上卡片的 `.tag`，两个毫无关系的东西共用一个末端类名。"""
+            for cls in parent.strip(".").split("."):
+                stem = cls.split("-")[0]
+                if child == stem or child.startswith(stem + "-"):
+                    return True
+            return False
+
         for parent, child in nested:
-            if child in globals_ and (parent, child) not in allowed:
-                self.fail(f".{parent} .{child} 的末端类名同时是全局规则 .{child}，"
+            last = parent.strip(".").split(".")[-1]
+            if child in globals_ and (last, child) not in allowed \
+                    and not same_family(parent, child):
+                self.fail(f"{parent} .{child} 的末端类名同时是全局规则 .{child}，"
                           f"会被串味；确认无害后加进 allowed")
+
+    def test_family_scoping_is_not_reported_as_a_collision(self):
+        # 判据要分清「跨组件撞名」和「同组件内作用域覆盖」，不然只能靠 allowlist
+        # 越堆越长，而 allowlist 迟早会把真的串味也放过去。
+        css = (ROOT / "assets/site.css").read_text()
+        self.assertIn(".ev.add .ev-what", css)     # 同族，必须放过
+        self.assertIn(".ev-what{", css.replace(" ", ""))
 
 
 class ScriptedEditsMustAssertTheirAnchor(unittest.TestCase):
@@ -358,4 +381,33 @@ class PageTierKnowsSiblingTranscriptPaths(unittest.TestCase):
         src = (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
         i = src.index("def from_page")
         self.assertIn('_alt_urls(ep["link"]) + [ep["link"]]', src[i:i + 900])
+
+
+class ProbationIsVisibleToReaders(unittest.TestCase):
+    """更新日志把「照分集说明打的 10.0 分」当结论公示，而那三档一篇都没跑出来。
+    分数来自节目自己写的宣传文案，不标出来就是对读者的误导。"""
+
+    def test_curate_marks_new_entries_as_probation(self):
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        self.assertIn('"probation": True', src)
+
+    def test_log_page_renders_the_flag_inside_one_grid_cell(self):
+        # .ev 是四列网格，多一个子元素会另起一行
+        src = (ROOT / "pipeline" / "build.py").read_text()
+        i = src.index("def log_page")
+        seg = src[i:i + 3000]
+        self.assertIn('r.get("probation")', seg)
+        self.assertIn('分{flag}</span>', seg)
+
+    def test_log_page_explains_what_probation_means(self):
+        src = (ROOT / "pipeline" / "build.py").read_text()
+        i = src.index("def log_page")
+        self.assertIn("还没有任何一篇成稿走完四道闸门", src[i:i + 5000])
+
+    def test_css_selectors_match_the_markup(self):
+        # `.ev.add .what` 是上次把 .why 改成 .ev-why 时留下的死规则
+        css = (ROOT / "assets" / "site.css").read_text()
+        self.assertIn(".ev.add .ev-what", css)
+        self.assertNotIn(".ev.add .what{", css)
+        self.assertIn(".ev-flag{", css)
 
