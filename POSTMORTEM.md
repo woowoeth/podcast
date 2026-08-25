@@ -254,6 +254,39 @@ cwd 就是父目录、`--directory` 参数被忽略，所以真正的修法在�
 
 ---
 
+## 八之五、装完定时任务就当它在跑（从没跑过的定时任务等于没有）
+
+launchd 的 plist 装好了、`launchctl list` 里也在，我就当本机线已经在工作。用户
+问起"定时运行还在进行么"，我去查才发现 `runs = 0`、`last exit code = (never
+exited)`——**装上之后一次都没跑过**。手动踢一下立刻看到原因：
+
+```
+shell-init: error retrieving current directory: getcwd: ... Operation not permitted
+/bin/bash: /Users/…/Desktop/boke/podcast/scripts/local-daily.sh: Operation not permitted
+```
+
+仓库在 `~/Desktop` 下，而 Desktop／Documents／Downloads 受 macOS TCC 保护。
+LaunchAgent 没有应用身份，读不了。权限位是 755、没有隔离属性，都排查过了。
+
+它会在每天 21:30 静默失败，而"站上没更新"这件事没有任何人会注意到——和第一类
+（失败却报成功）是同一个形状：**没有信号的失败**。
+
+修法不是让用户去系统设置里给 /bin/bash 开完全磁盘访问（那既要 GUI 授权又是坏
+实践），而是给定时任务一份自己的工作副本，放在 `~/Library/Application Support`
+下（不受 TCC 保护），自己 clone、自己 pull、自己推——和云端 runner 一个路子。
+用户日常那份留在桌面，原封不动。`scripts/install-agent.sh` 把这套固化下来。
+
+**一般化的教训**：装好 ≠ 在跑。任何定时任务装完必须**手动触发一次**，看它在
+调度器自己的环境里（窄 PATH、无 TTY、无 TCC 授权、钥匙串能否非交互访问）真的跑
+通，再宣布它在工作。同一个道理适用于云端 cron：daily.yml 修好之后我也是先
+workflow_dispatch 跑了一次才算数。
+
+**现在靠什么防住**：`test_agent_working_copy_is_outside_tcc_protected_dirs`
+断言 plist 模板里不出现 Desktop／Documents／Downloads；
+`test_install_script_tells_you_to_run_it_once` 断言安装脚本里写着先手动踢一次。
+
+---
+
 ## 九、评分锚定在及格线（重复 2 次）
 
 第一次在成稿评审：已上站的 16 篇分数**全部正好 8**。第二次在信源策展：一批候选
