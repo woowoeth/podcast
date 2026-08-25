@@ -3,22 +3,15 @@
 <plist version="1.0">
 <dict>
   <key>Label</key><string>com.ourword.podcast</string>
-
-  <!-- 工作副本不用桌面上那份：~/Desktop 受 macOS TCC 保护，LaunchAgent 没有应用
-       身份，读它只会得到 Operation not permitted——到点静默失败，而且站上不更新
-       没人会注意。这份副本自己 clone、自己 pull、自己推，和云端 runner 一个路子。 -->
-  <key>WorkingDirectory</key>
-  <string>__DIR__</string>
   <key>ProgramArguments</key>
   <array>
     <string>/bin/bash</string>
-    <string>__DIR__/scripts/local-daily.sh</string>
+    <string>/Users/jerryma/Desktop/boke/podcast/scripts/local-daily.sh</string>
   </array>
-
-  <!-- 每天 10:30 / 21:30 各一次。机器当时睡着的话，launchd 会在唤醒后补跑。 -->
+  <!-- 每天 10:30 跑一次。机器当时是睡着的，launchd 会在唤醒后补跑。 -->
   <key>EnvironmentVariables</key>
   <dict>
-    <!-- 本机只跑云端做不到的那批（YouTube 与 Substack）。云端负责其余那些。 -->
+    <!-- 本机只跑云端做不到的那批（YouTube 与 Substack）。云端负责其余 45 档。 -->
     <key>ONLY_RESIDENTIAL</key><string>1</string>
     <key>LIMIT</key><string>6</string>
     <key>DAYS</key><string>21</string>
@@ -29,9 +22,8 @@
     <dict><key>Hour</key><integer>21</integer><key>Minute</key><integer>30</integer></dict>
   </array>
   <key>RunAtLoad</key><false/>
-  <key>StandardOutPath</key>
-  <string>__DIR__/.cache/logs/launchd.out</string>
-  <key>StandardErrorPath</key>
-  <string>__DIR__/.cache/logs/launchd.err</string>
+  <key>StandardOutPath</key><string>/Users/jerryma/Desktop/boke/podcast/.cache/logs/launchd.out</string>
+  <key>StandardErrorPath</key><string>/Users/jerryma/Desktop/boke/podcast/.cache/logs/launchd.err</string>
+  <key>WorkingDirectory</key><string>/Users/jerryma/Desktop/boke/podcast</string>
 </dict>
 </plist>

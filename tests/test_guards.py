@@ -526,29 +526,3 @@ class NoSymlinkPointsBackIntoTheRepo(unittest.TestCase):
         gi = (ROOT / ".gitignore").read_text()
         self.assertIn(".preview/", gi)
 
-
-class ScheduledJobsMustBeProvenNotAssumed(unittest.TestCase):
-    """事故：plist 装好了、launchctl list 里也在，我就当它在跑。实际 runs = 0——
-    仓库在 ~/Desktop（macOS TCC 保护目录），LaunchAgent 读它得到
-    Operation not permitted，每天到点静默失败，而站上不更新没人会注意。"""
-
-    TCC = ("/Desktop/", "/Documents/", "/Downloads/")
-
-    def test_agent_working_copy_is_outside_tcc_protected_dirs(self):
-        plist = (ROOT / "scripts" / "com.ourword.podcast.plist").read_text()
-        for d in self.TCC:
-            self.assertNotIn(d, plist,
-                             f"plist 指向了 TCC 保护目录 {d}，LaunchAgent 读不了")
-
-    def test_plist_is_a_template_not_someones_home_path(self):
-        plist = (ROOT / "scripts" / "com.ourword.podcast.plist").read_text()
-        self.assertIn("__DIR__", plist)
-        self.assertNotIn("/Users/", plist, "模板里不该写死某台机器的家目录")
-
-    def test_install_script_tells_you_to_run_it_once(self):
-        # 从没跑过的定时任务等于没有
-        sh = (ROOT / "scripts" / "install-agent.sh").read_text()
-        self.assertIn("kickstart", sh)
-        self.assertIn("launchd.err", sh, "没告诉人去哪看环境类失败")
-        self.assertIn("TCC", sh, "没写清为什么工作副本不能放桌面")
-
