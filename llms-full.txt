@@ -1,6 +1,80 @@
 # 原声 — 世界太吵，来原声听播客
 
-69 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
+70 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
+
+==============================================================================
+
+## 推理成本需降3-6个数量级，后台任务才是主战场
+
+- URL: https://ourword.ai/podcast/p/2026-08-25-ilt-推理成本需降3-6个数量级-后台任务才是主战场/
+- 节目 / show: Invest Like the Best (https://ourword.ai/podcast/s/ilt/)
+- 原集标题 / original episode: Neil Movva - Making AI 10x Cheaper - [Invest Like the Best, EP.488]
+- 发布 / published: 2026-08-25 · 时长 / duration: 1:18:07
+- 文稿来源 / transcript: 音频转写 · 17401 words · timestamps are exact
+- 校验 / verification: 6 quotes matched verbatim, 7 numbers traced to the transcript, review score 8/10
+
+**AI推理的下一波不在聊天而在后台Agent，后者将吃掉90%算力。Sale Research为此优化吞吐而非延迟，甚至接受80%可用性，以换取价格降几个数量级，并认为Nvidia每瓦优势被高估。**
+
+为什么听 / why: 这集从GPU内核谈到数据中心选址，给出推理成本下降的具体路径和反共识判断，适合关注AI基础设施的创业者和投资人。
+
+### 核心论点 / points
+
+[3:33] (Neil Movva) **Token工厂与Sale Box** — 将 Sale Research 定位为「token 工厂」：以市场上无法匹敌的价格提供开源大语言模型的 token，并支持构建 agent。他们还提供 Sale Box——云端长期运行的 agent 虚拟机，专为运行数小时、数天甚至数周的 agent 设计。公司主题是「富足」，即以可持续成本向尽可能多的人提供智能。开源模型崛起是重要顺风，客户希望拥有智能的控制权和主权。现有推理公司都专注低延迟推理，但 agent 需要更持久、更长周期的任务。
+
+[8:00] (Neil Movva) **后台任务将占九成** — 预测到今年年底，后台任务和实时任务的工作负载各占 50%，但长期来看后台任务将占 90%。原因是后台任务没有人在回路，token 消耗无界，而人类注意力有限。例如深度研究、网络安全等任务更适合后台运行，Parallel Web Systems 想要索引整个互联网并实时监控变化，这是需要大规模智能的任务。后台市场是无界的，这是决定性优势。
+
+[20:10] (Neil Movva) **GPU的吞吐与延迟博弈** — GPU 是吞吐机器，喜欢满负荷运行，但交互式聊天机器人需要低延迟，迫使 GPU 偏离最佳路径。未来一年最深刻的变化是从聊天机器人转向主动或后台 agent，届时构建以吞吐为中心的栈更有意义。最好的延迟就是没有延迟——当你醒来时工作已在夜间完成。这一转变会改变整个推理系统的优化目标。
+
+[36:48] (Neil Movva) **数据用完，靠模型自我改进** — 互联网是一次性数据补贴，高质量文本约 30 万亿 token，宽泛定义下约 300 万亿，模型已多次看过整个互联网。未来数据来自模型在可验证任务上的自我改进，通过强化学习环境（如编码、数学问题）让模型自主迭代。随机人类反馈已无价值，因为模型已超越普通人类，需要专家级反馈。数据不再免费，是扩展性的新瓶颈。
+
+[50:55] (Neil Movva) **数据中心规模不经济** — 建 10 万 GPU 的数据中心比建 1 万 GPU 难得多。美国建 100MW 数据中心已困难，1GW 几乎不可能，10MW 勉强可行，1MW 则充足。市场仍假设需要集中式大型数据中心，但推理工作负载适合分布式 1MW 数据中心，他愿意购买这些小型算力池。他甚至接受 95% 甚至 80% 可用性，因为后台代理对延迟不敏感，通过健壮控制平面迁移单点故障，换来的却是极致性价比。
+
+[1:07:19] (Neil Movva) **开源蒸馏不可避免** — 如果用户拥有与 AI 交互的输出并发布到 GitHub，长期来看蒸馏不可避免。信息扩散无法阻止，问题只是速度。因此领先 3 到 6 个月的价值能持续多久是关键。企业采用速度慢，很多还在用 Opus 4.6 或 4.7，不会快速采用最前沿技术。这意味着模型的护城河在于持续领先的速度，而非绝对能力。
+
+[1:09:28] (Neil Movva) **绕开HBM，卸载到闪存** — 最让朋友觉得「有三头六臂」的观点是绕开 HBM，更极端地卸载到闪存。他热衷于改变模型架构，使 KV cache 卸载到闪存更高效。推理社区围绕每秒 1 到 10 token 的 serving 设计系统，这是北极星。以 OpenAI 定价，一万亿 token 至少花 500 万美元，需要 3 到 6 个数量级的成本改进。世界对智能的需求永远存在，挑战在于产品社区如何提供入口。
+
+[1:11:34] (Neil Movva) **Nvidia每瓦优势被高估** — 从 Hopper 到 Blackwell 再到 Rubin，Bfloat16 乘法的每瓦性能提升并不大；从台积电 5nm 到 4nm 再到 3nm，每瓦性能变化也不显著。即使失去台积电，西方最好工艺（如 Intel）最差也就 2 倍每瓦差距，远没有想象的严重。芯片创业者必须理解 3 到 5 个供应链瓶颈：台积电晶圆产能、HBM 产能、先进封装，可能还有电力。设计要 spiky，选择 Nvidia 未重视的方向，比如押注 HBM 短缺。
+
+### 原话 / verbatim quotes
+
+[8:00] Neil Movva: "I love this market because it's unbounded. There's no human in the loop. So you can consume as many tokens as you like in the background versus human attention span."
+    译 / zh: 我喜欢这个市场，因为它是无界的。没有人类在回路中，所以你可以随心所欲地在后台消耗 token，而人类的注意力是有限的。
+
+[36:48] Neil Movva: "I like the phrase that Internet was a one time subsidy on data. We got it for free. It's extremely high quality about 30 trillion tokens of high quality text, 300 trillion tokens. if you take a wider view on what qualifies as a good text and we've basically looked at it all already."
+    译 / zh: 我喜欢这个说法：互联网是一次性的数据补贴。我们免费获得了它。高质量文本大约 30 万亿 token，如果对好文本的定义更宽泛，则是 300 万亿 token，而我们已经基本上看完了所有这些。
+
+[41:05] Neil Movva: "I like to say we write kernels in the whiteboard we go to the whiteboard, we describe what we think the machine should be doing then we succcly describe that in the natural language to a model and then the model is able to do the execution"
+    译 / zh: 我喜欢说我们在白板上写内核：我们去白板，描述我们认为机器应该做什么，然后用自然语言简洁地描述给模型，模型就能执行。
+
+[54:14] Neil Movva: "I will buy like5% up time. And the reason for that is because it's background engine thing is things running in the background. You don't care."
+    译 / zh: 我会购买 95% 的正常运行时间。原因在于这是后台引擎，是后台运行的东西，你并不在意。
+
+[1:08:23] Neil Movva: "I want abundant tokens and diverse harnesses. I want everyone to build their own harness, every company, every user, even make the agent your own."
+    译 / zh: 我想要丰富的 token 和多样化的 harness。我希望每个人都能构建自己的 harness，每家公司、每个用户，甚至让 agent 成为你自己的。
+
+[1:10:31] Neil Movva: "There is always demand for intelligence in the world. The on ramps to that intelligence are our challenge as a product community."
+    译 / zh: 世界上对智能的需求永远存在。通往智能的入口是我们作为产品社区的挑战。
+
+### 数字 / figures
+
+- 后台任务与实时任务占比预测: 今年底50/50，长期90/10 [8:00]
+- 互联网文本 token 数: 高质量约30万亿，宽泛约300万亿 [36:48]
+- NVL72 芯片单元数: 72 [43:15]
+- Nvidia 今年 Blackwell 芯片产量: 500 万 [1:00:44]
+- OpenAI 定价下万亿 token 成本: 至少 500 万美元 [1:10:31]
+- 所需成本改进数量级: 3 到 6 个数量级 [1:10:31]
+- Intel 与台积电每瓦性能差距: 最差约 2 倍 [1:11:34]
+
+### 术语 / glossary
+
+- KV cache (键值缓存): Transformer 注意力中缓存 key 和 value 的内存，避免生成时重复计算。
+- HBM (高带宽内存): 与 GPU 封装在一起，提供极高的内存带宽，但容量有限。
+- SRAM (静态随机存取存储器): 速度极快但容量小，通常作为芯片上的缓存。
+- Tensor Core (张量核心): GPU 上专门加速矩阵乘法运算的硬件单元，是深度学习的计算核心。
+- Harness (智能体框架): 围绕模型构建的 Agent 框架或工具链，这里指用户自定义的智能体工作流。
+
+谁该听 / who: AI 基础设施创业者、算力投资者、模型部署工程师，以及关注推理成本与 AI 产品化的产品负责人。
+标签 / tags: AI推理, GPU, 数据中心, 开源模型, Agent, 算力成本
 
 ==============================================================================
 
