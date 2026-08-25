@@ -294,13 +294,29 @@ def _is_this_episode(body: str, title: str) -> bool:
     return hits >= max(3, int(len(words) * 0.5))
 
 
+# 有的节目把官方逐字稿放在兄弟路径上，而 shownotes 里根本不给链接
+# （Darknet Diaries：/episode/178/ 的稿在 /transcript/178/）。按站点补一条改写规则，
+# 比让整档有全文逐字稿的节目走音频转写划算得多。
+_PAGE_ALT = (
+    ("darknetdiaries.com", r"/episode/(\d+)", r"/transcript/\1"),
+)
+
+
+def _alt_urls(url: str) -> list[str]:
+    out = []
+    for host, pat, rep in _PAGE_ALT:
+        if host in url and re.search(pat, url):
+            out.append(re.sub(pat, rep, url))
+    return out
+
+
 def from_page(ep: dict, lang: str) -> dict | None:
     urls = []
     m = _TR_LINK.search(ep.get("notes") or "")
     if m:
         urls.append(m.group(1))
     if ep.get("link"):
-        urls.append(ep["link"])
+        urls += _alt_urls(ep["link"]) + [ep["link"]]
     dur_min = max((ep.get("duration") or 0) / 60, 1)
     lo, hi = MIN_WPM.get(lang, 70), MAX_WPM.get(lang, 300)
     for u in dict.fromkeys(urls):

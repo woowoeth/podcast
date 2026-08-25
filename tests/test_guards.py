@@ -254,3 +254,108 @@ class DailyUpdateStaysWired(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class ScoringNeedsEvidenceNotReputation(unittest.TestCase):
+    """收不收一档节目，曾经只凭「节目名 + 最新一集标题」判断。同一档节目两次跑分
+    差 2 分，通过与否取决于理由里有没有出现对冲词——那是措辞运气，不是标准。"""
+
+    def test_probe_keeps_a_transcript_excerpt(self):
+        # 实测已经把文稿抓下来了，却只把字数传给模型，正文扔了。
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        self.assertIn('"excerpt": _excerpt(tr)', src)
+        self.assertIn('"titles":', src)
+
+    def test_score_prompt_carries_the_excerpt(self):
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("def score_candidate")
+        body = src[i:src.index("def slug_for")]
+        self.assertIn('c.get("excerpt")', body)
+        self.assertIn("等距抽样", body)
+        # 三级证据梯子：文稿 → 分集说明 → 确实没有。中间那级是必须的：
+        # 中文播客前三层本来就取不到文稿，少了它整条中文信源线会被永久判死。
+        self.assertIn('c.get("notes_sample")', body)
+        self.assertIn("打分要保守", body)
+
+    def test_missing_transcript_is_not_a_scoring_penalty(self):
+        # 曾经因为「无文稿难核」把所有需要转写的中文节目一律扣到 4 分
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("def score_candidate")
+        body = src[i:src.index("def slug_for")]
+        self.assertIn("不进你的打分", body)
+        self.assertIn("不要因为", body)
+
+    def test_notes_sample_spans_several_episodes(self):
+        import curate
+        head = [{"title": f"第{i}集", "notes": "<p>" + "实测细节" * 120 + "</p>"}
+                for i in range(5)]
+        nt = curate._notes_sample(head)
+        self.assertGreaterEqual(nt.count("【"), 2, "只取了一集说明")
+        self.assertLessEqual(len(nt), curate.NOTES_CHARS + 1000)
+        self.assertNotIn("<p>", nt, "HTML 没剥掉")
+        # 一句话的说明不算证据
+        self.assertEqual(curate._notes_sample([{"title": "x", "notes": "短"}]), "")
+
+    def test_excerpt_samples_the_whole_episode(self):
+        # 只看开头会被漂亮的片头骗过去，判不了"密度稳不稳"
+        import curate
+        segs = [{"t": i * 30, "text": ("头" if i < 5 else "尾") * 300}
+                for i in range(60)]
+        ex = curate._excerpt({"segments": segs})
+        self.assertIn("尾", ex, "抽样没覆盖到后半段")
+        self.assertLessEqual(len(ex), curate.EXCERPT_CHARS + 260)
+
+    def test_excerpt_survives_a_transcript_without_segments(self):
+        import curate
+        self.assertEqual(curate._excerpt(None), "")
+        self.assertTrue(curate._excerpt({"text": "甲" * 9000}))
+
+    def test_hedge_catches_the_phrase_that_slipped_through(self):
+        # "密度略逊于顶级" 拿了 8.0 分并进了建议名单
+        import curate
+        why = "机制拆解扎实，论断清晰可反驳，补位学术视角，但密度略逊于顶级。"
+        self.assertTrue([w for w in curate.HEDGE if w in why],
+                        "对冲词表漏了「略逊」这类写法")
+
+
+class DryRunMustNotLoseItsAdvice(unittest.TestCase):
+    """建议只打在屏幕上等于没有：一次 tail 就丢了，再想看只能重跑，而重跑要花钱。"""
+
+    def test_dry_run_persists_and_lists(self):
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        self.assertIn("curate-dry-run.json", src)
+        self.assertIn("建议收录", src)
+
+
+class NewSourcesStartOnProbation(unittest.TestCase):
+    """新源的分是照着节目自己写的分集说明（宣传文案）打的，一篇成稿都没过闸门。
+    模型却给了 tier 1，等于让它和跑了半年的源同权抢配额。"""
+
+    def test_curate_ignores_the_model_tier_for_new_sources(self):
+        import curate
+        self.assertEqual(curate.PROBATION_TIER, 3)
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("def discover(")
+        self.assertIn('"tier": PROBATION_TIER', src[i:])
+        self.assertNotIn('"tier": v["tier"]', src[i:], "又用回了模型自报的 tier")
+
+
+class PageTierKnowsSiblingTranscriptPaths(unittest.TestCase):
+    """Darknet Diaries 每集都有官方逐字稿，但在 /transcript/N/ 而不是 /episode/N/，
+    shownotes 里也不给链接。少这条规则，整档节目会白白走音频转写。"""
+
+    def test_darknet_episode_url_yields_the_transcript_url(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib import transcript as T
+        alt = T._alt_urls("https://darknetdiaries.com/episode/178/")
+        self.assertIn("https://darknetdiaries.com/transcript/178/", alt)
+
+    def test_alt_urls_leaves_other_hosts_alone(self):
+        from lib import transcript as T
+        self.assertEqual(T._alt_urls("https://example.com/episode/178/"), [])
+
+    def test_alt_url_is_tried_before_the_plain_link(self):
+        src = (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
+        i = src.index("def from_page")
+        self.assertIn('_alt_urls(ep["link"]) + [ep["link"]]', src[i:i + 900])
+

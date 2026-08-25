@@ -29,7 +29,7 @@ from collections import defaultdict
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from lib import feeds, llm, net                                    # noqa: E402
-from lib.util import iso, log, now, squeeze                        # noqa: E402
+from lib.util import iso, log, now, squeeze, strip_html                        # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
@@ -317,6 +317,47 @@ def _name_match(want: str, got: str) -> bool:
     return bool((a & b) - STOP)
 
 
+PROBATION_TIER = 3      # 新收的源先跑一段，别一进来就和老源同权
+EXCERPT_CHARS = 3200
+NOTES_CHARS = 2600
+
+
+def _notes_sample(head: list[dict]) -> str:
+    """多集节目说明拼一份。取不到文稿不等于没有证据——小宇宙／喜马拉雅的中文节目
+    说明常有两三千字，足以判主题与具体程度。第一版因为没用它，把所有需要转写的
+    中文节目一律判成"证据不足"，等于把整条中文信源线关死了。"""
+    out, used = [], 0
+    for e in head[:5]:
+        t = squeeze(strip_html(e.get("notes") or ""))
+        if len(t) < 120:
+            continue
+        piece = f"【{e['title'][:60]}】{t[:900]}"
+        if used + len(piece) > NOTES_CHARS:
+            break
+        out.append(piece)
+        used += len(piece)
+    return "\n\n".join(out)
+
+
+def _excerpt(tr: dict | None) -> str:
+    """把实测抓到的文稿等距抽一份给评分模型。复用 review 里同样的思路：
+    评判"密度稳不稳"必须看到全篇的分布，只看开头会被漂亮的片头骗过去。"""
+    if not tr:
+        return ""
+    segs = tr.get("segments") or []
+    if not segs:
+        return squeeze(tr.get("text") or "")[:EXCERPT_CHARS]
+    step = max(1, len(segs) // 20)
+    picks, used = [], 0
+    for i in range(0, len(segs), step):
+        piece = squeeze(segs[i]["text"])[:220]
+        if used + len(piece) > EXCERPT_CHARS:
+            break
+        picks.append(piece)
+        used += len(piece)
+    return "\n".join(picks)
+
+
 def probe_candidate(name: str, itunes_id: str | None = None) -> dict | None:
     """iTunes 找 feed，然后实测：能不能取到文稿、更新是否健康。"""
     # 榜单给了 iTunes id 就直接 lookup，比按名字搜准得多
@@ -358,7 +399,12 @@ def probe_candidate(name: str, itunes_id: str | None = None) -> dict | None:
                 "transcript_words": tr["words"] if tr else 0,
                 "transcript_source": tr["source"] if tr else None,
                 "has_audio": sum(1 for e in head if e.get("audio")),
-                "sample": head[0]["title"][:70]}
+                "sample": head[0]["title"][:70],
+                "titles": [e["title"][:80] for e in head[:6]],
+                "notes_sample": _notes_sample(head),
+                # 评分要看实际内容，不能只凭节目名和一个标题猜——那样同一档节目
+                # 两次跑分能差 2 分，通过与否取决于措辞运气。
+                "excerpt": _excerpt(tr)}
     return None
 
 
@@ -416,7 +462,10 @@ MAX_CAND_STALE = 60         # 停更超过此，收了也不会更新
 # 分数与理由必须一致。提示词里明说过"理由里要写补位有限就不该给到 2 分"，
 # 模型照样这么写——那就用代码判，别靠自觉。这些词出现在理由里，说明模型自己
 # 认为这档只是勉强够线；61 档已经覆盖较满，勉强够线的一律不收。
+# 短语匹配天生不全（"密度略逊于顶级"就混过去一次），所以它只是第二道；
+# 第一道是让模型看到真实文稿，别再凭名气打分。
 HEDGE = ("重叠", "补位有限", "偏泛", "未到顶尖", "不稳", "边缘", "有限",
+         "略逊", "不如", "稍弱", "尚可", "不算", "谈不上", "略低", "勉强",
          "一般", "不足", "略高", "较少")
 
 
@@ -450,9 +499,22 @@ def score_candidate(c: dict, existing_desc: str) -> dict | None:
     facts += (f"；实测取到文稿 {c['transcript_words']} 字（{c['transcript_source']} 层）"
               if c["transcript_words"] else "；前三层无文稿，需音频转写")
     try:
-        r = llm.call_json(SCORE_SYSTEM,
-                          f"候选节目：{c['name']}\n最新一集标题：{c['sample']}\n{facts}\n\n"
-                          f"现有信源覆盖：{existing_desc[:2600]}\n\n{SCORE_SCHEMA}",
+        titles = "\n".join(f"- {t}" for t in (c.get("titles") or [c["sample"]]))
+        ex = c.get("excerpt") or ""
+        nt = c.get("notes_sample") or ""
+        if ex:
+            ev = f"实测抓到的文稿（全篇等距抽样，判密度就看这一份）：\n{ex}\n\n"
+        elif nt:
+            ev = ("节目自己写的分集说明（多集，判主题与具体程度看这一份）：\n"
+                  f"{nt}\n\n**注意**：没有文稿只说明我们要走音频转写，"
+                  "那是前置条件、已经判过了，不进你的打分。不要因为"
+                  "「无文稿难核」而扣分——按标题和说明本身的具体程度公平地判。\n\n")
+        else:
+            ev = ("（既没有文稿也没有分集说明，证据确实不足——这时打分要保守，"
+                  "不要凭节目名的名气给分。）\n\n")
+        body = (f"候选节目：{c['name']}\n{facts}\n\n最近几集标题：\n{titles}\n\n"
+                + ev + f"现有信源覆盖：{existing_desc[:2600]}\n\n{SCORE_SCHEMA}")
+        r = llm.call_json(SCORE_SYSTEM, body,
                           max_tokens=600, temperature=0.1, role="review")
     except Exception as ex:
         log(f"    评分失败：{type(ex).__name__}")
@@ -565,8 +627,11 @@ def discover(minimum: float, dry: bool = False) -> list[dict]:
         sid = slug_for(c["name"], taken)
         taken.add(sid)
         known_feeds.add(c["feed"])
+        # 一律先进试用位。信任靠产出赢得：这批分数是照着节目自己写的分集说明
+        # （宣传文案）打的，一篇成稿都还没过闸门，凭什么和跑了半年的源同级。
+        # 表现好了由体检提级，不合格由体检降级／移除。
         entry = {"id": sid, "name": c["name"], "zh": c["name"], "cat": v["cat"],
-                 "tier": v["tier"], "lang": "zh" if v["cat"] == "cn" else "en",
+                 "tier": PROBATION_TIER, "lang": "zh" if v["cat"] == "cn" else "en",
                  "kind": "rss", "feed": c["feed"], "desc": v["desc"],
                  "cat_label": {"ai": "AI / 技术", "biz": "投资 / 商业",
                                "cn": "中国视角"}[v["cat"]]}
@@ -611,7 +676,17 @@ def main() -> int:
         log(f"\n— 找新源（及格线 {a.discover}）—")
         entries += discover(a.discover, a.dry_run)
     if entries and a.dry_run:
-        log(f"\n--dry-run：共 {len(entries)} 项建议，一个字都没写")
+        # 建议只存在于滚屏里就等于没有：一次 tail 就丢了，下一步只能重跑（重跑要花钱）。
+        out = ROOT / ".cache" / "curate-dry-run.json"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(entries, ensure_ascii=False, indent=1) + "\n")
+        log(f"\n--dry-run：共 {len(entries)} 项建议，一个字都没写进 sources.json")
+        for e in entries:
+            if e.get("kind") == "added":
+                log(f"  建议收录 {e['name']}（{e['id']}，{e['score']:.1f} 分）{e['why']}")
+            else:
+                log(f"  建议{e.get('kind')} {e.get('name', e.get('id'))}")
+        log(f"  完整建议已存 {out.relative_to(ROOT)}，要落地就去掉 --dry-run")
     elif entries:
         rows = load_ledger()
         rows.extend(entries)
