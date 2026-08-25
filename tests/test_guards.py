@@ -499,3 +499,30 @@ class SharingWorksWithoutAPlatformSDK(unittest.TestCase):
         self.assertIn("execCommand", js)
         self.assertIn("setSelectionRange", js)   # iOS 需要显式选区
 
+
+class NoSymlinkPointsBackIntoTheRepo(unittest.TestCase):
+    """事故：为了本地预览加了 .preview/podcast -> ..，一个指向仓库自身的符号链接。
+    GitHub Pages 打包时顺着它无限递归，Upload artifact 连着两轮卡死 20 分钟，
+    而站上什么都没变——看起来像"还没发布"，实际是打包永远走不完。"""
+
+    def test_no_tracked_symlink_resolves_inside_the_repo(self):
+        import subprocess
+        out = subprocess.run(["git", "ls-files", "-s"], cwd=ROOT,
+                             capture_output=True, text=True).stdout
+        bad = []
+        for line in out.splitlines():
+            # git 里符号链接的 mode 是 120000
+            if line.startswith("120000"):
+                path = line.split("\t", 1)[1]
+                target = (ROOT / path).parent / (ROOT / path).readlink()
+                try:
+                    target.resolve().relative_to(ROOT.resolve())
+                    bad.append(f"{path} -> {target}")
+                except ValueError:
+                    pass          # 指向仓库外面，不会递归
+        self.assertEqual(bad, [], f"入库的符号链接指回仓库内部，会让打包递归：{bad}")
+
+    def test_preview_dir_is_ignored(self):
+        gi = (ROOT / ".gitignore").read_text()
+        self.assertIn(".preview/", gi)
+
