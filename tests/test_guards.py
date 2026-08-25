@@ -134,6 +134,32 @@ class DailyUpdateStaysWired(unittest.TestCase):
         self.assertIn("--skip-residential", body,
                       "云端必须跳过住宅 IP 专属源，否则每天白试并污染失败计数")
 
+    def test_curation_runs_on_a_schedule(self):
+        """信源不该一次挑完就固定：节目会停更、会转向、会把长访谈换成短切片。"""
+        import yaml
+        d = yaml.safe_load((ROOT / ".github/workflows/curate.yml").read_text())
+        on = d[True] if True in d else d["on"]
+        self.assertIn("schedule", on, "策展没有定时，信源清单会僵住")
+
+    def test_curation_thresholds_need_a_sample(self):
+        """淘汰判据必须要求最小样本量，否则会在噪声上动刀。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import curate
+        self.assertGreaterEqual(curate.MIN_TRIAGE_EVALS, 5)
+        self.assertGreaterEqual(curate.MIN_PUBLISHED_FOR_REVIEW, 3)
+
+    def test_source_removal_needs_a_persistent_failure(self):
+        """第五次踩同一个坑：抖动被当成永久失效。YouTube 会对密集请求返 404、
+        Substack 会 403，一次失败就删源等于把好源误删。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import curate
+        self.assertGreaterEqual(curate.DEAD_STREAK, 3)
+        m = {"feed_ok": False, "fail_streak": 1, "published": 0, "no_transcript": 0,
+             "age_days": 3, "triage_n": 0, "triage_pass": None, "review_median": None}
+        self.assertIsNone(curate.judge("x", m), "一次失败不该触发移除")
+        m["fail_streak"] = 3
+        self.assertIsNotNone(curate.judge("x", m), "连续失败应触发移除")
+
     def test_ci_does_not_build_before_rebasing(self):
         """事故：run.py 发布后自己 build，留下未跟踪的 p/ 与 s/，
         紧接着的 git pull --rebase 报 "could not detach HEAD"，日更整轮失败。"""

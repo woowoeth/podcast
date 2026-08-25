@@ -282,6 +282,15 @@ def main() -> int:
                     help="probe every feed, re-resolve dead ones via Apple, then write")
     a = ap.parse_args()
 
+    # 读上一轮的 status，才能累计连续失败次数
+    old_status = {}
+    if OUT.exists():
+        try:
+            old_status = {x["id"]: (x.get("status") or {})
+                          for x in json.loads(OUT.read_text()).get("sources", [])}
+        except Exception:
+            pass
+
     out = []
     for s in CURATED:
         s = dict(s)
@@ -295,6 +304,13 @@ def main() -> int:
                     log(f"  ! {s['id']}: feed moved -> {meta['feedUrl']}")
                     s["feed"] = meta["feedUrl"]
                     st = probe(s)
+            # 连续失败计数：一次失败不能当作 feed 死了。YouTube 会对密集请求返
+            # 404、Substack 会 403，这些都是抖动。策展的移除规则读这个计数，
+            # 只有连续多次失败才动手 —— 误删一个好源没人会注意到。
+            prev = ((old_status.get(s["id"]) or {}).get("fail_streak") or 0)
+            st["fail_streak"] = 0 if st.get("ok") else prev + 1
+            if st["fail_streak"] > 1:
+                log(f"     ↳ 连续失败 {st['fail_streak']} 次")
             s["status"] = st
             flag = "ok " if st["ok"] else "DEAD"
             log(f"{flag} {s['id']:<15} {st.get('episodes','-'):>5} eps  "

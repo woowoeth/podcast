@@ -1,0 +1,93 @@
+name: curate sources
+
+# 信源策展：每三天复查一次。淘汰劣化源、从近期内容里挖新源、记进更新日志。
+# 三天一次而不是每天：判据是通过率和评分中位，需要样本累积；每天跑只会在噪声上动刀。
+on:
+  schedule:
+    - cron: "25 2 */3 * *"      # 每三天，北京时间约 10:25
+  workflow_dispatch:
+    inputs:
+      demote:
+        description: "执行降级／移除（false = 只出体检报告）"
+        default: "true"
+      discover_min:
+        description: "新源及格线 0-10（留空=不找新源）"
+        default: "8"
+
+permissions:
+  contents: write
+concurrency:
+  group: podcast-write
+  cancel-in-progress: false
+
+jobs:
+  curate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python -m pip install --quiet certifi truststore
+
+      - name: 先体检 feed，把失效的标出来
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: python pipeline/resolve_sources.py --check 2>&1 | tail -8
+
+      - name: 策展
+        env:
+          LLM_API_KEY:  ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_MODEL:    ${{ secrets.LLM_MODEL }}
+          LLM_AUTH:     ${{ secrets.LLM_AUTH }}
+          LLM_MODEL_TRIAGE: ${{ secrets.LLM_MODEL_TRIAGE }}
+          LLM_MODEL_REVIEW: ${{ secrets.LLM_MODEL_REVIEW }}
+        run: |
+          set -o pipefail
+          ARGS=""
+          [ "${{ github.event.inputs.demote }}" != "false" ] && ARGS="--demote"
+          MIN="${{ github.event.inputs.discover_min }}"
+          [ -z "$MIN" ] && MIN="8"
+          python pipeline/curate.py $ARGS --discover "$MIN" \
+            2>&1 | tee "${RUNNER_TEMP}/curate.log"
+
+      - name: Commit and push
+        run: |
+          set -uo pipefail
+          git config user.name  "podcast-bot"
+          git config user.email "podcast-bot@users.noreply.github.com"
+          git clean -fdq p s log 2>/dev/null || true
+          git checkout -q -- index.html sources feed.xml sitemap.xml robots.txt 404.html \
+                            search.json llms.txt llms-full.txt 2>/dev/null || true
+          git add data/sources.json data/curation.json 2>/dev/null || true
+          if git diff --cached --quiet; then echo "信源清单无变动"; exit 0; fi
+          git commit -m "curate: 信源清单更新"
+          ok=0
+          for i in $(seq 1 10); do
+            git pull --rebase --autostash origin main || true
+            if git push; then ok=1; break; fi
+            echo "push retry $i"; sleep $(( (RANDOM % 7) + 3 ))
+          done
+          if [ "$ok" != 1 ]; then echo "::error::信源改动推送失败"; exit 1; fi
+
+          python pipeline/build.py
+          git add index.html sources s p log feed.xml sitemap.xml robots.txt 404.html \
+                  search.json llms.txt llms-full.txt icon.svg .nojekyll 2>/dev/null || true
+          git diff --cached --quiet && exit 0
+          git commit -m "build: regenerate site"
+          ok=0
+          for i in $(seq 1 10); do
+            if git push; then ok=1; break; fi
+            git fetch origin main; git reset --soft origin/main
+            python pipeline/build.py
+            git add index.html sources s p log feed.xml sitemap.xml robots.txt 404.html \
+                    search.json llms.txt llms-full.txt icon.svg .nojekyll 2>/dev/null || true
+            git diff --cached --quiet && { ok=1; break; }
+            git commit -m "build: regenerate site"
+            echo "push retry $i"; sleep $(( (RANDOM % 7) + 3 ))
+          done
+          if [ "$ok" != 1 ]; then echo "::error::站点重建推送失败"; exit 1; fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: curate-log, path: "${{ runner.temp }}/curate.log", retention-days: 60 }

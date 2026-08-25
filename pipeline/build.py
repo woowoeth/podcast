@@ -155,7 +155,8 @@ def foot() -> str:
 <div>{NAME} · <a href="https://ourword.ai">OurWord.ai</a> 的播客线。内容为原播客的中文深读，
 版权归各节目所有；每篇都附原节目链接，请去支持原作者。</div>
 <div class="links"><a href="{BASE}/">首页</a><a href="{BASE}/sources/">信源</a>
-<a href="{BASE}/feed.xml">RSS</a><a href="{BASE}/llms.txt">llms.txt</a>
+<a href="{BASE}/log/">更新日志</a><a href="{BASE}/feed.xml">RSS</a>
+<a href="{BASE}/llms.txt">llms.txt</a>
 <a href="https://github.com/woowoeth/podcast">源码</a></div>
 </div></div></footer>
 <script src="{BASE}/assets/site.js" defer></script>
@@ -577,6 +578,68 @@ def source_page(src: dict, eps: list[dict], total_known: int | None) -> str:
 </main>""" + foot())
 
 
+# ---------------------------------------------------------------- 更新日志
+
+KIND_LABEL = {"added": "收录", "removed": "移除", "demoted": "降级", "dormant": "休眠"}
+KIND_TONE = {"added": "add", "removed": "drop", "demoted": "down", "dormant": "down"}
+
+
+def log_page(eps: list[dict], srcs: dict) -> str:
+    """信源的增删记录。
+
+    做成站上的一页而不是只留在仓库里，是因为读者有权知道信源清单变过什么：
+    一个聚合站悄悄换掉信源，等于悄悄换掉它的口味。
+    """
+    rows = []
+    path = DATA / "curation.json"
+    if path.exists():
+        try:
+            rows = json.loads(path.read_text())
+        except Exception:
+            rows = []
+    rows = sorted(rows, key=lambda r: r.get("at", ""), reverse=True)
+    n_src = len(srcs.get("sources") or [])
+
+    items = []
+    for r in rows:
+        kind = r.get("kind", "")
+        tone = KIND_TONE.get(kind, "")
+        detail = e(r.get("why") or "")
+        extra = ""
+        if kind == "added" and r.get("score") is not None:
+            extra = f'<span class="ev-score">{r["score"]:.1f} 分</span>'
+        elif kind in ("demoted", "dormant") and r.get("from_tier"):
+            extra = f'<span class="ev-score">T{r["from_tier"]} → T{r["to_tier"]}</span>'
+        items.append(f"""<li class="ev {tone}">
+<span class="ev-when">{e((r.get('at') or '')[:10])}</span>
+<span class="ev-what">{e(KIND_LABEL.get(kind, kind))}</span>
+<span class="ev-who">{e(r.get('name'))}</span>{extra}
+<span class="ev-why">{detail}</span></li>""")
+
+    body = ("<ul class=\"evlist\">" + "".join(items) + "</ul>") if items else (
+        '<div class="empty"><b>还没有信源变动</b>'
+        '<p>信源清单每三天自动复查一次：feed 失效、停更超过 120 天、选题通过率低于 25%、'
+        '或成稿评分中位不高于 7 的会被降级或移除；同时从近期内容里挖新源，只收 8 分以上。'
+        '任何一次改动都会记在这里。</p></div>')
+
+    ld = _ld({"@context": "https://schema.org", "@type": "CollectionPage",
+              "url": SITE + "/log/", "name": f"更新日志 — {NAME}", "inLanguage": "zh-CN",
+              "isPartOf": {"@id": SITE + "/#site"}})
+    return (head(f"更新日志 — {NAME}",
+                 f"{NAME} 的信源增删记录：什么时候收了谁、踢了谁、为什么。当前 {n_src} 档。",
+                 path="/log/", extra=ld)
+            + masthead(len(eps), home=False)
+            + f"""<main class="wrap">
+<h1 class="sec-title" style="margin-top:34px">更新日志</h1>
+<p class="lede">信源清单每三天自动复查一次。判据全部来自实测数据，不靠印象：feed 是否
+失效、停更多少天、选题闸门的通过率、成稿评分的中位数。同时从近期发布的内容里挖新线索
+（被提到的其他节目、反复出现的受访者），实测文稿可得性后打分，只收 8 分以上。</p>
+<p class="lede">一个聚合站悄悄换掉信源，等于悄悄换掉它的口味，所以每一次改动都记在这里。
+完整清单见 <a href="{BASE}/sources/" style="color:var(--accent)">信源页</a>。</p>
+{body}
+<div style="height:56px"></div></main>""" + foot())
+
+
 # ------------------------------------------------------------- llms.txt (GEO)
 
 def llms_txt(eps: list[dict], srcs: dict) -> str:
@@ -756,6 +819,8 @@ def sitemap(eps: list[dict]) -> str:
     urls = [f"<url><loc>{xesc(SITE)}/</loc>"
             + (f"<lastmod>{xesc(newest)}</lastmod>" if newest else "")
             + "<changefreq>daily</changefreq><priority>1.0</priority></url>",
+            f"<url><loc>{xesc(SITE)}/log/</loc><changefreq>weekly</changefreq>"
+            f"<priority>0.5</priority></url>",
             f"<url><loc>{xesc(SITE)}/sources/</loc>"
             + (f"<lastmod>{xesc(newest)}</lastmod>" if newest else "")
             + "<changefreq>weekly</changefreq><priority>0.6</priority></url>"]
@@ -791,6 +856,8 @@ def main() -> int:
     (ROOT / "feed.xml").write_text(rss(eps))
     (ROOT / "sitemap.xml").write_text(sitemap(eps))
     (ROOT / "search.json").write_text(search_index(eps))
+    (ROOT / "log").mkdir(exist_ok=True)
+    (ROOT / "log" / "index.html").write_text(log_page(eps, srcs))
 
     sdir = ROOT / "s"
     by_src: dict[str, list[dict]] = {}
