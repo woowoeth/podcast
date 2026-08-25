@@ -1,0 +1,209 @@
+{
+ "id": "techtechpotato-bf5a9cfa11",
+ "slug": "2026-08-23-techtechpotato-etched的芯片-可能解决的是带宽而不是算力",
+ "fingerprint": "0d6dc266b484c860",
+ "source_id": "techtechpotato",
+ "source": "TechTechPotato",
+ "source_zh": "TechTechPotato",
+ "cat": "ai",
+ "tier": 2,
+ "lang": "en",
+ "title_original": "The Reason My Phone is Ringing Daily: Etched",
+ "published": "2026-08-23T14:00:31Z",
+ "duration": null,
+ "audio": "",
+ "link": "https://www.youtube.com/watch?v=9pUN3-e8exQ",
+ "image": "https://i2.ytimg.com/vi/9pUN3-e8exQ/hqdefault.jpg",
+ "youtube_id": "9pUN3-e8exQ",
+ "transcript_url": "https://www.youtube.com/watch?v=9pUN3-e8exQ",
+ "digest": {
+  "title": "Etched的芯片，可能解决的是带宽而不是算力",
+  "dek": "Etched用0.45伏的超低电压晶体管加跨芯片SRAM直连，把transformer焊进硬件，但主持人怀疑真正被解决的其实是带宽问题，而不是算力问题。",
+  "why": "两项此前只公布名称、没公布原理的技术第一次被拆解讲清楚，但芯片能耗、带宽、编译器和客户规模全都还没有答案，信息密度中等偏上。",
+  "who": "关注非Nvidia架构AI芯片创业、算力效率与带宽瓶颈的投资人和芯片工程师，想知道transformer专用芯片除了融资炒作还有没有真东西。",
+  "skip": "结尾主持人推销自家周边商城的部分可以跳过，不含信息。",
+  "points": [
+   {
+    "t": 64,
+    "h": "赌一个特定负载",
+    "body": "Etched两年前公开表态，要为transformer单独造芯片。当时transformer已经是语言模型的主流架构，但仍是一个非常具体的负载类型。公开的说法是，只为transformer造的芯片能跑得又快又省，但代价是一旦技术路线转向，这块芯片可能就没用了。CEO自己承认，如果市场发生转向，他们做的这一切可能就白费了。这是一个从一开始就公开承认失败风险的赌注。",
+    "spk": ""
+   },
+   {
+    "t": 125,
+    "h": "团队背景不寻常",
+    "body": "CEO Gavin Uberti是哈佛计算机科学系23岁的肄业学生，联合创始人Robert Wacken同样出身哈佛，但做的是学校成果转化那一侧，帮公司从零起步拿到钱。CTO Mark Ross则有Cisco和Cypress Semi的履历,LinkedIn上写着他带队做出了市场上第一款多端口以太网交换机，他也参与过Soho相关技术。年轻创始人加资深芯片老将的组合，是这家公司能拿到大额融资的部分原因。",
+    "spk": ""
+   },
+   {
+    "t": 185,
+    "h": "出隐身模式时的争议演示",
+    "body": "公司刚出现时就宣称要用八颗芯片的机箱挑战Nvidia,声称能跑到每秒50万token,是当时Nvidia宣传数字的很多倍。差不多同一时间,EE Times的记者Sally去总部实地探访，看到的是一堆服务器在闪灯、发出蜂鸣声，却没有真正看到硅片本身。一年多后公司才算真正走出隐身模式，芯片也才流片(tape out),Sally当时看到的很可能只是一款测试芯片。",
+    "spk": ""
+   },
+   {
+    "t": 307,
+    "h": "超低电压的门道",
+    "body": "普通高端桌面CPU大约跑在1.2到1.3伏，效率最好的桌面笔记本处理器也在接近1伏的区间。etched的低电压推理芯片则跑在大约450毫伏，也就是0.45伏，已经逼近晶体管刚好能开关的阈值电压(threshold voltage)。电压越低，能塞进的计算单元数量就能倍增，代价是频率上不去。目前唯一大规模用这种超低电压晶体管的高算力行业是比特币矿机，原因是挖矿算法只需要极少的数据进出，而机器学习恰恰是数据搬来搬去的负载，这正是etched要解决的下一个问题。",
+    "spk": ""
+   },
+   {
+    "t": 493,
+    "h": "让芯片共享缓存",
+    "body": "etched芯片封装内有HBM,芯片内部还有一大块SRAM高速缓存(scratch pad),供片内所有计算单元共用。第二项技术cluster scale memory,是把这块SRAM缓存通过高速互联开放给其他芯片直接访问，类似跨芯片的RDMA,直接读写另一颗芯片的缓存和scratch pad,而不只是芯片内部使用。高速互联需要电压，所以低电压计算省下来的功耗，可能被挪去喂这套跨芯片通信。",
+    "spk": ""
+   },
+   {
+    "t": 555,
+    "h": "满机箱的黑色线缆",
+    "body": "etched展示的服务器实物图里，最先引人注意的是密密麻麻的黑色线缆，比Nvidia或AMD的系统明显多得多。部分线缆用于液冷散热，但很大一部分被认为是给cluster scale memory这种高带宽互联用的。主持人由此推测,etched真正解决的可能不是算力问题，而是芯片间通信的带宽问题——低电压计算省下来的功耗空间，被拿去堆砌互联带宽了。",
+    "spk": ""
+   },
+   {
+    "t": 618,
+    "h": "硬编码的transformer,仍有未解之谜",
+    "body": "低电压推理和cluster scale memory这两项技术名字本身都没提到transformer,说明真正的绑定发生在计算单元的物理排布上——这是一块为transformer硬编码的芯片，但仍可编程，能跑不同版本的transformer,不像几周前报道的另一款专用芯片设计那样死板。主持人还没等到机会跟团队深入核对超越函数怎么算、内存地址怎么管、scratch pad里数据的进出怎么追踪——如果这些都靠编译器兜底，那就要指望他们的编译器真的好用。",
+    "spk": ""
+   },
+   {
+    "t": 739,
+    "h": "客户规模才是真问题",
+    "body": "etched说已经拿到不少超大规模云厂商的兴趣，但主持人引用Jim Keller的说法：想卖一百万颗芯片，得先证明能卖十万颗；想卖十万颗，得先证明能卖一万颗；想卖一万颗，得先证明能卖一千颗——初创公司真正该被问的问题永远是，你的百颗、千颗、万颗客户在哪里。联合创始人Robert Wacken在融资活动上说,etched内部的核心信条就是「交付」,即比同期成立的其他初创公司早一年把芯片做出来，并打算尽量维持这种快速迭代节奏，推出下一代芯片。",
+    "spk": ""
+   }
+  ],
+  "quotes": [
+   {
+    "t": 64,
+    "spk": "",
+    "raw": "if the market pivots then what they've done might be for nothing",
+    "zh": "如果市场发生转向，他们做的这一切可能就白费了。"
+   },
+   {
+    "t": 185,
+    "spk": "",
+    "raw": "We're going to challenge Nvidia uh with an eight-way box claiming 500,000 tokens per second",
+    "zh": "我们要用一个八卡机箱挑战Nvidia,宣称能跑到每秒50万个token。"
+   },
+   {
+    "t": 368,
+    "spk": "",
+    "raw": "these ultra low voltage transistors run at around 450 molts, 0.45 volts, uh, which is really low",
+    "zh": "这些超低电压晶体管运行在大约450毫伏，也就是0.45伏，这真的很低。"
+   },
+   {
+    "t": 493,
+    "spk": "",
+    "raw": "You're actively accessing the cache and the scratchpad of another chip directly.",
+    "zh": "你是在直接访问另一颗芯片的缓存和scratch pad。"
+   },
+   {
+    "t": 555,
+    "spk": "",
+    "raw": "that's a lot of cabling. It's a lot of black cabling going here, there, and everywhere.",
+    "zh": "这线缆真是够多的。到处都是密密麻麻的黑色线缆。"
+   },
+   {
+    "t": 618,
+    "spk": "",
+    "raw": "what etched have solved here isn't so much the compute problem, but maybe a bandwidth problem",
+    "zh": "etched在这里解决的可能不是算力问题，而是带宽问题。"
+   },
+   {
+    "t": 739,
+    "spk": "",
+    "raw": "if you want to sell a million chips, you got to be able to sell 100,000. If you want to sell 100,000, you got to be able to sell 10,000.",
+    "zh": "如果你想卖出一百万颗芯片，得先能卖出十万颗。如果想卖出十万颗，得先能卖出一万颗。"
+   },
+   {
+    "t": 739,
+    "spk": "",
+    "raw": "the key ethos at etched is deliver deliver as in their internal metrics.",
+    "zh": "etched内部的核心信条就是「交付」,这是他们内部的考核指标。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "Etched B轮融资额",
+    "v": "8亿美元",
+    "t": 64
+   },
+   {
+    "k": "Etched C轮融资额",
+    "v": "3亿美元",
+    "t": 64
+   },
+   {
+    "k": "CEO Gavin Uberti创业时年龄",
+    "v": "23岁",
+    "t": 125
+   },
+   {
+    "k": "低电压推理晶体管阈值电压",
+    "v": "约450毫伏(0.45伏)",
+    "t": 368
+   }
+  ],
+  "terms": [
+   {
+    "term": "tape out",
+    "zh": "流片",
+    "def": "芯片设计定稿后送工厂正式制造的最后一步"
+   },
+   {
+    "term": "RDMA",
+    "zh": "远程直接内存访问",
+    "def": "绕过对方CPU,直接读写另一台设备内存或缓存的技术"
+   },
+   {
+    "term": "threshold voltage",
+    "zh": "阈值电压",
+    "def": "晶体管刚好能被打开(导通)所需的最低电压"
+   },
+   {
+    "term": "cluster scale memory",
+    "zh": "集群级内存互联",
+    "def": "etched提出的技术，让多颗芯片通过高速互联共享各自的SRAM缓存"
+   }
+  ],
+  "tags": [
+   "AI芯片",
+   "transformer专用芯片",
+   "算力效率",
+   "融资",
+   "带宽瓶颈"
+  ],
+  "quality": {
+   "transcript_source": "youtube",
+   "transcript_detail": "en",
+   "words": 2341,
+   "wpm": 160.3,
+   "timed": true,
+   "verified_quotes": 8,
+   "grounded_facts": 4,
+   "points": 8,
+   "pruned": 1,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-08-24T18:11:00Z",
+ "triage": {
+  "score": 8.0,
+  "why": "一手拆解Etched低压计算与集群级内存机制，指出未解问题，可迁移的技术判断",
+  "kind": "机制拆解"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 8,
+   "faithful": 8,
+   "selection": 8,
+   "concrete": 9,
+   "chinese": 7
+  },
+  "verdict": "上站",
+  "why": "要点是判断和机制而非转述,有具体数字(0.45伏/8亿美元/23岁),忠实度基本可靠,中文流畅但etched大小写不统一、个别推理超出所给证据。",
+  "worst": "[5:07]要点里\"比特币矿机…原因是挖矿算法只需要极少的数据进出\"这句因果解释,给的原文证据在此处被截断(只到\"Bitcoin mining. Turns out the Bitcoin\"),无法核实是否为原话推理还是撰稿人自行补充。"
+ },
+ "model": "claude-cli:sonnet"
+}

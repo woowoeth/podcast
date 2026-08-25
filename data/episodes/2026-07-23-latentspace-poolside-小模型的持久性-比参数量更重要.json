@@ -1,0 +1,235 @@
+{
+ "id": "latentspace-b022dbba0c",
+ "slug": "2026-07-23-latentspace-poolside-小模型的持久性-比参数量更重要",
+ "fingerprint": "60103046a601154e",
+ "source_id": "latentspace",
+ "source": "Latent Space",
+ "source_zh": "Latent Space",
+ "cat": "ai",
+ "tier": 1,
+ "lang": "en",
+ "title_original": "Inside the Model Factory — Eiso Kant, Poolside AI",
+ "published": "2026-07-23T05:09:14Z",
+ "duration": 6873,
+ "audio": "https://api.substack.com/feed/podcast/208082176/eb710305543a96a17ff4f67800586d98.mp3",
+ "link": "https://www.latent.space/p/poolside",
+ "image": "https://substackcdn.com/feed/podcast/1084089/post/208082176/2e16b76306e11c52de7b41229ff37b1f.jpg",
+ "youtube_id": "",
+ "transcript_url": "https://www.latent.space/p/poolside",
+ "digest": {
+  "title": "Poolside:小模型的持久性，比参数量更重要",
+  "dek": "Poolside用总参1180亿、激活80亿的小模型证明，持久性和验证行为比单纯堆参数量更能提升编程能力，这让他们相信开源小模型能打破巨头垄断的未来。",
+  "why": "关心模型训练工程细节、RL瓶颈和开源生态逻辑的人值得听完；纯八卦向听众可跳过中段技术段落。",
+  "who": "基础模型公司的研究/工程负责人，以及关注开源模型生态和RL训练瓶颈的投资人。",
+  "skip": "1:20:40附近Poolside名字由来和融资趣闻偏轶事，信息量较低，可跳过。",
+  "points": [
+   {
+    "t": 65,
+    "h": "一篇博客，四年后烧光1200万美元",
+    "body": "2015年Karpathy那篇讲RNN的博客让他连夜把公司方向转向用神经网络写代码，此后四五年里团队把RNN、LSTM、Transformer都试了一遍，方向是对的，却没意识到唯一要做的其实是继续扩大规模。团队烧掉1200万美元投资人的钱，他称之为职业生涯最大的失败，之后两年他基本没再碰语言模型，直到ChatGPT发布，他才等来某种迟到的平反。",
+    "spk": "Eiso Kant"
+   },
+   {
+    "t": 381,
+    "h": "宁要100家基础模型公司，不要5家",
+    "body": "Poolside创立之初和大多数实验室一样，不打算做开源。转折发生在今年年初：他们意识到世界正走向一个只有三四家公司决定所有智能未来的剧本，这在他看来更像反乌托邦小说而非科幻理想。因为自己还没跑到前沿，做这个决定的代价还不算高——他坦言真到了前沿位置，恐怕已经无法回头。于是他们选择开放研究和权重，理由很直接：宁可活在有100家基础模型公司的世界，也不要只剩5家，哪怕自己就是那5家之一。",
+    "spk": "Eiso Kant"
+   },
+   {
+    "t": 1098,
+    "h": "模型工厂:8周训完一个模型",
+    "body": "Poolside把模型训练当工业流程设计：三年前行业标配是先打包数据集、拷贝到训练集群再分发，一改数据就要重新打包，极费时间。他们转为把数据流式喂进训练，数据层保持不可变，每个token都能溯源到具体代码版本，两年前的实验仍可完全复现。团队不到70名研究员、35名工程师，月跑1万到2万次实验:Laguna XS2从开训到发布5周,Laguna S用8周,S一完成就当天开始训练更大的Medium。他现在看到的多是agent在写代码、跑实验、评估结果——递归自我改进的早期苗头。",
+    "spk": "Eiso Kant"
+   },
+   {
+    "t": 2146,
+    "h": "小模型靠死磕，不靠更聪明",
+    "body": "应用研究负责人Peng Ming告诉Eiso,Laguna S的进步更多来自行为变化而非更强的智能：更多验证、不轻易过早宣称成功、更持久地死磕问题。这款1180亿总参数、80亿激活参数、能塞进一台DGX Spark的小模型，独立解出了Erdős 397问题，也能在没有网络的情况下靠反复摸索底层API写出一个Wi-Fi扫描器。这让Eiso开始怀疑：知识工作(占全球经济约25%、合25万亿美元)所需模型规模的性价比拐点，可能远比他此前设想的要低——但他强调这不是反对继续做大模型，只是小模型里还有很多没被榨干的空间。",
+    "spk": "Eiso Kant"
+   },
+   {
+    "t": 2679,
+    "h": "怀疑堆RL环境是不是走偏了",
+    "body": "Eiso认为强化学习会越来越早地介入训练过程，而不只是训练完成后的后处理阶段——他把DeepSeek的R1-Zero论文视为业界最早的公开信号，即模型刚学会用语言时就能被诱导出推理行为。他直言当下整个行业有两种正在上瘾的「毒品」:一个是蒸馏，一个是不断堆砌更多RL环境，两者都让模型变好、让人感觉良好，但他坦承并不确定这是不是通往AGI的正确道路，也不确定网页数据里的信息是否已经被next-token predict充分榨取。",
+    "spk": "Eiso Kant"
+   },
+   {
+    "t": 4168,
+    "h": "MCP和工具调用是「蠢」的设计",
+    "body": "Eiso两年来一直坚持一个不太受欢迎的观点:MCP和传统工具调用其实很蠢。他的逻辑是，复杂长程任务本质上是在和数据源与系统打交道，与其在模型和系统之间插入MCP或工具调用层，不如直接给模型一个装好各种库、文档和API密钥的代码仓库，让它自己写代码、用if和for循环完成任务——RL训练出来的模型本能上就想这么干。他预测12个月内不会再有系统提示词里塞着二三十个工具的做法，但Poolside目前仍支持工具调用和并行工具调用，因为业界普遍还没转过来。",
+    "spk": "Eiso Kant"
+   },
+   {
+    "t": 5513,
+    "h": "限制开放模型，可能造就新的寡头",
+    "body": "Eiso反对任何一家公司单方面决定谁能用自己的模型去开发基础模型——他认为这类限制应该交给民主决策，而不是少数公司自己拍板。他举例说，禁止香烟广告本身是对的，但客观上造就了烟草行业的寡头垄断，因为新进入者再也无法靠打广告建立品牌。他担心类似的锁定效应会发生在AI上：一旦以现在的模型能力水平就开始限制开放模型，等于提前替未来判了死刑，而他认为当下的模型能力还远没有危险到需要这么做的地步。",
+    "spk": "Eiso Kant"
+   },
+   {
+    "t": 5785,
+    "h": "RL的瓶颈不是GPU数量，是批大小",
+    "body": "预训练可以用整个互联网当数据,batch size几乎可以无限扩大；但RL训练受限于任务/环境数量有限,batch size没法这样放大，这让RL训练时间成了真正的瓶颈，而不是GPU数量本身。Eiso因此很期待把推理里prefill/decode分离、用专用硬件处理不同阶段的思路搬进RL训练，也提到几天前刚看到一篇用比Poolside现有FP8更低精度做RL训练的博客。他反复强调：这是一场以日历时间而非GPU数量计算的比赛，缩短RL训练的墙钟时间可能是当下最能给全行业提速的杠杆。",
+    "spk": "Eiso Kant"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 65,
+    "spk": "Eiso Kant",
+    "raw": "I had built a completely unreasonable belief, that neural nets should be able to generalize to anything and everything, and that language should be able to generalize, to a lot of things that are intelligent and the ability to write code.",
+    "zh": "我当时形成了一个完全没道理的信念：神经网络应该能泛化到任何事情上，而语言应该能泛化出很多智能的东西，包括写代码的能力。"
+   },
+   {
+    "t": 381,
+    "spk": "Eiso Kant",
+    "raw": "I rather live in a world that has 100 foundation model companies than a world that has five, even if I was one of the five.",
+    "zh": "比起只有5家基础模型公司的世界，我宁愿活在有100家的世界里，哪怕我自己就是那5家之一。"
+   },
+   {
+    "t": 1098,
+    "spk": "Eiso Kant",
+    "raw": "The model that we’re gonna talk about today was eight weeks from start of training, to launch. We started the next model literally yesterday because we now finished the post-training required for the model we’re launching, next week or by the time this comes out today.",
+    "zh": "我们今天要谈的这个模型，从开始训练到发布只用了8周。下一个模型我们昨天就已经开始训练了，因为我们刚完成这次要发布的模型所需的后训练——就是下周，或者这期节目上线的时候。"
+   },
+   {
+    "t": 2146,
+    "spk": "Eiso Kant",
+    "raw": "I have the feeling that a lot of the gains in Laguna S come not from more intelligence, but more from different behavior, more verification, less taking things for granted, not declaring victory early, and being way more persistent.",
+    "zh": "我感觉Laguna S的很多进步并非来自更强的智能，而是来自不同的行为方式——更多验证、更少想当然、不过早宣布胜利，以及更加持久地坚持。"
+   },
+   {
+    "t": 2679,
+    "spk": "Eiso Kant",
+    "raw": "we’ve got some drugs in the industry. One of the drugs is distillation. Another drug is, more environments. Like, and they’re great, and they make us feel good, and they make the models better, and like we’re all addicted to them, and we’ll use them, right?",
+    "zh": "我们这个行业现在有几种「毒品」:一种是蒸馏，另一种是不断堆砌更多环境。它们确实很好用，让我们感觉良好，也确实能让模型变强，我们都对它们上瘾，也都会继续用。"
+   },
+   {
+    "t": 4168,
+    "spk": "Eiso Kant",
+    "raw": "I think MCP and tools are stupid.",
+    "zh": "我觉得MCP和工具调用都很蠢。"
+   },
+   {
+    "t": 5513,
+    "spk": "Eiso Kant",
+    "raw": "I always think back about when we banned advertising on cigarettes. Good thing. I’m not saying I’m against that. But it effectively established an oligopoly of cigarette companies because no one else could ever compete.",
+    "zh": "我总会想起当年我们禁止香烟打广告这件事。那是件好事，我不是说反对它。但它实际上造就了烟草公司的寡头垄断，因为再也没有别人能和它们竞争了。"
+   },
+   {
+    "t": 5785,
+    "spk": "Eiso Kant",
+    "raw": "The race is measured not in how many GPUs, but the race is measured on calendar time, and that’s probably one of the biggest impacts we can have right now to speed up our industry.",
+    "zh": "这场竞赛衡量的不是你有多少块GPU,而是日历时间，而这可能是我们现在能为整个行业提速所做的最大贡献之一。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "Sourced失败烧掉的投资",
+    "v": "1200万美元",
+    "t": 149
+   },
+   {
+    "k": "Poolside研究员/工程师人数",
+    "v": "不到70名研究员，另有35名工程师",
+    "t": 1098
+   },
+   {
+    "k": "Laguna XS2训练周期",
+    "v": "开训到发布共5周",
+    "t": 1098
+   },
+   {
+    "k": "Laguna S训练周期",
+    "v": "开训到发布共8周",
+    "t": 1098
+   },
+   {
+    "k": "Laguna S参数规模",
+    "v": "总参数1180亿，激活参数80亿",
+    "t": 3274
+   },
+   {
+    "k": "知识工作占全球经济比例",
+    "v": "约25%,合25万亿美元",
+    "t": 2285
+   },
+   {
+    "k": "新一代Laguna Medium训练周期",
+    "v": "39天",
+    "t": 4699
+   },
+   {
+    "k": "Poolside融资规模",
+    "v": "5亿美元",
+    "t": 4989
+   }
+  ],
+  "terms": [
+   {
+    "term": "RSI",
+    "zh": "递归式自我改进",
+    "def": "AI系统自己改进AI研发流程的能力，被视为逼近AGI的信号"
+   },
+   {
+    "term": "MCP",
+    "zh": "模型上下文协议",
+    "def": "让模型调用外部工具/数据源的标准协议,Eiso认为不如让模型直接写代码"
+   },
+   {
+    "term": "FP8/NVFP4",
+    "zh": "8位/4位低精度训练",
+    "def": "用更低数值精度训练模型以省算力，是Poolside押注的方向之一"
+   },
+   {
+    "term": "DGX Spark",
+    "zh": "英伟达桌面级AI计算设备",
+    "def": "可在单台设备上跑百亿参数模型的小型算力盒子"
+   },
+   {
+    "term": "prefill/decode disaggregation",
+    "zh": "预填充/解码分离",
+    "def": "推理中把处理提示词和生成回答拆到不同硬件,Eiso想搬进RL训练"
+   }
+  ],
+  "tags": [
+   "开源模型",
+   "模型训练",
+   "强化学习",
+   "AI基础设施",
+   "AGI",
+   "算力"
+  ],
+  "quality": {
+   "transcript_source": "notes",
+   "transcript_detail": "feed item full text",
+   "words": 22900,
+   "wpm": 199.9,
+   "timed": true,
+   "verified_quotes": 8,
+   "grounded_facts": 8,
+   "points": 8,
+   "pruned": 2,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-08-24T17:36:07Z",
+ "triage": {
+  "score": 8.0,
+  "why": "创始人详解模型工厂机制:月万级实验、8周训练流程、数据管线,可迁移方法多",
+  "kind": "机制拆解"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 9,
+   "faithful": 8,
+   "selection": 7,
+   "concrete": 9,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点多为具体机制与数字，忠实对照给出的原文片段无明显歪曲，仅个别推断(如RSI苗头)无法核实但不冲突",
+  "worst": "[34:12]抽样片段提到「网络才是真正瓶颈而非算力」这一具体论断，与成稿[1:36:25]的RL瓶颈论断可形成对比但未被采纳，略有遗漏"
+ },
+ "model": "claude-cli:sonnet"
+}

@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>训练语言模型本质上是在训练一个文本压缩器 — Andrej Karpathy · 原声</title>
+<meta name="description" content="交叉熵损失之所以被选中，是因为数学上可以证明它是唯一能保证「模型输出等于数据真实分布时损失最小」的函数形式，而这恰好等价于把模型训练成逼近香农极限的文本压缩器。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/p/2026-07-16-karpathy-训练语言模型本质上是在训练一个文本压缩器/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原声">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="训练语言模型本质上是在训练一个文本压缩器 — Andrej Karpathy · 原声">
+<meta property="og:description" content="交叉熵损失之所以被选中，是因为数学上可以证明它是唯一能保证「模型输出等于数据真实分布时损失最小」的函数形式，而这恰好等价于把模型训练成逼近香农极限的文本压缩器。">
+<meta property="og:url" content="https://ourword.ai/podcast/p/2026-07-16-karpathy-训练语言模型本质上是在训练一个文本压缩器/">
+<meta property="og:image" content="https://i4.ytimg.com/vi/GlYgs6v2YfU/hqdefault.jpg">
+<meta property="article:published_time" content="2026-07-16T11:56:04Z">
+<meta property="article:modified_time" content="2026-08-24T17:56:04Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="训练语言模型本质上是在训练一个文本压缩器 — Andrej Karpathy · 原声">
+<meta name="twitter:description" content="交叉熵损失之所以被选中，是因为数学上可以证明它是唯一能保证「模型输出等于数据真实分布时损失最小」的函数形式，而这恰好等价于把模型训练成逼近香农极限的文本压缩器。">
+<meta name="twitter:image" content="https://i4.ytimg.com/vi/GlYgs6v2YfU/hqdefault.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/icon.svg">
+<link rel="apple-touch-icon" href="/podcast/icon.svg">
+<link rel="alternate" type="application/rss+xml" title="原声" href="/podcast/feed.xml">
+<link rel="stylesheet" href="/podcast/assets/site.css">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-07-16-karpathy-训练语言模型本质上是在训练一个文本压缩器/#episode", "name": "训练语言模型本质上是在训练一个文本压缩器", "headline": "训练语言模型本质上是在训练一个文本压缩器", "description": "交叉熵损失之所以被选中，是因为数学上可以证明它是唯一能保证「模型输出等于数据真实分布时损失最小」的函数形式，而这恰好等价于把模型训练成逼近香农极限的文本压缩器。", "abstract": "交叉熵损失之所以被选中，是因为数学上可以证明它是唯一能保证「模型输出等于数据真实分布时损失最小」的函数形式，而这恰好等价于把模型训练成逼近香农极限的文本压缩器。", "datePublished": "2026-07-16T11:56:04Z", "dateModified": "2026-08-24T17:56:04Z", "url": "https://ourword.ai/podcast/p/2026-07-16-karpathy-训练语言模型本质上是在训练一个文本压缩器/", "timeRequired": "PT0M", "partOfSeries": {"@type": "PodcastSeries", "name": "Andrej Karpathy", "url": "https://ourword.ai/podcast/s/karpathy/"}, "inLanguage": "zh-CN", "isBasedOn": "https://www.youtube.com/watch?v=GlYgs6v2YfU", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "信息论, 交叉熵, 语言模型训练, 模型蒸馏, 压缩, KL散度, cross-entropy, KL divergence, distillation, Lagrange multiplier, Shannon limit, 机器人指令旧编码应对新分布时的交叉熵, 90/10偏态分布编码用于50/50均匀分布时的交叉熵, 《Language Trees and Zipping》论文发表年份", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首页", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "Andrej Karpathy", "item": "https://ourword.ai/podcast/s/karpathy/"}, {"@type": "ListItem", "position": 3, "name": "训练语言模型本质上是在训练一个文本压缩器"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/"><span class="wordmark">原声<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<a class="pill ghost" href="/podcast/sources/">信源</a>
+<a class="pill ghost" href="/podcast/feed.xml">RSS</a>
+<button class="icon-btn" data-theme-toggle aria-label="切换深浅色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，来原声听播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/">首页</a><span class="sep">/</span>
+<a href="/podcast/s/karpathy/">Andrej Karpathy</a>
+<span class="sep">/</span><span>2026-07-16</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">Andrej Karpathy</span>
+<time class="date" datetime="2026-07-16T11:56:04Z">2026-07-16</time></div>
+<h1>训练语言模型本质上是在训练一个文本压缩器</h1>
+<p class="dek-lead">交叉熵损失之所以被选中，是因为数学上可以证明它是唯一能保证「模型输出等于数据真实分布时损失最小」的函数形式，而这恰好等价于把模型训练成逼近香农极限的文本压缩器。</p>
+<div class="ep-meta"><span class="tag">信息论</span><span class="tag">交叉熵</span><span class="tag">语言模型训练</span><span class="tag">模型蒸馏</span><span class="tag">压缩</span><span class="tag">KL散度</span></div>
+</div>
+
+<section class="section"><div class="why">把「下一词预测」和「压缩」这两个听起来毫不相干的框架用一条公式钉在一起，适合想搞懂损失函数为什么长这样、而不只是会调用它的人。</div></section>
+
+<section class="section"><h2>核心论点 · 点时间戳可跳到原声</h2><div class="point" id="p0"><a class="ts" data-t="0" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=0s" target="_blank" rel="noopener">0:00</a><div><h4>gzip能画出语言家族树</h4>
+<p class="body">一篇2002年的论文只用gzip这种通用文件压缩，就能给不同语言的文本自动聚类，甚至还原出语系之间的谱系树，全程不依赖任何语言学先验知识。方法是把文档B的一个片段接到文档A末尾再压缩，比较这个结果和单独压缩A的文件大小差异——这个差值本质上是在问「为A优化的压缩方案，处理B的片段效果有多好」，同样的思路后来也被用来做文本作者识别。</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="373" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=373s" target="_blank" rel="noopener">6:13</a><div><h4>旧编码遇上新分布的代价</h4>
+<p class="body">如果一套编码方案是为某个分布Q优化的（比如给机器人指令up/down/left/right分配1/2、1/4、1/8、1/8的概率并设计对应比特长度），但实际数据变成了新分布P，继续用旧编码会产生浪费。按新分布重新加权计算这套旧编码平均要用掉的比特数，这个值就叫做「Q相对于P的交叉熵」——它衡量的正是「为一种情境优化的压缩方案，搬到另一种情境下表现如何」。</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="622" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=622s" target="_blank" rel="noopener">10:22</a><div><h4>交叉熵的最小值就是熵本身</h4>
+<p class="body">把交叉熵公式想象成固定P、让Q变化画出的曲线，会发现这条曲线总在Q等于P的地方取得最小值，而这个最小值恰好就是P的熵。这是因为交叉熵问的问题——「为一种设定优化的编码，在另一种设定下表现如何」——只有在两种设定完全一致时，压缩效率才能达到理论最优。这条性质是后面整个论证的枢纽。</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="1048" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=1048s" target="_blank" rel="noopener">17:28</a><div><h4>预训练损失就是每个token的平均信息量</h4>
+<p class="body">训练语言模型时，对训练数据里每一个真实出现的下一个token，取模型给它分配的概率的负对数，再对所有token取平均，这就是整个预训练的损失函数。模型越「聪明」，对真实发生的token给出的概率越高，对应的负对数值（信息量/惊讶程度）就越低；一个训练很差的模型则会对什么都不自信，处处感到「意外」。</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="1233" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=1233s" target="_blank" rel="noopener">20:33</a><div><h4>为什么必须是负对数，而不是随便一个递减函数</h4>
+<p class="body">常见的解释是「交叉熵公式里除了真实token那一项全是0，剩下的自然就是负对数」，但这解释不了为什么一开始要选交叉熵。更扎实的论证是：如果只要求某个函数F满足「全体训练样本的平均损失只有在模型输出分布等于数据真实统计分布时才取得最小值」，用拉格朗日乘子做约束优化可以证明F必须是对数函数——选择权其实并不在你手里，负对数是被数学逼出来的，而这时的平均损失公式恰好就是交叉熵的定义。</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="1601" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=1601s" target="_blank" rel="noopener">26:41</a><div><h4>蒸馏：把大模型的整个概率分布喂给小模型</h4>
+<p class="body">普通预训练每个token只给「真实发生的那一个」满权重，其余全是0；蒸馏则是让小模型对每个位置的预测去匹配大模型给出的完整概率分布，损失定义为小模型分布相对大模型分布的交叉熵。这样一个训练样本传递的信息量远大于普通预训练——好比学下棋不是只看一步实际走法，而是有个更强的人把每一步的所有候选走法和权重都讲给你听。</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="1788" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=1788s" target="_blank" rel="noopener">29:48</a><div><h4>交叉熵损失等价于训练一个文本压缩器</h4>
+<p class="body">从压缩的角度看，交叉熵天然衡量「一种压缩方案搬到另一种情境下有多浪费」；从语言模型训练的角度看，损失函数就是每个token的平均信息量。只要能把一个通用的预测器（比如语言模型）转化成一个压缩器——用大约等于该文本在模型看来的信息量那么多的比特去编码它——这两条线索就完全对上了：用交叉熵损失训练模型，等价于把它训练成尽可能好的文本压缩器。</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p7"><a class="ts" data-t="1909" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=1909s" target="_blank" rel="noopener">31:49</a><div><h4>KL散度：编码浪费了多少比特</h4>
+<p class="body">交叉熵减去熵，就得到KL散度（Kolbach-Leibler divergence），它专门衡量「用一套没优化好的编码方案，平均每个符号浪费了多少比特」。在机器学习里KL散度常被当作两个分布之间的「距离」，两分布相同时为0，差异越大越大，但它不对称——Q相对P的KL散度不等于P相对Q的KL散度，这也是为什么蒸馏时用交叉熵而非KL散度是一个值得琢磨的选择。</p>
+<span class="spk">— Grant Sanderson</span></div></div></section>
+<section class="section"><h2>原话 · 已逐字校验</h2><blockquote class="quote"><p class="raw">But whenever you see the same formula pop up in two separate contexts, it&#x27;s math&#x27;s way of kind of winking at you and hinting at a connection.</p>
+<p class="zh">但每当你看到同一个公式在两个不相关的场景里冒出来，这就是数学在向你眨眼睛，暗示背后有一层联系。</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="125" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=125s" target="_blank" rel="noopener">2:05</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">for an optimal code, the number of bits that you allocate to a given symbol looks like the negative log base 2 of the probability for that symbol showing up.</p>
+<p class="zh">对于最优编码而言，分配给某个符号的比特数，看起来就是该符号出现概率的负的以2为底的对数。</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="249" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=249s" target="_blank" rel="noopener">4:09</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">A very nice way to think about the loss function we use in this case is that you measure the average information per token from the model&#x27;s perspective.</p>
+<p class="zh">理解这里所用损失函数的一个很好的方式是：你衡量的是从模型视角看，每个token的平均信息量。</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="1048" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=1048s" target="_blank" rel="noopener">17:28</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">You might think this loss function would go by a name like information loss, or log loss, but in fact, people call it cross-entropy loss, which at first might sound really strange, given that nowhere in the explanation have we actually used the cross-entropy formula.</p>
+<p class="zh">你可能以为这个损失函数会被叫做「信息损失」或「对数损失」，但实际上人们把它叫做「交叉熵损失」，这一开始听起来会很奇怪，因为前面的解释里我们根本没用到交叉熵公式。</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="1233" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=1233s" target="_blank" rel="noopener">20:33</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">you would like it to be the case that the full average loss over all of the examples is minimized only when the model&#x27;s output matches the statistics that show up in the data, there&#x27;s actually a really nice mathematical argument for why F has to be a logarithm.</p>
+<p class="zh">如果你希望所有样本上的平均损失只在模型输出与数据中呈现的统计分布相匹配时才取得最小值，那么其实有一个很漂亮的数学论证，可以说明F必须是对数函数。</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="1478" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=1478s" target="_blank" rel="noopener">24:38</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">it&#x27;s the difference between trying to learn chess just by watching a game versus having someone better than you talk through all the possible good moves and how heavily they would weight them at each new turn.</p>
+<p class="zh">这就好比只是看一盘棋来学下棋，和有一个比你厉害的人把每一步所有可能的好棋以及他们会赋予的权重都讲给你听，这两者之间的区别。</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="1662" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=1662s" target="_blank" rel="noopener">27:42</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">And once you understand this, it makes clear how using cross-entropy loss is actually equivalent to training the model to be the best possible text compressor.</p>
+<p class="zh">一旦理解了这一点，就能看清使用交叉熵损失，实际上等价于把模型训练成尽可能好的文本压缩器。</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="1788" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=1788s" target="_blank" rel="noopener">29:48</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">In the language of compression, you would think of it as describing how many bits per symbol are you wasting by using a poorly optimized code.</p>
+<p class="zh">用压缩的语言来说，你可以把它理解为：使用一套没有优化好的编码方案，每个符号平均浪费了多少比特。</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="1909" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=1909s" target="_blank" rel="noopener">31:49</a></div>
+</blockquote></section>
+<section class="section"><h2>数字与实体</h3><table class="facts"><tr><td class="k">机器人指令旧编码应对新分布时的交叉熵</td><td class="v">2.625 bits/符号</td><td class="t"><a class="ts" data-t="373" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=373s" target="_blank" rel="noopener">6:13</a></td></tr>
+<tr><td class="k">90/10偏态分布编码用于50/50均匀分布时的交叉熵</td><td class="v">约1.74 bits/符号</td><td class="t"><a class="ts" data-t="560" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=560s" target="_blank" rel="noopener">9:20</a></td></tr>
+<tr><td class="k">《Language Trees and Zipping》论文发表年份</td><td class="v">2002年</td><td class="t"><a class="ts" data-t="0" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=0s" target="_blank" rel="noopener">0:00</a></td></tr></table></section>
+<section class="section"><h2>术语</h3><dl class="terms"><div><dt>cross-entropy<span>交叉熵</span></dt><dd>用为分布Q优化的编码去编码分布P的数据时，平均每个符号所需的比特数</dd></div>
+<div><dt>KL divergence<span>KL散度（相对熵）</span></dt><dd>交叉熵减去熵，衡量一套编码方案相对最优方案浪费了多少比特</dd></div>
+<div><dt>distillation<span>模型蒸馏</span></dt><dd>用大模型输出的完整概率分布而非单一正确答案来训练小模型</dd></div>
+<div><dt>Lagrange multiplier<span>拉格朗日乘子</span></dt><dd>求带约束条件下函数极值的一种数学方法</dd></div>
+<div><dt>Shannon limit<span>香农极限</span></dt><dd>无损压缩理论上能达到的最优比特数下界</dd></div></dl></section>
+<section class="section"><h2>收听指南</h3>
+<div class="panel guide">
+<div><span class="k">谁该听</span><p>对损失函数设计、信息论与深度学习交叉点感兴趣的工程师和研究者，尤其是想搞懂「交叉熵损失」命名由来的人。</p></div>
+<div><span class="k">可跳过</span><p>24:38处拉格朗日乘子的严格推导可跳过，不影响后续结论。</p></div>
+</div></section>
+<nav class="prevnext"><a href="/podcast/p/2026-07-20-interconnects-开闭源差距只剩-3-5-个月-这层时间差就是全部的安全边际/"><span class="lbl">← 更新</span><strong>开闭源差距只剩 3-5 个月，这层时间差就是全部的安全边际</strong></a><a class="r" href="/podcast/p/2026-07-10-dwarkesh-黑洞是效率-100-的发电厂-聚变只到百分之一/"><span class="lbl">更早 →</span><strong>黑洞是效率 100% 的发电厂，聚变只到百分之一</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原节目</h4>
+<div class="row"><span>节目</span><span>Andrej Karpathy</span></div>
+<div class="row"><span>原标题</span><span>But what is cross-entropy? | Compression is Intelligence Part 2</span></div>
+<div class="row"><span>发布</span><span>2026-07-16</span></div>
+<div class="row"><span>时长</span><span>—</span></div>
+<a class="row" href="https://www.youtube.com/watch?v=GlYgs6v2YfU" target="_blank" rel="noopener"><span>原页面</span><span>打开 ↗</span></a>
+
+<p class="note">时间戳会跳到原节目对应位置。</p>
+</div>
+
+<div class="panel"><h4>本篇结构</h4><nav class="toc"><a href="#p0"><span class="t">0:00</span><span>gzip能画出语言家族树</span></a>
+<a href="#p1"><span class="t">6:13</span><span>旧编码遇上新分布的代价</span></a>
+<a href="#p2"><span class="t">10:22</span><span>交叉熵的最小值就是熵本身</span></a>
+<a href="#p3"><span class="t">17:28</span><span>预训练损失就是每个token的平均信息量</span></a>
+<a href="#p4"><span class="t">20:33</span><span>为什么必须是负对数，而不是随便一个递减函数</span></a>
+<a href="#p5"><span class="t">26:41</span><span>蒸馏：把大模型的整个概率分布喂给小模型</span></a>
+<a href="#p6"><span class="t">29:48</span><span>交叉熵损失等价于训练一个文本压缩器</span></a>
+<a href="#p7"><span class="t">31:49</span><span>KL散度：编码浪费了多少比特</span></a></nav></div>
+
+<div class="panel"><h4>这篇是怎么来的</h4>
+<div class="row"><span>成稿评分</span><span>8 / 10</span></div>
+<div class="row"><span>文稿来源</span><span>YouTube 字幕</span></div>
+<div class="row"><span>文稿字数</span><span>6655</span></div>
+<div class="row"><span>语速核验</span><span>196.2 wpm</span></div>
+<div class="row"><span>逐字校验金句</span><span>8 条</span></div>
+<div class="row"><span>回溯校验数字</span><span>3 条</span></div>
+
+<p class="note">金句在逐字稿里逐字比对过，数字回原文核对过；对不上的当场删掉，不上站。
+成稿另经一道独立评审（信息密度／忠实度／选择力／具体性／中文），低于 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原声 · <a href="https://ourword.ai">OurWord.ai</a> 的播客线。内容为原播客的中文深读，
+版权归各节目所有；每篇都附原节目链接，请去支持原作者。</div>
+<div class="links"><a href="/podcast/">首页</a><a href="/podcast/sources/">信源</a>
+<a href="/podcast/feed.xml">RSS</a><a href="/podcast/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源码</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js" defer></script>
+</body></html>
