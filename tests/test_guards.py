@@ -119,6 +119,81 @@ class ScriptedEditsMustAssertTheirAnchor(unittest.TestCase):
             json.loads(blobs[0])
 
 
+class CuratorCannotSilentlyRewriteState(unittest.TestCase):
+    """事故：还在调的策展器每轮直接写 sources.json，10 档旧标准的候选进了清单
+    （含衍生源「硅谷101|中国版」），而我汇报时没核对清单被改成了什么样。"""
+
+    def test_curate_has_a_dry_run(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        src = (ROOT / "pipeline/curate.py").read_text()
+        self.assertIn("--dry-run", src, "策展必须能只出建议不写文件")
+        self.assertIn("dry", src)
+
+    def test_source_ids_survive_non_ascii(self):
+        """事故：slug_for 把非 ASCII 全删，「42章经」塌成 42、「脑放电波」塌成 src。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import curate
+        ids = {curate.slug_for(n, set()) for n in
+               ("42章经", "脑放电波", "AI实话实说", "硅谷101|中国版", "乱翻书")}
+        self.assertEqual(len(ids), 5, "中文名不该塌成同一批 id")
+        for i in ids:
+            self.assertGreaterEqual(len(i), 4, f"id {i!r} 太短，没有辨识度")
+            self.assertNotIn(i, {"42", "101", "src", "ai"})
+
+    def test_name_match_keeps_all_past_failures_passing(self):
+        """字符串相似度改了四版，每版失败的用例都留在这里——修 A 不能打破 B。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import curate
+        cases = [
+            ("Patrick", "Patrick Boyle", True),                    # 第一版栽在这
+            ("Patrick", "Patrick Bet-David Podcast", False),
+            ("Tomorrow Today", "The Tomorrow Show", False),        # 第二版栽在这
+            ("This Week in Tech (Audio)", "This Week in Startups", False),  # 第三版
+            ("硅谷101|中国版", "硅谷101", True),
+            ("Money Stuff", "Money Stuff: The Podcast", True),
+            ("刘洺堉", "Learn Persian with Chai", False),
+        ]
+        for want, got, expect in cases:
+            self.assertEqual(curate._name_match(want, got), expect,
+                             f"{want!r} vs {got!r}")
+
+
+class ScoringUsesTheWholeRange(unittest.TestCase):
+    """事故（2 次）：评分全挤在及格线上——成稿评审 16 篇全是 8，策展 7 档全是 8.0。"""
+
+    def test_prompts_warn_against_anchoring(self):
+        from lib import review
+        self.assertIn("把整个 0-10 区间用起来", review.SYSTEM)
+        src = (ROOT / "pipeline/curate.py").read_text()
+        self.assertIn("把区间用起来", src)
+
+    def test_inconsistent_scores_are_rejected_by_code(self):
+        """不指望模型自觉：理由里写着"补位有限"却给过线分的，用代码拦。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import curate
+        self.assertTrue(any(w in curate.HEDGE for w in ("重叠", "补位有限", "偏泛")))
+
+
+class ValueIsNotOnlyNumbers(unittest.TestCase):
+    """事故：把工程约束（能验证什么）写成了产品判断（什么是好内容），
+    用"无可核对数据"拒掉了一集严肃的投资哲学访谈。"""
+
+    def test_triage_accepts_argument_driven_value(self):
+        from lib import triage
+        self.assertIn("判断与框架", triage.SYSTEM)
+        self.assertIn("能不能被反驳", triage.SYSTEM)
+
+    def test_review_specificity_accepts_theses(self):
+        from lib import review
+        self.assertIn("判断型", review.SYSTEM)
+
+    def test_curation_score_excludes_obtainability(self):
+        """文稿可得性决定"能不能做"，不该进"该不该做"的分数。"""
+        src = (ROOT / "pipeline/curate.py").read_text()
+        self.assertIn("只评内容价值", src)
+        self.assertIn("def prerequisites", src)
+
+
 class DailyUpdateStaysWired(unittest.TestCase):
     """确保每日更新真的还开着——cron 被注释掉过一次。"""
 
