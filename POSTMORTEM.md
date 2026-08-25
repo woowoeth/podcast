@@ -23,6 +23,12 @@
 例外是有意为之的：选题闸门失灵时**应该**放行（它只是省钱的预筛，放行让稿子走到
 成稿评审那道真闸门去），这个区别写进了 `test_triage_unavailable_does_pass`。
 
+| 日更 cron 整轮失败，站上不更新 | `run.py` 发布成功后会自己 build，留下未跟踪的 `p/` 与 `s/`；紧接着 workflow 的 `git pull --rebase` 要覆盖它们，报 `could not detach HEAD` 中止，8 次重试全败 | CI 调用加 `--no-build`（workflow 后面统一从合并后的数据重建），并在 rebase 前 `git clean -fdq p s`。检查见 `test_ci_does_not_build_before_rebasing` |
+
+**这一条和第一条是同源的**：生成产物参与了合并。数据文件名唯一、永不冲突；
+生成产物应该从合并后的数据重建，任何让它们进入 merge/rebase 的写法都会周期性
+炸掉，而且炸在推送环节——正好是最容易被误报成 success 的地方。
+
 ---
 
 ## 二、基础设施抖动被当成内容缺失（重复 4 次）

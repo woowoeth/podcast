@@ -66,7 +66,7 @@ jobs:
           ONLY=""
           if [ -n "${{ github.event.inputs.only }}" ]; then ONLY="--only ${{ github.event.inputs.only }}"; fi
           if [ -n "${{ github.event.inputs.cat }}" ]; then ONLY="$ONLY --cat ${{ github.event.inputs.cat }}"; fi
-          python pipeline/run.py $ONLY --tiers feed,notes,page,asr --skip-residential \
+          python pipeline/run.py $ONLY --tiers feed,notes,page,asr --skip-residential --no-build \
             --days "${{ github.event.inputs.days }}" \
             --limit "${{ github.event.inputs.limit }}" \
             --per-source "${{ github.event.inputs.per_source }}" \
@@ -82,6 +82,12 @@ jobs:
           # 只提交数据。data/episodes 的文件名唯一，rebase 永远不冲突；
           # 生成产物（index.html / p/ / feed.xml …）永远从合并后的数据重建，
           # 不参与合并——这才是它们不该冲突的正确做法。
+          # rebase 之前清掉生成产物。run.py 发布成功后会自己 build 一次，留下未跟踪的
+          # p/ 与 s/；rebase 要覆盖它们就会 "could not detach HEAD" 直接中止 —— 日更
+          # 就是这么失败的。生成产物永远从合并后的数据重建，不该参与合并。
+          git clean -fdq p s 2>/dev/null || true
+          git checkout -q -- index.html sources feed.xml sitemap.xml robots.txt 404.html \
+                            search.json llms.txt llms-full.txt 2>/dev/null || true
           git add data/episodes data/state.json data/sources.json 2>/dev/null || true
           if git diff --cached --quiet; then echo "nothing new"; exit 0; fi
           N=$(git diff --cached --name-only | grep -c 'data/episodes/' || true)

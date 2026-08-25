@@ -134,6 +134,16 @@ class DailyUpdateStaysWired(unittest.TestCase):
         self.assertIn("--skip-residential", body,
                       "云端必须跳过住宅 IP 专属源，否则每天白试并污染失败计数")
 
+    def test_ci_does_not_build_before_rebasing(self):
+        """事故：run.py 发布后自己 build，留下未跟踪的 p/ 与 s/，
+        紧接着的 git pull --rebase 报 "could not detach HEAD"，日更整轮失败。"""
+        for wf in ("daily.yml", "backfill.yml"):
+            body = (ROOT / ".github/workflows" / wf).read_text()
+            self.assertIn("--no-build", body,
+                          f"{wf} 没让 run.py 跳过 build，rebase 会被未跟踪的生成产物挡住")
+            self.assertIn("git clean -fdq p s", body,
+                          f"{wf} 缺少 rebase 前清理生成产物的兜底")
+
     def test_local_runner_commits_and_pushes(self):
         # 事故：我直接跑 run.py 而不是 local-daily.sh，8 篇产出躺在本地没上线
         sh = (ROOT / "scripts/local-daily.sh").read_text()
