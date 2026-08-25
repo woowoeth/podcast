@@ -306,15 +306,26 @@ h1.sec-title, h2.sec-title, .sec-title{font-family:var(--serif);
 @media (max-width:640px){ .ev-why{grid-column:1/-1} }
 
 /* -------------------------------------------------------------------- share */
+/* 组件自己声明完整的排版，不从容器继承 text-transform / letter-spacing：
+   .kicker 是 uppercase + .08em 字距，继承过来会把"分享"两个字撑变形。
+   在容器里反复覆盖是治症状，让组件免疫才是治因。 */
 .share-btn{display:inline-flex; align-items:center; gap:6px; cursor:pointer;
   padding:5px 11px 5px 9px; border:1px solid var(--rule); border-radius:999px;
   background:transparent; color:var(--muted); font:inherit; font-size:12px;
-  font-weight:600; line-height:1.4; -webkit-tap-highlight-color:transparent;
+  font-weight:600; line-height:1.4; text-transform:none; letter-spacing:normal;
+  white-space:nowrap; -webkit-tap-highlight-color:transparent;
   transition:color .15s, border-color .15s, background .15s}
 .share-btn svg{width:14px; height:14px; flex:none}
 .share-btn:hover{color:var(--accent); border-color:var(--accent)}
 .share-btn:active{transform:translateY(1px)}
-.ep-meta .share-btn{margin-left:auto}
+/* 日期已经用 margin-left:auto 顶到行尾，分享跟在它后面只需要一点间距。
+   窄到放不下三个（实测 310px：节目名 120 + 日期 80 + 按钮 66 超过可用宽度）时
+   允许换行，让按钮掉到第二行——否则 flex 会去压缩前两个，把节目名和日期都
+   挤成两行。日期本身一律不折字。 */
+.kicker .share-btn{margin-left:12px}
+.ep-head .kicker{align-items:center; flex-wrap:wrap; row-gap:8px}
+.ep-head .kicker .date{white-space:nowrap}
+.ep-head .kicker .src{min-width:0}
 .page-head{display:flex; align-items:baseline; gap:16px; justify-content:space-between}
 /* .toolbar-in 是 row + wrap：margin-left:auto 在桌面把它推到同一行右端，
    在手机上换行后同样贴右——不需要额外的断点覆盖 */

@@ -132,7 +132,9 @@ class PageStructureStaysValid(unittest.TestCase):
         """容器给子组件定位不算串味。判据必须能分清「改位置」和「改外观」，
         否则只能靠 allowlist 越堆越长，而 allowlist 迟早会把真的串味放过去。"""
         css = (ROOT / "assets/site.css").read_text()
-        self.assertIn(".ep-meta .share-btn{margin-left:auto}", css)   # 只改位置，放过
+        self.assertIn(".kicker .share-btn{margin-left:12px}", css)    # 只改位置，放过
+        # 组件必须自己声明排版，否则会继承 .kicker 的 uppercase 和字距
+        self.assertIn("text-transform:none; letter-spacing:normal", css)
 
     def test_family_scoping_is_not_reported_as_a_collision(self):
         # 判据要分清「跨组件撞名」和「同组件内作用域覆盖」，不然只能靠 allowlist

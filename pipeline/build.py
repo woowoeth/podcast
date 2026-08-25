@@ -514,10 +514,11 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
 <article>
 <div class="ep-head">
 <div class="kicker" data-cat="{e(ep.get('cat'))}"><span class="src">{e(src_label)}</span>
-<time class="date" datetime="{e(ep.get('published'))}">{e(date)}</time></div>
+<time class="date" datetime="{e(ep.get('published'))}">{e(date)}</time>
+{share_button(episode_share_text(ep), url=ep_url(ep), title=d.get('title') or '')}</div>
 <h1>{e(d.get('title'))}</h1>
 <p class="dek-lead">{e(d.get('dek'))}</p>
-<div class="ep-meta">{tags}{share_button(episode_share_text(ep), url=ep_url(ep), title=d.get('title') or '')}</div>
+<div class="ep-meta">{tags}</div>
 </div>
 
 {f'<section class="section"><div class="why">{e(d.get("why"))}</div></section>' if d.get('why') else ''}
