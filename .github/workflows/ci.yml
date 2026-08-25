@@ -1,0 +1,97 @@
+name: ci
+
+# 这个 workflow 本该一开始就有。仓库里 140 多项守护检查，在它之前**从来没在 CI 里
+# 跑过**——只在我记得跑的时候跑。于是接连出了几次"改完直接推、推完才发现"的事故：
+# 提交了指向仓库自身的符号链接（Pages 打包无限递归）、心跳 heredoc 静默失效、
+# 本机脚本的产物清单漏了两个目录、推送重试用 reset --soft 把源码回退。
+# 每一个都能被这里的某一项挡住。
+#
+# 也包括 bot 的提交：bot 有权限写 main，那它就必须过同一道闸门。
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # 同一个分支上连着推几次，只验最后一次
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 守护检查与单元测试
+        run: |
+          python -m pip install --quiet pyyaml
+          python -m unittest discover -s tests -v 2>&1 | tail -30
+
+      - name: shell 语法
+        run: |
+          for f in scripts/*.sh; do bash -n "$f" || exit 1; done
+          echo "所有脚本语法正常"
+
+      - name: workflow YAML 可解析
+        run: |
+          python - <<'EOF'
+          import glob, sys, yaml
+          bad = 0
+          for f in sorted(glob.glob(".github/workflows/*.yml")):
+              try:
+                  yaml.safe_load(open(f)); print("ok", f)
+              except Exception as e:
+                  print("::error::%s: %s" % (f, e)); bad = 1
+          sys.exit(bad)
+          EOF
+
+      - name: 入库的符号链接不许指回仓库内部
+        run: |
+          # 这一条炸的是部署而不是代码，测试全绿也看不出来：一个指向仓库自身的
+          # 符号链接会让 Pages 的 Upload artifact 无限递归，卡死整轮部署。
+          bad=0
+          git ls-files -s | awk '$1=="120000"{print $4}' | while read -r f; do
+            target=$(cd "$(dirname "$f")" && readlink -f "$(basename "$f")" 2>/dev/null || true)
+            case "$target" in
+              "$GITHUB_WORKSPACE"*) echo "::error::$f -> $target 指回仓库内部"; exit 1;;
+            esac
+          done || bad=1
+          exit $bad
+
+      - name: 构建是幂等的
+        run: |
+          # 同样的数据连续构建两次必须一字不差。不成立说明生成产物里混进了时间戳
+          # 或随机顺序，而那会让每一轮跑批都在生成产物上冲突。
+          python pipeline/build.py >/dev/null
+          git diff --stat > /tmp/a.txt
+          git status --porcelain | sort > /tmp/a2.txt
+          python pipeline/build.py >/dev/null
+          git diff --stat > /tmp/b.txt
+          git status --porcelain | sort > /tmp/b2.txt
+          diff /tmp/a.txt /tmp/b.txt && diff /tmp/a2.txt /tmp/b2.txt \
+            || { echo "::error::构建不幂等，两次结果不同"; exit 1; }
+          echo "连续两次构建结果一致"
+
+      - name: 生成产物和仓库里的一致
+        run: |
+          # 有人用 --no-build 发了内容却没重建，或者重建被打断——站上就会缺页。
+          if ! git diff --quiet; then
+            echo "::error::重新构建后产物有差异：说明推上来的生成产物是旧的"
+            git diff --stat
+            exit 1
+          fi
+          echo "仓库里的生成产物是最新的"
+
+      - name: 体检（只查文件）
+        run: python pipeline/healthcheck.py

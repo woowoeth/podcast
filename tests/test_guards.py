@@ -3,6 +3,7 @@
 这些不测业务逻辑，测的是"我上次是怎么犯错的"。每一条都对应 POSTMORTEM 里一条
 真实事故；纯文档防不住重犯，能断言的就断言。
 """
+import os
 import pathlib
 import re
 import subprocess
@@ -808,4 +809,35 @@ class LocalLineCommitsEverythingItBuilds(unittest.TestCase):
         src = (ROOT / "pipeline" / "heartbeat.py").read_text()
         self.assertIn("print(", src, "心跳必须自己出声——它静默失效过一次")
         self.assertTrue(hasattr(heartbeat, "write"))
+
+
+class ChecksMustRunWithoutBeingRemembered(unittest.TestCase):
+    """最根本的一条：这个仓库有 140 多项守护检查，但在 ci.yml 之前它们**从来没在
+    CI 里跑过**——只在我记得跑的时候跑。于是接连出了几次"改完直接推、推完才发现"
+    的事故。靠自觉记得跑检查不是流程，是运气。"""
+
+    def test_ci_runs_the_test_suite_on_every_push(self):
+        ci = ROOT / ".github" / "workflows" / "ci.yml"
+        self.assertTrue(ci.exists(), "没有 CI——检查等于没有")
+        src = ci.read_text()
+        self.assertIn("unittest discover", src)
+        self.assertIn("push:", src, "只在 PR 上跑不够：bot 直接推 main")
+
+    def test_ci_covers_the_things_tests_cannot_see(self):
+        src = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+        # 递归符号链接炸的是部署，测试全绿也看不出来
+        self.assertIn("120000", src, "没检查入库的符号链接")
+        # 构建不幂等会让每轮跑批在生成产物上冲突
+        self.assertIn("幂等", src)
+        # --no-build 之后没重建，站上会缺页
+        self.assertIn("git diff --quiet", src)
+
+    def test_preflight_exists_and_mirrors_ci(self):
+        pf = ROOT / "scripts" / "preflight.sh"
+        self.assertTrue(pf.exists(), "本地没有一条命令能跑完全部检查")
+        src = pf.read_text()
+        for need in ("unittest discover", "bash -n", "120000",
+                     "healthcheck.py", "build.py"):
+            self.assertIn(need, src, f"preflight 少了 {need}")
+        self.assertTrue(os.access(pf, os.X_OK), "preflight.sh 没有可执行位")
 
