@@ -382,9 +382,21 @@ def main() -> int:
     ap.add_argument("--spend-subscription", action="store_true",
                     help="confirm that running on the local claude CLI may spend your "
                          "Claude subscription allowance (required above --limit 3)")
+    ap.add_argument("--reconcile", action="store_true",
+                    help="只把 state.json 和磁盘上的 data/episodes 对齐后退出。"
+                         "推送重试时用：状态是索引，不做三方合并，从数据重建")
     ap.add_argument("--dry-run", action="store_true", help="stop before any model call")
     ap.add_argument("--no-build", action="store_true")
     a = ap.parse_args()
+
+    # 只对齐状态就退出：推送重试时用。放在最前面，不需要 LLM、不碰网络。
+    if a.reconcile:
+        st = load_state()
+        n = reconcile(st)
+        save_state(st)
+        log(f"reconcile: 从磁盘对齐了 {n} 条")
+        return 0
+
     _ceiling["words"] = a.max_words
     _triage["on"] = not a.no_triage
     _triage["min"] = a.triage_min
@@ -426,7 +438,11 @@ def main() -> int:
         log(f"--jobs {a.jobs} clamped to {cap} for the {llm.provider()} backend")
         a.jobs = cap
     rl = llm.roles()
+    # map 单列出来：长集的分段抽取次数最多，它走的是哪个模型直接决定这一轮花多少。
+    # 不打出来的话，"推理预算省着用"就是一句无法核对的话。
+    same = rl["map"] == rl["digest"]
     log(f"run · {iso(now())} · {llm.provider()} · 深读 {rl['digest']} / "
+        f"分段 {rl['map']}{'（同上，长集会烧推理预算）' if same else ''} / "
         f"选题 {rl['triage']} / 评审 {rl['review']} · "
         f"asr={'on' if T.ASR_KEY else 'off'} · budget={a.limit}")
     log(f"  endpoint: {llm.endpoint()}")

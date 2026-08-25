@@ -136,7 +136,7 @@ def _map_reduce(ep: dict, src: dict, text: str, chapters: list[dict]) -> dict:
             r = llm.call_json(MAP_SYSTEM,
                               f"节目：{src.get('zh') or src['name']}\n这一集：{ep['title']}\n"
                               f"片段 {i+1}/{len(parts)}\n\n{MAP_SCHEMA}\n\n逐字稿片段：\n<<<\n{part}\n>>>",
-                              max_tokens=4000)
+                              max_tokens=4000, role="map")
         except Exception as e:
             log(f"    chunk {i+1} failed: {type(e).__name__}: {str(e)[:120]}")
             continue
@@ -147,12 +147,31 @@ def _map_reduce(ep: dict, src: dict, text: str, chapters: list[dict]) -> dict:
         raise RuntimeError("map pass produced nothing")
     digest_in = json.dumps({"notes": notes, "quotes": quotes, "facts": facts},
                            ensure_ascii=False)[:120000]
-    return llm.call_json(
+    return _compose(
         SYSTEM + "\n\n下面给你的是同一集按时间顺序的分段笔记。请合并成一篇完整深读，"
                  "去掉重复、保留最有信息量的部分。时间戳沿用笔记里的时间戳，不要新造。",
         f"节目：{src.get('zh') or src['name']}\n这一集：{ep['title']}\n"
         f"时长：{hhmmss(ep.get('duration'))}\n\n{SCHEMA}\n\n分段笔记：\n{digest_in}",
-        max_tokens=8000)
+        8000)
+
+
+# 推理模型把 max_tokens 全花在思考上、正文返空，是真实发生的（32000 全用完）。
+# 这时再拿同一个模型重试只会重复烧钱：预算不够是结构性的，不是抖动。换便宜模型
+# 接手，起码这一次尝试有产出——而产出还要过机械闸门和成稿评审，兜不住会被拦下。
+_BUDGET_BLOWN = "推理把 max_tokens"
+
+
+def _compose(system: str, user: str, max_tokens: int) -> dict:
+    try:
+        return llm.call_json(system, user, max_tokens=max_tokens)
+    except RuntimeError as e:
+        if _BUDGET_BLOWN not in str(e):
+            raise
+        cheap = llm.model_name("map")
+        if cheap == llm.model_name("digest"):
+            raise
+        log(f"    推理预算被思考吃光，换 {cheap} 重做这一步（省一次推理调用）")
+        return llm.call_json(system, user, max_tokens=max_tokens, role="map")
 
 
 def build(ep: dict, src: dict, tr: dict, chapters: list[dict]) -> dict:
@@ -161,7 +180,7 @@ def build(ep: dict, src: dict, tr: dict, chapters: list[dict]) -> dict:
     if len(text) > MAX_CHARS:
         raw = _map_reduce(ep, src, text, chapters)
     else:
-        raw = llm.call_json(SYSTEM, _prompt(ep, src, text, chapters), max_tokens=8000)
+        raw = _compose(SYSTEM, _prompt(ep, src, text, chapters), 8000)
     return normalize(raw)
 
 

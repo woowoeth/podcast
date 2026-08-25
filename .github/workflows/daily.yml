@@ -58,6 +58,9 @@ jobs:
           LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
           LLM_MODEL:    ${{ secrets.LLM_MODEL }}
           # 选题用便宜模型，评审换一家——同一个模型给自己的作业打分会偏袒
+          # 长集分段抽取用便宜模型。不配就回落到 LLM_MODEL_TRIAGE，
+          # 所以不需要新加 secret 也已经省下来了。
+          LLM_MODEL_MAP: ${{ secrets.LLM_MODEL_MAP }}
           LLM_MODEL_TRIAGE: ${{ secrets.LLM_MODEL_TRIAGE }}
           LLM_MODEL_REVIEW: ${{ secrets.LLM_MODEL_REVIEW }}
           # 'bearer' when LLM_API_KEY is an OAuth token rather than an API key.
@@ -119,7 +122,15 @@ jobs:
             if git push; then ok=1; break; fi
             # 生成产物冲突一律以重建为准，不做三方合并
             git fetch origin main
-            git reset --soft origin/main
+            # 三步都必需：--mixed 让索引对齐远端（--soft 会让下一个提交回退
+            # 别人推上来的源码，真出过事）；取回远端有而本机没有的数据文件，
+            # 否则 git add 会把别人刚发的内容当成删除提交上去；state.json 是索引
+            # 不是真相，从磁盘重建而不是三方合并。
+            git reset --mixed origin/main
+            git diff --name-only --diff-filter=D -- data | while read -r f; do
+              git checkout -- "$f" 2>/dev/null || true
+            done
+            python pipeline/run.py --reconcile || true
             python pipeline/build.py
             git add -A
             git diff --cached --quiet && { ok=1; break; }

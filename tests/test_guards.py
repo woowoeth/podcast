@@ -23,14 +23,23 @@ class PushLoopsMustFailLoudly(unittest.TestCase):
     def test_every_push_retry_loop_checks_its_result(self):
         for wf in ("daily.yml", "backfill.yml", "rescore.yml"):
             body = self._steps(wf)
-            for m in re.finditer(r"for i in \$\(seq 1 \d+\); do(.*?)done", body, re.S):
-                blk = m.group(1)
-                if "git push" not in blk:
+            # 不去匹配 do...done 的配对：循环体里一旦出现嵌套的 while/for，
+            # 非贪婪的 `done` 会提前收口，判据就自己失效了（真发生过）。
+            # 改成从 `for` 往后取一段窗口，看结果检查在不在里面。
+            for m in re.finditer(r"for i in \$\(seq 1 \d+\); do", body):
+                win = body[m.start():m.start() + 1800]
+                if "git push" not in win:
                     continue
-                tail = body[m.end():m.end() + 400]
                 self.assertTrue(
-                    re.search(r'\$ok"?\s*!?=\s*1|exit 1|::error::', tail + blk),
+                    re.search(r'\$ok"?\s*!?=\s*1|exit 1|::error::', win),
                     f"{wf} 里有个含 git push 的重试循环没有检查结果")
+
+    def test_the_guard_survives_a_nested_loop(self):
+        """这条守护自己踩过的坑：判据去配 do…done，循环体里加了个嵌套 while 之后
+        非贪婪的 done 提前收口，含 git push 的循环被跳过，检查静默失效。"""
+        body = self._steps("daily.yml")
+        self.assertIn("while read -r f", body)          # 确实有嵌套循环
+        self.assertRegex(body, r'\[ "\$ok" = 1 \] \|\| \{|if \[ "\$ok" != 1 \]')
 
     def test_workflows_do_not_swallow_push_failure_with_bare_break(self):
         for wf in ("daily.yml", "backfill.yml"):
@@ -525,4 +534,114 @@ class NoSymlinkPointsBackIntoTheRepo(unittest.TestCase):
     def test_preview_dir_is_ignored(self):
         gi = (ROOT / ".gitignore").read_text()
         self.assertIn(".preview/", gi)
+
+
+class ScheduledJobsMustBeProvenNotAssumed(unittest.TestCase):
+    """事故：plist 装好了、launchctl list 里也在，我就当它在跑。实际 runs = 0——
+    仓库在 ~/Desktop（macOS TCC 保护目录），LaunchAgent 读它得到
+    Operation not permitted，每天到点静默失败，而站上不更新没人会注意。"""
+
+    TCC = ("/Desktop/", "/Documents/", "/Downloads/")
+
+    def test_agent_working_copy_is_outside_tcc_protected_dirs(self):
+        plist = (ROOT / "scripts" / "com.ourword.podcast.plist").read_text()
+        for d in self.TCC:
+            self.assertNotIn(d, plist,
+                             f"plist 指向了 TCC 保护目录 {d}，LaunchAgent 读不了")
+
+    def test_plist_is_a_template_not_someones_home_path(self):
+        plist = (ROOT / "scripts" / "com.ourword.podcast.plist").read_text()
+        self.assertIn("__DIR__", plist)
+        self.assertNotIn("/Users/", plist, "模板里不该写死某台机器的家目录")
+
+    def test_install_script_tells_you_to_run_it_once(self):
+        # 从没跑过的定时任务等于没有
+        sh = (ROOT / "scripts" / "install-agent.sh").read_text()
+        self.assertIn("kickstart", sh)
+        self.assertIn("launchd.err", sh, "没告诉人去哪看环境类失败")
+        self.assertIn("TCC", sh, "没写清为什么工作副本不能放桌面")
+
+
+class ReasoningBudgetIsSpentOnlyWhereItMatters(unittest.TestCase):
+    """长集的 map 遍是纯抽取（从一段逐字稿里挑要点、原话、数字），没有判断可言。
+    让推理模型干这个，一集能烧掉十几次 32000 token 的思考预算，产出却和便宜模型
+    没区别。而推理预算被思考吃光、正文返空，是真实发生过的。"""
+
+    def test_map_pass_does_not_use_the_digest_model(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib, os
+        from lib import llm
+        old = dict(os.environ)
+        try:
+            os.environ["LLM_MODEL"] = "deepseek-reasoner"
+            os.environ["LLM_MODEL_TRIAGE"] = "deepseek-chat"
+            os.environ.pop("LLM_MODEL_MAP", None)
+            importlib.reload(llm)
+            self.assertEqual(llm.model_name("map"), "deepseek-chat",
+                             "map 没单独配置时该借用便宜模型，而不是掉到推理模型")
+            self.assertEqual(llm.model_name("digest"), "deepseek-reasoner")
+            # 显式配置优先
+            os.environ["LLM_MODEL_MAP"] = "some-other"
+            importlib.reload(llm)
+            self.assertEqual(llm.model_name("map"), "some-other")
+        finally:
+            os.environ.clear(); os.environ.update(old)
+            importlib.reload(llm)
+
+    def test_map_call_site_passes_the_role(self):
+        # 光加角色没用，调用处不传就还是走 digest 模型
+        src = (ROOT / "pipeline" / "lib" / "digest.py").read_text()
+        i = src.index("def _map_reduce")
+        self.assertIn('role="map"', src[i:src.index("def _compose")])
+
+    def test_budget_blowout_falls_back_instead_of_retrying_the_reasoner(self):
+        # 预算不够是结构性的，不是抖动——同一个模型重试只会重复烧钱
+        src = (ROOT / "pipeline" / "lib" / "digest.py").read_text()
+        i = src.index("def _compose")
+        body = src[i:src.index("def build")]
+        self.assertIn("_BUDGET_BLOWN", body)
+        self.assertIn('role="map"', body)
+        # 两个模型相同就别兜圈子
+        self.assertIn('cheap == llm.model_name("digest")', body)
+
+    def test_both_compose_paths_go_through_the_fallback(self):
+        src = (ROOT / "pipeline" / "lib" / "digest.py").read_text()
+        # 单遍和 map-reduce 的合并遍都得走 _compose，漏一个就还有一条烧钱的路
+        self.assertGreaterEqual(src.count("_compose("), 3)
+
+
+class BotPushMustNotRevertSourceCode(unittest.TestCase):
+    """事故：bot 的 "digest + build (local)" 提交删掉了 install-agent.sh、
+    POSTMORTEM 的一整节、26 行守护检查，还把 plist 指回了受 TCC 保护的桌面路径。
+
+    根因是推送重试里的 `git reset --soft origin/main`：--soft 只移动 HEAD，
+    索引仍是旧基线的整棵树，于是下一个提交把这期间别人推上来的源码全部回退。
+    这是 POSTMORTEM 七"git add -A 把源码扫进 bot 提交"的第二次，形状不同、
+    后果一样：bot 有权限静默改源码。"""
+
+    FILES = ("scripts/local-daily.sh", ".github/workflows/daily.yml",
+             ".github/workflows/backfill.yml", ".github/workflows/curate.yml")
+
+    def test_no_soft_reset_in_any_push_path(self):
+        for f in self.FILES:
+            src = (ROOT / f).read_text()
+            self.assertNotIn("reset --soft", src, f"{f} 还在用 --soft")
+            self.assertNotIn("reset -q --soft", src, f"{f} 还在用 --soft")
+
+    def test_data_retry_restores_files_deleted_from_the_worktree(self):
+        # 远端有而本机磁盘没有的数据文件，在 git 眼里是"被删除"；
+        # 直接 git add data 会把别人刚发的内容删掉。
+        for f in ("scripts/local-daily.sh", ".github/workflows/daily.yml",
+                  ".github/workflows/backfill.yml"):
+            src = (ROOT / f).read_text()
+            self.assertIn("--diff-filter=D", src, f"{f} 没取回被删的数据文件")
+            self.assertIn("--reconcile", src, f"{f} 没从磁盘重建 state.json")
+
+    def test_reconcile_flag_exists_and_needs_no_llm(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        self.assertIn('"--reconcile"', src)
+        # 必须在需要 LLM 后端的检查之前就返回，否则重试路径会因为没配 key 而失败
+        i = src.index("if a.reconcile:")
+        j = src.index("_ceiling[\"words\"] = a.max_words")
+        self.assertLess(i, j, "--reconcile 的早退必须在其余初始化之前")
 

@@ -114,7 +114,17 @@ export LLM_MODEL
     if git push -q origin main; then echo "已推送"; exit 0; fi
     echo "push 重试 $i"
     git fetch -q origin main
-    git reset -q --soft origin/main
+    # 冲突时不做三方合并。三步都必需：
+    #   --mixed  索引对齐远端。用 --soft 的话索引还是旧基线的整棵树，下一个提交会把
+    #            这期间别人推上来的源码全部回退——真出过事（见 POSTMORTEM 七）。
+    #   取回删除 远端有而本机磁盘没有的数据文件，此刻在 git 眼里是"被删除"，
+    #            直接 git add 会把别人刚发的内容删掉。只取回缺失的，不覆盖我们改过的。
+    #   reconcile state.json 是索引不是真相，从磁盘重建，不参与合并。
+    git reset -q --mixed origin/main
+    git diff --name-only --diff-filter=D -- data | while read -r f; do
+      git checkout -q -- "$f" 2>/dev/null || true
+    done
+    python3 pipeline/run.py --reconcile >/dev/null 2>&1 || true
     python3 pipeline/build.py >/dev/null
     git add data/episodes data/state.json data/sources.json $SITE_FILES 2>/dev/null || true
     if git diff --cached --quiet; then echo "已是最新，无需推送"; exit 0; fi

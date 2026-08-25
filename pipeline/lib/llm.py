@@ -27,6 +27,10 @@ MODEL = (os.environ.get("LLM_MODEL") or "").strip()
 # 就能切换，所以这个拆分几乎没有额外成本。
 MODEL_TRIAGE = (os.environ.get("LLM_MODEL_TRIAGE") or "").strip()
 MODEL_REVIEW = (os.environ.get("LLM_MODEL_REVIEW") or "").strip()
+# 长集的 map 遍是纯抽取——从一段逐字稿里挑出要点、原话、数字，没有判断可言。
+# 让推理模型干这个，一集能烧掉十几次 32000 token 的思考预算，而产出和便宜模型
+# 没有区别。默认回落到选题用的那个便宜模型。
+MODEL_MAP = (os.environ.get("LLM_MODEL_MAP") or "").strip()
 FORCE = (os.environ.get("LLM_PROVIDER") or "").strip().lower()
 # Anthropic accepts two credential shapes on different headers. An API key goes
 # on x-api-key; an OAuth token (from `ant auth login` / Claude Code) goes on
@@ -93,8 +97,13 @@ def endpoint() -> str:
 
 
 def model_name(role: str = "digest") -> str:
-    """role: digest | triage | review。未单独配置时回落到 LLM_MODEL。"""
-    override = {"triage": MODEL_TRIAGE, "review": MODEL_REVIEW}.get(role, "")
+    """role: digest | map | triage | review。未单独配置时回落到 LLM_MODEL。
+
+    map 没有单独配置时先借用 triage 的便宜模型，而不是直接掉到 LLM_MODEL——
+    LLM_MODEL 通常是推理模型，那正是我们想在这一步避开的。
+    """
+    override = {"triage": MODEL_TRIAGE, "review": MODEL_REVIEW,
+                "map": MODEL_MAP or MODEL_TRIAGE}.get(role, "")
     if override:
         return override
     if MODEL:
@@ -104,7 +113,7 @@ def model_name(role: str = "digest") -> str:
 
 
 def roles() -> dict:
-    return {r: model_name(r) for r in ("digest", "triage", "review")}
+    return {r: model_name(r) for r in ("digest", "map", "triage", "review")}
 
 
 def available() -> bool:
