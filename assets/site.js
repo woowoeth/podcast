@@ -162,6 +162,86 @@
     }
   });
 
+  /* ---------------------------------------------------------------- share */
+  /* 微信和朋友圈不给网页调起分享——那需要认证公众号、JS 接口安全域名和服务端
+     签名。所以和「走你」同一套办法：把内容拼成一段能直接粘贴的文本。手机上先试
+     系统分享面板（装了微信就在里面），不行就复制，用户自己粘。 */
+  var toastEl;
+  function toast(msg) {
+    if (!toastEl) {
+      toastEl = document.createElement('div');
+      toastEl.className = 'toast';
+      toastEl.setAttribute('role', 'status');
+      toastEl.setAttribute('aria-live', 'polite');
+      document.body.appendChild(toastEl);
+    }
+    toastEl.textContent = msg;
+    toastEl.classList.add('on');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { toastEl.classList.remove('on'); }, 2600);
+  }
+
+  function copy(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    // Safari 在非安全上下文、以及旧 WebView 里没有 clipboard API
+    return new Promise(function (res, rej) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);   // iOS 需要显式选区
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) {}
+      ta.remove();
+      ok ? res() : rej(new Error('execCommand failed'));
+    });
+  }
+
+  // 点击时读 UA，而不是载入时读一次：微信内和微信外走的是两条不同的提示语，
+  // 这条分支必须能在开发时真的验一遍，而不是只靠肉眼读代码。
+  function inWeChat() { return /MicroMessenger/i.test(navigator.userAgent); }
+
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-share]');
+    if (!b) return;
+    var text = b.getAttribute('data-share-text') || '';
+    var url = b.getAttribute('data-share-url') || location.href;
+    var title = b.getAttribute('data-share-title') || document.title;
+
+    // 微信内置浏览器会宣称支持 navigator.share，但拉起来的面板往往是空的，
+    // 所以在微信里一律走复制 + 提示右上角菜单——那才是分享到朋友圈的正路。
+    var wx = inWeChat();
+    if (!wx && navigator.share) {
+      navigator.share({ title: title, text: text, url: url })
+        .then(function () { track('share_native'); })
+        .catch(function (err) {
+          // 用户主动取消不算失败，不该弹提示
+          if (err && err.name === 'AbortError') return;
+          fallback(text);
+        });
+      return;
+    }
+    fallback(text);
+
+    function fallback(t) {
+      copy(t).then(function () {
+        track('share_copy');
+        toast(wx ? '已复制，长按粘贴发给朋友；发朋友圈点右上角 ···'
+                 : '已复制，粘到微信、朋友圈或任何地方');
+      }).catch(function () {
+        toast('复制没成功，长按选中下面的链接：' + url);
+      });
+    }
+  });
+
+  function track(name) {
+    try { if (window.gtag) window.gtag('event', name); } catch (e) {}
+  }
+
   /* --------------------------------------------------- lazy cover fallback */
   [].forEach.call(document.querySelectorAll('.cover img'), function (img) {
     img.addEventListener('error', function () {

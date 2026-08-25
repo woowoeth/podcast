@@ -14,6 +14,7 @@ import pathlib
 import re
 import shutil
 import sys
+import urllib.parse
 from xml.sax.saxutils import escape as xesc
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
@@ -121,6 +122,106 @@ ICON_THEME = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
               'stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21'
               'M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/>'
               '<circle cx="12" cy="12" r="4"/></svg>')
+
+
+ICON_SHARE = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+              'stroke-linecap="round" stroke-linejoin="round">'
+              '<path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/>'
+              '<path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg>')
+
+
+def share_button(text: str, *, url: str, title: str, label: str = "分享") -> str:
+    """一个按钮，把内容拼成一段能直接粘贴的文本。
+
+    微信和朋友圈不给网页调起分享——那需要认证公众号、JS 接口安全域名和服务端签名。
+    所以走和「走你」同一套办法：复制一段写好的文本，用户粘到哪都成立（微信、朋友圈、
+    群、微博、备忘录）。手机上如果有系统分享面板就先用它，装了微信就直接出现在里面。
+
+    文本放 data 属性里，换行写成 &#10;——这样不需要额外的 JSON 或内联脚本。
+    """
+    return (f'<button class="share-btn" type="button" data-share '
+            f'data-share-title="{e(title)}" data-share-url="{e(url)}" '
+            f'data-share-text="{e(text).replace(chr(10), "&#10;")}" '
+            f'aria-label="复制分享文本">{ICON_SHARE}<span>{e(label)}</span></button>')
+
+
+def _clip(s: str, n: int) -> str:
+    s = squeeze(s or "")
+    return s if len(s) <= n else s[:n - 1].rstrip("，。、；：,. ") + "…"
+
+
+def episode_share_text(ep: dict) -> str:
+    """粘到微信里要立得住：标题、一句话、三条要点、一句金句、链接。
+
+    控制在 500 字以内——朋友圈超长会折叠，群里刷屏也没人读。
+    """
+    d = ep["digest"]
+    src = ep.get("source_zh") or ep.get("source") or ""
+    mins = int((ep.get("duration") or 0) // 60)
+    meta = " · ".join(x for x in (src, f"{mins} 分钟" if mins else "", f"{NAME}深读") if x)
+    lines = [f"《{_clip(d.get('title'), 40)}》", meta, ""]
+    if d.get("dek"):
+        lines += [_clip(d["dek"], 100), ""]
+    for pt in (d.get("points") or [])[:3]:
+        lines.append("· " + _clip(pt.get("h"), 34))
+    q = next((x for x in (d.get("quotes") or []) if x.get("zh") or x.get("raw")), None)
+    if q:
+        lines += ["", "「" + _clip(q.get("zh") or q.get("raw"), 76) + "」"
+                  + (f" — {q['spk']}" if q.get("spk") else "")]
+    lines += ["", ep_url(ep)]
+    return "\n".join(lines)
+
+
+def ep_url(ep: dict) -> str:
+    """分享用的短链。
+
+    正文页的 slug 是中文，percent-encode 之后有两百多字符——粘到朋友圈里，链接
+    比内容还长，而朋友圈超长会折叠。所以另外生成一个纯 ASCII 短链 /e/<id>/，
+    只用于分享；站内和搜索引擎看到的仍然是可读的中文 URL。
+    """
+    return f"{SITE}/e/{ep['id']}/"
+
+
+def alias_page(ep: dict) -> str:
+    """短链页：canonical 指回正文，noindex 防止和正文抢排名，然后立刻跳走。"""
+    real = f"{BASE}/p/{urllib.parse.quote(ep['slug'])}/"
+    full = f"{SITE}/p/{urllib.parse.quote(ep['slug'])}/"
+    t = e(ep["digest"].get("title") or "")
+    return f"""<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>{t} — {e(NAME)}</title>
+<meta name="robots" content="noindex,follow">
+<link rel="canonical" href="{e(full)}">
+<meta http-equiv="refresh" content="0;url={e(real)}">
+<script>location.replace({json.dumps(real)})</script>
+</head><body>
+<p>正在打开《{t}》…… 没有自动跳转的话
+<a href="{e(real)}">点这里</a>。</p>
+</body></html>
+"""
+
+
+def source_share_text(src: dict, rows: list[dict]) -> str:
+    name = src.get("zh") or src.get("name") or ""
+    lines = [f"《{_clip(name, 34)}》· {NAME}深读", ""]
+    if src.get("desc"):
+        lines += [_clip(src["desc"], 96), ""]
+    for x in rows[:3]:
+        lines.append("· " + _clip(x["digest"].get("title"), 34))
+    lines += ["", f"本站已深读 {len(rows)} 篇：{SITE}/s/{src['id']}/"]
+    return "\n".join(lines)
+
+
+def site_share_text(eps: list[dict]) -> str:
+    """整站的分享文本。不吹功能，说清它凭什么值得点开：
+    每条判断都能跳回原声，对不上的当场删掉。"""
+    lines = [f"{NAME} · {TAGLINE}", "",
+             _clip(BLURB, 110), ""]
+    for x in eps[:3]:
+        src = x.get("source_zh") or x.get("source") or ""
+        lines.append(f"· {_clip(x['digest'].get('title'), 30)}（{_clip(src, 14)}）")
+    lines += ["", f"{SITE}/"]
+    return "\n".join(lines)
 
 
 def masthead(n: int | None, *, home: bool) -> str:
@@ -278,6 +379,7 @@ def index_page(eps: list[dict], srcs: dict) -> str:
 <input data-search type="search" placeholder="搜正文、金句、数字、术语、节目…" aria-label="搜索">
 <kbd>/</kbd></label>
 <div class="chips">{''.join(chips)}</div>
+{share_button(site_share_text(eps), url=SITE + "/", title=f"{NAME} · {TAGLINE}", label="分享本站")}
 </div></div></div>
 
 <main class="wrap"><div class="feed" data-feed>
@@ -330,14 +432,14 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
             f'<tr><td class="k">{e(f["k"])}</td><td class="v">{e(f["v"])}</td>'
             f'<td class="t">{ts(f["t"]) if f.get("t") is not None else ""}</td></tr>'
             for f in d["facts"])
-        facts = f'<section class="section"><h2>数字与实体</h3><table class="facts">{rows}</table></section>'
+        facts = f'<section class="section"><h2>数字与实体</h2><table class="facts">{rows}</table></section>'
 
     terms = ""
     if d.get("terms"):
         items = "\n".join(
             f'<div><dt>{e(t["term"])}<span>{e(t["zh"])}</span></dt>'
             f'<dd>{e(t.get("def"))}</dd></div>' for t in d["terms"])
-        terms = f'<section class="section"><h2>术语</h3><dl class="terms">{items}</dl></section>'
+        terms = f'<section class="section"><h2>术语</h2><dl class="terms">{items}</dl></section>'
 
     toc = "\n".join(f'<a href="#p{i}"><span class="t">{hhmmss(p["t"])}</span>'
                     f'<span>{e(p["h"])}</span></a>'
@@ -415,7 +517,7 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
 <time class="date" datetime="{e(ep.get('published'))}">{e(date)}</time></div>
 <h1>{e(d.get('title'))}</h1>
 <p class="dek-lead">{e(d.get('dek'))}</p>
-<div class="ep-meta">{tags}</div>
+<div class="ep-meta">{tags}{share_button(episode_share_text(ep), url=ep_url(ep), title=d.get('title') or '')}</div>
 </div>
 
 {f'<section class="section"><div class="why">{e(d.get("why"))}</div></section>' if d.get('why') else ''}
@@ -424,7 +526,7 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
 {f'<section class="section"><h2>原话 · 已逐字校验</h2>{quotes}</section>' if quotes else ''}
 {facts}
 {terms}
-{f'''<section class="section"><h2>收听指南</h3>
+{f'''<section class="section"><h2>收听指南</h2>
 <div class="panel guide">
 <div><span class="k">谁该听</span><p>{e(d.get("who"))}</p></div>
 {f'<div><span class="k">可跳过</span><p>{e(d.get("skip"))}</p></div>' if d.get('skip') else ''}
@@ -570,7 +672,10 @@ def source_page(src: dict, eps: list[dict], total_known: int | None) -> str:
             + f"""<main class="wrap">
 <nav class="crumb" style="margin-top:26px"><a href="{BASE}/">首页</a><span class="sep">/</span>
 <a href="{BASE}/sources/">信源</a><span class="sep">/</span><span>{e(name)}</span></nav>
+<div class="page-head">
 <h1 class="sec-title" style="margin-top:0">{e(name)}</h1>
+{share_button(source_share_text(src, eps), url=f"{SITE}/s/{src['id']}/", title=name)}
+</div>
 <p class="lede">{e(src.get('desc'))}</p>
 <div class="panel" style="max-width:420px;margin:18px 0 4px">{meta}</div>
 <div class="feed" data-feed>{cards or
@@ -918,7 +1023,21 @@ def main() -> int:
             if d.is_dir() and d.name not in live:
                 shutil.rmtree(d)
                 log(f"  removed stale page /p/{d.name}/")
-    log(f"built: index, sources, {len(eps)} episode pages, feed.xml, sitemap.xml")
+
+    # 分享短链：/e/<id>/ → /p/<中文 slug>/
+    edir = ROOT / "e"
+    alive = set()
+    for x in eps:
+        out = edir / x["id"]
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "index.html").write_text(alias_page(x))
+        alive.add(x["id"])
+    if edir.exists():
+        for d in edir.iterdir():
+            if d.is_dir() and d.name not in alive:
+                shutil.rmtree(d)
+    log(f"built: index, sources, {len(eps)} episode pages "
+        f"(+{len(alive)} 分享短链), feed.xml, sitemap.xml")
     return 0
 
 

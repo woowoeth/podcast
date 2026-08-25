@@ -6,6 +6,7 @@
 import pathlib
 import re
 import subprocess
+import json
 import sys
 import unittest
 
@@ -90,9 +91,10 @@ class PageStructureStaysValid(unittest.TestCase):
         css = (ROOT / "assets/site.css").read_text()
         globals_ = set(re.findall(r"(?m)^\.([a-z][\w-]*)\s*[{,]", css))
         # 父选择器要整段抓：`.ev.add .ev-what` 里的父是 `.ev.add`，只抓最后一节
-        # 会得到 "add"，同族判断就失效了。
+        # 会得到 "add"，同族判断就失效了。声明块也要抓——判据得看这条规则到底改了
+        # 什么，见下面 layout_only。
         nested = set(re.findall(
-            r"((?:\.[a-z][\w-]*)+)\s+\.([a-z][\w-]*)\s*\{", css))
+            r"((?:\.[a-z][\w-]*)+)\s+\.([a-z][\w-]*)\s*\{([^}]*)\}", css))
         allowed = {("hero", "cover"), ("ep-head", "kicker"), ("brand", "slogan"),
                    ("brand", "wordmark"), ("guide", "k"), ("empty", "h1")}
 
@@ -106,12 +108,31 @@ class PageStructureStaysValid(unittest.TestCase):
                     return True
             return False
 
-        for parent, child in nested:
+        # 容器给子组件定位，是标准写法，不可能"串味"：外观是组件自己的事，
+        # 位置是容器的事。当年的事故是外观被串（slogan 套上了标签胶囊的边框和
+        # 底色），所以判据要看这条规则动的是位置还是外观。
+        LAYOUT = re.compile(
+            r"^(margin|padding|top|right|bottom|left|inset|width|height|flex|grid|"
+            r"order|align|justify|place|gap|position|z-index|display|float|clear|"
+            r"transform|translate)")
+
+        def layout_only(decls: str) -> bool:
+            props = [d.split(":")[0].strip() for d in decls.split(";") if ":" in d]
+            return bool(props) and all(LAYOUT.match(x) for x in props)
+
+        for parent, child, decls in nested:
             last = parent.strip(".").split(".")[-1]
             if child in globals_ and (last, child) not in allowed \
-                    and not same_family(parent, child):
+                    and not same_family(parent, child) \
+                    and not layout_only(decls):
                 self.fail(f"{parent} .{child} 的末端类名同时是全局规则 .{child}，"
                           f"会被串味；确认无害后加进 allowed")
+
+    def test_positioning_a_component_is_not_a_collision(self):
+        """容器给子组件定位不算串味。判据必须能分清「改位置」和「改外观」，
+        否则只能靠 allowlist 越堆越长，而 allowlist 迟早会把真的串味放过去。"""
+        css = (ROOT / "assets/site.css").read_text()
+        self.assertIn(".ep-meta .share-btn{margin-left:auto}", css)   # 只改位置，放过
 
     def test_family_scoping_is_not_reported_as_a_collision(self):
         # 判据要分清「跨组件撞名」和「同组件内作用域覆盖」，不然只能靠 allowlist
@@ -410,4 +431,69 @@ class ProbationIsVisibleToReaders(unittest.TestCase):
         self.assertIn(".ev.add .ev-what", css)
         self.assertNotIn(".ev.add .what{", css)
         self.assertIn(".ev-flag{", css)
+
+
+class SharingWorksWithoutAPlatformSDK(unittest.TestCase):
+    """微信和朋友圈不给网页调起分享（要认证公众号 + JS 接口安全域名 + 服务端签名）。
+    所以走复制粘贴这条路——它在任何地方都成立。这些检查盯的是几个真实的坑。"""
+
+    def test_share_text_is_short_enough_for_a_moment_post(self):
+        # 朋友圈超长会折叠，群里刷屏没人读
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import build
+        for f in sorted((ROOT / "data" / "episodes").glob("*.json"))[:12]:
+            ep = json.loads(f.read_text())
+            t = build.episode_share_text(ep)
+            self.assertLessEqual(len(t), 560, f"{ep['id']} 的分享文本 {len(t)} 字，太长")
+            self.assertIn(build.ep_url(ep), t, "分享文本里没有链接")
+
+    def test_share_link_is_pure_ascii(self):
+        # 正文 slug 是中文，percent-encode 之后两百多字符——链接比内容还长
+        import build
+        for f in sorted((ROOT / "data" / "episodes").glob("*.json"))[:12]:
+            ep = json.loads(f.read_text())
+            url = build.ep_url(ep)
+            self.assertTrue(url.isascii(), f"{url} 不是纯 ASCII")
+            self.assertNotIn("%", url, "分享链接不该带 percent 转义")
+            self.assertLess(len(url), 90, f"{url} 太长")
+
+    def test_alias_page_points_back_and_stays_out_of_the_index(self):
+        # 短链页不能和正文抢排名
+        import build
+        ep = json.loads(sorted((ROOT / "data" / "episodes").glob("*.json"))[0].read_text())
+        h = build.alias_page(ep)
+        self.assertIn('name="robots" content="noindex,follow"', h)
+        self.assertIn('rel="canonical"', h)
+        self.assertIn("location.replace", h)
+        self.assertIn('http-equiv="refresh"', h)   # JS 关掉也要能跳
+
+    def test_every_episode_has_an_alias_on_disk(self):
+        n = len(list((ROOT / "data" / "episodes").glob("*.json")))
+        built = len([d for d in (ROOT / "e").iterdir() if d.is_dir()]) \
+            if (ROOT / "e").exists() else 0
+        self.assertEqual(built, n, "短链页数量和篇数对不上")
+
+    def test_newlines_survive_the_data_attribute(self):
+        # 分享文本放在 data 属性里，换行必须写成 &#10;，否则粘出来是一整行
+        import build
+        ep = json.loads(sorted((ROOT / "data" / "episodes").glob("*.json"))[0].read_text())
+        btn = build.share_button(build.episode_share_text(ep),
+                                 url=build.ep_url(ep), title="x")
+        self.assertIn("&#10;", btn)
+        self.assertNotIn("\n", btn.split('data-share-text="')[1].split('"')[0])
+
+    def test_wechat_branch_is_decided_at_click_time(self):
+        # 载入时读一次 UA 的话，这条分支在开发时没法真验，只能靠肉眼读代码
+        js = (ROOT / "assets" / "site.js").read_text()
+        self.assertIn("function inWeChat()", js)
+        self.assertIn("var wx = inWeChat();", js)
+        # 微信里不许走系统面板：它宣称支持但拉起来常是空的
+        self.assertIn("if (!wx && navigator.share)", js)
+        # 用户取消分享面板不是失败，不该弹提示
+        self.assertIn("AbortError", js)
+
+    def test_copy_has_a_fallback_for_browsers_without_the_clipboard_api(self):
+        js = (ROOT / "assets" / "site.js").read_text()
+        self.assertIn("execCommand", js)
+        self.assertIn("setSelectionRange", js)   # iOS 需要显式选区
 
