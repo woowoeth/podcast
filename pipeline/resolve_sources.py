@@ -17,6 +17,7 @@ import sys
 import urllib.parse
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from extra_sources import EXTRA                               # noqa: E402
 from lib import feeds, net                                    # noqa: E402
 from lib.util import log, now                                 # noqa: E402
 
@@ -145,7 +146,7 @@ CURATED: list[dict] = [
   dict(id="chinatalk", name="ChinaTalk", zh="ChinaTalk", cat="cn", tier=1, lang="en",
        itunes=1289062927, feed="https://feeds.megaphone.fm/CHTAL4990341033",
        yt="UCXOtILmQEo3pL_1bJfUOFWw", desc="中美科技与产业政策，英文世界里对中国讨论最细的一档"),
-  dict(id="zhangxiaojun", name="张小珺·商业访谈录", zh="张小珺·商业访谈录", cat="cn", tier=1, lang="zh",
+  dict(id="zhangxiaojun", name="张小珲·商业访谈录", zh="张小珲·商业访谈录", cat="cn", tier=1, lang="zh",
        itunes=1673203694, feed="https://feed.xyzfm.space/dk4yh3pkpjp3",
        yt="UC3Sv1JuKpbOx3csUO8FAo5g", desc="中文世界最扎实的 AI 与商业长访谈"),
   dict(id="sv101", name="硅谷101", zh="硅谷101", cat="cn", tier=1, lang="zh",
@@ -236,7 +237,9 @@ CURATED: list[dict] = [
        desc="公司为什么失败的案例拆解，财务与商业模式讲得干净"),
 ]
 
-CATS = {"ai": "AI / 技术", "biz": "投资 / 商业", "cn": "中国视角"}
+CATS = {"ai": "AI / 技术", "biz": "投资 / 商业", "cn": "中国视角",
+        "ideas": "人文 / 思想", "hist": "历史", "parent": "育儿"}
+ALL_SOURCES = CURATED + EXTRA
 
 
 def itunes_lookup(cid: int) -> dict | None:
@@ -292,7 +295,7 @@ def main() -> int:
             pass
 
     out = []
-    for s in CURATED:
+    for s in ALL_SOURCES:
         s = dict(s)
         s.setdefault("kind", "rss")
         s["cat_label"] = CATS[s["cat"]]
@@ -319,6 +322,24 @@ def main() -> int:
             if st.get("image") and not s.get("image"):
                 s["image"] = st["image"]
         out.append(s)
+
+    # curate.py 会把试用源直接写进 sources.json；这里不能只写 CURATED+EXTRA，
+    # 否则 --check 会把还没晋升的 probation 条目抹掉。
+    known = {s["id"] for s in out}
+    if OUT.exists():
+        try:
+            prev_srcs = json.loads(OUT.read_text()).get("sources") or []
+        except Exception:
+            prev_srcs = []
+        for s in prev_srcs:
+            sid = s.get("id")
+            if not sid or sid in known:
+                continue
+            s = dict(s)
+            if s.get("cat") in CATS:
+                s["cat_label"] = CATS[s["cat"]]
+            out.append(s)
+            known.add(sid)
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(
