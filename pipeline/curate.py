@@ -422,7 +422,7 @@ SCORE_SYSTEM = """你在给一个中文播客深读站评估要不要收一档�
 
 SCORE_SCHEMA = """输出 JSON：{"density":0-5,"gap":0-3,"checkable":0-2,
 "desc":"一句话中文简介，写清它到底讲什么、凭什么值得读，不超过40字",
-"cat":"ai|biz|cn|ideas|hist|parent","tier":1|2|3,"why":"给这些分数的理由，不超过40字"}"""
+"cat":"ai|biz|cn|ideas|hist|parent|sci","tier":1|2|3,"why":"给这些分数的理由，不超过40字"}"""
 
 MIN_CAND_WORDS = 3000
 MAX_CAND_STALE = 60
@@ -494,7 +494,7 @@ def score_candidate(c: dict, existing_desc: str) -> dict | None:
             "reject": None, "hedged": hedged if inconsistent else [],
             "inconsistent": inconsistent,
             "desc": squeeze(str(r.get("desc") or ""))[:80],
-            "cat": r.get("cat") if r.get("cat") in ("ai", "biz", "cn", "ideas", "hist", "parent") else "ai",
+            "cat": r.get("cat") if r.get("cat") in ("ai", "biz", "cn", "ideas", "hist", "parent", "sci") else "ai",
             "tier": r.get("tier") if r.get("tier") in (1, 2, 3) else 2,
             "why": squeeze(str(r.get("why") or ""))[:60]}
 
@@ -584,7 +584,7 @@ def discover(minimum: float, dry: bool = False) -> list[dict]:
                  "kind": "rss", "feed": c["feed"], "desc": v["desc"],
                  "cat_label": {"ai": "AI / 技术", "biz": "投资 / 商业",
                                "cn": "中国视角", "ideas": "人文 / 思想",
-                               "hist": "历史", "parent": "育儿"}.get(v["cat"], v["cat"])}
+                               "hist": "文明 / 历史", "parent": "育儿 / 教育", "sci": "健康 / 科学"}.get(v["cat"], v["cat"])}
         if c.get("itunes"):
             entry["itunes"] = c["itunes"]
         blob["sources"].append(entry)
