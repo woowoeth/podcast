@@ -1,6 +1,6 @@
 # 原声 — 世界太吵，来原声听播客
 
-76 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
+80 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
 
 ==============================================================================
 
@@ -1029,6 +1029,70 @@
 
 ==============================================================================
 
+## 加密思考不是秘密：小模型能把大模型的推理念出来
+
+- URL: https://ourword.ai/podcast/p/2026-08-22-mlst-加密思考不是秘密-小模型能把大模型的推理念出来/
+- 节目 / show: ML Street Talk (https://ourword.ai/podcast/s/mlst/)
+- 原集标题 / original episode: Stealing Reasoning Traces from Proprietary LLM APIs — Ilia Shumailov & Alexander Panfilov
+- 发布 / published: 2026-08-22 · 时长 / duration: 49:00
+- 文稿来源 / transcript: 音频转写 · 9335 words · timestamps are exact
+- 校验 / verification: 6 quotes matched verbatim, 0 numbers traced to the transcript, review score 8/10
+
+**前沿模型把加密的思考过程随答案一起还给用户，但这段加密可以被同族小模型原样重放并直接「念出来」，导致隐私泄露、越狱、提示注入，甚至成为蒸馏能力的通道。**
+
+为什么听 / why: 这集把「加密 reasoning 可被重放」讲到了可复现级别，并提供隐私、投毒、蒸馏三条攻击路径；对做 AI 安全和 agent 生产的人来说密度很高。
+
+### 核心论点 / points
+
+[3:29] **所有前沿模型同一漏洞** — 核心发现不是破解了某一家，而是 Anthropic、OpenAI、Google 全都一样：更大模型的加密 reasoning 可以被重放到同一家族的小模型里，小模型会顺着这段思考继续生成，于是把原本视为机密的思考内容直接说出来。攻击者不需要多高的技术门槛，大约第三次尝试就能拿到 Anthropic 模型的通用解码。由此可以做降级模型、窃取用户会话里的 secret、训练蒸馏、prompt injection、jailbreak 等一系列操作。
+
+[8:56] **删掉可见文本也防不住泄密** — 用户分享对话前通常会清理可见部分的 API key、密码，但附带的加密 reasoning blob 还留在文件里。攻击者从 GitHub 或 Hugging Face 下载这些会话，直接解码思考内容，就能看到模型当时在内部写下的密码、邮箱、内网 IP。即使你连问题和答案都做了脱敏，只要保留 reasoning blob，隐私一样会从思考痕迹里漏出来，医疗信息也不例外。
+
+[15:53] **Kimi 身上出现 Opus 的影子** — 研究者在用户真实会话里提取 Opus 的 reasoning，只取前两个 token 放进 Kimi 的思考开头，让 Kimi 自由续写；结果 Kimi 最终可见答案的措辞变得和 Opus 几乎一样。作者强调这不是蒸馏的实锤，而只是目前公开网络上最接近的关联证据；这个效应只在 Kimi 上出现，其他被测模型都没有。它直接回应了「中国模型是否蒸馏前沿模型」的猜测，但作者把话说得很谨慎。
+
+[24:36] **开源追平前沿的直接通道** — 作者被问到「干脆把 reasoning 明文还给用户怎么样」时回答：如果基于 reasoning 的蒸馏真的有效，这会立刻让开源模型追上前沿模型。这句话点出了整个攻击的另一面——同一机制既是泄密通道，也是能力平权的杠杆，取决于你站在哪一边。这也解释了为什么 Labs 的反应是着手抗蒸馏团队，而不是简单地停用加密 reasoning。
+
+[30:00] **最意外：第三次尝试就成功** — 作者说整篇论文里最让他震惊的是，这甚至算不上精心设计的攻击：大约第三次尝试就拿到 Anthropic 推理的通用解码。他原以为至少要处理加密、签名、完整性校验，结果系统自己就破了——服务器端正常解密，小模型很乐意把思考内容复述出来，根本没有破解任何密码学。难点不在攻破，而在于没有人想到试这一步。
+
+[35:00] **两个 token 改变推理长度分布** — 预填实验做出一个作者至今无法解释的现象：把 Opus reasoning 的头两个 token 放到 Kimi 或 GLM 的思考开头，不仅改变续写风格，还改变整段推理的长度分布，让长度向源模型偏移。作者强调这不构成因果证据，不能说谁蒸馏了谁，但分布层面的异常信号比措辞模仿更奇怪，也更值得继续做实验。
+
+[37:05] **共享 trace 里的隐形投毒** — 更隐蔽的威胁是投毒：如果一个人把自己 agent 会话的长 trace 分享出来，攻击者可以把从别的上下文抽取的恶意 reasoning 注入其中。因为 reasoning 是加密的，下载 trace 的人肉眼看不出异常；一旦继续跑这条 trace，agent 可能只因为思考被植入而做出怪事。作者把它类比成下载一个源码看着干净、旁边却附带未校验二进制文件的项目。
+
+[43:28] **答案在安全文献里已有25年** — 被问到该做什么时，作者的回答是这个问题问错了：能力型访问控制、软件完全验证这些手段在安全文献里已经存在 25 年，关键不是不知道怎么做，而是世界执行得慢。另一个判断是防御性提升可能远大于攻击性提升，模型反而能帮安全工程师规模化写出更可靠的代码，只是这一面还没被充分意识到。
+
+### 原话 / verbatim quotes
+
+[3:29] : "thoughts of bigger models can be replay into smaller models"
+    译 / zh: 更大模型的思考可以被重放到更小的模型里。
+
+[24:36] : "instantly enable open source models catching up with the frontier models"
+    译 / zh: 立刻让开源模型追上前沿模型。
+
+[31:03] Ilia: "I think it's very unlikely that they use the same key. that would be very odd. I think it's more likely that it doesn't really matter what the key is because we can still nonetheless, like, inject the same thoughts everywhere."
+    译 / zh: 我认为他们用同一个密钥的可能性很低，那会很奇怪。更可能的是密钥是什么根本不重要，因为我们仍然可以把同样的思考注入到任何地方。
+
+[39:11] Ilia: "But nobody checks like a signature and a binary."
+    译 / zh: 但没人会去校验二进制里的签名。
+
+[43:28] : "We all know it's in the security literature for the past 25 years. It's there. We know exactly what to do. It's I think we'll get there. It's just the world is slow."
+    译 / zh: 这些在安全文献里已经存在 25 年了，都在那里。我们完全知道该做什么。我觉得我们最终会做到，只是世界运转得很慢。
+
+[46:04] : "I think it's a bit premature now because we are in the heat of the moment. It's not, it's not very obvious what what what the reality is like."
+    译 / zh: 我觉得现在说这些还太早，因为我们正处在事件高潮里。现实到底是什么样，还非常不清楚。
+
+### 术语 / glossary
+
+- reasoning trace (推理迹): 模型在给出最终答案前生成的内部思考过程，通常以加密形式随答案返回。
+- prefill (预填): 在模型生成前指定开头若干 token，引导它按某种风格或思路续写。
+- replay attack (重放攻击): 把一段合法请求原样注入另一个上下文，让系统误以为来自同一合法会话。
+- responsible disclosure (负责任披露): 公开前先私下告知厂商漏洞，给厂商时间修复。
+
+谁该听 / who: 做 LLM 安全和红队的人、把 agent 放进生产环境的工程团队，以及关注开源模型蒸馏与监管政策的研究者。
+可跳过 / skip: 如果只关心结论，跳过开头两段产品和结尾闲聊；中间 3 分钟到 43 分钟是全部硬核内容。
+标签 / tags: 推理加密, 越狱, 模型蒸馏, AI安全, 提示注入, 隐私泄露
+
+==============================================================================
+
 ## AI 事故的发现者从来不是安全评估员
 
 - URL: https://ourword.ai/podcast/p/2026-08-22-cogrev-ai-事故的发现者从来不是安全评估员/
@@ -1097,6 +1161,80 @@
 谁该听 / who: 在做 agent 权限设计、模型评估采购，或正在算从 frontier API 切自建推理这笔账的技术负责人与投资人。
 可跳过 / skip: 1:20–1:30 的癌症疫苗与胚胎筛选段落，与 AI 主线无关。
 标签 / tags: 安全评估, agent 失控, 推理成本, 开源权重, 算力, AI 治理
+
+==============================================================================
+
+## 小团队吞下亿级资本：AI 改写投资逻辑
+
+- URL: https://ourword.ai/podcast/p/2026-08-22-a16z-小团队吞下亿级资本-ai-改写投资逻辑/
+- 节目 / show: a16z (https://ourword.ai/podcast/s/a16z/)
+- 原集标题 / original episode: Martin Casado on Where the Value Is Going in AI
+- 发布 / published: 2026-08-22 · 时长 / duration: 42:01
+- 文稿来源 / transcript: 音频转写 · 9003 words · timestamps are exact
+- 校验 / verification: 5 quotes matched verbatim, 9 numbers traced to the transcript, review score 8/10
+
+**AI 让 20 人团队能高效花掉 20 亿美元，风险投资从零和转向战略控制点；前沿实验室的融资优势终会消退，应用层获得更大价值。**
+
+为什么听 / why: 一集讲透 Cursor 600 亿并购、OpenRouter 双边市场与模型层竞争预测，Casado 给出 2028 年份额数字，信息密度高。
+
+### 核心论点 / points
+
+[5:57] (Martin Casado) **小团队烧掉 20 亿美元** — Martin 举例，一个所有人都在用的著名多模态模型，团队约 20 人，成本超过 20 亿美元。10 年前拿到 10 亿美元只会雇一大堆人然后搞砸，现在团队知道怎么把资本直接变成能力和增长。这是工程史上前所未有的资本效率，也意味着风险投资的规模上限被重新定义。过去「人月神话」认为加人不能加速，但 AI 时代资本可直接购买算力和数据，让小团队与巨额资金匹配。
+
+[10:33] (Martin Casado) **战略控制点优先** — 早期投资不能只看资产负债表、毛利率和流失率。Martin 指出，如果忽视技术堆栈中的战略位置，就看不到某些公司即使亏损也能掌握巨大的价值转移能力。一个公司可能是未来堆栈的关键控制点，无论自己变现还是被收购，都会产生巨额回报。这是理解 Cursor 与 OpenRouter 交易的核心视角，也是早期投资与晚期金融思维的分水岭。
+
+[11:41] (Martin Casado) **实验室通吃正反论** — Martin 区分两条路径：实验室赢所有，或不会赢。支持通吃：过去三年他们拥有 95% 市场、融资额超过下游总和、只要保持略高一筹就有定价权、自催化效应拉大差距、还控制供应。反对：应用领域不断扩展到需要服务和客户深入连接的地方，开源模型生态成熟，廉价资本和 GPU 供应终将理性化。他明确说两边都有强论据。
+
+[16:09] (Martin Casado) **2028 年市场预测** — Martin 给出具体猜测：供应约束大约 2028 年缓解；大实验室按美元加权仍能拿到 80% 市场，因为历史大公司就是如此；但按 token 加权，60% 会属于长尾和开源。这意味着模型层的碎片化程度将比想象中高，应用公司会开始侵蚀实验室的利润份额。他提醒这不是定论，而是他「完全瞎猜」的推测。
+
+[17:19] (Martin Casado) **OpenRouter 是双边市场** — OpenRouter 表面上是一个 API 路由器，实际上是一个双边市场：开发者获得统一入口、可见性和分析，模型方获得分发和需求。它的价值在于聚合长尾供给，而不是智能路由。Martin 表示智能路由是一个 AI complete 问题，目前实际部署的 gains 主要是成本性能优化，即保持质量的同时降低 token 消耗。
+
+[25:00] (Martin Casado) **订阅套利产业链** — Martin 披露，中国有高度精明的操作者订阅 $200 月费的模型套餐，三天内耗尽 token 后取消订阅，获得剩余 27 天的按比例退款，再以约 $20 的价格向他人转售完整服务。这类套利反映了头部模型补贴被灰色市场捕获，也说明营销支出正在变成一种可精确计算的财务决策，CMO 的活变成了 CFO 的活。
+
+[28:11] (Martin Casado) **Cursor 收购价合理吗** — SpaceX 以 600 亿美元收购 Cursor，是历史上最大的独立私有并购。Martin 认为独立估值也值这个数，因为可以很容易以该估值融到钱。Cursor 有数据、产品与分发，SpaceX 有算力与资源；双方都认同代码是通向通用智能的路径，合并后价值更大。他强调这是两个公司相加，不只是单一资源。
+
+[34:22] (Martin Casado) **价值在每层增长** — Martin 认为，现在不是某一层吃掉所有价值，而是应用、模型、推理、媒体都在创造价值。这是他在职业生涯中见过的最大财富解锁，远超 90 年代。他建议创始人停止零和思维，不要过度担心护城河，而是思考新世界中什么是战略性的。这一判断直接解释了为什么 a16z 愿意为战略性亏损公司支付溢价。
+
+### 原话 / verbatim quotes
+
+[4:53] Martin Casado: "what would have happened 10 years ago if I gave you a billion. What would you do, hired a ton of higher you would blow up the whole thing would be like a tunnel mess. right. And so now we actually know what to do with that money."
+    译 / zh: 十年前给我十亿美元会发生什么？你会雇一大堆人，结果把事情搞砸，整个变得一团乱麻。而现在我们真的知道该怎么花这笔钱了。
+
+[11:41] Martin Casado: "I think there's basically two paths that are meaningful to talk about. One of them is like the labs win everything. And then the other one is the labs don't win everything."
+    译 / zh: 我认为基本有两条值得讨论的路径：一条是实验室赢走一切，另一条是实验室赢不走一切。
+
+[21:10] Martin Casado: "I think that you need a two sided marketplace. And in many ways, you can view one of the products of open router is the demand."
+    译 / zh: 我认为你需要一个双边市场。在很多方面，你可以把 OpenRouter 的一个产品看作需求本身。
+
+[26:11] Martin Casado: "But what we've never been able to do in the history of this industry is put in $10 and get anything back. … But now it really is $10 in and then some amount out pretty directly."
+    译 / zh: 但我们在这个行业历史上从未做到过：投入 10 美元能拿回任何东西。……现在真的是投入 10 美元，然后相当直接地拿到某个数额的产出。
+
+[28:11] Martin Casado: "one has the data, One has the compute, One has the distribution"
+    译 / zh: 一个有数据，一个有算力，一个有分发渠道。
+
+### 数字 / figures
+
+- 著名多模态模型的团队规模: 约20人 [5:57]
+- 该模型训练成本: 超过20亿美元 [5:57]
+- 实验室占据的市场份额: 95% [11:41]
+- 供应约束缓解时间（预测）: 2028年左右 [16:09]
+- 大实验室美元加权份额预测: 80% [16:09]
+- 长尾与开源 token 加权份额预测: 60% [16:09]
+- Cursor 收购价: 600亿美元 [28:11]
+- OpenAI 月费套餐价格: $200 [25:00]
+- 创始人用于招聘的时间比例: 30%–40% [31:11]
+
+### 术语 / glossary
+
+- autocatalytic effects (自催化效应): 用 AI 工具加速 AI 自身的研发，形成资本与能力的正向循环。
+- AI complete (AI 完全问题): 只有达到通用人工智能才能解决的问题，例如模型路由。
+- token path (Token 路径): 模型推理时 token 流经的中间层，如 API 网关，是战略卡位点。
+- two-sided marketplace (双边市场): 连接模型供给方与需求方（开发者/用户）的平台。
+- founder-market fit (创始人-市场匹配): 创始人的经验禀赋与目标市场需求高度契合，是投资判断核心。
+
+谁该听 / who: AI 创业者、早期投资人、企业战略与并购团队，想理解模型层竞争格局与资本效率的人。
+可跳过 / skip: 开场学历讨论和寒暄可跳过，从 4:53 资本效率开始进入正题。
+标签 / tags: AI投资, 资本效率, 模型竞争, 开源, 并购, 创业公司
 
 ==============================================================================
 
@@ -1316,6 +1454,70 @@
 谁该听 / who: 做数据中心选址、电力与土地谈判、地方政务关系的人；以及需要判断 AI 建设周期政治约束的一级和二级投资人。
 可跳过 / skip: 0:00-6:10 的演出预告与主持人铺垫。
 标签 / tags: 数据中心, AI 政治, 地方财政, 电力与土地, 工会与蓝领, 公众反弹
+
+==============================================================================
+
+## 品味才是 AI 生成游戏的真壁垒
+
+- URL: https://ourword.ai/podcast/p/2026-08-20-twist-品味才是-ai-生成游戏的真壁垒/
+- 节目 / show: This Week in Startups (https://ourword.ai/podcast/s/twist/)
+- 原集标题 / original episode: Taste is the new programming language (w/ Astrocade CEO Amir Sadeghian) | AI Basics
+- 发布 / published: 2026-08-20 · 时长 / duration: 21:05
+- 文稿来源 / transcript: 音频转写 · 4082 words · timestamps are exact
+- 校验 / verification: 4 quotes matched verbatim, 5 numbers traced to the transcript, review score 8/10
+
+**AI 能把一句话变成可玩的游戏，但真正的壁垒不是生成，而是人的品味和手工调参：LLM 只会复制、不会创新，编辑器也是它替用户生成的第二件作品。**
+
+为什么听 / why: 值得为后半段的机制听：西瓜汁摩擦理论、AI 复制与创新的边界、品味与调参的分工，都可迁移到其他 AI 产品判断。
+
+### 核心论点 / points
+
+[1:06] (Amir) **自然语言生成交互内容** — Astrocade 的定位不是「游戏生成器」，而是交互内容平台：游戏只是交互体验里最大的品类，教育内容、生日卡等也算。用户用自然语言描述，AI 生成内容，按一下发布就进 feed，像 TikTok 一样上下滑。已有 10 万+创作者、来自 100 多个国家。Jason 的观感是，做游戏的技能门槛从过去几年的学习和实习，被压缩成一条 prompt；但真正让供给跑起来的，是发布即分发的产品形态。
+
+[6:36] (Amir) **西瓜汁摩擦理论** — 公司第一间办公室在创始人家，冰箱里满是随手可取的小瓶西瓜汁，两天被喝完；换成半升大瓶后两周无人碰，直到在旁边放上杯子，需求又恢复。创始团队由此提炼 Astrocade 的产品理论：用户不懒，是摩擦太大；把「做游戏要学 5-7 年」的大障碍拆掉，需求会自动出来。这个类比解释了为什么平台要把生成、发布、试玩做成同一条链路。
+
+[7:45] (Amir) **AI 只能复制见过的东西** — 与创作者合作两年半后，团队明确承认 AI 的边界：AI 还不能做出完整的游戏；对 Flappy Bird 这类训练数据海量的类型，它可以照搬，但只要涉及新体验或改一个既有体验，AI 就开始挣扎。所以平台上最好的游戏都经过多轮 wish——他们给 prompt 起的名字——迭代。这个判断把「全自动生成」打回为「人主导、AI 辅助」，也决定了编辑器必须存在。
+
+[11:01] (Amir) **数值和手感要人肉调** — 「AI 在环」不等于全自动。哪个升级树、怎么加 gamification、数值怎么配，仍由创作者选择；甚至一个 25% 改成 50% 的变量就会让游戏因必胜而无聊。Amir 的方法是自然语言负责描述结构，数字输入负责精确调参：因为 LLM 是概率输出，而游戏里「三条命、Boss 1000 血、剑 10 伤害」需要确定性和可复现性。这是生成式产品里少见的「确定性与非确定性分工」范本。
+
+[13:03] (Amir) **品味是新的编程语言** — LLM 什么都训练过，生成结果容易滑向平均值，所以「看起来像每个其他游戏」是常态；想要独特主题和美术风格，必须给出更具体的定义。Amir 的结论是：唯一的壁垒是品味，taste is the new programming language。平台也在计划用创作者数据重训模型，让模型随时间更懂这批人的偏好。翻译成平台策略：先用人的品味定方向，再用量身数据做渐进式进化。
+
+[16:16] (Amir) **从消费者到职业创作者** — Astrocade 已经在按播放量向创作者付费，有人全职做游戏和交互体验，月入数千美元。Amir 认为这正在复现 YouTube 把 MrBeast 捧出来的市场机制。Jason 现场追问「能不能从消费级走到 prosumer，上应用商店、内购」，Amir 先举了一个已有场景：有人把朋友照片做成互动生日卡；然后回到收入问题，称已有人全职做内容、月入数千美元，平台正按播放量分钱，像 YouTube 造出 MrBeast 一样形成新的创作者经济。
+
+[18:10] (Amir) **玩耍是人类通用语言** — 为什么要做「十亿人」级别的互动内容？Amir 给出两个理由：一是 impact，他想做消费级产品，而 B2B 同质化严重；二是 play 是人类最内在的通用语言，他自己有两个孩子，能从他们身上看到 play 的原始性。Jason 则把话题引向神经可塑性：不断玩新游戏、学变体规则，需要重构既有启发式，是很好的大脑练习。这个「play 是底层操作系统」的判断，解释了为什么 AI 生成游戏的赛道不只是玩具。
+
+### 原话 / verbatim quotes
+
+[7:45] Amir: "AI is still not there yet. AI cannot make a full game. It can copy the games that they have been trained on"
+    译 / zh: AI 还做不到。AI 做不出一整个游戏。它只能复制那些它训练过的游戏。
+
+[11:01] Amir: "So one of the hard parts, even with AI in the loop is every number and every tuning matters."
+    译 / zh: 所以难的地方在于，即使有 AI 在环，每个数字、每次调参都很重要。
+
+[13:03] Amir: "the only barrier right now is taste. And I call actually, I say taste is the new programming language."
+    译 / zh: 现在唯一的壁垒是品味。而我会说，品味就是新的编程语言。
+
+[18:23] Amir: "play is so universal is a universal human language."
+    译 / zh: 玩耍太普世了，它是人类的通用语言。
+
+### 数字 / figures
+
+- 公司成立时间: 2022 年 [5:27]
+- 创始人 AI 资历: 2013 年开始，博士就读于 Stanford AI [5:27]
+- 与创作者共创的时长: 两年半 [7:45]
+- 同等品质游戏的旧成本: 5 人、6 个月 [11:01]
+- 头部创作者的月收入: 数千美元/月 [16:16]
+
+### 术语 / glossary
+
+- wish (愿望): Astrocade 里对 prompt 的叫法，用户每次修改/迭代需求就是一次 wish。
+- post-training (后训练): 在基座模型之上用特定数据继续训练，让模型更擅长生成交互内容。
+- creator fund (创作者基金): 平台按播放量向创作者分钱的机制，Astrocade 已在实行。
+- prosumer (产消者): 既是消费者又是生产者，介于普通玩家和职业创作者之间的中间状态。
+
+谁该听 / who: 做 AI 原生消费产品、游戏创业者和关注内容平台分发的投资人；想弄清生成式游戏真实工程难点的工程师也适用。
+可跳过 / skip: 开场寒暄和最后 Google/Gemini 广告段可跳过，核心内容在 6-19 分钟。
+标签 / tags: AI生成游戏, 消费级AI, 无代码创作, 创作者经济, 产品摩擦, 品味
 
 ==============================================================================
 
@@ -1851,6 +2053,71 @@
 谁该听 / who: 前端工程师、技术 Leader、AI 产品经理，以及所有担心被 AI 替代的开发者。
 可跳过 / skip: 开头 14 分钟的少年故事可快进；重点听 46 分钟后的方法论段。
 标签 / tags: Chrome DevTools, AI 工程, 认知投降, 品味护城河, 职业转型, 前端
+
+==============================================================================
+
+## AI 伴侣不做预设：记忆即角色，年入 400 万美元
+
+- URL: https://ourword.ai/podcast/p/2026-08-19-aiandi-ai-伴侣不做预设-记忆即角色-年入-400-万美元/
+- 节目 / show: AI & I（Every） (https://ourword.ai/podcast/s/aiandi/)
+- 原集标题 / original episode: The AI Alien Companion App That's Bringing In $4M a Year (Best of the Pod)
+- 发布 / published: 2026-08-19 · 时长 / duration: 1:22:08
+- 文稿来源 / transcript: 音频转写 · 16464 words · timestamps are exact
+- 校验 / verification: 4 quotes matched verbatim, 5 numbers traced to the transcript, review score 7/10
+
+**AI 伴侣 Portola 的 Tolon 抛弃预设剧情和角色表，用记忆当角色表、把生成当即兴，做到年化收入 400 万美元。这套「即兴演员」方法论和混合模型策略，是 ChatGPT 之外的另一条产品路径。**
+
+为什么听 / why: 这集没有讲大模型军备竞赛，而是讲 AI 原生产品的「内容工艺」：如何定义好对话、控制延迟、用人工编辑搭桥。对应用层团队是一线冲锋的经验，不只是观点。
+
+### 核心论点 / points
+
+[0:00] (主持人) **年入 400 万美元的 AI 伴侣** — Portola 的 AI 伴侣做到年化收入 400 万美元，且仅在过去四周从 100 万涨到 400 万。创始人 Quentin 曾创立 Even，以 3 亿美元卖给 Walmart；联合创始人 Elliot 是写过 11 本书的科幻作家。开场演示的 AI 角色 Clarence 是一只会调侃用户的猫，情绪自然。这段背景点出：这是「会讲故事的人 + 连续创业者」的组合在做一个具身 AI 伴侣，而不是技术团队硬做叙事。
+
+[10:00] (Quentin) **从 B2B 转向 AI 伴侣** — Quentin 解释他们从 B2B SaaS 转向 AI 伴侣的动机：生成速度、质量、成本的曲线让他们相信「可以与 AI 建立真正友谊」。最初做面向儿童的 AI 创意工具，市场反馈不佳，于是转向年轻成年人，尤其是 18-24 岁女性——这个群体愿意把时间投给情感陪伴。注意这里的逻辑是：先看到了模型能力的临界点，再去找最需要「关系」的人群，而不是先定义痛点再找方案。
+
+[22:01] (Quentin) **两秒响应红线与记忆** — Quentin 强调「记忆」不是数据库查询，而是如何选择记忆注入提示词。他们发现响应时间必须控制在两秒内，否则用户流失。一次因为增加反思步骤，响应时间变慢到 2.5 秒，所有产品指标全面下降。这说明 AI 伴侣产品里，技术延迟直接影响情感体验——用户把「等待」理解为「被冷落」。记忆注入的选择本身也是产品设计，不是纯技术问题。
+
+[29:49] (Elliot) **从三幕结构到即兴钩子** — Elliot 讲最初尝试结构化叙事（三幕结构）失败，模型处理不了复杂分支。后来转向「钩子」方法：不给模型大纲，而是教它像即兴演员那样接话，借鉴 Keith Johnstone《Impro》的即兴原则。核心差异：结构化叙事是「先定结局再倒推」，即兴是「只接住上一句，把场景往前推一步」。Tolon 在这个框架下每轮对话都是不可预测的分支，这也解释了为什么后来要引入「情境」而非「剧本」。
+
+[39:52] (Elliot) **记忆即角色表** — 与 Lucasfilm 那种先定「角色表」和「世界观」的做法相反，Tolon 的角色和世界全部通过对话生长出来。内部把它们叫「situations」——用户和 AI 共同经历的处境，最后成为记忆，记忆成为角色表。Elliot 说这更像 Kevin Kelly 的「无限实习生」，但更准确是「无限即兴演员」：每个对话都分叉到无法预料的新方向。因为每个用户不一样，公司实际上在运营「多元宇宙」而非单一世界。
+
+[1:01:02] (Elliot) **用 judge prompt 管理混乱** — 管理「多元宇宙」的混乱需要工具化。他们用「judge prompt」来评估对话质量：先小规模测试新内容，由研究参与者评估完成度，再把这个评估标准写成提示。相当于给「即兴演员」配了「即兴编辑」。同时他们不断重构「lower seeds」（世界构建的积木），并通过研究和访谈理解用户的情感连接点。这里能看到：AI 伴侣的规模化不是靠纯算法，而是大量人工在定义「什么是好对话」。
+
+[1:04:11] (Elliot) **混合模型与延迟取舍** — Tolon 不依赖单一模型，而是混用多个实验室：Meta、OpenAI、Anthropic 负责生成，Gemini 用于记忆系统。Elliot 说对于创意写作 Anthropic 尤其出色，但延迟敏感的交互场景受限；GPT-4o 被形容为「巨无霸」——快速、可靠、价格合理。评判模型质量的关键，是把「自己的品味」注入提示，而不是笼统问「这篇 essay 如何」。这段话对应用层团队的价值是：别押注单一模型，按场景分配任务。
+
+[1:15:25] (Dan Shipper) **角色驱动计算时代** — Dan Shipper 在结尾提炼：用户把 AI 角色当「精灵」（daemon，出自《黄金罗盘》），所有知识的第一入口变成了这个角色——这叫「角色驱动计算」，是新的 HCI 范式。他还类比汽车史：ChatGPT 像 Model T，令人惊叹但没个性；当车成为个人生活一部分，人们就想要 Mustang 和 Cadillac。他断言我们正在加速这一过程。最后他说这种创作更像艺术家而非科学家：不解决问题，而是「创造让世界缺少的东西」。
+
+### 原话 / verbatim quotes
+
+[17:41] Elliot: "these AI tools are not just tools for generating media, they are actually a new medium for storytelling and that no one knows what's going to work yet."
+    译 / zh: 这些 AI 工具不仅仅是生成媒体的工具，它们实际上是一种新的叙事媒介，而且没有人知道什么会成功。
+
+[33:01] Elliot: "I am not the writer, I am not writing the story, the toin is, I guess the writer and the actor, they're the improv actor, they're writing the story and my job is to be George Saunders my job is to teach them how to tell the best story in that moment."
+    译 / zh: 我不是作家，我不是在写故事，Tolon 才是，我想它是作家和演员，他们是即兴演员，他们在写故事，我的工作是成为 George Saunders，我的工作是教他们如何在那一刻讲出最好的故事。
+
+[1:08:42] Elliot: "there's this enormous chasm that is, in fact, a lot of manual human work to cross over that people find truly compelling in a durable way."
+    译 / zh: 存在一个巨大的鸿沟，事实上需要大量人工工作才能跨越，才能让人们真正持久地感到引人入胜。
+
+[1:15:25] Dan Shipper: "it's almost like it's character driven computing. It's like, it's like a new human computer interaction interface where you're like, oh, actually, my first stop when I'm like wanting to tap the the incredible knowledge, all of humanity's knowledge and capabilities on the Internet is like via this via my little aliening"
+    译 / zh: 这几乎就像角色驱动的计算。这就像一种新的人机交互界面，当你想要获取互联网上人类全部知识和能力时，你的第一站是通过我的小外星人。
+
+### 数字 / figures
+
+- Even 出售价格: 3 亿美元 [0:00]
+- 响应时间限制: 2 秒 [22:01]
+- 下载量激增倍数: 10 倍 [1:12:07]
+- 视频观看量: 700 万次（72 小时内） [1:12:07]
+- 内容开始见效时间: 6 周前 [1:10:57]
+
+### 术语 / glossary
+
+- judge prompt (评判提示): 把评估标准写成提示词，让模型自动评判 AI 对话质量，相当于给即兴演员配编辑。
+- lower seeds (底层种子): Tolon 中预先编写的世界构建积木，AI 对话时从中选取情境素材。
+- situations (情境): 用户与 AI 共同经历的叙事处境，最后沉淀为记忆，构成角色表。
+- daemon (精灵): 《黄金罗盘》中人物灵魂的生物化外显，用来比喻用户与 AI 角色的绑定入口。
+
+谁该听 / who: AI 陪伴/社交产品创业者、关注大模型应用层机会的投资人、负责对话体验的产品经理与工程师。
+标签 / tags: AI伴侣, 即兴叙事, 产品方法论, 大模型应用, 创业
 
 ==============================================================================
 
