@@ -153,4 +153,19 @@ EXTRA: list[dict] = [
        feed="https://feed.podbean.com/hopwag/feed.xml",
        desc="哲学史无断档系列，概念可回原典"),
 
+
+  # --- cn (high quality) ---
+  dict(id="zhangjing", name="42章经", zh="42章经",
+       cat="cn", tier=2, lang="zh",
+       feed="https://feed.xyzfm.space/evgg6xle9rdc",
+       desc="曲凯主持的创投与AI一线访谈，嘉宾密、判断可被抬杠"),
+  dict(id="fengtouquan", name="疯投圈", zh="疯投圈",
+       cat="cn", tier=2, lang="zh",
+       feed="https://crazy.capital/feed",
+       desc="独立站商业与投资拆解，机制与案例密度高"),
+  dict(id="touzishizhan", name="投资实战派", zh="投资实战派",
+       cat="cn", tier=2, lang="zh",
+       feed="https://feed.xyzfm.space/rgnq4rbx9tpv",
+       desc="公司研究取向的投资访谈，论断可回财报与行业数据"),
+
 ]
