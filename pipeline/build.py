@@ -40,14 +40,15 @@ def _blurb() -> str:
     return (head + "要点和金句都带时间戳，点一下就回到它在原声里被说出的那一秒；"
             "金句逐字校验过、数字回原文核对过——查不到出处的，一律不上站。")
 
-CAT_ORDER = ["ai", "biz", "cn", "ideas", "hist", "parent"]
+CAT_ORDER = ["ai", "biz", "cn", "ideas", "hist", "parent", "sci"]
 CAT_LABEL = {
     "ai": "AI / 技术",
     "biz": "投资 / 商业",
     "cn": "中国视角",
     "ideas": "人文 / 思想",
-    "hist": "历史",
-    "parent": "育儿",
+    "hist": "文明 / 历史",
+    "parent": "育儿 / 教育",
+    "sci": "健康 / 科学",
 }
 
 
