@@ -2,33 +2,36 @@ name: daily digest
 
 on:
   schedule:
-    # 一天两班（北京时间约 08:40 / 20:40），各配一个补跑档，因为 GitHub 的定时会漂。
-    # 不要再加频次：同域的 skill 仓踩过坑——高频自动化会招来账号停用，
-    # 而且播客本身一天也出不了那么多值得写的东西。
-    - cron: "40 0 * * *"     # 北京 08:40
-    - cron: "10 1 * * *"     # 补跑
-    - cron: "40 12 * * *"    # 北京 20:40
+    # 早班 + 晚间加量。GitHub cron 用 UTC，会略漂移。
+    # 晚间多班是为了把各分类送进闸门，不是为了刷量灌水。
+    - cron: "40 0 * * *"     # 北京 08:40 早班
+    - cron: "10 1 * * *"     # 早班补跑
+    - cron: "40 12 * * *"    # 北京 20:40 晚班
+    - cron: "40 14 * * *"    # 北京 22:40 晚班加量
+    - cron: "20 16 * * *"    # 北京 00:20 夜间收尾
   workflow_dispatch:
     inputs:
       limit:
-        description: "本次最多发布几篇"
-        default: "8"
+        description: "本次最多处理几集（进闸门的上限）"
+        default: "12"
       days:
         description: "回溯多少天"
-        default: "10"
+        default: "21"
       review_min:
         description: "成稿评分及格线 0-10（低于此分不上站）"
         default: "7"
       triage_min:
-        description: "选题闸门及格线 0-10（建档从几千集里挑，建议 8）"
+        description: "选题闸门及格线 0-10"
         default: "7"
       only:
-        description: "只跑某一个信源 id（留空跑全部）"
+        description: "只跑指定信源 id，逗号分隔（留空跑全部）"
         default: ""
 
 permissions:
   contents: write
 
+# 同一时刻只允许一个 digest 写仓库，但绝不能取消正在跑的任务。
+# cancel-in-progress: false → 新触发的会排队等，不会把跑到一半的杀掉。
 concurrency:
   group: podcast-write
   cancel-in-progress: false
@@ -36,7 +39,7 @@ concurrency:
 jobs:
   digest:
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
 
@@ -68,11 +71,11 @@ jobs:
           TRANSCRIBE_API_KEY:  ${{ secrets.TRANSCRIBE_API_KEY }}
           TRANSCRIBE_BASE_URL: ${{ secrets.TRANSCRIBE_BASE_URL }}
           TRANSCRIBE_MODEL:    ${{ secrets.TRANSCRIBE_MODEL }}
-          MAX_NEW:       ${{ github.event.inputs.limit || '8' }}
+          MAX_NEW:       ${{ github.event.inputs.limit || '12' }}
           # Episodes are independent; 3 in flight keeps the run inside the job
           # timeout without leaning on the model provider's rate limit.
           JOBS: "3"
-          LOOKBACK_DAYS: ${{ github.event.inputs.days  || '10' }}
+          LOOKBACK_DAYS: ${{ github.event.inputs.days  || '21' }}
         run: |
           set -o pipefail
           ONLY=""
