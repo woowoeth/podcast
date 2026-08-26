@@ -1,0 +1,50 @@
+name: fix site
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: podcast-write
+  cancel-in-progress: false
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Restore build.py and show all category chips
+        run: |
+          git checkout 388f8e54ab051883ad4fd40e9f59c3c69f60fe41 -- pipeline/build.py
+          python3 - <<'PY'
+          from pathlib import Path
+          t = Path("pipeline/build.py").read_text()
+          old = (
+              "    for c in CAT_ORDER:\n"
+              "        if counts.get(c):\n"
+              "            chips.append(f'<button class=\"chip\" data-cat-chip=\"{c}\" aria-pressed=\"false\">'\n"
+              "                         f'{CAT_LABEL[c]}<span class=\"n\">{counts[c]}</span></button>')"
+          )
+          new = (
+              "    for c in CAT_ORDER:\n"
+              "        chips.append(f'<button class=\"chip\" data-cat-chip=\"{c}\" aria-pressed=\"false\">'\n"
+              "                     f'{CAT_LABEL[c]}<span class=\"n\">{counts.get(c, 0)}</span></button>')"
+          )
+          if old not in t:
+              raise SystemExit("pattern not found in build.py")
+          Path("pipeline/build.py").write_text(t.replace(old, new, 1))
+          print("patched")
+          PY
+          python pipeline/build.py
+      - name: Commit and push
+        run: |
+          git config user.name  "podcast-bot"
+          git config user.email "podcast-bot@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "fix build.py; always show all homepage category chips"
+          git pull --rebase --autostash origin main || true
+          git push
