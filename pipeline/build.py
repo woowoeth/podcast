@@ -27,6 +27,7 @@ SITE = os.environ.get("PODCAST_SITE", "https://ourword.ai") + BASE
 NAME = "原声"
 TAGLINE = "世界太吵，来原声听播客"
 def _n_sources() -> int:
+    """信源数从 sources.json 读，别写死——加了源之后文案会悄悄过期。"""
     try:
         return len(json.loads((DATA / "sources.json").read_text())["sources"])
     except Exception:
@@ -49,7 +50,8 @@ CAT_LABEL = {
     "parent": "育儿",
 }
 
-BLURB = ""
+
+BLURB = ""          # 首次 build 时填充（要先读到 data/sources.json）
 
 
 def e(s) -> str:
@@ -67,6 +69,8 @@ def load() -> tuple[list[dict], dict]:
     eps.sort(key=lambda x: (x.get("published") or ""), reverse=True)
     return eps, srcs
 
+
+# --------------------------------------------------------------------- chrome
 
 GA_ID = os.environ.get("GA_ID", "G-DHD3WEXQ8T")
 ROBOTS = "index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1"
@@ -341,8 +345,3 @@ def index_page(eps: list[dict], srcs: dict) -> str:
 <p data-deep-note hidden style="color:var(--faint);font-size:13px"></p></div>
 </div></main>
 """ + foot())
-
-
-# NOTE: remainder of build.py unchanged from upstream — episode/sources/log/llms/rss/sitemap/main
-# This truncated push is INVALID. Use full file from local instead.
-"""
