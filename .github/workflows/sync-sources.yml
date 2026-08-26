@@ -1,0 +1,40 @@
+name: sync sources
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: podcast-write
+  cancel-in-progress: false
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 20
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python -m pip install --quiet certifi truststore
+      - name: Restore and merge sources.json from EXTRA
+        run: |
+          # undo accidental PLACEHOLDER if present
+          if grep -q PLACEHOLDER data/sources.json 2>/dev/null; then
+            git log --all --oneline -- data/sources.json | head -5
+            git checkout d47470b54dd2dd8c3bcfff803f0ab4d1fd42ce5e -- data/sources.json || true
+          fi
+          python pipeline/resolve_sources.py
+          python -c "import json; d=json.load(open('data/sources.json')); assert len(d['sources'])>80, d; print('sources', len(d['sources']))"
+          # light health probe (best effort)
+          python pipeline/resolve_sources.py --check || true
+          python pipeline/build.py || true
+      - name: Commit
+        run: |
+          git config user.name  "podcast-bot"
+          git config user.email "podcast-bot@users.noreply.github.com"
+          git add data/sources.json sources/index.html index.html llms.txt || true
+          git add -A || true
+          if git diff --cached --quiet; then echo "no change"; exit 0; fi
+          git commit -m "sources: merge EXTRA into sources.json (auto-fetch ready)"
+          git pull --rebase --autostash origin main || true
+          git push
