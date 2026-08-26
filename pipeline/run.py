@@ -132,7 +132,7 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
     """Fetch every feed concurrently — a serial pass over 49 feeds, some of them
     12MB, takes minutes and dominates the whole run."""
     cutoff = now() - dt.timedelta(days=days)
-    # --only 支持逗号分隔的多个 id；--cat 按分类跑（ai / biz / cn）
+    # --only 支持逗号分隔的多个 id；--cat 按分类跑（ai / biz / cn / ideas / hist / parent）
     want = {x.strip() for x in (only or "").split(",") if x.strip()}
     todo = [s for s in srcs if (not want or s["id"] in want)
             and (not _cat["v"] or s.get("cat") == _cat["v"])]
@@ -353,8 +353,8 @@ def main() -> int:
                     help="how many episodes to publish this run")
     ap.add_argument("--days", type=int, default=int(os.environ.get("LOOKBACK_DAYS", "10")))
     ap.add_argument("--only", help="限定信源 id，逗号分隔可给多个")
-    ap.add_argument("--cat", default="", choices=["", "ai", "biz", "cn"],
-                    help="限定分类：ai / biz / cn")
+    ap.add_argument("--cat", default="", choices=["", "ai", "biz", "cn", "ideas", "hist", "parent"],
+                    help="限定分类：ai / biz / cn / ideas / hist / parent")
     ap.add_argument("--only-residential", action="store_true",
                     help="只跑标了 residential 的信源（本机专属：YouTube 与 Substack）")
     ap.add_argument("--skip-residential", action="store_true",
