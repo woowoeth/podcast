@@ -40,8 +40,15 @@ def _blurb() -> str:
     return (head + "要点和金句都带时间戳，点一下就回到它在原声里被说出的那一秒；"
             "金句逐字校验过、数字回原文核对过——查不到出处的，一律不上站。")
 
-CAT_ORDER = ["ai", "biz", "cn"]
-CAT_LABEL = {"ai": "AI / 技术", "biz": "投资 / 商业", "cn": "中国视角"}
+CAT_ORDER = ["ai", "biz", "cn", "ideas", "hist", "parent"]
+CAT_LABEL = {
+    "ai": "AI / 技术",
+    "biz": "投资 / 商业",
+    "cn": "中国视角",
+    "ideas": "人文 / 思想",
+    "hist": "历史",
+    "parent": "育儿",
+}
 
 
 BLURB = ""          # 首次 build 时填充（要先读到 data/sources.json）
@@ -655,7 +662,7 @@ def source_page(src: dict, eps: list[dict], total_known: int | None) -> str:
         rows.append(("最新一集", st["latest"]))
     if st.get("official_transcripts"):
         rows.append(("官方逐字稿", "自带"))
-    rows.append(("分类", CAT_LABEL[src["cat"]]))
+    rows.append(("分类", CAT_LABEL.get(src["cat"], src["cat"])))
     rows.append(("优先级", f"T{src.get('tier', 3)}"))
     meta = "".join(f'<div class="row"><span>{e(k)}</span><span>{e(v)}</span></div>'
                    for k, v in rows)
