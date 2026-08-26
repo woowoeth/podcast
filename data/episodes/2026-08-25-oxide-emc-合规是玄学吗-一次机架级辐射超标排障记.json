@@ -1,0 +1,206 @@
+{
+ "id": "oxide-c4de6cb514",
+ "slug": "2026-08-25-oxide-emc-合规是玄学吗-一次机架级辐射超标排障记",
+ "fingerprint": "b9755057a499399d",
+ "source_id": "oxide",
+ "source": "Oxide and Friends",
+ "source_zh": "Oxide and Friends",
+ "cat": "ai",
+ "tier": 1,
+ "lang": "en",
+ "title_original": "The Return to the Chamber of Mysteries",
+ "published": "2026-08-25T14:00:00Z",
+ "duration": 4568,
+ "audio": "https://media.transistor.fm/3126bdb4/4335f2bd.mp3",
+ "link": "https://share.transistor.fm/s/3126bdb4",
+ "image": "https://img.transistorcdn.com/vXnd7VnDMA2AeXtSnRyFBM54tRuYH_AaVfaVeYg8QmA/rs:fill:0:0:1/w:1400/h:1400/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS9hMWM0/ZDJiYmNhOTJkMDMz/NTVmNTEzOGM3M2Vl/M2FkNi5wbmc.jpg",
+ "youtube_id": "",
+ "transcript_url": "https://share.transistor.fm/s/3126bdb4/transcription.json",
+ "digest": {
+  "title": "EMC 合规是玄学吗？一次机架级辐射超标排障记",
+  "dek": "机架后侧 26.565GHz 辐射超标，排查两轮无果，最终靠一场无关会议上的论文找到解法：在连接器上加吸波材料。这不是玄学，是高频物理。",
+  "why": "EMC 排障罕见地被完整复盘：从超标的物理机制、定位手段到工厂工艺落地，信息密度高。适合硬件工程师和关注研发细节的人听。",
+  "who": "硬件工程师、EMC 工程师、服务器/机架设计者，以及所有对系统级合规测试流程好奇的产品负责人。",
+  "skip": "前 5 分钟棒球和邻里纠纷闲聊可跳过，信息起点从 7 分钟 EMC 解释开始。",
+  "points": [
+   {
+    "t": 460,
+    "h": "EMC 是什么，为什么是黑魔法",
+    "body": "Robert 解释 EMC：电子设备的信号在不同频率工作，可能成为辐射体，干扰周围设备。无意的天线是主要问题，不是手机那种拉杆天线，而是缝隙天线和腔体。例如，26.565GHz 的四分之一波长只有约 3 毫米，一个金属腔体的开口若恰好是几毫米，就会成为意外的谐振天线。Bryan 说这是唯一一个经常出现「巫术」「伏都」词汇的工程领域，因为看起来像黑魔法，其实是几何学。",
+    "spk": "Robert \"RFK\" Keith"
+   },
+   {
+    "t": 1230,
+    "h": "伺服器侧板簧片：分隔缝隙的物理",
+    "body": "Bryan 用 drive caddy 上的弹簧手指举例：那些看似固定硬盘的弹片，真实作用是打断插槽的连续缝隙，把一个长缝隙分成几个小缝隙，从而把辐射能量推到更高频率、能量更小。这是 EMC 里最廉价也最常见的技巧。Bryan 感叹这不像第一性原理，倒像「最后原理」——临发货前才被迫处理。但物理就是物理，不是玄学。",
+    "spk": "Bryan Cantrill"
+   },
+   {
+    "t": 1780,
+    "h": "32 槽位 vs 24 槽位的合规差异",
+    "body": "Robert 说明这次回暗室的背景：Cosmo 机架从 24 槽升级到 32 槽，因为功率约束解除了。但 32 个 Gen5 PCIe 跑在更高频率上，辐射会叠加，必须重新做整套机架级合规测试。他对比了服务器厂商只测单台、单独 12V 供电的做法，而 Oxide 卖的是整机架，所以必须整个机架进暗室，所有交换机和 sled 的线缆、背板、腔体都是潜在辐射源。这就是为什么这次测试的对象是完整系统。",
+    "spk": "Robert \"RFK\" Keith"
+   },
+   {
+    "t": 2300,
+    "h": "26.565GHz 超标与首次排障失败",
+    "body": "Stu 描述第一次进暗室的场景：Rack model 0.5 首次带电，整流器风扇更响更尖。意外的是在 26.565GHz 出现超限值辐射。他们先检查了 QSFP 笼子的弹片接触点，发现喷漆遮蔽不完美，用砂纸打磨后无效；再试整理内部飞线，也没用；用铝箔局部屏蔽，仍然无效。两轮测试后毫无进展，只能带着未解问题离场，连一条可行的下一步都没有。",
+    "spk": "Stu Donnan"
+   },
+   {
+    "t": 2940,
+    "h": "怀疑收发器型号变化",
+    "body": "离场后，Joe 提出一个线索：本次用的收发器与上次不是同一批。同一规格，但每年新版本会更新 DSP，发射特性可能微变。Robert 起初不以为意，因为即使如此也不是可落地的解法——产品必须支持这些收发器。但这是一个重要的排查方向：配置是人为构造的最坏情况，64 个同一型号 200G 收发器全开，这在真实产品里根本做不到，因为侧板没有 200G 背板。这种「虚假的最坏情况」反而把隐患暴露出来。",
+    "spk": "Robert \"RFK\" Keith"
+   },
+   {
+    "t": 3340,
+    "h": "一场无关会议给出的解法",
+    "body": "第三次进暗室时，Dan 在德州一场 SI 会议上听到一篇论文，主题是时域有限差分法仿真电磁场，其中一个案例恰好是光收发器，解法是在连接器周围贴吸波材料。Dan 马上把内容发给 Robert，而 Robert 和 Stu 正准备用同样的材料开始手工切割。论文因为给了他们精确的做法：材料要贴在连接器顶部、QSFP 笼子下方，越接近收发器引脚越好。这不是运气，而是技术社区信息共享的价值。",
+    "spk": "Dan Chirpich"
+   },
+   {
+    "t": 3780,
+    "h": "手工贴片与工厂量产工艺",
+    "body": "Robert 描述贴吸波材料的过程：需要把 10mm×5mm 的小条塞进 QSFP 笼子下方的狭小空间，用镊子、拿尺子量，像做手工艺品。好消息是材料确实起作用，但只测了顶端一排，需要按功率叠加推算四排全贴的效果。真正的难点在工厂：这要在连接器压装前贴好，用模具冲切好的小方块，让产线工人像贴贴纸一样操作。这个方案让工厂很想杀人，但它是目前唯一的解。",
+    "spk": "Robert \"RFK\" Keith"
+   },
+   {
+    "t": 4020,
+    "h": "这不是补丁，是修复",
+    "body": "Bryan 强调这不能叫 mitigation，应该叫 fix。Dan 补充说，这种能量从连接器处泄漏几乎是收发器驱动设计的固有属性，不是因为 Oxide 设计失误。在能量偏离轨道的起点加吸收体，是在与物理定律合作，而不是对抗。Stu 笑着说整个测试过程中他必须强行压制乐观情绪，因为一旦期待某次改动有效，结果往往是无效。最终他们带着两分贝的余量离开，两周后还要再回暗室做最终确认。",
+    "spk": "Bryan Cantrill"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 510,
+    "spk": "Robert \"RFK\" Keith",
+    "raw": "It's the things that you don't normally encounter or think about in your when you would go to a conference on design.",
+    "zh": "这些东西是你平时去设计大会时不会遇到、也不会想到的。"
+   },
+   {
+    "t": 1170,
+    "spk": "Bryan Cantrill",
+    "raw": "It feels like last principles engineering.",
+    "zh": "这感觉像是「最后原理」工程。"
+   },
+   {
+    "t": 1820,
+    "spk": "Robert \"RFK\" Keith",
+    "raw": "We have so many places where things can go bad and be sad and cause problems.",
+    "zh": "我们有太多地方可能出问题、让人难过、制造麻烦。"
+   },
+   {
+    "t": 2460,
+    "spk": "Robert \"RFK\" Keith",
+    "raw": "There's no atheist in the chamber.",
+    "zh": "暗室里没有无神论者。"
+   },
+   {
+    "t": 3140,
+    "spk": "Robert \"RFK\" Keith",
+    "raw": "Even if that is the problem, that's not an actionable solution.",
+    "zh": "即使那真是问题所在，也不是一个可执行的解法。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "本次超标辐射频率",
+    "v": "26.565 GHz",
+    "t": 2280
+   },
+   {
+    "k": "对应四分之一波长的物理尺寸",
+    "v": "约 10-12 毫米",
+    "t": 2390
+   },
+   {
+    "k": "机架槽位数量（原），现为 32",
+    "v": "24→32",
+    "t": 1740
+   },
+   {
+    "k": "暗室线路（line）最初承载能力",
+    "v": "60 安培",
+    "t": 2040
+   },
+   {
+    "k": "新线路承载能力",
+    "v": "100 安培",
+    "t": 2070
+   },
+   {
+    "k": "每次单次测试耗时",
+    "v": "1-2 小时",
+    "t": 2580
+   }
+  ],
+  "terms": [
+   {
+    "term": "EMC",
+    "zh": "电磁兼容性",
+    "def": "设备在电磁环境中能正常工作且不产生不可接受的干扰。"
+   },
+   {
+    "term": "Slot antenna",
+    "zh": "缝隙天线",
+    "def": "由金属体上的缝隙形成的意外天线，长度决定谐振频率。"
+   },
+   {
+    "term": "Grounded coplanar waveguide",
+    "zh": "接地共面波导",
+    "def": "一种布线结构，用附近接地过孔抑制辐射，但代价是插入损耗高。"
+   },
+   {
+    "term": "QSFP cage",
+    "zh": "QSFP 笼子",
+    "def": "金属屏蔽外壳，用于包裹可插拔光模块并连接机箱地。"
+   },
+   {
+    "term": "Line (EMC chamber)",
+    "zh": "电源线路（暗室）",
+    "def": "暗室的电源输入滤波器，其额定电流限制了可测试设备的功耗。"
+   }
+  ],
+  "tags": [
+   "EMC",
+   "硬件工程",
+   "机架服务器",
+   "光收发器",
+   "合规测试"
+  ],
+  "quality": {
+   "transcript_source": "feed",
+   "transcript_detail": "application/json",
+   "words": 12998,
+   "wpm": 170.7,
+   "timed": true,
+   "verified_quotes": 5,
+   "grounded_facts": 6,
+   "points": 8,
+   "pruned": 6,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-08-26T02:12:36Z",
+ "triage": {
+  "score": 7.0,
+  "why": "一手经历讲FCC认证细节与踩坑，机制具体，但受众窄，对多数读者价值有限。",
+  "kind": "一手访谈"
+ },
+ "review": {
+  "score": 7.0,
+  "dims": {
+   "density": 8,
+   "faithful": 7,
+   "selection": 7,
+   "concrete": 8,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点多为机制与判断，有具体数字和物理解释，但忠实度有瑕疵：原文中「12毫米」与成稿数字表「10-12毫米」对应，但成稿要点[7:40]写「约3毫米」与原文不符，且「四分之一波长」计",
+  "worst": "要点[7:40]中「26.565GHz 的四分之一波长只有约 3 毫米」与原文「12 millimeters is about」矛盾，应改为约12毫米。"
+ },
+ "model": "openai:deepseek-reasoner"
+}
