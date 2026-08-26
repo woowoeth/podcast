@@ -103,21 +103,65 @@ def reconcile(state: dict) -> int:
 
 def spread(ranked: list[dict], limit: int, per_source: int) -> list[dict]:
     """Take the best `limit` episodes, but no more than `per_source` from any one
-    show. Overflow is left for the next run rather than dropped."""
+    show. Overflow is left for the next run rather than dropped.
+
+    When the run is not locked to a single --cat / small --only set, also guarantee
+    a floor per category so hist/parent/sci/ideas are not starved by high-volume AI
+    feeds. Floor is 1 per cat that has candidates (2 if limit >= 12).
+    """
+    from collections import Counter, defaultdict
+
+    # Category floor only on broad runs (full catalog or many sources).
+    cats_present = {ep["_src"].get("cat", "ai") for ep in ranked}
+    use_floor = (not _cat["v"]) and len(cats_present) >= 3
+    floor = 2 if limit >= 12 else 1
+
     out, used, held = [], {}, []
-    for ep in ranked:
+    picked_ids = set()
+
+    def try_add(ep) -> bool:
         sid = ep["_src"]["id"]
         if used.get(sid, 0) >= per_source:
             held.append(sid)
-            continue
+            return False
+        if id(ep) in picked_ids:
+            return False
         used[sid] = used.get(sid, 0) + 1
+        picked_ids.add(id(ep))
         out.append(ep)
+        return True
+
+    if use_floor:
+        by_cat = defaultdict(list)
+        for ep in ranked:
+            by_cat[ep["_src"].get("cat", "ai")].append(ep)
+        # stable priority: under-served content cats first, then core
+        order = ["hist", "parent", "sci", "ideas", "cn", "biz", "ai"]
+        for c in order:
+            if c not in by_cat:
+                continue
+            n = 0
+            for ep in by_cat[c]:
+                if n >= floor:
+                    break
+                if len(out) >= limit:
+                    break
+                if try_add(ep):
+                    n += 1
+            if n:
+                log(f"  cat floor {c}: {n}")
+
+    for ep in ranked:
         if len(out) >= limit:
             break
+        try_add(ep)
+
     if held:
-        from collections import Counter
         top = ", ".join(f"{k}×{v}" for k, v in Counter(held).most_common(4))
         log(f"  held back for a later run (per-source cap): {top}")
+    if out:
+        cc = Counter(ep["_src"].get("cat", "?") for ep in out)
+        log(f"  pick by cat: " + ", ".join(f"{k}={v}" for k, v in sorted(cc.items())))
     return out
 
 
@@ -456,7 +500,7 @@ def main() -> int:
     cands = candidates(srcs, state, a.days, a.only)
     cands.sort(key=score, reverse=True)
     cands = spread(cands, a.limit, a.per_source)
-    log(f"\n{len(cands)} picked (≤{a.per_source} per source) by tier/freshness/transcript")
+    log(f"\n{len(cands)} picked (≤{a.per_source} per source) by tier/freshness/transcript + cat floor")
 
     tally: dict[str, int] = {}
     published = 0
