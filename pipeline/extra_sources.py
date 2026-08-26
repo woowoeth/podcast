@@ -273,4 +273,31 @@ EXTRA: list[dict] = [
        feed="https://feeds.feedburner.com/ThisPodcastWillKillYou",
        desc="疾病与流行病学故事，机制与史实可核"),
 
+
+  # --- ideas expansion batch ---
+  dict(id="thinkingallowed", name="Thinking Allowed", zh="Thinking Allowed",
+       cat="ideas", tier=2, lang="en",
+       feed="https://podcasts.files.bbci.co.uk/b006qy05.rss",
+       desc="BBC 社会学与思想访谈，论断可回研究与田野"),
+  dict(id="bbcanalysis", name="Analysis", zh="BBC Analysis",
+       cat="ideas", tier=2, lang="en",
+       feed="https://podcasts.files.bbci.co.uk/b006r4vz.rss",
+       desc="BBC 深度议题分析，正反论证清楚"),
+  dict(id="startweek", name="Start the Week", zh="Start the Week",
+       cat="ideas", tier=2, lang="en",
+       feed="https://podcasts.files.bbci.co.uk/b006r9xr.rss",
+       desc="BBC 文化与思想开周谈，嘉宾判断可抬杠"),
+  dict(id="verybad", name="Very Bad Wizards", zh="Very Bad Wizards",
+       cat="ideas", tier=2, lang="en",
+       feed="https://feeds.podcastmirror.com/very-bad-wizards",
+       desc="哲学与心理学对谈，实验与思想实验可核"),
+  dict(id="rationally", name="Rationally Speaking", zh="Rationally Speaking",
+       cat="ideas", tier=2, lang="en",
+       feed="https://feeds.feedburner.com/rationallyspeaking",
+       desc="Julia Galef 理性与认知偏差，论断可回研究"),
+  dict(id="dailystoic", name="The Daily Stoic", zh="Daily Stoic",
+       cat="ideas", tier=3, lang="en",
+       feed="https://rss.art19.com/the-daily-stoic",
+       desc="斯多葛应用短集；偏实践，T3 严闸"),
+
 ]
