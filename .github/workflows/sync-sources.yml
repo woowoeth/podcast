@@ -12,29 +12,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 20
+          fetch-depth: 30
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: python -m pip install --quiet certifi truststore
-      - name: Restore and merge sources.json from EXTRA
+      - name: Rebuild sources.json from CURATED+EXTRA
         run: |
-          # undo accidental PLACEHOLDER if present
-          if grep -q PLACEHOLDER data/sources.json 2>/dev/null; then
-            git log --all --oneline -- data/sources.json | head -5
-            git checkout d47470b54dd2dd8c3bcfff803f0ab4d1fd42ce5e -- data/sources.json || true
-          fi
+          set -e
+          # Prefer a known-good base so probation entries outside EXTRA are kept
+          git checkout d47470b54dd2dd8c3bcfff803f0ab4d1fd42ce5e -- data/sources.json 2>/dev/null || true
           python pipeline/resolve_sources.py
-          python -c "import json; d=json.load(open('data/sources.json')); assert len(d['sources'])>80, d; print('sources', len(d['sources']))"
-          # light health probe (best effort)
+          python -c "import json; d=json.load(open('data/sources.json')); n=len(d['sources']); print('sources', n); assert n>=90, n"
+          # Probe feeds and refresh status (best effort; do not fail the job)
           python pipeline/resolve_sources.py --check || true
-          python pipeline/build.py || true
-      - name: Commit
+          python pipeline/build.py
+      - name: Commit and push
         run: |
           git config user.name  "podcast-bot"
           git config user.email "podcast-bot@users.noreply.github.com"
-          git add data/sources.json sources/index.html index.html llms.txt || true
-          git add -A || true
+          git add -A
           if git diff --cached --quiet; then echo "no change"; exit 0; fi
-          git commit -m "sources: merge EXTRA into sources.json (auto-fetch ready)"
-          git pull --rebase --autostash origin main || true
-          git push
+          git commit -m "sources: rebuild from EXTRA — auto-fetch ready"
+          for i in 1 2 3 4 5; do
+            git pull --rebase --autostash origin main && git push && exit 0
+            sleep 5
+          done
+          exit 1
