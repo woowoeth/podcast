@@ -1,6 +1,6 @@
 # 原声 — 世界太吵，来原声听播客
 
-114 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
+118 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
 
 ==============================================================================
 
@@ -71,6 +71,81 @@
 
 ==============================================================================
 
+## 性能优化不靠剖析热点，靠理论峰值反推差距
+
+- URL: https://ourword.ai/podcast/p/2026-08-26-pragmatic-性能优化不靠剖析热点-靠理论峰值反推差距/
+- 节目 / show: The Pragmatic Engineer (https://ourword.ai/podcast/s/pragmatic/)
+- 原集标题 / original episode: Why performant code matters (but gets widely ignored), with Casey Muratori
+- 发布 / published: 2026-08-26 · 时长 / duration: 1:52:59
+- 文稿来源 / transcript: 音频转写 · 22955 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 9 numbers traced to the transcript, review score 8/10
+
+**软件慢 10 到 100 倍的根因不在代码技巧，而在架构层的串行依赖；正确优化是锁定硬件理论峰值再量差距——前提是架构决策者懂汇编。**
+
+为什么听 / why: 两小时长谈，后半段最值钱：游戏引擎普及预示 AI 转型，GTA6 难产暴露替换旗舰产品的商业困境。前半段性能方法论扎实，可直接上手，整体信息密度高。
+
+### 核心论点 / points
+
+[15:14] (Casey Muratori) **性能被忽视的三个原因** — Casey 认为开发者普遍不关注性能，机制有三层：企业软件里用户不是购买者，决策者只看成本、合规与法律责任，性能好坏不影响成交；垄断效应让社交网络这类平台难以靠性能被挑战，体验再差用户也走不了；第三个原因是过去十年呼吁性能的人已经产生效果，性能正在重新被重视。三条叠加解释了为什么「让软件变快」在公司里常常没有话语权，也说明性能问题本质是激励问题。
+
+[22:29] (Casey Muratori) **理论峰值是优化正确起点** — Casey 强调行业里真正的优化专家不会先剖析再改热点。正确顺序是：先问这个系统必须执行哪些操作，再查底层硬件在理论峰值下能做什么，然后测量理论最大值与当前实现之间的差距，最后努力缩小差距。这样做有两个好处：不会被局部热点带偏，能发现硬件新特性，进而提升自己的优化能力。他明确指出「先测量热点再优化」不是专家做法，而是把优化当成事后补救。
+
+[32:53] (Casey Muratori) **串行依赖链才是万恶之源** — 「过早优化是万恶之源」这句话的真正问题在于：如果架构阶段就形成了串行依赖链，后期靠优化热点根本无法挽救。Casey 举例，代码模式若是「请求-处理-再请求」，性能专家也无能为力，因为串行依赖无法并行化。软件的性能通常由最长的串行依赖链决定，而这条链在架构期就定型了。所以架构选择一旦出错，后续所有性能优化都是在错误的地基上盖楼。
+
+[40:04] (Casey Muratori) **AI 公司正重写技术栈** — Uber 曾因 Python 和 Node.js 的单线程问题转向 Go 和 Java。如今 OpenAI 和 Anthropic 面临同样的故事：数据科学家熟悉 Python，所以初版全用 Python，但产品要支撑多线程和更多连接，现在开始评估迁移到 Rust 或 Go。Casey 的潜台词是，AI 公司正在经历基础设施的「语言债务」期，而这一幕在上一代互联网公司身上已经发生过，历史正在重演。
+
+[1:13:25] (Casey Muratori) **GTA6 是替换 GTA5 的生意** — Casey 从商业结构解释 GTA6 为什么开发周期那么长：GTA5 在线模式当时是收入最高的娱乐产品，年入数十亿美元。GTA6 不是做一个新游戏，而是替换公司最赚钱的产品，所以 Rockstar 和 Take Two 不能失败，还得规划在线部分，避免新产品蚕食旧产品收入。GTA5 的成功对他们是意外，GTA6 是第一次真正更新旗舰产品，相当于重新发布 Google 搜索——这是极端保守的开发逻辑。
+
+[1:19:40] (Casey Muratori) **真正成本是编译器被蒙在鼓里** — 很多人以为虚函数调用本身开销大，Casey 纠正说真正代价是编译器失去优化能力。当编译器无法确定运行时类型时，就无法内联、合并冗余代码、做向量化，性能损失远大于一次间接调用。他在 Clean Code 视频里展示的退化还相对温和，实际生产环境可能更严重。多态代码慢的不是那一次分派，而是整个周围代码都失去了被自动化的资格。
+
+### 原话 / verbatim quotes
+
+[22:29] Casey Muratori: "That is not how anyone has ever, you know, I've worked with many extremely good optimization people, and that is not how it is done. The correct way to do optimization is very much like what you just said. You first go, what are the operations that this system has to perform? What is the underlying hardware capable of doing at its theoretical peak? And then you measure the delta between that theoretical maximum and what you have achieved."
+    译 / zh: 这不是任何人曾经做过的方式，我合作过许多极其优秀的优化专家，这不是他们的做法。正确的优化方式正如你所说：首先，这个系统必须执行哪些操作？底层硬件在理论峰值时能做什么？然后你测量理论最大值与你实际达到之间的差距。
+
+[33:53] Casey Muratori: "The performance of your software is generally determined by the longest serial dependency chain because it's something that cannot be paralyzed."
+    译 / zh: 软件的性能通常由最长的串行依赖链决定，因为这是无法并行化的。
+
+[35:56] Casey Muratori: "The way to think about it is your code base will not end up that way by accident. In most cases anymore. You have to engineer up front for a hotspot code base that people can then optimize."
+    译 / zh: 思考方式是，你的代码库不会偶然变成那样。在大多数情况下，你必须预先设计一个可优化的热点代码库，以便人们后续优化。
+
+[1:13:25] Casey Muratori: "Grand Theft Auto 5 at the time was, if I'm not mistaken, by far the most revenue generating entertainment product in existence. The online part of that game was generating like billions of dollars."
+    译 / zh: 如果我没记错的话，GTA5 当时是现存收入最高的娱乐产品。它的在线部分产生了数十亿美元的收入。
+
+[1:25:13] Casey Muratori: "in my experience, usually the code that is architected properly is also the code that runs quickly."
+    译 / zh: 根据我的经验，架构良好的代码通常也运行得快。
+
+[1:50:13] Casey Muratori: "I don't think people should necessarily take a book recommendation from me. I want to recommend that people read a paper."
+    译 / zh: 我不认为人们应该接受我的书单推荐。我想推荐人们去读论文。
+
+[1:51:15] Casey Muratori: "I don't know if they're good at that, but I'm guessing that's something they could do."
+    译 / zh: 我不知道他们是否擅长这个，但我猜这是他们能做的事情。
+
+### 数字 / figures
+
+- 软件运行速度比需要慢的倍数: 10x-100x [0:00]
+- Linear 操作预算: 300ms [19:22]
+- 网络 ping 时间: sub 10ms [20:25]
+- Python 中 A+B 的汇编指令数: 远多于 C 的一条 add 指令 [44:26]
+- Steam 年发布游戏数: 数万到十万 [1:07:59]
+- Clean Code 视频性能差距: 1.5 到 15 倍 [1:16:32]
+- GTA5 在线收入: 数十亿美元 [1:13:25]
+- AI 代码质量转折点: 2024 年 1 月 [1:38:46]
+- AI 全面评估所需时间: 至少 6 个月到 1 年 [1:39:47]
+
+### 术语 / glossary
+
+- theoretical peak (理论峰值): 硬件在理想条件下能达到的最大吞吐，是优化目标的基准。
+- serial dependency chain (串行依赖链): 一系列无法并行、必须顺序执行的操作，决定软件延迟下限。
+- hotspot (热点代码): 程序中消耗最多 CPU 时间的部分，常是优化的自然切入点。
+- branch prediction (分支预测): CPU 预测分支走向以保持流水线满载的机制，预测失败代价高。
+
+谁该听 / who: 写后端或业务代码的程序员、做技术选型的架构师，以及正在用 AI 重写技术栈的初创团队——产品慢但说不清慢在哪的人尤其该听。
+可跳过 / skip: 若时间紧可跳过 1:16 到 1:25 的 Clean Code 视频复盘，听结论即可；游戏行业部分看似离题，其实是全片最有预测力的内容。
+标签 / tags: 性能优化, 架构决策, 理论峰值, AI 编程, 编译器优化
+
+==============================================================================
+
 ## AI 的下一步不是更大模型，而是学会承认不确定
 
 - URL: https://ourword.ai/podcast/p/2026-08-26-deepmind-ai-的下一步不是更大模型-而是学会承认不确定/
@@ -134,6 +209,85 @@
 谁该听 / who: 做 LLM 应用、AI 产品与决策系统的工程师和研究员；关注 AGI 技术路线争论的投资人。
 可跳过 / skip: 9:40–16:00 的 80 年代个人回顾与贝叶斯入门解释，若已熟悉可快进。
 标签 / tags: 不确定性, 贝叶斯, 校准, LLM, 持续学习, AGI
+
+==============================================================================
+
+## 物理没有基础模型，神经算子正在补上这一课
+
+- URL: https://ourword.ai/podcast/p/2026-08-26-latentspace-物理没有基础模型-神经算子正在补上这一课/
+- 节目 / show: Latent Space (https://ourword.ai/podcast/s/latentspace/)
+- 原集标题 / original episode: 🔬“We have foundation models for language, not for physics” — Anima Anandkumar, Bren Professor of Computing
+- 发布 / published: 2026-08-26 · 时长 / duration: 1:23:31
+- 文稿来源 / transcript: YouTube 字幕 · 14250 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 7 numbers traced to the transcript, review score 8/10
+
+**Anima Anandkumar 用神经算子把天气预测带进 AI 时代：同样精度快数万倍、只用消费级 GPU，并展示物理世界如何用少量数据加几何归纳偏置迈向基础模型。**
+
+为什么听 / why: Anima 是少数横跨学术界和产业的 AI 科学家；这集不空谈 AGI，给了神经算子、可验证 AI、天气和聚变的具体机制与数字。中后段全是干货。
+
+### 核心论点 / points
+
+[6:07] (Anima Anandkumar) **用 Lean 验证神经网络** — Anima 说 AI for science 的瓶颈不是产生假设，而是验证假设。Torch Lean 让你用类似 PyTorch 的抽象在 Lean 里写神经网络，再证明它的性质：输入扰动后输出的变化上界、有限精度的影响、控制系统关心的鲁棒性。这样神经网络可以进入无人机或核反应堆的控制回路，并且有形式化保证。她也承认，Lean 目前基于 CPU，扩展到 Transformer 级别的规模还很远。
+
+[13:14] (Anima Anandkumar) **PINN 为什么会在关键时刻失灵** — 物理信息神经网络把 PDE 写成损失函数，但 PINN 对每个方程都要从零开始优化；碰到时间依赖、湍流、混沌这类问题，优化景观根本没有办法处理。神经算子换了一条路：不是从方程求解，而是用大量数据学习从函数空间到函数空间的映射，测试时直接给答案，物理约束只用来引导。因为训练阶段见过正确答案，就绕开了从零优化这个死结。
+
+[16:15] (Anima Anandkumar) **把世界看成连续函数** — 标准神经网络的输入输出维度是固定的：语言有词表，图像有分辨率，训练完就不能改。物理世界的现象天然多尺度，粗分辨率数据背后还有细尺度物理。神经算子把输入输出建模为连续函数，可以做任意离散化；训练后能用粗数据做 zero-shot 超分辨率，还能在更细分辨率上施加物理约束。这是它区别于普通神经网络的核心。
+
+[33:29] (Anima Anandkumar) **天气：快数万倍的反转** — 2021 年团队想用神经算子做天气时，气象学家都说不可能，传统物理模型有几十年积累。结果模型训练出来后，精度接近传统方法，速度快数万倍，一台消费级 GPU 就能跑完原来超算才能做的事。FourCastNet 是第一个开源且允许商用的 AI 天气模型，DeepMind、华为等到一年后才跟进；小机构也因此能获得过去大机构才有的保真度。
+
+[36:30] (Anima Anandkumar) **只有一个地球，一个模型** — 传统上短期天气预报和长期气候模拟是两个系统。Anima 的立场是地球只有一个，基础模型应该同时做好短临和气候。FourCastNet 3 加入球面几何，让同一条轨迹可以稳定滚动到几个月甚至一年；其他把世界当矩形的模型，长跑后很快就 blow up。气候预测靠 ensemble：给初始条件加噪声跑出多条轨迹，再对集合做概率统计。AI 模型够快，ensemble 规模可以远比传统方法大。
+
+[43:37] (Anima Anandkumar) **极端事件反而更容易学会** — 直觉上罕见事件样本少，AI 应该学不好；但第一次可视化，模型就能抓住飓风和风暴。原因是极端事件有非常具体的物理特征，物理世界本身有大量结构。聚变等离子体只有几千个样本，也能准确预测 disruption，还比传统模拟快一百万倍。Anima 的判断是：传统数值方法追求任何情况下都可解，而 AI 从数据里揭示出问题实际上有多可解。
+
+[1:03:51] (Anima Anandkumar) **聚变等离子体的数字孪生** — 除了天气，团队用神经算子给托卡马克里的等离子体演化做数字孪生，比传统模拟快一百万倍，下一步是把控制和仿真一起设计，目标是预测并防止 disruption，让聚变可持续。这个项目与英国原子能机构（UKAEA）合作，也在跟美国多个实验室合作；Anima 说作为 AI 研究者她不想过早押注某一种聚变路线，而是让 AI 加速所有方案。
+
+[1:12:55] (Anima Anandkumar) **物理基础模型与逆向设计** — Anima 说目前只有语言和视觉基础模型，还没有物理基础模型。未来应该训练能处理多物理场耦合的模型，并进一步做逆向设计：不是人先设计再仿真验证，而是让 AI 直接给出最优设计，物理约束当作安全护栏。例子包括光刻掩膜、量子点门控、非线性光子学。这些高度非线性的组合，人类手动找效率很差，AI 却能在仿真闭环里找到真正可工作的设计。
+
+### 原话 / verbatim quotes
+
+[6:07] Anima Anandkumar: "we can now have neural networks be part of the verification loop and have confidence that we can use them appropriately"
+    译 / zh: 我们现在能让神经网络成为验证回路的一部分，并确信可以恰当地使用它们。
+
+[29:25] Anima Anandkumar: "we're talking like hundreds of billions to even a trillion context length right so forget ever having a transformer for anything of this scale all of the world's compute will not be enough"
+    译 / zh: 这意味着数百亿甚至万亿的上下文长度，所以别指望 Transformer 能处理这种规模——全世界的算力加起来都不够。
+
+[33:29] Anima Anandkumar: "it's not only you know accurate it's almost as close to the uh what the traditional weather models can do accurately but also tens of thousands of times faster"
+    译 / zh: 它不仅准确，几乎能逼近传统天气模型能做到的精度，而且快数万倍。
+
+[36:30] Anima Anandkumar: "there's only one earth. You know, if you want a foundation model, if the claim is that it should be able to do both very short-term as well as very long-term together."
+    译 / zh: 地球只有一个。如果你想做基础模型，那它就应该能同时处理极短期和极长期预测。
+
+[43:37] Anima Anandkumar: "the physical world may be more forgiving because you know where there are extreme events like hurricanes that have very specific physical signature"
+    译 / zh: 物理世界可能更宽容，因为像飓风这样的极端事件带有非常具体的物理特征。
+
+[1:12:55] Anima Anandkumar: "we have foundation models for language maybe vision but not for physics"
+    译 / zh: 我们有语言的基础模型，也许还有视觉的，但没有物理的。
+
+[1:21:01] Anima Anandkumar: "without that we cannot experiment, we cannot innovate. I think this is a part that I push a lot"
+    译 / zh: 没有它，我们就无法实验、无法创新。这是我一直非常强调的一点。
+
+### 数字 / figures
+
+- 天气训练样本量: 约 50,000 个 [28:23]
+- AI 天气模型相对传统模型的加速: 数万倍 (tens of thousands of times) [33:29]
+- FourCastNet 上线 ECMWF 的时间: 2023 年秋 [51:44]
+- FourCastNet 预测飓风 Lee 的提前量: 比标准模型早几天 [52:45]
+- 聚变等离子体训练样本量: 约几千个 [43:37]
+- 聚变模拟相对传统模拟的加速: 一百万倍 [1:03:51]
+- 集合预报的成员数: 几十个，可更大 [55:46]
+
+### 术语 / glossary
+
+- Neural Operator (神经算子): 学习函数空间之间映射的神经网络，输入输出可任意分辨率，适合物理场建模。
+- Fourier Neural Operator (傅里叶神经算子): 在傅里叶域建模全局依赖的神经算子，复杂度近线性，兼顾效率与表达力。
+- Physics-informed neural networks (物理信息神经网络): 把 PDE 作为损失约束的神经网络；简单问题有效，时间依赖和湍流问题容易失败。
+- Certified Robustness (认证鲁棒性): 用形式化方法给出输入扰动下输出变化的上界，用于安全关键场景。
+- Reanalysis data (再分析资料): 把卫星观测与物理模式同化后的历史气象数据，作为 AI 天气模型的训练集。
+- Ensemble prediction (集合预报): 对初始条件加扰动跑多条轨迹，再统计得到概率化的预报结果。
+
+谁该听 / who: AI for Science 研究者、科学计算与气候/能源领域的工程师，以及想理解为什么 Transformer 在物理世界不够用的大模型从业者。
+可跳过 / skip: 开头 0:00-2:02 的主持人自我介绍和寒暄可跳过；正片密度均匀。
+标签 / tags: 神经算子, 天气预测, AI for Science, 形式化验证, 气候模型, 聚变
 
 ==============================================================================
 
@@ -5215,6 +5369,81 @@
 
 ==============================================================================
 
+## 超大规模自研芯片：不只为省钱，更怕被 Nvidia 绑架
+
+- URL: https://ourword.ai/podcast/p/2026-08-10-techtechpotato-超大规模自研芯片-不只为省钱-更怕被-nvidia-绑架/
+- 节目 / show: TechTechPotato (https://ourword.ai/podcast/s/techtechpotato/)
+- 原集标题 / original episode: What do we actually think about Hyperscale Silicon?? // The AI Hardware Podcast S2E9
+- 发布 / published: 2026-08-10 · 时长 / duration: 30:20
+- 文稿来源 / transcript: YouTube 字幕 · 5213 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 5 numbers traced to the transcript, review score 8/10
+
+**超大规模厂商自研芯片的真正动机不是省钱，而是控制权：避免被 Nvidia 的代际节奏绑架，同时靠规模压缩网络和计算成本。Broadcom 税比 Nvidia 税更便宜，但只有最大玩家玩得起。**
+
+为什么听 / why: 信息密度高，用 Meta 拆数据中心、Amazon Nitro 等具体案例和规模数字讲透超大规模自研芯片的动机与成本结构，纠正「为了省钱」的简单认知。
+
+### 核心论点 / points
+
+[1:30] **控制权：不想被 Nvidia 绑定** — 超大规模厂商自研芯片的第一个理由不是省钱，而是控制权。他们不想把对业务至关重要的东西完全交给 Nvidia。自研可以控制自己的硅片垂直整合、运行自己的优化、决定优化方向，也避免对单一供应商长期采购承诺。Nvidia 芯片每代变化大，采购方必须提前很久承诺大量订单，这构成了战略风险。自研本质上是一种对供应链和产品路线图的主动掌控。
+
+[2:30] **Meta 拆掉 10 亿美元数据中心** — 芯片代际变化太大，Meta 曾经把一栋正在建设中的数据中心直接拆除重建。当时已经投入约 10 亿美元，但芯片的变化迫使数据中心架构整体重新设计。这是一个极端案例：在通用芯片路线图上，采购方只能被动跟随。如果自己掌握硅片设计，就能提前知道芯片规格，避免这种全盘推倒重来的浪费。这个例子把「代际不可控」变成了自研芯片的核心理由。
+
+[3:30] **Google 与 Amazon 路径差异** — Google 是自研芯片最典型的案例，TPU 迭代多代，大量基础设施运行在自己的硅片上，但仍然买很多 Nvidia。Google 与 Amazon 的差异在于：Google 的 TPU 主要用于内部工作负载，整个系统围绕内部需求设计；Amazon 则把自研芯片做成对外可租用的实例，走的是不同商业模式。Google 还有 Gemini 这类顶级大模型，TPU 也承载这些模型。OpenAI 未来用 TPU 也已有传闻。所以同样是自研，盈利模式和服务对象完全不同。
+
+[7:00] **自研 CPU：Arm 与控制整个栈** — 除了 AI 加速器，超大规模厂商也开始自研 CPU。这背后的逻辑与加速器一致：将通用 CPU 针对自身工作负载做专门化。几乎所有的自研 CPU 都是 Arm 架构。Arm 的数据中心机会突然爆发，正是由超大规模厂商驱动。与传统的 x86 通用芯片模式不同，这些厂商要的是从指令集到硅片的全部控制权。像 Broadcom、Marvell 这类物理设计公司承接具体实现，而 Arm 提供计算子系统（CSS），形成一条不同于 Nvidia 供应链的新链条。
+
+[10:30] **Broadcom 税 vs Nvidia 税** — 自研芯片能否省钱？关键看谁来做。超大规模厂商并不直接与代工厂打交道，而是由 Broadcom 这类设计公司对接台积电。Broadcom 因为手握多个客户，能压低价格，所以即使要付「Broadcom 税」，也比「Nvidia 税」便宜。这是一个反直觉的结论：在 AI 芯片上 Nvidia 的利润率极高，自研通过设计公司反而能挤出这部分溢价。但这也意味着超大规模厂商并没有完全去中介化，只是换了一个更便宜的中间人。
+
+[15:30] **Nitro：网络压缩驱动的自研** — Amazon 的自研始于网络而非 AI。早期服务器每台都要配一个网络芯片，再连到 top-of-rack 交换机，但网络利用率不高。Amazon 先用 FPGA 实现 Nitro，让多个 CPU 共享一个网络接口；后来决定把 FPGA 换成 ASIC，于是收购了芯片公司 Annapurna。这一决策的根本是规模：在大量微服务实例下，网络活动率不足以支撑每 CPU 一个网络芯片，压缩网络连接能省下巨额成本。Nitro 后来演化成弹性 fabric 架构，并衍生出 Graviton、Trainium 等芯片。
+
+[18:30] **规模：1.2M 服务器的压缩数学** — 为什么不自己造芯片？因为规模太大。举例：如果有 120 万台服务器，把网络连接按 4:1 压缩，只需要 30 万个网络适配器，省下 90 万套适配器及其交换机与基础设施。省下的钱足以支撑自研一个 CPU 或 AI 芯片。这解释了为什么只有最大玩家才能做这种事——规模决定了自研的盈亏平衡点。普通公司没有足够部署量，无法摊薄研发成本，所以只能买通用芯片。
+
+[27:30] **规模直观化：10k 服务器服务 5M 人** — 人类很难想象超大规模数字。给出一个换算：服务 500 万人需要 1 万台服务器；美国有约 3 亿到 3.3 亿人口，所以需要 60 个这种规模的仓库，即 60 万台服务器；这还只是美国。全球人口约 80 多亿，即使他国人均需求低，总量也极其庞大。正是这样的数量级，让自研芯片的一切专用优化都能在大规模部署中变成真实收益，也构成了超大规模厂商自研的经济基础。
+
+### 原话 / verbatim quotes
+
+[1:03] : "they don't want to be beholden entirely to Nvidia for something that is so, so important to their business, right?"
+    译 / zh: 他们不想在对自己业务如此重要的事情上完全受制于 Nvidia，对吧？
+
+[2:03] : "Facebook um demolished a data center they were in the process of building because the chips had changed so much gen on gen that they had to redesign the architecture of their deployment."
+    译 / zh: Facebook 拆除了一栋正在建设中的数据中心，因为芯片每一代变化太大，他们不得不重新设计部署架构。
+
+[4:05] : "A general chip has to be general for everyone."
+    译 / zh: 通用芯片必须对所有人都是通用的。
+
+[10:08] : "It turns out Broadcom is cheaper as weird as it is to say."
+    译 / zh: 事实证明 Broadcom 更便宜，尽管说起来很奇怪。
+
+[17:12] : "having your own in-house silicon design team can be really beneficial if you want to optimize every cent."
+    译 / zh: 如果你想优化每一分钱，那么拥有自己的内部芯片设计团队会非常有益。
+
+[18:13] : "So, if you turn around and say, "Well, I've got 1.2 million servers deployed." Like yeah, I can't picture that number."
+    译 / zh: 所以，如果你说「我有 120 万台服务器部署了」，我根本没法想象那个数字。
+
+[24:17] : "if you can identify patterns, you can increase watch time on your platform."
+    译 / zh: 如果你能识别出模式，你就能提高你平台上的观看时长。
+
+### 数字 / figures
+
+- AI 加速器市场份额（含 TPU）: 约 85:15 [11:09]
+- Annapurna 收购时间: 约 2015-2016 年 [15:12]
+- 示例部署规模: 120 万台服务器 [18:13]
+- 网络压缩比: 4:1 [18:13]
+- 美国人口对应仓库数: 60 个 [27:17]
+
+### 术语 / glossary
+
+- TPU (张量处理单元): Google 为加速神经网络训练/推理设计的专用芯片。
+- Nitro (（AWS 网络虚拟化硬件）): AWS 自研的网络与 I/O 卸载硬件，最初基于 FPGA，后转 ASIC，可让多个 CPU 共享网络接口。
+- RISC-V (开源指令集架构): 任何公司可免费使用来设计处理器，被视为 Arm 的潜在替代。
+- Arm CSS (Arm 计算子系统): Arm 提供的预集成计算子系统，包含 CPU 核心和互连，缩短定制芯片设计周期。
+
+谁该听 / who: 关注算力供应链的创业者、投资人，云厂商基础设施工程师，以及想理解 Nvidia 竞争格局的芯片从业者。
+可跳过 / skip: 开头和 14:10 起的 Arteris 广告可跳过，其余信息密度高。
+标签 / tags: 超大规模厂商, 自研芯片, AI 硬件, Nvidia, Arm
+
+==============================================================================
+
 ## 暗光纤正在把海底变成全球最大窃听网
 
 - URL: https://ourword.ai/podcast/p/2026-08-09-asianometry-暗光纤正在把海底变成全球最大窃听网/
@@ -5359,6 +5588,73 @@
 谁该听 / who: 父母、教育者、以及需要在家庭或职场发起艰难对话的人；尤其适合和青少年沟通总撞墙的家长。
 可跳过 / skip: 中段两段商业插播可跳过；其余内容密度高。
 标签 / tags: 亲子沟通, 分歧, 倾听, 哈佛研究, 对话框架, 教养
+
+==============================================================================
+
+## AMD收购Talus：押注模型定制芯片的未来
+
+- URL: https://ourword.ai/podcast/p/2026-08-06-techtechpotato-amd收购talus-押注模型定制芯片的未来/
+- 节目 / show: TechTechPotato (https://ourword.ai/podcast/s/techtechpotato/)
+- 原集标题 / original episode: Why did AMD just buy this REALLY WEIRD chip company?
+- 发布 / published: 2026-08-06 · 时长 / duration: 16:08
+- 文稿来源 / transcript: YouTube 字幕 · 2559 words · timestamps are exact
+- 校验 / verification: 5 quotes matched verbatim, 8 numbers traced to the transcript, review score 8/10
+
+**AMD收购了Talus，一家为特定AI模型定制芯片、实现每秒17,000 tokens的初创公司。这标志着AI推理走向非可编程、模型专用芯片的方向。**
+
+为什么听 / why: 这集揭示了AI芯片领域的一个新趋势：模型专用芯片。对于关注AI基础设施和芯片投资的读者，这是理解未来推理成本与性能拐点的关键信息。
+
+### 核心论点 / points
+
+[1:05] (主持人) **Talus的颠覆性理念** — Talus由Tenstorrent创始人Ljubisa Bajic创立，其核心概念是将AI模型直接烧录到芯片中，实现非可编程的定制化芯片。这一理念在发布时遭到质疑，因为模型迭代快，定制芯片可能很快过时。但Talus认为，即使芯片只适用于特定模型，其100倍的速度提升也足以弥补更新换代的成本。
+
+[5:09] (主持人) **Hardcore One芯片性能** — Talus的首款芯片Hardcore One基于TSMC 6纳米工艺，接近reticle尺寸，拥有530亿晶体管，功耗至少300瓦。在Llama 3.1 8B模型上，其宣称的每秒token数达到17,000，远超Nvidia H200的230、Groq的600和Cerebras的2,000。这一数字在演示中得到了验证，实际达到14,200 tokens/s。
+
+[8:13] (主持人) **AMD收购细节** — AMD已签署协议收购Talus，团队将向AMD AI负责人Vamsi Boppana汇报，并保持独立团队运作。Ljubisa曾在AMD工作，与Jim Keller相识，此次收购可视为回归。交易金额未披露，预计年底完成。
+
+[10:16] (主持人) **AMD的AI战略契合** — AMD CEO Lisa Su强调AI部署是多种芯片的混合。Talus的芯片适合agentic AI中的小型模型调用，与AMD的Instinct GPU、EPYC CPU等形成互补。AMD已与Cerebras合作，但Talus的模型专用特性提供了另一种选择。
+
+[12:17] (Sally Ward Foxton) **行业分析师观点** — Sally Ward Foxton认为，Talus与Groq类似，采用全SRAM架构，需要多芯片支持大模型，但适合与GPU配合处理解码部分。她认为收购并不意外，因为Talus的软件栈需求低，且技术独特。
+
+[14:18] (Sally Ward Foxton) **收购价格猜测** — Sally猜测收购价格可能在数十亿美元级别，因为Nvidia收购Groq的20亿美元交易推高了整个芯片初创公司的估值。Talus此前融资仅数千万美元，因此数十亿美元的估值是合理的。
+
+### 原话 / verbatim quotes
+
+[2:05] 主持人: "The point about Talus, when they came out of stealth, was to say, "Hey, we've got an idea which is going to break the internet, break how fast you can run AI tokens. And it's going to be this concept of baking the AI model into the chip.""
+    译 / zh: Talus在走出隐身模式时的观点是：我们有一个想法，将打破互联网，打破AI token运行速度的极限。这个概念就是将AI模型烧录到芯片中。
+
+[6:11] 主持人: "It says, "Chat Jimmy, how can I help you today?" And let's ask it a question. Say, "What is in the bubbles in pop?" Generated in 33 milliseconds, the answer came at a speed of 14,200 tokens per second."
+    译 / zh: 它说：“Chat Jimmy，今天我能帮你什么？”让我们问它一个问题：“汽水里的气泡是什么？”生成耗时33毫秒，回答速度达到每秒14,200个token。
+
+[7:11] 主持人: "But, is the speed up from 200 tokens per second to 14,200 in this demo, or based on their numbers, 17,000 tokens per second, worth the effort for a company that has an established workflow, who is going to deploy to millions of users? Yeah. You would buy a new infrastructure set every 6 months if your speed up goes from 200 to 17,000."
+    译 / zh: 但是，从每秒200个token提升到14,200（或他们声称的17,000），对于一个已有工作流程、将部署给数百万用户的公司来说，值得吗？是的，如果速度提升从200到17,000，你每6个月就会购买一套新的基础设施。
+
+[10:16] 主持人: "Thing is, if a tool chain is fixed and it knows what models are being called, this is where Talus can really help. This is where on their first generation chip, if they're only doing 17,000 tokens per second, who knows what they're going to do with second generation chips, third generation chips."
+    译 / zh: 问题是，如果工具链是固定的，并且知道调用哪些模型，这正是Talus能真正帮助的地方。在第一代芯片上，如果他们每秒只处理17,000个token，谁知道第二代、第三代芯片会做什么。
+
+[13:18] Sally Ward Foxton: "I mean, there's no doubt in my mind that it works. They also, because they only run one model at a time per chip, they don't really need much of a software stack, which is the other sticking point for startups usually in this kind of scenario."
+    译 / zh: 我的意思是，我毫不怀疑它能工作。而且，因为每个芯片一次只运行一个模型，他们不需要太多的软件栈，这通常是初创公司在这种情况下的另一个痛点。
+
+### 数字 / figures
+
+- Talus Hardcore One芯片的晶体管数: 530亿 [5:09]
+- Talus宣称的每秒token数: 17,000 [5:09]
+- 演示中实际达到的每秒token数: 14,200 [6:11]
+- Nvidia H200的每秒token数: 约230 [5:09]
+- Groq的每秒token数: 600 [5:09]
+- Cerebras的每秒token数: 2,000 [5:09]
+- Talus芯片功耗: 至少300瓦 [5:09]
+- Talus融资额: 数千万美元 [14:18]
+
+### 术语 / glossary
+
+- SRAM (静态随机存取存储器): 一种高速存储器，用于芯片缓存，速度快但容量小。
+- reticle size (掩模版尺寸): 光刻中掩模版的最大尺寸，接近此尺寸的芯片面积很大。
+- agentic AI (智能体AI): 能够自主决策和执行任务的AI系统，通常涉及多个模型调用。
+
+谁该听 / who: AI芯片创业者、投资者、数据中心架构师，以及关注推理性能与成本优化的技术决策者。
+可跳过 / skip: 前3分钟关于AI加速器背景的介绍可跳过，直接进入Talus介绍。
+标签 / tags: AI芯片, AMD, Talus, 模型定制, 推理加速
 
 ==============================================================================
 
