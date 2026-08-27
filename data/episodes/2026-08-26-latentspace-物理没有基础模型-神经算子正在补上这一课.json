@@ -1,0 +1,229 @@
+{
+ "id": "latentspace-274aa0eb33",
+ "slug": "2026-08-26-latentspace-物理没有基础模型-神经算子正在补上这一课",
+ "fingerprint": "9549ba4ac958ad82",
+ "source_id": "latentspace",
+ "source": "Latent Space",
+ "source_zh": "Latent Space",
+ "cat": "ai",
+ "tier": 1,
+ "lang": "en",
+ "title_original": "🔬“We have foundation models for language, not for physics” — Anima Anandkumar, Bren Professor of Computing",
+ "published": "2026-08-26T15:15:00Z",
+ "duration": 5011,
+ "audio": "https://api.substack.com/feed/podcast/212802973/c2384f8705a8bc7665575ec0b4770ed0.mp3",
+ "link": "https://www.latent.space/p/anima",
+ "image": "https://substackcdn.com/feed/podcast/1084089/post/212802973/8767a0112b029c4336d953fea98b740d.jpg",
+ "youtube_id": "79mIutht1f4",
+ "transcript_url": "https://www.youtube.com/watch?v=79mIutht1f4",
+ "digest": {
+  "title": "物理没有基础模型，神经算子正在补上这一课",
+  "dek": "Anima Anandkumar 用神经算子把天气预测带进 AI 时代：同样精度快数万倍、只用消费级 GPU，并展示物理世界如何用少量数据加几何归纳偏置迈向基础模型。",
+  "why": "Anima 是少数横跨学术界和产业的 AI 科学家；这集不空谈 AGI，给了神经算子、可验证 AI、天气和聚变的具体机制与数字。中后段全是干货。",
+  "who": "AI for Science 研究者、科学计算与气候/能源领域的工程师，以及想理解为什么 Transformer 在物理世界不够用的大模型从业者。",
+  "skip": "开头 0:00-2:02 的主持人自我介绍和寒暄可跳过；正片密度均匀。",
+  "points": [
+   {
+    "t": 367,
+    "h": "用 Lean 验证神经网络",
+    "body": "Anima 说 AI for science 的瓶颈不是产生假设，而是验证假设。Torch Lean 让你用类似 PyTorch 的抽象在 Lean 里写神经网络，再证明它的性质：输入扰动后输出的变化上界、有限精度的影响、控制系统关心的鲁棒性。这样神经网络可以进入无人机或核反应堆的控制回路，并且有形式化保证。她也承认，Lean 目前基于 CPU，扩展到 Transformer 级别的规模还很远。",
+    "spk": "Anima Anandkumar"
+   },
+   {
+    "t": 794,
+    "h": "PINN 为什么会在关键时刻失灵",
+    "body": "物理信息神经网络把 PDE 写成损失函数，但 PINN 对每个方程都要从零开始优化；碰到时间依赖、湍流、混沌这类问题，优化景观根本没有办法处理。神经算子换了一条路：不是从方程求解，而是用大量数据学习从函数空间到函数空间的映射，测试时直接给答案，物理约束只用来引导。因为训练阶段见过正确答案，就绕开了从零优化这个死结。",
+    "spk": "Anima Anandkumar"
+   },
+   {
+    "t": 975,
+    "h": "把世界看成连续函数",
+    "body": "标准神经网络的输入输出维度是固定的：语言有词表，图像有分辨率，训练完就不能改。物理世界的现象天然多尺度，粗分辨率数据背后还有细尺度物理。神经算子把输入输出建模为连续函数，可以做任意离散化；训练后能用粗数据做 zero-shot 超分辨率，还能在更细分辨率上施加物理约束。这是它区别于普通神经网络的核心。",
+    "spk": "Anima Anandkumar"
+   },
+   {
+    "t": 2009,
+    "h": "天气：快数万倍的反转",
+    "body": "2021 年团队想用神经算子做天气时，气象学家都说不可能，传统物理模型有几十年积累。结果模型训练出来后，精度接近传统方法，速度快数万倍，一台消费级 GPU 就能跑完原来超算才能做的事。FourCastNet 是第一个开源且允许商用的 AI 天气模型，DeepMind、华为等到一年后才跟进；小机构也因此能获得过去大机构才有的保真度。",
+    "spk": "Anima Anandkumar"
+   },
+   {
+    "t": 2190,
+    "h": "只有一个地球，一个模型",
+    "body": "传统上短期天气预报和长期气候模拟是两个系统。Anima 的立场是地球只有一个，基础模型应该同时做好短临和气候。FourCastNet 3 加入球面几何，让同一条轨迹可以稳定滚动到几个月甚至一年；其他把世界当矩形的模型，长跑后很快就 blow up。气候预测靠 ensemble：给初始条件加噪声跑出多条轨迹，再对集合做概率统计。AI 模型够快，ensemble 规模可以远比传统方法大。",
+    "spk": "Anima Anandkumar"
+   },
+   {
+    "t": 2617,
+    "h": "极端事件反而更容易学会",
+    "body": "直觉上罕见事件样本少，AI 应该学不好；但第一次可视化，模型就能抓住飓风和风暴。原因是极端事件有非常具体的物理特征，物理世界本身有大量结构。聚变等离子体只有几千个样本，也能准确预测 disruption，还比传统模拟快一百万倍。Anima 的判断是：传统数值方法追求任何情况下都可解，而 AI 从数据里揭示出问题实际上有多可解。",
+    "spk": "Anima Anandkumar"
+   },
+   {
+    "t": 3831,
+    "h": "聚变等离子体的数字孪生",
+    "body": "除了天气，团队用神经算子给托卡马克里的等离子体演化做数字孪生，比传统模拟快一百万倍，下一步是把控制和仿真一起设计，目标是预测并防止 disruption，让聚变可持续。这个项目与英国原子能机构（UKAEA）合作，也在跟美国多个实验室合作；Anima 说作为 AI 研究者她不想过早押注某一种聚变路线，而是让 AI 加速所有方案。",
+    "spk": "Anima Anandkumar"
+   },
+   {
+    "t": 4375,
+    "h": "物理基础模型与逆向设计",
+    "body": "Anima 说目前只有语言和视觉基础模型，还没有物理基础模型。未来应该训练能处理多物理场耦合的模型，并进一步做逆向设计：不是人先设计再仿真验证，而是让 AI 直接给出最优设计，物理约束当作安全护栏。例子包括光刻掩膜、量子点门控、非线性光子学。这些高度非线性的组合，人类手动找效率很差，AI 却能在仿真闭环里找到真正可工作的设计。",
+    "spk": "Anima Anandkumar"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 367,
+    "spk": "Anima Anandkumar",
+    "raw": "we can now have neural networks be part of the verification loop and have confidence that we can use them appropriately",
+    "zh": "我们现在能让神经网络成为验证回路的一部分，并确信可以恰当地使用它们。"
+   },
+   {
+    "t": 1765,
+    "spk": "Anima Anandkumar",
+    "raw": "we're talking like hundreds of billions to even a trillion context length right so forget ever having a transformer for anything of this scale all of the world's compute will not be enough",
+    "zh": "这意味着数百亿甚至万亿的上下文长度，所以别指望 Transformer 能处理这种规模——全世界的算力加起来都不够。"
+   },
+   {
+    "t": 2009,
+    "spk": "Anima Anandkumar",
+    "raw": "it's not only you know accurate it's almost as close to the uh what the traditional weather models can do accurately but also tens of thousands of times faster",
+    "zh": "它不仅准确，几乎能逼近传统天气模型能做到的精度，而且快数万倍。"
+   },
+   {
+    "t": 2190,
+    "spk": "Anima Anandkumar",
+    "raw": "there's only one earth. You know, if you want a foundation model, if the claim is that it should be able to do both very short-term as well as very long-term together.",
+    "zh": "地球只有一个。如果你想做基础模型，那它就应该能同时处理极短期和极长期预测。"
+   },
+   {
+    "t": 2617,
+    "spk": "Anima Anandkumar",
+    "raw": "the physical world may be more forgiving because you know where there are extreme events like hurricanes that have very specific physical signature",
+    "zh": "物理世界可能更宽容，因为像飓风这样的极端事件带有非常具体的物理特征。"
+   },
+   {
+    "t": 4375,
+    "spk": "Anima Anandkumar",
+    "raw": "we have foundation models for language maybe vision but not for physics",
+    "zh": "我们有语言的基础模型，也许还有视觉的，但没有物理的。"
+   },
+   {
+    "t": 4861,
+    "spk": "Anima Anandkumar",
+    "raw": "without that we cannot experiment, we cannot innovate. I think this is a part that I push a lot",
+    "zh": "没有它，我们就无法实验、无法创新。这是我一直非常强调的一点。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "天气训练样本量",
+    "v": "约 50,000 个",
+    "t": 1703
+   },
+   {
+    "k": "AI 天气模型相对传统模型的加速",
+    "v": "数万倍 (tens of thousands of times)",
+    "t": 2009
+   },
+   {
+    "k": "FourCastNet 上线 ECMWF 的时间",
+    "v": "2023 年秋",
+    "t": 3104
+   },
+   {
+    "k": "FourCastNet 预测飓风 Lee 的提前量",
+    "v": "比标准模型早几天",
+    "t": 3165
+   },
+   {
+    "k": "聚变等离子体训练样本量",
+    "v": "约几千个",
+    "t": 2617
+   },
+   {
+    "k": "聚变模拟相对传统模拟的加速",
+    "v": "一百万倍",
+    "t": 3831
+   },
+   {
+    "k": "集合预报的成员数",
+    "v": "几十个，可更大",
+    "t": 3346
+   }
+  ],
+  "terms": [
+   {
+    "term": "Neural Operator",
+    "zh": "神经算子",
+    "def": "学习函数空间之间映射的神经网络，输入输出可任意分辨率，适合物理场建模。"
+   },
+   {
+    "term": "Fourier Neural Operator",
+    "zh": "傅里叶神经算子",
+    "def": "在傅里叶域建模全局依赖的神经算子，复杂度近线性，兼顾效率与表达力。"
+   },
+   {
+    "term": "Physics-informed neural networks",
+    "zh": "物理信息神经网络",
+    "def": "把 PDE 作为损失约束的神经网络；简单问题有效，时间依赖和湍流问题容易失败。"
+   },
+   {
+    "term": "Certified Robustness",
+    "zh": "认证鲁棒性",
+    "def": "用形式化方法给出输入扰动下输出变化的上界，用于安全关键场景。"
+   },
+   {
+    "term": "Reanalysis data",
+    "zh": "再分析资料",
+    "def": "把卫星观测与物理模式同化后的历史气象数据，作为 AI 天气模型的训练集。"
+   },
+   {
+    "term": "Ensemble prediction",
+    "zh": "集合预报",
+    "def": "对初始条件加扰动跑多条轨迹，再统计得到概率化的预报结果。"
+   }
+  ],
+  "tags": [
+   "神经算子",
+   "天气预测",
+   "AI for Science",
+   "形式化验证",
+   "气候模型",
+   "聚变"
+  ],
+  "quality": {
+   "transcript_source": "youtube",
+   "transcript_detail": "en",
+   "words": 14250,
+   "wpm": 170.6,
+   "timed": true,
+   "verified_quotes": 7,
+   "grounded_facts": 7,
+   "points": 8,
+   "pruned": 1,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-08-27T02:32:19Z",
+ "triage": {
+  "score": 8.0,
+  "why": "一手访谈，讲清物理AI与语言模型的机制差异、数据与算力瓶颈，含可反驳判断。",
+  "kind": "一手访谈"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 8,
+   "faithful": 8,
+   "selection": 8,
+   "concrete": 9,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点均为判断与机制，数字具体，忠实度高，仅个别处可更精确。",
+  "worst": "「天气训练样本量 = 约 50,000 个」在原文中未直接对应，建议核实或标注来源。"
+ },
+ "model": "openai:deepseek-reasoner"
+}
