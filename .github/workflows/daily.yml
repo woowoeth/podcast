@@ -32,16 +32,16 @@ on:
 permissions:
   contents: write
 
-# 同一时刻只允许一个 digest 写仓库，但绝不能取消正在跑的任务。
-# cancel-in-progress: false → 新触发的会排队等，不会把跑到一半的杀掉。
+# GitHub 并发组只会保留「在跑 1 个 + 排队 1 个」，多出来的 pending 会被取消。
+# 所以每轮用独立 group（run_id），互不取消。写冲突靠后面 commit 的 rebase 重试。
 concurrency:
-  group: podcast-write
+  group: digest-${{ github.run_id }}
   cancel-in-progress: false
 
 jobs:
   digest:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 240
     steps:
       - uses: actions/checkout@v4
 
@@ -86,10 +86,25 @@ jobs:
           # 不含 youtube：GitHub 的机房 IP 会被 YouTube 判成机器人并索要 cookie，
           # 实测拿不到字幕。依赖 YouTube 的信源（几档中文播客）由本机的
           # scripts/local-daily.sh 负责，那边是住宅 IP。
+          TRIAGE="${{ github.event.inputs.triage_min || '7' }}"
+          REVIEW="${{ github.event.inputs.review_min || '7' }}"
           python pipeline/run.py $ONLY --tiers feed,notes,page,asr --skip-residential --no-build \
-            --triage-min "${{ github.event.inputs.triage_min || '7' }}" \
-            --review-min "${{ github.event.inputs.review_min || '7' }}" \
+            --triage-min "$TRIAGE" --review-min "$REVIEW" \
             2>&1 | tee "${RUNNER_TEMP}/run.log"
+          # 全站跑时，同一 job 内再扫一遍薄分类，避免再开 4 个 workflow 互相取消。
+          if [ -z "${{ github.event.inputs.only }}" ]; then
+            echo "::group::thin-cat waves"
+            python pipeline/run.py --only restishistory,fallciv,throughline,empire,historyextra,tides,revolutions,histrome,ancients,britishhist,historyhit,stuffmissed,witness \
+              --tiers feed,notes,page,asr --skip-residential --no-build --limit 8 \
+              --triage-min "$TRIAGE" --review-min "$REVIEW" 2>&1 | tee -a "${RUNNER_TEMP}/run.log" || true
+            python pipeline/run.py --only thinkingallowed,verybad,rationally,inourtime,tyler,phibites,pel,hopwag,philosophize,cautionary,econtalk,grayarea,mindscape,nbphilosophy \
+              --tiers feed,notes,page,asr --skip-residential --no-build --limit 8 \
+              --triage-min "$TRIAGE" --review-min "$REVIEW" 2>&1 | tee -a "${RUNNER_TEMP}/run.log" || true
+            python pipeline/run.py --only sciencevs,naturepod,sciencepod,ologies,skeptics,huberman,tpwky,twiv \
+              --tiers feed,notes,page,asr --skip-residential --no-build --limit 6 \
+              --triage-min "$TRIAGE" --review-min "$REVIEW" 2>&1 | tee -a "${RUNNER_TEMP}/run.log" || true
+            echo "::endgroup::"
+          fi
 
       - name: Heartbeat
         if: always()
