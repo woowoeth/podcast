@@ -132,10 +132,14 @@ ICON_THEME = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
               '<circle cx="12" cy="12" r="4"/></svg>')
 
 
-ICON_SHARE = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
-              'stroke-linecap="round" stroke-linejoin="round">'
-              '<path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/>'
-              '<path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg>')
+ICON_SHARE = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" '
+              'fill="none" stroke="currentColor" stroke-width="2" '
+              'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" '
+              'style="width:14px;height:14px;display:block;flex:none">'
+              '<circle cx="18" cy="5" r="2.4"/>'
+              '<circle cx="6" cy="12" r="2.4"/>'
+              '<circle cx="18" cy="19" r="2.4"/>'
+              '<path d="M8.2 13.2 15.8 17.3M15.8 6.7 8.2 10.8"/></svg>')
 
 
 def share_button(text: str, *, url: str, title: str, label: str = "分享") -> str:
