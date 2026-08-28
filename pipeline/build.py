@@ -425,9 +425,7 @@ def index_page(eps: list[dict], srcs: dict) -> str:
 {share_button(site_share_text(eps), url=SITE + "/", title=f"{NAME} · {TAGLINE}", label="分享本站")}
 </div></div></div>
 
-<main class="wrap">
-<p class="lede" style="max-width:42rem">{e(BLURB)}</p>
-<div class="feed" data-feed>
+<main class="wrap"><div class="feed" data-feed>
 {cards}
 <div class="empty" data-empty hidden><b>没有匹配的深读</b>
 <p>换个词，或者清掉筛选再试。搜索会搜进每条要点的正文、金句的中英文原文、
