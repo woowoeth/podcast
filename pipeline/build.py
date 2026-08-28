@@ -1082,6 +1082,8 @@ def main() -> int:
                 shutil.rmtree(d)
     log(f"built: index, sources, {len(eps)} episode pages at /e/<id>/ "
         f"(+{len(live)} legacy /p/ redirects), feed.xml, sitemap.xml")
+    key = os.environ.get("INDEXNOW_KEY", "8f3c2a1b9d4e6f708192a3b4c5d6e7f0")
+    (ROOT / f"{key}.txt").write_text(key + "\n")
     return 0
 
 

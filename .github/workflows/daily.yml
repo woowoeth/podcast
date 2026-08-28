@@ -182,6 +182,10 @@ jobs:
           done
           [ "$ok" = 1 ] || { echo "::error::站点推送失败"; exit 1; }
 
+      - name: Notify search engines (IndexNow)
+        if: success()
+        run: python pipeline/indexnow.py || true
+
       - name: Upload run log
         if: always()
         uses: actions/upload-artifact@v4
