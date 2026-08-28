@@ -387,7 +387,7 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
     (EPS / f"{slug}.json").write_text(json.dumps(rec, ensure_ascii=False, indent=1) + "\n")
     state["done"][key] = {"slug": slug, "at": iso(now())}
     state["fail"].pop(key, None)
-    log(f"    published -> /p/{slug}/")
+    log(f"    published -> /e/{key}/")
     return "published"
 
 

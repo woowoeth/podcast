@@ -43,7 +43,7 @@
     // keystroke and takes over once it lands.
     cards.forEach(function (c) {
       c._hay = (c.getAttribute('data-hay') || '').toLowerCase();
-      c._slug = decodeURIComponent((c.getAttribute('href') || '').replace(/.*\/p\/|\/$/g, ''));
+      c._slug = decodeURIComponent((c.getAttribute('href') || '').replace(/.*\/(?:p|e)\/|\/$/g, ''));
     });
 
     var deep = null, deepState = 'idle';

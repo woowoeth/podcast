@@ -180,20 +180,19 @@ def episode_share_text(ep: dict) -> str:
     return "\n".join(lines)
 
 
-def ep_url(ep: dict) -> str:
-    """分享用的短链。
+def ep_path(ep: dict) -> str:
+    """对外只暴露纯 ASCII：/e/<source>-<hash>/。"""
+    return f"/e/{ep['id']}/"
 
-    正文页的 slug 是中文，percent-encode 之后有两百多字符——粘到朋友圈里，链接
-    比内容还长，而朋友圈超长会折叠。所以另外生成一个纯 ASCII 短链 /e/<id>/，
-    只用于分享；站内和搜索引擎看到的仍然是可读的中文 URL。
-    """
-    return f"{SITE}/e/{ep['id']}/"
+
+def ep_url(ep: dict) -> str:
+    return SITE + ep_path(ep)
 
 
 def alias_page(ep: dict) -> str:
-    """短链页：canonical 指回正文，noindex 防止和正文抢排名，然后立刻跳走。"""
-    real = f"{BASE}/p/{urllib.parse.quote(ep['slug'])}/"
-    full = f"{SITE}/p/{urllib.parse.quote(ep['slug'])}/"
+    """旧的 /p/<中文slug>/ 跳到 /e/<id>/，兼容已发出去的链接。"""
+    real = f"{BASE}{ep_path(ep)}"
+    full = ep_url(ep)
     t = e(ep["digest"].get("title") or "")
     return f"""<!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8">
@@ -295,7 +294,7 @@ def card(ep: dict, *, hero: bool) -> str:
     tags = "".join(f'<span class="tag">{e(t)}</span>' for t in (d.get("tags") or [])[:2])
     src_label = ep.get("source_zh") or ep.get("source") or ""
     return f"""<a class="card{' hero' if hero else ''}" data-card data-cat="{e(ep.get('cat'))}"
- data-hay="{e(hay)}" href="{BASE}/p/{e(ep['slug'])}/">
+ data-hay="{e(hay)}" href="{BASE}{ep_path(ep)}">
 <div class="cover">{cover}{dur}</div>
 <div class="card-body">
 <div class="kicker" data-cat="{e(ep.get('cat'))}"><span class="src">{e(src_label)}</span>
@@ -335,7 +334,7 @@ def search_index(eps: list[dict]) -> str:
         # Cap each row so the index stays fetchable as the archive grows:
         # ~5KB per episode is 1MB raw at 200 episodes, and Pages serves it
         # gzipped at roughly a fifth of that.
-        rows.append({"s": x["slug"], "h": squeeze(" ".join(parts)).lower()[:5000]})
+        rows.append({"s": x["id"], "h": squeeze(" ".join(parts)).lower()[:5000]})
     return json.dumps(rows, ensure_ascii=False, separators=(",", ":"))
 
 
@@ -374,7 +373,7 @@ def index_page(eps: list[dict], srcs: dict) -> str:
          "mainEntity": {"@type": "ItemList", "numberOfItems": len(eps),
                         "itemListElement": [
                             {"@type": "ListItem", "position": i + 1,
-                             "url": f"{SITE}/p/{x['slug']}/",
+                             "url": ep_url(x),
                              "name": x["digest"].get("title")}
                             for i, x in enumerate(eps[:60])]}}]})
     return (head(TAGLINE, BLURB, path="/",
@@ -465,9 +464,9 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
     tags = "".join(f'<span class="tag">{e(t)}</span>' for t in (d.get("tags") or []))
     prevnext = ""
     if prev or nxt:
-        left = (f'<a href="{BASE}/p/{e(prev["slug"])}/"><span class="lbl">← 更新</span>'
+        left = (f'<a href="{BASE}{ep_path(prev)}"><span class="lbl">← 更新</span>'
                 f'<strong>{e(prev["digest"]["title"])}</strong></a>' if prev else "<span></span>")
-        right = (f'<a class="r" href="{BASE}/p/{e(nxt["slug"])}/"><span class="lbl">更早 →</span>'
+        right = (f'<a class="r" href="{BASE}{ep_path(nxt)}"><span class="lbl">更早 →</span>'
                  f'<strong>{e(nxt["digest"]["title"])}</strong></a>' if nxt else "<span></span>")
         prevnext = f'<nav class="prevnext">{left}{right}</nav>'
 
@@ -477,12 +476,12 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
     kw += [f.get("k") for f in (d.get("facts") or []) if f.get("k")][:6]
     graph = [{
         "@type": "PodcastEpisode",
-        "@id": f"{SITE}/p/{ep['slug']}/#episode",
+        "@id": f"{ep_url(ep)}#episode",
         "name": d.get("title"), "headline": d.get("title"),
         "description": d.get("dek"), "abstract": d.get("dek"),
         "datePublished": ep.get("published"),
         "dateModified": ep.get("generated") or ep.get("published"),
-        "url": f"{SITE}/p/{ep['slug']}/",
+        "url": ep_url(ep),
         "timeRequired": f"PT{int((ep.get('duration') or 0) // 60)}M",
         "partOfSeries": {"@type": "PodcastSeries", "name": ep.get("source"),
                          "url": f"{SITE}/s/{ep.get('source_id')}/"},
@@ -506,7 +505,7 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
                     ensure_ascii=False)
 
     return (head(f"{d.get('title')} — {src_label} · {NAME}", d.get("dek", ""),
-                 path=f"/p/{ep['slug']}/", image=ep.get("image", ""),
+                 path=ep_path(ep), image=ep.get("image", ""),
                  published=ep.get("published", ""),
                  modified=ep.get("generated") or ep.get("published", ""),
                  extra=f'<script type="application/ld+json">{ld}</script>')
@@ -787,7 +786,7 @@ def llms_txt(eps: list[dict], srcs: dict) -> str:
          f"- Site: {SITE}/",
          f"- Every source, with coverage and fetch health: {SITE}/sources/",
          f"- One page per source: {SITE}/s/<source-id>/",
-         f"- One page per episode: {SITE}/p/<slug>/",
+         f"- One page per episode: {SITE}/e/<id>/",
          f"- Full text of every entry, one file: {SITE}/llms-full.txt",
          f"- All URLs: {SITE}/sitemap.xml",
          f"- RSS: {SITE}/feed.xml",
@@ -827,7 +826,7 @@ def llms_txt(eps: list[dict], srcs: dict) -> str:
     L += [f"## Entries ({len(eps)})", ""]
     for x in eps:
         d = x["digest"]
-        L.append(f"- [{d.get('title')}]({SITE}/p/{x['slug']}/) — {d.get('dek')} "
+        L.append(f"- [{d.get('title')}]({ep_url(x)}) — {d.get('dek')} "
                  f"[{x.get('source_zh') or x.get('source')}, {(x.get('published') or '')[:10]}]")
     L.append("")
     return "\n".join(L)
@@ -844,7 +843,7 @@ def llms_full_txt(eps: list[dict]) -> str:
         rv = x.get("review") or {}
         out += ["=" * 78, "",
                 f"## {d.get('title')}", "",
-                f"- URL: {SITE}/p/{x['slug']}/",
+                f"- URL: {ep_url(x)}",
                 f"- 节目 / show: {x.get('source_zh') or x.get('source')}"
                 f" ({SITE}/s/{x.get('source_id')}/)",
                 f"- 原集标题 / original episode: {x.get('title_original')}",
@@ -913,8 +912,8 @@ def rss(eps: list[dict]) -> str:
             pub = ""
         items.append(f"""<item>
 <title>{xesc(d.get('title',''))}</title>
-<link>{xesc(SITE)}/p/{xesc(x['slug'])}/</link>
-<guid isPermaLink="true">{xesc(SITE)}/p/{xesc(x['slug'])}/</guid>
+<link>{xesc(ep_url(x))}</link>
+<guid isPermaLink="true">{xesc(ep_url(x))}</guid>
 {f'<pubDate>{pub}</pubDate>' if pub else ''}
 <category>{xesc(x.get('source',''))}</category>
 <description>{xesc(d.get('dek',''))}</description>
@@ -947,7 +946,7 @@ def sitemap(eps: list[dict]) -> str:
     for sid in sorted({x["source_id"] for x in eps}):
         urls.append(f"<url><loc>{xesc(SITE)}/s/{xesc(sid)}/</loc><changefreq>weekly</changefreq></url>")
     for x in eps:
-        urls.append(f"<url><loc>{xesc(SITE)}/p/{xesc(x['slug'])}/</loc>"
+        urls.append(f"<url><loc>{xesc(ep_url(x))}</loc>"
                     f"<lastmod>{xesc((x.get('published') or '')[:10])}</lastmod>"
                     f"<changefreq>monthly</changefreq><priority>0.8</priority></url>")
     return ('<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -1017,35 +1016,34 @@ def main() -> int:
     (ROOT / "llms-full.txt").write_text(llms_full_txt(eps))
     (ROOT / ".nojekyll").write_text("")
 
-    pdir = ROOT / "p"
-    live = set()
+    # 正文在纯 ASCII /e/<id>/；旧 /p/<中文slug>/ 只留跳转，兼容已发出的链接。
+    edir = ROOT / "e"
+    alive = set()
     for i, x in enumerate(eps):
         prev = eps[i - 1] if i > 0 else None
         nxt = eps[i + 1] if i + 1 < len(eps) else None
-        out = pdir / x["slug"]
-        out.mkdir(parents=True, exist_ok=True)
-        (out / "index.html").write_text(episode_page(x, prev, nxt))
-        live.add(x["slug"])
-    if pdir.exists():                      # drop pages whose record is gone
-        for d in pdir.iterdir():
-            if d.is_dir() and d.name not in live:
-                shutil.rmtree(d)
-                log(f"  removed stale page /p/{d.name}/")
-
-    # 分享短链：/e/<id>/ → /p/<中文 slug>/
-    edir = ROOT / "e"
-    alive = set()
-    for x in eps:
         out = edir / x["id"]
         out.mkdir(parents=True, exist_ok=True)
-        (out / "index.html").write_text(alias_page(x))
+        (out / "index.html").write_text(episode_page(x, prev, nxt))
         alive.add(x["id"])
     if edir.exists():
         for d in edir.iterdir():
             if d.is_dir() and d.name not in alive:
                 shutil.rmtree(d)
-    log(f"built: index, sources, {len(eps)} episode pages "
-        f"(+{len(alive)} 分享短链), feed.xml, sitemap.xml")
+
+    pdir = ROOT / "p"
+    live = set()
+    for x in eps:
+        out = pdir / x["slug"]
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "index.html").write_text(alias_page(x))
+        live.add(x["slug"])
+    if pdir.exists():
+        for d in pdir.iterdir():
+            if d.is_dir() and d.name not in live:
+                shutil.rmtree(d)
+    log(f"built: index, sources, {len(eps)} episode pages at /e/<id>/ "
+        f"(+{len(live)} legacy /p/ redirects), feed.xml, sitemap.xml")
     return 0
 
 
