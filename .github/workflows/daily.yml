@@ -94,7 +94,7 @@ jobs:
           # 全站跑时，同一 job 内再扫一遍薄分类，避免再开 4 个 workflow 互相取消。
           if [ -z "${{ github.event.inputs.only }}" ]; then
             echo "::group::thin-cat waves"
-            python pipeline/run.py --only restishistory,fallciv,throughline,empire,historyextra,tides,revolutions,histrome,ancients,britishhist,historyhit,stuffmissed,witness \
+            python pipeline/run.py --only restishistory,fallciv,throughline,empirehist,historyextra,tides,revolutions,histrome,ancients,britishhist,historyhit,stuffmissed,witness \
               --tiers feed,notes,page,asr --skip-residential --no-build --limit 8 \
               --triage-min "$TRIAGE" --review-min "$REVIEW" 2>&1 | tee -a "${RUNNER_TEMP}/run.log" || true
             python pipeline/run.py --only thinkingallowed,verybad,rationally,inourtime,tyler,phibites,pel,hopwag,philosophize,cautionary,econtalk,grayarea,mindscape,nbphilosophy \
