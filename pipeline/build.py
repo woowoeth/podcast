@@ -267,8 +267,16 @@ def masthead(n: int | None, *, home: bool) -> str:
 
 
 def foot() -> str:
-    return f"""<footer class="foot"><div class="wrap"><div class="foot-in">
-<div>{NAME} · <a href="https://ourword.ai">OurWord.ai</a> 的播客线。内容为原播客的中文深读，
+    return f"""<footer class="foot"><div class="wrap">
+<nav class="family" aria-label="OurWord 站点">
+<a href="https://ourword.ai/">人类生存法则</a>
+<span class="family-sep" aria-hidden="true">·</span>
+<a class="on" href="{SITE}/" aria-current="page">原声播客</a>
+<span class="family-sep" aria-hidden="true">·</span>
+<a href="https://ourword.ai/skill/">品位 Skill</a>
+</nav>
+<div class="foot-in">
+<div>{NAME} · OurWord.ai 的播客线。内容为原播客的中文深读，
 版权归各节目所有；每篇都附原节目链接，请去支持原作者。</div>
 <div class="links"><a href="{BASE}/">首页</a><a href="{BASE}/sources/">信源</a>
 <a href="{BASE}/log/">更新日志</a><a href="{BASE}/feed.xml">RSS</a>
