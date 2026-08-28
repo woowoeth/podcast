@@ -99,7 +99,7 @@ CURATED: list[dict] = [
   dict(id="lex", name="Lex Fridman Podcast", zh="Lex Fridman", cat="ai", tier=2, lang="en",
        itunes=1434243584, feed="https://lexfridman.com/feed/podcast/",
        desc="超长访谈，选题跨 AI、科学与政治"),
-  dict(id="tbpn", name="TBPN", zh="TBPN", cat="ai", tier=2, lang="en",
+  dict(id="tbpn", name="TBPN", zh="TBPN", cat="biz", tier=2, lang="en",
        itunes=1772360235, feed="https://feeds.transistor.fm/technology-brother",
        yt="UC-DRzaGnL_vtBUpCFH5M0tg", desc="科技商业日播，自带官方逐字稿"),
   # ---------- 投资 / 商业（Onepod 完全空白的一块）----------
@@ -133,7 +133,7 @@ CURATED: list[dict] = [
   dict(id="founders", name="Founders", zh="Founders", cat="biz", tier=3, lang="en",
        itunes=1141877104, feed="https://feeds.megaphone.fm/DSLLC6297708582",
        desc="创始人传记精读"),
-  dict(id="thinkfast", name="Think Fast Talk Smart", zh="Think Fast Talk Smart", cat="biz", tier=3, lang="en",
+  dict(id="thinkfast", name="Think Fast Talk Smart", zh="Think Fast Talk Smart", cat="ideas", tier=3, lang="en",
        itunes=1494571212, feed="https://feeds.transistor.fm/think-fast-talk-smart-communication-techniques",
        desc="Stanford GSB 的沟通与领导力，自带官方逐字稿"),
   dict(id="equity", name="Equity", zh="Equity", cat="biz", tier=3, lang="en",

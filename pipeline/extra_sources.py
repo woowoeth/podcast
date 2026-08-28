@@ -97,7 +97,7 @@ EXTRA: list[dict] = [
   dict(id="masterscale", name="Masters of Scale", zh="Masters of Scale", cat="biz", tier=2, lang="en",
        itunes=1222114405, feed="https://rss.art19.com/masters-of-scale",
        desc="Reid Hoffman 与创始人讲规模化机制，可复制的增长判断"),
-  dict(id="moreorless", name="More or Less", zh="More or Less", cat="biz", tier=2, lang="en",
+  dict(id="moreorless", name="More or Less", zh="More or Less", cat="ideas", tier=2, lang="en",
        itunes=266351289, feed="https://podcasts.files.bbci.co.uk/b006qshd.rss",
        desc="BBC 核对新闻里的数字，给出处与误差范围"),
   dict(id="pivot", name="Pivot", zh="Pivot", cat="biz", tier=3, lang="en",
