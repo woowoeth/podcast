@@ -37,8 +37,9 @@ def _n_sources() -> int:
 def _blurb() -> str:
     n = _n_sources()
     head = f"每天从 {n} 档中英文播客里挑出值得记住的判断。" if n else "每天从中英文播客里挑出值得记住的判断。"
-    return (head + "要点和金句都带时间戳，点一下就回到它在原声里被说出的那一秒；"
-            "金句逐字校验过、数字回原文核对过——查不到出处的，一律不上站。")
+    return (head + "覆盖 AI、投资商业、中国视角、人文思想、文明历史、育儿教育与健康科学。"
+            "每篇是带时间戳的中文深读：要点、金句逐字校验，数字回原文核对；"
+            "查不到出处的不上站。给没时间听完全程的人，也给搜索和答案引擎引用。")
 
 CAT_ORDER = ["ai", "biz", "cn", "ideas", "hist", "parent", "sci"]
 CAT_LABEL = {
@@ -99,8 +100,12 @@ def head(title: str, desc: str, *, path: str = "/", image: str = "",
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{e(title)}</title>
 <meta name="description" content="{e(desc)}">
+<meta name="author" content="OurWord.ai">
 <meta name="robots" content="{e(robots)}">
+<meta name="theme-color" content="#f0f0ec">
 <link rel="canonical" href="{e(url)}">
+<link rel="alternate" type="application/rss+xml" title="{e(NAME)} RSS" href="{SITE}/feed.xml">
+<link rel="alternate" type="text/plain" title="llms.txt" href="{SITE}/llms.txt">
 <meta property="og:type" content="{'article' if published else 'website'}">
 <meta property="og:site_name" content="{e(NAME)}">
 <meta property="og:locale" content="zh_CN">
@@ -108,13 +113,12 @@ def head(title: str, desc: str, *, path: str = "/", image: str = "",
 <meta property="og:description" content="{e(desc)}">
 <meta property="og:url" content="{e(url)}">
 {f'<meta property="og:image" content="{e(image)}">' if image else ''}
-{dates}<meta name="twitter:card" content="summary_large_image">
+{dates}<meta name="twitter:card" content="{'summary_large_image' if image else 'summary'}">
 <meta name="twitter:title" content="{e(title)}">
 <meta name="twitter:description" content="{e(desc)}">
 {f'<meta name="twitter:image" content="{e(image)}">' if image else ''}
 <link rel="icon" type="image/svg+xml" href="{BASE}/icon.svg">
 <link rel="apple-touch-icon" href="{BASE}/icon.svg">
-<link rel="alternate" type="application/rss+xml" title="{e(NAME)}" href="{BASE}/feed.xml">
 <link rel="stylesheet" href="{BASE}/assets/site.css">
 <script>try{{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}}catch(e){{}}</script>
 {ga}
@@ -348,7 +352,7 @@ def _ld(obj: dict) -> str:
 
 
 def _publisher() -> dict:
-    return {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}
+    return {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/", "sameAs": ["https://github.com/woowoeth/podcast", SITE + "/"]}
 
 
 def index_page(eps: list[dict], srcs: dict) -> str:
@@ -363,24 +367,45 @@ def index_page(eps: list[dict], srcs: dict) -> str:
     # WebSite + CollectionPage + ItemList：让搜索与答案引擎知道这是一个持续更新的
     # 条目集合，而不是一张零散的落地页。SearchAction 指向 ?q=，那是站内搜索真实
     # 用的参数，所以这个声明是可用的而不是装饰。
-    ld = _ld({"@context": "https://schema.org", "@graph": [
+    faq = {"@type": "FAQPage", "@id": SITE + "/#faq", "inLanguage": "zh-CN",
+           "mainEntity": [
+             {"@type": "Question",
+              "name": "原声是什么？",
+              "acceptedAnswer": {"@type": "Answer",
+                "text": "原声是 OurWord.ai 的播客中文深读站。从上百档中英文播客里选出值得记住的判断，写成带时间戳的要点和金句。"}},
+             {"@type": "Question",
+              "name": "深读和普通播客摘要有什么不同？",
+              "acceptedAnswer": {"@type": "Answer",
+                "text": "金句必须在逐字稿里逐字出现，数字必须能回原文核对，时间戳必须落在节目时长内。过不了机器闸门和 7 分成稿评分的不上站。"}},
+             {"@type": "Question",
+              "name": "覆盖哪些主题？",
+              "acceptedAnswer": {"@type": "Answer",
+                "text": "AI 与技术、投资与商业、中国视角、人文与思想、文明与历史、育儿与教育、健康与科学。"}},
+             {"@type": "Question",
+              "name": "如何订阅？",
+              "acceptedAnswer": {"@type": "Answer",
+                "text": f"RSS：{SITE}/feed.xml 。给模型用的导览在 {SITE}/llms.txt 。"}}]}
+    ld_obj = {"@context": "https://schema.org", "@graph": [
         {"@type": "WebSite", "@id": SITE + "/#site", "url": SITE + "/",
-         "name": NAME, "alternateName": "OurWord Podcast", "description": BLURB,
-         "inLanguage": "zh-CN", "publisher": _publisher(),
+         "name": NAME, "alternateName": ["原声播客", "OurWord Podcast", "播客中文深读"],
+         "description": BLURB, "inLanguage": "zh-CN", "publisher": _publisher(),
          "potentialAction": {"@type": "SearchAction",
                              "target": {"@type": "EntryPoint",
                                         "urlTemplate": SITE + "/?q={search_term_string}"},
                              "query-input": "required name=search_term_string"}},
         {"@type": "CollectionPage", "@id": SITE + "/#page", "url": SITE + "/",
-         "name": f"{NAME} — {TAGLINE}", "isPartOf": {"@id": SITE + "/#site"},
+         "name": f"{NAME}｜播客中文深读", "isPartOf": {"@id": SITE + "/#site"},
          "inLanguage": "zh-CN",
          "mainEntity": {"@type": "ItemList", "numberOfItems": len(eps),
                         "itemListElement": [
                             {"@type": "ListItem", "position": i + 1,
                              "url": ep_url(x),
                              "name": x["digest"].get("title")}
-                            for i, x in enumerate(eps[:60])]}}]})
-    return (head(TAGLINE, BLURB, path="/",
+                            for i, x in enumerate(eps[:60])]}},
+        faq]}
+    ld = _ld(ld_obj)
+    home_title = f"{NAME}｜播客中文深读 — AI、商业、历史与思想"
+    return (head(home_title, BLURB, path="/",
                  image=(eps[0].get("image") if eps else ""), extra=ld)
             + masthead(len(eps), home=True)
             + f"""
@@ -392,7 +417,9 @@ def index_page(eps: list[dict], srcs: dict) -> str:
 {share_button(site_share_text(eps), url=SITE + "/", title=f"{NAME} · {TAGLINE}", label="分享本站")}
 </div></div></div>
 
-<main class="wrap"><div class="feed" data-feed>
+<main class="wrap">
+<p class="lede" style="max-width:42rem">{e(BLURB)}</p>
+<div class="feed" data-feed>
 {cards}
 <div class="empty" data-empty hidden><b>没有匹配的深读</b>
 <p>换个词，或者清掉筛选再试。搜索会搜进每条要点的正文、金句的中英文原文、
@@ -508,11 +535,14 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
     ld = json.dumps({"@context": "https://schema.org", "@graph": graph},
                     ensure_ascii=False)
 
-    return (head(f"{d.get('title')} — {src_label} · {NAME}", d.get("dek", ""),
+    section = CAT_LABEL.get(ep.get("cat") or "", "")
+    extra_meta = (f'<meta property="article:section" content="{e(section)}">'
+                  if section else "")
+    return (head(f"{d.get('title')} — {src_label}｜{NAME}播客深读", d.get("dek", ""),
                  path=ep_path(ep), image=ep.get("image", ""),
                  published=ep.get("published", ""),
                  modified=ep.get("generated") or ep.get("published", ""),
-                 extra=f'<script type="application/ld+json">{ld}</script>')
+                 extra=extra_meta + f'<script type="application/ld+json">{ld}</script>')
             + masthead(None, home=False)
             + f"""
 <main class="wrap ep">
@@ -678,7 +708,7 @@ def source_page(src: dict, eps: list[dict], total_known: int | None) -> str:
             {"@type": "ListItem", "position": 1, "name": "首页", "item": SITE + "/"},
             {"@type": "ListItem", "position": 2, "name": "信源", "item": SITE + "/sources/"},
             {"@type": "ListItem", "position": 3, "name": name}]}]})
-    return (head(f"{name} — {NAME}", src.get("desc", ""), path=f"/s/{src['id']}/", extra=ld)
+    return (head(f"{name} 播客深读 — {NAME}", src.get("desc") or f"{name}的中文原声深读", path=f"/s/{src['id']}/", extra=ld)
             + masthead(len(eps), home=False)
             + f"""<main class="wrap">
 <nav class="crumb" style="margin-top:26px"><a href="{BASE}/">首页</a><span class="sep">/</span>
@@ -946,12 +976,16 @@ def sitemap(eps: list[dict]) -> str:
             f"<priority>0.5</priority></url>",
             f"<url><loc>{xesc(SITE)}/sources/</loc>"
             + (f"<lastmod>{xesc(newest)}</lastmod>" if newest else "")
-            + "<changefreq>weekly</changefreq><priority>0.6</priority></url>"]
+            + "<changefreq>weekly</changefreq><priority>0.6</priority></url>",
+            f"<url><loc>{xesc(SITE)}/llms.txt</loc><changefreq>daily</changefreq>"
+            f"<priority>0.7</priority></url>",
+            f"<url><loc>{xesc(SITE)}/feed.xml</loc><changefreq>daily</changefreq>"
+            f"<priority>0.5</priority></url>"]
     for sid in sorted({x["source_id"] for x in eps}):
         urls.append(f"<url><loc>{xesc(SITE)}/s/{xesc(sid)}/</loc><changefreq>weekly</changefreq></url>")
     for x in eps:
         urls.append(f"<url><loc>{xesc(ep_url(x))}</loc>"
-                    f"<lastmod>{xesc((x.get('published') or '')[:10])}</lastmod>"
+                    f"<lastmod>{xesc((x.get('generated') or x.get('published') or '')[:10])}</lastmod>"
                     f"<changefreq>monthly</changefreq><priority>0.8</priority></url>")
     return ('<?xml version="1.0" encoding="UTF-8"?>\n'
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
