@@ -1,0 +1,217 @@
+{
+ "id": "peteryang-841ff232ab",
+ "slug": "2026-08-23-peteryang-自下而上的评估-是-ai-给不了你的护城河",
+ "fingerprint": "35a8cbe0ea8a23f9",
+ "source_id": "peteryang",
+ "source": "Peter Yang",
+ "source_zh": "Peter Yang",
+ "cat": "ai",
+ "tier": 3,
+ "lang": "en",
+ "title_original": "How to Build Better AI Evals with Claude Code in 5 Steps | Shreya & Hamel",
+ "published": "2026-08-23T13:00:04Z",
+ "duration": 3260,
+ "audio": "",
+ "link": "https://www.youtube.com/watch?v=bdMHQLvtVaQ",
+ "image": "https://i3.ytimg.com/vi/bdMHQLvtVaQ/hqdefault.jpg",
+ "youtube_id": "bdMHQLvtVaQ",
+ "transcript_url": "https://www.youtube.com/watch?v=bdMHQLvtVaQ",
+ "digest": {
+  "title": "自下而上的评估，是 AI 给不了你的护城河",
+  "dek": "评估不能只靠 AI 自动生成：自上而下的标准它很擅长，但真正决定产品好坏的自下而上评估——从错误数据里提炼的品味——必须由人来提供，再借助 Claude Code 规模化执行。",
+  "why": "这集不打高射炮，直接用 15 分钟现场演示把「错误发现」做成流程，并给出自动化工具的基准测试数据。后半段关于工具精度的讨论尤其值钱。",
+  "who": "用 LLM 构建产品（尤其聊天机器人、写作工具、Agent）的工程师与创业者，正在头疼怎么设计评估体系的人。",
+  "skip": "[08:04] 广告插播可跳过。",
+  "points": [
+   {
+    "t": 363,
+    "h": "自下而上评估必须人来提炼",
+    "body": "Shreya 把评估分成两类：自上而下是根据任务本质预先设定的，比如长度、可执行性；自下而上则是浏览大量样本后，把直觉性不满沉淀成规则。Claude 对自上而下很在行，但自下而上必须由人来提供，因为模型无法凭空知道你的口味。这也是为什么评估必须迭代：每发现一个新失败模式就补一条规则，但要注意别过度拟合到单次访谈上。",
+    "spk": "Shreya"
+   },
+   {
+    "t": 545,
+    "h": "用子代理拆解评估标准",
+    "body": "Shreya 建议把评估标准分成两组，让子代理分组评估，避免模型面对长清单时偷懒忽略。同时让技能自动生成一张电子表格（或透视表），列出每条标准的通过与失败情况，这样你能快速判断哪些标准对当前任务更重要，甚至手动加权，而不必盲从统一权重。",
+    "spk": "Shreya"
+   },
+   {
+    "t": 1028,
+    "h": "错误发现技能五步走",
+    "body": "Shreya 演示了她的 error discovery skill：第一步读数据并判断语义类型（是文章、代码还是 trace）；第二步设计视觉编码，用颜色、间距、透明度凸显数据差异，让人更容易看；第三步用 HTML 和 Python 搭建审查界面；第四步由 AI 聚类并挑选多样化的样本；第五步进入交互循环——你在界面上给开放反馈，Claude Code 实时读取并把反馈整合成新样本或评估标准。整套流程约需 15 分钟，但换来的是远超表格的可读性。",
+    "spk": "Shreya"
+   },
+   {
+    "t": 1639,
+    "h": "人类给品味，AI 做聚类",
+    "body": "Hamel 解释这套交互背后的机制：人读样本时顺手给出开放式评论，比如「我不喜欢否定对比」「这很烦但说不清为什么」，后台的 Claude monitor 工具会持续消化这些评论，在积累到约十条后自动开始归纳主题，并主动扫描全部样本，把同类问题自动标注出来。核心哲学是：人类负责品味和判断，AI 负责规模化地发现和归类，而不是替人发明标准。",
+    "spk": "Hamel"
+   },
+   {
+    "t": 2123,
+    "h": "失败模式即评估标准",
+    "body": "Shreya 指出，错误分析产生的不只是问题列表——这些失败模式可以直接变成你的 rubric，也就是评估标准。她演示中自动生成的 361 条建议里，最常见的是少于四词的 staccato 碎片（249 条）。把这些标准写进技能，以后每次生成后就能用 LLM judge 逐条判定；同时，由于你已经有了人工标注的数据集，还可以反向验证这些评估标准本身是否可靠。",
+    "spk": "Shreya"
+   },
+   {
+    "t": 2668,
+    "h": "自动化评估工具的盲区",
+    "body": "Hamel 分享了他们对 Brain Trust、Arize、LangSmith 这类自动评估工具的基准测试：它们能捕捉工具调用失败、用户表达不满这类明显错误，但普遍漏掉需要产品判断的隐性错误——比如一个房产销售 bot 面对「你们没有这个房源」的异议时，只会说「抱歉没有了」，而不会推荐替代方案。更值得注意的是，Claude Code、Codex 等编码代理与这些工具表现相同，因为底层模型和提示词本质一致。",
+    "spk": "Hamel"
+   },
+   {
+    "t": 3033,
+    "h": "人工审查是最后的护城河",
+    "body": "Shreya 补充说，自动化评估工具在最好情况下的精确率也只有 80%-90%，意味着 10%-20% 的报错其实是误报，如果盲目照做会歪曲产品方向。所以真正有效的做法是：用工具快速找出明显错误，再手动审查数据，验证工具的发现、补充它漏掉的地方，并确保你的品味注入产品。这才能和竞争对手拉开差距。",
+    "spk": "Shreya"
+   },
+   {
+    "t": 3155,
+    "h": "评估驱动的成本优化",
+    "body": "提到课程深度，Shreya 说除了错误分析与生产化，还覆盖了如何把评估接入 CI/CD、监控长期漂移、对抗性评估（防止租户数据泄露）等。最实用的部分是改进模块：用评估来指导模型切换——换便宜模型时，通过评估优化其准确率，他们实际帮学生和客户把成本砍掉了 100 倍。这是纯评估技能之外的工程能力。",
+    "spk": "Shreya"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 363,
+    "spk": "Shreya",
+    "raw": "Now Claude is very very bad at coming up with bottomup evals. That's all you",
+    "zh": "Claude 非常非常不擅长提出自下而上的评估，这完全靠你。"
+   },
+   {
+    "t": 665,
+    "spk": "Hamel",
+    "raw": "we joke that writing is the final boss for LLMs",
+    "zh": "我们开玩笑说，写作是 LLM 的终极 Boss。"
+   },
+   {
+    "t": 968,
+    "spk": "Shreya",
+    "raw": "the interface that it comes up with is going to be so much better than me looking at my data in say Google spreadsheets or something",
+    "zh": "它生成的界面会远好过我在 Google 表格里查看数据。"
+   },
+   {
+    "t": 2062,
+    "spk": "Shreya",
+    "raw": "the hardest part of eval is error analysis which is coming up with this rubric",
+    "zh": "评估最难的环节是错误分析，也就是想出一套评分标准。"
+   },
+   {
+    "t": 2365,
+    "spk": "Hamel",
+    "raw": "There's there is no world in the future. Even if you have AGI, if you're building a product, you have to look at your data.",
+    "zh": "未来也不存在这样的世界。即使你有 AGI，只要在构建产品，就必须亲自看数据。"
+   },
+   {
+    "t": 2851,
+    "spk": "Hamel",
+    "raw": "It's really hard for humans to upfront think of like from top down like what are all the things that are good and bad. It's like almost impossible.",
+    "zh": "要让人类预先从头想清楚什么是好什么是坏，真的很难，几乎不可能。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "错误发现技能自动生成的建议总数",
+    "v": "361 条",
+    "t": 2062
+   },
+   {
+    "k": "staccato 碎片（≤4 词短句）数量",
+    "v": "249 处",
+    "t": 2062
+   },
+   {
+    "k": "审查界面构建耗时",
+    "v": "15 分钟",
+    "t": 1455
+   },
+   {
+    "k": "自动化评估工具最高精确率",
+    "v": "80%-90%",
+    "t": 3033
+   },
+   {
+    "k": "通过评估优化实现的成本下降",
+    "v": "100 倍",
+    "t": 3155
+   },
+   {
+    "k": "触发自动标注所需的人工反馈数",
+    "v": "约 10 条",
+    "t": 1699
+   }
+  ],
+  "terms": [
+   {
+    "term": "bottom-up evals",
+    "zh": "自下而上的评估",
+    "def": "从大量真实输出中，由人提炼失败模式而形成的评估标准。"
+   },
+   {
+    "term": "top-down evals",
+    "zh": "自上而下的评估",
+    "def": "基于任务本质与领域知识预先设定的评估标准，与数据无关。"
+   },
+   {
+    "term": "LLM judge",
+    "zh": "LLM 评判器",
+    "def": "让模型根据明确标准对输出做出通过/失败的判断。"
+   },
+   {
+    "term": "error discovery",
+    "zh": "错误发现",
+    "def": "通过审查数据找出失败模式并固化为评估标准的工作流。"
+   },
+   {
+    "term": "staccato fragments",
+    "zh": "短句残片",
+    "def": "少于四个词的破碎句，AI 写作常见的凑字数风格。"
+   },
+   {
+    "term": "slop",
+    "zh": "废话/水词",
+    "def": "AI 生成中空洞、套路化、缺乏信息量的套话。"
+   }
+  ],
+  "tags": [
+   "评估体系",
+   "Claude Code",
+   "错误分析",
+   "LLM 产品",
+   "人工审查"
+  ],
+  "quality": {
+   "transcript_source": "youtube",
+   "transcript_detail": "en",
+   "words": 10288,
+   "wpm": 189.3,
+   "timed": true,
+   "verified_quotes": 6,
+   "grounded_facts": 6,
+   "points": 8,
+   "pruned": 0,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-08-29T13:32:30Z",
+ "triage": {
+  "score": 7.0,
+  "why": "AI评估实操方法，含演示与专家反馈，机制清晰可验证，但夹带课程推销。",
+  "kind": "一手访谈"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 8,
+   "faithful": 8,
+   "selection": 8,
+   "concrete": 9,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点均为判断与机制，忠实原文，数字具体，无空话。",
+  "worst": ""
+ },
+ "model": "openai:deepseek-reasoner"
+}
