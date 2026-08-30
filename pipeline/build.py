@@ -294,6 +294,36 @@ TSRC_LABEL = {"feed": "官方逐字稿", "notes": "官方全文", "page": "官�
               "youtube": "YouTube 字幕", "asr": "音频转写"}
 
 
+def thumb(url, w=480):
+    """把封面缩到卡片实际需要的尺寸。
+
+    首页 7 张可见封面原本 4MB，最大的单张 2.75MB —— 播客源站给的是
+    1400px 以上的方图，而卡片只有 354px 宽。几家主流播客 CDN 都支持
+    用 URL 参数缩放，认识哪家就缩哪家，不认识的原样返回。
+    """
+    if not url:
+        return url
+    if "omnycontent.com" in url:
+        # Omny 认 ?size=Small —— 实测 775KB → 15KB，最大的一张 15MB → 20KB。
+        # 多数 URL 已经带了 size=Large，必须替换而不是追加：两个 size 参数
+        # 会让部分图直接取不到。
+        if re.search(r"[?&]size=", url):
+            return re.sub(r"([?&]size=)[^&]*", r"\1Small", url)
+        return url + ("&" if "?" in url else "?") + "size=Small"
+    if "imgix.net" in url or "megaphone.imgix" in url:
+        return url + ("&" if "?" in url else "?") + "w=%d&auto=format&fit=crop" % w
+    if "image.xyzcdn.net" in url:
+        return url + ("&" if "?" in url else "?") + "imageMogr2/thumbnail/%dx" % w
+    if "wsrv.nl" in url or "images.weserv.nl" in url:
+        return url
+    # 其余 CDN 不认缩放参数（cloudfront 上有 1.6MB 的原图），走通用图片代理。
+    # 只对 https 且不含 query 的地址用，避免把已带签名的 URL 弄坏。
+    if url.startswith("https://") and "?" not in url:
+        return "https://images.weserv.nl/?url=%s&w=%d&output=webp&q=82" % (
+            url[len("https://"):], w)
+    return url
+
+
 def card(ep: dict, *, hero: bool) -> str:
     d = ep["digest"]
     q = d.get("quality") or {}
@@ -303,7 +333,8 @@ def card(ep: dict, *, hero: bool) -> str:
                     " ".join(d.get("tags") or []),
                     " ".join(t.get("term", "") for t in d.get("terms") or [])])
     img = ep.get("image") or ""
-    cover = (f'<img src="{e(img)}" alt="" loading="lazy" decoding="async" '
+    cover = (f'<img src="{e(thumb(img))}" alt="" loading="lazy" decoding="async" '
+             f'width="480" height="480" '
              f'data-initial="{e((ep.get("source") or "?")[:1])}">' if img
              else f'<div class="fallback">{e((ep.get("source") or "?")[:1])}</div>')
     dur = (f'<span class="dur">{hhmmss(ep["duration"])}</span>' if ep.get("duration") else "")
