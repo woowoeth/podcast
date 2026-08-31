@@ -37,19 +37,17 @@ def _n_sources() -> int:
 def _blurb() -> str:
     n = _n_sources()
     head = f"每天从 {n} 档中英文播客里挑出值得记住的判断。" if n else "每天从中英文播客里挑出值得记住的判断。"
-    return (head + "覆盖 AI、投资商业、中国视角、人文思想、文明历史、育儿教育与健康科学。"
-            "每篇是带时间戳的中文深读：要点、金句逐字校验，数字回原文核对；"
-            "查不到出处的不上站。给没时间听完全程的人，也给搜索和答案引擎引用。")
+    return (head + "要点和金句都带时间戳，点一下就回到它在原声里被说出的那一秒；"
+            "金句逐字校验过、数字回原文核对过——查不到出处的，一律不上站。")
 
-CAT_ORDER = ["ai", "biz", "cn", "ideas", "hist", "parent", "sci"]
+CAT_ORDER = ["ai", "biz", "cn", "ideas", "hist", "parent"]
 CAT_LABEL = {
     "ai": "AI / 技术",
     "biz": "投资 / 商业",
     "cn": "中国视角",
     "ideas": "人文 / 思想",
-    "hist": "文明 / 历史",
-    "parent": "育儿 / 教育",
-    "sci": "健康 / 科学",
+    "hist": "历史",
+    "parent": "育儿",
 }
 
 
@@ -100,12 +98,8 @@ def head(title: str, desc: str, *, path: str = "/", image: str = "",
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{e(title)}</title>
 <meta name="description" content="{e(desc)}">
-<meta name="author" content="OurWord.ai">
 <meta name="robots" content="{e(robots)}">
-<meta name="theme-color" content="#f0f0ec">
 <link rel="canonical" href="{e(url)}">
-<link rel="alternate" type="application/rss+xml" title="{e(NAME)} RSS" href="{SITE}/feed.xml">
-<link rel="alternate" type="text/plain" title="llms.txt" href="{SITE}/llms.txt">
 <meta property="og:type" content="{'article' if published else 'website'}">
 <meta property="og:site_name" content="{e(NAME)}">
 <meta property="og:locale" content="zh_CN">
@@ -113,12 +107,13 @@ def head(title: str, desc: str, *, path: str = "/", image: str = "",
 <meta property="og:description" content="{e(desc)}">
 <meta property="og:url" content="{e(url)}">
 {f'<meta property="og:image" content="{e(image)}">' if image else ''}
-{dates}<meta name="twitter:card" content="{'summary_large_image' if image else 'summary'}">
+{dates}<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{e(title)}">
 <meta name="twitter:description" content="{e(desc)}">
 {f'<meta name="twitter:image" content="{e(image)}">' if image else ''}
 <link rel="icon" type="image/svg+xml" href="{BASE}/icon.svg">
 <link rel="apple-touch-icon" href="{BASE}/icon.svg">
+<link rel="alternate" type="application/rss+xml" title="{e(NAME)}" href="{BASE}/feed.xml">
 <link rel="stylesheet" href="{BASE}/assets/site.css">
 <script>try{{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}}catch(e){{}}</script>
 {ga}
@@ -136,14 +131,10 @@ ICON_THEME = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
               '<circle cx="12" cy="12" r="4"/></svg>')
 
 
-ICON_SHARE = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" '
-              'fill="none" stroke="currentColor" stroke-width="2" '
-              'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" '
-              'style="width:14px;height:14px;display:block;flex:none">'
-              '<circle cx="18" cy="5" r="2.4"/>'
-              '<circle cx="6" cy="12" r="2.4"/>'
-              '<circle cx="18" cy="19" r="2.4"/>'
-              '<path d="M8.2 13.2 15.8 17.3M15.8 6.7 8.2 10.8"/></svg>')
+ICON_SHARE = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+              'stroke-linecap="round" stroke-linejoin="round">'
+              '<path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/>'
+              '<path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg>')
 
 
 def share_button(text: str, *, url: str, title: str, label: str = "分享") -> str:
@@ -188,19 +179,20 @@ def episode_share_text(ep: dict) -> str:
     return "\n".join(lines)
 
 
-def ep_path(ep: dict) -> str:
-    """对外只暴露纯 ASCII：/e/<source>-<hash>/。"""
-    return f"/e/{ep['id']}/"
-
-
 def ep_url(ep: dict) -> str:
-    return SITE + ep_path(ep)
+    """分享用的短链。
+
+    正文页的 slug 是中文，percent-encode 之后有两百多字符——粘到朋友圈里，链接
+    比内容还长，而朋友圈超长会折叠。所以另外生成一个纯 ASCII 短链 /e/<id>/，
+    只用于分享；站内和搜索引擎看到的仍然是可读的中文 URL。
+    """
+    return f"{SITE}/e/{ep['id']}/"
 
 
 def alias_page(ep: dict) -> str:
-    """旧的 /p/<中文slug>/ 跳到 /e/<id>/，兼容已发出去的链接。"""
-    real = f"{BASE}{ep_path(ep)}"
-    full = ep_url(ep)
+    """短链页：canonical 指回正文，noindex 防止和正文抢排名，然后立刻跳走。"""
+    real = f"{BASE}/p/{urllib.parse.quote(ep['slug'])}/"
+    full = f"{SITE}/p/{urllib.parse.quote(ep['slug'])}/"
     t = e(ep["digest"].get("title") or "")
     return f"""<!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8">
@@ -267,16 +259,8 @@ def masthead(n: int | None, *, home: bool) -> str:
 
 
 def foot() -> str:
-    return f"""<footer class="foot"><div class="wrap">
-<nav class="family" aria-label="OurWord 站点">
-<a href="https://ourword.ai/">人类生存法则</a>
-<span class="family-sep" aria-hidden="true">·</span>
-<a class="on" href="{SITE}/" aria-current="page">原声播客</a>
-<span class="family-sep" aria-hidden="true">·</span>
-<a href="https://ourword.ai/skill/">品位 Skill</a>
-</nav>
-<div class="foot-in">
-<div>{NAME} · OurWord.ai 的播客线。内容为原播客的中文深读，
+    return f"""<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>{NAME} · <a href="https://ourword.ai">OurWord.ai</a> 的播客线。内容为原播客的中文深读，
 版权归各节目所有；每篇都附原节目链接，请去支持原作者。</div>
 <div class="links"><a href="{BASE}/">首页</a><a href="{BASE}/sources/">信源</a>
 <a href="{BASE}/log/">更新日志</a><a href="{BASE}/feed.xml">RSS</a>
@@ -294,36 +278,6 @@ TSRC_LABEL = {"feed": "官方逐字稿", "notes": "官方全文", "page": "官�
               "youtube": "YouTube 字幕", "asr": "音频转写"}
 
 
-def thumb(url, w=480):
-    """把封面缩到卡片实际需要的尺寸。
-
-    首页 7 张可见封面原本 4MB，最大的单张 2.75MB —— 播客源站给的是
-    1400px 以上的方图，而卡片只有 354px 宽。几家主流播客 CDN 都支持
-    用 URL 参数缩放，认识哪家就缩哪家，不认识的原样返回。
-    """
-    if not url:
-        return url
-    if "omnycontent.com" in url:
-        # Omny 认 ?size=Small —— 实测 775KB → 15KB，最大的一张 15MB → 20KB。
-        # 多数 URL 已经带了 size=Large，必须替换而不是追加：两个 size 参数
-        # 会让部分图直接取不到。
-        if re.search(r"[?&]size=", url):
-            return re.sub(r"([?&]size=)[^&]*", r"\1Small", url)
-        return url + ("&" if "?" in url else "?") + "size=Small"
-    if "imgix.net" in url or "megaphone.imgix" in url:
-        return url + ("&" if "?" in url else "?") + "w=%d&auto=format&fit=crop" % w
-    if "image.xyzcdn.net" in url:
-        return url + ("&" if "?" in url else "?") + "imageMogr2/thumbnail/%dx" % w
-    if "wsrv.nl" in url or "images.weserv.nl" in url:
-        return url
-    # 其余 CDN 不认缩放参数（cloudfront 上有 1.6MB 的原图），走通用图片代理。
-    # 只对 https 且不含 query 的地址用，避免把已带签名的 URL 弄坏。
-    if url.startswith("https://") and "?" not in url:
-        return "https://images.weserv.nl/?url=%s&w=%d&output=webp&q=82" % (
-            url[len("https://"):], w)
-    return url
-
-
 def card(ep: dict, *, hero: bool) -> str:
     d = ep["digest"]
     q = d.get("quality") or {}
@@ -333,15 +287,14 @@ def card(ep: dict, *, hero: bool) -> str:
                     " ".join(d.get("tags") or []),
                     " ".join(t.get("term", "") for t in d.get("terms") or [])])
     img = ep.get("image") or ""
-    cover = (f'<img src="{e(thumb(img))}" alt="" loading="lazy" decoding="async" '
-             f'width="480" height="480" '
+    cover = (f'<img src="{e(img)}" alt="" loading="lazy" decoding="async" '
              f'data-initial="{e((ep.get("source") or "?")[:1])}">' if img
              else f'<div class="fallback">{e((ep.get("source") or "?")[:1])}</div>')
     dur = (f'<span class="dur">{hhmmss(ep["duration"])}</span>' if ep.get("duration") else "")
     tags = "".join(f'<span class="tag">{e(t)}</span>' for t in (d.get("tags") or [])[:2])
     src_label = ep.get("source_zh") or ep.get("source") or ""
     return f"""<a class="card{' hero' if hero else ''}" data-card data-cat="{e(ep.get('cat'))}"
- data-hay="{e(hay)}" href="{BASE}{ep_path(ep)}">
+ data-hay="{e(hay)}" href="{BASE}/p/{e(ep['slug'])}/">
 <div class="cover">{cover}{dur}</div>
 <div class="card-body">
 <div class="kicker" data-cat="{e(ep.get('cat'))}"><span class="src">{e(src_label)}</span>
@@ -381,7 +334,7 @@ def search_index(eps: list[dict]) -> str:
         # Cap each row so the index stays fetchable as the archive grows:
         # ~5KB per episode is 1MB raw at 200 episodes, and Pages serves it
         # gzipped at roughly a fifth of that.
-        rows.append({"s": x["id"], "h": squeeze(" ".join(parts)).lower()[:5000]})
+        rows.append({"s": x["slug"], "h": squeeze(" ".join(parts)).lower()[:5000]})
     return json.dumps(rows, ensure_ascii=False, separators=(",", ":"))
 
 
@@ -391,7 +344,7 @@ def _ld(obj: dict) -> str:
 
 
 def _publisher() -> dict:
-    return {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/", "sameAs": ["https://github.com/woowoeth/podcast", SITE + "/"]}
+    return {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}
 
 
 def index_page(eps: list[dict], srcs: dict) -> str:
@@ -406,45 +359,24 @@ def index_page(eps: list[dict], srcs: dict) -> str:
     # WebSite + CollectionPage + ItemList：让搜索与答案引擎知道这是一个持续更新的
     # 条目集合，而不是一张零散的落地页。SearchAction 指向 ?q=，那是站内搜索真实
     # 用的参数，所以这个声明是可用的而不是装饰。
-    faq = {"@type": "FAQPage", "@id": SITE + "/#faq", "inLanguage": "zh-CN",
-           "mainEntity": [
-             {"@type": "Question",
-              "name": "原声是什么？",
-              "acceptedAnswer": {"@type": "Answer",
-                "text": "原声是 OurWord.ai 的播客中文深读站。从上百档中英文播客里选出值得记住的判断，写成带时间戳的要点和金句。"}},
-             {"@type": "Question",
-              "name": "深读和普通播客摘要有什么不同？",
-              "acceptedAnswer": {"@type": "Answer",
-                "text": "金句必须在逐字稿里逐字出现，数字必须能回原文核对，时间戳必须落在节目时长内。过不了机器闸门和 7 分成稿评分的不上站。"}},
-             {"@type": "Question",
-              "name": "覆盖哪些主题？",
-              "acceptedAnswer": {"@type": "Answer",
-                "text": "AI 与技术、投资与商业、中国视角、人文与思想、文明与历史、育儿与教育、健康与科学。"}},
-             {"@type": "Question",
-              "name": "如何订阅？",
-              "acceptedAnswer": {"@type": "Answer",
-                "text": f"RSS：{SITE}/feed.xml 。给模型用的导览在 {SITE}/llms.txt 。"}}]}
-    ld_obj = {"@context": "https://schema.org", "@graph": [
+    ld = _ld({"@context": "https://schema.org", "@graph": [
         {"@type": "WebSite", "@id": SITE + "/#site", "url": SITE + "/",
-         "name": NAME, "alternateName": ["原声播客", "OurWord Podcast", "播客中文深读"],
-         "description": BLURB, "inLanguage": "zh-CN", "publisher": _publisher(),
+         "name": NAME, "alternateName": "OurWord Podcast", "description": BLURB,
+         "inLanguage": "zh-CN", "publisher": _publisher(),
          "potentialAction": {"@type": "SearchAction",
                              "target": {"@type": "EntryPoint",
                                         "urlTemplate": SITE + "/?q={search_term_string}"},
                              "query-input": "required name=search_term_string"}},
         {"@type": "CollectionPage", "@id": SITE + "/#page", "url": SITE + "/",
-         "name": f"{NAME}｜播客中文深读", "isPartOf": {"@id": SITE + "/#site"},
+         "name": f"{NAME} — {TAGLINE}", "isPartOf": {"@id": SITE + "/#site"},
          "inLanguage": "zh-CN",
          "mainEntity": {"@type": "ItemList", "numberOfItems": len(eps),
                         "itemListElement": [
                             {"@type": "ListItem", "position": i + 1,
-                             "url": ep_url(x),
+                             "url": f"{SITE}/p/{x['slug']}/",
                              "name": x["digest"].get("title")}
-                            for i, x in enumerate(eps[:60])]}},
-        faq]}
-    ld = _ld(ld_obj)
-    home_title = f"{NAME}｜播客中文深读 — AI、商业、历史与思想"
-    return (head(home_title, BLURB, path="/",
+                            for i, x in enumerate(eps[:60])]}}]})
+    return (head(TAGLINE, BLURB, path="/",
                  image=(eps[0].get("image") if eps else ""), extra=ld)
             + masthead(len(eps), home=True)
             + f"""
@@ -532,9 +464,9 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
     tags = "".join(f'<span class="tag">{e(t)}</span>' for t in (d.get("tags") or []))
     prevnext = ""
     if prev or nxt:
-        left = (f'<a href="{BASE}{ep_path(prev)}"><span class="lbl">← 更新</span>'
+        left = (f'<a href="{BASE}/p/{e(prev["slug"])}/"><span class="lbl">← 更新</span>'
                 f'<strong>{e(prev["digest"]["title"])}</strong></a>' if prev else "<span></span>")
-        right = (f'<a class="r" href="{BASE}{ep_path(nxt)}"><span class="lbl">更早 →</span>'
+        right = (f'<a class="r" href="{BASE}/p/{e(nxt["slug"])}/"><span class="lbl">更早 →</span>'
                  f'<strong>{e(nxt["digest"]["title"])}</strong></a>' if nxt else "<span></span>")
         prevnext = f'<nav class="prevnext">{left}{right}</nav>'
 
@@ -544,12 +476,12 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
     kw += [f.get("k") for f in (d.get("facts") or []) if f.get("k")][:6]
     graph = [{
         "@type": "PodcastEpisode",
-        "@id": f"{ep_url(ep)}#episode",
+        "@id": f"{SITE}/p/{ep['slug']}/#episode",
         "name": d.get("title"), "headline": d.get("title"),
         "description": d.get("dek"), "abstract": d.get("dek"),
         "datePublished": ep.get("published"),
         "dateModified": ep.get("generated") or ep.get("published"),
-        "url": ep_url(ep),
+        "url": f"{SITE}/p/{ep['slug']}/",
         "timeRequired": f"PT{int((ep.get('duration') or 0) // 60)}M",
         "partOfSeries": {"@type": "PodcastSeries", "name": ep.get("source"),
                          "url": f"{SITE}/s/{ep.get('source_id')}/"},
@@ -572,14 +504,11 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
     ld = json.dumps({"@context": "https://schema.org", "@graph": graph},
                     ensure_ascii=False)
 
-    section = CAT_LABEL.get(ep.get("cat") or "", "")
-    extra_meta = (f'<meta property="article:section" content="{e(section)}">'
-                  if section else "")
-    return (head(f"{d.get('title')} — {src_label}｜{NAME}播客深读", d.get("dek", ""),
-                 path=ep_path(ep), image=ep.get("image", ""),
+    return (head(f"{d.get('title')} — {src_label} · {NAME}", d.get("dek", ""),
+                 path=f"/p/{ep['slug']}/", image=ep.get("image", ""),
                  published=ep.get("published", ""),
                  modified=ep.get("generated") or ep.get("published", ""),
-                 extra=extra_meta + f'<script type="application/ld+json">{ld}</script>')
+                 extra=f'<script type="application/ld+json">{ld}</script>')
             + masthead(None, home=False)
             + f"""
 <main class="wrap ep">
@@ -745,7 +674,7 @@ def source_page(src: dict, eps: list[dict], total_known: int | None) -> str:
             {"@type": "ListItem", "position": 1, "name": "首页", "item": SITE + "/"},
             {"@type": "ListItem", "position": 2, "name": "信源", "item": SITE + "/sources/"},
             {"@type": "ListItem", "position": 3, "name": name}]}]})
-    return (head(f"{name} 播客深读 — {NAME}", src.get("desc") or f"{name}的中文原声深读", path=f"/s/{src['id']}/", extra=ld)
+    return (head(f"{name} — {NAME}", src.get("desc", ""), path=f"/s/{src['id']}/", extra=ld)
             + masthead(len(eps), home=False)
             + f"""<main class="wrap">
 <nav class="crumb" style="margin-top:26px"><a href="{BASE}/">首页</a><span class="sep">/</span>
@@ -857,7 +786,7 @@ def llms_txt(eps: list[dict], srcs: dict) -> str:
          f"- Site: {SITE}/",
          f"- Every source, with coverage and fetch health: {SITE}/sources/",
          f"- One page per source: {SITE}/s/<source-id>/",
-         f"- One page per episode: {SITE}/e/<id>/",
+         f"- One page per episode: {SITE}/p/<slug>/",
          f"- Full text of every entry, one file: {SITE}/llms-full.txt",
          f"- All URLs: {SITE}/sitemap.xml",
          f"- RSS: {SITE}/feed.xml",
@@ -897,7 +826,7 @@ def llms_txt(eps: list[dict], srcs: dict) -> str:
     L += [f"## Entries ({len(eps)})", ""]
     for x in eps:
         d = x["digest"]
-        L.append(f"- [{d.get('title')}]({ep_url(x)}) — {d.get('dek')} "
+        L.append(f"- [{d.get('title')}]({SITE}/p/{x['slug']}/) — {d.get('dek')} "
                  f"[{x.get('source_zh') or x.get('source')}, {(x.get('published') or '')[:10]}]")
     L.append("")
     return "\n".join(L)
@@ -914,7 +843,7 @@ def llms_full_txt(eps: list[dict]) -> str:
         rv = x.get("review") or {}
         out += ["=" * 78, "",
                 f"## {d.get('title')}", "",
-                f"- URL: {ep_url(x)}",
+                f"- URL: {SITE}/p/{x['slug']}/",
                 f"- 节目 / show: {x.get('source_zh') or x.get('source')}"
                 f" ({SITE}/s/{x.get('source_id')}/)",
                 f"- 原集标题 / original episode: {x.get('title_original')}",
@@ -983,8 +912,8 @@ def rss(eps: list[dict]) -> str:
             pub = ""
         items.append(f"""<item>
 <title>{xesc(d.get('title',''))}</title>
-<link>{xesc(ep_url(x))}</link>
-<guid isPermaLink="true">{xesc(ep_url(x))}</guid>
+<link>{xesc(SITE)}/p/{xesc(x['slug'])}/</link>
+<guid isPermaLink="true">{xesc(SITE)}/p/{xesc(x['slug'])}/</guid>
 {f'<pubDate>{pub}</pubDate>' if pub else ''}
 <category>{xesc(x.get('source',''))}</category>
 <description>{xesc(d.get('dek',''))}</description>
@@ -1013,16 +942,12 @@ def sitemap(eps: list[dict]) -> str:
             f"<priority>0.5</priority></url>",
             f"<url><loc>{xesc(SITE)}/sources/</loc>"
             + (f"<lastmod>{xesc(newest)}</lastmod>" if newest else "")
-            + "<changefreq>weekly</changefreq><priority>0.6</priority></url>",
-            f"<url><loc>{xesc(SITE)}/llms.txt</loc><changefreq>daily</changefreq>"
-            f"<priority>0.7</priority></url>",
-            f"<url><loc>{xesc(SITE)}/feed.xml</loc><changefreq>daily</changefreq>"
-            f"<priority>0.5</priority></url>"]
+            + "<changefreq>weekly</changefreq><priority>0.6</priority></url>"]
     for sid in sorted({x["source_id"] for x in eps}):
         urls.append(f"<url><loc>{xesc(SITE)}/s/{xesc(sid)}/</loc><changefreq>weekly</changefreq></url>")
     for x in eps:
-        urls.append(f"<url><loc>{xesc(ep_url(x))}</loc>"
-                    f"<lastmod>{xesc((x.get('generated') or x.get('published') or '')[:10])}</lastmod>"
+        urls.append(f"<url><loc>{xesc(SITE)}/p/{xesc(x['slug'])}/</loc>"
+                    f"<lastmod>{xesc((x.get('published') or '')[:10])}</lastmod>"
                     f"<changefreq>monthly</changefreq><priority>0.8</priority></url>")
     return ('<?xml version="1.0" encoding="UTF-8"?>\n'
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
@@ -1091,36 +1016,35 @@ def main() -> int:
     (ROOT / "llms-full.txt").write_text(llms_full_txt(eps))
     (ROOT / ".nojekyll").write_text("")
 
-    # 正文在纯 ASCII /e/<id>/；旧 /p/<中文slug>/ 只留跳转，兼容已发出的链接。
-    edir = ROOT / "e"
-    alive = set()
+    pdir = ROOT / "p"
+    live = set()
     for i, x in enumerate(eps):
         prev = eps[i - 1] if i > 0 else None
         nxt = eps[i + 1] if i + 1 < len(eps) else None
-        out = edir / x["id"]
+        out = pdir / x["slug"]
         out.mkdir(parents=True, exist_ok=True)
         (out / "index.html").write_text(episode_page(x, prev, nxt))
+        live.add(x["slug"])
+    if pdir.exists():                      # drop pages whose record is gone
+        for d in pdir.iterdir():
+            if d.is_dir() and d.name not in live:
+                shutil.rmtree(d)
+                log(f"  removed stale page /p/{d.name}/")
+
+    # 分享短链：/e/<id>/ → /p/<中文 slug>/
+    edir = ROOT / "e"
+    alive = set()
+    for x in eps:
+        out = edir / x["id"]
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "index.html").write_text(alias_page(x))
         alive.add(x["id"])
     if edir.exists():
         for d in edir.iterdir():
             if d.is_dir() and d.name not in alive:
                 shutil.rmtree(d)
-
-    pdir = ROOT / "p"
-    live = set()
-    for x in eps:
-        out = pdir / x["slug"]
-        out.mkdir(parents=True, exist_ok=True)
-        (out / "index.html").write_text(alias_page(x))
-        live.add(x["slug"])
-    if pdir.exists():
-        for d in pdir.iterdir():
-            if d.is_dir() and d.name not in live:
-                shutil.rmtree(d)
-    log(f"built: index, sources, {len(eps)} episode pages at /e/<id>/ "
-        f"(+{len(live)} legacy /p/ redirects), feed.xml, sitemap.xml")
-    key = os.environ.get("INDEXNOW_KEY", "8f3c2a1b9d4e6f708192a3b4c5d6e7f0")
-    (ROOT / f"{key}.txt").write_text(key + "\n")
+    log(f"built: index, sources, {len(eps)} episode pages "
+        f"(+{len(alive)} 分享短链), feed.xml, sitemap.xml")
     return 0
 
 
