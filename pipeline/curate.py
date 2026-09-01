@@ -337,7 +337,24 @@ def _excerpt(tr: dict | None) -> str:
     return "\n".join(picks)
 
 
-def probe_candidate(name: str, itunes_id: str | None = None) -> dict | None:
+def probe_candidate(name: str, itunes_id: str | None = None,
+                    feed: str | None = None) -> dict | None:
+    """iTunes 找 feed，然后实测：能不能取到文稿、更新是否健康。
+
+    直接给了 feed 就跳过 iTunes——按名字搜是这套流程里最不可靠的一环（曾经把一个
+    冒用 Anthropic 品牌的 AI 生成播客匹配成了 Anthropic 官方节目），能绕开就绕开。
+    """
+    if feed:
+        s = {"id": "cand", "name": name, "feed": feed, "cat": "ai", "lang": "en"}
+        try:
+            eps = feeds.fetch(s, cache_ttl=3600)
+        except Exception as ex:
+            log(f"    {name[:26]:<28} feed 取不到：{type(ex).__name__}")
+            return None
+        if not eps:
+            return None
+        return _measure(name, feed, None, eps, s)
+    # 榜单给了 iTunes id 就直接 lookup，比按名字搜准得多
     if itunes_id:
         url = "https://itunes.apple.com/lookup?" + urllib.parse.urlencode(
             {"id": itunes_id, "entity": "podcast"})
@@ -368,25 +385,38 @@ def probe_candidate(name: str, itunes_id: str | None = None) -> dict | None:
         age = (now() - ds[0]).total_seconds() / 86400 if ds else None
         gaps = sorted((ds[i] - ds[i + 1]).total_seconds() / 86400
                       for i in range(len(ds) - 1)) if len(ds) > 1 else []
-        tr = T.acquire(dict(head[0]), "en", allow=("feed", "notes", "page"), src=s)
-        return {"name": cn, "feed": feed, "itunes": it.get("collectionId"),
-                "items": len(eps), "age_days": age,
-                "cadence": gaps[len(gaps) // 2] if gaps else None,
-                "official_transcripts": sum(1 for e in head if e["transcripts"]),
-                "transcript_words": tr["words"] if tr else 0,
-                "transcript_source": tr["source"] if tr else None,
-                "has_audio": sum(1 for e in head if e.get("audio")),
-                "sample": head[0]["title"][:70],
-                "titles": [e["title"][:80] for e in head[:6]],
-                "notes_sample": _notes_sample(head),
-                "excerpt": _excerpt(tr)}
+        return _measure(cn, feed, it.get("collectionId"), eps, s)
     return None
+
+
+def _measure(name: str, feed: str, itunes, eps: list[dict], s: dict) -> dict:
+    """实测一档候选。两条入口（iTunes 与直接给 feed）共用，否则两份实现迟早只改一份。"""
+    from lib import transcript as T
+    head = eps[:10]
+    ds = [e["published"] for e in head if e["published"]]
+    age = (now() - ds[0]).total_seconds() / 86400 if ds else None
+    gaps = sorted((ds[i] - ds[i + 1]).total_seconds() / 86400
+                  for i in range(len(ds) - 1)) if len(ds) > 1 else []
+    tr = T.acquire(dict(head[0]), s.get("lang", "en"),
+                   allow=("feed", "notes", "page"), src=s)
+    return {"name": name, "feed": feed, "itunes": itunes,
+            "items": len(eps), "age_days": age,
+            "cadence": gaps[len(gaps) // 2] if gaps else None,
+            "official_transcripts": sum(1 for e in head if e["transcripts"]),
+            "transcript_words": tr["words"] if tr else 0,
+            "transcript_source": tr["source"] if tr else None,
+            "has_audio": sum(1 for e in head if e.get("audio")),
+            "sample": head[0]["title"][:70],
+            "titles": [e["title"][:80] for e in head[:6]],
+            "notes_sample": _notes_sample(head),
+            # 评分要看实际内容，不能只凭节目名和一个标题猜——那样同一档节目
+            # 两次跑分能差 2 分，通过与否取决于措辞运气。
+            "excerpt": _excerpt(tr)}
 
 
 SCORE_SYSTEM = """你在给一个中文播客深读站评估要不要收一档新节目。
 站点覆盖 AI、商业、中国视角、思想、历史、育儿、科学。读者要可核对的判断、
 机制和证据；不要只按科技商业来打分。
-
 **只评内容价值。**能不能取到文稿、更新是否健康，由程序作为前置条件判掉了，不进你的
 打分——那两项决定的是"我们能不能做"，不是"该不该做"。
 
@@ -518,7 +548,32 @@ def slug_for(name: str, taken: set[str]) -> str:
     return s
 
 
-def discover(minimum: float, dry: bool = False) -> list[dict]:
+def feed_pool(path: str) -> list[dict]:
+    """从一个 {名字, feed} 列表里读候选。
+
+    为什么要这条入口：现在的候选池只有 Apple 分类榜，而榜单按流行度排，天然偏大众
+    ——那正是我们要避开的。任何别的目录（Radar 的 13 万档、朋友推荐、一份手写清单）
+    只要能给出名字和 RSS 就能进来，判断仍然全部由我们自己的探测和评分做。
+    直接给 feed 还绕开了按名字搜 iTunes 这一环，那是整套流程里最不可靠的地方。
+    """
+    try:
+        rows = json.loads(pathlib.Path(path).read_text())
+    except Exception as ex:
+        log(f"  读不了候选清单 {path}：{type(ex).__name__}")
+        return []
+    out = []
+    for r in rows if isinstance(rows, list) else []:
+        name = r.get("name") or r.get("title")
+        feed = r.get("feed") or r.get("url")
+        if name and feed:
+            out.append({"name": name, "feed": feed, "itunes": None,
+                        "chart": r.get("chart") or "外部清单"})
+    log(f"  外部清单 {path}：{len(out)} 档")
+    return out
+
+
+def discover(minimum: float, dry: bool = False,
+             from_feeds: str | None = None) -> list[dict]:
     blob = json.loads((DATA / "sources.json").read_text())
     existing = [s.get("zh") or s["name"] for s in blob["sources"]]
     existing_desc = "；".join(f"{s.get('zh') or s['name']}（{s.get('desc','')[:16]}）"
@@ -547,15 +602,18 @@ def discover(minimum: float, dry: bool = False) -> list[dict]:
         pool.append(c)
     leads = [{"name": l["name"], "why": l["why"], "itunes": None, "chart": "本站内容"}
              for l in find_leads(existing, sample) if not is_dup(l["name"])]
-    cands = pool + leads
+    ext = [c for c in (feed_pool(from_feeds) if from_feeds else [])
+           if c["feed"] not in known_feeds and not is_dup(c["name"])]
+    cands = pool + leads + ext
     if not cands:
         log("  没有新候选")
         return []
-    log(f"  候选 {len(cands)} 档（榜单 {len(pool)} + 本站内容 {len(leads)}），逐个实测：")
+    log(f"  候选 {len(cands)} 档（榜单 {len(pool)} + 本站内容 {len(leads)}"
+        + (f" + 外部清单 {len(ext)}" if ext else "") + "），逐个实测：")
     taken = {s["id"] for s in blob["sources"]}
     added = []
     for ld in cands:
-        c = probe_candidate(ld["name"], ld.get("itunes"))
+        c = probe_candidate(ld["name"], ld.get("itunes"), ld.get("feed"))
         if not c:
             log(f"    {ld['name'][:26]:<28} 找不到 feed")
             continue
@@ -609,6 +667,9 @@ def main() -> int:
     ap.add_argument("--demote", action="store_true", help="执行降级／移除")
     ap.add_argument("--discover", type=float, metavar="MIN",
                     help="找新源，只收不低于 MIN 分的")
+    ap.add_argument("--from-feeds", metavar="PATH",
+                    help="额外的候选清单（JSON 列表，每项含 name/title 与 feed/url）。"
+                         "判断仍由本站的探测与评分做，清单只提供候选")
     ap.add_argument("--dry-run", action="store_true",
                     help="只出建议，不改 sources.json 也不写日志")
     a = ap.parse_args()
@@ -627,7 +688,7 @@ def main() -> int:
         log(f"\n{len(actions)} 项待处理（加 --demote 执行）")
     if a.discover is not None:
         log(f"\n— 找新源（及格线 {a.discover}）—")
-        entries += discover(a.discover, a.dry_run)
+        entries += discover(a.discover, a.dry_run, a.from_feeds)
     if entries and a.dry_run:
         out = ROOT / ".cache" / "curate-dry-run.json"
         out.parent.mkdir(parents=True, exist_ok=True)

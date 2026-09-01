@@ -841,3 +841,46 @@ class ChecksMustRunWithoutBeingRemembered(unittest.TestCase):
             self.assertIn(need, src, f"preflight 少了 {need}")
         self.assertTrue(os.access(pf, os.X_OK), "preflight.sh 没有可执行位")
 
+
+class CandidatePoolIsNotJustPopularity(unittest.TestCase):
+    """Apple 分类榜按流行度排，天然偏大众——Radar 自己的 top 榜（真crime、励志、
+    政治）就是这个偏差的样本。候选池必须能从别处进，但判断仍然全部由本站做。"""
+
+    def test_curate_accepts_an_external_candidate_list(self):
+        import curate
+        self.assertTrue(hasattr(curate, "feed_pool"))
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        self.assertIn("--from-feeds", src)
+        # 外部清单只提供候选，不能绕过前置条件和评分
+        i = src.index("def discover(")
+        body = src[i:i + 3000]
+        self.assertIn("feed_pool(from_feeds)", body)
+        self.assertIn("known_feeds", body)
+        self.assertIn("is_dup", body)
+
+    def test_feed_pool_tolerates_both_field_namings(self):
+        import curate, json as _j, tempfile, os as _os
+        rows = [{"title": "A", "url": "http://a/rss"},
+                {"name": "B", "feed": "http://b/rss"},
+                {"title": "C"}]                      # 缺 feed，必须丢掉
+        fd, path = tempfile.mkstemp(suffix=".json")
+        with _os.fdopen(fd, "w") as f:
+            _j.dump(rows, f)
+        try:
+            got = curate.feed_pool(path)
+        finally:
+            _os.unlink(path)
+        self.assertEqual([g["name"] for g in got], ["A", "B"])
+        self.assertEqual(curate.feed_pool("/nonexistent.json"), [])
+
+    def test_probe_can_skip_itunes_when_a_feed_is_given(self):
+        # 按名字搜 iTunes 是整套流程里最不可靠的一环：曾把一个冒用 Anthropic 品牌的
+        # AI 生成播客匹配成官方节目。能直接给 feed 就绕开它。
+        import curate, inspect
+        sig = inspect.signature(curate.probe_candidate)
+        self.assertIn("feed", sig.parameters)
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        # 两条入口共用同一份度量，否则迟早只改一份
+        self.assertIn("def _measure(", src)
+        self.assertEqual(src.count("_measure("), 3)
+
