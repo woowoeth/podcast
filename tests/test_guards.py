@@ -1145,3 +1145,37 @@ class MachineGeneratedPodcastsAreNotOriginalVoices(unittest.TestCase):
         self.assertIn("不做音频取证", doc)
         self.assertIn("宁可漏掉", doc)
 
+
+class HeartbeatFilesMustNeverBlockTheCommit(unittest.TestCase):
+    """事故：副本卡在 data/heartbeat-cloud.json 的未合并冲突里一整天。本机线每天
+    照跑、心跳照写，但**提交和推送全被挡住**，日志里只有一行 "unmerged files"。
+    仓库里的本机心跳因此停在前一天——而心跳的全部意义就是"这条线还活着"。
+
+    两个缺口：心跳文件没有合并驱动（state.json 有）；脱身逻辑只在推送重试循环里，
+    而卡住的是它前面的提交步骤。"""
+
+    def test_heartbeat_has_a_merge_driver(self):
+        ga = (ROOT / ".gitattributes").read_text()
+        self.assertIn("data/heartbeat-*.json merge=podcast-state", ga)
+
+    def test_driver_picks_the_newer_heartbeat(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from mergestate import merge_heartbeat, _is_heartbeat
+        old = {"at": "2026-08-31T13:32:34Z", "line": "local", "exit": 0}
+        new = {"at": "2026-09-01T02:31:02Z", "line": "local", "exit": 0}
+        # 两个方向都要取新的
+        self.assertEqual(merge_heartbeat(old, new)["at"], new["at"])
+        self.assertEqual(merge_heartbeat(new, old)["at"], new["at"])
+        # 别把 state.json 误判成心跳
+        self.assertFalse(_is_heartbeat({"done": {}, "fail": {}, "fp": {}}))
+        self.assertTrue(_is_heartbeat(new))
+
+    def test_escape_hatch_runs_before_any_commit(self):
+        sh = (ROOT / "scripts" / "local-daily.sh").read_text()
+        first = sh.index("git ls-files -u")
+        # 必须在第一次 git commit 之前
+        self.assertLess(first, sh.index("git -c user.name"),
+                        "脱身逻辑在提交之后，卡住的路径救不了")
+        # abort 救不回来时要能以远端为准重来
+        self.assertIn("reset -q --hard origin/main", sh)
+

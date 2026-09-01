@@ -80,6 +80,20 @@ export LLM_MODEL
   # 从此全撞在同一面墙上（真出过一次，那轮产出全废）。
   git config merge.podcast-state.driver 'python3 pipeline/mergestate.py %O %A %B'
 
+  # 每轮开头先确认工作区没卡在未合并状态。今天真卡了一整天：heartbeat-cloud.json
+  # 留了冲突标记，于是本机线照跑、心跳照写，但**提交和推送全被挡住**，日志里只有
+  # 一行 "unmerged files"。原来的脱身逻辑只在推送重试循环里，而卡住的是前面的
+  # 提交步骤——所以这一道必须放在最前面，覆盖后面所有路径。
+  if [ -n "$(git ls-files -u)" ]; then
+    echo "工作区卡在未合并状态，先脱身：$(git ls-files -u | awk '{print $4}' | sort -u | tr '\n' ' ')"
+    git rebase --abort 2>/dev/null || git merge --abort 2>/dev/null || true
+    if [ -n "$(git ls-files -u)" ]; then
+      # abort 也救不回来（比如冲突是 stash pop 留下的），就以远端为准重来：
+      # 本机的数据文件名唯一，已推送的不会丢；心跳每轮都会重写。
+      git fetch -q origin main && git reset -q --hard origin/main
+    fi
+  fi
+
   # 先同步：state.json 在 git 里，云端刚发过的不能重复发
   git pull --rebase --autostash -q origin main || true
 

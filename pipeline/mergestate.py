@@ -68,12 +68,30 @@ def merge(ours: dict, theirs: dict) -> dict:
     return out
 
 
+def merge_heartbeat(ours: dict, theirs: dict) -> dict:
+    """心跳：取 `at` 更新的那一份。
+
+    心跳是「某条线某一刻还活着」这个事实，不是累积状态——两边都改就是两次运行，
+    留晚的那次即可。不给它驱动的话，两条线各写自己的心跳文件、却在同一次合并里
+    相遇，工作区会留下冲突标记，之后本机线**每天照跑、心跳照写，但提交和推送
+    全被挡住**，而日志里只有一行 "unmerged files"。真卡了一天。
+    """
+    a, b = ours.get("at") or "", theirs.get("at") or ""
+    return theirs if b > a else ours
+
+
+def _is_heartbeat(d: dict) -> bool:
+    return "at" in d and "line" in d
+
+
 def main(argv: list[str]) -> int:
     if len(argv) < 3:
         print("用法: mergestate.py %O %A %B", file=sys.stderr)
         return 2
     _base, ours_path, theirs_path = argv[0], argv[1], argv[2]
-    merged = merge(_load(ours_path), _load(theirs_path))
+    o, t = _load(ours_path), _load(theirs_path)
+    merged = merge_heartbeat(o, t) if (_is_heartbeat(o) or _is_heartbeat(t)) \
+        else merge(o, t)
     pathlib.Path(ours_path).write_text(
         json.dumps(merged, ensure_ascii=False, indent=1) + "\n")
     return 0
