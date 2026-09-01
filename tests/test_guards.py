@@ -1179,3 +1179,68 @@ class HeartbeatFilesMustNeverBlockTheCommit(unittest.TestCase):
         # abort 救不回来时要能以远端为准重来
         self.assertIn("reset -q --hard origin/main", sh)
 
+
+class DatacenterBlocksMustNotDeleteGoodSources(unittest.TestCase):
+    """差点造成真损失：每周体检跑在云端机房 IP 上，对 residential 源必然 403，
+    fail_streak 每周 +1，涨到 3 就被策展自动移除。发现时 Latent Space、
+    Lenny's Podcast、The Pragmatic Engineer、This Week in Virology 已经 2/3——
+    再跑一次就删掉四档主力源，而它们从住宅 IP 取全部正常（221/359/73/10 集）。
+
+    代码注释里当时已经写了"Substack 会 403，这些都是抖动"，但仍然计数——
+    对 residential 源来说机房 IP 的 403 不是抖动，是**必然**，所以计数单调涨。
+    这是"基础设施抖动被当成内容缺失"那一类的新变种，出现在体检自己身上。"""
+
+    def _mod(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import resolve_sources
+        return resolve_sources
+
+    def test_datacenter_403_on_a_residential_source_is_expected(self):
+        R = self._mod()
+        sub = {"feed": "https://api.substack.com/feed/podcast/1.rss", "residential": True}
+        old = os.environ.get("CI")
+        try:
+            os.environ["CI"] = "true"
+            self.assertTrue(R.expected_block(sub, "HTTPError: HTTP Error 403: Forbidden"))
+            # 404 是真下线，不能放过
+            self.assertFalse(R.expected_block(sub, "HTTPError: HTTP Error 404: Not Found"))
+            # 普通源的 403 也不能放过（可能是改成付费墙了）
+            self.assertFalse(R.expected_block({"feed": "https://example.com/rss"}, "403"))
+        finally:
+            os.environ.pop("CI", None)
+            if old is not None:
+                os.environ["CI"] = old
+
+    def test_from_a_residential_ip_a_failure_is_a_real_failure(self):
+        R = self._mod()
+        os.environ.pop("CI", None)
+        sub = {"feed": "https://api.substack.com/feed/podcast/1.rss", "residential": True}
+        self.assertFalse(R.expected_block(sub, "403 Forbidden"),
+                         "本机取不到就是真取不到，不能也放过")
+
+    def test_streak_is_held_not_incremented_when_blocked(self):
+        src = (ROOT / "pipeline" / "resolve_sources.py").read_text()
+        i = src.index("prev = ((old_status")
+        body = src[i:i + 700]
+        self.assertIn("expected_block", body)
+        self.assertIn('st["fail_streak"] = prev', body)
+        self.assertIn("既不涨也不清零", body)
+
+    def test_local_line_checks_the_residential_sources(self):
+        # 否则这批源永远拿不到真实的健康信号
+        sh = (ROOT / "scripts" / "local-daily.sh").read_text()
+        self.assertIn("--check --only-residential", sh)
+        src = (ROOT / "pipeline" / "resolve_sources.py").read_text()
+        self.assertIn('"--only-residential"', src)
+
+    def test_the_four_sources_are_not_marked_failing(self):
+        srcs = json.loads((ROOT / "data" / "sources.json").read_text())["sources"]
+        names = {"Latent Space", "Lenny's Podcast", "The Pragmatic Engineer",
+                 "This Week in Virology"}
+        for s in srcs:
+            if s["name"] in names:
+                st = s.get("status") or {}
+                self.assertTrue(s.get("residential"), f"{s['name']} 没标 residential")
+                self.assertEqual(st.get("fail_streak", 0), 0,
+                                 f"{s['name']} 又被刷上失败计数了")
+

@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import os
 import pathlib
 import re
 import sys
@@ -253,6 +254,27 @@ def itunes_lookup(cid: int) -> dict | None:
     return res[0] if res else None
 
 
+# 机房 IP 会被这些站点直接拒掉，和 feed 死没死无关。判据要同时看"这档源是不是
+# 标了 residential 或托管在这些站点"和"错误是不是拒绝访问"——只看错误码会把真的
+# 403（feed 下线改成付费）也放过去。
+_BLOCKERS = ("substack.com", "microbe.tv", "youtube.com")
+_DENIED = re.compile(r"(?i)403|forbidden|401|unauthorized|too many requests|429")
+
+
+def on_residential_ip() -> bool:
+    """在 CI 里就是机房 IP。GitHub Actions 一定设 CI=true。"""
+    return not os.environ.get("CI")
+
+
+def expected_block(s: dict, error: str) -> bool:
+    """这次失败是不是"从这里本来就取不到"。"""
+    if on_residential_ip():
+        return False            # 本机就是住宅 IP，取不到就是真取不到
+    if not _DENIED.search(error or ""):
+        return False
+    return bool(s.get("residential")) or any(b in s.get("feed", "") for b in _BLOCKERS)
+
+
 def probe(s: dict) -> dict:
     """Fetch a source once: recency, cadence, artwork, transcript coverage."""
     st = {"ok": False}
@@ -282,6 +304,9 @@ def probe(s: dict) -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
+    ap.add_argument("--only-residential", action="store_true",
+                    help="只体检 residential 源。本机线用它——这批在机房 IP 上"
+                         "必然 403，只有从住宅 IP 检查才有意义")
     ap.add_argument("--check", action="store_true",
                     help="probe every feed, re-resolve dead ones via Apple, then write")
     a = ap.parse_args()
@@ -297,6 +322,9 @@ def main() -> int:
 
     out = []
     for s in ALL_SOURCES:
+        if a.only_residential and not s.get("residential"):
+            out.append(dict(s, cat_label=CATS[s["cat"]]))
+            continue
         s = dict(s)
         s.setdefault("kind", "rss")
         s["cat_label"] = CATS[s["cat"]]
@@ -311,8 +339,18 @@ def main() -> int:
             # 连续失败计数：一次失败不能当作 feed 死了。YouTube 会对密集请求返
             # 404、Substack 会 403，这些都是抖动。策展的移除规则读这个计数，
             # 只有连续多次失败才动手 —— 误删一个好源没人会注意到。
+            #
+            # 但有一类失败根本不是抖动：residential 源在机房 IP 上必然 403，
+            # 每周体检都失败，计数单调涨到 3 就被自动移除。真差点删掉四档主力源
+            # （Latent Space、Lenny's、The Pragmatic Engineer、TWiV，当时已经 2/3），
+            # 而它们从本机取全都正常。这种失败要如实记下来，但不能计入移除条件。
             prev = ((old_status.get(s["id"]) or {}).get("fail_streak") or 0)
-            st["fail_streak"] = 0 if st.get("ok") else prev + 1
+            if not st.get("ok") and expected_block(s, st.get("error", "")):
+                st["blocked_here"] = True
+                st["note"] = "机房 IP 取不到（本机线负责这档），不计入移除"
+                st["fail_streak"] = prev          # 保持不动，既不涨也不清零
+            else:
+                st["fail_streak"] = 0 if st.get("ok") else prev + 1
             if st["fail_streak"] > 1:
                 log(f"     ↳ 连续失败 {st['fail_streak']} 次")
             s["status"] = st

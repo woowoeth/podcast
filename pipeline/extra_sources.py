@@ -309,8 +309,10 @@ EXTRA: list[dict] = [
        cat="hist", tier=2, lang="en",
        feed="https://historyofrome.libsyn.com/rss",
        desc="Mike Duncan 罗马史长系列，叙事密、可回古典文献"),
+  # microbe.tv 和 Substack 一样拒机房 IP：云端体检必然 403，把它刷到 2/3 次
+  # 连续失败，再一次就被自动移除。本机线负责这档。
   dict(id="twiv", name="This Week in Virology", zh="This Week in Virology",
-       cat="sci", tier=2, lang="en",
+       cat="sci", tier=2, lang="en", residential=True,
        feed="https://www.microbe.tv/twiv/feed/",
        desc="病毒学期刊俱乐部，论文与实验可核对"),
   dict(id="tal", name="This American Life", zh="This American Life",

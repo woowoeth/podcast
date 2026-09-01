@@ -114,6 +114,13 @@ export LLM_MODEL
   # 单独执行正常、真跑批却一声不响地没写出文件。心跳自己静默失效等于白做。
   python3 pipeline/heartbeat.py local "$rc" || echo "心跳没写成（不致命，但要查）"
 
+  # residential 源的体检只能在这里做：它们在机房 IP 上必然 403，云端那边的每周
+  # 体检对它们没有意义（而且曾经把四档主力源刷到 2/3 次连续失败，差一次就被
+  # 自动移除）。每周日跑一次就够，别每天都去敲人家的 feed。
+  if [ "$(date +%u)" = "7" ]; then
+    python3 pipeline/resolve_sources.py --check --only-residential 2>&1 | tail -20 || true
+  fi
+
   [ "$rc" -ne 0 ] && exit "$rc"
 
   if [ -z "$(git status --porcelain data/episodes)" ]; then
