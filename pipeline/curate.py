@@ -287,6 +287,49 @@ def shortlist(cands: list[dict]) -> list[dict]:
     return out
 
 
+RANK_SYSTEM = """你在给一个中文播客深读站从一份很长的候选清单里挑最值得实测的。
+站点覆盖 AI/技术、投资/商业、中国视角、人文/思想、文明/历史、育儿/教育、健康/科学。
+读者要可核对的判断、机制和证据。
+
+和粗筛不同：这里不是剔掉明显不行的，而是**挑出最强的**。实测一档要花钱和时间，
+所以只挑你有信心值得花的。
+
+优先：以深度长访谈或机制拆解著称的节目、领域内公认的标杆、主持人本身是从业者或
+研究者、单集能自成一篇的。
+不要：日播新闻、榜单/清单节目、个人成长、销售、闲聊、纯科普转述、明星访谈。
+
+只凭名字判断，名字看不出来的就不要选——宁可漏掉，也别把配额花在没把握的上面。
+每次最多挑 {n} 个。"""
+
+RANK_SCHEMA = '返回 JSON：{"pick": ["节目名", ...]}，名字必须与清单里一字不差。'
+
+
+def rank_names(names: list[str], per_batch: int = 8) -> list[str]:
+    """从一份长清单里挑最值得实测的。
+
+    为什么需要这一步：粗筛是"剔掉明显不行的"，故意宽松（不确定的留下），4781 档
+    过粗筛还剩 1522 档。而实测一档要一次取稿加一次评分，1522 档要十几小时。
+    这一步只做排序不做过滤——被它漏掉的仍然在清单里，下一轮还能再挑。
+    """
+    if not names or not llm.available():
+        return names[:per_batch]
+    out = []
+    for i in range(0, len(names), 60):
+        batch = names[i:i + 60]
+        try:
+            r = llm.call_json(RANK_SYSTEM.replace("{n}", str(per_batch)),
+                              "候选：\n" + "\n".join(f"- {n}" for n in batch)
+                              + "\n\n" + RANK_SCHEMA,
+                              max_tokens=500, temperature=0.1, role="triage")
+        except Exception as ex:
+            log(f"    排序失败（跳过这批）：{type(ex).__name__}")
+            continue
+        pick = {squeeze(str(x)) for x in (r.get("pick") or [])}
+        out += [n for n in batch if n in pick]
+    log(f"    {len(names)} 档 → 挑出 {len(out)} 档最值得实测")
+    return out
+
+
 def _name_match(want: str, got: str) -> bool:
     import re
     STOP = {"the", "podcast", "a", "an", "this", "week", "in", "with", "and", "of",
@@ -320,6 +363,14 @@ def _lang_of(name: str, cat: str) -> str:
     """
     del cat        # 故意不用：分类说的是题材，不是语言
     return "zh" if re.search(r"[\u4e00-\u9fff]", name or "") else "en"
+
+
+# 站点只做中英文。德语、西语等节目取到的文稿过不了中英的密度阈值，闸门会用错标准，
+# 而"文稿太稀"这条日志看不出真实原因是语言不对。Sternstunde Philosophie（德语）
+# 就是这么评到 9 分的——名字里没有汉字，于是被当成英文节目。
+SUPPORTED_LANGS = ("zh", "en")
+
+
 EXCERPT_CHARS = 3200
 NOTES_CHARS = 2600
 
@@ -353,6 +404,24 @@ def _excerpt(tr: dict | None) -> str:
         picks.append(piece)
         used += len(piece)
     return "\n".join(picks)
+
+
+def feed_lang(feed: str, name: str) -> str:
+    """节目语言：读 feed 自己声明的 <language>，拿不到再看名字字形。
+
+    不要从名字猜：Sternstunde Philosophie 是德语节目，名字里没有汉字，于是被当成
+    英文，评分给到 9 分。而德语文稿过不了中英的密度阈值，闸门会用错标准，
+    "文稿太稀"这条日志也看不出真实原因是语言不对。
+    """
+    try:
+        xml = net.get_text(feed, timeout=25, cache_ttl=3600)
+    except Exception:
+        return _lang_of(name, "")
+    m = re.search(r"<language>\s*([A-Za-z\-_]+)", xml) \
+        or re.search(r'xml:lang="([A-Za-z\-_]+)"', xml)
+    if m:
+        return m.group(1).split("-")[0].split("_")[0].lower()
+    return _lang_of(name, "")
 
 
 def probe_candidate(name: str, itunes_id: str | None = None,
@@ -427,6 +496,7 @@ def _measure(name: str, feed: str, itunes, eps: list[dict], s: dict,
     probe_ep = next((e for e in head if (e.get("duration") or 0) > 1200), head[0])
     tr = T.acquire(dict(probe_ep), s.get("lang", "en"), allow=allow, src=s)
     return {"name": name, "feed": feed, "itunes": itunes,
+            "lang": feed_lang(feed, name),
             "items": len(eps), "age_days": age,
             "cadence": gaps[len(gaps) // 2] if gaps else None,
             "official_transcripts": sum(1 for e in head if e["transcripts"]),
@@ -460,10 +530,16 @@ SCORE_SYSTEM = """你在给一个中文播客深读站评估要不要收一档�
    0-1 泛泛而谈的正确话、新闻综述、励志、喊单
 
 2. 补位价值（0-3）
-   3  补上现有信源完全没覆盖的领域或视角
-   2  与现有有部分重叠，但角度或深度明显不同
-   1  基本重叠，只是多一个声音
-   0  完全重复
+   **先判在不在站点范围内。** 范围是 AI/技术、投资/商业、中国视角、人文/思想、
+   文明/历史、育儿/教育、健康/科学。不在范围内的题材一律 0 分，不管它多硬、
+   多稀缺——"我们没覆盖"不等于"该覆盖"。消防工程、航空事故调查、临床专科、
+   某国国内司法与选举政治、宗教文献研究，都属于范围外。
+   （这一条是补上的：原来只问"有没有覆盖"，于是任何站外题材都自动拿满分补位，
+   一批消防、航空、泌尿科、监狱题材的节目因此评到 9 分。）
+   3  在范围内，且补上现有信源完全没覆盖的领域或视角
+   2  在范围内，与现有有部分重叠，但角度或深度明显不同
+   1  在范围内，基本重叠，只是多一个声音
+   0  范围外，或完全重复
 
 3. 可核对性（0-2）
    2  受访者习惯把话说到能被检验的程度：给具体数字、点名公司与产品、
@@ -492,6 +568,9 @@ HEDGE = ("重叠", "补位有限", "偏泛", "未到顶尖", "不稳", "边缘",
 
 
 def prerequisites(c: dict) -> str | None:
+    lang = c.get("lang")
+    if lang and lang not in SUPPORTED_LANGS:
+        return f"语言是 {lang}，站点只做中英文"
     age = c.get("age_days")
     if age is not None and age > MAX_CAND_STALE:
         return f"停更 {age:.0f} 天"
@@ -599,8 +678,27 @@ def feed_pool(path: str) -> list[dict]:
     return out
 
 
+def name_pool(path: str) -> list[dict]:
+    """从一份名字清单里读候选（JSON 字符串数组）。
+
+    和 feed_pool 的区别只在拿不到 RSS，得回落到按名字搜 iTunes——那一步不可靠，
+    所以 discover 里的 _name_match 会逐个核对集标题对不对得上。宁可漏掉，
+    也不能把一档冒名节目收进来（真发生过：一个冒用 Anthropic 品牌的 AI 生成播客）。
+    """
+    try:
+        rows = json.loads(pathlib.Path(path).read_text())
+    except Exception as ex:
+        log(f"  读不了名字清单 {path}：{type(ex).__name__}")
+        return []
+    out = [{"name": n, "itunes": None, "chart": "外部清单"}
+           for n in rows if isinstance(n, str) and n.strip()]
+    log(f"  外部名字清单 {path}：{len(out)} 档")
+    return out
+
+
 def discover(minimum: float, dry: bool = False,
-             from_feeds: str | None = None) -> list[dict]:
+             from_feeds: str | None = None,
+             from_names: str | None = None) -> list[dict]:
     blob = json.loads((DATA / "sources.json").read_text())
     existing = [s.get("zh") or s["name"] for s in blob["sources"]]
     existing_desc = "；".join(f"{s.get('zh') or s['name']}（{s.get('desc','')[:16]}）"
@@ -631,6 +729,8 @@ def discover(minimum: float, dry: bool = False,
              for l in find_leads(existing, sample) if not is_dup(l["name"])]
     ext = [c for c in (feed_pool(from_feeds) if from_feeds else [])
            if c["feed"] not in known_feeds and not is_dup(c["name"])]
+    ext += [c for c in (name_pool(from_names) if from_names else [])
+            if not is_dup(c["name"])]
     cands = pool + leads + ext
     if not cands:
         log("  没有新候选")
@@ -667,7 +767,8 @@ def discover(minimum: float, dry: bool = False,
         taken.add(sid)
         known_feeds.add(c["feed"])
         entry = {"id": sid, "name": c["name"], "zh": c["name"], "cat": v["cat"],
-                 "tier": PROBATION_TIER, "lang": _lang_of(c["name"], v["cat"]),
+                 "tier": PROBATION_TIER,
+                 "lang": c.get("lang") or _lang_of(c["name"], v["cat"]),
                  "kind": "youtube" if "youtube.com/feeds/videos.xml" in c["feed"]
                          else "rss",
                  "feed": c["feed"], "desc": v["desc"],
@@ -701,6 +802,9 @@ def main() -> int:
     ap.add_argument("--demote", action="store_true", help="执行降级／移除")
     ap.add_argument("--discover", type=float, metavar="MIN",
                     help="找新源，只收不低于 MIN 分的")
+    ap.add_argument("--from-names", metavar="PATH",
+                    help="额外的候选名字清单（JSON 字符串数组）。拿不到 RSS 时回落到"
+                         "按名字搜 iTunes，集标题对不上的一律丢弃")
     ap.add_argument("--from-feeds", metavar="PATH",
                     help="额外的候选清单（JSON 列表，每项含 name/title 与 feed/url）。"
                          "判断仍由本站的探测与评分做，清单只提供候选")
@@ -722,7 +826,7 @@ def main() -> int:
         log(f"\n{len(actions)} 项待处理（加 --demote 执行）")
     if a.discover is not None:
         log(f"\n— 找新源（及格线 {a.discover}）—")
-        entries += discover(a.discover, a.dry_run, a.from_feeds)
+        entries += discover(a.discover, a.dry_run, a.from_feeds, a.from_names)
     if entries and a.dry_run:
         out = ROOT / ".cache" / "curate-dry-run.json"
         out.parent.mkdir(parents=True, exist_ok=True)

@@ -951,3 +951,149 @@ class LanguageComesFromTheOriginalName(unittest.TestCase):
                if s.get("lang") != curate._lang_of(s["name"], s.get("cat", ""))]
         self.assertEqual(bad, [], f"这些源的 lang 和判据不一致：{bad}")
 
+
+class PrefiltersMustNotRejectWhatWeAlreadyAccepted(unittest.TestCase):
+    """事故：筛 4918 档候选时，我在站点判据前面加了一层手写关键词正则
+    （名字里得有 ai / invest / history 这类题材词），4918 → 396。而播客名字常常
+    不含题材词——拿我们自己在册的源去试那个过滤器，149 档里 74 档会被丢掉，
+    包括 Dwarkesh、Acquired、Odd Lots、EconTalk、Conversations with Tyler。
+    一半池子在第一步就静默消失，而"零档过关"看起来像池子差。
+
+    这个检验对任何选择性判据都成立：拿我们已经接受的东西去跑它。"""
+
+    def _names(self):
+        srcs = json.loads((ROOT / "data" / "sources.json").read_text())["sources"]
+        return [s.get("zh") or s["name"] for s in srcs]
+
+    def test_curate_has_no_topic_keyword_gate_on_names(self):
+        # 允许有正则，但不允许有"名字必须命中题材词才留下"这种闸门
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("def shortlist")
+        body = src[i:src.index("def _name_match")]
+        self.assertNotIn("KEEP", body)
+        self.assertNotIn("semiconductor", body,
+                         "又在 shortlist 前面加题材关键词过滤了")
+
+    def test_the_only_name_level_filter_is_dedupe(self):
+        """名字级别唯一该做的过滤是去重（_name_match），它必须放过所有在册源
+        以外的名字、并认出在册源本身。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import curate
+        names = self._names()
+        # 每档源都该被自己的名字匹配上——否则去重会漏，同一档源被收两次
+        for n in names[:60]:
+            self.assertTrue(curate._name_match(n, n.lower()),
+                            f"去重判据认不出自己：{n}")
+
+    def test_a_topic_regex_would_have_dropped_half_our_sources(self):
+        """把那个正则钉在测试里当反例，防止有人觉得"加个关键词过滤挺省事"。"""
+        KEEP = re.compile(
+            r"(?ix)\b(ai|invest|econom|history|science|startup|business|china)|[\u4e00-\u9fff]")
+        names = self._names()
+        dropped = [n for n in names if not KEEP.search(n)]
+        self.assertGreater(len(dropped), len(names) // 4,
+                           "这个反例失效了：更新它或删掉这条测试")
+
+
+class RankingIsNotFiltering(unittest.TestCase):
+    """粗筛故意宽松（不确定的留下），4781 档过粗筛还剩 1522 档，全部实测要十几小时。
+    所以要一道排序，但它必须是排序而不是过滤——被漏掉的仍在清单里，下一轮还能再挑。
+    这是上一个错误的直接后果：手写正则那次是"过滤"，一半池子静默消失。"""
+
+    def test_rank_names_exists_and_is_documented_as_ordering(self):
+        import curate
+        self.assertTrue(hasattr(curate, "rank_names"))
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("def rank_names")
+        doc = src[i:i + 900]
+        self.assertIn("只做排序不做过滤", doc)
+        self.assertIn("下一轮还能再挑", doc)
+
+    def test_rank_prompt_says_pick_the_strongest_not_drop_the_weak(self):
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("RANK_SYSTEM")
+        body = src[i:i + 1200]
+        self.assertIn("挑出最强的", body)
+        self.assertIn("宁可漏掉", body)
+
+    def test_rank_falls_back_without_an_llm(self):
+        # 没有后端时不能返回空——那等于静默丢掉整个清单
+        import curate, unittest.mock as mock
+        with mock.patch.object(curate.llm, "available", lambda: False):
+            got = curate.rank_names(["a", "b", "c"], per_batch=2)
+        self.assertEqual(got, ["a", "b"])
+
+
+class GapScoreMustBeAnchoredToScope(unittest.TestCase):
+    """事故：补位这一项只问"现有信源有没有覆盖"，于是**任何站外题材都自动满分**。
+    一轮 208 档候选里，消防工程、航空事故调查、泌尿科、监狱纪实、犹太文献研究
+    全部评到 9 分——它们确实稀缺、确实可核对，但站点不做这些。
+    这和"工程约束不等于产品判断"是同一类：把"我们没有"当成了"该有"。"""
+
+    def test_rubric_names_the_scope_before_scoring_the_gap(self):
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("2. 补位价值")
+        body = src[i:i + 900]
+        self.assertIn("先判在不在站点范围内", body)
+        self.assertIn("不在范围内的题材一律 0 分", body)
+        self.assertIn("不等于", body)
+
+    def test_out_of_scope_examples_are_spelled_out(self):
+        # 抽象的"范围外"没有约束力，得给具体例子
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("2. 补位价值")
+        body = src[i:i + 900]
+        for eg in ("消防", "航空", "临床专科"):
+            self.assertIn(eg, body)
+
+
+class OnlyChineseAndEnglishSources(unittest.TestCase):
+    """事故：Sternstunde Philosophie 是德语节目，名字里没有汉字，于是被当成英文，
+    评到 9 分。德语文稿过不了中英的密度阈值，闸门会用错标准，而"文稿太稀"这条
+    日志看不出真实原因是语言不对。"""
+
+    def test_language_comes_from_the_feed_declaration(self):
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        self.assertIn("def feed_lang(", src)
+        i = src.index("def feed_lang(")
+        body = src[i:i + 900]
+        self.assertIn("<language>", body)
+        self.assertIn("不要从名字猜", body)
+
+    def test_prerequisites_reject_unsupported_languages(self):
+        import curate
+        base = {"items": 50, "age_days": 3, "cadence": 7, "transcript_words": 5000}
+        self.assertIn("只做中英文", curate.prerequisites({**base, "lang": "de"}) or "")
+        self.assertIsNone(curate.prerequisites({**base, "lang": "en"}))
+        self.assertIsNone(curate.prerequisites({**base, "lang": "zh"}))
+
+    def test_measured_language_wins_over_the_name_guess(self):
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("def _measure(")
+        self.assertIn('"lang": feed_lang(feed, name)', src[i:i + 1400])
+        j = src.index("def discover(")
+        self.assertIn('c.get("lang") or _lang_of(', src[j:])
+
+
+class RangeReplacementsDeleteMoreThanYouThink(unittest.TestCase):
+    """事故：用 `s[s.index(A):s.index(B)] = new` 改代码，那段区间里还夹着
+    `_notes_sample` 和 `_excerpt` 两个函数，一起被删掉了。语法没错、导入没报，
+    是单元测试报的 AttributeError。
+
+    `assert old in s` 只能保证锚点存在，保证不了替换范围里没有别的东西。
+    这条测试的作用是：curate 的每个被引用的模块级函数都必须真的有定义。"""
+
+    def test_every_module_level_helper_referenced_is_defined(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import curate
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        called = set(re.findall(r"(?<![\w.])(_[a-z][a-z0-9_]*)\(", src))
+        missing = [n for n in called if not hasattr(curate, n)]
+        self.assertEqual(missing, [], f"这些函数被调用但没有定义：{missing}")
+
+    def test_the_two_that_were_deleted_are_back(self):
+        import curate
+        self.assertTrue(callable(curate._notes_sample))
+        self.assertTrue(callable(curate._excerpt))
+        self.assertEqual(curate._excerpt(None), "")
+
