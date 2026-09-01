@@ -103,6 +103,8 @@ def performance() -> dict[str, dict]:
             "triage_pass": (sum(1 for x in tri if x >= 7) / len(tri)) if tri else None,
             "no_transcript": p["no_transcript"],
             "feed_ok": st.get("ok", True), "fail_streak": st.get("fail_streak", 0),
+            # judge 要用它决定"删掉"还是"改派本机线"
+            "residential": bool(s.get("residential")),
             "age_days": st.get("age_days"),
             "official_transcripts": st.get("official_transcripts", 0),
         }
@@ -114,7 +116,15 @@ def judge(sid: str, m: dict) -> tuple[str, str] | None:
         streak = m.get("fail_streak") or 1
         if streak < DEAD_STREAK:
             return None
-        return "drop", f"feed 连续 {streak} 次体检失败，已失效"
+        # 移除之前先问一句：是这个 feed 死了，还是**我们从那个位置取不到**？
+        # 体检跑在云端机房 IP 上，而有些站点（Substack、microbe.tv）一律拒机房。
+        # 差点因此删掉四档主力源，它们从住宅 IP 取全都正常。
+        # 所以对还没交给本机线的源，先改派而不是删除——删错一档没人会注意到，
+        # 而改派最坏的结果只是本机线多跑一档。
+        if not m.get("residential"):
+            return "residential", (f"feed 连续 {streak} 次体检失败，但可能只是机房 IP "
+                                   f"被拒——先交给本机线跑，确认真失效再移除")
+        return "drop", f"feed 连续 {streak} 次体检失败（本机线也取不到），已失效"
     if m["published"] == 0 and m["no_transcript"] >= DEAD_ATTEMPTS:
         return "drop", (f"尝试 {m['no_transcript']} 次一篇都取不到文稿，"
                         f"占着名额产不出内容")
@@ -159,7 +169,14 @@ def apply_actions(actions: list[tuple[str, str, str]], dry: bool = False) -> lis
         if not s:
             continue
         name = s.get("zh") or s["name"]
-        if act == "drop":
+        if act == "residential":
+            # 不删，改派给本机线。没有这个分支它会掉进 else 变成降级，
+            # 而降级解决不了"机房 IP 取不到"这件事。
+            s["residential"] = True
+            entries.append({"at": iso(now()), "kind": "residential", "id": sid,
+                            "name": name, "cat": s["cat"], "why": why})
+            log(f"  改派本机线 {name}：{why}")
+        elif act == "drop":
             blob["sources"] = [x for x in blob["sources"] if x["id"] != sid]
             entries.append({"at": iso(now()), "kind": "removed", "id": sid,
                             "name": name, "cat": s["cat"], "why": why})

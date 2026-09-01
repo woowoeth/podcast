@@ -586,7 +586,8 @@ def sources_page(srcs: dict, eps: list[dict]) -> str:
         cards = []
         for s in rows:
             st = s.get("status") or {}
-            dead = st.get("ok") is False
+            # 机房 IP 取不到的那批由本机线负责，站上不该显示成抓取异常
+            dead = st.get("ok") is False and not st.get("blocked_here")
             meta = [f'T{s.get("tier", 3)}']
             if per.get(s["id"]):
                 total = (s.get("status") or {}).get("episodes")

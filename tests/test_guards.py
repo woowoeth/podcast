@@ -1244,3 +1244,65 @@ class DatacenterBlocksMustNotDeleteGoodSources(unittest.TestCase):
                 self.assertEqual(st.get("fail_streak", 0), 0,
                                  f"{s['name']} 又被刷上失败计数了")
 
+
+class NeverDeleteASourceOnOneVantagePoint(unittest.TestCase):
+    """移除决定原来只看云端一个视角。而体检跑在机房 IP 上，有些站点一律拒机房——
+    差点因此删掉四档主力源（它们从住宅 IP 取全都正常）。
+    删错一档没人会注意到；改派最坏只是本机线多跑一档。所以先改派，
+    确认本机线也取不到才移除。"""
+
+    def _judge(self, **over):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import curate
+        m = dict(name="X", tier=2, cat="ai", published=5, review_median=8,
+                 triage_n=0, triage_pass=None, no_transcript=0, age_days=3,
+                 official_transcripts=0, feed_ok=False, fail_streak=3,
+                 residential=False)
+        m.update(over)
+        return curate.judge("x", m)
+
+    def test_cloud_only_failure_reassigns_instead_of_deleting(self):
+        act, why = self._judge(residential=False)
+        self.assertEqual(act, "residential")
+        self.assertIn("机房 IP", why)
+
+    def test_failure_on_the_local_line_too_does_delete(self):
+        act, why = self._judge(residential=True)
+        self.assertEqual(act, "drop")
+        self.assertIn("本机线也取不到", why)
+
+    def test_a_short_streak_still_does_nothing(self):
+        self.assertIsNone(self._judge(fail_streak=2))
+
+    def test_apply_actions_knows_the_reassign_action(self):
+        # 没有这个分支它会掉进 else 变成降级，而降级解决不了"机房取不到"
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("def apply_actions")
+        body = src[i:i + 1400]
+        self.assertIn('if act == "residential"', body)
+        self.assertIn('s["residential"] = True', body)
+        self.assertIn('"kind": "residential"', body)
+
+    def test_metrics_carry_the_residential_flag(self):
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        self.assertIn('"residential": bool(s.get("residential"))', src)
+
+
+class BlockedSourcesAreNotShownAsBroken(unittest.TestCase):
+    """"机房 IP 取不到"不是抓取异常。日志打 DEAD、信源页显示异常、体检报提醒，
+    三处都会误导——而这四档从住宅 IP 取全都正常。"""
+
+    def test_log_label_is_not_dead(self):
+        src = (ROOT / "pipeline" / "resolve_sources.py").read_text()
+        self.assertIn('"skip" if st.get("blocked_here")', src)
+
+    def test_healthcheck_excludes_blocked(self):
+        src = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        i = src.index("dead = [s for s in srcs")
+        self.assertIn("blocked_here", src[i:i + 300])
+
+    def test_sources_page_excludes_blocked(self):
+        src = (ROOT / "pipeline" / "build.py").read_text()
+        i = src.index('dead = st.get("ok") is False')
+        self.assertIn("blocked_here", src[i:i + 200])
+

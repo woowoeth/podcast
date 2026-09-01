@@ -170,7 +170,9 @@ def check_sources(r: Report) -> None:
     except Exception as ex:
         r.fail(f"sources.json 读不出来（{type(ex).__name__}）")
         return
-    dead = [s for s in srcs if (s.get("status") or {}).get("ok") is False]
+    # blocked_here 是"机房 IP 取不到、本机线负责"，不是抓取异常
+    dead = [s for s in srcs if (s.get("status") or {}).get("ok") is False
+            and not (s.get("status") or {}).get("blocked_here")]
     streak = [s for s in srcs if (s.get("status") or {}).get("fail_streak", 0) >= 2]
     r.good(f"信源 {len(srcs)} 档")
     if dead:

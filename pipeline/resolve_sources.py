@@ -354,7 +354,9 @@ def main() -> int:
             if st["fail_streak"] > 1:
                 log(f"     ↳ 连续失败 {st['fail_streak']} 次")
             s["status"] = st
-            flag = "ok " if st["ok"] else "DEAD"
+            # 别把"从这里取不到"打成 DEAD：日志会误导下一个看日志的人（大概是我），
+            # 而这四档从住宅 IP 取全都正常。
+            flag = "ok " if st["ok"] else ("skip" if st.get("blocked_here") else "DEAD")
             log(f"{flag} {s['id']:<15} {st.get('episodes','-'):>5} eps  "
                 f"age={st.get('age_days','?'):>6}d  cadence={st.get('cadence_days','?'):>5}d  "
                 f"tscr={st.get('official_transcripts','-')}/12  {st.get('error','')}")
