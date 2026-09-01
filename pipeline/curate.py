@@ -497,6 +497,7 @@ def _measure(name: str, feed: str, itunes, eps: list[dict], s: dict,
     tr = T.acquire(dict(probe_ep), s.get("lang", "en"), allow=allow, src=s)
     return {"name": name, "feed": feed, "itunes": itunes,
             "lang": feed_lang(feed, name),
+            "generated": generated_marks(feed),
             "items": len(eps), "age_days": age,
             "cadence": gaps[len(gaps) // 2] if gaps else None,
             "official_transcripts": sum(1 for e in head if e["transcripts"]),
@@ -567,7 +568,40 @@ HEDGE = ("重叠", "补位有限", "偏泛", "未到顶尖", "不稳", "边缘",
          "一般", "不足", "略高", "较少")
 
 
+# 机器生成播客的痕迹。这个站叫"原声"，收一档 AI 合成的节目是原则性错误：
+# 用 AI 去深读 AI 生成的内容，是个只会放大错误的回音室。
+# 真实撞到过两次：feeds.podcastai.com 冒用 Anthropic 品牌；paperdive.ai 的
+# 「AI Papers: A Deep Dive」每天一集、254 集，我们的评分还给了它 9.0——
+# 四道闸门管的是"内容够不够硬"，管不了"说话的是不是人"。
+_GENERATED = re.compile(
+    r"(?i)podcast-generator|notebooklm|elevenlabs|eleven\s*labs|synthes|"
+    r"wondercraft|podcastle|autopod|ai[-\s]?generated|text[-\s]?to[-\s]?speech")
+_GEN_AUTHOR = re.compile(r"(?i)\b(paperdive|podcastai|autopod|deepdive\.ai)\b")
+
+
+def generated_marks(feed: str) -> str | None:
+    """看 feed 自己的元数据有没有承认是机器生成的。
+
+    只用它自己声明的东西（<generator>、作者、版权），不做音频取证——那不可靠，
+    而且这里宁可漏掉也不能误杀真人节目。
+    """
+    try:
+        xml = net.get_text(feed, timeout=25, cache_ttl=3600)[:8000]
+    except Exception:
+        return None
+    m = re.search(r"<generator[^>]*>(.*?)</generator>", xml, re.S)
+    if m and _GENERATED.search(m.group(1)):
+        return f"feed 自报 generator={squeeze(m.group(1))[:40]}，是机器生成的节目"
+    for tag in ("itunes:author", "copyright"):
+        m = re.search(rf"<{tag}[^>]*>(.*?)</{tag}>", xml, re.S)
+        if m and _GEN_AUTHOR.search(m.group(1)):
+            return f"{tag}={squeeze(m.group(1))[:40]}，是机器生成的节目"
+    return None
+
+
 def prerequisites(c: dict) -> str | None:
+    if c.get("generated"):
+        return c["generated"]
     lang = c.get("lang")
     if lang and lang not in SUPPORTED_LANGS:
         return f"语言是 {lang}，站点只做中英文"

@@ -1097,3 +1097,51 @@ class RangeReplacementsDeleteMoreThanYouThink(unittest.TestCase):
         self.assertTrue(callable(curate._excerpt))
         self.assertEqual(curate._excerpt(None), "")
 
+
+class MachineGeneratedPodcastsAreNotOriginalVoices(unittest.TestCase):
+    """站名叫「原声」。四道闸门管的是"内容够不够硬"，管不了"说话的是不是人"——
+    paperdive.ai 的「AI Papers: A Deep Dive」每天一集、254 集，我们的评分给了它
+    9.0 并建议收录。用 AI 深读 AI 生成的内容，是个只会放大错误的回音室。
+    同类风险第二次：第一次是 feeds.podcastai.com 冒用 Anthropic 品牌。"""
+
+    def test_generator_tag_is_checked(self):
+        import curate
+        self.assertTrue(curate._GENERATED.search("podcast-generator"))
+        self.assertTrue(curate._GENERATED.search("NotebookLM"))
+        self.assertTrue(curate._GENERATED.search("ElevenLabs TTS"))
+        self.assertTrue(curate._GENERATED.search("AI-generated"))
+        # 别误杀：真人节目的 generator 常是发布平台
+        for ok in ("Libsyn", "Megaphone", "Substack", "Anchor", "Acast", "Art19"):
+            self.assertIsNone(curate._GENERATED.search(ok), f"误杀 {ok}")
+
+    def test_known_generator_authors_are_caught(self):
+        import curate
+        self.assertTrue(curate._GEN_AUTHOR.search("paperdive.ai"))
+        self.assertTrue(curate._GEN_AUTHOR.search("© 2026 paperdive.ai"))
+        self.assertTrue(curate._GEN_AUTHOR.search("feeds.podcastai.com"))
+        # 正常的 .ai 公司不该被误杀
+        self.assertIsNone(curate._GEN_AUTHOR.search("Latent Space (latent.space)"))
+        self.assertIsNone(curate._GEN_AUTHOR.search("Anthropic"))
+
+    def test_prerequisites_reject_before_any_scoring(self):
+        # 必须在前置条件里挡掉，不能指望评分看出来——评分已经看不出来一次了
+        import curate
+        base = {"items": 254, "age_days": 1, "cadence": 1.0,
+                "transcript_words": 4049, "lang": "en"}
+        self.assertIn("机器生成",
+                      curate.prerequisites({**base, "generated": "x 是机器生成的节目"}) or "")
+        self.assertIsNone(curate.prerequisites({**base, "generated": None, "cadence": 7}))
+
+    def test_measure_records_the_marks(self):
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("def _measure(")
+        self.assertIn('"generated": generated_marks(feed)', src[i:i + 1500])
+
+    def test_detection_uses_only_self_declared_metadata(self):
+        # 不做音频取证：那不可靠，而这里宁可漏掉也不能误杀真人节目
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("def generated_marks")
+        doc = src[i:i + 700]
+        self.assertIn("不做音频取证", doc)
+        self.assertIn("宁可漏掉", doc)
+
