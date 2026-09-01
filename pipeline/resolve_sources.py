@@ -254,6 +254,32 @@ def itunes_lookup(cid: int) -> dict | None:
     return res[0] if res else None
 
 
+def itunes_find(name: str) -> dict | None:
+    """按名字在 iTunes 里找这档节目。
+
+    为什么必须有：重新解析 feed 依赖 itunes id，而**没有 id 的源永远无法自愈**。
+    实际撞到三档（Very Bad Wizards、Rationally Speaking、The History of Rome）
+    手里是废弃的镜像 feed、内容停在多年前，却因为没有 id 而修不了，只能被
+    "停更 120 天就休眠"的规则处置掉——优质源就是这么丢的。
+
+    按名字搜是整条流程里最不可靠的一环（曾把一个冒用 Anthropic 品牌的 AI 生成
+    播客匹配成官方节目），所以必须过 curate 那个改了四版的 _name_match 校验，
+    对不上一律不用。
+    """
+    from curate import _name_match
+    q = urllib.parse.urlencode({"term": name, "entity": "podcast", "limit": 5,
+                                "country": "US"})
+    try:
+        r = net.get_json(f"https://itunes.apple.com/search?{q}", timeout=25)
+    except Exception:
+        return None
+    for hit in (r or {}).get("results") or []:
+        cn = hit.get("collectionName") or ""
+        if hit.get("feedUrl") and _name_match(name, cn.lower()):
+            return hit
+    return None
+
+
 # 机房 IP 会被这些站点直接拒掉，和 feed 死没死无关。判据要同时看"这档源是不是
 # 标了 residential 或托管在这些站点"和"错误是不是拒绝访问"——只看错误码会把真的
 # 403（feed 下线改成付费）也放过去。
@@ -273,6 +299,11 @@ def expected_block(s: dict, error: str) -> bool:
     if not _DENIED.search(error or ""):
         return False
     return bool(s.get("residential")) or any(b in s.get("feed", "") for b in _BLOCKERS)
+
+
+# 超过这个天数就顺手问一次 iTunes：这个 feed 还是官方在用的那个吗？
+# 比 curate 的 STALE_DAYS(120) 早，好在被判休眠之前就有机会换回正确的 feed。
+STALE_RECHECK_DAYS = 75
 
 
 def probe(s: dict) -> dict:
@@ -296,6 +327,10 @@ def probe(s: dict) -> dict:
                       for i in range(len(dates) - 1)) if len(dates) > 1 else []
         if gaps:
             st["cadence_days"] = round(gaps[len(gaps) // 2], 1)
+            # 历史上最长停更多久。有些优质节目就是做完一个系列休息几个月——
+            # Revolutions 停更过 665 天和 301 天，之后都回来了。用一刀切的
+            # 120 天判休眠会把这种节目误伤。
+            st["max_gap_days"] = round(max(gaps), 1)
     head = eps[:12]
     st["official_transcripts"] = sum(1 for e in head if e["transcripts"])
     st["image"] = next((e["image"] for e in head if e["image"]), "")
@@ -330,12 +365,38 @@ def main() -> int:
         s["cat_label"] = CATS[s["cat"]]
         if a.check:
             st = probe(s)
-            if not st["ok"] and s.get("itunes"):
-                meta = itunes_lookup(s["itunes"])
+            # 重新解析的两个触发条件。第二个是补上的：
+            #
+            # 只在"取不到"时重新解析，会漏掉最坏的一种情况——**feed 返回 200，
+            # 但内容是十年前的**。我们手里是个被废弃的镜像，而节目本身还在更新。
+            # 实际撞到两档：Very Bad Wizards 的 feed 最新一集停在 2018（节目 2026
+            # 年还在更，已 290+ 集）；Rationally Speaking 的 feed 停在 2008、只有
+            # 25 集（节目实际是 2010–2022、250+ 集）。
+            # 而"停更超过 120 天就休眠"的规则会把它们判成停更——**规则把"我们拿错
+            # 了 feed"报成了"节目停更"，然后按停更处置**。优质源就是这么丢的。
+            stale = st.get("ok") and (st.get("age_days") or 0) > STALE_RECHECK_DAYS
+            if not st["ok"] or stale:
+                # 有 id 就按 id 查（准），没有就按名字搜（过 _name_match 校验）
+                meta = (itunes_lookup(s["itunes"]) if s.get("itunes")
+                        else itunes_find(s.get("zh") or s["name"]))
                 if meta and meta.get("feedUrl") and meta["feedUrl"] != s["feed"]:
-                    log(f"  ! {s['id']}: feed moved -> {meta['feedUrl']}")
-                    s["feed"] = meta["feedUrl"]
-                    st = probe(s)
+                    alt = probe(dict(s, feed=meta["feedUrl"]))
+                    # 换 feed 必须换到更新的那个，否则可能换成另一个死镜像
+                    better = alt.get("ok") and (
+                        not st.get("ok")
+                        or (alt.get("age_days") or 9e9) < (st.get("age_days") or 9e9))
+                    if better:
+                        why = "取不到" if not st["ok"] else \
+                            f"停在 {st.get('latest')}（{st.get('age_days'):.0f} 天前）"
+                        log(f"  ! {s['id']}: feed 换新（原因：{why}）-> {meta['feedUrl']}"
+                            f"，新 feed 最新 {alt.get('latest')}")
+                        s["feed"] = meta["feedUrl"]
+                        # 顺手把 id 补上，下次就能按 id 查了
+                        if not s.get("itunes") and meta.get("collectionId"):
+                            s["itunes"] = meta["collectionId"]
+                        st = alt
+                    elif stale:
+                        log(f"  · {s['id']}: iTunes 给的 feed 不比现在的新，保留原样")
             # 连续失败计数：一次失败不能当作 feed 死了。YouTube 会对密集请求返
             # 404、Substack 会 403，这些都是抖动。策展的移除规则读这个计数，
             # 只有连续多次失败才动手 —— 误删一个好源没人会注意到。

@@ -106,6 +106,7 @@ def performance() -> dict[str, dict]:
             # judge 要用它决定"删掉"还是"改派本机线"
             "residential": bool(s.get("residential")),
             "age_days": st.get("age_days"),
+            "max_gap_days": st.get("max_gap_days"),
             "official_transcripts": st.get("official_transcripts", 0),
         }
     return out
@@ -126,10 +127,23 @@ def judge(sid: str, m: dict) -> tuple[str, str] | None:
                                    f"被拒——先交给本机线跑，确认真失效再移除")
         return "drop", f"feed 连续 {streak} 次体检失败（本机线也取不到），已失效"
     if m["published"] == 0 and m["no_transcript"] >= DEAD_ATTEMPTS:
-        return "drop", (f"尝试 {m['no_transcript']} 次一篇都取不到文稿，"
-                        f"占着名额产不出内容")
+        # 不删。"我们取不到文稿"是**我们的能力限制**，不是这档节目不好——
+        # 把它当成内容问题处理，就是又一次把工程约束写成了产品判断。
+        # History Extra（BBC History Magazine 官方）当时已经 6/10 次，内容没问题，
+        # 只是前几层都拿不到稿。改成休眠：停止花钱去试，但留在清单里，
+        # 等新的取稿层（ASR 换更好的模型、官方上了文稿）出现时能被重新捞起来。
+        return "dormant", (f"尝试 {m['no_transcript']} 次都取不到文稿（是我们取不到，"
+                           f"不是内容不行），先休眠，有了新的取稿手段再试")
     if m["age_days"] is not None and m["age_days"] > STALE_DAYS:
-        return "dormant", f"已停更 {m['age_days']:.0f} 天"
+        # 看它自己的历史节奏，不用一刀切。有些优质节目做完一个系列就休息几个月：
+        # Revolutions 停更过 665 天和 301 天，之后都回来了；127 天就判它休眠是误伤。
+        # 给到历史最长间隔的 1.5 倍——真的完结了迟早会越过这条线，而正常的
+        # 系列间休息不会。
+        tolerance = max(STALE_DAYS, (m.get("max_gap_days") or 0) * 1.5)
+        if m["age_days"] <= tolerance:
+            return None
+        return "dormant", (f"已停更 {m['age_days']:.0f} 天，超过它自己历史最长间隔"
+                           f"（{m.get('max_gap_days') or 0:.0f} 天）的 1.5 倍")
     if (m["triage_n"] >= MIN_TRIAGE_EVALS and m["triage_pass"] is not None
             and m["triage_pass"] < MIN_TRIAGE_PASS):
         return "demote", (f"选题通过率 {m['triage_pass']*100:.0f}%"

@@ -1376,3 +1376,66 @@ class SearchIsABetterPoolThanCharts(unittest.TestCase):
         head = src[max(0, i - 500):i]
         self.assertIn("按流行度排", head)
 
+
+class StalenessMustNotDeleteLiveSources(unittest.TestCase):
+    """用户问"你是不是会把一些优质源因为更新问题删掉"。跑了一遍规则，答案是会，
+    三种方式：
+
+    1. 我们手里是**废弃的镜像 feed**，节目本身还在更新。体检只在"取不到"时重新
+       解析，而这些 feed 返回 200、只是内容停在多年前——于是"停更 120 天就休眠"
+       的规则把"我们拿错了 feed"报成了"节目停更"。实测救回四档：
+       Science Magazine Podcast（feed 停在 2010，实际 5 天前还在更）、
+       This Podcast Will Kill You（停在 2025-02，实际昨天）、
+       Very Bad Wizards（停在 2018，实际 5 天前）、Rationally Speaking。
+    2. 重新解析依赖 itunes id，而**没有 id 的源永远无法自愈**——上面三档都没有 id。
+    3. "取稿失败 10 次就删源"把我们的能力限制当成了内容问题。"""
+
+    def _judge(self, **over):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import curate
+        m = dict(name="X", tier=2, cat="ai", published=1, review_median=8,
+                 triage_n=0, triage_pass=None, no_transcript=0,
+                 official_transcripts=0, feed_ok=True, fail_streak=0,
+                 residential=False, age_days=3, max_gap_days=None)
+        m.update(over)
+        return curate.judge("x", m)
+
+    def test_stale_but_200_feeds_get_re_resolved(self):
+        src = (ROOT / "pipeline" / "resolve_sources.py").read_text()
+        self.assertIn("STALE_RECHECK_DAYS", src)
+        i = src.index("stale = st.get(\"ok\")")
+        body = src[i:i + 1200]
+        self.assertIn("itunes_find", body, "没有 id 的源无法自愈")
+        # 换 feed 必须换到更新的，否则可能换成另一个死镜像
+        self.assertIn("better", body)
+
+    def test_name_search_goes_through_the_name_match_check(self):
+        # 按名字搜是最不可靠的一环：曾把冒用 Anthropic 品牌的 AI 生成播客匹配成官方
+        src = (ROOT / "pipeline" / "resolve_sources.py").read_text()
+        i = src.index("def itunes_find")
+        body = src[i:i + 1400]
+        self.assertIn("_name_match", body)
+        self.assertIn("冒用", body)
+
+    def test_dormancy_respects_each_shows_own_rhythm(self):
+        # Revolutions 停更过 665 天和 301 天，之后都回来了；127 天判休眠是误伤
+        self.assertIsNone(self._judge(age_days=127, max_gap_days=665))
+        act, why = self._judge(age_days=1713, max_gap_days=301)
+        self.assertEqual(act, "dormant")
+        self.assertIn("历史最长间隔", why)
+        # 没有历史数据时回落到固定阈值，不能变成永不休眠
+        self.assertEqual(self._judge(age_days=200, max_gap_days=None)[0], "dormant")
+
+    def test_our_own_transcript_failure_does_not_delete(self):
+        act, why = self._judge(published=0, no_transcript=10)
+        self.assertEqual(act, "dormant", "取不到文稿是我们的能力限制，不该删源")
+        self.assertIn("是我们取不到", why)
+
+    def test_only_one_rule_can_still_delete(self):
+        """删源的路径应该只剩一条：feed 连续失败、且已经交给本机线也取不到。"""
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("def judge(")
+        body = src[i:src.index("def audit(")]
+        self.assertEqual(body.count('return "drop"'), 1,
+                         "又多出了能直接删源的规则")
+
