@@ -884,3 +884,70 @@ class CandidatePoolIsNotJustPopularity(unittest.TestCase):
         self.assertIn("def _measure(", src)
         self.assertEqual(src.count("_measure("), 3)
 
+
+class YoutubeOnlySourcesGoToTheLocalLine(unittest.TestCase):
+    """事故形状：curate 把新源一律写成 kind=rss、且从不设 residential。而文稿只能从
+    YouTube 字幕拿的源在云端必然失败——GitHub 机房 IP 会被 YouTube 判成机器人索要
+    cookie——它会每天在云端白失败一次，而"没有文稿"这条日志看不出是 IP 问题。"""
+
+    def test_curate_derives_kind_from_the_feed(self):
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("def discover(")
+        body = src[i:]
+        self.assertIn('"youtube" if "youtube.com/feeds/videos.xml"', body)
+        self.assertNotIn('"kind": "rss",', body, "又写死成 rss 了")
+
+    def test_youtube_transcript_means_residential(self):
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("def discover(")
+        self.assertIn('c.get("transcript_source") == "youtube"', src[i:])
+        self.assertIn('entry["residential"] = True', src[i:])
+
+    def test_probe_lets_youtube_candidates_use_captions(self):
+        # 不放行 youtube 层，YouTube 源的探测取不到任何内容，评分又退回凭标题猜
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("def probe_candidate")
+        body = src[i:src.index("def _measure")]
+        self.assertIn('"youtube"', body)
+        self.assertIn("youtube.com/feeds/videos.xml", body)
+
+    def test_measure_probes_a_long_episode(self):
+        # YouTube 频道里混着短视频，拿切片判字幕会得出错误结论
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("def _measure(")
+        body = src[i:i + 1200]
+        self.assertIn("probe_ep", body)
+        self.assertIn("1200", body)
+
+
+class LanguageComesFromTheOriginalName(unittest.TestCase):
+    """两个方向都踩过：
+    1. 原来用「cat == cn 才算中文」，中文节目归到 AI/技术 就拿到 lang=en。
+    2. 我第一版修法用了 `zh` 字段——那是**我们起的显示名**。"Empire: World
+       History" 的显示名是「Empire 世界史」，照它判会把一档英文节目判成中文，
+       比原来的 bug 更糟。
+    中英文的文稿密度阈值不同（MIN_WORDS en 1200 / zh 1800，语速上限 300 / 520），
+    语言判错会让整套闸门用错标准，ASR 的语言提示也会给错。"""
+
+    def test_helper_reads_the_original_name(self):
+        import curate
+        self.assertEqual(curate._lang_of("科技这碗饭", "ai"), "zh")
+        self.assertEqual(curate._lang_of("Empire: World History", "hist"), "en")
+        self.assertEqual(curate._lang_of("Latent Space", "ai"), "en")
+        # 分类完全不参与：ChinaTalk 归在「中国视角」但整档是英文
+        self.assertEqual(curate._lang_of("ChinaTalk", "cn"), "en")
+        self.assertEqual(curate._lang_of("十字路口Crossing", "cn"), "zh")
+
+    def test_entry_uses_the_helper(self):
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("def discover(")
+        self.assertIn('_lang_of(c["name"], v["cat"])', src[i:])
+        self.assertNotIn('"lang": "zh" if v["cat"] == "cn" else "en"', src[i:])
+
+    def test_every_source_on_file_agrees_with_the_helper(self):
+        import curate
+        srcs = json.loads((ROOT / "data" / "sources.json").read_text())["sources"]
+        bad = [f'{s["name"]}: {s.get("lang")}' for s in srcs
+               if s.get("lang") != curate._lang_of(s["name"], s.get("cat", ""))]
+        self.assertEqual(bad, [], f"这些源的 lang 和判据不一致：{bad}")
+

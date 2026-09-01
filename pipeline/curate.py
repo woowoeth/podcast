@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import pathlib
+import re
 import statistics
 import sys
 import urllib.parse
@@ -302,6 +303,23 @@ def _name_match(want: str, got: str) -> bool:
 
 
 PROBATION_TIER = 3
+
+
+def _lang_of(name: str, cat: str) -> str:
+    """语言看名字，不看分类。
+
+    这一条改了三次才对：
+      一版「cat == cn 才算中文」——中文节目归到 AI/技术 就拿到 lang=en。
+      二版改看 `zh` 字段——那是我们起的显示名，"Empire: World History" 的显示名是
+        「Empire 世界史」，照它判会把英文节目判成中文，比原来更糟。
+      三版只看原名字形，分类完全不参与——ChinaTalk 归在「中国视角」但整档是英文，
+        分类说的是题材不是语言。
+    这不是标注问题：中英文的文稿密度阈值不同（MIN_WORDS en 1200 / zh 1800，
+    语速上限 300 / 520 wpm），语言判错会让整套闸门用错标准，ASR 的语言提示也会
+    给错。名字里有汉字就是中文节目——这个判据比分类可靠。
+    """
+    del cat        # 故意不用：分类说的是题材，不是语言
+    return "zh" if re.search(r"[\u4e00-\u9fff]", name or "") else "en"
 EXCERPT_CHARS = 3200
 NOTES_CHARS = 2600
 
@@ -345,7 +363,12 @@ def probe_candidate(name: str, itunes_id: str | None = None,
     冒用 Anthropic 品牌的 AI 生成播客匹配成了 Anthropic 官方节目），能绕开就绕开。
     """
     if feed:
+        # YouTube 频道 feed 的正文全在字幕里。不放行 youtube 层的话，探测取不到任何
+        # 内容，评分又退回凭标题猜——那正是我们修掉的毛病。
+        yt = "youtube.com/feeds/videos.xml" in feed
         s = {"id": "cand", "name": name, "feed": feed, "cat": "ai", "lang": "en"}
+        if yt:
+            s["kind"] = "youtube"
         try:
             eps = feeds.fetch(s, cache_ttl=3600)
         except Exception as ex:
@@ -353,7 +376,9 @@ def probe_candidate(name: str, itunes_id: str | None = None,
             return None
         if not eps:
             return None
-        return _measure(name, feed, None, eps, s)
+        return _measure(name, feed, None, eps, s,
+                        allow=("feed", "notes", "page", "youtube") if yt
+                        else ("feed", "notes", "page"))
     # 榜单给了 iTunes id 就直接 lookup，比按名字搜准得多
     if itunes_id:
         url = "https://itunes.apple.com/lookup?" + urllib.parse.urlencode(
@@ -389,7 +414,8 @@ def probe_candidate(name: str, itunes_id: str | None = None,
     return None
 
 
-def _measure(name: str, feed: str, itunes, eps: list[dict], s: dict) -> dict:
+def _measure(name: str, feed: str, itunes, eps: list[dict], s: dict,
+             allow: tuple[str, ...] = ("feed", "notes", "page")) -> dict:
     """实测一档候选。两条入口（iTunes 与直接给 feed）共用，否则两份实现迟早只改一份。"""
     from lib import transcript as T
     head = eps[:10]
@@ -397,8 +423,9 @@ def _measure(name: str, feed: str, itunes, eps: list[dict], s: dict) -> dict:
     age = (now() - ds[0]).total_seconds() / 86400 if ds else None
     gaps = sorted((ds[i] - ds[i + 1]).total_seconds() / 86400
                   for i in range(len(ds) - 1)) if len(ds) > 1 else []
-    tr = T.acquire(dict(head[0]), s.get("lang", "en"),
-                   allow=("feed", "notes", "page"), src=s)
+    # 挑一集够长的来测：YouTube 频道里混着短视频，拿切片判字幕会得出错误结论
+    probe_ep = next((e for e in head if (e.get("duration") or 0) > 1200), head[0])
+    tr = T.acquire(dict(probe_ep), s.get("lang", "en"), allow=allow, src=s)
     return {"name": name, "feed": feed, "itunes": itunes,
             "items": len(eps), "age_days": age,
             "cadence": gaps[len(gaps) // 2] if gaps else None,
@@ -406,7 +433,7 @@ def _measure(name: str, feed: str, itunes, eps: list[dict], s: dict) -> dict:
             "transcript_words": tr["words"] if tr else 0,
             "transcript_source": tr["source"] if tr else None,
             "has_audio": sum(1 for e in head if e.get("audio")),
-            "sample": head[0]["title"][:70],
+            "sample": probe_ep["title"][:70],
             "titles": [e["title"][:80] for e in head[:6]],
             "notes_sample": _notes_sample(head),
             # 评分要看实际内容，不能只凭节目名和一个标题猜——那样同一档节目
@@ -640,13 +667,20 @@ def discover(minimum: float, dry: bool = False,
         taken.add(sid)
         known_feeds.add(c["feed"])
         entry = {"id": sid, "name": c["name"], "zh": c["name"], "cat": v["cat"],
-                 "tier": PROBATION_TIER, "lang": "zh" if v["cat"] == "cn" else "en",
-                 "kind": "rss", "feed": c["feed"], "desc": v["desc"],
+                 "tier": PROBATION_TIER, "lang": _lang_of(c["name"], v["cat"]),
+                 "kind": "youtube" if "youtube.com/feeds/videos.xml" in c["feed"]
+                         else "rss",
+                 "feed": c["feed"], "desc": v["desc"],
                  "cat_label": {"ai": "AI / 技术", "biz": "投资 / 商业",
                                "cn": "中国视角", "ideas": "人文 / 思想",
                                "hist": "文明 / 历史", "parent": "育儿 / 教育", "sci": "健康 / 科学"}.get(v["cat"], v["cat"])}
         if c.get("itunes"):
             entry["itunes"] = c["itunes"]
+        # 文稿只能从 YouTube 字幕拿的源，云端做不了：GitHub 机房 IP 会被 YouTube
+        # 判成机器人并索要 cookie。标成 residential 交给本机线，否则它每天在云端
+        # 白失败一次，而"没有文稿"这条日志看不出是 IP 问题。
+        if c.get("transcript_source") == "youtube":
+            entry["residential"] = True
         blob["sources"].append(entry)
         added.append({"at": iso(now()), "kind": "added", "id": sid, "name": c["name"],
                       "probation": True,
