@@ -218,6 +218,74 @@ LEADS_SCHEMA = """输出 JSON：{"leads":[{"name":"播客节目的完整名字",
 最多 8 条。一个都没有就返回 {"leads":[]}。"""
 
 
+SPEAKER_SYSTEM = """给你一批人名，他们都在本站已收录的播客里作为主讲或嘉宾出现过。
+问题只有一个：这些人里，谁自己主持（或联合主持）一档播客？
+
+站点覆盖 AI/技术、投资/商业、中国视角、人文/思想、文明/历史、育儿/教育、健康/科学，
+只报范围内的。
+
+规则：
+- 只报你确实知道的节目名，**不确定就不报**。编一个不存在的名字比漏掉更糟——
+  下游会拿这个名字去搜 iTunes，而按名字搜是整条流程里最容易匹配到冒名节目的一环。
+- 不要报本站已收录的那些。
+- 名字含糊的（只有 "Tom"、"主持人" 这种）直接跳过。
+- 一个人主持多档就都报。
+"""
+
+SPEAKER_SCHEMA = ('返回 JSON：{"shows": [{"name": "节目名", "host": "人名", '
+                  '"why": "一句话说清为什么值得收"}]}')
+
+
+def speaker_leads(existing: list[str], min_hits: int = 3) -> list[dict]:
+    """从已发布内容里的发言人挖新信源。
+
+    为什么这个池子值得单独做：榜单按流行度排，天然偏大众；而**上过我们好节目的
+    嘉宾自己主持的节目**，是一个完全没有流行度偏差的池子，而且直接锚定在我们
+    已经判过好的内容上。原来的 find_leads 只看最近 18 篇的标题，用不上这份数据。
+    """
+    if not llm.available():
+        return []
+    hits: dict = {}
+    for f in (DATA / "episodes").glob("*.json"):
+        try:
+            d = json.loads(f.read_text())["digest"]
+        except Exception:
+            continue
+        for key in ("quotes", "points"):
+            for x in (d.get(key) or []):
+                n = squeeze(str(x.get("spk") or ""))
+                # 只要看起来像人名的：太短、纯角色词的跳过
+                if len(n) >= 4 and n not in ("主持人", "嘉宾", "Host", "Guest"):
+                    hits[n] = hits.get(n, 0) + 1
+    people = sorted((n for n, v in hits.items() if v >= min_hits),
+                    key=lambda n: -hits[n])
+    if not people:
+        return []
+    log(f"  已发布内容里 {len(hits)} 位发言人，出现 ≥{min_hits} 次的 {len(people)} 位")
+    out, seen = [], set()
+    for i in range(0, len(people), 40):
+        batch = people[i:i + 40]
+        try:
+            r = llm.call_json(SPEAKER_SYSTEM,
+                              "已收录（不要重复）：" + "、".join(existing[:160])
+                              + "\n\n人名：\n" + "\n".join(
+                                  f"- {n}（出现 {hits[n]} 次）" for n in batch)
+                              + "\n\n" + SPEAKER_SCHEMA,
+                              max_tokens=900, temperature=0.2, role="triage")
+        except Exception as ex:
+            log(f"    发言人线索失败（跳过这批）：{type(ex).__name__}")
+            continue
+        for x in (r.get("shows") or []):
+            nm = squeeze(str(x.get("name") or ""))
+            if nm and nm not in seen:
+                seen.add(nm)
+                out.append({"name": nm, "itunes": None,
+                            "chart": f"嘉宾线索（{squeeze(str(x.get('host') or ''))}）",
+                            "why": squeeze(str(x.get("why") or ""))})
+    log(f"    → {len(out)} 档嘉宾线索")
+    return out
+
+
 def find_leads(existing: list[str], sample: list[dict]) -> list[dict]:
     if not llm.available() or not sample:
         return []
@@ -248,6 +316,54 @@ def find_leads(existing: list[str], sample: list[dict]) -> list[dict]:
 
 CHARTS = [(1318, "us", "Technology"), (1321, "us", "Business"),
           (1318, "cn", "中国区 Technology")]
+
+
+# 按题材搜，而不是看榜。榜单只有 top-N 且按流行度排，长尾里的硬节目永远上不了榜
+# ——扫 4918 档 Radar 流行度榜单，最后只收到 3 档，就是这个偏差的代价。
+# 搜索按相关性排，而且直接给 RSS（绕开按名字搜 iTunes 那一环）。
+SEARCH_TERMS = [
+    # AI / 技术
+    "machine learning research", "AI alignment", "semiconductor industry",
+    "distributed systems", "compiler", "cryptography research", "robotics research",
+    # 投资 / 商业
+    "monetary policy", "credit markets", "value investing", "supply chain",
+    "industrial history", "commodities", "corporate strategy",
+    # 中国视角
+    "China economy", "Chinese technology", "China policy",
+    # 人文 / 思想
+    "philosophy of mind", "intellectual history", "political theory",
+    "history of science", "epistemology",
+    # 文明 / 历史
+    "ancient history", "economic history", "military history", "archaeology",
+    # 育儿 / 教育
+    "child development research", "education research", "developmental psychology",
+    # 健康 / 科学
+    "neuroscience research", "clinical evidence", "physics research",
+    "evolutionary biology", "public health evidence", "mathematics research",
+]
+
+
+def apple_search(terms: list[str] | None = None, limit: int = 40) -> list[dict]:
+    """按题材词搜 Apple 的播客库。公开接口、不要 key、直接返回 feedUrl。"""
+    out, seen = [], set()
+    for term in (terms or SEARCH_TERMS):
+        url = "https://itunes.apple.com/search?" + urllib.parse.urlencode(
+            {"term": term, "entity": "podcast", "limit": limit, "country": "US"})
+        try:
+            d = net.get_json(url, timeout=25, cache_ttl=3600)
+        except Exception as ex:
+            log(f"    搜「{term}」失败：{type(ex).__name__}")
+            continue
+        for r in (d or {}).get("results") or []:
+            name = (r.get("collectionName") or "").strip()
+            feed = r.get("feedUrl")
+            if not name or not feed or name in seen:
+                continue
+            seen.add(name)
+            out.append({"name": name, "itunes": r.get("collectionId"),
+                        "feed": feed, "chart": f"搜索：{term}"})
+    log(f"  题材搜索 {len(terms or SEARCH_TERMS)} 个词 → {len(out)} 档候选")
+    return out
 
 
 def apple_charts(limit: int = 30) -> list[dict]:
@@ -316,12 +432,16 @@ RANK_SYSTEM = """你在给一个中文播客深读站从一份很长的候选清
 不要：日播新闻、榜单/清单节目、个人成长、销售、闲聊、纯科普转述、明星访谈。
 
 只凭名字判断，名字看不出来的就不要选——宁可漏掉，也别把配额花在没把握的上面。
-每次最多挑 {n} 个。"""
+
+**没有配额。** 这一批全是大众节目就一个都别挑（返回空数组）；这一批恰好很硬就
+多挑几个。上限 {n} 个只是防止一次返回过长。
+第一版写的是"每次最多挑 8 个"，模型把它当成了必须挑满 8 个，于是在一批真crime
+和体育播客里也硬挑出 8 个"最substantive的"——排序结果前 60 名全是政治脱口秀。"""
 
 RANK_SCHEMA = '返回 JSON：{"pick": ["节目名", ...]}，名字必须与清单里一字不差。'
 
 
-def rank_names(names: list[str], per_batch: int = 8) -> list[str]:
+def rank_names(names: list[str], per_batch: int = 15) -> list[str]:
     """从一份长清单里挑最值得实测的。
 
     为什么需要这一步：粗筛是"剔掉明显不行的"，故意宽松（不确定的留下），4781 档
@@ -778,6 +898,8 @@ def discover(minimum: float, dry: bool = False,
         pool.append(c)
     leads = [{"name": l["name"], "why": l["why"], "itunes": None, "chart": "本站内容"}
              for l in find_leads(existing, sample) if not is_dup(l["name"])]
+    # 嘉宾线索：完全没有流行度偏差的池子，锚定在我们已经判过好的内容上
+    leads += [l for l in speaker_leads(existing) if not is_dup(l["name"])]
     ext = [c for c in (feed_pool(from_feeds) if from_feeds else [])
            if c["feed"] not in known_feeds and not is_dup(c["name"])]
     ext += [c for c in (name_pool(from_names) if from_names else [])

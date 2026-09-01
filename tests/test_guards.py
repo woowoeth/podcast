@@ -1012,9 +1012,18 @@ class RankingIsNotFiltering(unittest.TestCase):
     def test_rank_prompt_says_pick_the_strongest_not_drop_the_weak(self):
         src = (ROOT / "pipeline" / "curate.py").read_text()
         i = src.index("RANK_SYSTEM")
-        body = src[i:i + 1200]
+        body = src[i:i + 1600]
         self.assertIn("挑出最强的", body)
         self.assertIn("宁可漏掉", body)
+
+    def test_rank_prompt_has_no_quota(self):
+        """事故：提示词写"每次最多挑 8 个"，模型当成必须挑满 8 个——在一批真crime
+        和体育播客里也硬挑出 8 个，排序结果前 60 名全是政治脱口秀。"""
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("RANK_SYSTEM")
+        body = src[i:i + 1600]
+        self.assertIn("没有配额", body)
+        self.assertIn("一个都别挑", body)
 
     def test_rank_falls_back_without_an_llm(self):
         # 没有后端时不能返回空——那等于静默丢掉整个清单
@@ -1305,4 +1314,65 @@ class BlockedSourcesAreNotShownAsBroken(unittest.TestCase):
         src = (ROOT / "pipeline" / "build.py").read_text()
         i = src.index('dead = st.get("ok") is False')
         self.assertIn("blocked_here", src[i:i + 200])
+
+
+class GuestGraphIsACandidatePoolWithoutPopularityBias(unittest.TestCase):
+    """榜单按流行度排，天然偏大众——扫 4918 档 Radar 榜单，前 60 名全是真crime、
+    励志和政治。而**上过我们好节目的嘉宾自己主持的节目**是另一个池子：没有流行度
+    偏差，而且直接锚定在我们已经判过好的内容上。原来的 find_leads 只看最近 18 篇
+    的标题，218 篇里 2400 多条发言人记录完全没用上。"""
+
+    def test_speaker_leads_exists_and_is_wired_in(self):
+        import curate
+        self.assertTrue(hasattr(curate, "speaker_leads"))
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("def discover(")
+        self.assertIn("speaker_leads(existing)", src[i:])
+        # 必须走同一套去重
+        j = src.index("speaker_leads(existing)", i)
+        self.assertIn("is_dup", src[j - 120:j + 120])
+
+    def test_prompt_forbids_inventing_show_names(self):
+        # 下游会拿这个名字去搜 iTunes，编造的名字最容易匹配到冒名节目
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("SPEAKER_SYSTEM")
+        body = src[i:i + 1200]
+        self.assertIn("不确定就不报", body)
+        self.assertIn("冒名", body)
+
+    def test_vague_speaker_names_are_skipped(self):
+        # "Tom"、"主持人" 这种查不出节目，只会浪费一次 iTunes 搜索
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("def speaker_leads")
+        body = src[i:src.index("def find_leads")]
+        self.assertIn("主持人", body)
+        self.assertIn("len(n) >= 4", body)
+
+
+class SearchIsABetterPoolThanCharts(unittest.TestCase):
+    """榜单只有 top-N 且按流行度排，长尾里的硬节目永远上不了榜——扫 4918 档 Radar
+    流行度榜单，最后只收到 3 档。按题材搜索则按相关性排，而且直接返回 feedUrl，
+    绕开"按名字搜 iTunes"那一环（整条流程里最容易匹配到冒名节目的地方）。"""
+
+    def test_search_pool_exists_with_terms_for_every_category(self):
+        import curate
+        self.assertTrue(hasattr(curate, "apple_search"))
+        terms = " ".join(curate.SEARCH_TERMS).lower()
+        # 每个站点分类都得有对应的搜索词，否则那一类永远不会有新源
+        for probe in ("machine learning", "monetary", "china", "philosophy",
+                      "history", "child development", "neuroscience"):
+            self.assertIn(probe, terms, f"搜索词里没有覆盖 {probe}")
+
+    def test_search_results_carry_the_feed(self):
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("def apple_search")
+        body = src[i:src.index("def apple_charts")]
+        self.assertIn('"feed": feed', body)
+        self.assertIn("feedUrl", body)
+
+    def test_search_is_documented_as_relevance_not_popularity(self):
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("SEARCH_TERMS = [")
+        head = src[max(0, i - 500):i]
+        self.assertIn("按流行度排", head)
 
