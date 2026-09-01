@@ -1,0 +1,211 @@
+{
+ "id": "securitycrypto-3373407d4b",
+ "slug": "2026-08-26-securitycrypto-ai-证明封死-cvp-近似困难-gap-但不烧密码学",
+ "fingerprint": "22bbb763c4d70a53",
+ "source_id": "securitycrypto",
+ "source": "Security Cryptography Whatever",
+ "source_zh": "Security Cryptography Whatever",
+ "cat": "ai",
+ "tier": 3,
+ "lang": "en",
+ "title_original": "AI Lattice Proofs with Chris Peikert",
+ "published": "2026-08-26T22:00:00Z",
+ "duration": 3044,
+ "audio": "https://www.buzzsprout.com/1822302/episodes/19707871-ai-lattice-proofs-with-chris-peikert.mp3",
+ "link": "",
+ "image": "https://storage.buzzsprout.com/j0mg64drknc1b0xl8t4m5yn6umlo?.jpg",
+ "youtube_id": "",
+ "transcript_url": "https://www.buzzsprout.com/1822302/19707871/transcript.json",
+ "digest": {
+  "title": "AI 证明封死 CVP 近似困难 gap，但不烧密码学",
+  "dek": "OpenAI 模型证明 CVP 在 n 的 1/400 次方近似下仍 NP-hard，几天内被推到平方根；SVP 指数改进到 2^0.7n、McEliece 遭准多项式攻击，但现实格密码因维度膨胀和近似因子 gap 暂安全。",
+  "why": "三组新结果同一周出现，各自牵动复杂度理论、AI 原创性和后量子密码安全判断；不听完会漏掉后半段的机制和数字。",
+  "who": "做后量子密码选型和 FHE 落地的工程师、想判断 AI 数学能力的投资人，以及关心格密码最新攻击的研究者。",
+  "skip": "最后 2 分钟密歇根橄榄球闲聊和广告可跳过，其余全程高浓度。",
+  "points": [
+   {
+    "t": 257,
+    "h": "OpenAI 封闭二十年 gap",
+    "body": "CVP 的精确版本早在 80 年代就被证明 NP-hard；90 年代把 NP-hard 推到任意常数甚至 n 的 1/log log n 次方的近似因子，1998 年定型后 20 年没动。8 月 1 日 OpenAI 的论文用 n 的 1/400 次方这个固定多项式近似因子打破僵局。Chris 强调这不是密码学实际使用的参数 regime，而是纯复杂性理论结果，但它的证明方式——直接从 3SAT 到 CVP 的代数约简——让所有人都意外。",
+    "spk": "Chris"
+   },
+   {
+    "t": 439,
+    "h": "几天推到平方根障碍",
+    "body": "Chris 拿到 n 的 1/400 次方后试着让模型改善，只改进簿记就得到 n 的 1/28 次方，随后又有人得到 n 的 1/8 次方。几天内，Twitter 用户 Mira 通过反复提示把结果推到任意 n 的 1/2 - ε 次方。平方根是已知的 co-NP 障碍：若平方根近似 CVP 也 NP-hard，会导致多项式层级崩溃，所以 gap 被完全封闭。密码学使用的近似因子是 n 到 n² 这样的小多项式，离新的 NP-hard 区域很近，这让社区对格问题难度的信心增强。",
+    "spk": "Chris"
+   },
+   {
+    "t": 690,
+    "h": "AI 首次原创数学",
+    "body": "Chris 说这是第一个让他觉得真正原创的 AI 数学结果。之前很多 AI 证明是专家把已有件拼起来，AI 只负责找到第一块多米诺；这个证明则直接从 3SAT 到最近码字问题再到 CVP，用 Reed-Solomon 码分别编码公式和子句，再用约束拼成格实例。他问过编码复杂度的同行，没人见过类似路径。这让人联想到 AlphaGo 那种「外星棋手」式的解法，只是所有零件都来自已知数学，但路径完全不同。",
+    "spk": "Chris"
+   },
+   {
+    "t": 1181,
+    "h": "SVP 三箭齐发，安全未动",
+    "body": "SVP 是给定格找最短非零向量。2015 年以来的精确算法是 2 的 n 次方时间；三天内三篇 ePrint 独立把指数常数压到 0.7 左右，都用了同一套技术，部分论文承认 AI 参与了核心想法。这是 11 年来首次改进。但 Chris 说它几乎不影响现实密码学，因为攻击的是最坏情况精确 SVP，而启发式算法本来就能做得更好，安全估计不依赖这个精确指数。",
+    "spk": "Chris"
+   },
+   {
+    "t": 1676,
+    "h": "Dihedral 量子论文遭质疑",
+    "body": "Shor 算法本质上是解循环群上的隐藏移位问题；dihedral 群是循环群加一个翻转，量子算法长期解不了。把格问题归约到巨大 dihedral 群的隐藏移位后，若多项式时间解 DCP 就能破所有基于格的密码学。新论文声称做到，但 Chris 说社区发现证明里有多处实质性错误，不像容易修。他打了比方：如果范式真的成立，就像整座房子都着火了，不用纠结温度具体是多少度。",
+    "spk": "Chris"
+   },
+   {
+    "t": 2172,
+    "h": "McEliece 准多项式攻击",
+    "body": "Classic McEliece 的新攻击给出一个准多项式时间（n 的 log n 次方）distinguisher，能区分公钥和随机串；具体参数下运行时间约 2 的 100 多次方。更重要的是他们能把 distinguisher 变成解密：把密文接到公钥上跑 distinguisher，输出会暴露错误向量的每一位，从而恢复消息。解密也要准多项式时间并依赖一些 heuristics。论文明确说同样的思路理论上可用来从公钥恢复私钥，但留待未来。",
+    "spk": "Chris"
+   },
+   {
+    "t": 2726,
+    "h": "McEliece 的旧怀疑被印证",
+    "body": "Chris 解释为什么社区长期对 McEliece 有「总觉得有点可疑」的 vibe：多年来几乎所有变体——换码、缩小密钥——都被攻破，唯独原始 McEliece 还站着，但没人能给出深层解释。攻击思路也一直窄化到 information set decoding 变体。这次结果来自一个做 doubly efficient PIR 的隐私研究组，他们在构造中遇到屏障，发现自己的代数几何工具能破 McEliece。这证明不同数学视角能带来突破，但也加深了对 McEliece 安全基础的不安。",
+    "spk": "Chris"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 439,
+    "spk": "Chris",
+    "raw": "So now we have this like total phase change, you know, up to square root n, but not quite is NP at square root n and beyond. You have, you know, very good reason to think it's not NP-hard. And so we went from like this huge unknown gap to like completely closed gap in a matter of a few days with just miles poking on things. I mean, that's insane.",
+    "zh": "所以现在我们经历了一个完全的相变：直到 n 的平方根、但还差一点点的近似因子都仍是 NP 难的；而在平方根及其以上，有充分理由认为不是 NP 难的。我们从巨大的未知空隙，变成几天之内就完全闭合了空隙，靠的只是 Mira 在模型上戳来戳去。这太疯狂了。"
+   },
+   {
+    "t": 628,
+    "spk": "Chris",
+    "raw": "I don't, I don't think that's, that's going to be even true, much less do I expect it. And then, so it just completely changed our understanding of these problems.",
+    "zh": "我不认为这会是真的，更不用说我会预期它。结果它彻底改变了我们对这些问题的理解。"
+   },
+   {
+    "t": 752,
+    "spk": "Chris",
+    "raw": "And it's just unlike anything I've ever seen. I asked some people around, and they hadn't seen it either.",
+    "zh": "它完全不像我见过的任何东西。我问了周围一些人，他们也没见过。"
+   },
+   {
+    "t": 1364,
+    "spk": "Chris",
+    "raw": "So the reason it doesn't kind of move the needle on that, which is a great question, is that these worst case to average case reductions usually have a blow up in the dimension to some amount.",
+    "zh": "所以它没有真正改变那个问题（安全估计）的原因——这是一个很好的问题——是这些最坏情况到平均情况的归约通常会在维度上产生一定程度的膨胀。"
+   },
+   {
+    "t": 1860,
+    "spk": "Chris",
+    "raw": "if that paradigm had worked out if that algorithm had actually been correct and correct analysis we're quibbling over the approximation factor",
+    "zh": "如果那个范式真的成立、那个算法真的正确且分析正确，那么我们纠结的只是近似因子而已。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "OpenAI 证明的 CVP 近似因子",
+    "v": "n 的 1/400 次方",
+    "t": 257
+   },
+   {
+    "k": "几天后 CVP 近似因子被推到",
+    "v": "任意 n 的 1/2 - ε",
+    "t": 439
+   },
+   {
+    "k": "精确 SVP 最佳算法时间（2015 年起）",
+    "v": "约 2^n",
+    "t": 1181
+   },
+   {
+    "k": "新 SVP 算法指数",
+    "v": "约 2^0.7n",
+    "t": 1181
+   },
+   {
+    "k": "SVP 上次改进距今",
+    "v": "11 年",
+    "t": 1242
+   },
+   {
+    "k": "McEliece distinguisher 复杂度",
+    "v": "准多项式 n^{log n}",
+    "t": 2112
+   },
+   {
+    "k": "McEliece distinguishing 具体运行时间",
+    "v": "约 2 的 100 多次方",
+    "t": 2172
+   }
+  ],
+  "terms": [
+   {
+    "term": "CVP",
+    "zh": "最近向量问题",
+    "def": "给定格与目标点，找距离最近的格点；近似版本允许因子误差。"
+   },
+   {
+    "term": "SVP",
+    "zh": "最短向量问题",
+    "def": "在格中找最短的非零向量，是格密码核心难题。"
+   },
+   {
+    "term": "Dihedral coset problem",
+    "zh": "二面体陪集问题",
+    "def": "在二面体群上求解隐藏移位，与格问题归约相关的量子难题。"
+   },
+   {
+    "term": "Reed-Solomon code",
+    "zh": "里德-所罗门码",
+    "def": "一种代数纠错码，新 CVP 证明用来编码 3SAT 公式。"
+   },
+   {
+    "term": "Information set decoding",
+    "zh": "信息集解码",
+    "def": "攻击 McEliece 类密码的传统方法，通过猜测信息集解码。"
+   },
+   {
+    "term": "Doubly efficient PIR",
+    "zh": "双高效私密信息检索",
+    "def": "服务端计算快、通信量小的私密信息检索，这项研究的来源。"
+   }
+  ],
+  "tags": [
+   "格密码",
+   "后量子密码",
+   "AI 数学",
+   "密码分析",
+   "量子算法",
+   "McEliece"
+  ],
+  "quality": {
+   "transcript_source": "feed",
+   "transcript_detail": "application/json",
+   "words": 7990,
+   "wpm": 157.5,
+   "timed": true,
+   "verified_quotes": 5,
+   "grounded_facts": 7,
+   "points": 7,
+   "pruned": 1,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-09-01T14:46:53Z",
+ "triage": {
+  "score": 8.0,
+  "why": "一手研究者拆解后量子密码前沿攻击与证明，机制具体可核对，争议有更新。",
+  "kind": "一手访谈"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 8,
+   "faithful": 8,
+   "selection": 8,
+   "concrete": 9,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点均为判断与机制，数字具体，忠实原文，仅个别表述略简。",
+  "worst": ""
+ },
+ "model": "openai:deepseek-reasoner"
+}
