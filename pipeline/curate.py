@@ -42,6 +42,8 @@ MIN_TRIAGE_EVALS = 6        # 少于这个次数不作判断，样本太小
 MIN_TRIAGE_PASS = 0.25      # 选题通过率低于此 → 降级
 MIN_PUBLISHED_FOR_REVIEW = 3
 MIN_REVIEW_MEDIAN = 7.0     # 成稿评分中位不高于此 → 降级
+MIN_DRAFT_TRIES = 4         # 至少试过这么多次，才谈得上合格率
+MIN_DRAFT_PASS = 0.34       # 成稿合格率低于此 → 降级（三次里过不了一次）
 STALE_DAYS = 120            # 停更超过此 → 休眠
 DEAD_ATTEMPTS = 10          # 尝试这么多次仍一篇取不到文稿 → 移除
 DEAD_STREAK = 3             # feed 连续这么多次体检失败 → 才算真的死了
@@ -66,7 +68,8 @@ def performance() -> dict[str, dict]:
     state = json.loads((DATA / "state.json").read_text()) if (DATA / "state.json").exists() \
         else {"done": {}, "fail": {}}
     per: dict[str, dict] = {sid: {"published": 0, "review": [], "triage": [],
-                                  "no_transcript": 0}
+                                  "no_transcript": 0, "review_rejected": [],
+                                  "gate_rejected": 0}
                             for sid in srcs}
     for f in (DATA / "episodes").glob("*.json"):
         try:
@@ -87,8 +90,23 @@ def performance() -> dict[str, dict]:
         if v.get("skip") == "off-brief" and v.get("src") in per:
             per[v["src"]]["triage"].append(float(v.get("score") or 0))
     for v in state.get("fail", {}).values():
-        if v.get("src") in per and "no-transcript" in str(v.get("why", "")):
-            per[v["src"]]["no_transcript"] += 1
+        why = str(v.get("why", ""))
+        src = v.get("src")
+        if src not in per:
+            continue
+        if "no-transcript" in why:
+            per[src]["no_transcript"] += 1
+        # 被评审或机械闸门拦下的稿子，原来完全没进统计——而降级规则只看"已发布
+        # 稿子的评分中位"。后果：Y Combinator 发 1 篇、被评审拦 4 篇（评分 3、3、
+        # 4、4），产出八成不合格，却永远不会被降级，因为那 4 次根本没被看见。
+        # 拦下来的稿子是关于这档源最有信息量的记录，不该扔掉。
+        if why.startswith("review:"):
+            try:
+                per[src]["review_rejected"].append(float(why.split(":", 1)[1]))
+            except ValueError:
+                per[src]["review_rejected"].append(0.0)
+        elif why.startswith("gate:"):
+            per[src]["gate_rejected"] += 1
 
     out = {}
     for sid, p in per.items():
@@ -98,6 +116,12 @@ def performance() -> dict[str, dict]:
         out[sid] = {
             "name": s.get("zh") or s["name"], "tier": s.get("tier", 3), "cat": s["cat"],
             "published": p["published"],
+            "review_rejected": len(p["review_rejected"]),
+            "gate_rejected": p["gate_rejected"],
+            # 成稿合格率：拦下来的也算分母。只看已发布的中位数会漏掉
+            # "十篇里九篇被拦、剩一篇刚好 8 分"这种源。
+            "draft_pass": (p["published"] / (p["published"] + len(p["review_rejected"]))
+                           if (p["published"] + len(p["review_rejected"])) else None),
             "review_median": statistics.median(p["review"]) if p["review"] else None,
             "triage_n": len(tri),
             "triage_pass": (sum(1 for x in tri if x >= 7) / len(tri)) if tri else None,
@@ -152,6 +176,16 @@ def judge(sid: str, m: dict) -> tuple[str, str] | None:
             and m["review_median"] <= MIN_REVIEW_MEDIAN):
         return "demote", (f"成稿评分中位 {m['review_median']:.1f}"
                           f"（{m['published']} 篇），产出质量偏低")
+    # 成稿合格率：被拦下的稿子也算分母。只看"已发布稿子的评分中位"会漏掉整整一类
+    # 源——Y Combinator 发 0 篇、被评审拦 4 篇（评分 3、3、4、4），产出全不合格，
+    # 却永远不会被降级，因为那 4 次根本没进统计。
+    # 每一次被拦都花掉了一次取稿加一次推理生成，是这个管线里最贵的浪费。
+    tries = m["published"] + m["review_rejected"]
+    if (tries >= MIN_DRAFT_TRIES and m["draft_pass"] is not None
+            and m["draft_pass"] < MIN_DRAFT_PASS):
+        return "demote", (f"成稿合格率 {m['draft_pass']*100:.0f}%"
+                          f"（{tries} 次里只有 {m['published']} 篇过评审），"
+                          f"每次被拦都白花一次推理生成")
     return None
 
 

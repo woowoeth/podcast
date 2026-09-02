@@ -1490,3 +1490,103 @@ class AlertsMustNotLieAboutStaleCheckouts(unittest.TestCase):
         self.assertIn("to_drop", body)
         self.assertIn('s.get("residential")', body)
 
+
+class RejectedDraftsAreTheMostInformativeRecord(unittest.TestCase):
+    """用户提议"优质源可以不审直接发"。查数据后我建议不这么做，但排查中发现一个
+    真缺口：**被评审拦下的稿子完全没进统计**。
+
+    降级规则只看"已发布稿子的评分中位"，于是 Y Combinator 发 0 篇、被评审拦 4 篇
+    （评分 3、3、4、4），产出全不合格，却永远不会被降级——那 4 次根本没被看见。
+    而每一次被拦都花掉了一次取稿加一次推理生成，是这个管线里最贵的浪费。
+
+    顺带记下不该免审的证据：评审一共拦下 14 篇，**其中 10 篇来自 tier-1 优质源**
+    （Y Combinator 4 次、Oxide and Friends、Latent Space、张小珺、
+    The Cognitive Revolution、老石谈芯）。评审判的不是播客，是我们自己生成的稿子，
+    而这类问题在好源上一样发生。按"发布≥8篇、中位≥8、从没被拦过"筛，93 档有产出
+    的源里只有 1 档合格，而连它都有 5/12 篇是被机械闸门删过东西才发出去的。"""
+
+    def test_rejections_are_counted(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import curate
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("def performance")
+        body = src[i:src.index("def judge(")]
+        self.assertIn('why.startswith("review:")', body)
+        self.assertIn("review_rejected", body)
+        self.assertIn("gate_rejected", body)
+        self.assertIn("draft_pass", body)
+
+    def test_draft_pass_rate_can_demote(self):
+        import curate
+        m = dict(name="X", tier=1, cat="ai", published=0, review_median=None,
+                 triage_n=0, triage_pass=None, no_transcript=0,
+                 official_transcripts=0, feed_ok=True, fail_streak=0,
+                 residential=False, age_days=3, max_gap_days=30,
+                 review_rejected=4, gate_rejected=0, draft_pass=0.0)
+        act, why = curate.judge("x", m)
+        self.assertEqual(act, "demote")
+        self.assertIn("成稿合格率", why)
+        self.assertIn("白花一次推理生成", why)
+
+    def test_a_few_tries_is_not_enough_to_judge(self):
+        import curate
+        m = dict(name="X", tier=1, cat="ai", published=0, review_median=None,
+                 triage_n=0, triage_pass=None, no_transcript=0,
+                 official_transcripts=0, feed_ok=True, fail_streak=0,
+                 residential=False, age_days=3, max_gap_days=30,
+                 review_rejected=2, gate_rejected=0, draft_pass=0.0)
+        self.assertIsNone(curate.judge("x", m), "两次就降级太急了")
+
+    def test_review_is_cheap_relative_to_generation(self):
+        """为什么不该免审的另一半理由：评审是便宜模型、输出极短。
+        实测一轮 14 集：digest 出 167,677 token（思考 137,163），review 出 1,458。
+        评审约占整轮成本 1-2%。这条写进注释，防止以后有人为省钱把它关掉。"""
+        src = (ROOT / "pipeline" / "lib" / "review.py").read_text()
+        self.assertIn("MIN_SCORE", src)
+        # review 必须走独立配置的模型（不能和 digest 同一个，否则是自己给自己打分）
+        self.assertIn('role="review"', src)
+
+
+class SelfHealingMustPersist(unittest.TestCase):
+    """事故：feed 自愈只改生成的 data/sources.json，而 feed 的真相源是
+    CURATED / EXTRA 里的 Python 列表。下一轮体检又从列表里读回那个死镜像——
+    **同样六档连着两轮都报"feed 换新"**，自愈永远存不下来。
+    症状很隐蔽：每轮日志都显示"修好了"，看起来在工作。"""
+
+    def test_healing_writes_back_to_the_python_source(self):
+        src = (ROOT / "pipeline" / "resolve_sources.py").read_text()
+        self.assertIn("def _write_back", src)
+        i = src.index("healed[s[\"id\"]] = meta[\"feedUrl\"]")
+        self.assertGreater(i, 0, "换 feed 时没有记下要写回哪一档")
+        self.assertIn("_write_back(healed)", src)
+
+    def test_write_back_is_narrow(self):
+        # 只改 feed= 那一行，找不到就明说——不猜、不改别的
+        src = (ROOT / "pipeline" / "resolve_sources.py").read_text()
+        i = src.index("def _write_back")
+        body = src[i:src.index("def itunes_find")]
+        self.assertIn('feed="', body)
+        self.assertIn("找不到定义", body)
+        self.assertIn("不猜、不改别的", body)
+
+    def test_the_six_healed_feeds_are_in_the_python_lists(self):
+        """把这次自愈的结果钉住：这六档的 feed 必须已经在 Python 列表里，
+        否则说明写回又失效了。"""
+        pysrc = ((ROOT / "pipeline" / "resolve_sources.py").read_text()
+                 + (ROOT / "pipeline" / "extra_sources.py").read_text())
+        for feed in ("rss.libsyn.com/shows/474285",          # Very Bad Wizards
+                     "feeds.megaphone.fm/AAAS8717073854",    # Science Podcast
+                     "feeds.transistor.fm/practical-ai"):    # Practical AI
+            self.assertIn(feed, pysrc, f"{feed} 没写回 Python 列表")
+        # 那几个死镜像不该再出现
+        for dead in ("feeds.podcastmirror.com/very-bad-wizards",):
+            self.assertNotIn(dead, pysrc, f"{dead} 是死镜像，还在列表里")
+
+    def test_max_gap_days_is_actually_populated(self):
+        """休眠判据依赖 max_gap_days。字段加了但体检没跑过的话，判据是**空转的**
+        ——会回落到固定 120 天，和修之前一样。Revolutions 就这样又被判了一次休眠。"""
+        srcs = json.loads((ROOT / "data" / "sources.json").read_text())["sources"]
+        have = [s for s in srcs if (s.get("status") or {}).get("max_gap_days")]
+        self.assertGreater(len(have), 50,
+                           "绝大多数源都该有 max_gap_days，否则休眠判据在空转")
+

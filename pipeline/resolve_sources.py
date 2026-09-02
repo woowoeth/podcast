@@ -83,7 +83,7 @@ CURATED: list[dict] = [
        itunes=1163412174, feed="https://feeds.megaphone.fm/MLN2155636147",
        desc="做了十年的研究者访谈"),
   dict(id="practicalai", name="Practical AI", zh="Practical AI", cat="ai", tier=3, lang="en",
-       itunes=1406537385, feed="https://feeds.transistor.fm/practical-ai-machine-learning-data-science",
+       itunes=1406537385, feed="https://feeds.transistor.fm/practical-ai-machine-learning-data-science-llm",
        desc="偏落地工程，自带官方逐字稿"),
   dict(id="lastweekai", name="Last Week in AI", zh="Last Week in AI", cat="ai", tier=3, lang="en",
        itunes=1502484418, feed="https://rss.art19.com/last-week-in-ai",
@@ -114,7 +114,7 @@ CURATED: list[dict] = [
        itunes=1154105909, feed="https://feeds.megaphone.fm/CLS2859450455",
        desc="Patrick O'Shaughnessy 与一线投资人、创始人的长谈"),
   dict(id="oddlots", name="Odd Lots", zh="Odd Lots", cat="biz", tier=1, lang="en",
-       itunes=1056200096, feed="https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae21014b9f01/1c88a9dd-6b3f-4092-96e6-ae2500289e63/aab4c9d5-cb54-4437-8d17-ae250035c1e0/podcast.rss",
+       itunes=1056200096, feed="https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/982f5071-765c-403d-969d-ae27003a8d83/podcast.rss",
        desc="Bloomberg 的宏观与产业链解剖，全集自带官方逐字稿"),
   dict(id="sharptech", name="Sharp Tech", zh="Sharp Tech", cat="biz", tier=1, lang="en",
        itunes=1616249586, feed="https://sharptech.fm/feed/podcast",
@@ -254,6 +254,47 @@ def itunes_lookup(cid: int) -> dict | None:
     return res[0] if res else None
 
 
+def _write_back(healed: dict[str, str]) -> None:
+    """把换好的 feed 写回定义它的 Python 文件。
+
+    feed 的真相源是 CURATED / EXTRA 里的 Python 列表，`data/sources.json` 是生成
+    产物。自愈只改 JSON 的话，下一轮体检又从列表里读回那个死镜像——同样六档连着
+    两轮都报"feed 换新"就是这么来的，自愈永远存不下来。
+
+    只做一件很窄的事：把 `feed="旧地址"` 换成新地址，一次改一行，改完打日志。
+    找不到那一行就明说，不猜、不改别的。
+    """
+    import re as _re
+    files = [ROOT / "pipeline" / "resolve_sources.py",
+             ROOT / "pipeline" / "extra_sources.py"]
+    left = dict(healed)
+    for f in files:
+        if not f.exists():
+            continue
+        txt = f.read_text()
+        changed = False
+        for sid, new_feed in list(left.items()):
+            # 定位这个 id 的那一段，只在段内替换 feed=
+            m = _re.search(rf'id="{_re.escape(sid)}"', txt)
+            if not m:
+                continue
+            seg_end = txt.find("dict(id=", m.end())
+            seg_end = seg_end if seg_end > 0 else len(txt)
+            seg = txt[m.start():seg_end]
+            fm = _re.search(r'feed="([^"]+)"', seg)
+            if not fm or fm.group(1) == new_feed:
+                continue
+            txt = txt[:m.start()] + seg.replace(fm.group(0), f'feed="{new_feed}"', 1) \
+                + txt[seg_end:]
+            log(f"  ↳ 写回 {f.name}: {sid} 的 feed 已更新")
+            del left[sid]
+            changed = True
+        if changed:
+            f.write_text(txt)
+    for sid in left:
+        log(f"  ! {sid}: 换了 feed 但在 Python 列表里找不到定义，下轮会再自愈一次")
+
+
 def itunes_find(name: str) -> dict | None:
     """按名字在 iTunes 里找这档节目。
 
@@ -355,6 +396,7 @@ def main() -> int:
         except Exception:
             pass
 
+    healed: dict[str, str] = {}
     out = []
     for s in ALL_SOURCES:
         if a.only_residential and not s.get("residential"):
@@ -395,6 +437,11 @@ def main() -> int:
                         if not s.get("itunes") and meta.get("collectionId"):
                             s["itunes"] = meta["collectionId"]
                         st = alt
+                        # 写回真相源。不写的话自愈**存不下来**：feed 的真相源是
+                        # CURATED/EXTRA 里的 Python 列表，这里只改生成的 JSON，
+                        # 下一轮体检又从列表里读回那个死镜像，于是每次都要重新
+                        # 自愈一遍。真发生过：同样六档连着两轮都报"feed 换新"。
+                        healed[s["id"]] = meta["feedUrl"]
                     elif stale:
                         log(f"  · {s['id']}: iTunes 给的 feed 不比现在的新，保留原样")
             # 连续失败计数：一次失败不能当作 feed 死了。YouTube 会对密集请求返
@@ -442,6 +489,9 @@ def main() -> int:
                 s["cat_label"] = CATS[s["cat"]]
             out.append(s)
             known.add(sid)
+
+    if healed:
+        _write_back(healed)
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(
