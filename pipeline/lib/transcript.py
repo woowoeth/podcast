@@ -310,7 +310,40 @@ def _alt_urls(url: str) -> list[str]:
     return out
 
 
-def from_page(ep: dict, lang: str) -> dict | None:
+# 每隔多少字符出现一次"其他集标题"就算列表页。见 _is_listing 的实测数字。
+_LISTING_CHARS_PER_TITLE = 5000
+
+
+def _is_listing(body: str, others: list[str]) -> str | None:
+    """这页是不是分集列表，而不是逐字稿。
+
+    真踩过：Y Combinator 的单集页底部列着其他集的标题和导语，抓下来 6700 字
+    ——字数和语速检查都过（都是别人的简介），`_is_this_episode` 也过（本集标题
+    确实在页面上），于是"导语扩写"被当成深读生成出来，成稿评分 3/10。
+    四次被评审拦下的记录全是这一个 bug，而评审是唯一挡住它的东西。
+
+    判据看**密度**，不看数量。第一版只数个数（≥3 就拒），误杀了 Dwarkesh——
+    Substack 页面底部有"推荐文章"区块列着 7 篇，而页面主体是真逐字稿。
+    "页面提到其他集"在 Substack、Libsyn 这类平台上普遍存在，不能当成列表页的证据。
+
+    实测三例，密度差一个数量级：
+        Y Combinator 列表页   39,514 字符 / 24 个标题 = 每 1,646 字符一个
+        Dwarkesh 真逐字稿    130,090 字符 /  7 个标题 = 每 18,584 字符一个
+        Cognitive Revolution 102,283 字符 /  4 个标题 = 每 25,570 字符一个
+    阈值放在每 5000 字符一个：比真逐字稿的最坏情况严三倍，比列表页松三倍。
+    """
+    low = body.lower()
+    hits = [t for t in others if len(t) >= 18 and t.lower() in low]
+    if len(hits) < 3:
+        return None
+    per = len(body) / len(hits)
+    if per < _LISTING_CHARS_PER_TITLE:
+        return (f"每 {per:.0f} 字符就提到一次本节目其他集的标题"
+                f"（共 {len(hits)} 集），是分集列表不是逐字稿")
+    return None
+
+
+def from_page(ep: dict, lang: str, others: list[str] | None = None) -> dict | None:
     urls = []
     m = _TR_LINK.search(ep.get("notes") or "")
     if m:
@@ -338,6 +371,10 @@ def from_page(ep: dict, lang: str) -> dict | None:
             if not (lo <= words / dur_min <= hi):
                 continue
             if not _is_this_episode(body, ep.get("title", "")):
+                continue
+            listing = _is_listing(body, others or [])
+            if listing:
+                log(f"    page 层：{listing}（{u[:50]}）")
                 continue
             best, best_words = body, words
         if best is None:
@@ -824,6 +861,19 @@ def _cache_path(ep: dict) -> pathlib.Path:
     return pathlib.Path(os.environ.get("PODCAST_CACHE", ".cache")) / "tr" / (key + ".json")
 
 
+def _sibling_titles(ep: dict, src: dict | None) -> list[str]:
+    """同一个 feed 里其他集的标题，用来识别分集列表页。取不到就返回空——
+    宁可少一道检查，也不能因为取标题失败就整条取稿路径挂掉。"""
+    if not src:
+        return []
+    try:
+        from . import feeds
+        return [e["title"] for e in feeds.fetch(src, cache_ttl=3600)[:25]
+                if e.get("title") and e["title"] != ep.get("title")]
+    except Exception:
+        return []
+
+
 def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
             src: dict | None = None) -> dict | None:
     """Walk the tiers and return the first transcript that passes the density
@@ -852,7 +902,7 @@ def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
         try:
             got = {"feed": lambda: from_feed(ep),
                    "notes": lambda: from_notes(ep, lang),
-                   "page": lambda: from_page(ep, lang),
+                   "page": lambda: from_page(ep, lang, _sibling_titles(ep, src)),
                    "youtube": lambda: from_youtube(ep.get("youtube_id") or "", lang),
                    "asr": lambda: from_audio(ep, lang)}[tier]()
         except Exception as e:

@@ -1590,3 +1590,51 @@ class SelfHealingMustPersist(unittest.TestCase):
         self.assertGreater(len(have), 50,
                            "绝大多数源都该有 max_gap_days，否则休眠判据在空转")
 
+
+class PageTierMustNotAcceptAListingPage(unittest.TestCase):
+    """用户说"这几个优质源不要拦，很容易误判"。我去查了被拦的那 4 篇
+    （Y Combinator，评分 3、3、4、4），结论是**评审没误判，它抓到的是上游 bug**：
+
+    page 层把节目平台的分集列表页当成了逐字稿。抓下来 6700 字全是其他集的标题和
+    导语——字数和语速检查都过（都是文字），`_is_this_episode` 也过（本集标题确实
+    在页面上），于是"导语扩写"被当成深读生成出来。成稿评审的原话：
+    "全部要点均来自节目导语，无任何访谈实质内容，所有要点均标注 [0:00]"。
+
+    四次被拦全是这一个 bug。评审是当时唯一挡住它的东西——如果按"优质源免审"发出去，
+    站上会多四篇导语扩写。"""
+
+    def test_density_not_count(self):
+        """第一版只数个数（≥3 就拒），误杀了 Dwarkesh：Substack 页面底部的
+        "推荐文章"区块列着 7 篇，而主体是真逐字稿。"页面提到其他集"在 Substack、
+        Libsyn 这类平台上普遍存在，不是列表页的证据。实测密度差一个数量级。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib import transcript as T
+        others = [f"Episode number {i} with a sufficiently long title" for i in range(25)]
+        # 列表页：每 1600 字符一个标题
+        listing = " ".join(others[:24]) + ("x" * 39000)
+        self.assertIsNotNone(T._is_listing(listing, others))
+        # 真逐字稿：13 万字符里 7 个（Dwarkesh 的实际比例）
+        real = " ".join(others[:7]) + ("x" * 130000)
+        self.assertIsNone(T._is_listing(real, others),
+                          "误杀了带推荐区块的真逐字稿")
+
+    def test_under_three_hits_is_never_a_listing(self):
+        from lib import transcript as T
+        others = [f"Some other episode title number {i} here" for i in range(10)]
+        body = " ".join(others[:2]) + ("x" * 2000)
+        self.assertIsNone(T._is_listing(body, others))
+
+    def test_threshold_is_documented_with_measurements(self):
+        src = (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
+        i = src.index("_LISTING_CHARS_PER_TITLE")
+        body = src[i:i + 2200]
+        # 阈值必须写清是怎么定的，否则下一个人只能猜
+        self.assertIn("1,646", body)
+        self.assertIn("18,584", body)
+
+    def test_sibling_titles_failure_does_not_break_acquisition(self):
+        # 取标题失败就少一道检查，不能让整条取稿路径挂掉
+        from lib import transcript as T
+        self.assertEqual(T._sibling_titles({"title": "x"}, None), [])
+        self.assertEqual(T._sibling_titles({"title": "x"}, {"feed": "http://nope.invalid"}), [])
+
