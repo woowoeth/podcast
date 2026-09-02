@@ -82,15 +82,36 @@ class Report:
         self.ok.append(msg)
 
 
+def _commits_behind() -> int:
+    """本地落后 origin/main 几个提交。
+
+    体检把"线上篇数"和"本地仓库篇数"对比，这在 CI 里是对的（每次都是新 checkout），
+    但在一份过期的本地副本上跑就会把"我没 pull"报成"部署卡住了"。
+    不联网、不 fetch：只看已有的远端引用，拿不到就返回 0（宁可不报，不误报）。
+    """
+    import subprocess
+    try:
+        out = subprocess.run(["git", "rev-list", "--count", "HEAD..origin/main"],
+                             cwd=ROOT, capture_output=True, text=True, timeout=10)
+        return int((out.stdout or "0").strip() or 0)
+    except Exception:
+        return 0
+
+
 # ------------------------------------------------------------------ 各项检查
 
 def check_heartbeats(r: Report) -> None:
     """两条线各自还活着吗。
 
+    通则：**凡是拿仓库里的状态和当前时间比的检查，都要先考虑仓库本身是不是过期的。**
+    心跳文件在 git 里，所以一份落后几个提交的本地副本必然拿到旧心跳，会把
+    "我没 pull"报成"这条线死了"。CI 里每次都是新 checkout，不受影响。
+
     这一条是专门为"本机定时任务 runs = 0"那次故障加的：任务装上了、列表里也在，
     但一次都没触发过，而没有任何东西会告诉你。现在每轮跑批写一份心跳，
     心跳停了就是这条线停了。
     """
+    behind = _commits_behind()
     for line, limit, who in (("cloud", CLOUD_MAX_H, "云端 GitHub Actions"),
                              ("local", LOCAL_MAX_H, "本机 launchd")):
         f = DATA / f"heartbeat-{line}.json"
@@ -105,6 +126,9 @@ def check_heartbeats(r: Report) -> None:
         h = _hours_since(hb.get("at"))
         if h is None:
             r.fail(f"{who}：心跳里没有可解析的时间戳")
+        elif h > limit and behind:
+            r.note(f"{who}：心跳 {h:.0f} 小时前，但本地落后 origin/main {behind} 个"
+                   f"提交——先 git pull 再判断，这可能只是副本过期")
         elif h > limit:
             r.fail(f"{who}：{h:.0f} 小时没有心跳（阈值 {limit}h）"
                    f"，最后一次 {hb.get('at')}")
@@ -115,6 +139,9 @@ def check_heartbeats(r: Report) -> None:
                    f"（发布 {hb.get('published', '?')} 篇，退出码 {hb.get('exit', '?')}）")
         if hb.get("exit") not in (0, "0", None):
             r.fail(f"{who}：最后一轮退出码 {hb.get('exit')}")
+    if behind:
+        r.note(f"本地落后 origin/main {behind} 个提交——上面凡是和时间有关的判断"
+               f"都可能因此失真")
 
 
 def check_content_freshness(r: Report) -> None:
@@ -173,13 +200,20 @@ def check_sources(r: Report) -> None:
     # blocked_here 是"机房 IP 取不到、本机线负责"，不是抓取异常
     dead = [s for s in srcs if (s.get("status") or {}).get("ok") is False
             and not (s.get("status") or {}).get("blocked_here")]
+    # 文案必须和 curate.judge 的真实处置一致。改了规则却没改文案，告警就在说谎——
+    # 而误导性的告警比没有告警更糟：它让人对下一次真告警也不当真。
     streak = [s for s in srcs if (s.get("status") or {}).get("fail_streak", 0) >= 2]
+    to_local = [s for s in streak if not s.get("residential")]
+    to_drop = [s for s in streak if s.get("residential")]
     r.good(f"信源 {len(srcs)} 档")
     if dead:
         r.note(f"{len(dead)} 档抓取异常：" + "、".join(s["name"] for s in dead[:6]))
-    if streak:
-        r.note(f"{len(streak)} 档连续失败 ≥2 次，再失败一次会被移除："
-               + "、".join(s["name"] for s in streak[:6]))
+    if to_local:
+        r.note(f"{len(to_local)} 档连续失败 ≥2 次，再失败一次会改派本机线（不是移除）："
+               + "、".join(s["name"] for s in to_local[:6]))
+    if to_drop:
+        r.note(f"{len(to_drop)} 档已在本机线且连续失败 ≥2 次，再失败一次会被移除："
+               + "、".join(s["name"] for s in to_drop[:6]))
 
 
 def check_online(r: Report) -> None:
@@ -189,6 +223,7 @@ def check_online(r: Report) -> None:
     而唯一的症状是"用户觉得没发布"。
     """
     n_data = len(list((DATA / "episodes").glob("*.json")))
+    behind = _commits_behind()
     try:
         home = _get(SITE + "/")
     except Exception as ex:
@@ -199,7 +234,12 @@ def check_online(r: Report) -> None:
         r.fail("首页上找不到篇数——模板变了还是页面坏了？")
     else:
         live = int(m.group(1))
-        if live != n_data:
+        if live != n_data and behind:
+            # 在过期的本地副本上跑就会这样：线上比本地新，那不是部署故障。
+            # 我自己就被这条误报骗过一次，去查"部署卡住了"，实际是本地落后 3 个提交。
+            r.note(f"线上 {live} 篇、本地仓库 {n_data} 篇，而本地落后 origin/main "
+                   f"{behind} 个提交——先 git pull，这不是部署问题")
+        elif live != n_data:
             r.fail(f"线上 {live} 篇，仓库 {n_data} 篇——推上去了但没部署，"
                    f"或者部署卡住了")
         else:

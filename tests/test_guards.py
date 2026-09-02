@@ -1439,3 +1439,54 @@ class StalenessMustNotDeleteLiveSources(unittest.TestCase):
         self.assertEqual(body.count('return "drop"'), 1,
                          "又多出了能直接删源的规则")
 
+
+class AlertsMustNotLieAboutStaleCheckouts(unittest.TestCase):
+    """我自己被这条误报骗过一次：在一份落后 4 个提交的本地副本上跑体检，报了两条
+    硬伤——"云端线 17 小时没心跳"和"线上 236 篇、仓库 234 篇，部署卡住了"。
+    两条都是假的：心跳文件和篇数都在 git 里，副本过期就必然对不上。
+    我去查"部署卡住"，实际只需要 git pull。
+
+    通则：**凡是拿仓库里的状态和当前时间／线上比的检查，都要先考虑仓库本身过期。**
+    CI 里每次都是新 checkout，不受影响——所以这个洞只在人手动跑的时候咬人，
+    而那正是最需要判断准确的时候。"""
+
+    def test_staleness_is_detected(self):
+        src = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        self.assertIn("def _commits_behind", src)
+        i = src.index("def _commits_behind")
+        body = src[i:i + 900]
+        self.assertIn("HEAD..origin/main", body)
+        self.assertIn("宁可不报，不误报", body)
+        # 不许 fetch：体检不该改本地 git 状态，也不该因为网络慢就卡住。
+        # 判据只看 docstring 之后的代码——docstring 里正好有"不 fetch"这句话，
+        # 按行过滤引号只能去掉首尾两行，中间的说明文字还在。
+        after_doc = body.split('"""')[2] if body.count('"""') >= 2 else body
+        code = "\n".join(l for l in after_doc.split("\n")
+                          if not l.strip().startswith("#"))
+        self.assertNotIn("fetch", code)
+
+    def test_both_time_based_checks_account_for_it(self):
+        src = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        for fn in ("def check_heartbeats", "def check_online"):
+            i = src.index(fn)
+            self.assertIn("behind", src[i:i + 2600], f"{fn} 没考虑副本过期")
+
+    def test_stale_downgrades_to_a_note_not_a_failure(self):
+        src = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        i = src.index("def check_heartbeats")
+        body = src[i:src.index("def check_content_freshness")]
+        self.assertIn("elif h > limit and behind:", body)
+        after = body.split("elif h > limit and behind:")[1][:200]
+        self.assertIn("r.note", after)
+
+    def test_alert_text_matches_what_judge_actually_does(self):
+        """改了规则却没改文案，告警就在说谎。judge 现在对非 residential 源是
+        改派而不是移除，体检却还在说"再失败一次会被移除"。"""
+        src = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        i = src.index("def check_sources")
+        body = src[i:src.index("def check_online")]
+        self.assertIn("改派本机线（不是移除）", body)
+        self.assertIn("to_local", body)
+        self.assertIn("to_drop", body)
+        self.assertIn('s.get("residential")', body)
+
