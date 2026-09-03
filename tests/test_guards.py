@@ -1638,3 +1638,46 @@ class PageTierMustNotAcceptAListingPage(unittest.TestCase):
         self.assertEqual(T._sibling_titles({"title": "x"}, None), [])
         self.assertEqual(T._sibling_titles({"title": "x"}, {"feed": "http://nope.invalid"}), [])
 
+
+class LatencyIsAFeatureNotAnAccident(unittest.TestCase):
+    """用户问"为啥不快速处理、快速发布"。实测常态延迟中位 15.1 小时
+    （最近 10 天发布的 93 篇），因为日更只有三班（00:40 / 01:10 / 12:40 UTC）——
+    早上发的节目要等到晚班。张小珺和曾鸣那期就是这样。
+
+    加了快车道：每两小时只查 tier1 的 24 档，绝大多数轮次没有新集、几十秒退出。
+    """
+
+    def test_tier1_only_flag_exists_and_filters(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        self.assertIn("--tier1-only", src)
+        self.assertIn('s.get("tier", 3) == 1', src)
+        self.assertIn('_tier1["on"] = a.tier1_only', src)
+
+    def test_fast_lane_shares_the_write_lock_with_daily(self):
+        """两条线同时写 data/ 会撞在 state.json 上——必须共用一把 concurrency 锁。"""
+        fast = (ROOT / ".github" / "workflows" / "fast.yml").read_text()
+        daily = (ROOT / ".github" / "workflows" / "daily.yml").read_text()
+        self.assertIn("group: podcast-write", fast)
+        self.assertIn("group: podcast-write", daily)
+        self.assertIn("cancel-in-progress: false", fast)
+
+    def test_fast_lane_is_bounded(self):
+        # 快车道的意义是"快"，不是"多"。历史内容交给日更和 backfill
+        fast = (ROOT / ".github" / "workflows" / "fast.yml").read_text()
+        self.assertIn("--tier1-only", fast)
+        self.assertIn("--days 2", fast)
+        self.assertIn("--per-source 1", fast)
+        # 云端取不到的那批（Substack/YouTube）不该在这里白试
+        self.assertIn("--skip-residential", fast)
+
+    def test_fast_lane_writes_a_heartbeat(self):
+        fast = (ROOT / ".github" / "workflows" / "fast.yml").read_text()
+        self.assertIn("heartbeat.py cloud", fast)
+
+    def test_frequency_tradeoff_is_documented(self):
+        """daily.yml 里记过"高频自动化会招来账号停用"。加频次必须写清为什么这次
+        可以、以及出问题怎么退——否则下一个人只能猜。"""
+        fast = (ROOT / ".github" / "workflows" / "fast.yml").read_text()
+        self.assertIn("账号停用", fast)
+        self.assertIn("4 小时", fast)
+

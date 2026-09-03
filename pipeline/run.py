@@ -43,6 +43,7 @@ _triage = {"on": True, "min": triage.MIN_SCORE}
 _last_triage: dict[str, dict] = {}
 _review = {"on": True, "min": review.MIN_SCORE}
 _skip_res = {"on": False, "only": False}
+_tier1 = {"on": False}
 _cat = {"v": ""}
 MAX_FAILS = 3          # genuine failures: no transcript exists, or the gate says no
 MAX_SOFT_FAILS = 8     # infrastructure hiccups: a 429, a dropped connection, a
@@ -180,6 +181,10 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
     want = {x.strip() for x in (only or "").split(",") if x.strip()}
     todo = [s for s in srcs if (not want or s["id"] in want)
             and (not _cat["v"] or s.get("cat") == _cat["v"])]
+    if _tier1["on"]:
+        # 快车道：只看优先级最高的那批。它们才值得两小时一查，其余交给日更。
+        todo = [s for s in todo if s.get("tier", 3) == 1]
+        log(f"  快车道：只跑 tier1 的 {len(todo)} 档")
     if _skip_res["on"]:
         blocked = [s["id"] for s in todo if s.get("residential")]
         if blocked:
@@ -411,6 +416,9 @@ def main() -> int:
                     help="选题闸门的及格线（0-10）。低于这个分数的集不做深读。")
     ap.add_argument("--no-triage", action="store_true",
                     help="关掉选题闸门（会把不合格的集也做成深读）")
+    ap.add_argument("--tier1-only", action="store_true",
+                    help="只跑 tier1 信源。快车道用它：两小时一查头部信源的新集，"
+                         "常态延迟从中位 15 小时压到 2 小时内")
     ap.add_argument("--tiers", default=os.environ.get("TIERS", ""),
                     help="restrict transcript tiers, comma separated "
                          "(feed,notes,page,youtube,asr). Empty = all. "
@@ -445,6 +453,7 @@ def main() -> int:
     _triage["on"] = not a.no_triage
     _triage["min"] = a.triage_min
     _cat["v"] = a.cat
+    _tier1["on"] = a.tier1_only
     _skip_res["on"] = a.skip_residential
     _skip_res["only"] = a.only_residential
     _review["on"] = not a.no_review

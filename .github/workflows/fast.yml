@@ -1,0 +1,113 @@
+name: fast lane
+
+# 为什么要这条线：常态延迟中位 15.1 小时，因为日更只有三班（00:40 / 01:10 /
+# 12:40 UTC）。早上发的节目要等到晚班——张小珺和曾鸣那期就是这样，发布时早班刚跑完。
+#
+# 这条线只做一件事：**每两小时看一眼头部信源有没有新集**。绝大多数轮次什么都
+# 没有，几十秒就退出，不花模型钱。有新集才生成，而且一次最多两篇。
+#
+# 关于频次的顾虑（daily.yml 里记过"高频自动化会招来账号停用"）：那次踩坑是另一个
+# 仓在做更激进的事。这里是自己仓库、有 concurrency 串行、绝大多数轮次零外部请求
+# 之外只读几十个 feed。如果真出问题，把 cron 减到 4 小时一次即可。
+on:
+  schedule:
+    - cron: "5 */2 * * *"      # 每两小时的第 5 分钟，避开整点拥堵
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "本次最多发布几篇"
+        default: "2"
+
+permissions:
+  contents: write
+
+concurrency:
+  # 和日更共用一把锁：两条线同时写 data/ 会撞在 state.json 上
+  group: podcast-write
+  cancel-in-progress: false
+
+jobs:
+  fast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install tooling
+        run: |
+          python -m pip install --quiet --upgrade pip
+          python -m pip install --quiet certifi truststore
+          sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg
+
+      - name: 只跑头部信源的新集
+        env:
+          LLM_API_KEY:  ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_MODEL:    ${{ secrets.LLM_MODEL }}
+          LLM_MODEL_MAP: ${{ secrets.LLM_MODEL_MAP }}
+          LLM_MODEL_TRIAGE: ${{ secrets.LLM_MODEL_TRIAGE }}
+          LLM_MODEL_REVIEW: ${{ secrets.LLM_MODEL_REVIEW }}
+          LLM_AUTH:     ${{ secrets.LLM_AUTH }}
+          TRANSCRIBE_API_KEY:  ${{ secrets.TRANSCRIBE_API_KEY }}
+          TRANSCRIBE_BASE_URL: ${{ secrets.TRANSCRIBE_BASE_URL }}
+          TRANSCRIBE_MODEL:    ${{ secrets.TRANSCRIBE_MODEL }}
+          JOBS: "2"
+        run: |
+          set -o pipefail
+          # --tier1-only：只看优先级最高的那批，它们才值得两小时一查
+          # --days 2：只要最近两天的，历史内容交给日更和 backfill
+          python pipeline/run.py --tier1-only --days 2 --skip-residential --no-build \
+            --limit "${{ github.event.inputs.limit || '2' }}" --per-source 1 \
+            2>&1 | tee "${RUNNER_TEMP}/fast.log"
+
+      - name: Commit
+        run: |
+          git config user.name  "podcast-bot"
+          git config user.email "podcast-bot@users.noreply.github.com"
+          git config merge.podcast-state.driver 'python pipeline/mergestate.py %O %A %B'
+          git clean -fdq p s e log 2>/dev/null || true
+          git checkout -q -- index.html sources feed.xml sitemap.xml robots.txt 404.html \
+                            search.json llms.txt llms-full.txt 2>/dev/null || true
+          python pipeline/heartbeat.py cloud 0
+          git add -A data
+          if git diff --cached --quiet; then
+            echo "没有新集，本轮不提交"; exit 0
+          fi
+          git commit -m "fast: $(git diff --cached --name-only | grep -c 'data/episodes/') new"
+          ok=0
+          for i in $(seq 1 6); do
+            if git pull --rebase --autostash origin main && git push; then ok=1; break; fi
+            if [ -n "$(git ls-files -u)" ]; then
+              git rebase --abort 2>/dev/null || git merge --abort 2>/dev/null || true
+            fi
+            echo "push retry $i"; sleep $(( (RANDOM % 5) + 3 ))
+          done
+          [ "$ok" = 1 ] || { echo "::error::快车道推送失败"; exit 1; }
+
+      - name: Rebuild and push
+        run: |
+          git pull --rebase --autostash origin main || true
+          python pipeline/build.py
+          git add -A
+          if git diff --cached --quiet; then echo "site unchanged"; exit 0; fi
+          git commit -m "build: regenerate site"
+          ok=0
+          for i in $(seq 1 8); do
+            if git push; then ok=1; break; fi
+            git fetch origin main
+            git reset --mixed origin/main
+            git diff --name-only --diff-filter=D -- data | while read -r f; do
+              git checkout -- "$f" 2>/dev/null || true
+            done
+            python pipeline/run.py --reconcile || true
+            python pipeline/build.py
+            git add -A
+            git diff --cached --quiet && { ok=1; break; }
+            git commit -m "build: regenerate site"
+            echo "push retry $i"; sleep $(( (RANDOM % 7) + 3 ))
+          done
+          [ "$ok" = 1 ] || { echo "::error::站点推送失败"; exit 1; }
