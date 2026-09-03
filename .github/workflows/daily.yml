@@ -153,6 +153,13 @@ jobs:
           done
           [ "$ok" = 1 ] || { echo "push failed"; exit 1; }
 
+      # 每天核对一小批内嵌视频的时间轴。判据只在跑过之后才写下 video_len，
+      # 而守护测试靠 video_len 离线复查全站——不跑，那条守护就是空转。
+      # 没核对过的排在前面，几天就能把存量清完；YouTube 限流时它什么都不改。
+      - name: 核对内嵌视频的时间轴（一小批）
+        continue-on-error: true
+        run: python pipeline/video.py --audit --limit 30
+
       - name: Rebuild the site from the merged set and push
         run: |
           git pull --rebase --autostash origin main || true

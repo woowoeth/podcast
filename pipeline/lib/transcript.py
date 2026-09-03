@@ -414,44 +414,22 @@ def _tokens(t: str) -> set[str]:
 
 
 def match_youtube(ep: dict, src: dict) -> str | None:
-    """Find this RSS episode on the show's own YouTube channel.
+    """Find this RSS episode on YouTube.
 
-    Most shows publish the same episode to both, but only the video has
-    captions. The RSS item rarely links to it, so match on the title: the
-    channel feed carries the 15 newest videos, which always covers a
-    freshly-published episode.
+    以前这里先走频道 Atom feed（`feeds/videos.xml?channel_id=…`，15 条最新、不用
+    yt-dlp）当快路径。那个端点已经废了：**连确认存在的真实频道 id 也返回 404**
+    （拿 Dwarkesh 真实频道 UCXl4i9dYBrFOabk0xGmbkRA 实测过）。留着它只是给每一集
+    多一次注定失败的请求，而失败日志长得像偶发网络问题。
+
+    更糟的是它当年怎么错的：Atom feed **不带时长**，所以只能比标题，而 sources.json
+    里 dwarkesh 的 yt 指向的是 **Dwarkesh Clips**（剪辑号）而不是正片频道——挂上去
+    的是 176 秒、1674 秒的片花，页面上每个时间戳都跳错。
+
+    现在只走搜索：它带时长，能用 seek_tolerance 挡掉片花。实测 215 篇只有音频的
+    里配上了 57 篇，偏差 0～30 秒。
     """
-    chan = src.get("yt")
-    if not chan:
+    if len(_tokens(ep.get("title", ""))) < 3:
         return None
-    try:
-        from . import feeds
-        vids = feeds.fetch({"id": src["id"], "name": src["name"],
-                            "feed": "https://www.youtube.com/feeds/videos.xml?channel_id=" + chan},
-                           cache_ttl=1800)
-    except Exception as ex:
-        log(f"    youtube channel lookup failed: {type(ex).__name__}")
-        return None
-    want = _tokens(ep.get("title", ""))
-    if len(want) < 3:
-        return None
-    best, best_score = None, 0.0
-    for v in vids:
-        have = _tokens(v.get("title", ""))
-        if not have:
-            continue
-        inter = len(want & have)
-        score = inter / len(want | have)
-        # A YouTube title is often the RSS title plus the guest and show name,
-        # so containment counts as strongly as symmetric overlap.
-        if inter >= max(4, int(len(want) * 0.8)):
-            score = max(score, 0.75)
-        if score > best_score:
-            best, best_score = v, score
-    # 0.55 太松：频道 feed 是 Atom，不带时长，没法用时长兜底，所以标题必须很像。
-    if best and best_score >= 0.72:
-        log(f"    matched on YouTube ({best_score:.2f}): {best['title'][:60]}")
-        return best.get("youtube_id")
     return _search_youtube(ep, src)
 
 
@@ -471,10 +449,22 @@ def _search_youtube(ep: dict, src: dict) -> str | None:
         return None
     show = src.get("zh") or src["name"]
     dur = ep.get("duration")
+    # 两轮：先"节目名 + 集标题"，再只用集标题。
+    # 为什么要第二轮：sources.json 里"张小珺"曾被拼成"张小珲"，一个错字让这档节目的
+    # 视频发现完全归零，而且是静默的（搜索返回空，和"这集真没视频"长得一模一样）。
+    # 集标题本身已经足够独特，节目名只是帮着排序——不该成为单点。
+    for q in (f"{show} {title}", title):
+        vid = _yt_search_once(q, ep, dur)
+        if vid:
+            return vid
+    return None
+
+
+def _yt_search_once(query: str, ep: dict, dur: int | None) -> str | None:
     with _YT_LOCK:
         try:
             r = subprocess.run(
-                ["yt-dlp", f"ytsearch5:{show} {title}", "--flat-playlist",
+                ["yt-dlp", f"ytsearch5:{query}", "--flat-playlist",
                  "--no-warnings", "--socket-timeout", "30",
                  "--print", "%(id)s\t%(title)s\t%(duration)s"],
                 capture_output=True, text=True, timeout=180)
@@ -491,9 +481,12 @@ def _search_youtube(ep: dict, src: dict) -> str | None:
             vdur = int(float(vdur))
         except (TypeError, ValueError):
             vdur = 0
-        # A clip carries the episode's title but not its length.
-        if dur and vdur and abs(vdur - dur) > 90:
+        # 片花带着正片的标题，但带不来正片的长度。容差用 seek_tolerance：
+        # 时间戳能错多少，这里就只能差多少，两处必须是同一个数。
+        if dur and vdur and abs(vdur - dur) > seek_tolerance(dur):
             continue
+        if dur and not vdur:
+            continue                     # 长度未知 = 无法验证，不要
         have = _tokens(vtitle)
         if not have:
             continue
@@ -948,6 +941,19 @@ def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
                    attempts=attempts + [f"{tier}:ok"])
         log(f"    transcript via {tier} ({got['detail']}): {words} words, "
             f"{wpm:.0f} wpm, {len(got['segments'])} segments")
+        # 时间戳定下来了，现在才能判断挂着的视频和它是不是同一条时间轴。
+        # 不一致就把视频摘掉：时间戳退回音频，比每个都跳错好。
+        if ep.get("youtube_id"):
+            ok, why = video_aligned(ep, tier == "youtube")
+            if ok:
+                log(f"    视频可跳时间戳：{why}")
+            elif ok is None:
+                # 查不出来就保持原样：视频是搜索阶段按时长挑出来的，本来就过了一遍。
+                # 因为一次 429 把它摘掉，等于让临时故障造成永久损失。
+                log(f"    视频暂时无法核对（{why}），保留，下次 audit 再查")
+            else:
+                log(f"    摘掉视频（{why}）")
+                ep["youtube_id"] = ""
         try:
             cp.parent.mkdir(parents=True, exist_ok=True)
             cp.write_text(json.dumps(got, ensure_ascii=False))
@@ -969,3 +975,68 @@ def flatten(segs: list[dict], *, stamp_every: int = 60) -> str:
         spk = s.get("spk")
         out.append((f"{spk}: " if spk else "") + s["text"] + " ")
     return squeeze("".join(out).replace(" \n", "\n"))
+
+
+# ------------------------------------------------- 视频和音频是不是同一条时间轴
+
+def yt_length(vid: str) -> int:
+    """这个视频多长（秒）。拿不到返回 0。
+
+    走 watch 页里的 lengthSeconds，不依赖 yt-dlp——护栏必须在每条线上都能跑，
+    包括只装了 certifi 的快车道。
+    """
+    if not vid:
+        return 0
+    try:
+        h = net.get_text("https://www.youtube.com/watch?v=" + vid, timeout=25, tries=2,
+                         headers={"Accept-Language": "en-US,en;q=0.9"})
+    except Exception:
+        return 0
+    m = re.search(r'"lengthSeconds":"(\d+)"', h)
+    return int(m.group(1)) if m else 0
+
+
+def seek_tolerance(dur: int) -> int:
+    """时间戳允许错多少秒。
+
+    这个站的承诺是"点一下回到它被说出的那一秒"，所以宽容度必须小到读者察觉不到。
+    实测对得上的那些差 0～28 秒（编码和片头微差），差 84 秒的那条是另一个剪辑版本
+    ——一分半的偏移已经跳到别的话上了，宁可不给视频。
+    """
+    return min(90, max(40, int(dur * 0.01)))
+
+
+def video_aligned(ep: dict, from_youtube_tier: bool,
+                  known_len: int = 0) -> tuple[bool | None, str]:
+    """挂在这一集上的视频，能不能拿来跳时间戳。
+
+    为什么需要这道检查：频道 Atom feed **不带时长**，所以 match_youtube 只能比标题，
+    而片花、预告、剪辑片段的标题和正片几乎一样。线上真实后果——80,000 Hours 挂了
+    176 秒的片花（音频 2968 秒）、Lenny's 挂了 133 秒、Acquired 挂了 1674 秒对
+    14360 秒的正片。这些页面上**每一个**时间戳都跳错，比没有视频糟得多。
+
+    文稿本来就是从视频字幕来的，时间轴就是视频自己的，不用查也不该查。
+
+    三态，不是两态：True 验过一致、False 验过不一致、**None 这次查不出来**。
+    第三个必须和第二个分开——YouTube 会 429，而"限流"和"挂错了视频"在返回值上
+    长得一样。把 None 当 False 处理，就会因为一次限流把好视频摘掉。
+    """
+    vid = ep.get("youtube_id")
+    if not vid:
+        return False, "没有视频"
+    if from_youtube_tier:
+        return True, "文稿即视频字幕，时间轴天然一致"
+    dur = int(ep.get("duration") or 0)
+    if not dur:
+        return None, "音频没有时长，无法验证是不是同一个剪辑"
+    # 搜索那一步已经拿到过时长就别再抓一次：多一次网络请求就多一次"抖一下就把
+    # 好视频判死"的机会，而这个判死是静默的。
+    vlen = known_len or yt_length(vid)
+    if not vlen:
+        return None, "拿不到视频时长（限流或页面变了），这次无法验证"
+    ep["video_len"] = vlen        # 存下来，守护测试才能离线复查这一条
+    tol = seek_tolerance(dur)
+    diff = abs(vlen - dur)
+    if diff <= tol:
+        return True, f"音频 {dur}s / 视频 {vlen}s，差 {diff}s（容差 {tol}s）"
+    return False, f"音频 {dur}s / 视频 {vlen}s，差 {diff}s > 容差 {tol}s——不是同一个剪辑"

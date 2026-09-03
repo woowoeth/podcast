@@ -1970,3 +1970,142 @@ class ChinesePunctuationMustBeFullWidth(unittest.TestCase):
         i = src.index("for q in (g.get(\"quotes\")")
         self.assertNotIn('put(q, "raw")', src[i:i + 200])
 
+
+
+class VideoTimeline(unittest.TestCase):
+    """视频和音频得是同一条时间轴，否则每个时间戳都跳错。
+
+    线上真实后果（用户问"为啥看不了视频只有音频"时查出来的）：55 篇挂着视频的里
+    16 篇挂错了——80,000 Hours 挂了 176 秒的片花（音频 2968 秒）、Lenny's 挂了
+    133 秒、Acquired 挂了 1674 秒对 14360 秒的正片。频道 Atom feed 不带时长，
+    match_youtube 只能比标题，而片花的标题和正片几乎一样。
+    """
+
+    def setUp(self):
+        import sys
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib import transcript as T
+        self.T = T
+
+    def test_clip_is_rejected(self):
+        ok, why = self.T.video_aligned(
+            {"youtube_id": "x", "duration": 2968}, False, known_len=176)
+        self.assertFalse(ok)
+        self.assertIn("不是同一个剪辑", why)
+
+    def test_same_cut_passes(self):
+        ok, _ = self.T.video_aligned(
+            {"youtube_id": "x", "duration": 7952}, False, known_len=7952)
+        self.assertTrue(ok)
+
+    def test_youtube_tier_needs_no_check(self):
+        """文稿就是这个视频的字幕，时间轴天然一致——不该去抓网页验证。"""
+        ok, why = self.T.video_aligned({"youtube_id": "x"}, True, known_len=0)
+        self.assertTrue(ok)
+        self.assertIn("天然一致", why)
+
+    def test_tolerance_stays_imperceptible(self):
+        """承诺是"点一下回到它被说出的那一秒"，容差必须小到读者察觉不到。
+        实测同剪辑的差 0～28 秒；差 84 秒那条是另一个版本，一分半的偏移已经
+        跳到别的话上了。"""
+        self.assertEqual(self.T.seek_tolerance(2691), 40)
+        self.assertLessEqual(self.T.seek_tolerance(16000), 90)
+        ok, _ = self.T.video_aligned(
+            {"youtube_id": "x", "duration": 2691}, False, known_len=2775)
+        self.assertFalse(ok, "差 84 秒不该放过")
+
+    def test_search_is_the_only_path(self):
+        """曾经有两条提前 return 造成静默的全面失效：没填频道 id 就 return
+        （122 档信源从来没搜过），以及频道 feed 一个 HTTPError 就 return
+        （一次限流等于这一集永远没视频）。全站只有 55/255 有视频，而用户看到的
+        现象只是"只有音频"。
+
+        那条"快路径"（feeds/videos.xml?channel_id=）本身已经废了——连确认存在的
+        真实频道 id 也返回 404。它不该再回来：Atom feed 不带时长，只能比标题，
+        而 dwarkesh 的 yt 指向的是 Dwarkesh Clips 剪辑号，挂上去全是片花。"""
+        src = (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
+        i = src.index("def match_youtube")
+        body = src[i:src.index("def _search_youtube", i)]
+        self.assertIn("_search_youtube", body, "match_youtube 必须落到搜索")
+        code = body[body.index('"""', body.index('"""') + 3) + 3:]   # 去掉文档串
+        self.assertNotIn("feeds/videos.xml", code,
+                         "频道 Atom feed 端点已废且不带时长，不该再当快路径")
+
+    def test_search_does_not_hinge_on_show_name(self):
+        """sources.json 里"张小珺"曾被拼成"张小珲"，一个错字让这档节目的视频发现
+        完全归零，而且静默——搜索返回空和"这集真没视频"长得一模一样。"""
+        src = (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
+        i = src.index("def _search_youtube")
+        body = src[i:i + 1400]
+        self.assertIn('for q in (f"{show} {title}", title)', body,
+                      "搜索必须有一轮只用集标题，不能把节目名当单点")
+
+    def test_unverifiable_is_not_the_same_as_wrong(self):
+        """YouTube 会 429，而"限流"和"挂错了视频"在返回值上长得一样。把"查不出来"
+        当成"对不上"，一次限流就会把好视频摘掉——临时故障造成永久损失。"""
+        state, why = self.T.video_aligned(
+            {"youtube_id": "x", "duration": 3000}, False, known_len=0)
+        self.assertIsNone(state, "拿不到时长必须是 None，不能是 False")
+        src = (ROOT / "pipeline" / "video.py").read_text()
+        i = src.index("def audit")
+        self.assertIn("if ok is None:", src[i:src.index("def find", i)],
+                      "audit 必须把「查不出来」和「对不上」分开处理")
+
+    def test_no_wrong_video_on_the_site(self):
+        """线上不该再有挂错的视频。只查已知的失败形态：视频比音频短一大截 =
+        片花。这条不联网，跑得起。"""
+        bad = []
+        for f in (ROOT / "data" / "episodes").glob("*.json"):
+            d = json.loads(f.read_text())
+            if not d.get("youtube_id"):
+                continue
+            q = (d.get("digest") or {}).get("quality") or {}
+            if q.get("transcript_source") == "youtube":
+                continue          # 文稿即字幕，时间轴天然一致
+            if not d.get("video_len") or not d.get("duration"):
+                continue
+            if abs(d["video_len"] - d["duration"]) > self.T.seek_tolerance(d["duration"]):
+                bad.append((d.get("source"), d["duration"], d["video_len"]))
+        self.assertEqual(bad, [], f"{len(bad)} 篇挂着对不上的视频")
+
+
+class PlayerNote(unittest.TestCase):
+    def test_no_redundant_timestamp_hint(self):
+        """「核心论点 · 点时间戳可跳到原声」那个小标题已经说了同一件事，
+        播放器下面再解释一遍是噪音。"""
+        src = (ROOT / "pipeline" / "build.py").read_text()
+        i = src.index("def player_block")
+        body = src[i:src.index("def episode_page", i)]
+        marks = [ln for ln in body.split("\n")
+                 if 'class="note"' in ln and "点时间戳" in ln]
+        self.assertEqual(marks, [], f"播放器下面又出现了时间戳说明：{marks}")
+
+
+class YouTubeChannelIds(unittest.TestCase):
+    """信源清单里不许出现 YouTube 频道 id。
+
+    这个字段的全部历史：43 档信源手填了 `yt="UC…"`，格式对、长度对、从没验证过。
+    逐个拉频道页才发现它们**都存在但有几个指向错的频道**——dwarkesh 指的是
+    **Dwarkesh Clips** 剪辑号，cogrev 指的是 Upstream with Erik Torenberg。
+    挂上去的是 176 秒、1674 秒的片花，页面上每个时间戳都跳错。
+
+    而它当年的用处（频道 Atom feed 快路径）已经彻底没了：那个端点对**任何** id
+    都返回 404，包括确认存在的真实频道。删掉快路径之后没有任何代码再读这个字段。
+
+    留一个没人读、又验证不了的外部标识符在配置里，唯一的用处是将来某天悄悄拿它
+    抓错东西。要重新引入频道发现，必须连着验证工具一起来。
+    """
+
+    def test_no_hand_written_channel_ids(self):
+        import re
+        for name in ("resolve_sources.py", "extra_sources.py"):
+            src = (ROOT / "pipeline" / name).read_text()
+            found = re.findall(r'yt="[^"]*"', src)
+            self.assertEqual(found, [],
+                             f"{name} 里又出现了频道 id：{found}。"
+                             f"没有代码读它，而手填的 id 曾指向剪辑号")
+
+    def test_generated_list_has_none_either(self):
+        srcs = json.loads((ROOT / "data" / "sources.json").read_text())["sources"]
+        with_yt = [s["id"] for s in srcs if s.get("yt")]
+        self.assertEqual(with_yt, [], f"sources.json 里还有 yt 字段：{with_yt}")

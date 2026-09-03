@@ -383,6 +383,7 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
         "duration": ep.get("duration"), "audio": ep.get("audio") or "",
         "link": ep.get("link") or "", "image": ep.get("image") or "",
         "youtube_id": ep.get("youtube_id") or "",
+        "video_len": int(ep.get("video_len") or 0),
         "transcript_url": tr.get("url", ""),
         "digest": d, "generated": iso(now()),
         "triage": _last_triage.get(key), "review": rv,

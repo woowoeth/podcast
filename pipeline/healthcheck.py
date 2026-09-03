@@ -216,6 +216,37 @@ def check_sources(r: Report) -> None:
                + "、".join(s["name"] for s in to_drop[:6]))
 
 
+def check_videos(r: Report) -> None:
+    """挂在正文里的视频，有多少还没核对过时间轴。
+
+    为什么要报这一条：判据（视频时长必须和音频时长对得上）只有在真的跑过之后
+    才写下 video_len，而守护测试是靠 video_len 离线复查全站的。核对没跑过，
+    那条守护就是空转——而空转的守护比没有守护更糟，它让人以为查过了。
+    """
+    eps = list((DATA / "episodes").glob("*.json"))
+    vids = unver = 0
+    for f in eps:
+        try:
+            d = json.loads(f.read_text())
+        except Exception:
+            continue
+        if not d.get("youtube_id"):
+            continue
+        vids += 1
+        q = (d.get("digest") or {}).get("quality") or {}
+        if q.get("transcript_source") == "youtube":
+            continue          # 文稿即字幕，时间轴天然一致，不需要核对
+        if not d.get("video_len"):
+            unver += 1
+    if not vids:
+        return
+    if unver:
+        r.note(f"{vids} 篇有内嵌视频，其中 {unver} 篇还没核对过时间轴"
+               f"——跑 python3 pipeline/video.py --audit（时间戳跳错比没视频糟）")
+    else:
+        r.good(f"{vids} 篇内嵌视频，时间轴都核对过")
+
+
 def check_online(r: Report) -> None:
     """线上和仓库是不是同一个版本。
 
@@ -263,6 +294,7 @@ def main(argv: list[str] | None = None) -> int:
     check_content_freshness(r)
     check_build_consistency(r)
     check_sources(r)
+    check_videos(r)
     if a.online:
         check_online(r)
 

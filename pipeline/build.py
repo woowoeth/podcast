@@ -486,6 +486,10 @@ def player_block(ep: dict) -> str:
 
     视频用**封面图加播放按钮的假门**，点了才换成真 iframe。YouTube 的嵌入代码有
     1 MB 以上的 JS，直接塞进去会把首页刚从 109 KB 压到 17 KB 的成果吃掉。
+
+    播放器下面不解释"点时间戳会跳过来"——「核心论点 · 点时间戳可跳到原声」那个
+    小标题已经说了同一件事，在正文第一屏重复一遍纯属噪音。视频那条只留一句隐私
+    交代（点播放之前 YouTube 拿不到你的 IP），因为静态封面图本身不说明这一点。
     """
     vid = ep.get("youtube_id")
     if vid:
@@ -498,13 +502,12 @@ def player_block(ep: dict) -> str:
     <img src="{e(poster)}" alt="" loading="lazy" width="480" height="360">
     <span class="play" aria-hidden="true">▶</span>
   </button>
-  <p class="note">点时间戳会跳到视频对应位置。视频由 YouTube 提供，点播放才会加载。</p>
+  <p class="note">点播放才向 YouTube 请求</p>
 </div>'''
     if ep.get("audio"):
         return f'''
 <div class="player" data-player-box>
   <audio data-player controls preload="none" src="{e(ep["audio"])}"></audio>
-  <p class="note">点时间戳会跳到这里对应的位置。</p>
 </div>'''
     return ""
 
