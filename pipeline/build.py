@@ -54,6 +54,29 @@ CAT_LABEL = {
 BLURB = ""          # 首次 build 时填充（要先读到 data/sources.json）
 
 
+# 分享卡片的图必须小。张小珺那集的封面是 3000×3000 的 PNG、3.2 MB——微信抓图
+# 直接放弃了，卡片上只有一个灰色占位符。多数播客 CDN 支持缩略参数，实测：
+#   image.xyzcdn.net（七牛，小宇宙）  3.2 MB → 39 KB
+#   megaphone.imgix.net（imgix）      283 KB → 77 KB
+#   www.omnycontent.com               加参数直接 HTTP 400，绝对不能加
+#   image.simplecastcdn.com           参数被忽略，加了没用也没害
+# 只对实测有效的加，其余原样放行——宁可慢，也不能因为参数写错让图整个 404。
+_OG_RESIZE = (
+    ("image.xyzcdn.net", "?imageMogr2/thumbnail/600x600/format/jpg/quality/80"),
+    ("imgix.net", "?w=600&h=600&fit=crop&auto=format&q=70"),
+)
+
+
+def og_image(url: str) -> str:
+    """把封面图换成 600×600 的缩略版本，能换就换。"""
+    if not url or "?" in url:          # 已经带参数的不动，免得叠加出错
+        return url
+    for host, q in _OG_RESIZE:
+        if host in url:
+            return url + q
+    return url
+
+
 def e(s) -> str:
     return html.escape(str(s or ""), quote=True)
 
@@ -71,6 +94,9 @@ def load() -> tuple[list[dict], dict]:
 
 
 # --------------------------------------------------------------------- chrome
+
+# 首屏渲染多少张卡片。剩下的进 cards.json，滚到底、点"加载更多"或一搜索就补齐。
+FIRST_PAGE = 24
 
 GA_ID = os.environ.get("GA_ID", "G-DHD3WEXQ8T")   # 与 ourword.ai 其他站同一个属性
 
@@ -106,7 +132,9 @@ def head(title: str, desc: str, *, path: str = "/", image: str = "",
 <meta property="og:title" content="{e(title)}">
 <meta property="og:description" content="{e(desc)}">
 <meta property="og:url" content="{e(url)}">
-{f'<meta property="og:image" content="{e(image)}">' if image else ''}
+{f'<meta property="og:image" content="{e(og_image(image))}">'
+  f'<meta property="og:image:width" content="600">'
+  f'<meta property="og:image:height" content="600">' if image else ''}
 {dates}<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{e(title)}">
 <meta name="twitter:description" content="{e(desc)}">
@@ -347,6 +375,17 @@ def _publisher() -> dict:
     return {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}
 
 
+def rest_cards(eps: list[dict]) -> str:
+    """首屏之外的卡片，整段 HTML 直接存起来。
+
+    为什么存 HTML 而不是存数据让前端拼：卡片的标记和首屏那批必须一模一样，
+    两份渲染逻辑迟早会长歪（首屏加了个角标、这边没加）。存 HTML 就只有一份真相。
+    体积也不吃亏——gzip 之后差别很小，而且这份文件是按需取的。
+    """
+    return json.dumps([card(x, hero=False) for x in eps[FIRST_PAGE:]],
+                      ensure_ascii=False)
+
+
 def index_page(eps: list[dict], srcs: dict) -> str:
     counts = {c: sum(1 for x in eps if x.get("cat") == c) for c in CAT_ORDER}
     chips = [f'<button class="chip" data-cat-chip="all" aria-pressed="true">全部'
@@ -354,7 +393,10 @@ def index_page(eps: list[dict], srcs: dict) -> str:
     for c in CAT_ORDER:
         chips.append(f'<button class="chip" data-cat-chip="{c}" aria-pressed="false">'
                      f'{CAT_LABEL[c]}<span class="n">{counts.get(c, 0)}</span></button>')
-    cards = "\n".join(card(x, hero=(i == 0)) for i, x in enumerate(eps))
+    # 首屏只渲染前 FIRST_PAGE 张。原来 257 张全内联，index.html 288 KB
+    # （gzip 后 109 KB），手机上打开明显慢。其余的进 cards.json，滚到底或一搜索
+    # 就补齐——**搜索和筛选必须覆盖全部**，所以补齐是前提不是可选项。
+    cards = "\n".join(card(x, hero=(i == 0)) for i, x in enumerate(eps[:FIRST_PAGE]))
     # TAGLINE 里已经有"原声"，再前缀 NAME 会让标题出现两次品牌名
     # WebSite + CollectionPage + ItemList：让搜索与答案引擎知道这是一个持续更新的
     # 条目集合，而不是一张零散的落地页。SearchAction 指向 ?q=，那是站内搜索真实
@@ -388,13 +430,18 @@ def index_page(eps: list[dict], srcs: dict) -> str:
 {share_button(site_share_text(eps), url=SITE + "/", title=f"{NAME} · {TAGLINE}", label="分享本站")}
 </div></div></div>
 
-<main class="wrap"><div class="feed" data-feed>
+<main class="wrap"><div class="feed" data-feed data-total="{len(eps)}"
+     data-rest="{max(0, len(eps) - FIRST_PAGE)}">
 {cards}
 <div class="empty" data-empty hidden><b>没有匹配的深读</b>
 <p>换个词，或者清掉筛选再试。搜索会搜进每条要点的正文、金句的中英文原文、
 数字和术语表——不只是标题。</p>
 <p data-deep-note hidden style="color:var(--faint);font-size:13px"></p></div>
-</div></main>
+</div>
+{f'''<div class="more"><button data-more type="button">还有 {len(eps) - FIRST_PAGE} 篇，加载更多</button>
+<noscript><p class="note">没有 JavaScript 时只显示最新 {FIRST_PAGE} 篇，
+完整清单见 <a href="{BASE}/sitemap.xml">sitemap</a> 或 <a href="{BASE}/llms.txt">llms.txt</a>。</p></noscript></div>''' if len(eps) > FIRST_PAGE else ""}
+</main>
 """ + foot())
 
 
@@ -976,6 +1023,7 @@ def main() -> int:
     (ROOT / "feed.xml").write_text(rss(eps))
     (ROOT / "sitemap.xml").write_text(sitemap(eps))
     (ROOT / "search.json").write_text(search_index(eps))
+    (ROOT / "cards.json").write_text(rest_cards(eps))
     (ROOT / "log").mkdir(exist_ok=True)
     (ROOT / "log" / "index.html").write_text(log_page(eps, srcs))
 

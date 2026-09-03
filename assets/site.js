@@ -49,6 +49,56 @@
     var deep = null, deepState = 'idle';
     var base = (document.querySelector('link[rel="alternate"]') || {}).href || '';
     var indexUrl = base ? base.replace(/feed\.xml$/, 'search.json') : 'search.json';
+    var cardsUrl = base ? base.replace(/feed\.xml$/, 'cards.json') : 'cards.json';
+
+    /* 首屏只渲染 24 张卡片（原来 257 张全内联，index.html 288 KB）。剩下的在
+       cards.json 里，滚到底、点"加载更多"或一开始搜索就补齐。
+       **搜索和筛选必须覆盖全部**，所以在筛选之前一定要先补齐——否则用户会以为
+       站上没有那篇文章，那比慢更糟。 */
+    var moreBtn = document.querySelector('[data-more]');
+    var restState = feed.getAttribute('data-rest') > 0 ? 'idle' : 'done';
+
+    function loadRest(then) {
+      if (restState === 'done') { then && then(); return; }
+      if (restState === 'loading') { pending.push(then); return; }
+      restState = 'loading';
+      if (moreBtn) moreBtn.textContent = '正在加载…';
+      fetch(cardsUrl).then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (html) {
+          if (!html) throw new Error('bad payload');
+          // 一次性插入，避免 257 次 reflow
+          var box = document.createElement('div');
+          box.innerHTML = html.join('');
+          var added = [].slice.call(box.querySelectorAll('[data-card]'));
+          var anchor = feed.querySelector('[data-empty]');
+          added.forEach(function (c) {
+            c._hay = (c.getAttribute('data-hay') || '').toLowerCase();
+            c._slug = decodeURIComponent((c.getAttribute('href') || '').replace(/.*\/p\/|\/$/g, ''));
+            cards.push(c);
+            anchor ? feed.insertBefore(c, anchor) : feed.appendChild(c);
+          });
+          restState = 'done';
+          if (moreBtn) moreBtn.parentNode.remove();
+          run();
+          [then].concat(pending).forEach(function (f) { f && f(); });
+          pending = [];
+        })
+        .catch(function () {
+          restState = 'idle';
+          if (moreBtn) moreBtn.textContent = '加载失败，点一下重试';
+          [then].concat(pending).forEach(function (f) { f && f(); });
+          pending = [];
+        });
+    }
+    var pending = [];
+
+    if (moreBtn) moreBtn.addEventListener('click', function () { loadRest(); });
+    // 滚到底自动补齐。rootMargin 给 600px，让它在用户看到按钮之前就开始取。
+    if (moreBtn && 'IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) {
+        if (es.some(function (e) { return e.isIntersecting; })) loadRest();
+      }, { rootMargin: '600px' }).observe(moreBtn);
+    }
 
     function loadDeep() {
       if (deepState !== 'idle') return;
@@ -67,6 +117,11 @@
     function run() {
       var q = (input && input.value || '').trim().toLowerCase();
       var terms = q ? q.split(/\s+/) : [];
+      // 一旦开始搜或筛，先把全部卡片补齐——只筛前 24 张会让用户以为站上没有那篇
+      if ((terms.length || cat !== 'all') && restState !== 'done') {
+        loadRest();
+        return;
+      }
       if (terms.length) loadDeep();
       var shown = 0;
       cards.forEach(function (c) {
@@ -216,7 +271,12 @@
     // 所以在微信里一律走复制 + 提示右上角菜单——那才是分享到朋友圈的正路。
     var wx = inWeChat();
     if (!wx && navigator.share) {
-      navigator.share({ title: title, text: text, url: url })
+      // 只传 text，不传 url。同时传两个的话微信会当成两个条目：文本正常发出，
+      // URL 另存成一个一百多字节的临时文件跟着发过去（实测截图里那个
+      // "32058763b0241ae675c…" 就是它）。我们的文本末尾本来就带链接，
+      // 少传一个字段反而干净。title 也不传：微信不用它，而某些客户端会
+      // 把它当成另一个条目。
+      navigator.share({ text: text })
         .then(function () { track('share_native'); })
         .catch(function (err) {
           // 用户主动取消不算失败，不该弹提示

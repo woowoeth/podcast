@@ -1681,3 +1681,163 @@ class LatencyIsAFeatureNotAnAccident(unittest.TestCase):
         self.assertIn("账号停用", fast)
         self.assertIn("4 小时", fast)
 
+
+class ShareSheetMustSendOneThingNotTwo(unittest.TestCase):
+    """事故：分享到微信时多出一个 151 字节的文件（名字是一串哈希）。
+    原因是 navigator.share 同时传了 text 和 url——微信把它当成两个条目：
+    文本正常发出，URL 另存成临时文件跟着发过去。
+    我们的文本末尾本来就带链接，少传一个字段反而干净。"""
+
+    def test_share_passes_text_only(self):
+        js = (ROOT / "assets" / "site.js").read_text()
+        self.assertIn("navigator.share({ text: text })", js)
+        self.assertNotIn("navigator.share({ title: title, text: text, url: url })", js)
+
+    def test_the_text_still_carries_the_link(self):
+        # 不传 url 的前提是文本里有链接，否则分享出去就没法点了
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import build
+        for f in sorted((ROOT / "data" / "episodes").glob("*.json"))[:8]:
+            ep = json.loads(f.read_text())
+            self.assertIn(build.ep_url(ep), build.episode_share_text(ep))
+
+
+class ShareCardImageMustBeSmall(unittest.TestCase):
+    """事故：分享卡片上只有灰色占位符。张小珺那集的封面是 3000×3000 PNG、3.2 MB，
+    微信抓图直接放弃。多数播客 CDN 支持缩略参数，实测 3.2 MB → 39 KB。"""
+
+    def test_known_cdns_get_resized(self):
+        import build
+        self.assertIn("thumbnail/600x600",
+                      build.og_image("https://image.xyzcdn.net/a.png"))
+        self.assertIn("w=600",
+                      build.og_image("https://megaphone.imgix.net/a.jpg"))
+
+    def test_cdns_that_reject_params_are_left_alone(self):
+        """omnycontent 加参数直接 HTTP 400——宁可慢，也不能让图整个挂掉。"""
+        import build
+        u = "https://www.omnycontent.com/d/playlist/x/image.jpg"
+        self.assertEqual(build.og_image(u), u)
+        u2 = "https://static.libsyn.com/p/assets/x.jpg"
+        self.assertEqual(build.og_image(u2), u2)
+
+    def test_urls_that_already_have_params_are_untouched(self):
+        import build
+        u = "https://image.xyzcdn.net/a.png?v=2"
+        self.assertEqual(build.og_image(u), u)
+
+    def test_dimensions_are_declared(self):
+        # 微信和 Twitter 都用 og:image:width/height 决定要不要抓
+        src = (ROOT / "pipeline" / "build.py").read_text()
+        self.assertIn('og:image:width" content="600"', src)
+
+
+class TitlesMustBeOneArguableClaim(unittest.TestCase):
+    """用户："你的标题很烂，我没办法通过标题吸引我并理解核心内容是什么"。
+    看了一批实际标题，好坏的结构差别很清楚：好的是一个可反驳的论断
+    （"深科技公司败给组织系统，而不是技术失败"），坏的有三个毛病——
+    两件不相干的事用逗号并列（"埃博拉持续感染脑神经元，鱼类黑色素瘤能传染"，
+    像论文目录）、术语人名裸奔（"Fawcett 的 Z 城执念"、"盆岭省"）、
+    用词有歧义（"AI没有安全巨头"，会被读成 security）。
+
+    原判据只有一行"必须是一个判断或一个反常识结论"，管不住这三样。"""
+
+    def _rules(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib.digest import SYSTEM
+        i = SYSTEM.index("标题怎么写")
+        return SYSTEM[i:]
+
+    def test_rubric_forbids_joining_two_things(self):
+        r = self._rules()
+        self.assertIn("只写一个论断", r)
+        self.assertIn("不是这集的目录", r)
+        # 反例必须是真出过的那两条，抽象的"别并列"没有约束力
+        self.assertIn("埃博拉持续感染脑神经元，鱼类黑色素瘤能传染", r)
+        # 第一次修完模型只是把两件事各说得更长，所以那个版本也要当反例钉住
+        self.assertIn("把两件事都塞进去", r)
+
+    def test_rubric_forbids_unexplained_names(self):
+        r = self._rules()
+        self.assertIn("需要背景才懂", r)
+        self.assertIn("Fawcett", r)
+        self.assertIn("盆岭省", r)
+
+    def test_rubric_forbids_ambiguous_wording(self):
+        r = self._rules()
+        self.assertIn("歧义", r)
+        self.assertIn("security", r)
+
+    def test_rubric_gives_structures_and_a_self_check(self):
+        r = self._rules()
+        self.assertIn("不是 X，而是 Y", r)
+        self.assertIn("有人会反对吗", r)
+        self.assertIn("是不是把两件事并列了", r)
+
+    def test_retitle_tool_exists_and_defaults_to_dry_run_safe(self):
+        """改判据必须能便宜地验证：重跑一篇成稿要一次推理调用（1.5 万输出 token，
+        八成是思考），只重出标题一集几百 token。"""
+        src = (ROOT / "pipeline" / "retitle.py").read_text()
+        self.assertIn("--dry-run", src)
+        self.assertIn('role="review"', src)      # 便宜模型
+        self.assertIn("一个字没写", src)
+
+
+class HomepageMustNotShipEveryCard(unittest.TestCase):
+    """用户："全部下拉内容太多了，改下拉成分页加载，网站打开会很慢"。
+    实测 257 张卡片全内联：index.html 288 KB（gzip 109 KB），其中 69 KB 是
+    每张卡片的内联搜索文本。改成首屏 24 张 + cards.json 按需补齐后
+    56 KB（gzip 16 KB）。
+
+    但**搜索和筛选必须覆盖全部**——只筛前 24 张会让用户以为站上没有那篇文章，
+    那比慢更糟。所以一开始搜或筛就先补齐，补齐失败也要让用户看得见。"""
+
+    def test_first_page_is_bounded(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import build
+        self.assertLessEqual(build.FIRST_PAGE, 40)
+        html = (ROOT / "index.html").read_text()
+        n = html.count('<a class="card')
+        self.assertLessEqual(n, build.FIRST_PAGE + 1,
+                             f"首页内联了 {n} 张卡片，分页没生效")
+
+    def test_the_rest_is_available_as_json(self):
+        f = ROOT / "cards.json"
+        self.assertTrue(f.exists(), "cards.json 没生成，剩下的卡片取不到")
+        rest = json.loads(f.read_text())
+        n_eps = len(list((ROOT / "data" / "episodes").glob("*.json")))
+        import build
+        self.assertEqual(len(rest), max(0, n_eps - build.FIRST_PAGE))
+        # 存的是整段 HTML：两份渲染逻辑迟早会长歪
+        self.assertIn("data-card", rest[0])
+        self.assertIn("data-hay", rest[0])
+
+    def test_search_and_filter_load_everything_first(self):
+        js = (ROOT / "assets" / "site.js").read_text()
+        i = js.index("function run()")
+        body = js[i:i + 700]
+        self.assertIn("restState !== 'done'", body)
+        self.assertIn("loadRest()", body)
+        # 注释里要写清为什么：只筛前 24 张比慢更糟
+        self.assertIn("以为站上没有那篇", js)
+
+    def test_load_failure_is_visible(self):
+        js = (ROOT / "assets" / "site.js").read_text()
+        self.assertIn("加载失败，点一下重试", js)
+
+    def test_works_without_javascript(self):
+        # 没有 JS 时只有 24 篇，必须告诉用户完整清单在哪
+        html = (ROOT / "index.html").read_text()
+        self.assertIn("<noscript>", html)
+        self.assertIn("sitemap", html)
+
+
+class QuoteAttributionIsBaselineAligned(unittest.TestCase):
+    """用户指出金句署名那行"人名和时间没有底对齐"。原来是 align-items:center，
+    而人名用 sans、时间戳用 mono，两种字体字形高度不同，居中之后基线是错开的。"""
+
+    def test_baseline_not_center(self):
+        css = (ROOT / "assets" / "site.css").read_text()
+        i = css.index(".quote .attrib{")
+        self.assertIn("align-items:baseline", css[i:i + 160])
+
