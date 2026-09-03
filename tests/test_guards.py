@@ -1092,6 +1092,18 @@ class RangeReplacementsDeleteMoreThanYouThink(unittest.TestCase):
     `assert old in s` 只能保证锚点存在，保证不了替换范围里没有别的东西。
     这条测试的作用是：curate 的每个被引用的模块级函数都必须真的有定义。"""
 
+    def test_javascript_functions_referenced_are_defined(self):
+        """同一个错误在 JS 上又犯了一次：范围替换把 loadDeep() 一起删掉，
+        `node --check` 过（语法没错），但 run() 一调用就抛异常，**搜索静默失效**
+        ——筛选永远走不到，255 篇全部显示为命中。"""
+        js = (ROOT / "assets" / "site.js").read_text()
+        defined = set(re.findall(r"function ([A-Za-z0-9_]+)", js))
+        for name in ("run", "loadDeep", "loadPage", "loadAll", "maybeLoad",
+                     "showCount", "pageUrl", "mountYouTube", "ytSrc",
+                     "copy", "toast", "track", "apply", "current"):
+            if name + "(" in js:
+                self.assertIn(name, defined, f"site.js 调用了 {name}() 但没有定义")
+
     def test_every_module_level_helper_referenced_is_defined(self):
         sys.path.insert(0, str(ROOT / "pipeline"))
         import curate
@@ -1802,24 +1814,25 @@ class HomepageMustNotShipEveryCard(unittest.TestCase):
                              f"首页内联了 {n} 张卡片，分页没生效")
 
     def test_the_rest_is_available_as_json(self):
-        f = ROOT / "cards.json"
-        self.assertTrue(f.exists(), "cards.json 没生成，剩下的卡片取不到")
-        rest = json.loads(f.read_text())
+        pages = sorted(ROOT.glob("cards-*.json"))
+        self.assertTrue(pages, "分页卡片文件没生成，剩下的卡片取不到")
+        first = json.loads(pages[0].read_text())
+        # 存的是整段 HTML：两份渲染逻辑迟早会长歪
+        self.assertIn("data-card", first[0])
+        self.assertIn("data-hay", first[0])
         n_eps = len(list((ROOT / "data" / "episodes").glob("*.json")))
         import build
-        self.assertEqual(len(rest), max(0, n_eps - build.FIRST_PAGE))
-        # 存的是整段 HTML：两份渲染逻辑迟早会长歪
-        self.assertIn("data-card", rest[0])
-        self.assertIn("data-hay", rest[0])
+        total = sum(len(json.loads(f.read_text())) for f in pages)
+        self.assertEqual(total, max(0, n_eps - build.FIRST_PAGE))
 
     def test_search_and_filter_load_everything_first(self):
         js = (ROOT / "assets" / "site.js").read_text()
         i = js.index("function run()")
         body = js[i:i + 700]
-        self.assertIn("restState !== 'done'", body)
-        self.assertIn("loadRest()", body)
+        self.assertIn("pageState !== 'done'", body)
+        self.assertIn("loadAll()", body)
         # 注释里要写清为什么：只筛前 24 张比慢更糟
-        self.assertIn("以为站上没有那篇", js)
+        self.assertIn("以为站上没有", js)
 
     def test_load_failure_is_visible(self):
         js = (ROOT / "assets" / "site.js").read_text()
@@ -1840,4 +1853,120 @@ class QuoteAttributionIsBaselineAligned(unittest.TestCase):
         css = (ROOT / "assets" / "site.css").read_text()
         i = css.index(".quote .attrib{")
         self.assertIn("align-items:baseline", css[i:i + 160])
+
+
+class PaginationMustLoadOnePageAtATime(unittest.TestCase):
+    """用户："加载更多样式好丑，另外也没真正实现下拉加载更多功能"。两条都对：
+    第一版滚到底一次性把剩下 231 张全塞进来（那不是分页，是"晚一点的全量加载"），
+    而且只靠 IntersectionObserver——**隐藏或后台标签页里 IO 不回调、rAF 也不执行**，
+    滚动永远触发不了加载。查这个 bug 时的决定性证据：派发 scroll 事件毫无反应，
+    点按钮却正常。"""
+
+    def test_cards_are_split_into_pages(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import build
+        n_eps = len(list((ROOT / "data" / "episodes").glob("*.json")))
+        expect = max(0, -(-(n_eps - build.FIRST_PAGE) // build.FIRST_PAGE))
+        pages = sorted(ROOT.glob("cards-*.json"))
+        self.assertEqual(len(pages), expect, "分页文件数不对")
+        # 单文件版必须删掉，否则前端会取到过期数据
+        self.assertFalse((ROOT / "cards.json").exists())
+        first = json.loads(pages[0].read_text())
+        self.assertLessEqual(len(first), build.FIRST_PAGE)
+
+    def test_scroll_listener_is_the_primary_path(self):
+        js = (ROOT / "assets" / "site.js").read_text()
+        i = js.index("if (sentinel) {")
+        body = js[i:i + 1400]
+        self.assertIn("addEventListener('scroll'", body)
+        # 节流不能用 rAF：隐藏标签页里它不执行。只看代码，注释里正好提到它。
+        code = "\n".join(l for l in body.split("\n")
+                         if "//" not in l and "*" not in l)
+        self.assertNotIn("requestAnimationFrame", code)
+        self.assertIn("Date.now()", body)
+        self.assertIn("visibilitychange", body)
+
+    def test_a_short_page_keeps_loading(self):
+        # 一页装不满一屏时滚动条不动，再也触发不了——必须自己接着装
+        js = (ROOT / "assets" / "site.js").read_text()
+        self.assertIn("一页装不满一屏时继续装", js)
+
+    def test_search_still_loads_every_page(self):
+        js = (ROOT / "assets" / "site.js").read_text()
+        i = js.index("function run()")
+        self.assertIn("loadAll()", js[i:i + 600])
+
+
+class InlinePlayerServesTheTimestamps(unittest.TestCase):
+    """用户问视频放哪合适。放正文第一屏、占满正文列宽：这个站的前提是"每条判断都能
+    跳回原声核对"，播放器是为时间戳服务的。侧栏只有 264px，视频小到没法看；
+    放文末的话正文各处的时间戳都要往回滚很远。"""
+
+    def test_player_is_in_the_article_not_the_aside(self):
+        src = (ROOT / "pipeline" / "build.py").read_text()
+        self.assertIn("def player_block", src)
+        i = src.index('<div class="ep-meta">{tags}</div>')
+        self.assertIn("player_block(ep)", src[i:i + 200])
+        # 侧栏不能再有一个，否则一页两个播放器
+        self.assertNotIn('{player}\n', src)
+
+    def test_video_is_a_facade_not_an_iframe(self):
+        """YouTube 的嵌入代码有 1 MB 以上的 JS，直接塞进页面会把首页刚压下来的
+        体积又吃回去。"""
+        src = (ROOT / "pipeline" / "build.py").read_text()
+        i = src.index("def player_block")
+        body = src[i:src.index("def episode_page")]
+        self.assertIn("video-facade", body)
+        self.assertNotIn("<iframe", body)
+        self.assertIn("i.ytimg.com", body)      # 封面用 YouTube 自己的缩略图
+
+    def test_timestamps_seek_the_video_with_start(self):
+        js = (ROOT / "assets" / "site.js").read_text()
+        self.assertIn("youtube-nocookie.com/embed/", js)
+        self.assertIn("start=", js)
+        self.assertIn("mountYouTube(t)", js)
+
+
+class ChinesePunctuationMustBeFullWidth(unittest.TestCase):
+    """用户："语录金句里的，都是半角不是全角"、"？问号也是半角"。
+    归一化判据原来要求标点**两侧都是汉字**，于是句末和引号前的全漏了。
+    改了两版：第二版右边放宽到「汉字／空白／句末／右引号」，还是漏了
+    "机架架构,1兆瓦"（右边是数字）；第三版逗号类不限制右边，靠左边的
+    lookbehind 保护 "1,200"。"""
+
+    def _f(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib.digest import _cn_punct
+        return _cn_punct
+
+    def test_terminal_and_pre_quote_punctuation(self):
+        f = self._f()
+        self.assertEqual(f("替代它?"), "替代它？")
+        self.assertEqual(f("不一定成功."), "不一定成功。")
+        self.assertEqual(f("「反共识的,但不一定成功.」"), "「反共识的，但不一定成功。」")
+        self.assertEqual(f("机架架构,1兆瓦"), "机架架构，1兆瓦")
+
+    def test_numbers_and_versions_are_untouched(self):
+        f = self._f()
+        self.assertEqual(f("营收 1,200 万美元"), "营收 1,200 万美元")
+        self.assertEqual(f("用 gpt-4.1 跑"), "用 gpt-4.1 跑")
+        self.assertEqual(f("中文.txt 这个文件"), "中文.txt 这个文件")
+        self.assertEqual(f("型号 A,B 两种"), "型号 A,B 两种")
+
+    def test_nothing_left_on_the_site(self):
+        import re as _re
+        bad = 0
+        for f in (ROOT / "data" / "episodes").glob("*.json"):
+            d = json.loads(f.read_text())["digest"]
+            for q in (d.get("quotes") or []):
+                if _re.search(r"[\u4e00-\u9fff][,;:!?]", q.get("zh") or ""):
+                    bad += 1
+        self.assertEqual(bad, 0, f"{bad} 条金句译文里还有半角标点")
+
+    def test_verbatim_quotes_are_never_touched(self):
+        """quotes[].raw 是逐字原文，改一个字符就通不过机械闸门的逐字校验。"""
+        src = (ROOT / "pipeline" / "repunct.py").read_text()
+        self.assertIn("raw 不动", src)
+        i = src.index("for q in (g.get(\"quotes\")")
+        self.assertNotIn('put(q, "raw")', src[i:i + 200])
 

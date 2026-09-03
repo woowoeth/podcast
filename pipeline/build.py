@@ -375,15 +375,32 @@ def _publisher() -> dict:
     return {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}
 
 
-def rest_cards(eps: list[dict]) -> str:
-    """首屏之外的卡片，整段 HTML 直接存起来。
+def write_card_pages(eps: list[dict]) -> int:
+    """首屏之外的卡片，按页写成 cards-1.json、cards-2.json……
 
-    为什么存 HTML 而不是存数据让前端拼：卡片的标记和首屏那批必须一模一样，
-    两份渲染逻辑迟早会长歪（首屏加了个角标、这边没加）。存 HTML 就只有一份真相。
-    体积也不吃亏——gzip 之后差别很小，而且这份文件是按需取的。
+    为什么分页而不是一个大文件：第一版把剩下 231 张全塞进一个 cards.json，
+    滚到底一次性插入——那不是分页加载，是"晚一点的全量加载"（96 KB + 231 个
+    DOM 节点一次进来）。现在一页 24 张，滚到哪加载到哪。
+
+    为什么存 HTML 而不是存数据让前端拼：卡片的标记必须和首屏那批一模一样，
+    两份渲染逻辑迟早会长歪（首屏加了个角标、这边没加）。存 HTML 只有一份真相。
     """
-    return json.dumps([card(x, hero=False) for x in eps[FIRST_PAGE:]],
-                      ensure_ascii=False)
+    rest = eps[FIRST_PAGE:]
+    pages = 0
+    for i in range(0, len(rest), FIRST_PAGE):
+        pages += 1
+        (ROOT / f"cards-{pages}.json").write_text(
+            json.dumps([card(x, hero=False) for x in rest[i:i + FIRST_PAGE]],
+                       ensure_ascii=False))
+    # 页数变少时把多出来的旧文件删掉，否则前端会取到过期的卡片
+    n = pages + 1
+    while (ROOT / f"cards-{n}.json").exists():
+        (ROOT / f"cards-{n}.json").unlink()
+        n += 1
+    old = ROOT / "cards.json"          # 第一版的单文件，不再用
+    if old.exists():
+        old.unlink()
+    return pages
 
 
 def index_page(eps: list[dict], srcs: dict) -> str:
@@ -431,16 +448,20 @@ def index_page(eps: list[dict], srcs: dict) -> str:
 </div></div></div>
 
 <main class="wrap"><div class="feed" data-feed data-total="{len(eps)}"
-     data-rest="{max(0, len(eps) - FIRST_PAGE)}">
+     data-page-size="{FIRST_PAGE}"
+     data-pages="{max(0, (len(eps) - FIRST_PAGE + FIRST_PAGE - 1) // FIRST_PAGE)}">
 {cards}
 <div class="empty" data-empty hidden><b>没有匹配的深读</b>
 <p>换个词，或者清掉筛选再试。搜索会搜进每条要点的正文、金句的中英文原文、
 数字和术语表——不只是标题。</p>
 <p data-deep-note hidden style="color:var(--faint);font-size:13px"></p></div>
 </div>
-{f'''<div class="more"><button data-more type="button">还有 {len(eps) - FIRST_PAGE} 篇，加载更多</button>
+{f'''<div class="more" data-sentinel>
+<span class="more-count" data-more-count>{FIRST_PAGE} / {len(eps)}</span>
+<button class="more-btn" data-more type="button" hidden>继续加载</button>
 <noscript><p class="note">没有 JavaScript 时只显示最新 {FIRST_PAGE} 篇，
-完整清单见 <a href="{BASE}/sitemap.xml">sitemap</a> 或 <a href="{BASE}/llms.txt">llms.txt</a>。</p></noscript></div>''' if len(eps) > FIRST_PAGE else ""}
+完整清单见 <a href="{BASE}/sitemap.xml">sitemap</a> 或 <a href="{BASE}/llms.txt">llms.txt</a>。</p></noscript>
+</div>''' if len(eps) > FIRST_PAGE else ""}
 </main>
 """ + foot())
 
@@ -454,6 +475,38 @@ def seek_href(ep: dict, t: int) -> str:
     if ep.get("audio"):
         return f"{ep['audio']}#t={int(t)}"
     return ep.get("link") or "#"
+
+
+def player_block(ep: dict) -> str:
+    """正文顶部的播放器。
+
+    放这里而不是侧栏或文末：这个站的前提是"每条判断都能跳回原声核对"，播放器是
+    为时间戳服务的。侧栏只有 264px，视频小到没法看；文末的话，正文各处的时间戳
+    都要往回滚很远。放第一屏，读者的用法是"扫一眼摘要 → 点时间戳 → 就地看那一段"。
+
+    视频用**封面图加播放按钮的假门**，点了才换成真 iframe。YouTube 的嵌入代码有
+    1 MB 以上的 JS，直接塞进去会把首页刚从 109 KB 压到 17 KB 的成果吃掉。
+    """
+    vid = ep.get("youtube_id")
+    if vid:
+        # 封面用 YouTube 自己的缩略图，i.ytimg.com 不需要 cookie
+        poster = f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg"
+        return f'''
+<div class="player" data-player-box>
+  <button class="video-facade" data-yt="{e(vid)}" type="button"
+          aria-label="播放视频">
+    <img src="{e(poster)}" alt="" loading="lazy" width="480" height="360">
+    <span class="play" aria-hidden="true">▶</span>
+  </button>
+  <p class="note">点时间戳会跳到视频对应位置。视频由 YouTube 提供，点播放才会加载。</p>
+</div>'''
+    if ep.get("audio"):
+        return f'''
+<div class="player" data-player-box>
+  <audio data-player controls preload="none" src="{e(ep["audio"])}"></audio>
+  <p class="note">点时间戳会跳到这里对应的位置。</p>
+</div>'''
+    return ""
 
 
 def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
@@ -573,6 +626,7 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
 <p class="dek-lead">{e(d.get('dek'))}</p>
 <div class="ep-meta">{tags}</div>
 </div>
+{player_block(ep)}
 
 {f'<section class="section"><div class="why">{e(d.get("why"))}</div></section>' if d.get('why') else ''}
 
@@ -595,8 +649,7 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
 <div class="row"><span>发布</span><span>{e(date)}</span></div>
 <div class="row"><span>时长</span><span>{hhmmss(ep.get('duration')) or '—'}</span></div>
 {f'<a class="row" href="{e(orig)}" target="_blank" rel="noopener"><span>原页面</span><span>打开 ↗</span></a>' if orig else ''}
-{player}
-{'<p class="note">时间戳会直接跳到上面的播放器。</p>' if player else '<p class="note">时间戳会跳到原节目对应位置。</p>'}
+{'' if (ep.get("audio") or ep.get("youtube_id")) else '<p class="note">时间戳会跳到原节目对应位置。</p>'}
 </div>
 
 {f'<div class="panel"><h4>本篇结构</h4><nav class="toc">{toc}</nav></div>' if toc else ''}
@@ -1023,7 +1076,7 @@ def main() -> int:
     (ROOT / "feed.xml").write_text(rss(eps))
     (ROOT / "sitemap.xml").write_text(sitemap(eps))
     (ROOT / "search.json").write_text(search_index(eps))
-    (ROOT / "cards.json").write_text(rest_cards(eps))
+    n_pages = write_card_pages(eps)
     (ROOT / "log").mkdir(exist_ok=True)
     (ROOT / "log" / "index.html").write_text(log_page(eps, srcs))
 

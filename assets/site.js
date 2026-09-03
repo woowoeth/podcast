@@ -49,55 +49,107 @@
     var deep = null, deepState = 'idle';
     var base = (document.querySelector('link[rel="alternate"]') || {}).href || '';
     var indexUrl = base ? base.replace(/feed\.xml$/, 'search.json') : 'search.json';
-    var cardsUrl = base ? base.replace(/feed\.xml$/, 'cards.json') : 'cards.json';
 
     /* 首屏只渲染 24 张卡片（原来 257 张全内联，index.html 288 KB）。剩下的在
        cards.json 里，滚到底、点"加载更多"或一开始搜索就补齐。
        **搜索和筛选必须覆盖全部**，所以在筛选之前一定要先补齐——否则用户会以为
        站上没有那篇文章，那比慢更糟。 */
+    /* 分页加载。第一版有两个毛病，都是用户挑出来的：
+       1. 一次把剩下 231 张全塞进来——那不是分页，是"晚一点的全量加载"。
+       2. 只靠 IntersectionObserver，而它在某些环境下根本不回调（我在浏览器面板里
+          新建一个观察器在同一个元素上也从不触发）。现在主路径是滚动监听 +
+          getBoundingClientRect，到处都能跑；IO 只是可选的省电优化。 */
+    var sentinel = document.querySelector('[data-sentinel]');
     var moreBtn = document.querySelector('[data-more]');
-    var restState = feed.getAttribute('data-rest') > 0 ? 'idle' : 'done';
+    var moreCount = document.querySelector('[data-more-count]');
+    var pageSize = parseInt(feed.getAttribute('data-page-size'), 10) || 24;
+    var totalPages = parseInt(feed.getAttribute('data-pages'), 10) || 0;
+    var nextPage = 1;
+    var pageState = totalPages ? 'idle' : 'done';
+    var waiting = [];
 
-    function loadRest(then) {
-      if (restState === 'done') { then && then(); return; }
-      if (restState === 'loading') { pending.push(then); return; }
-      restState = 'loading';
-      if (moreBtn) moreBtn.textContent = '正在加载…';
-      fetch(cardsUrl).then(function (r) { return r.ok ? r.json() : null; })
+    function pageUrl(n) {
+      return base ? base.replace(/feed\.xml$/, 'cards-' + n + '.json')
+                  : 'cards-' + n + '.json';
+    }
+
+    function showCount() {
+      if (!moreCount) return;
+      var have = cards.length, total = feed.getAttribute('data-total');
+      moreCount.textContent = pageState === 'loading'
+        ? '正在载入…' : have + ' / ' + total;
+    }
+
+    function loadPage(then) {
+      if (pageState === 'done') { then && then(); return; }
+      if (pageState === 'loading') { waiting.push(then); return; }
+      pageState = 'loading';
+      if (moreBtn) moreBtn.hidden = true;
+      showCount();
+      fetch(pageUrl(nextPage)).then(function (r) { return r.ok ? r.json() : null; })
         .then(function (html) {
           if (!html) throw new Error('bad payload');
-          // 一次性插入，避免 257 次 reflow
           var box = document.createElement('div');
           box.innerHTML = html.join('');
-          var added = [].slice.call(box.querySelectorAll('[data-card]'));
           var anchor = feed.querySelector('[data-empty]');
-          added.forEach(function (c) {
+          [].slice.call(box.querySelectorAll('[data-card]')).forEach(function (c) {
             c._hay = (c.getAttribute('data-hay') || '').toLowerCase();
             c._slug = decodeURIComponent((c.getAttribute('href') || '').replace(/.*\/p\/|\/$/g, ''));
             cards.push(c);
             anchor ? feed.insertBefore(c, anchor) : feed.appendChild(c);
           });
-          restState = 'done';
-          if (moreBtn) moreBtn.parentNode.remove();
+          nextPage++;
+          pageState = nextPage > totalPages ? 'done' : 'idle';
+          if (pageState === 'done' && sentinel) sentinel.remove();
+          showCount();
           run();
-          [then].concat(pending).forEach(function (f) { f && f(); });
-          pending = [];
+          var fs = [then].concat(waiting); waiting = [];
+          fs.forEach(function (f) { f && f(); });
+          // 一页装不满一屏时继续装，否则滚动条不动就再也触发不了
+          if (pageState === 'idle') maybeLoad();
         })
         .catch(function () {
-          restState = 'idle';
-          if (moreBtn) moreBtn.textContent = '加载失败，点一下重试';
-          [then].concat(pending).forEach(function (f) { f && f(); });
-          pending = [];
+          pageState = 'idle';
+          if (moreBtn) { moreBtn.hidden = false; moreBtn.textContent = '加载失败，点一下重试'; }
+          if (moreCount) moreCount.textContent = '';
+          var fs = [then].concat(waiting); waiting = [];
+          fs.forEach(function (f) { f && f(); });
         });
     }
-    var pending = [];
 
-    if (moreBtn) moreBtn.addEventListener('click', function () { loadRest(); });
-    // 滚到底自动补齐。rootMargin 给 600px，让它在用户看到按钮之前就开始取。
-    if (moreBtn && 'IntersectionObserver' in window) {
-      new IntersectionObserver(function (es) {
-        if (es.some(function (e) { return e.isIntersecting; })) loadRest();
-      }, { rootMargin: '600px' }).observe(moreBtn);
+    function loadAll(then) {
+      if (pageState === 'done') { then && then(); return; }
+      loadPage(function () { loadAll(then); });
+    }
+
+    function maybeLoad() {
+      if (pageState !== 'idle' || !sentinel) return;
+      var r = sentinel.getBoundingClientRect();
+      if (r.top - window.innerHeight < 800) loadPage();
+    }
+
+    if (moreBtn) moreBtn.addEventListener('click', function () { loadPage(); });
+    if (sentinel) {
+      /* 节流用时间戳，不用 requestAnimationFrame。**隐藏或后台的标签页里 rAF
+         回调不执行**，滚动就永远不触发加载——我在浏览器面板里查这个 bug 时，
+         派发 scroll 事件毫无反应、点按钮却正常，就是这个原因。
+         IntersectionObserver 在同样的环境里也从不回调，所以它只能当可选优化，
+         主路径必须是普通的滚动监听。 */
+      var last = 0;
+      var onScroll = function () {
+        var now = Date.now();
+        if (now - last < 120) return;
+        last = now;
+        maybeLoad();
+      };
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', onScroll, { passive: true });
+      // 标签页从后台切回来时补一次：后台期间的滚动可能没被处理
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) maybeLoad();
+      });
+      maybeLoad();          // 首屏可能就已经到底了（窄屏、卡片少）
+      showCount();
     }
 
     function loadDeep() {
@@ -117,9 +169,10 @@
     function run() {
       var q = (input && input.value || '').trim().toLowerCase();
       var terms = q ? q.split(/\s+/) : [];
-      // 一旦开始搜或筛，先把全部卡片补齐——只筛前 24 张会让用户以为站上没有那篇
-      if ((terms.length || cat !== 'all') && restState !== 'done') {
-        loadRest();
+      // 一旦开始搜或筛，先把全部页都补齐——只筛前 24 张会让用户以为站上没有
+      // 那篇文章，那比慢更糟
+      if ((terms.length || cat !== 'all') && pageState !== 'done') {
+        loadAll();
         return;
       }
       if (terms.length) loadDeep();
@@ -198,15 +251,58 @@
     if (qs.get('c') || qs.get('q')) run();
   }
 
-  /* ------------------------------------------------ timestamps -> the audio */
+  /* --------------------------------------- 时间戳 → 页内播放器（音频或视频） */
   var audio = document.querySelector('audio[data-player]');
+  var facade = document.querySelector('[data-yt]');
+  var ytFrame = null;
+
+  /* 视频用假门：点了才换成真 iframe。YouTube 的嵌入代码有 1 MB 以上的 JS，
+     直接放进页面会把首页刚压下来的体积又吃回去。 */
+  function mountYouTube(seconds) {
+    var box = document.querySelector('[data-player-box]');
+    if (!box) return null;
+    if (ytFrame) {
+      if (seconds != null) {
+        // 已经挂上了：换 src 来跳转（不引入 iframe API，省掉又一个脚本）
+        ytFrame.src = ytSrc(ytFrame.getAttribute('data-yt'), seconds);
+      }
+      return ytFrame;
+    }
+    var vid = facade && facade.getAttribute('data-yt');
+    if (!vid) return null;
+    var f = document.createElement('iframe');
+    f.className = 'video';
+    f.setAttribute('data-yt', vid);
+    f.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture');
+    f.setAttribute('allowfullscreen', '');
+    f.setAttribute('title', '原节目视频');
+    f.src = ytSrc(vid, seconds);
+    facade.replaceWith(f);
+    ytFrame = f;
+    return f;
+  }
+
+  function ytSrc(vid, seconds) {
+    return 'https://www.youtube-nocookie.com/embed/' + vid
+      + '?autoplay=1&rel=0' + (seconds ? '&start=' + Math.floor(seconds) : '');
+  }
+
+  if (facade) {
+    facade.addEventListener('click', function () { mountYouTube(null); });
+  }
+
   document.addEventListener('click', function (e) {
     var a = e.target.closest && e.target.closest('a[data-t]');
     if (!a) return;
     var t = parseInt(a.getAttribute('data-t'), 10);
     if (isNaN(t)) return;
-    // With an inline player, a timestamp seeks in place. Without one it falls
-    // through to the href, which points at the original video or page.
+    // 有页内播放器就就地跳转；没有就走 href（原节目页面／视频）
+    if (facade || ytFrame) {
+      e.preventDefault();
+      var f = mountYouTube(t);
+      if (f) f.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      return;
+    }
     if (audio) {
       e.preventDefault();
       try {
