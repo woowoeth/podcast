@@ -288,11 +288,22 @@
       var w = document.querySelector('.vwrap');
       if (w) {
         w.className = 'vfail';
-        w.innerHTML = '<span>加载 YouTube 播放器失败，用下面的音频，'
-          + '或去 YouTube 打开原视频。</span>';
+        w.innerHTML = '<span>加载 YouTube 播放器失败。</span>';
       }
+      revealAudio('script');
     };
     document.head.appendChild(s);
+  }
+
+  /* 视频这条路走不通了：把收起的音频条放出来。
+     不这么做的后果是读者停在一个黑框上，正文里几十个时间戳全都没处跳。 */
+  function revealAudio(why) {
+    var strip = document.querySelector('[data-audio-strip]');
+    if (!strip || !strip.hidden) return;
+    strip.hidden = false;
+    strip.classList.add('fellback');
+    prefer = 'audio';
+    void why;
   }
 
   function mountYouTube(seconds) {
@@ -341,6 +352,7 @@
             wrap.className = 'vfail';
             wrap.appendChild(a);
             ytPlayer = null;
+            revealAudio('onError');
           }
         }
       });
@@ -373,7 +385,9 @@
     if (isNaN(t)) return;
     // 跳读者已经在用的那个播放器；都没用过时，有视频就用视频。
     // （两个都在页面上：视频是加分项，音频走播客 CDN，一定放得出来。）
-    var useAudio = audio && (prefer === 'audio' || (!facade && !ytPlayer));
+    var strip = document.querySelector('[data-audio-strip]');
+    var audioUsable = audio && strip && !strip.hidden;
+    var useAudio = audioUsable && (prefer === 'audio' || (!facade && !ytPlayer));
     if (useAudio) {
       e.preventDefault();
       try {

@@ -2143,10 +2143,13 @@ class Player(unittest.TestCase):
         self.js = self._strip(self.js_raw, "js")
 
     # ---------------------------------------------------------- 有视频≠没音频
-    def test_video_never_replaces_audio(self):
-        """之前是有视频就把音频整个换掉，于是 YouTube 一放不出来（区域限制、
-        嵌入被关、脚本被拦）读者什么都没有：一个死框，时间戳也没处跳。
-        音频走播客 CDN，它才是兜底的那条，必须始终在。"""
+    def test_video_page_keeps_audio_in_the_dom(self):
+        """产品决定：有视频时只显示视频（两个播放器摆在一张卡上，读者只会用
+        一个，另一个是噪音）。但音频元素必须**留在 DOM 里**、默认 hidden——
+        YouTube 放不出来（区域限制、嵌入被关、脚本被拦）时由脚本放出来。
+
+        之前那版是干脆不输出音频，读者就停在一个黑框上，正文里几十个时间戳
+        全都没处跳。"看起来干净"不能换来"走进死路"。"""
         sys.path.insert(0, str(ROOT / "pipeline"))
         import importlib
         build = importlib.import_module("build")
@@ -2154,7 +2157,25 @@ class Player(unittest.TestCase):
                                    "audio": "https://cdn.example/x.mp3",
                                    "duration": 3600})
         self.assertIn("video-facade", html)
-        self.assertIn("<audio", html, "有视频时音频不该消失")
+        self.assertIn("<audio", html, "音频元素必须留在 DOM 里当兜底")
+        self.assertRegex(html, r'data-audio-strip\s+hidden',
+                         "有视频时音频条默认收起")
+
+    def test_failed_video_reveals_the_audio(self):
+        """兜底元素在 DOM 里不等于有兜底——得真有代码去放它出来。
+        两条失败路径都要覆盖：API 脚本取不到，和播放器报 onError。"""
+        self.assertIn("function revealAudio", self.js)
+        i = self.js.index("onError")
+        self.assertIn("revealAudio", self.js[i:i + 700],
+                      "播放器报错时必须放出音频")
+        j = self.js.index("s.onerror")
+        self.assertIn("revealAudio", self.js[j:j + 500],
+                      "API 脚本取不到时必须放出音频")
+
+    def test_timestamps_do_not_seek_a_hidden_player(self):
+        """音频条收起时时间戳不该去跳它——读者看不见的播放器动了等于什么都
+        没发生。"""
+        self.assertIn("!strip.hidden", self.js)
 
     def test_audio_only_still_gets_a_player(self):
         sys.path.insert(0, str(ROOT / "pipeline"))

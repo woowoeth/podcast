@@ -514,9 +514,11 @@ def player_block(ep: dict) -> str:
     播放器是为时间戳服务的——侧栏只有 264px，视频小到没法看；放文末的话，
     正文各处的时间戳都要往回滚很远。
 
-    **音频始终在，视频是加分项。** 之前是有视频就把音频整个换掉，于是 YouTube
-    一放不出来（区域限制、嵌入被关、脚本被拦）读者什么都没有：一个死框，时间戳
-    也没处跳。音频走播客 CDN，它才是兜底的那条。
+    有视频时**只显示视频**：同一张卡上摆两个播放器，读者只会用一个，另一个是
+    噪音。但音频元素仍然留在 DOM 里、默认 hidden——视频加载失败（区域限制、
+    嵌入被关、脚本被拦）时由脚本露出来。这是"看起来干净"和"不走进死路"的两全：
+    之前那版有视频就干脆不输出音频，YouTube 一放不出来读者就只剩一个黑框和
+    一堆没处跳的时间戳。
 
     视频先给封面图加播放按钮的假门，点了才换成真播放器：YouTube 的 iframe API
     约 100 KB，不点视频的读者一个字节都不下载。
@@ -556,8 +558,13 @@ def player_block(ep: dict) -> str:
             '    </span>\n'
             '  </button>')
     if audio:
+        # 有视频时音频条默认收起：同一张卡上两个播放器，读者只会用一个。
+        # 但元素留在 DOM 里——视频加载失败（区域限制、嵌入被关、脚本被拦）时
+        # 由脚本露出来，不然读者就走进死路：一个黑框加没处跳的时间戳。
+        hide = ' hidden' if vid else ''
         out.append(
-            '  <div class="strip">\n'
+            f'  <div class="strip" data-audio-strip{hide}>\n'
+            f'    <p class="afallback">原视频在 YouTube 上放不出来，用音频听：</p>\n'
             f'    <audio data-player controls preload="none" src="{e(audio)}"></audio>\n'
             f'    <div class="aui" data-audio-ui data-dur="{secs}" hidden>\n'
             '      <button class="aplay" type="button" aria-label="播放"></button>\n'
