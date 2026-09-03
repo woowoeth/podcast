@@ -7,6 +7,7 @@ keeps every episode indexable, which a client-rendered feed does not.
 """
 from __future__ import annotations
 
+import hashlib
 import html
 import json
 import os
@@ -23,6 +24,27 @@ from lib.util import hhmmss, log, squeeze                      # noqa: E402
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 BASE = os.environ.get("PODCAST_BASE", "/podcast").rstrip("/")
+
+
+def asset(rel: str) -> str:
+    """给 CSS / JS 的 URL 带上内容指纹。
+
+    为什么必须有：GitHub Pages 给这两个文件的是 `max-age=600`，而 URL 从不变。
+    于是每次改样式，读者的浏览器都可能拿**缓存里的旧 CSS 配新 HTML**——线上真
+    出过：新 HTML 有 .frame / .vdur / .aui 这些新结构，旧 CSS 里没有对应规则，
+    结果播放器卡片没描边、时长掉到图片外面、播放圈直接看不见、自定义音频控件
+    也不显（旧 JS 不会去摘 native controls）。看起来像我交了个半成品，其实是
+    两半不同版本拼在一起。
+
+    指纹变了 URL 就变，浏览器必然重新取——这是唯一能保证 HTML 和资源同版本的
+    办法，靠调 max-age 只能缩短窗口，消不掉。
+    """
+    f = ROOT / rel.lstrip("/")
+    try:
+        h = hashlib.sha256(f.read_bytes()).hexdigest()[:10]
+    except OSError:
+        h = "0"
+    return f"{BASE}/{rel.lstrip('/')}?v={h}"
 SITE = os.environ.get("PODCAST_SITE", "https://ourword.ai") + BASE
 NAME = "原声"
 TAGLINE = "世界太吵，来原声听播客"
@@ -142,7 +164,7 @@ def head(title: str, desc: str, *, path: str = "/", image: str = "",
 <link rel="icon" type="image/svg+xml" href="{BASE}/icon.svg">
 <link rel="apple-touch-icon" href="{BASE}/icon.svg">
 <link rel="alternate" type="application/rss+xml" title="{e(NAME)}" href="{BASE}/feed.xml">
-<link rel="stylesheet" href="{BASE}/assets/site.css">
+<link rel="stylesheet" href="{asset("assets/site.css")}">
 <script>try{{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}}catch(e){{}}</script>
 {ga}
 {extra}
@@ -295,7 +317,7 @@ def foot() -> str:
 <a href="{BASE}/llms.txt">llms.txt</a>
 <a href="https://github.com/woowoeth/podcast">源码</a></div>
 </div></div></footer>
-<script src="{BASE}/assets/site.js" defer></script>
+<script src="{asset("assets/site.js")}" defer></script>
 </body></html>
 """
 
@@ -477,6 +499,14 @@ def seek_href(ep: dict, t: int) -> str:
     return ep.get("link") or "#"
 
 
+# 三角形的内联 SVG。为什么不靠 CSS 画：CSS 没加载上时（缓存旧版本、请求被拦）
+# 空 span 彻底看不见，读者就看不出这张图能点。SVG 自带尺寸和颜色，零 CSS 也在。
+PLAY_SVG = ('<svg viewBox="0 0 44 44" width="44" height="44" focusable="false">'
+            '<circle cx="22" cy="22" r="21" fill="rgba(18,16,13,.55)" '
+            'stroke="rgba(255,255,255,.92)" stroke-width="1.5"/>'
+            '<path d="M17 14.5 32 22 17 29.5Z" fill="#fff"/></svg>')
+
+
 def player_block(ep: dict) -> str:
     """正文顶部的播放器：一张卡，视频在上、音频在下。
 
@@ -494,6 +524,13 @@ def player_block(ep: dict) -> str:
     封面尺寸的坑（线上真出过）：给 img 写 height="360" 属性等于指定了 height，
     两边都定死时 CSS 的 aspect-ratio **不生效**，16:9 的框退回 4:3，露出 YouTube
     缩略图自带的黑边。所以只给 width，高度交给外层 padding-top 百分比撑。
+
+    播放圈里放内联 SVG，不放空的 span 靠 CSS 画：CSS 万一没加载上（缓存拿到旧
+    版本、请求被拦），空 span 就是彻底看不见——线上真这样过一轮，读者只看见一张
+    静态图，唯一能点的是下面那条音频，于是"点播放器只有声音没有视频"。
+
+    时长不再单独标一个徽标：音频那条已经写着 0:00 / 2:34:18，同一个数字在同一张
+    卡上出现两次是噪音。
 
     音频那一栏是渐进增强：<audio> 带着 controls 出，自定义那层默认 hidden，
     脚本跑起来才对调。脚本没跑就还是原生控件，不会变成一个点不动的死条。
@@ -515,9 +552,8 @@ def player_block(ep: dict) -> str:
             f'    <span class="frame">\n'
             f'      <img src="{e(poster)}" alt="" loading="lazy" width="1280"\n'
             f'           onerror="this.onerror=null;this.src=\'{e(fallback)}\'">\n'
-            f'      <span class="play" aria-hidden="true"></span>\n'
-            + (f'      <span class="vdur">{e(dur)}</span>\n' if dur else '')
-            + '    </span>\n'
+            f'      <span class="play" aria-hidden="true">{PLAY_SVG}</span>\n'
+            '    </span>\n'
             '  </button>')
     if audio:
         out.append(

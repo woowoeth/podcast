@@ -1,6 +1,11 @@
 /* ourword.ai/podcast — editorial, paper-toned, legible at 320px and 2560px. */
 
 :root{
+  /* 脚本用它确认这份样式表真的生效了。为什么需要：脚本会做依赖样式的 DOM
+     替换（摘掉原生 audio controls、换上自己画的控件）。样式表没到位时那些
+     替换会把可用的控件换成看不见的东西——线上真出过一轮（读者浏览器缓存里是
+     旧 CSS，配的是新 HTML）。取不到 ok 就别做那些替换。 */
+  --css:ok;
   --bg:#f4f2ec; --bg-tint:#eae7de; --surface:#fffefa; --surface-2:#f9f7f1;
   --ink:#14120e; --ink-2:#3d3830; --muted:#6f6959; --faint:#9b9484;
   --rule:#e2ddd0; --rule-2:#cec8b8;
@@ -390,28 +395,19 @@ h1.sec-title, h2.sec-title, .sec-title{font-family:var(--serif);
   content:""; position:absolute; top:0; right:0; bottom:0; left:0;
   background:linear-gradient(rgba(10,9,7,0) 45%, rgba(10,9,7,.5));
 }
+/* 圈和三角都在内联 SVG 里（见 build.py 的 PLAY_SVG），这里只管定位和动效。
+   为什么不用 CSS 画：CSS 万一没加载上，空 span 就彻底看不见，读者看不出这张
+   图能点——线上真这样过一轮。SVG 零 CSS 也在。 */
 .video-facade .play{
   position:absolute; top:50%; left:50%; width:62px; height:62px; z-index:1;
-  margin:-31px 0 0 -31px; border-radius:50%;
-  background:rgba(18,16,13,.55); border:1.5px solid rgba(255,255,255,.92);
-  box-shadow:0 8px 28px rgba(0,0,0,.34);
-  transition:background .16s ease, transform .16s ease;
+  margin:-31px 0 0 -31px; line-height:0;
+  filter:drop-shadow(0 8px 24px rgba(0,0,0,.34));
+  transition:transform .16s ease;
 }
-/* 三角用 border 画，不用 ▶ 字形：字形在不同系统里大小和基线都不一样，
-   还会被当成 emoji 渲染成彩色的。 */
-.video-facade .play::after{
-  content:""; position:absolute; top:50%; left:50%;
-  margin:-10px 0 0 -6px; width:0; height:0; border-style:solid;
-  border-width:10px 0 10px 16px;
-  border-color:transparent transparent transparent #fff;
-}
-.video-facade:hover .play{background:var(--accent); transform:scale(1.06)}
+.video-facade .play svg{width:62px; height:62px; display:block}
+.video-facade:hover .play{transform:scale(1.06)}
+.video-facade:hover .play circle{fill:var(--accent)}
 .video-facade:active .play{transform:scale(.95)}
-.video-facade .vdur{
-  position:absolute; right:10px; bottom:10px; z-index:1;
-  font-family:var(--mono); font-size:11px; padding:2px 7px; border-radius:5px;
-  color:#fff; background:rgba(10,9,7,.72);
-}
 
 /* 音频那一栏 */
 .player .strip{padding:12px 14px; background:var(--surface-2)}

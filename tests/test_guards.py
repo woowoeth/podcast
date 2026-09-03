@@ -3,11 +3,12 @@
 这些不测业务逻辑，测的是"我上次是怎么犯错的"。每一条都对应 POSTMORTEM 里一条
 真实事故；纯文档防不住重犯，能断言的就断言。
 """
+import hashlib
+import json
 import os
 import pathlib
 import re
 import subprocess
-import json
 import sys
 import unittest
 
@@ -2239,3 +2240,79 @@ class Player(unittest.TestCase):
             self.css_raw,
             r"@media \(max-width:940px\)\{ \.ep\{padding-bottom:",
             "单列布局下 .ep 必须有下边距")
+
+
+class AssetVersioning(unittest.TestCase):
+    """CSS / JS 的 URL 必须带内容指纹。
+
+    线上真实后果（用户连着三轮说"跟半成品一样"，我一直在改样式，其实样式早就
+    对了）：GitHub Pages 给这些文件的是 max-age=600 而 URL 从不变，于是读者
+    浏览器拿**缓存里的旧 CSS/旧 JS 配新 HTML**。新 HTML 有 .frame / .vdur /
+    .aui 这些新结构，旧 CSS 里没有对应规则——播放器卡片没描边、时长掉到图片
+    外面、播放圈完全看不见、自定义音频控件不显（旧 JS 不会去摘 controls）。
+    看起来像交了个半成品，其实是两半不同版本拼在一起。
+
+    指纹变了 URL 就变，浏览器必然重新取。靠调 max-age 只能缩短窗口，消不掉。
+    """
+
+    def test_html_references_hashed_assets(self):
+        for page in ("index.html",
+                     next(iter(sorted((ROOT / "p").iterdir())))/"index.html"):
+            html = pathlib.Path(page).read_text()
+            for m in re.findall(r'(?:href|src)="[^"]*site\.(?:css|js)[^"]*"', html):
+                self.assertRegex(m, r"\?v=[0-9a-f]{6,}",
+                                 f"{page} 里的资源引用没带指纹：{m}")
+
+    def test_hash_follows_content(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        build = importlib.import_module("build")
+        url = build.asset("assets/site.css")
+        want = hashlib.sha256(
+            (ROOT / "assets" / "site.css").read_bytes()).hexdigest()[:10]
+        self.assertIn(f"?v={want}", url, "指纹必须来自文件内容，不是构建时间")
+
+    def test_build_is_still_idempotent(self):
+        """指纹是内容的函数，所以同样的内容必须给同样的 URL——否则每次构建都
+        产生全站 diff，'构建是幂等的'那道闸门会红。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        build = importlib.import_module("build")
+        self.assertEqual(build.asset("assets/site.js"),
+                         build.asset("assets/site.js"))
+
+
+class DegradesWithoutStylesheet(unittest.TestCase):
+    """样式表没到位时，脚本不能把能用的控件换成看不见的东西。
+
+    这是上面那次故障的第二半：脚本摘掉原生 audio controls、换上自己画的控件，
+    而自己画的那套全靠 CSS。旧 CSS 里没有 .aui 的规则，于是读者手里既没有原生
+    控件也没有新控件——页面上唯一能点的就剩下面那条，"点播放器只有声音没有视频"
+    就是这么来的。
+    """
+
+    def test_script_checks_that_css_applied(self):
+        css = (ROOT / "assets" / "site.css").read_text()
+        js = (ROOT / "assets" / "site.js").read_text()
+        self.assertIn("--css:ok", css, "site.css 必须定义探针 --css:ok")
+        self.assertIn("getPropertyValue('--css')", js,
+                      "脚本必须先确认样式表生效，再做依赖样式的替换")
+        i = js.index("var ui = document.querySelector('[data-audio-ui]')")
+        self.assertIn("cssOk", js[i:i + 200],
+                      "摘掉原生 controls 之前必须过 cssOk")
+
+    def test_play_button_is_inline_svg(self):
+        """播放圈以前是个空 span，靠 CSS 画。CSS 没到位就彻底看不见——读者只看见
+        一张静态图，看不出它能点。SVG 自带尺寸和颜色，零 CSS 也在。"""
+        build = (ROOT / "pipeline" / "build.py").read_text()
+        self.assertIn("PLAY_SVG", build)
+        self.assertIn("<svg viewBox=", build)
+        page = next(iter(sorted((ROOT / "p").iterdir()))) / "index.html"
+        # 找一篇有视频的
+        for d in sorted((ROOT / "p").iterdir()):
+            h = (d / "index.html").read_text()
+            if "video-facade" in h:
+                self.assertIn("<svg viewBox=", h.split("video-facade")[1][:600],
+                              "播放键里必须有内联 SVG")
+                return
+        del page

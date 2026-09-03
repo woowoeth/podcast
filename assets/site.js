@@ -406,9 +406,18 @@
     return (h ? h + ':' : '') + mm + ':' + (s < 10 ? '0' + s : s);
   }
 
+  // 样式表真的生效了吗。site.css 里定义了 --css:ok；取不到就说明这份样式没
+  // 到位（缓存里是旧版本、请求被拦、文件 404）。那种情况下**不要**做依赖样式的
+  // DOM 替换：把能用的原生控件换成一条没样式、看不见的进度轨，比不换糟得多。
+  var cssOk = false;
+  try {
+    cssOk = getComputedStyle(document.documentElement)
+      .getPropertyValue('--css').trim() === 'ok';
+  } catch (e) {}
+
   if (audio) {
     var ui = document.querySelector('[data-audio-ui]');
-    if (ui) {
+    if (ui && cssOk) {
       audio.removeAttribute('controls');
       ui.hidden = false;
       var btn = ui.querySelector('.aplay');
