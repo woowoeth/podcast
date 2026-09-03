@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>軟件慢 10 倍根因不在代碼，在架構期的串行依賴 — The Pragmatic Engineer · 原聲</title>
+<meta name="description" content="軟件慢 10 到 100 倍的根因不在代碼技巧，而在架構層的串行依賴；正確優化是鎖定硬件理論峰值再量差距——前提是架構決策者懂彙編。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/tw/p/2026-08-26-pragmatic-性能优化不靠剖析热点-靠理论峰值反推差距/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原聲">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="軟件慢 10 倍根因不在代碼，在架構期的串行依賴 — The Pragmatic Engineer · 原聲">
+<meta property="og:description" content="軟件慢 10 到 100 倍的根因不在代碼技巧，而在架構層的串行依賴；正確優化是鎖定硬件理論峰值再量差距——前提是架構決策者懂彙編。">
+<meta property="og:url" content="https://ourword.ai/podcast/tw/p/2026-08-26-pragmatic-性能优化不靠剖析热点-靠理论峰值反推差距/">
+<meta property="og:image" content="https://substackcdn.com/feed/podcast/458709/post/212722114/3d2ea6282c10c64c309a5052ce60d5c5.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-08-26T15:59:59Z">
+<meta property="article:modified_time" content="2026-08-27T02:45:34Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="軟件慢 10 倍根因不在代碼，在架構期的串行依賴 — The Pragmatic Engineer · 原聲">
+<meta name="twitter:description" content="軟件慢 10 到 100 倍的根因不在代碼技巧，而在架構層的串行依賴；正確優化是鎖定硬件理論峰值再量差距——前提是架構決策者懂彙編。">
+<meta name="twitter:image" content="https://substackcdn.com/feed/podcast/458709/post/212722114/3d2ea6282c10c64c309a5052ce60d5c5.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/tw/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/tw/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原聲" href="/podcast/tw/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-08-26-pragmatic-性能优化不靠剖析热点-靠理论峰值反推差距/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-08-26-pragmatic-性能优化不靠剖析热点-靠理论峰值反推差距/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-08-26-pragmatic-性能优化不靠剖析热点-靠理论峰值反推差距/">
+<script>(function(){try{var K='podcast_lang',p=location.pathname,tw=/^\/podcast\/tw(\/|$)/.test(p);var cur=tw?'tw':'sc';var other=tw?p.replace(/^\/podcast\/tw/,'/podcast')||'/podcast/':p.replace(/^\/podcast/,'/podcast/tw');var saved=null;try{saved=localStorage.getItem(K)}catch(e){}var want=saved||((/zh-(hant|tw|hk|mo)/i.test((navigator.languages||[navigator.language||'']).join(',')))?'tw':'sc');if(want!==cur){location.replace(other);return}document.addEventListener('DOMContentLoaded',function(){var b=document.createElement('button');b.id='lang-toggle';b.type='button';b.textContent=tw?'簡體':'繁體';b.setAttribute('aria-label',tw?'切換到簡體':'切換到繁體');b.onclick=function(){try{localStorage.setItem(K,tw?'sc':'tw')}catch(e){};location.href=other};document.body.appendChild(b)})}catch(e){}})();</script><style>#lang-toggle{position:fixed;top:12px;right:12px;z-index:9999;height:32px;padding:0 10px;border:1px solid currentColor;opacity:.55;background:transparent;color:inherit;font:inherit;font-size:13px;line-height:30px;cursor:pointer;border-radius:3px}#lang-toggle:hover{opacity:1}</style>
+<link rel="stylesheet" href="/podcast/tw/assets/site.css?v=7672261887">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-08-26-pragmatic-性能優化不靠剖析熱點-靠理論峰值反推差距/#episode", "name": "軟件慢 10 倍根因不在代碼，在架構期的串行依賴", "headline": "軟件慢 10 倍根因不在代碼，在架構期的串行依賴", "description": "軟件慢 10 到 100 倍的根因不在代碼技巧，而在架構層的串行依賴；正確優化是鎖定硬件理論峰值再量差距——前提是架構決策者懂彙編。", "abstract": "軟件慢 10 到 100 倍的根因不在代碼技巧，而在架構層的串行依賴；正確優化是鎖定硬件理論峰值再量差距——前提是架構決策者懂彙編。", "datePublished": "2026-08-26T15:59:59Z", "dateModified": "2026-08-27T02:45:34Z", "url": "https://ourword.ai/podcast/p/2026-08-26-pragmatic-性能優化不靠剖析熱點-靠理論峰值反推差距/", "timeRequired": "PT112M", "partOfSeries": {"@type": "PodcastSeries", "name": "The Pragmatic Engineer", "url": "https://ourword.ai/podcast/s/pragmatic/"}, "inLanguage": "zh-CN", "isBasedOn": "https://newsletter.pragmaticengineer.com/p/why-performant-code-matters-but-gets", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "性能優化, 架構決策, 理論峰值, AI 編程, 編譯器優化, theoretical peak, serial dependency chain, hotspot, branch prediction, 軟件運行速度比需要慢的倍數, Linear 操作預算, 網絡 ping 時間, Python 中 A+B 的彙編指令數, Steam 年發布遊戲數, Clean Code 視頻性能差距", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}, "associatedMedia": {"@type": "AudioObject", "contentUrl": "https://api.substack.com/feed/podcast/212722114/7fbb605079b04c25aa18da6ab32c0469.mp3"}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首頁", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "The Pragmatic Engineer", "item": "https://ourword.ai/podcast/s/pragmatic/"}, {"@type": "ListItem", "position": 3, "name": "軟件慢 10 倍根因不在代碼，在架構期的串行依賴"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/tw/"><span class="wordmark">原聲<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<a class="pill ghost" href="/podcast/tw/sources/">信源</a>
+<a class="pill ghost" href="/podcast/tw/feed.xml">RSS</a>
+<button class="icon-btn" data-theme-toggle aria-label="切換深淺色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，來原聲聽播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/tw/">首頁</a><span class="sep">/</span>
+<a href="/podcast/tw/s/pragmatic/">The Pragmatic Engineer</a>
+<span class="sep">/</span><span>2026-08-26</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">The Pragmatic Engineer</span>
+<time class="date" datetime="2026-08-26T15:59:59Z">2026-08-26</time>
+<button class="share-btn" type="button" data-share data-share-title="軟件慢 10 倍根因不在代碼，在架構期的串行依賴" data-share-url="https://ourword.ai/podcast/tw/e/pragmatic-ff6c9522f1/" data-share-text="《軟件慢 10 倍根因不在代碼，在架構期的串行依賴》&#10;The Pragmatic Engineer · 112 分鐘 · 原聲深讀&#10;&#10;軟件慢 10 到 100 倍的根因不在代碼技巧，而在架構層的串行依賴；正確優化是鎖定硬件理論峰值再量差距——前提是架構決策者懂彙編。&#10;&#10;· 性能被忽視的三個原因&#10;· 理論峰值是優化正確起點&#10;· 串行依賴鏈才是萬惡之源&#10;&#10;「這不是任何人曾經做過的方式，我合作過許多極其優秀的優化專家，這不是他們的做法。正確的優化方式正如你所說：首先，這個系統必須執行哪些操作？底層硬件在理論…」 — Casey Muratori&#10;&#10;https://ourword.ai/podcast/e/pragmatic-ff6c9522f1/" aria-label="複製分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>軟件慢 10 倍根因不在代碼，在架構期的串行依賴</h1>
+<p class="dek-lead">軟件慢 10 到 100 倍的根因不在代碼技巧，而在架構層的串行依賴；正確優化是鎖定硬件理論峰值再量差距——前提是架構決策者懂彙編。</p>
+<div class="ep-meta"><span class="tag">性能優化</span><span class="tag">架構決策</span><span class="tag">理論峰值</span><span class="tag">AI 編程</span><span class="tag">編譯器優化</span></div>
+</div>
+<div class="player" data-player-box>
+  <button class="video-facade" data-yt="8xBJPa_480Q" type="button"
+          aria-label="播放原節目視頻">
+    <span class="frame">
+      <img src="https://i.ytimg.com/vi/8xBJPa_480Q/hq720.jpg" alt="" loading="lazy" width="1280"
+           onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/8xBJPa_480Q/hqdefault.jpg'">
+      <span class="play" aria-hidden="true"><svg viewBox="0 0 44 44" width="44" height="44" focusable="false"><circle cx="22" cy="22" r="21" fill="rgba(18,16,13,.55)" stroke="rgba(255,255,255,.92)" stroke-width="1.5"/><path d="M17 14.5 32 22 17 29.5Z" fill="#fff"/></svg></span>
+    </span>
+  </button>
+  <div class="strip" data-audio-strip hidden>
+    <p class="afallback">原視頻在 YouTube 上放不出來，用音頻聽：</p>
+    <audio data-player controls preload="none" src="https://api.substack.com/feed/podcast/212722114/7fbb605079b04c25aa18da6ab32c0469.mp3"></audio>
+    <div class="aui" data-audio-ui data-dur="6779" hidden>
+      <button class="aplay" type="button" aria-label="播放"></button>
+      <div class="abar" role="slider" tabindex="0" aria-label="播放進度"
+           aria-valuemin="0" aria-valuemax="100"><div class="afill"></div></div>
+      <span class="atime"><span class="acur">0:00</span><span class="asep">/</span><span class="atot">--:--</span></span>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="why">兩小時長談，後半段最值錢：遊戲引擎普及預示 AI 轉型，GTA6 難產暴露替換旗艦產品的商業困境。前半段性能方法論紮實，可直接上手，整體信息密度高。</div></section>
+
+<section class="section"><h2>核心論點 · 點時間戳可跳到原聲</h2><div class="point" id="p0"><a class="ts" data-t="914" href="https://www.youtube.com/watch?v=8xBJPa_480Q&amp;t=914s" target="_blank" rel="noopener">15:14</a><div><h4>性能被忽視的三個原因</h4>
+<p class="body">Casey 認為開發者普遍不關注性能，機制有三層：企業軟件裡用戶不是購買者，決策者只看成本、合規與法律責任，性能好壞不影響成交；壟斷效應讓社交網絡這類平臺難以靠性能被挑戰，體驗再差用戶也走不了；第三個原因是過去十年呼籲性能的人已經產生效果，性能正在重新被重視。三條疊加解釋了為什麼「讓軟件變快」在公司裡常常沒有話語權，也說明性能問題本質是激勵問題。</p>
+<span class="spk">— Casey Muratori</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="1349" href="https://www.youtube.com/watch?v=8xBJPa_480Q&amp;t=1349s" target="_blank" rel="noopener">22:29</a><div><h4>理論峰值是優化正確起點</h4>
+<p class="body">Casey 強調行業裡真正的優化專家不會先剖析再改熱點。正確順序是：先問這個系統必須執行哪些操作，再查底層硬件在理論峰值下能做什麼，然後測量理論最大值與當前實現之間的差距，最後努力縮小差距。這樣做有兩個好處：不會被局部熱點帶偏，能發現硬件新特性，進而提升自己的優化能力。他明確指出「先測量熱點再優化」不是專家做法，而是把優化當成事後補救。</p>
+<span class="spk">— Casey Muratori</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="1973" href="https://www.youtube.com/watch?v=8xBJPa_480Q&amp;t=1973s" target="_blank" rel="noopener">32:53</a><div><h4>串行依賴鏈才是萬惡之源</h4>
+<p class="body">「過早優化是萬惡之源」這句話的真正問題在於：如果架構階段就形成了串行依賴鏈，後期靠優化熱點根本無法挽救。Casey 舉例，代碼模式若是「請求-處理-再請求」，性能專家也無能為力，因為串行依賴無法並行化。軟件的性能通常由最長的串行依賴鏈決定，而這條鏈在架構期就定型了。所以架構選擇一旦出錯，後續所有性能優化都是在錯誤的地基上蓋樓。</p>
+<span class="spk">— Casey Muratori</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="2404" href="https://www.youtube.com/watch?v=8xBJPa_480Q&amp;t=2404s" target="_blank" rel="noopener">40:04</a><div><h4>AI 公司正重寫技術棧</h4>
+<p class="body">Uber 曾因 Python 和 Node.js 的單線程問題轉向 Go 和 Java。如今 OpenAI 和 Anthropic 面臨同樣的故事：數據科學家熟悉 Python，所以初版全用 Python，但產品要支撐多線程和更多連接，現在開始評估遷移到 Rust 或 Go。Casey 的潛臺詞是，AI 公司正在經歷基礎設施的「語言債務」期，而這一幕在上一代互聯網公司身上已經發生過，歷史正在重演。</p>
+<span class="spk">— Casey Muratori</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="4405" href="https://www.youtube.com/watch?v=8xBJPa_480Q&amp;t=4405s" target="_blank" rel="noopener">1:13:25</a><div><h4>GTA6 是替換 GTA5 的生意</h4>
+<p class="body">Casey 從商業結構解釋 GTA6 為什麼開發週期那麼長：GTA5 在線模式當時是收入最高的娛樂產品，年入數十億美元。GTA6 不是做一個新遊戲，而是替換公司最賺錢的產品，所以 Rockstar 和 Take Two 不能失敗，還得規劃在線部分，避免新產品蠶食舊產品收入。GTA5 的成功對他們是意外，GTA6 是第一次真正更新旗艦產品，相當於重新發布 Google 搜索——這是極端保守的開發邏輯。</p>
+<span class="spk">— Casey Muratori</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="4780" href="https://www.youtube.com/watch?v=8xBJPa_480Q&amp;t=4780s" target="_blank" rel="noopener">1:19:40</a><div><h4>真正成本是編譯器被矇在鼓裡</h4>
+<p class="body">很多人以為虛函數調用本身開銷大，Casey 糾正說真正代價是編譯器失去優化能力。當編譯器無法確定運行時類型時，就無法內聯、合併冗餘代碼、做向量化，性能損失遠大於一次間接調用。他在 Clean Code 視頻裡展示的退化還相對溫和，實際生產環境可能更嚴重。多態代碼慢的不是那一次分派，而是整個周圍代碼都失去了被自動化的資格。</p>
+<span class="spk">— Casey Muratori</span></div></div></section>
+<section class="section"><h2>原話 · 已逐字校驗</h2><blockquote class="quote"><p class="raw">That is not how anyone has ever, you know, I&#x27;ve worked with many extremely good optimization people, and that is not how it is done. The correct way to do optimization is very much like what you just said. You first go, what are the operations that this system has to perform? What is the underlying hardware capable of doing at its theoretical peak? And then you measure the delta between that theoretical maximum and what you have achieved.</p>
+<p class="zh">這不是任何人曾經做過的方式，我合作過許多極其優秀的優化專家，這不是他們的做法。正確的優化方式正如你所說：首先，這個系統必須執行哪些操作？底層硬件在理論峰值時能做什麼？然後你測量理論最大值與你實際達到之間的差距。</p>
+<div class="attrib"><b>Casey Muratori</b><a class="ts" data-t="1349" href="https://www.youtube.com/watch?v=8xBJPa_480Q&amp;t=1349s" target="_blank" rel="noopener">22:29</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">The performance of your software is generally determined by the longest serial dependency chain because it&#x27;s something that cannot be paralyzed.</p>
+<p class="zh">軟件的性能通常由最長的串行依賴鏈決定，因為這是無法並行化的。</p>
+<div class="attrib"><b>Casey Muratori</b><a class="ts" data-t="2033" href="https://www.youtube.com/watch?v=8xBJPa_480Q&amp;t=2033s" target="_blank" rel="noopener">33:53</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">The way to think about it is your code base will not end up that way by accident. In most cases anymore. You have to engineer up front for a hotspot code base that people can then optimize.</p>
+<p class="zh">思考方式是，你的代碼庫不會偶然變成那樣。在大多數情況下，你必須預先設計一個可優化的熱點代碼庫，以便人們後續優化。</p>
+<div class="attrib"><b>Casey Muratori</b><a class="ts" data-t="2156" href="https://www.youtube.com/watch?v=8xBJPa_480Q&amp;t=2156s" target="_blank" rel="noopener">35:56</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">Grand Theft Auto 5 at the time was, if I&#x27;m not mistaken, by far the most revenue generating entertainment product in existence. The online part of that game was generating like billions of dollars.</p>
+<p class="zh">如果我沒記錯的話，GTA5 當時是現存收入最高的娛樂產品。它的在線部分產生了數十億美元的收入。</p>
+<div class="attrib"><b>Casey Muratori</b><a class="ts" data-t="4405" href="https://www.youtube.com/watch?v=8xBJPa_480Q&amp;t=4405s" target="_blank" rel="noopener">1:13:25</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">in my experience, usually the code that is architected properly is also the code that runs quickly.</p>
+<p class="zh">根據我的經驗，架構良好的代碼通常也運行得快。</p>
+<div class="attrib"><b>Casey Muratori</b><a class="ts" data-t="5113" href="https://www.youtube.com/watch?v=8xBJPa_480Q&amp;t=5113s" target="_blank" rel="noopener">1:25:13</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">I don&#x27;t think people should necessarily take a book recommendation from me. I want to recommend that people read a paper.</p>
+<p class="zh">我不認為人們應該接受我的書單推薦。我想推薦人們去讀論文。</p>
+<div class="attrib"><b>Casey Muratori</b><a class="ts" data-t="6613" href="https://www.youtube.com/watch?v=8xBJPa_480Q&amp;t=6613s" target="_blank" rel="noopener">1:50:13</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">I don&#x27;t know if they&#x27;re good at that, but I&#x27;m guessing that&#x27;s something they could do.</p>
+<p class="zh">我不知道他們是否擅長這個，但我猜這是他們能做的事情。</p>
+<div class="attrib"><b>Casey Muratori</b><a class="ts" data-t="6675" href="https://www.youtube.com/watch?v=8xBJPa_480Q&amp;t=6675s" target="_blank" rel="noopener">1:51:15</a></div>
+</blockquote></section>
+<section class="section"><h2>數字與實體</h2><table class="facts"><tr><td class="k">軟件運行速度比需要慢的倍數</td><td class="v">10x-100x</td><td class="t"><a class="ts" data-t="0" href="https://www.youtube.com/watch?v=8xBJPa_480Q&amp;t=0s" target="_blank" rel="noopener">0:00</a></td></tr>
+<tr><td class="k">Linear 操作預算</td><td class="v">300ms</td><td class="t"><a class="ts" data-t="1162" href="https://www.youtube.com/watch?v=8xBJPa_480Q&amp;t=1162s" target="_blank" rel="noopener">19:22</a></td></tr>
+<tr><td class="k">網絡 ping 時間</td><td class="v">sub 10ms</td><td class="t"><a class="ts" data-t="1225" href="https://www.youtube.com/watch?v=8xBJPa_480Q&amp;t=1225s" target="_blank" rel="noopener">20:25</a></td></tr>
+<tr><td class="k">Python 中 A+B 的彙編指令數</td><td class="v">遠多於 C 的一條 add 指令</td><td class="t"><a class="ts" data-t="2666" href="https://www.youtube.com/watch?v=8xBJPa_480Q&amp;t=2666s" target="_blank" rel="noopener">44:26</a></td></tr>
+<tr><td class="k">Steam 年發布遊戲數</td><td class="v">數萬到十萬</td><td class="t"><a class="ts" data-t="4079" href="https://www.youtube.com/watch?v=8xBJPa_480Q&amp;t=4079s" target="_blank" rel="noopener">1:07:59</a></td></tr>
+<tr><td class="k">Clean Code 視頻性能差距</td><td class="v">1.5 到 15 倍</td><td class="t"><a class="ts" data-t="4592" href="https://www.youtube.com/watch?v=8xBJPa_480Q&amp;t=4592s" target="_blank" rel="noopener">1:16:32</a></td></tr>
+<tr><td class="k">GTA5 在線收入</td><td class="v">數十億美元</td><td class="t"><a class="ts" data-t="4405" href="https://www.youtube.com/watch?v=8xBJPa_480Q&amp;t=4405s" target="_blank" rel="noopener">1:13:25</a></td></tr>
+<tr><td class="k">AI 代碼質量轉折點</td><td class="v">2024 年 1 月</td><td class="t"><a class="ts" data-t="5926" href="https://www.youtube.com/watch?v=8xBJPa_480Q&amp;t=5926s" target="_blank" rel="noopener">1:38:46</a></td></tr>
+<tr><td class="k">AI 全面評估所需時間</td><td class="v">至少 6 個月到 1 年</td><td class="t"><a class="ts" data-t="5987" href="https://www.youtube.com/watch?v=8xBJPa_480Q&amp;t=5987s" target="_blank" rel="noopener">1:39:47</a></td></tr></table></section>
+<section class="section"><h2>術語</h2><dl class="terms"><div><dt>theoretical peak<span>理論峰值</span></dt><dd>硬件在理想條件下能達到的最大吞吐，是優化目標的基準。</dd></div>
+<div><dt>serial dependency chain<span>串行依賴鏈</span></dt><dd>一系列無法並行、必須順序執行的操作，決定軟件延遲下限。</dd></div>
+<div><dt>hotspot<span>熱點代碼</span></dt><dd>程序中消耗最多 CPU 時間的部分，常是優化的自然切入點。</dd></div>
+<div><dt>branch prediction<span>分支預測</span></dt><dd>CPU 預測分支走向以保持流水線滿載的機制，預測失敗代價高。</dd></div></dl></section>
+<section class="section"><h2>收聽指南</h2>
+<div class="panel guide">
+<div><span class="k">誰該聽</span><p>寫後端或業務代碼的程序員、做技術選型的架構師，以及正在用 AI 重寫技術棧的初創團隊——產品慢但說不清慢在哪的人尤其該聽。</p></div>
+<div><span class="k">可跳過</span><p>若時間緊可跳過 1:16 到 1:25 的 Clean Code 視頻復盤，聽結論即可；遊戲行業部分看似離題，其實是全片最有預測力的內容。</p></div>
+</div></section>
+<nav class="prevnext"><a href="/podcast/tw/p/2026-08-26-lex-程序员的价值从写码转向调度-agent/"><span class="lbl">← 更新</span><strong>程序員價值轉向調度 agent：DHH 用 AI 寫完整個產品</strong></a><a class="r" href="/podcast/tw/p/2026-08-26-deepmind-ai-的下一步不是更大模型-而是学会承认不确定/"><span class="lbl">更早 →</span><strong>AI 的下一步不是更大模型，而是學會承認不確定</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原節目</h4>
+<div class="row"><span>節目</span><span>The Pragmatic Engineer</span></div>
+<div class="row"><span>原標題</span><span>Why performant code matters (but gets widely ignored), with Casey Muratori</span></div>
+<div class="row"><span>發布</span><span>2026-08-26</span></div>
+<div class="row"><span>時長</span><span>1:52:59</span></div>
+<a class="row" href="https://newsletter.pragmaticengineer.com/p/why-performant-code-matters-but-gets" target="_blank" rel="noopener"><span>原頁面</span><span>打開 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇結構</h4><nav class="toc"><a href="#p0"><span class="t">15:14</span><span>性能被忽視的三個原因</span></a>
+<a href="#p1"><span class="t">22:29</span><span>理論峰值是優化正確起點</span></a>
+<a href="#p2"><span class="t">32:53</span><span>串行依賴鏈才是萬惡之源</span></a>
+<a href="#p3"><span class="t">40:04</span><span>AI 公司正重寫技術棧</span></a>
+<a href="#p4"><span class="t">1:13:25</span><span>GTA6 是替換 GTA5 的生意</span></a>
+<a href="#p5"><span class="t">1:19:40</span><span>真正成本是編譯器被矇在鼓裡</span></a></nav></div>
+
+<div class="panel"><h4>這篇是怎麼來的</h4>
+<div class="row"><span>成稿評分</span><span>8 / 10</span></div>
+<div class="row"><span>文稿來源</span><span>音頻轉寫</span></div>
+<div class="row"><span>文稿字數</span><span>22955</span></div>
+<div class="row"><span>語速核驗</span><span>203.2 wpm</span></div>
+<div class="row"><span>逐字校驗金句</span><span>7 條</span></div>
+<div class="row"><span>回溯校驗數字</span><span>9 條</span></div>
+<div class="row"><span>質檢剔除</span><span>1 處</span></div>
+<p class="note">金句在逐字稿裡逐字比對過，數字回原文核對過；對不上的當場刪掉，不上站。
+成稿另經一道獨立評審（信息密度／忠實度／選擇力／具體性／中文），低於 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原聲 · <a href="https://ourword.ai">OurWord.ai</a> 的播客線。內容為原播客的中文深讀，
+版權歸各節目所有；每篇都附原節目鏈接，請去支持原作者。</div>
+<div class="links"><a href="/podcast/tw/">首頁</a><a href="/podcast/tw/sources/">信源</a>
+<a href="/podcast/tw/log/">更新日誌</a><a href="/podcast/tw/feed.xml">RSS</a>
+<a href="/podcast/tw/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源碼</a></div>
+</div></div></footer>
+<script src="/podcast/tw/assets/site.js?v=00f1ee1aed" defer></script>
+</body></html>

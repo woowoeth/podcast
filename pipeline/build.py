@@ -136,6 +136,34 @@ GA_ID = os.environ.get("GA_ID", "G-DHD3WEXQ8T")   # 与 ourword.ai 其他站同�
 ROBOTS = "index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1"
 
 
+# 语言层：静态 hreflang（爬虫不执行 JS，只有静态标签能让搜索引擎知道
+# 这两个地址是同一篇的两种语言）+ 首访按浏览器语言跟随 + 右上角切换按钮。
+# 按钮文字由 JS 按当前路径决定，不写死 —— 简体页显示「繁體」，繁体页显示
+# 「简体」，后者会被 tw.py 一并转成「簡體」，正好是繁体页该有的写法。
+# 点过切换就把选择记进 localStorage，优先级高于浏览器语言，否则一个在台湾
+# 用简体的读者每次都被弹走。整段在 <head> 里同步跑，首屏渲染前完成。
+LANG_JS = ("<script>(function(){try{"
+           "var K='podcast_lang',p=location.pathname,tw=/^\\/podcast\\/tw(\\/|$)/.test(p);"
+           "var cur=tw?'tw':'sc';"
+           "var other=tw?p.replace(/^\\/podcast\\/tw/,'/podcast')||'/podcast/'"
+           ":p.replace(/^\\/podcast/,'/podcast/tw');"
+           "var saved=null;try{saved=localStorage.getItem(K)}catch(e){}"
+           "var want=saved||((/zh-(hant|tw|hk|mo)/i.test("
+           "(navigator.languages||[navigator.language||'']).join(',')))?'tw':'sc');"
+           "if(want!==cur){location.replace(other);return}"
+           "document.addEventListener('DOMContentLoaded',function(){"
+           "var b=document.createElement('button');b.id='lang-toggle';b.type='button';"
+           "b.textContent=tw?'简体':'繁體';"
+           "b.setAttribute('aria-label',tw?'切换到简体':'切換到繁體');"
+           "b.onclick=function(){try{localStorage.setItem(K,tw?'sc':'tw')}catch(e){};"
+           "location.href=other};document.body.appendChild(b)})"
+           "}catch(e){}})();</script>"
+           "<style>#lang-toggle{position:fixed;top:12px;right:12px;z-index:9999;height:32px;"
+           "padding:0 10px;border:1px solid currentColor;opacity:.55;background:transparent;"
+           "color:inherit;font:inherit;font-size:13px;line-height:30px;cursor:pointer;"
+           "border-radius:3px}#lang-toggle:hover{opacity:1}</style>")
+
+
 def head(title: str, desc: str, *, path: str = "/", image: str = "",
          extra: str = "", robots: str = ROBOTS, published: str = "",
          modified: str = "") -> str:
@@ -173,6 +201,10 @@ def head(title: str, desc: str, *, path: str = "/", image: str = "",
 <link rel="icon" type="image/svg+xml" href="{BASE}/icon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="{BASE}/apple-touch-icon.png">
 <link rel="alternate" type="application/rss+xml" title="{e(NAME)}" href="{BASE}/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="{e(SITE + path)}">
+<link rel="alternate" hreflang="zh-Hant" href="{e(SITE + '/tw' + path)}">
+<link rel="alternate" hreflang="x-default" href="{e(SITE + path)}">
+{LANG_JS}
 <link rel="stylesheet" href="{asset("assets/site.css")}">
 <script>try{{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}}catch(e){{}}</script>
 {ga}
@@ -1255,6 +1287,14 @@ def main() -> int:
         for d in edir.iterdir():
             if d.is_dir() and d.name not in alive:
                 shutil.rmtree(d)
+    # 繁体版：拿刚构建好的简体树整树转一遍。
+    # 必须在这里、由 build.py 自己产出 —— CI 有两条判据是「跑一遍 build.py 后
+    # git diff 必须干净」和「连续两次构建结果一致」，繁体站交给别的脚本生成的话
+    # 这两条就管不到它，内容一改它就悄悄过期。
+    import tw as _tw
+    n_t, n_b = _tw.build(BASE)
+    log(f"  繁体站 /tw/：文本 {n_t}，二进制 {n_b}")
+
     log(f"built: index, sources, {len(eps)} episode pages "
         f"(+{len(alive)} 分享短链), feed.xml, sitemap.xml")
     return 0

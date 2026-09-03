@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cerebras 單芯片 4400 tok/s：推理速度才是護城河 — TechTechPotato · 原聲</title>
+<meta name="description" content="Cerebras 的 WSE 3.5 把單芯片速度推到 4400 tok/s，CS4 機架把三片晶圓塞進 120kW 機櫃。核心理由：推理要拆成 prefill 和 decode，速度才是護城河。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/tw/p/2026-08-19-techtechpotato-推理速度才是新护城河-cerebras-机架化再提速/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原聲">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="Cerebras 單芯片 4400 tok/s：推理速度才是護城河 — TechTechPotato · 原聲">
+<meta property="og:description" content="Cerebras 的 WSE 3.5 把單芯片速度推到 4400 tok/s，CS4 機架把三片晶圓塞進 120kW 機櫃。核心理由：推理要拆成 prefill 和 decode，速度才是護城河。">
+<meta property="og:url" content="https://ourword.ai/podcast/tw/p/2026-08-19-techtechpotato-推理速度才是新护城河-cerebras-机架化再提速/">
+<meta property="og:image" content="https://i2.ytimg.com/vi/ezbLa-c2MBM/hqdefault.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-08-19T07:44:15Z">
+<meta property="article:modified_time" content="2026-08-25T13:20:52Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Cerebras 單芯片 4400 tok/s：推理速度才是護城河 — TechTechPotato · 原聲">
+<meta name="twitter:description" content="Cerebras 的 WSE 3.5 把單芯片速度推到 4400 tok/s，CS4 機架把三片晶圓塞進 120kW 機櫃。核心理由：推理要拆成 prefill 和 decode，速度才是護城河。">
+<meta name="twitter:image" content="https://i2.ytimg.com/vi/ezbLa-c2MBM/hqdefault.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/tw/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/tw/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原聲" href="/podcast/tw/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-08-19-techtechpotato-推理速度才是新护城河-cerebras-机架化再提速/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-08-19-techtechpotato-推理速度才是新护城河-cerebras-机架化再提速/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-08-19-techtechpotato-推理速度才是新护城河-cerebras-机架化再提速/">
+<script>(function(){try{var K='podcast_lang',p=location.pathname,tw=/^\/podcast\/tw(\/|$)/.test(p);var cur=tw?'tw':'sc';var other=tw?p.replace(/^\/podcast\/tw/,'/podcast')||'/podcast/':p.replace(/^\/podcast/,'/podcast/tw');var saved=null;try{saved=localStorage.getItem(K)}catch(e){}var want=saved||((/zh-(hant|tw|hk|mo)/i.test((navigator.languages||[navigator.language||'']).join(',')))?'tw':'sc');if(want!==cur){location.replace(other);return}document.addEventListener('DOMContentLoaded',function(){var b=document.createElement('button');b.id='lang-toggle';b.type='button';b.textContent=tw?'簡體':'繁體';b.setAttribute('aria-label',tw?'切換到簡體':'切換到繁體');b.onclick=function(){try{localStorage.setItem(K,tw?'sc':'tw')}catch(e){};location.href=other};document.body.appendChild(b)})}catch(e){}})();</script><style>#lang-toggle{position:fixed;top:12px;right:12px;z-index:9999;height:32px;padding:0 10px;border:1px solid currentColor;opacity:.55;background:transparent;color:inherit;font:inherit;font-size:13px;line-height:30px;cursor:pointer;border-radius:3px}#lang-toggle:hover{opacity:1}</style>
+<link rel="stylesheet" href="/podcast/tw/assets/site.css?v=7672261887">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-08-19-techtechpotato-推理速度才是新護城河-cerebras-機架化再提速/#episode", "name": "Cerebras 單芯片 4400 tok/s：推理速度才是護城河", "headline": "Cerebras 單芯片 4400 tok/s：推理速度才是護城河", "description": "Cerebras 的 WSE 3.5 把單芯片速度推到 4400 tok/s，CS4 機架把三片晶圓塞進 120kW 機櫃。核心理由：推理要拆成 prefill 和 decode，速度才是護城河。", "abstract": "Cerebras 的 WSE 3.5 把單芯片速度推到 4400 tok/s，CS4 機架把三片晶圓塞進 120kW 機櫃。核心理由：推理要拆成 prefill 和 decode，速度才是護城河。", "datePublished": "2026-08-19T07:44:15Z", "dateModified": "2026-08-25T13:20:52Z", "url": "https://ourword.ai/podcast/p/2026-08-19-techtechpotato-推理速度才是新護城河-cerebras-機架化再提速/", "timeRequired": "PT23M", "partOfSeries": {"@type": "PodcastSeries", "name": "TechTechPotato", "url": "https://ourword.ai/podcast/s/techtechpotato/"}, "inLanguage": "zh-CN", "isBasedOn": "https://www.youtube.com/watch?v=ezbLa-c2MBM", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "推理芯片, Cerebras, 晶圓級計算, SRAM, OpenAI, 算力, Wafer Scale Engine (WSE), Cross-reticle stitching, Backpack, Prefill/Decode, Parametric yield, WSE3.5 稀疏 FP16 算力, CS4 單芯片/整機架功耗, 每芯片網絡帶寬, 芯片間互連延遲, CS4 組件數量, NVL72 與 Groq 機架比", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首頁", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "TechTechPotato", "item": "https://ourword.ai/podcast/s/techtechpotato/"}, {"@type": "ListItem", "position": 3, "name": "Cerebras 單芯片 4400 tok/s：推理速度才是護城河"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/tw/"><span class="wordmark">原聲<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<a class="pill ghost" href="/podcast/tw/sources/">信源</a>
+<a class="pill ghost" href="/podcast/tw/feed.xml">RSS</a>
+<button class="icon-btn" data-theme-toggle aria-label="切換深淺色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，來原聲聽播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/tw/">首頁</a><span class="sep">/</span>
+<a href="/podcast/tw/s/techtechpotato/">TechTechPotato</a>
+<span class="sep">/</span><span>2026-08-19</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">TechTechPotato</span>
+<time class="date" datetime="2026-08-19T07:44:15Z">2026-08-19</time>
+<button class="share-btn" type="button" data-share data-share-title="Cerebras 單芯片 4400 tok/s：推理速度才是護城河" data-share-url="https://ourword.ai/podcast/tw/e/techtechpotato-37b3d58783/" data-share-text="《Cerebras 單芯片 4400 tok/s：推理速度才是護城河》&#10;TechTechPotato · 23 分鐘 · 原聲深讀&#10;&#10;Cerebras 的 WSE 3.5 把單芯片速度推到 4400 tok/s，CS4 機架把三片晶圓塞進 120kW 機櫃。核心理由：推理要拆成 prefill 和 decode，速度才是護城河。&#10;&#10;· WSE 3.5：同節點翻倍&#10;· CS4 機架：三片晶圓一櫃&#10;· 2.4Tbps 模塊化網絡成平臺&#10;&#10;「按電源數量推算，我認為每顆這樣的芯片大概在 40kW。一個機架放三顆就是 120kW，這聽起來當然有點像 Nvidia 的 NVL72。」&#10;&#10;https://ourword.ai/podcast/e/techtechpotato-37b3d58783/" aria-label="複製分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>Cerebras 單芯片 4400 tok/s：推理速度才是護城河</h1>
+<p class="dek-lead">Cerebras 的 WSE 3.5 把單芯片速度推到 4400 tok/s，CS4 機架把三片晶圓塞進 120kW 機櫃。核心理由：推理要拆成 prefill 和 decode，速度才是護城河。</p>
+<div class="ep-meta"><span class="tag">推理芯片</span><span class="tag">Cerebras</span><span class="tag">晶圓級計算</span><span class="tag">SRAM</span><span class="tag">OpenAI</span><span class="tag">算力</span></div>
+</div>
+<div class="player" data-player-box>
+  <button class="video-facade" data-yt="ezbLa-c2MBM" type="button"
+          aria-label="播放原節目視頻">
+    <span class="frame">
+      <img src="https://i.ytimg.com/vi/ezbLa-c2MBM/hq720.jpg" alt="" loading="lazy" width="1280"
+           onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/ezbLa-c2MBM/hqdefault.jpg'">
+      <span class="play" aria-hidden="true"><svg viewBox="0 0 44 44" width="44" height="44" focusable="false"><circle cx="22" cy="22" r="21" fill="rgba(18,16,13,.55)" stroke="rgba(255,255,255,.92)" stroke-width="1.5"/><path d="M17 14.5 32 22 17 29.5Z" fill="#fff"/></svg></span>
+    </span>
+  </button>
+</div>
+
+<section class="section"><div class="why">Cerebras 很少把系統設計細節公開到這種程度，本集給出機架功耗、互連延遲、組件削減等硬數字，適合想驗證 SRAM 推理路線是否成立的人聽。</div></section>
+
+<section class="section"><h2>核心論點 · 點時間戳可跳到原聲</h2><div class="point" id="p0"><a class="ts" data-t="371" href="https://www.youtube.com/watch?v=ezbLa-c2MBM&amp;t=371s" target="_blank" rel="noopener">6:11</a><div><h4>WSE 3.5：同節點翻倍</h4>
+<p class="body">Cerebras 沒有等新制程，而是把 WSE3 做激進調頻：頻率接近翻倍，所以功耗也接近翻倍。它同時強調這不是簡單挑體（binning），而是和臺積電在同一個 N5 節點上做了針對電壓和頻率的設計優化。上一代 125 petlops 的稀疏 FP16 提到 250 petlops，核心數仍是 90 萬、SRAM 仍是 44GB。物理良率靠缺陷核心動態繞行仍接近 100%，但參數良率一直是外部質疑點。</p>
+</div></div>
+<div class="point" id="p1"><a class="ts" data-t="495" href="https://www.youtube.com/watch?v=ezbLa-c2MBM&amp;t=495s" target="_blank" rel="noopener">8:15</a><div><h4>CS4 機架：三片晶圓一櫃</h4>
+<p class="body">舊設計是 16U 整機、單芯片獨立供電和液冷，數據中心側只做風冷。CS4 改為機架級：前面板放風扇和電源，後面是名為 backpack 的模塊，液冷管道從頂部連接到豎直放置的晶圓芯片。一個機架放三片，作者按電源數量估算單片約 40kW、整架約 120kW，聽起來和 Nvidia NVL72 同級。這不是規格炫耀，而是把 wafer-scale 放進標準數據中心形態。</p>
+</div></div>
+<div class="point" id="p2"><a class="ts" data-t="618" href="https://www.youtube.com/watch?v=ezbLa-c2MBM&amp;t=618s" target="_blank" rel="noopener">10:18</a><div><h4>2.4Tbps 模塊化網絡成平臺</h4>
+<p class="body">每片芯片的網絡從上一代翻倍到 2.4Tbps，而且 IO 模塊設計成可替換，未來若要支持 800G/200G/100G 或其他互聯標準，可以直接換模塊而不是重做系統。backpack 同時兼容未來 wafer 尺寸，因為晶圓已到物理極限，電源和液冷接口大致相似。作者認為 Cerebras 實際上在做一個機架級平臺，這也是他們敢說 CS5 在 2027 下半年就能跟上的原因。</p>
+</div></div>
+<div class="point" id="p3"><a class="ts" data-t="740" href="https://www.youtube.com/watch?v=ezbLa-c2MBM&amp;t=740s" target="_blank" rel="noopener">12:20</a><div><h4>OpenAI 訂單大頭在未來芯片</h4>
+<p class="body">WSE3 在能完整裝進單芯片的模型上約 2300 tok/s，WSE 3.5 到 4400 tok/s；GPT-5.6 Sol 現在 750 tok/s，換新芯片後接近 1500 tok/s。CEO Andrew Feldman 明確說，OpenAI 這類協議雖有當期供貨，但大頭收入來自未來世代芯片，所以 CS4 這種平臺化產品是履行訂單的關鍵。此前公布與 OpenAI 的合作對應約 200 億美元收入，這也是當初 IPO 講的增長故事。</p>
+</div></div>
+<div class="point" id="p4"><a class="ts" data-t="864" href="https://www.youtube.com/watch?v=ezbLa-c2MBM&amp;t=864s" target="_blank" rel="noopener">14:24</a><div><h4>組件砍半，產能瓶頸鬆綁</h4>
+<p class="body">第一代 wafer-scale 系統因為量小，用了大量定製機加件，基礎設施成本遠超合理水平。CS4 把組件數量砍掉一半甚至 60%，並大幅自動化，讓產線可以爬坡——產能一直是財報電話會被追問的問題。作者得到的口徑是：新世代系統會比上一代貴，但沒透露漲多少；早期系統已開始出貨，年底前放量。</p>
+</div></div>
+<div class="point" id="p5"><a class="ts" data-t="1045" href="https://www.youtube.com/watch?v=ezbLa-c2MBM&amp;t=1045s" target="_blank" rel="noopener">17:25</a><div><h4>別叫解聚，該叫分區</h4>
+<p class="body">Cerebras 推薦的用法是 GPU 負責 prefill、Cerebras 負責 decode。作者認為 disaggregation 這個詞是錯的，應該叫 workload partitioning：把需要算力的部分給算力硬件，把需要訪存的部分給訪存硬件。Nvidia 買 Groq 就是為了 SRAM 解碼性能，但他更關心 Groq 集成 NVLink 之後能否真正競爭；他看到的幻燈片說每架 NVL72 需要 9 架 Groq。Cerebras 作為獨立公司還能與 AMD、AWS 合作，這是它比 Groq 靈活的地方。</p>
+</div></div>
+<div class="point" id="p6"><a class="ts" data-t="1168" href="https://www.youtube.com/watch?v=ezbLa-c2MBM&amp;t=1168s" target="_blank" rel="noopener">19:28</a><div><h4>速度本身就是商業模式</h4>
+<p class="body">Cerebras 的取捨是通用性交換功耗和部署。Talis 等專用芯片可以跑到 17000 tok/s，但只能跑單個小模型；Cerebras 能跑任何 transformer 模型。對寫代碼或 agentic workflow 來說，每次輸入都要等結果，快不只是體驗，而是能把多個 idea 並行跑起來，減少等待。Cerebras 的商業模式就是讓客戶為高速 token 付溢價——按百萬 token 計價，速度需求永遠存在。</p>
+</div></div>
+<div class="point" id="p7"><a class="ts" data-t="1292" href="https://www.youtube.com/watch?v=ezbLa-c2MBM&amp;t=1292s" target="_blank" rel="noopener">21:32</a><div><h4>速度王座未變，看 CS5</h4>
+<p class="body">作者總結：在 AI 硬件裡 Cerebras 仍是速度之王，其他公司拼上下文長度或數學優化，但沒有人在速度上超過它。這次從單臺 16U 箱子升級為 120kW 三系統機架，等於把「怪東西」做成了標準數據中心形態。下一個看點是 CS5 在 2027 年下半年能否如期兌現，以及未來 10 萬億參數模型能不能靠這套平臺支撐。</p>
+</div></div></section>
+<section class="section"><h2>原話 · 已逐字校驗</h2><blockquote class="quote"><p class="raw">I believe one of these chips is probably pushing based on how many power supplies there are, 40 kW. That means three in a rack is about 120, which kind of sounds like Nvidia&#x27;s NVL72 of course.</p>
+<p class="zh">按電源數量推算，我認為每顆這樣的芯片大概在 40kW。一個機架放三顆就是 120kW，這聽起來當然有點像 Nvidia 的 NVL72。</p>
+<div class="attrib"><a class="ts" data-t="556" href="https://www.youtube.com/watch?v=ezbLa-c2MBM&amp;t=556s" target="_blank" rel="noopener">9:16</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">what used to be five microsconds is now two microsconds uh for chip to chip in fast mode I think they have a regular mode which is more like three microsconds</p>
+<p class="zh">芯片到芯片的延遲從原來的 5 微秒降到現在的 2 微秒（fast 模式），我記得還有一個普通模式，大概 3 微秒。</p>
+<div class="attrib"><a class="ts" data-t="678" href="https://www.youtube.com/watch?v=ezbLa-c2MBM&amp;t=678s" target="_blank" rel="noopener">11:18</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">So, wave scale engine 3 previous generation did about 2300 tokens per second um on a standard model that fit all within memory I think in one chip. Um with this new chip, you can now get 4,400 tokens per second.</p>
+<p class="zh">上一代 WSE3 在能完整裝進單顆芯片內存的標準模型上大約每秒 2300 token。新芯片能到每秒 4400 token。</p>
+<div class="attrib"><a class="ts" data-t="740" href="https://www.youtube.com/watch?v=ezbLa-c2MBM&amp;t=740s" target="_blank" rel="noopener">12:20</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">look, when these, uh, agreements are made, there&#x27;s obviously some supply that&#x27;s of the current generation, but you go into it knowing that a lot of that uh, revenue is going to come from future generation chips.</p>
+<p class="zh">聽著，籤這些協議的時候，確實會有一些當前世代的供應，但你從一開始就知道，其中很大一部分收入將來自未來世代的芯片。</p>
+<div class="attrib"><a class="ts" data-t="802" href="https://www.youtube.com/watch?v=ezbLa-c2MBM&amp;t=802s" target="_blank" rel="noopener">13:22</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">If you use GPU only, you might be getting 250 tokens per second. uh with Cerebrus with their new CS4 you can get over 4,500 tokens per second.</p>
+<p class="zh">如果只用 GPU，可能每秒 250 token；用 Cerebras 新 CS4，能到每秒 4500 token 以上。</p>
+<div class="attrib"><a class="ts" data-t="924" href="https://www.youtube.com/watch?v=ezbLa-c2MBM&amp;t=924s" target="_blank" rel="noopener">15:24</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">I think disagregation is the wrong word to be talking about it. We should be talking about partitioning workloads.</p>
+<p class="zh">我認為 disaggregation 不是正確的詞，我們應該說 partitioning workloads（分區工作負載）。</p>
+<div class="attrib"><a class="ts" data-t="985" href="https://www.youtube.com/watch?v=ezbLa-c2MBM&amp;t=985s" target="_blank" rel="noopener">16:25</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">CUDA is not the moat. Speed is the moat and Cerebrus is one of those chips that gets you there with that speed.</p>
+<p class="zh">CUDA 不是護城河，速度才是護城河。Cerebras 就是能用這種速度把你帶到那裡的芯片之一。</p>
+<div class="attrib"><a class="ts" data-t="1230" href="https://www.youtube.com/watch?v=ezbLa-c2MBM&amp;t=1230s" target="_blank" rel="noopener">20:30</a></div>
+</blockquote></section>
+<section class="section"><h2>數字與實體</h2><table class="facts"><tr><td class="k">WSE3.5 稀疏 FP16 算力</td><td class="v">250 petlops（上代 125 petlops）</td><td class="t"><a class="ts" data-t="433" href="https://www.youtube.com/watch?v=ezbLa-c2MBM&amp;t=433s" target="_blank" rel="noopener">7:13</a></td></tr>
+<tr><td class="k">CS4 單芯片/整機架功耗</td><td class="v">約 40kW / 約 120kW</td><td class="t"><a class="ts" data-t="556" href="https://www.youtube.com/watch?v=ezbLa-c2MBM&amp;t=556s" target="_blank" rel="noopener">9:16</a></td></tr>
+<tr><td class="k">每芯片網絡帶寬</td><td class="v">2.4 Tbps，兩倍於上代</td><td class="t"><a class="ts" data-t="618" href="https://www.youtube.com/watch?v=ezbLa-c2MBM&amp;t=618s" target="_blank" rel="noopener">10:18</a></td></tr>
+<tr><td class="k">芯片間互連延遲</td><td class="v">fast 模式 2 微秒，regular 模式約 3 微秒（上代 5 微秒）</td><td class="t"><a class="ts" data-t="678" href="https://www.youtube.com/watch?v=ezbLa-c2MBM&amp;t=678s" target="_blank" rel="noopener">11:18</a></td></tr>
+<tr><td class="k">CS4 組件數量</td><td class="v">減少約一半，可能達 60%</td><td class="t"><a class="ts" data-t="864" href="https://www.youtube.com/watch?v=ezbLa-c2MBM&amp;t=864s" target="_blank" rel="noopener">14:24</a></td></tr>
+<tr><td class="k">NVL72 與 Groq 機架比</td><td class="v">每 1 架 NVL72 需 9 架 Groq</td><td class="t"><a class="ts" data-t="1045" href="https://www.youtube.com/watch?v=ezbLa-c2MBM&amp;t=1045s" target="_blank" rel="noopener">17:25</a></td></tr></table></section>
+<section class="section"><h2>術語</h2><dl class="terms"><div><dt>Wafer Scale Engine (WSE)<span>晶圓級引擎</span></dt><dd>把一整片晶圓做成單顆芯片，用跨掩模拼接互聯，避免多芯片間高延遲互連。</dd></div>
+<div><dt>Cross-reticle stitching<span>跨掩模拼接技術</span></dt><dd>把光刻掩模區域在晶圓上拼成一顆超大芯片，讓面積超過單次曝光的極限。</dd></div>
+<div><dt>Backpack<span>背包模塊</span></dt><dd>CS4 機架後部的可插拔模塊，集成了液冷、供電與可替換網絡 IO，外形像背包。</dd></div>
+<div><dt>Prefill/Decode<span>預填充/解碼</span></dt><dd>LLM 推理兩階段：prefill 並行處理輸入，decode 逐 token 生成，兩者對硬件需求不同。</dd></div>
+<div><dt>Parametric yield<span>參數良率</span></dt><dd>晶圓上達到目標頻率/電壓的芯片比例，區別於物理良率。</dd></div></dl></section>
+<section class="section"><h2>收聽指南</h2>
+<div class="panel guide">
+<div><span class="k">誰該聽</span><p>關注 AI 推理芯片代際路線的創業者、做 Infra 選型的工程師、以及追蹤 OpenAI 供應鏈的投資者。</p></div>
+<div><span class="k">可跳過</span><p>對 Cerebras 前幾代歷史很熟的聽眾，可跳過開頭 0:01-3:09 的背景回顧，直接從 CS4 機架設計聽起。</p></div>
+</div></section>
+<nav class="prevnext"><a href="/podcast/tw/p/2026-08-19-whatsnext-入轨一分回收零分-火箭回收没有中间态/"><span class="lbl">← 更新</span><strong>入軌一分回收零分，火箭回收沒有中間態</strong></a><a class="r" href="/podcast/tw/p/2026-08-19-witness-加拿大三万人大搬迁-最好的事与最糟的事/"><span class="lbl">更早 →</span><strong>加拿大三萬人搬遷：年輕人得救，老人失去一切</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原節目</h4>
+<div class="row"><span>節目</span><span>TechTechPotato</span></div>
+<div class="row"><span>原標題</span><span>GPT-5.6 Sol Ultrafast.... Just Got UltraFaster (Cerebras 4th Gen)</span></div>
+<div class="row"><span>發布</span><span>2026-08-19</span></div>
+<div class="row"><span>時長</span><span>23:20</span></div>
+<a class="row" href="https://www.youtube.com/watch?v=ezbLa-c2MBM" target="_blank" rel="noopener"><span>原頁面</span><span>打開 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇結構</h4><nav class="toc"><a href="#p0"><span class="t">6:11</span><span>WSE 3.5：同節點翻倍</span></a>
+<a href="#p1"><span class="t">8:15</span><span>CS4 機架：三片晶圓一櫃</span></a>
+<a href="#p2"><span class="t">10:18</span><span>2.4Tbps 模塊化網絡成平臺</span></a>
+<a href="#p3"><span class="t">12:20</span><span>OpenAI 訂單大頭在未來芯片</span></a>
+<a href="#p4"><span class="t">14:24</span><span>組件砍半，產能瓶頸鬆綁</span></a>
+<a href="#p5"><span class="t">17:25</span><span>別叫解聚，該叫分區</span></a>
+<a href="#p6"><span class="t">19:28</span><span>速度本身就是商業模式</span></a>
+<a href="#p7"><span class="t">21:32</span><span>速度王座未變，看 CS5</span></a></nav></div>
+
+<div class="panel"><h4>這篇是怎麼來的</h4>
+<div class="row"><span>成稿評分</span><span>8 / 10</span></div>
+<div class="row"><span>文稿來源</span><span>YouTube 字幕</span></div>
+<div class="row"><span>文稿字數</span><span>3963</span></div>
+<div class="row"><span>語速核驗</span><span>169.8 wpm</span></div>
+<div class="row"><span>逐字校驗金句</span><span>7 條</span></div>
+<div class="row"><span>回溯校驗數字</span><span>6 條</span></div>
+<div class="row"><span>質檢剔除</span><span>4 處</span></div>
+<p class="note">金句在逐字稿裡逐字比對過，數字回原文核對過；對不上的當場刪掉，不上站。
+成稿另經一道獨立評審（信息密度／忠實度／選擇力／具體性／中文），低於 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原聲 · <a href="https://ourword.ai">OurWord.ai</a> 的播客線。內容為原播客的中文深讀，
+版權歸各節目所有；每篇都附原節目鏈接，請去支持原作者。</div>
+<div class="links"><a href="/podcast/tw/">首頁</a><a href="/podcast/tw/sources/">信源</a>
+<a href="/podcast/tw/log/">更新日誌</a><a href="/podcast/tw/feed.xml">RSS</a>
+<a href="/podcast/tw/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源碼</a></div>
+</div></div></footer>
+<script src="/podcast/tw/assets/site.js?v=00f1ee1aed" defer></script>
+</body></html>

@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 證明逼近平方根障礙：格密碼最壞情況仍安全 — Security Cryptography Whatever · 原聲</title>
+<meta name="description" content="OpenAI 模型證明 CVP 在 n 的 1/400 次方近似下仍 NP-hard，幾天內被推到平方根；SVP 指數改進到 2^0.7n、McEliece 遭準多項式攻擊，但現實格密碼因維度膨脹和近似因子 gap 暫安全。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/tw/p/2026-08-26-securitycrypto-ai-证明封死-cvp-近似困难-gap-但不烧密码学/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原聲">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="AI 證明逼近平方根障礙：格密碼最壞情況仍安全 — Security Cryptography Whatever · 原聲">
+<meta property="og:description" content="OpenAI 模型證明 CVP 在 n 的 1/400 次方近似下仍 NP-hard，幾天內被推到平方根；SVP 指數改進到 2^0.7n、McEliece 遭準多項式攻擊，但現實格密碼因維度膨脹和近似因子 gap 暫安全。">
+<meta property="og:url" content="https://ourword.ai/podcast/tw/p/2026-08-26-securitycrypto-ai-证明封死-cvp-近似困难-gap-但不烧密码学/">
+<meta property="og:image" content="https://storage.buzzsprout.com/j0mg64drknc1b0xl8t4m5yn6umlo?.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-08-26T22:00:00Z">
+<meta property="article:modified_time" content="2026-09-01T14:46:53Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AI 證明逼近平方根障礙：格密碼最壞情況仍安全 — Security Cryptography Whatever · 原聲">
+<meta name="twitter:description" content="OpenAI 模型證明 CVP 在 n 的 1/400 次方近似下仍 NP-hard，幾天內被推到平方根；SVP 指數改進到 2^0.7n、McEliece 遭準多項式攻擊，但現實格密碼因維度膨脹和近似因子 gap 暫安全。">
+<meta name="twitter:image" content="https://storage.buzzsprout.com/j0mg64drknc1b0xl8t4m5yn6umlo?.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/tw/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/tw/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原聲" href="/podcast/tw/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-08-26-securitycrypto-ai-证明封死-cvp-近似困难-gap-但不烧密码学/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-08-26-securitycrypto-ai-证明封死-cvp-近似困难-gap-但不烧密码学/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-08-26-securitycrypto-ai-证明封死-cvp-近似困难-gap-但不烧密码学/">
+<script>(function(){try{var K='podcast_lang',p=location.pathname,tw=/^\/podcast\/tw(\/|$)/.test(p);var cur=tw?'tw':'sc';var other=tw?p.replace(/^\/podcast\/tw/,'/podcast')||'/podcast/':p.replace(/^\/podcast/,'/podcast/tw');var saved=null;try{saved=localStorage.getItem(K)}catch(e){}var want=saved||((/zh-(hant|tw|hk|mo)/i.test((navigator.languages||[navigator.language||'']).join(',')))?'tw':'sc');if(want!==cur){location.replace(other);return}document.addEventListener('DOMContentLoaded',function(){var b=document.createElement('button');b.id='lang-toggle';b.type='button';b.textContent=tw?'簡體':'繁體';b.setAttribute('aria-label',tw?'切換到簡體':'切換到繁體');b.onclick=function(){try{localStorage.setItem(K,tw?'sc':'tw')}catch(e){};location.href=other};document.body.appendChild(b)})}catch(e){}})();</script><style>#lang-toggle{position:fixed;top:12px;right:12px;z-index:9999;height:32px;padding:0 10px;border:1px solid currentColor;opacity:.55;background:transparent;color:inherit;font:inherit;font-size:13px;line-height:30px;cursor:pointer;border-radius:3px}#lang-toggle:hover{opacity:1}</style>
+<link rel="stylesheet" href="/podcast/tw/assets/site.css?v=7672261887">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-08-26-securitycrypto-ai-證明封死-cvp-近似困難-gap-但不燒密碼學/#episode", "name": "AI 證明逼近平方根障礙：格密碼最壞情況仍安全", "headline": "AI 證明逼近平方根障礙：格密碼最壞情況仍安全", "description": "OpenAI 模型證明 CVP 在 n 的 1/400 次方近似下仍 NP-hard，幾天內被推到平方根；SVP 指數改進到 2^0.7n、McEliece 遭準多項式攻擊，但現實格密碼因維度膨脹和近似因子 gap 暫安全。", "abstract": "OpenAI 模型證明 CVP 在 n 的 1/400 次方近似下仍 NP-hard，幾天內被推到平方根；SVP 指數改進到 2^0.7n、McEliece 遭準多項式攻擊，但現實格密碼因維度膨脹和近似因子 gap 暫安全。", "datePublished": "2026-08-26T22:00:00Z", "dateModified": "2026-09-01T14:46:53Z", "url": "https://ourword.ai/podcast/p/2026-08-26-securitycrypto-ai-證明封死-cvp-近似困難-gap-但不燒密碼學/", "timeRequired": "PT50M", "partOfSeries": {"@type": "PodcastSeries", "name": "Security Cryptography Whatever", "url": "https://ourword.ai/podcast/s/securitycrypto/"}, "inLanguage": "zh-CN", "isBasedOn": "https://www.youtube.com/watch?v=7_Db0LXQrk0", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "格密碼, 後量子密碼, AI 數學, 密碼分析, 量子算法, McEliece, CVP, SVP, Dihedral coset problem, Reed-Solomon code, Information set decoding, Doubly efficient PIR, OpenAI 證明的 CVP 近似因子, 幾天後 CVP 近似因子被推到, 精確 SVP 最佳算法時間（2015 年起）, 新 SVP 算法指數, SVP 上次改進距今, McEliece distinguisher 複雜度", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}, "associatedMedia": {"@type": "AudioObject", "contentUrl": "https://www.buzzsprout.com/1822302/episodes/19707871-ai-lattice-proofs-with-chris-peikert.mp3"}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首頁", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "Security Cryptography Whatever", "item": "https://ourword.ai/podcast/s/securitycrypto/"}, {"@type": "ListItem", "position": 3, "name": "AI 證明逼近平方根障礙：格密碼最壞情況仍安全"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/tw/"><span class="wordmark">原聲<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<a class="pill ghost" href="/podcast/tw/sources/">信源</a>
+<a class="pill ghost" href="/podcast/tw/feed.xml">RSS</a>
+<button class="icon-btn" data-theme-toggle aria-label="切換深淺色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，來原聲聽播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/tw/">首頁</a><span class="sep">/</span>
+<a href="/podcast/tw/s/securitycrypto/">Security Cryptography Whatever</a>
+<span class="sep">/</span><span>2026-08-26</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">Security Cryptography Whatever</span>
+<time class="date" datetime="2026-08-26T22:00:00Z">2026-08-26</time>
+<button class="share-btn" type="button" data-share data-share-title="AI 證明逼近平方根障礙：格密碼最壞情況仍安全" data-share-url="https://ourword.ai/podcast/tw/e/securitycrypto-3373407d4b/" data-share-text="《AI 證明逼近平方根障礙：格密碼最壞情況仍安全》&#10;Security Cryptography Whatever · 50 分鐘 · 原聲深讀&#10;&#10;OpenAI 模型證明 CVP 在 n 的 1/400 次方近似下仍 NP-hard，幾天內被推到平方根；SVP 指數改進到 2^0.7n、McEliece 遭準多項式攻擊，但現實格密碼因維度膨脹和…&#10;&#10;· OpenAI 封閉二十年 gap&#10;· 幾天推到平方根障礙&#10;· AI 首次原創數學&#10;&#10;「所以現在我們經歷了一個完全的相變：直到 n 的平方根、但還差一點點的近似因子都仍是 NP 難的；而在平方根及其以上，有充分理由認為不是 NP 難的。我…」 — Chris&#10;&#10;https://ourword.ai/podcast/e/securitycrypto-3373407d4b/" aria-label="複製分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>AI 證明逼近平方根障礙：格密碼最壞情況仍安全</h1>
+<p class="dek-lead">OpenAI 模型證明 CVP 在 n 的 1/400 次方近似下仍 NP-hard，幾天內被推到平方根；SVP 指數改進到 2^0.7n、McEliece 遭準多項式攻擊，但現實格密碼因維度膨脹和近似因子 gap 暫安全。</p>
+<div class="ep-meta"><span class="tag">格密碼</span><span class="tag">後量子密碼</span><span class="tag">AI 數學</span><span class="tag">密碼分析</span><span class="tag">量子算法</span><span class="tag">McEliece</span></div>
+</div>
+<div class="player" data-player-box>
+  <button class="video-facade" data-yt="7_Db0LXQrk0" type="button"
+          aria-label="播放原節目視頻">
+    <span class="frame">
+      <img src="https://i.ytimg.com/vi/7_Db0LXQrk0/hq720.jpg" alt="" loading="lazy" width="1280"
+           onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/7_Db0LXQrk0/hqdefault.jpg'">
+      <span class="play" aria-hidden="true"><svg viewBox="0 0 44 44" width="44" height="44" focusable="false"><circle cx="22" cy="22" r="21" fill="rgba(18,16,13,.55)" stroke="rgba(255,255,255,.92)" stroke-width="1.5"/><path d="M17 14.5 32 22 17 29.5Z" fill="#fff"/></svg></span>
+    </span>
+  </button>
+  <div class="strip" data-audio-strip hidden>
+    <p class="afallback">原視頻在 YouTube 上放不出來，用音頻聽：</p>
+    <audio data-player controls preload="none" src="https://www.buzzsprout.com/1822302/episodes/19707871-ai-lattice-proofs-with-chris-peikert.mp3"></audio>
+    <div class="aui" data-audio-ui data-dur="3044" hidden>
+      <button class="aplay" type="button" aria-label="播放"></button>
+      <div class="abar" role="slider" tabindex="0" aria-label="播放進度"
+           aria-valuemin="0" aria-valuemax="100"><div class="afill"></div></div>
+      <span class="atime"><span class="acur">0:00</span><span class="asep">/</span><span class="atot">--:--</span></span>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="why">三組新結果同一周出現，各自牽動複雜度理論、AI 原創性和後量子密碼安全判斷；不聽完會漏掉後半段的機制和數字。</div></section>
+
+<section class="section"><h2>核心論點 · 點時間戳可跳到原聲</h2><div class="point" id="p0"><a class="ts" data-t="257" href="https://www.youtube.com/watch?v=7_Db0LXQrk0&amp;t=257s" target="_blank" rel="noopener">4:17</a><div><h4>OpenAI 封閉二十年 gap</h4>
+<p class="body">CVP 的精確版本早在 80 年代就被證明 NP-hard；90 年代把 NP-hard 推到任意常數甚至 n 的 1/log log n 次方的近似因子，1998 年定型後 20 年沒動。8 月 1 日 OpenAI 的論文用 n 的 1/400 次方這個固定多項式近似因子打破僵局。Chris 強調這不是密碼學實際使用的參數 regime，而是純複雜性理論結果，但它的證明方式——直接從 3SAT 到 CVP 的代數約簡——讓所有人都意外。</p>
+<span class="spk">— Chris</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="439" href="https://www.youtube.com/watch?v=7_Db0LXQrk0&amp;t=439s" target="_blank" rel="noopener">7:19</a><div><h4>幾天推到平方根障礙</h4>
+<p class="body">Chris 拿到 n 的 1/400 次方後試著讓模型改善，只改進簿記就得到 n 的 1/28 次方，隨後又有人得到 n 的 1/8 次方。幾天內，Twitter 用戶 Mira 通過反覆提示把結果推到任意 n 的 1/2 - ε 次方。平方根是已知的 co-NP 障礙：若平方根近似 CVP 也 NP-hard，會導致多項式層級崩潰，所以 gap 被完全封閉。密碼學使用的近似因子是 n 到 n² 這樣的小多項式，離新的 NP-hard 區域很近，這讓社區對格問題難度的信心增強。</p>
+<span class="spk">— Chris</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="690" href="https://www.youtube.com/watch?v=7_Db0LXQrk0&amp;t=690s" target="_blank" rel="noopener">11:30</a><div><h4>AI 首次原創數學</h4>
+<p class="body">Chris 說這是第一個讓他覺得真正原創的 AI 數學結果。之前很多 AI 證明是專家把已有件拼起來，AI 只負責找到第一塊多米諾；這個證明則直接從 3SAT 到最近碼字問題再到 CVP，用 Reed-Solomon 碼分別編碼公式和子句，再用約束拼成格實例。他問過編碼複雜度的同行，沒人見過類似路徑。這讓人聯想到 AlphaGo 那種「外星棋手」式的解法，只是所有零件都來自已知數學，但路徑完全不同。</p>
+<span class="spk">— Chris</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="1181" href="https://www.youtube.com/watch?v=7_Db0LXQrk0&amp;t=1181s" target="_blank" rel="noopener">19:41</a><div><h4>SVP 三箭齊發，安全未動</h4>
+<p class="body">SVP 是給定格找最短非零向量。2015 年以來的精確算法是 2 的 n 次方時間；三天內三篇 ePrint 獨立把指數常數壓到 0.7 左右，都用了同一套技術，部分論文承認 AI 參與了核心想法。這是 11 年來首次改進。但 Chris 說它幾乎不影響現實密碼學，因為攻擊的是最壞情況精確 SVP，而啟發式算法本來就能做得更好，安全估計不依賴這個精確指數。</p>
+<span class="spk">— Chris</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="1676" href="https://www.youtube.com/watch?v=7_Db0LXQrk0&amp;t=1676s" target="_blank" rel="noopener">27:56</a><div><h4>Dihedral 量子論文遭質疑</h4>
+<p class="body">Shor 算法本質上是解循環群上的隱藏移位問題；dihedral 群是循環群加一個翻轉，量子算法長期解不了。把格問題歸約到巨大 dihedral 群的隱藏移位後，若多項式時間解 DCP 就能破所有基於格的密碼學。新論文聲稱做到，但 Chris 說社區發現證明裡有多處實質性錯誤，不像容易修。他打了比方：如果範式真的成立，就像整座房子都著火了，不用糾結溫度具體是多少度。</p>
+<span class="spk">— Chris</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="2172" href="https://www.youtube.com/watch?v=7_Db0LXQrk0&amp;t=2172s" target="_blank" rel="noopener">36:12</a><div><h4>McEliece 準多項式攻擊</h4>
+<p class="body">Classic McEliece 的新攻擊給出一個準多項式時間（n 的 log n 次方）distinguisher，能區分公鑰和隨機串；具體參數下運行時間約 2 的 100 多次方。更重要的是他們能把 distinguisher 變成解密：把密文接到公鑰上跑 distinguisher，輸出會暴露錯誤向量的每一位，從而恢復消息。解密也要準多項式時間並依賴一些 heuristics。論文明確說同樣的思路理論上可用來從公鑰恢復私鑰，但留待未來。</p>
+<span class="spk">— Chris</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="2726" href="https://www.youtube.com/watch?v=7_Db0LXQrk0&amp;t=2726s" target="_blank" rel="noopener">45:26</a><div><h4>McEliece 的舊懷疑被印證</h4>
+<p class="body">Chris 解釋為什麼社區長期對 McEliece 有「總覺得有點可疑」的 vibe：多年來幾乎所有變體——換碼、縮小密鑰——都被攻破，唯獨原始 McEliece 還站著，但沒人能給出深層解釋。攻擊思路也一直窄化到 information set decoding 變體。這次結果來自一個做 doubly efficient PIR 的隱私研究組，他們在構造中遇到屏障，發現自己的代數幾何工具能破 McEliece。這證明不同數學視角能帶來突破，但也加深了對 McEliece 安全基礎的不安。</p>
+<span class="spk">— Chris</span></div></div></section>
+<section class="section"><h2>原話 · 已逐字校驗</h2><blockquote class="quote"><p class="raw">So now we have this like total phase change, you know, up to square root n, but not quite is NP at square root n and beyond. You have, you know, very good reason to think it&#x27;s not NP-hard. And so we went from like this huge unknown gap to like completely closed gap in a matter of a few days with just miles poking on things. I mean, that&#x27;s insane.</p>
+<p class="zh">所以現在我們經歷了一個完全的相變：直到 n 的平方根、但還差一點點的近似因子都仍是 NP 難的；而在平方根及其以上，有充分理由認為不是 NP 難的。我們從巨大的未知空隙，變成幾天之內就完全閉合了空隙，靠的只是 Mira 在模型上戳來戳去。這太瘋狂了。</p>
+<div class="attrib"><b>Chris</b><a class="ts" data-t="439" href="https://www.youtube.com/watch?v=7_Db0LXQrk0&amp;t=439s" target="_blank" rel="noopener">7:19</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">I don&#x27;t, I don&#x27;t think that&#x27;s, that&#x27;s going to be even true, much less do I expect it. And then, so it just completely changed our understanding of these problems.</p>
+<p class="zh">我不認為這會是真的，更不用說我會預期它。結果它徹底改變了我們對這些問題的理解。</p>
+<div class="attrib"><b>Chris</b><a class="ts" data-t="628" href="https://www.youtube.com/watch?v=7_Db0LXQrk0&amp;t=628s" target="_blank" rel="noopener">10:28</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">And it&#x27;s just unlike anything I&#x27;ve ever seen. I asked some people around, and they hadn&#x27;t seen it either.</p>
+<p class="zh">它完全不像我見過的任何東西。我問了周圍一些人，他們也沒見過。</p>
+<div class="attrib"><b>Chris</b><a class="ts" data-t="752" href="https://www.youtube.com/watch?v=7_Db0LXQrk0&amp;t=752s" target="_blank" rel="noopener">12:32</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">So the reason it doesn&#x27;t kind of move the needle on that, which is a great question, is that these worst case to average case reductions usually have a blow up in the dimension to some amount.</p>
+<p class="zh">所以它沒有真正改變那個問題（安全估計）的原因——這是一個很好的問題——是這些最壞情況到平均情況的歸約通常會在維度上產生一定程度的膨脹。</p>
+<div class="attrib"><b>Chris</b><a class="ts" data-t="1364" href="https://www.youtube.com/watch?v=7_Db0LXQrk0&amp;t=1364s" target="_blank" rel="noopener">22:44</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">if that paradigm had worked out if that algorithm had actually been correct and correct analysis we&#x27;re quibbling over the approximation factor</p>
+<p class="zh">如果那個範式真的成立、那個算法真的正確且分析正確，那麼我們糾結的只是近似因子而已。</p>
+<div class="attrib"><b>Chris</b><a class="ts" data-t="1860" href="https://www.youtube.com/watch?v=7_Db0LXQrk0&amp;t=1860s" target="_blank" rel="noopener">31:00</a></div>
+</blockquote></section>
+<section class="section"><h2>數字與實體</h2><table class="facts"><tr><td class="k">OpenAI 證明的 CVP 近似因子</td><td class="v">n 的 1/400 次方</td><td class="t"><a class="ts" data-t="257" href="https://www.youtube.com/watch?v=7_Db0LXQrk0&amp;t=257s" target="_blank" rel="noopener">4:17</a></td></tr>
+<tr><td class="k">幾天後 CVP 近似因子被推到</td><td class="v">任意 n 的 1/2 - ε</td><td class="t"><a class="ts" data-t="439" href="https://www.youtube.com/watch?v=7_Db0LXQrk0&amp;t=439s" target="_blank" rel="noopener">7:19</a></td></tr>
+<tr><td class="k">精確 SVP 最佳算法時間（2015 年起）</td><td class="v">約 2^n</td><td class="t"><a class="ts" data-t="1181" href="https://www.youtube.com/watch?v=7_Db0LXQrk0&amp;t=1181s" target="_blank" rel="noopener">19:41</a></td></tr>
+<tr><td class="k">新 SVP 算法指數</td><td class="v">約 2^0.7n</td><td class="t"><a class="ts" data-t="1181" href="https://www.youtube.com/watch?v=7_Db0LXQrk0&amp;t=1181s" target="_blank" rel="noopener">19:41</a></td></tr>
+<tr><td class="k">SVP 上次改進距今</td><td class="v">11 年</td><td class="t"><a class="ts" data-t="1242" href="https://www.youtube.com/watch?v=7_Db0LXQrk0&amp;t=1242s" target="_blank" rel="noopener">20:42</a></td></tr>
+<tr><td class="k">McEliece distinguisher 複雜度</td><td class="v">準多項式 n^{log n}</td><td class="t"><a class="ts" data-t="2112" href="https://www.youtube.com/watch?v=7_Db0LXQrk0&amp;t=2112s" target="_blank" rel="noopener">35:12</a></td></tr>
+<tr><td class="k">McEliece distinguishing 具體運行時間</td><td class="v">約 2 的 100 多次方</td><td class="t"><a class="ts" data-t="2172" href="https://www.youtube.com/watch?v=7_Db0LXQrk0&amp;t=2172s" target="_blank" rel="noopener">36:12</a></td></tr></table></section>
+<section class="section"><h2>術語</h2><dl class="terms"><div><dt>CVP<span>最近向量問題</span></dt><dd>給定格與目標點，找距離最近的格點；近似版本允許因子誤差。</dd></div>
+<div><dt>SVP<span>最短向量問題</span></dt><dd>在格中找最短的非零向量，是格密碼核心難題。</dd></div>
+<div><dt>Dihedral coset problem<span>二面體陪集問題</span></dt><dd>在二面體群上求解隱藏移位，與格問題歸約相關的量子難題。</dd></div>
+<div><dt>Reed-Solomon code<span>裡德-所羅門碼</span></dt><dd>一種代數糾錯碼，新 CVP 證明用來編碼 3SAT 公式。</dd></div>
+<div><dt>Information set decoding<span>信息集解碼</span></dt><dd>攻擊 McEliece 類密碼的傳統方法，通過猜測信息集解碼。</dd></div>
+<div><dt>Doubly efficient PIR<span>雙高效私密信息檢索</span></dt><dd>服務端計算快、通信量小的私密信息檢索，這項研究的來源。</dd></div></dl></section>
+<section class="section"><h2>收聽指南</h2>
+<div class="panel guide">
+<div><span class="k">誰該聽</span><p>做後量子密碼選型和 FHE 落地的工程師、想判斷 AI 數學能力的投資人，以及關心格密碼最新攻擊的研究者。</p></div>
+<div><span class="k">可跳過</span><p>最後 2 分鐘密歇根橄欖球閒聊和廣告可跳過，其餘全程高濃度。</p></div>
+</div></section>
+<nav class="prevnext"><a href="/podcast/tw/p/2026-08-26-restishistory-英国当年几乎随时接受类似-贝尔法斯特协议-的安排/"><span class="lbl">← 更新</span><strong>英國當年幾乎隨時接受類似《貝爾法斯特協議》的安排</strong></a><a class="r" href="/podcast/tw/p/2026-08-26-lex-程序员的价值从写码转向调度-agent/"><span class="lbl">更早 →</span><strong>程序員價值轉向調度 agent：DHH 用 AI 寫完整個產品</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原節目</h4>
+<div class="row"><span>節目</span><span>Security Cryptography Whatever</span></div>
+<div class="row"><span>原標題</span><span>AI Lattice Proofs with Chris Peikert</span></div>
+<div class="row"><span>發布</span><span>2026-08-26</span></div>
+<div class="row"><span>時長</span><span>50:44</span></div>
+<a class="row" href="https://www.youtube.com/watch?v=7_Db0LXQrk0" target="_blank" rel="noopener"><span>原頁面</span><span>打開 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇結構</h4><nav class="toc"><a href="#p0"><span class="t">4:17</span><span>OpenAI 封閉二十年 gap</span></a>
+<a href="#p1"><span class="t">7:19</span><span>幾天推到平方根障礙</span></a>
+<a href="#p2"><span class="t">11:30</span><span>AI 首次原創數學</span></a>
+<a href="#p3"><span class="t">19:41</span><span>SVP 三箭齊發，安全未動</span></a>
+<a href="#p4"><span class="t">27:56</span><span>Dihedral 量子論文遭質疑</span></a>
+<a href="#p5"><span class="t">36:12</span><span>McEliece 準多項式攻擊</span></a>
+<a href="#p6"><span class="t">45:26</span><span>McEliece 的舊懷疑被印證</span></a></nav></div>
+
+<div class="panel"><h4>這篇是怎麼來的</h4>
+<div class="row"><span>成稿評分</span><span>8 / 10</span></div>
+<div class="row"><span>文稿來源</span><span>官方逐字稿</span></div>
+<div class="row"><span>文稿字數</span><span>7990</span></div>
+<div class="row"><span>語速核驗</span><span>157.5 wpm</span></div>
+<div class="row"><span>逐字校驗金句</span><span>5 條</span></div>
+<div class="row"><span>回溯校驗數字</span><span>7 條</span></div>
+<div class="row"><span>質檢剔除</span><span>1 處</span></div>
+<p class="note">金句在逐字稿裡逐字比對過，數字回原文核對過；對不上的當場刪掉，不上站。
+成稿另經一道獨立評審（信息密度／忠實度／選擇力／具體性／中文），低於 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原聲 · <a href="https://ourword.ai">OurWord.ai</a> 的播客線。內容為原播客的中文深讀，
+版權歸各節目所有；每篇都附原節目鏈接，請去支持原作者。</div>
+<div class="links"><a href="/podcast/tw/">首頁</a><a href="/podcast/tw/sources/">信源</a>
+<a href="/podcast/tw/log/">更新日誌</a><a href="/podcast/tw/feed.xml">RSS</a>
+<a href="/podcast/tw/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源碼</a></div>
+</div></div></footer>
+<script src="/podcast/tw/assets/site.js?v=00f1ee1aed" defer></script>
+</body></html>

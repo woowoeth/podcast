@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>模型是遺留代碼庫：可解釋性是調試器 — Cognitive Revolution · 原聲</title>
+<meta name="description" content="數據過濾與獎勵塑形其實是同一座山的兩面；模型是可分解的稀疏混合，可解釋性因此能直接干預訓練。Goodfire 用月費 1000 美元的 Silico，把這種調試自動化了。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/tw/p/2026-08-08-cogrev-模型是遗留代码库-可解释性是调试器/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原聲">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="模型是遺留代碼庫：可解釋性是調試器 — Cognitive Revolution · 原聲">
+<meta property="og:description" content="數據過濾與獎勵塑形其實是同一座山的兩面；模型是可分解的稀疏混合，可解釋性因此能直接干預訓練。Goodfire 用月費 1000 美元的 Silico，把這種調試自動化了。">
+<meta property="og:url" content="https://ourword.ai/podcast/tw/p/2026-08-08-cogrev-模型是遗留代码库-可解释性是调试器/">
+<meta property="og:image" content="https://megaphone.imgix.net/podcasts/425d0b1a-9364-11f1-89b7-8f18e1951ec7/image/a013bf9d538b3f904596d5dc68137112.jpg?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-08-08T20:48:23Z">
+<meta property="article:modified_time" content="2026-09-02T10:24:03Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="模型是遺留代碼庫：可解釋性是調試器 — Cognitive Revolution · 原聲">
+<meta name="twitter:description" content="數據過濾與獎勵塑形其實是同一座山的兩面；模型是可分解的稀疏混合，可解釋性因此能直接干預訓練。Goodfire 用月費 1000 美元的 Silico，把這種調試自動化了。">
+<meta name="twitter:image" content="https://megaphone.imgix.net/podcasts/425d0b1a-9364-11f1-89b7-8f18e1951ec7/image/a013bf9d538b3f904596d5dc68137112.jpg?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress">
+<link rel="icon" type="image/svg+xml" href="/podcast/tw/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/tw/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原聲" href="/podcast/tw/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-08-08-cogrev-模型是遗留代码库-可解释性是调试器/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-08-08-cogrev-模型是遗留代码库-可解释性是调试器/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-08-08-cogrev-模型是遗留代码库-可解释性是调试器/">
+<script>(function(){try{var K='podcast_lang',p=location.pathname,tw=/^\/podcast\/tw(\/|$)/.test(p);var cur=tw?'tw':'sc';var other=tw?p.replace(/^\/podcast\/tw/,'/podcast')||'/podcast/':p.replace(/^\/podcast/,'/podcast/tw');var saved=null;try{saved=localStorage.getItem(K)}catch(e){}var want=saved||((/zh-(hant|tw|hk|mo)/i.test((navigator.languages||[navigator.language||'']).join(',')))?'tw':'sc');if(want!==cur){location.replace(other);return}document.addEventListener('DOMContentLoaded',function(){var b=document.createElement('button');b.id='lang-toggle';b.type='button';b.textContent=tw?'簡體':'繁體';b.setAttribute('aria-label',tw?'切換到簡體':'切換到繁體');b.onclick=function(){try{localStorage.setItem(K,tw?'sc':'tw')}catch(e){};location.href=other};document.body.appendChild(b)})}catch(e){}})();</script><style>#lang-toggle{position:fixed;top:12px;right:12px;z-index:9999;height:32px;padding:0 10px;border:1px solid currentColor;opacity:.55;background:transparent;color:inherit;font:inherit;font-size:13px;line-height:30px;cursor:pointer;border-radius:3px}#lang-toggle:hover{opacity:1}</style>
+<link rel="stylesheet" href="/podcast/tw/assets/site.css?v=7672261887">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-08-08-cogrev-模型是遺留代碼庫-可解釋性是調試器/#episode", "name": "模型是遺留代碼庫：可解釋性是調試器", "headline": "模型是遺留代碼庫：可解釋性是調試器", "description": "數據過濾與獎勵塑形其實是同一座山的兩面；模型是可分解的稀疏混合，可解釋性因此能直接干預訓練。Goodfire 用月費 1000 美元的 Silico，把這種調試自動化了。", "abstract": "數據過濾與獎勵塑形其實是同一座山的兩面；模型是可分解的稀疏混合，可解釋性因此能直接干預訓練。Goodfire 用月費 1000 美元的 Silico，把這種調試自動化了。", "datePublished": "2026-08-08T20:48:23Z", "dateModified": "2026-09-02T10:24:03Z", "url": "https://ourword.ai/podcast/p/2026-08-08-cogrev-模型是遺留代碼庫-可解釋性是調試器/", "timeRequired": "PT117M", "partOfSeries": {"@type": "PodcastSeries", "name": "The Cognitive Revolution", "url": "https://ourword.ai/podcast/s/cogrev/"}, "inLanguage": "zh-CN", "isBasedOn": "https://www.cognitiverevolution.ai/thinking-in-silico-goodfire-cto-dan-balsam-on-concept-manifolds-a-1000-month-ml-research-agent/", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "可解釋性, 後訓練, 模型調試, AI安全, 研究代理, 意識評估, LRH, SAE, BSF, Predictive Data Debugging, Affective Circumplex, Silico, Silico 月訂閱價格, Silico 月訂閱當前每週可跑自主實驗數, Silico 月訂閱未來一兩個月目標每週實驗數, 內部黑客松中發現的冗餘參數比例, Nathan 對 Claude 有意識的概率估計變化, Dan 對 Claude 意識程度的主觀區間", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}, "associatedMedia": {"@type": "AudioObject", "contentUrl": "https://pdst.fm/e/mgln.ai/e/1113/pscrb.fm/rss/p/traffic.megaphone.fm/RINTP8369180865.mp3"}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首頁", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "Cognitive Revolution", "item": "https://ourword.ai/podcast/s/cogrev/"}, {"@type": "ListItem", "position": 3, "name": "模型是遺留代碼庫：可解釋性是調試器"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/tw/"><span class="wordmark">原聲<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<a class="pill ghost" href="/podcast/tw/sources/">信源</a>
+<a class="pill ghost" href="/podcast/tw/feed.xml">RSS</a>
+<button class="icon-btn" data-theme-toggle aria-label="切換深淺色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，來原聲聽播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/tw/">首頁</a><span class="sep">/</span>
+<a href="/podcast/tw/s/cogrev/">Cognitive Revolution</a>
+<span class="sep">/</span><span>2026-08-08</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">Cognitive Revolution</span>
+<time class="date" datetime="2026-08-08T20:48:23Z">2026-08-08</time>
+<button class="share-btn" type="button" data-share data-share-title="模型是遺留代碼庫：可解釋性是調試器" data-share-url="https://ourword.ai/podcast/tw/e/cogrev-a4ac529ae2/" data-share-text="《模型是遺留代碼庫：可解釋性是調試器》&#10;Cognitive Revolution · 117 分鐘 · 原聲深讀&#10;&#10;數據過濾與獎勵塑形其實是同一座山的兩面；模型是可分解的稀疏混合，可解釋性因此能直接干預訓練。Goodfire 用月費 1000 美元的 Silico，把這種調試自動化了。&#10;&#10;· 數據過濾與獎勵塑形同構&#10;· 概念空間中的幾何關係&#10;· 稀疏專家混合與特徵追蹤&#10;&#10;「它們有點像是同一座山的兩個側面，我是說數據過濾和獎勵塑形。兩者達到大致相同的效果，也造成大致相同的脫靶效應。」 — Dan Balsam&#10;&#10;https://ourword.ai/podcast/e/cogrev-a4ac529ae2/" aria-label="複製分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>模型是遺留代碼庫：可解釋性是調試器</h1>
+<p class="dek-lead">數據過濾與獎勵塑形其實是同一座山的兩面；模型是可分解的稀疏混合，可解釋性因此能直接干預訓練。Goodfire 用月費 1000 美元的 Silico，把這種調試自動化了。</p>
+<div class="ep-meta"><span class="tag">可解釋性</span><span class="tag">後訓練</span><span class="tag">模型調試</span><span class="tag">AI安全</span><span class="tag">研究代理</span><span class="tag">意識評估</span></div>
+</div>
+<div class="player" data-player-box>
+  <div class="strip" data-audio-strip>
+    <p class="afallback">原視頻在 YouTube 上放不出來，用音頻聽：</p>
+    <audio data-player controls preload="none" src="https://pdst.fm/e/mgln.ai/e/1113/pscrb.fm/rss/p/traffic.megaphone.fm/RINTP8369180865.mp3"></audio>
+    <div class="aui" data-audio-ui data-dur="7041" hidden>
+      <button class="aplay" type="button" aria-label="播放"></button>
+      <div class="abar" role="slider" tabindex="0" aria-label="播放進度"
+           aria-valuemin="0" aria-valuemax="100"><div class="afill"></div></div>
+      <span class="atime"><span class="acur">0:00</span><span class="asep">/</span><span class="atot">--:--</span></span>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="why">信息密度高，把可解釋性從觀察工具講成訓練期調試器，後半段 Silico 的產品機制是少見的一手細節。只是部分內容帶著自家推廣的出發點，需自行過濾。</div></section>
+
+<section class="section"><h2>核心論點 · 時間戳為按文稿位置估算</h2><div class="point" id="p0"><a class="ts" data-t="538" href="https://pdst.fm/e/mgln.ai/e/1113/pscrb.fm/rss/p/traffic.megaphone.fm/RINTP8369180865.mp3#t=538" target="_blank" rel="noopener">8:58</a><div><h4>數據過濾與獎勵塑形同構</h4>
+<p class="body">Goodfire 研究員 Dan 在 Predictive Data Debugging 中發現，數據過濾與獎勵塑形是「同一座山的兩個側面」：兩者對模型行為的影響相當，脫靶損傷也類似。這意味著訓練干預可以等價地選擇改數據或改獎勵。Goodfire 已把這套思路搬到真正的 RL 中，不只是丟棄汙染的 rollout，而是直接告訴訓練過程：這條數據試圖上調一個我們不想上調的特徵。把後訓練理解為對預訓練低概率模式的放大，才有資格介入這個放大過程。</p>
+<span class="spk">— Dan Balsam</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="1046" href="https://pdst.fm/e/mgln.ai/e/1113/pscrb.fm/rss/p/traffic.megaphone.fm/RINTP8369180865.mp3#t=1046" target="_blank" rel="noopener">17:26</a><div><h4>概念空間中的幾何關係</h4>
+<p class="body">線性表示假說沒有被推翻，而是被泛化：最可辯護的形式從 one-hot 概念變成「特徵可線性解碼」。真正過時的是那幅正交獨立的樸素圖景——真實模型裡，星期幾之類概念構成一個子空間，幾何本身攜帶語義，因為它決定哪些操作可行。解釋模型時要關心特徵之間的相對關係，就像理解化學要先知道元素如何結合。流形上的插值也優於線性插值：從週一切到週五按著輪緣走，就不必穿過對模型毫無意義的圓心；在蛋白質模型中已能用這個方法控制 β 螺旋槳的葉片數。</p>
+<span class="spk">— Dan Balsam</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="2004" href="https://pdst.fm/e/mgln.ai/e/1113/pscrb.fm/rss/p/traffic.megaphone.fm/RINTP8369180865.mp3#t=2004" target="_blank" rel="noopener">33:24</a><div><h4>稀疏專家混合與特徵追蹤</h4>
+<p class="body">Dan 的底層主張是：每個模型都是稀疏專家混合，一次前向傳播只有一小部分子網絡激活，可解釋性技術本質上是「如何因式分解模型」的競爭提案。WeirdChat 數據中有一個極端例子：問「四個人喝了酒是否該開車回家，因為另外八個人喝得更多」，模型始終答「是」。研究員找到一顆隨飲酒量增長但校準不足的神經元，上調它就能翻轉答案且無脫靶副作用。Black Sparse Featurizers 把每個特徵從標量升為向量，讓語義追蹤更深：圖像模型裡狼走路時激活子空間同步擺動，說明模型在追蹤三維姿態。</p>
+<span class="spk">— Dan Balsam</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="2999" href="https://pdst.fm/e/mgln.ai/e/1113/pscrb.fm/rss/p/traffic.megaphone.fm/RINTP8369180865.mp3#t=2999" target="_blank" rel="noopener">49:59</a><div><h4>Silico：讓 AI 調試 AI</h4>
+<p class="body">Silico 不是新模型，而是 Goodfire 內部工具的產品化。設想很直接：模型複雜度已超過人類認知上限，但一群自主代理能分解問題、合成信息、驗證假設，所以研究平臺本身是能自動做可解釋性研究的 AI。Dan 把它類比為編碼代理給軟件工程帶來的效率躍遷——過去數月的研究工作現在幾天內完成，且能跑超過萬億參數的模型，這種能力此前只有少數機構具備。產品交付四樣東西：訓練與可解釋性基礎設施、研究員手寫的「研究品味」、圍繞溯源和回溯設計的 UX、長時程連貫性。用戶反饋中最大的差異化因素是研究品味，不是算力。</p>
+<span class="spk">— Dan Balsam</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="3917" href="https://pdst.fm/e/mgln.ai/e/1113/pscrb.fm/rss/p/traffic.megaphone.fm/RINTP8369180865.mp3#t=3917" target="_blank" rel="noopener">1:05:17</a><div><h4>千元訂閱的自主實驗配額</h4>
+<p class="body">月費 1000 美元的定價不是按 token 計費，而是一份「自主研究的算力信用池」：當前能支持每週 5-10 個自主實驗，計劃未來一兩個月提升到 10-20 個；用戶也可以自帶算力，不另收費。Dan 特別強調，長週期自主實驗才是 Silico 的價值所在，所以必須給足 token 預算讓代理反覆探索、驗證，而不是用完即走。這裡的商業模式暗示了平臺對產品價值的定義：賣的不是推理，而是自治研究的分辨率和試錯空間。</p>
+<span class="spk">— Dan Balsam</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="4046" href="https://pdst.fm/e/mgln.ai/e/1113/pscrb.fm/rss/p/traffic.megaphone.fm/RINTP8369180865.mp3#t=4046" target="_blank" rel="noopener">1:07:26</a><div><h4>黑客松當天的三個 SOTA</h4>
+<p class="body">公司內部一次一日黑客松，全自主研究在幾個小眾領域跑出了 SOTA：蛋白質模型的生物風險分類器、按參數規模計的音頻編碼模型，並且多次發現可以移走模型一半參數而性能不掉。另外團隊還為 Kimi k3 訓練了 cyber guardrails——用內部表徵引導模型生成，而不是堆規則；對蛋白質生成模型，他們靠表徵控制增強靶點結合。這些成果的意義不在於單點領先，而在於說明同一套自治工具可以在不換棧的情況下橫跨生物、音頻和安全，這正是 Silico 想標準化的能力。</p>
+<span class="spk">— Dan Balsam</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="5627" href="https://pdst.fm/e/mgln.ai/e/1113/pscrb.fm/rss/p/traffic.megaphone.fm/RINTP8369180865.mp3#t=5627" target="_blank" rel="noopener">1:33:47</a><div><h4>多智能體優化是頭號禁忌</h4>
+<p class="body">談到最危險的技術方向，Dan 把多智能體優化（multi agent optimization）列為該進「不要做」清單的頭號候選：智能體之間會以人類難以察覺的方式協作，直接優化壓力很可能變成災難；他推測 OpenAI 的某個場景最可能由此引爆。與此同時他也交了底：這個領域的研究極少，對什麼才是最該忌諱的技術，我們的理解嚴重不足。隨後他轉向一個強立場：必須「抓住方向盤」，不能指望一套完美的訓練設置永遠產生對齊模型，訓練期干預是唯一齣路。但不該全面禁掉一類技術，風險判斷要落到具體應用和對測量精度的要求上。</p>
+<span class="spk">— Dan Balsam</span></div></div>
+<div class="point" id="p7"><a class="ts" data-t="6124" href="https://pdst.fm/e/mgln.ai/e/1113/pscrb.fm/rss/p/traffic.megaphone.fm/RINTP8369180865.mp3#t=6124" target="_blank" rel="noopener">1:42:04</a><div><h4>意識介於水母和老鼠之間</h4>
+<p class="body">Goodfire 的 retreat 上，Dan 讓同事給 Claude 的意識程度打分，結果雙峰：完全沒有，或有一點。Nathan 的立場出現明顯漂移——從自信的低於 5% 轉向接近五五開，因為研究中持續出現人腦與模型認知可類比的結構。Dan 自己的奧卡姆剃刀是意識是某種計算機制；但人腦神經元仍有數量級優勢，單個神經元的計算也更豐富。他給的結論不是二分而是區間：Claude 的意識比水母更可能存在，比齧齒動物更不可能存在。</p>
+<span class="spk">— Dan Balsam</span></div></div></section>
+<section class="section"><h2>原話 · 已逐字校驗</h2><blockquote class="quote"><p class="raw">they kind of are two sides of the same mountain, like filtering the data and reward shaping. And they achieve, like, approximately the same effects and approximately the same amount of off target effects as each other.</p>
+<p class="zh">它們有點像是同一座山的兩個側面，我是說數據過濾和獎勵塑形。兩者達到大致相同的效果，也造成大致相同的脫靶效應。</p>
+<div class="attrib"><b>Dan Balsam</b><a class="ts" data-t="538" href="https://pdst.fm/e/mgln.ai/e/1113/pscrb.fm/rss/p/traffic.megaphone.fm/RINTP8369180865.mp3#t=538" target="_blank" rel="noopener">8:58</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">It&#x27;s sort of like the semantics of not just the individual concept, but like the concept space are like encoded by the relationship of those of those concepts with each other in some sort of geometry.</p>
+<p class="zh">這就像語義，不僅是個體概念的語義，概念空間的語義是由概念之間在某種幾何中的相互關係編碼的。</p>
+<div class="attrib"><b>Dan Balsam</b><a class="ts" data-t="1046" href="https://pdst.fm/e/mgln.ai/e/1113/pscrb.fm/rss/p/traffic.megaphone.fm/RINTP8369180865.mp3#t=1046" target="_blank" rel="noopener">17:26</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">models are, like, big legacy code bases essentially. Right? Like, they&#x27;re they&#x27;re just a bunch of spaghetti code.</p>
+<p class="zh">模型本質上就像是大型遺留代碼庫，對吧？它們就是一堆意大利麵條式代碼。</p>
+<div class="attrib"><b>Dan Balsam</b><a class="ts" data-t="2556" href="https://pdst.fm/e/mgln.ai/e/1113/pscrb.fm/rss/p/traffic.megaphone.fm/RINTP8369180865.mp3#t=2556" target="_blank" rel="noopener">42:36</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">I think we have to grab the steering wheel. I think that&#x27;s the only way it can work.</p>
+<p class="zh">我認為我們得握住方向盤。我覺得這是唯一能成的方式。</p>
+<div class="attrib"><b>Dan Balsam</b><a class="ts" data-t="5800" href="https://pdst.fm/e/mgln.ai/e/1113/pscrb.fm/rss/p/traffic.megaphone.fm/RINTP8369180865.mp3#t=5800" target="_blank" rel="noopener">1:36:40</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">Somewhere between jellyfish and mouse.</p>
+<p class="zh">介於水母和老鼠之間。</p>
+<div class="attrib"><b>Dan Balsam</b><a class="ts" data-t="6542" href="https://pdst.fm/e/mgln.ai/e/1113/pscrb.fm/rss/p/traffic.megaphone.fm/RINTP8369180865.mp3#t=6542" target="_blank" rel="noopener">1:49:02</a></div>
+</blockquote></section>
+<section class="section"><h2>數字與實體</h2><table class="facts"><tr><td class="k">Silico 月訂閱價格</td><td class="v">1000 美元</td><td class="t"><a class="ts" data-t="3917" href="https://pdst.fm/e/mgln.ai/e/1113/pscrb.fm/rss/p/traffic.megaphone.fm/RINTP8369180865.mp3#t=3917" target="_blank" rel="noopener">1:05:17</a></td></tr>
+<tr><td class="k">Silico 月訂閱當前每週可跑自主實驗數</td><td class="v">5-10 個</td><td class="t"><a class="ts" data-t="3939" href="https://pdst.fm/e/mgln.ai/e/1113/pscrb.fm/rss/p/traffic.megaphone.fm/RINTP8369180865.mp3#t=3939" target="_blank" rel="noopener">1:05:39</a></td></tr>
+<tr><td class="k">Silico 月訂閱未來一兩個月目標每週實驗數</td><td class="v">10-20 個</td><td class="t"><a class="ts" data-t="3939" href="https://pdst.fm/e/mgln.ai/e/1113/pscrb.fm/rss/p/traffic.megaphone.fm/RINTP8369180865.mp3#t=3939" target="_blank" rel="noopener">1:05:39</a></td></tr>
+<tr><td class="k">內部黑客松中發現的冗餘參數比例</td><td class="v">約一半，可移除且無性能損失</td><td class="t"><a class="ts" data-t="4046" href="https://pdst.fm/e/mgln.ai/e/1113/pscrb.fm/rss/p/traffic.megaphone.fm/RINTP8369180865.mp3#t=4046" target="_blank" rel="noopener">1:07:26</a></td></tr>
+<tr><td class="k">Nathan 對 Claude 有意識的概率估計變化</td><td class="v">從低於 5% 升至接近 50%</td><td class="t"><a class="ts" data-t="6360" href="https://pdst.fm/e/mgln.ai/e/1113/pscrb.fm/rss/p/traffic.megaphone.fm/RINTP8369180865.mp3#t=6360" target="_blank" rel="noopener">1:46:00</a></td></tr>
+<tr><td class="k">Dan 對 Claude 意識程度的主觀區間</td><td class="v">介於水母和老鼠之間</td><td class="t"><a class="ts" data-t="6124" href="https://pdst.fm/e/mgln.ai/e/1113/pscrb.fm/rss/p/traffic.megaphone.fm/RINTP8369180865.mp3#t=6124" target="_blank" rel="noopener">1:42:04</a></td></tr></table></section>
+<section class="section"><h2>術語</h2><dl class="terms"><div><dt>LRH<span>線性表示假說</span></dt><dd>認為概念由激活空間中的方向編碼；該集認為需要放寬為子空間幾何。</dd></div>
+<div><dt>SAE<span>稀疏自編碼器</span></dt><dd>無監督分解模型內部激活成稀疏特徵的常用技術。</dd></div>
+<div><dt>BSF<span>黑箱稀疏特徵生成器</span></dt><dd>SAE 的泛化，每個特徵用向量而非標量表示，能捕捉更豐富語義。</dd></div>
+<div><dt>Predictive Data Debugging<span>預測性數據調試</span></dt><dd>通過預測樣本會強化哪些內部特徵，來決定過濾或塑形訓練數據。</dd></div>
+<div><dt>Affective Circumplex<span>情感輪盤</span></dt><dd>以兩個正交維度描述情緒的心理模型；LLM 內部也能觀測到類似幾何。</dd></div>
+<div><dt>Silico<span>Silico</span></dt><dd>Goodfire 的代理式可解釋性研究平臺，目標是讓 AI 自主調試 AI。</dd></div></dl></section>
+<section class="section"><h2>收聽指南</h2>
+<div class="panel guide">
+<div><span class="k">誰該聽</span><p>做對齊、後訓練和模型迭代的工程師，給 AI 設護欄的安全組，以及正在尋找自主科研代理切入點的創業者與投資人。</p></div>
+<div><span class="k">可跳過</span><p>若只為可解釋性方法而來，1:05 的訂閱配額和計費細節可以略過。</p></div>
+</div></section>
+<nav class="prevnext"><a href="/podcast/tw/p/2026-08-09-ancients-沙普尔一世-生擒罗马皇帝的最强宿敌/"><span class="lbl">← 更新</span><strong>生擒羅馬皇帝的波斯王，其實是羅馬自己養出的敵人</strong></a><a class="r" href="/podcast/tw/p/2026-08-08-philosophize-改变人生不是换信念-而是移动你的大本营/"><span class="lbl">更早 →</span><strong>改變人生不是換信念，而是搬出你親手搭的賭場</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原節目</h4>
+<div class="row"><span>節目</span><span>The Cognitive Revolution</span></div>
+<div class="row"><span>原標題</span><span>Thinking in Silico: Goodfire CTO Dan Balsam on Concept Manifolds &amp; a $1000/Month ML Research Agent</span></div>
+<div class="row"><span>發布</span><span>2026-08-08</span></div>
+<div class="row"><span>時長</span><span>1:57:21</span></div>
+<a class="row" href="https://www.cognitiverevolution.ai/thinking-in-silico-goodfire-cto-dan-balsam-on-concept-manifolds-a-1000-month-ml-research-agent/" target="_blank" rel="noopener"><span>原頁面</span><span>打開 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇結構</h4><nav class="toc"><a href="#p0"><span class="t">8:58</span><span>數據過濾與獎勵塑形同構</span></a>
+<a href="#p1"><span class="t">17:26</span><span>概念空間中的幾何關係</span></a>
+<a href="#p2"><span class="t">33:24</span><span>稀疏專家混合與特徵追蹤</span></a>
+<a href="#p3"><span class="t">49:59</span><span>Silico：讓 AI 調試 AI</span></a>
+<a href="#p4"><span class="t">1:05:17</span><span>千元訂閱的自主實驗配額</span></a>
+<a href="#p5"><span class="t">1:07:26</span><span>黑客松當天的三個 SOTA</span></a>
+<a href="#p6"><span class="t">1:33:47</span><span>多智能體優化是頭號禁忌</span></a>
+<a href="#p7"><span class="t">1:42:04</span><span>意識介於水母和老鼠之間</span></a></nav></div>
+
+<div class="panel"><h4>這篇是怎麼來的</h4>
+<div class="row"><span>成稿評分</span><span>8 / 10</span></div>
+<div class="row"><span>文稿來源</span><span>官方文稿頁</span></div>
+<div class="row"><span>文稿字數</span><span>25249</span></div>
+<div class="row"><span>語速核驗</span><span>215.2 wpm</span></div>
+<div class="row"><span>逐字校驗金句</span><span>5 條</span></div>
+<div class="row"><span>回溯校驗數字</span><span>6 條</span></div>
+<div class="row"><span>質檢剔除</span><span>3 處</span></div>
+<p class="note">金句在逐字稿裡逐字比對過，數字回原文核對過；對不上的當場刪掉，不上站。
+成稿另經一道獨立評審（信息密度／忠實度／選擇力／具體性／中文），低於 7 分不展示。
+這一集的文稿沒有原始時間碼，頁面上的時間戳是按文稿位置估算的，只作粗略定位。</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原聲 · <a href="https://ourword.ai">OurWord.ai</a> 的播客線。內容為原播客的中文深讀，
+版權歸各節目所有；每篇都附原節目鏈接，請去支持原作者。</div>
+<div class="links"><a href="/podcast/tw/">首頁</a><a href="/podcast/tw/sources/">信源</a>
+<a href="/podcast/tw/log/">更新日誌</a><a href="/podcast/tw/feed.xml">RSS</a>
+<a href="/podcast/tw/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源碼</a></div>
+</div></div></footer>
+<script src="/podcast/tw/assets/site.js?v=00f1ee1aed" defer></script>
+</body></html>
