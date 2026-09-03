@@ -2161,17 +2161,6 @@ class Player(unittest.TestCase):
         self.assertRegex(html, r'data-audio-strip\s+hidden',
                          "有视频时音频条默认收起")
 
-    def test_failed_video_reveals_the_audio(self):
-        """兜底元素在 DOM 里不等于有兜底——得真有代码去放它出来。
-        两条失败路径都要覆盖：API 脚本取不到，和播放器报 onError。"""
-        self.assertIn("function revealAudio", self.js)
-        i = self.js.index("onError")
-        self.assertIn("revealAudio", self.js[i:i + 700],
-                      "播放器报错时必须放出音频")
-        j = self.js.index("s.onerror")
-        self.assertIn("revealAudio", self.js[j:j + 500],
-                      "API 脚本取不到时必须放出音频")
-
     def test_timestamps_do_not_seek_a_hidden_player(self):
         """音频条收起时时间戳不该去跳它——读者看不见的播放器动了等于什么都
         没发生。"""
@@ -2236,10 +2225,39 @@ class Player(unittest.TestCase):
         self.assertIn("youtube-nocookie.com", self.js)
 
     def test_dead_embed_gets_a_way_out(self):
-        """放不了（区域限制、嵌入被关、脚本取不到）不能停在一个黑框上。"""
-        self.assertIn("onError", self.js)
-        self.assertIn("vfail", self.js)
-        self.assertIn("vfail", self.css)
+        """放不了（区域限制、嵌入被关、脚本取不到）不能停在一个黑框上，也不能
+        变成一张空卡。两种页面两种收场：
+          · 有音频的 84 篇 → 拿掉视频框，放出音频条（它自己带一行说明）
+          · 没音频的 21 篇 → 拿掉视频框，把封面放回来并改成 YouTube 外链
+        没有第三种，所以 videoFailed 必须两条都覆盖。"""
+        self.assertIn("function videoFailed", self.js)
+        i = self.js.index("function videoFailed")
+        body = self.js[i:i + 900]
+        self.assertIn("removeChild", body, "失败时必须把视频框拿掉")
+        self.assertIn("revealAudio()", body, "有音频就放出音频条")
+        self.assertIn("facadeNode.hidden = false", body,
+                      "没音频时必须把封面放回来，不然是一张空卡")
+        self.assertIn("youtube.com/watch", body, "放回来的封面要能去 YouTube")
+        for hook in ("onError", "s.onerror"):
+            k = self.js.index(hook)
+            self.assertIn("videoFailed", self.js[k:k + 400],
+                          f"{hook} 这条路没接上收场逻辑")
+
+    def test_facade_is_hidden_not_replaced(self):
+        """假门得藏起来、别替换掉——放不出来的时候要能把它放回来。
+        replaceWith 之后节点就没了，没音频的 21 篇就只剩一张空卡。"""
+        i = self.js.index("function mountYouTube")
+        body = self.js[i:i + 1600]
+        self.assertNotIn("facade.replaceWith", body)
+        self.assertIn("facade.hidden = true", body)
+
+    def test_no_redundant_failure_sentence(self):
+        """用户："这段视频不能内嵌播放，去 YouTube 打开 ↗ 这句话去掉不需要"。
+        有音频时音频条自己带说明，那句是重复的；没音频时封面上有 YouTube 角标。"""
+        self.assertNotIn("不能内嵌播放", self.js)      # self.js 已剥注释
+        self.assertNotIn("加载 YouTube 播放器失败", self.js)
+        self.assertNotIn("video-fallback", self.js_raw)
+        self.assertNotIn("vfail", (ROOT / "assets" / "site.css").read_text())
 
     # --------------------------------------------------- 音频控件是渐进增强
     def test_custom_audio_ui_degrades_to_native(self):

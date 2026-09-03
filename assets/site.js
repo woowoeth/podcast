@@ -264,6 +264,7 @@
      都不下载，首屏体积不受影响。 */
   var audio = document.querySelector('audio[data-player]');
   var facade = document.querySelector('.video-facade');
+  var facadeNode = null;      // 假门本体，放不出来时要放回来
   var ytPlayer = null;        // YT.Player 实例
   var ytReady = false;
   var pendingSeek = null;     // API 还没就绪时先记下要跳到哪
@@ -285,25 +286,40 @@
     s.onerror = function () {
       // 脚本都取不到（网络受限、被拦）：别留个转圈的空框
       window.__ytApiLoading = false;
-      var w = document.querySelector('.vwrap');
-      if (w) {
-        w.className = 'vfail';
-        w.innerHTML = '<span>加载 YouTube 播放器失败。</span>';
-      }
-      revealAudio('script');
+      videoFailed(document.querySelector('.vwrap'));
     };
     document.head.appendChild(s);
   }
 
   /* 视频这条路走不通了：把收起的音频条放出来。
      不这么做的后果是读者停在一个黑框上，正文里几十个时间戳全都没处跳。 */
-  function revealAudio(why) {
+  function revealAudio() {
     var strip = document.querySelector('[data-audio-strip]');
-    if (!strip || !strip.hidden) return;
+    if (!strip || !strip.hidden) return false;
     strip.hidden = false;
     strip.classList.add('fellback');
     prefer = 'audio';
-    void why;
+    return true;
+  }
+
+  /* 视频放不出来时怎么收场。
+     不留那句"这段视频不能内嵌播放，去 YouTube 打开"——有音频的话音频条自己
+     会带一行说明，那句是重复的。没音频的 21 篇才需要出口：把封面放回来，点
+     它去 YouTube 开原视频（正文里每个时间戳的 href 本来也指向那儿）。 */
+  function videoFailed(wrap) {
+    if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap);
+    ytPlayer = null;
+    ytReady = false;
+    if (revealAudio()) return;
+    if (!facadeNode) return;
+    facadeNode.hidden = false;
+    facadeNode.classList.add('offsite');
+    facadeNode.setAttribute('aria-label', '去 YouTube 打开原视频');
+    facadeNode.onclick = function (ev) {
+      ev.preventDefault();
+      window.open('https://www.youtube.com/watch?v=' + facadeNode.getAttribute('data-yt'),
+                  '_blank', 'noopener');
+    };
   }
 
   function mountYouTube(seconds) {
@@ -321,7 +337,11 @@
     wrap.className = 'vwrap';
     var host = document.createElement('div');
     wrap.appendChild(host);
-    facade.replaceWith(wrap);
+    // 假门是**藏起来**不是替换掉：放不出来的时候要能把它放回来。21 篇有视频
+    // 没音频的，box 一拿掉又没有兜底就成了一张空卡。
+    facadeNode = facade;
+    facade.parentNode.insertBefore(wrap, facade);
+    facade.hidden = true;
     facade = null;
     loadYTApi(function () {
       ytPlayer = new YT.Player(host, {
@@ -341,18 +361,7 @@
             try { ev.target.playVideo(); } catch (err) {}
           },
           onError: function () {
-            // 放不了（区域限制、嵌入被关）：给条能点的外链，别停在黑框上
-            var a = document.createElement('a');
-            a.className = 'video-fallback';
-            a.href = 'https://www.youtube.com/watch?v=' + vid;
-            a.target = '_blank';
-            a.rel = 'noopener';
-            a.textContent = '这段视频不能内嵌播放，去 YouTube 打开 ↗';
-            wrap.innerHTML = '';
-            wrap.className = 'vfail';
-            wrap.appendChild(a);
-            ytPlayer = null;
-            revealAudio('onError');
+            videoFailed(wrap);          // 区域限制、嵌入被关
           }
         }
       });
