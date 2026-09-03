@@ -328,6 +328,31 @@ TSRC_LABEL = {"feed": "官方逐字稿", "notes": "官方全文", "page": "官�
               "youtube": "YouTube 字幕", "asr": "音频转写"}
 
 
+def thumb(url: str, w: int = 400) -> str:
+    """把外链封面换成 CDN 的小尺寸版本。
+
+    封面全是热链的第三方 CDN，改不了文件本身，但这几家都支持尺寸参数，
+    而卡片上这张只显示 ~150px：
+      小宇宙 image.xyzcdn.net   3249 KB → 10 KB（七牛 imageMogr2 + webp）
+      Omny  size=Large         383 KB → 51 KB（改 Medium）
+      imgix / simplecast        支持 ?w=
+    首页原来一次要下 5.6 MB 图片。不认识的域名原样返回——宁可大，不要开天窗。
+    """
+    if not url or "?" in url and "imageMogr2" in url:
+        return url
+    try:
+        host = url.split("/")[2].lower()
+    except IndexError:
+        return url
+    if host.endswith("image.xyzcdn.net"):
+        return url + ("&" if "?" in url else "?") + "imageMogr2/thumbnail/%dx/format/webp" % w
+    if host.endswith("omnycontent.com"):
+        return url.replace("size=Large", "size=Medium").replace("size=large", "size=Medium")
+    if host.endswith("imgix.net"):
+        return url + ("&" if "?" in url else "?") + "w=%d&auto=format" % w
+    return url
+
+
 def card(ep: dict, *, hero: bool) -> str:
     d = ep["digest"]
     q = d.get("quality") or {}
@@ -337,7 +362,7 @@ def card(ep: dict, *, hero: bool) -> str:
                     " ".join(d.get("tags") or []),
                     " ".join(t.get("term", "") for t in d.get("terms") or [])])
     img = ep.get("image") or ""
-    cover = (f'<img src="{e(img)}" alt="" loading="lazy" decoding="async" '
+    cover = (f'<img src="{e(thumb(img))}" alt="" loading="lazy" decoding="async" '
              f'data-initial="{e((ep.get("source") or "?")[:1])}">' if img
              else f'<div class="fallback">{e((ep.get("source") or "?")[:1])}</div>')
     dur = (f'<span class="dur">{hhmmss(ep["duration"])}</span>' if ep.get("duration") else "")
