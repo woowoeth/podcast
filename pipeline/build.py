@@ -478,38 +478,61 @@ def seek_href(ep: dict, t: int) -> str:
 
 
 def player_block(ep: dict) -> str:
-    """正文顶部的播放器。
+    """正文顶部的播放器：一张卡，视频在上、音频在下。
 
-    放这里而不是侧栏或文末：这个站的前提是"每条判断都能跳回原声核对"，播放器是
-    为时间戳服务的。侧栏只有 264px，视频小到没法看；文末的话，正文各处的时间戳
-    都要往回滚很远。放第一屏，读者的用法是"扫一眼摘要 → 点时间戳 → 就地看那一段"。
+    位置：放这里而不是侧栏或文末。这个站的前提是"每条判断都能跳回原声核对"，
+    播放器是为时间戳服务的——侧栏只有 264px，视频小到没法看；放文末的话，
+    正文各处的时间戳都要往回滚很远。
 
-    视频用**封面图加播放按钮的假门**，点了才换成真 iframe。YouTube 的嵌入代码有
-    1 MB 以上的 JS，直接塞进去会把首页刚从 109 KB 压到 17 KB 的成果吃掉。
+    **音频始终在，视频是加分项。** 之前是有视频就把音频整个换掉，于是 YouTube
+    一放不出来（区域限制、嵌入被关、脚本被拦）读者什么都没有：一个死框，时间戳
+    也没处跳。音频走播客 CDN，它才是兜底的那条。
 
-    播放器下面不解释"点时间戳会跳过来"——「核心论点 · 点时间戳可跳到原声」那个
-    小标题已经说了同一件事，在正文第一屏重复一遍纯属噪音。视频那条只留一句隐私
-    交代（点播放之前 YouTube 拿不到你的 IP），因为静态封面图本身不说明这一点。
+    视频先给封面图加播放按钮的假门，点了才换成真播放器：YouTube 的 iframe API
+    约 100 KB，不点视频的读者一个字节都不下载。
+
+    封面尺寸的坑（线上真出过）：给 img 写 height="360" 属性等于指定了 height，
+    两边都定死时 CSS 的 aspect-ratio **不生效**，16:9 的框退回 4:3，露出 YouTube
+    缩略图自带的黑边。所以只给 width，高度交给外层 padding-top 百分比撑。
+
+    音频那一栏是渐进增强：<audio> 带着 controls 出，自定义那层默认 hidden，
+    脚本跑起来才对调。脚本没跑就还是原生控件，不会变成一个点不动的死条。
     """
     vid = ep.get("youtube_id")
+    audio = ep.get("audio")
+    if not (vid or audio):
+        return ""
+    secs = int(ep.get("duration") or 0)
+    dur = hhmmss(secs) or ""
+    out = ['<div class="player" data-player-box>']
     if vid:
-        # 封面用 YouTube 自己的缩略图，i.ytimg.com 不需要 cookie
-        poster = f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg"
-        return f'''
-<div class="player" data-player-box>
-  <button class="video-facade" data-yt="{e(vid)}" type="button"
-          aria-label="播放视频">
-    <img src="{e(poster)}" alt="" loading="lazy" width="480" height="360">
-    <span class="play" aria-hidden="true">▶</span>
-  </button>
-  <p class="note">点播放才向 YouTube 请求</p>
-</div>'''
-    if ep.get("audio"):
-        return f'''
-<div class="player" data-player-box>
-  <audio data-player controls preload="none" src="{e(ep["audio"])}"></audio>
-</div>'''
-    return ""
+        # hq720 是真 16:9；hqdefault 是 4:3 补黑边的，只当兜底
+        poster = f"https://i.ytimg.com/vi/{vid}/hq720.jpg"
+        fallback = f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg"
+        out.append(
+            f'  <button class="video-facade" data-yt="{e(vid)}" type="button"\n'
+            f'          aria-label="播放原节目视频">\n'
+            f'    <span class="frame">\n'
+            f'      <img src="{e(poster)}" alt="" loading="lazy" width="1280"\n'
+            f'           onerror="this.onerror=null;this.src=\'{e(fallback)}\'">\n'
+            f'      <span class="play" aria-hidden="true"></span>\n'
+            + (f'      <span class="vdur">{e(dur)}</span>\n' if dur else '')
+            + '    </span>\n'
+            '  </button>')
+    if audio:
+        out.append(
+            '  <div class="strip">\n'
+            f'    <audio data-player controls preload="none" src="{e(audio)}"></audio>\n'
+            f'    <div class="aui" data-audio-ui data-dur="{secs}" hidden>\n'
+            '      <button class="aplay" type="button" aria-label="播放"></button>\n'
+            '      <div class="abar" role="slider" tabindex="0" aria-label="播放进度"\n'
+            '           aria-valuemin="0" aria-valuemax="100"><div class="afill"></div></div>\n'
+            '      <span class="atime"><span class="acur">0:00</span>'
+            '<span class="asep">/</span><span class="atot">--:--</span></span>\n'
+            '    </div>\n'
+            '  </div>')
+    out.append('</div>')
+    return "\n".join(out)
 
 
 def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:

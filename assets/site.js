@@ -252,43 +252,118 @@
   }
 
   /* --------------------------------------- 时间戳 → 页内播放器（音频或视频） */
-  var audio = document.querySelector('audio[data-player]');
-  var facade = document.querySelector('[data-yt]');
-  var ytFrame = null;
+  /* 用 YouTube 官方的 IFrame Player API，不是自己拼 embed 的 src。
+     为什么换：上一版点了假门就新建一个 `?autoplay=1` 的 iframe，而**在新建的
+     iframe 上加 autoplay 不算用户手势**（iOS 尤其严），播放器加载了却不会动，
+     看起来就是"点播放没生效"。API 的 playVideo() 是在点击这条链路里调的，算手势。
 
-  /* 视频用假门：点了才换成真 iframe。YouTube 的嵌入代码有 1 MB 以上的 JS，
-     直接放进页面会把首页刚压下来的体积又吃回去。 */
-  function mountYouTube(seconds) {
-    var box = document.querySelector('[data-player-box]');
-    if (!box) return null;
-    if (ytFrame) {
-      if (seconds != null) {
-        // 已经挂上了：换 src 来跳转（不引入 iframe API，省掉又一个脚本）
-        ytFrame.src = ytSrc(ytFrame.getAttribute('data-yt'), seconds);
+     顺带解决了跳转：seekTo(秒) 就地跳，不用换 src 重载整个播放器——换 src 每次
+     都要重新握手，跳一次要等好几秒，还会丢掉已缓冲的部分。
+
+     API 脚本约 100 KB，所以**只在第一次点击时才加载**：不点视频的读者一个字节
+     都不下载，首屏体积不受影响。 */
+  var audio = document.querySelector('audio[data-player]');
+  var facade = document.querySelector('.video-facade');
+  var ytPlayer = null;        // YT.Player 实例
+  var ytReady = false;
+  var pendingSeek = null;     // API 还没就绪时先记下要跳到哪
+  var prefer = null;          // 读者已经在用哪个：'video' | 'audio' | null
+
+  function loadYTApi(cb) {
+    if (window.YT && window.YT.Player) return cb();
+    var waiting = window.__ytApiWaiting || (window.__ytApiWaiting = []);
+    waiting.push(cb);
+    if (window.__ytApiLoading) return;
+    window.__ytApiLoading = true;
+    window.onYouTubeIframeAPIReady = function () {
+      (window.__ytApiWaiting || []).forEach(function (f) { f(); });
+      window.__ytApiWaiting = [];
+    };
+    var s = document.createElement('script');
+    s.src = 'https://www.youtube.com/iframe_api';
+    s.async = true;
+    s.onerror = function () {
+      // 脚本都取不到（网络受限、被拦）：别留个转圈的空框
+      window.__ytApiLoading = false;
+      var w = document.querySelector('.vwrap');
+      if (w) {
+        w.className = 'vfail';
+        w.innerHTML = '<span>加载 YouTube 播放器失败，用下面的音频，'
+          + '或去 YouTube 打开原视频。</span>';
       }
-      return ytFrame;
-    }
-    var vid = facade && facade.getAttribute('data-yt');
-    if (!vid) return null;
-    var f = document.createElement('iframe');
-    f.className = 'video';
-    f.setAttribute('data-yt', vid);
-    f.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture');
-    f.setAttribute('allowfullscreen', '');
-    f.setAttribute('title', '原节目视频');
-    f.src = ytSrc(vid, seconds);
-    facade.replaceWith(f);
-    ytFrame = f;
-    return f;
+    };
+    document.head.appendChild(s);
   }
 
-  function ytSrc(vid, seconds) {
-    return 'https://www.youtube-nocookie.com/embed/' + vid
-      + '?autoplay=1&rel=0' + (seconds ? '&start=' + Math.floor(seconds) : '');
+  function mountYouTube(seconds) {
+    if (!facade && !ytPlayer) return;
+    if (ytPlayer) {
+      if (seconds != null) seekVideo(seconds);
+      return;
+    }
+    var vid = facade.getAttribute('data-yt');
+    if (!vid) return;
+    pendingSeek = seconds;
+    // 外层撑 16:9，iframe 绝对填满。YT.Player 会把给它的元素**换成** iframe，
+    // 换掉之后 class 不一定还在，所以尺寸交给外层，别指望 iframe 自己带样式。
+    var wrap = document.createElement('div');
+    wrap.className = 'vwrap';
+    var host = document.createElement('div');
+    wrap.appendChild(host);
+    facade.replaceWith(wrap);
+    facade = null;
+    loadYTApi(function () {
+      ytPlayer = new YT.Player(host, {
+        // nocookie 域：点播放之前 YouTube 拿不到任何东西，点了之后也不落
+        // 广告 cookie。YT.Player 默认走 youtube.com，得显式指定。
+        host: 'https://www.youtube-nocookie.com',
+        videoId: vid,
+        playerVars: {
+          rel: 0, playsinline: 1, modestbranding: 1,
+          start: pendingSeek ? Math.floor(pendingSeek) : 0
+        },
+        events: {
+          onReady: function (ev) {
+            ytReady = true;
+            if (pendingSeek != null) ev.target.seekTo(pendingSeek, true);
+            pendingSeek = null;
+            try { ev.target.playVideo(); } catch (err) {}
+          },
+          onError: function () {
+            // 放不了（区域限制、嵌入被关）：给条能点的外链，别停在黑框上
+            var a = document.createElement('a');
+            a.className = 'video-fallback';
+            a.href = 'https://www.youtube.com/watch?v=' + vid;
+            a.target = '_blank';
+            a.rel = 'noopener';
+            a.textContent = '这段视频不能内嵌播放，去 YouTube 打开 ↗';
+            wrap.innerHTML = '';
+            wrap.className = 'vfail';
+            wrap.appendChild(a);
+            ytPlayer = null;
+          }
+        }
+      });
+    });
+  }
+
+  function seekVideo(t) {
+    if (!ytPlayer) return;
+    if (!ytReady) { pendingSeek = t; return; }
+    try {
+      ytPlayer.seekTo(t, true);
+      ytPlayer.playVideo();
+    } catch (err) {}
   }
 
   if (facade) {
-    facade.addEventListener('click', function () { mountYouTube(null); });
+    facade.addEventListener('click', function () {
+      prefer = 'video';
+      mountYouTube(null);
+    });
+  }
+  if (audio) {
+    audio.addEventListener('play', function () { prefer = 'audio'; });
   }
 
   document.addEventListener('click', function (e) {
@@ -296,22 +371,113 @@
     if (!a) return;
     var t = parseInt(a.getAttribute('data-t'), 10);
     if (isNaN(t)) return;
-    // 有页内播放器就就地跳转；没有就走 href（原节目页面／视频）
-    if (facade || ytFrame) {
-      e.preventDefault();
-      var f = mountYouTube(t);
-      if (f) f.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      return;
-    }
-    if (audio) {
+    // 跳读者已经在用的那个播放器；都没用过时，有视频就用视频。
+    // （两个都在页面上：视频是加分项，音频走播客 CDN，一定放得出来。）
+    var useAudio = audio && (prefer === 'audio' || (!facade && !ytPlayer));
+    if (useAudio) {
       e.preventDefault();
       try {
         audio.currentTime = t;
         audio.play();
         audio.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       } catch (err) {}
+      return;
+    }
+    if (facade || ytPlayer) {
+      e.preventDefault();
+      mountYouTube(t);
+      var box = document.querySelector('[data-player-box]');
+      if (box) box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
   });
+
+  /* ----------------------------------------------------------- 音频控件外观 */
+  /* 原生 <audio controls> 在每个平台长得都不一样（Chrome 是灰药丸、iOS 是另一
+     套、Firefox 又一套），放在这张卡里像贴上去的。这里自己画：圆形播放键 +
+     一条进度轨 + mono 时码，和站上其他部件同一套语言。
+
+     渐进增强：HTML 里 <audio> 带着 controls 出，自定义那层默认 hidden。脚本跑
+     起来才摘掉 controls、显出自定义层——脚本没跑（报错、被拦）就还是原生控件，
+     不会变成一个点不动的死条。 */
+  function fmt(t) {
+    t = Math.max(0, Math.floor(t || 0));
+    var h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
+    var mm = h ? (m < 10 ? '0' + m : m) : m;
+    return (h ? h + ':' : '') + mm + ':' + (s < 10 ? '0' + s : s);
+  }
+
+  if (audio) {
+    var ui = document.querySelector('[data-audio-ui]');
+    if (ui) {
+      audio.removeAttribute('controls');
+      ui.hidden = false;
+      var btn = ui.querySelector('.aplay');
+      var bar = ui.querySelector('.abar');
+      var fill = ui.querySelector('.afill');
+      var cur = ui.querySelector('.acur');
+      var tot = ui.querySelector('.atot');
+      var known = parseInt(ui.getAttribute('data-dur') || '0', 10) || 0;
+
+      var total = function () {
+        return isFinite(audio.duration) && audio.duration ? audio.duration : known;
+      };
+      var paint = function () {
+        var d = total();
+        fill.style.width = d ? (Math.min(1, audio.currentTime / d) * 100) + '%' : '0%';
+        cur.textContent = fmt(audio.currentTime);
+        tot.textContent = d ? fmt(d) : '--:--';
+      };
+      var seekTo = function (ratio) {
+        var d = total();
+        if (!d) return;
+        try { audio.currentTime = Math.min(d - 0.2, Math.max(0, ratio * d)); } catch (e) {}
+        paint();
+      };
+      var ratioAt = function (clientX) {
+        var b = bar.getBoundingClientRect();
+        return b.width ? (clientX - b.left) / b.width : 0;
+      };
+
+      btn.addEventListener('click', function () {
+        if (audio.paused) audio.play(); else audio.pause();
+      });
+      var sync = function () {
+        var on = !audio.paused && !audio.ended;
+        ui.classList.toggle('playing', on);
+        btn.setAttribute('aria-label', on ? '暂停' : '播放');
+      };
+      audio.addEventListener('play', sync);
+      audio.addEventListener('pause', sync);
+      audio.addEventListener('ended', sync);
+      audio.addEventListener('timeupdate', paint);
+      audio.addEventListener('loadedmetadata', paint);
+
+      // 拖动：pointer 事件一套搞定鼠标和触摸，不用分别写 mouse/touch
+      var dragging = false;
+      bar.addEventListener('pointerdown', function (ev) {
+        dragging = true;
+        try { bar.setPointerCapture(ev.pointerId); } catch (e) {}
+        seekTo(ratioAt(ev.clientX));
+      });
+      bar.addEventListener('pointermove', function (ev) {
+        if (dragging) seekTo(ratioAt(ev.clientX));
+      });
+      bar.addEventListener('pointerup', function () { dragging = false; });
+      bar.addEventListener('pointercancel', function () { dragging = false; });
+      // 键盘：轨道是 role=slider，左右键 ±10 秒
+      bar.addEventListener('keydown', function (ev) {
+        var step = ev.key === 'ArrowLeft' ? -10 : ev.key === 'ArrowRight' ? 10 : 0;
+        if (!step) return;
+        ev.preventDefault();
+        var d = total();
+        if (d) seekTo((audio.currentTime + step) / d);
+      });
+
+      tot.textContent = known ? fmt(known) : '--:--';
+      paint();
+      sync();
+    }
+  }
 
   /* ---------------------------------------------------------------- share */
   /* 微信和朋友圈不给网页调起分享——那需要认证公众号、JS 接口安全域名和服务端

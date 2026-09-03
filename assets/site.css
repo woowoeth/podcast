@@ -123,6 +123,13 @@ button{font:inherit; color:inherit; background:none; border:0; cursor:pointer}
 @media (max-width:620px){ .card.hero{grid-column:span 1} }
 .cover{position:relative; aspect-ratio:16/9; background:var(--bg-tint); overflow:hidden}
 .card.hero .cover{aspect-ratio:2/1}
+/* 不认 aspect-ratio 的浏览器（Safari 15 之前）上，封面会塌成 0 高——
+   页内播放器就是踩了这一类的坑，这里补上同一个 padding-top 兜底。 */
+@supports not (aspect-ratio:16/9){
+  .cover{padding-top:56.25%}
+  .card.hero .cover{padding-top:50%}
+  .cover img,.cover .fallback{position:absolute; top:0; right:0; bottom:0; left:0}
+}
 .cover img{width:100%; height:100%; object-fit:cover}
 .cover .fallback{
   width:100%; height:100%; display:grid; place-items:center; font-family:var(--serif);
@@ -171,6 +178,10 @@ button{font:inherit; color:inherit; background:none; border:0; cursor:pointer}
 .crumb .sep{color:var(--rule-2)}
 .ep-grid{display:grid; grid-template-columns:minmax(0,1fr) 264px; gap:clamp(28px,4vw,56px); align-items:start}
 @media (max-width:940px){ .ep-grid{grid-template-columns:minmax(0,1fr)} }
+/* 桌面端最后一块是 .prevnext，它自带 72px 下边距；单列时 aside 排到最后，
+   谁都没给它下边距，于是那张"这篇是怎么来的"卡片紧贴页脚的分隔线。 */
+.ep{padding-bottom:0}
+@media (max-width:940px){ .ep{padding-bottom:clamp(48px,9vw,72px)} }
 .ep-head{border-bottom:1px solid var(--rule); padding-bottom:24px; margin-bottom:30px}
 .ep-head .kicker{margin-bottom:14px}
 .ep-head h1{
@@ -346,26 +357,128 @@ h1.sec-title, h2.sec-title, .sec-title{font-family:var(--serif);
 .toast.on{opacity:1; transform:translate(-50%,0)}
 
 /* ------------------------------------------------------------ 页内播放器 */
-/* 放正文第一屏、占满正文列宽：播放器是为时间戳服务的，侧栏 264px 看不了视频。 */
-.player{margin:0 0 30px}
-.player audio{width:100%; height:38px}
-/* 只剩一句隐私交代，压到脚注量级：它不是给读者读的，是备着被查的 */
-.player .note{margin:7px 0 0; color:var(--faint); font-size:11px;
-  letter-spacing:.02em; line-height:1.5}
+/* 放正文第一屏、占满正文列宽：播放器是为时间戳服务的，侧栏 264px 看不了视频。
+   音频始终在，视频是加分项——YouTube 放不出来时读者不该什么都没有。
+
+   长相跟站上其他卡片同一族：1px --rule 描边、12px 圆角、--surface 底，
+   时长徽标直接复用首页卡片的 .dur，小标用 .panel h4 那套 mono 字。 */
+.player{
+  margin:0 0 32px; border:1px solid var(--rule); border-radius:12px;
+  background:var(--surface); overflow:hidden; box-shadow:var(--shadow);
+}
+
+/* 16:9 一律用 padding-top 百分比撑，**不用 aspect-ratio**：给 img 写 height
+   属性等于指定了 height，两边都定死时 aspect-ratio 不生效，16:9 的框会退回
+   4:3，露出 YouTube 缩略图自带的黑边——线上就是这么丑起来的。padding 方案
+   没有这个坑，也没有兼容门槛。同理绝对定位写全 top/right/bottom/left，
+   不写 inset（Safari 14.1 之前不认，认不出就掉到静态位置去）。 */
 .video-facade{
-  position:relative; display:block; width:100%; padding:0; border:0; cursor:pointer;
-  border-radius:12px; overflow:hidden; background:var(--bg-tint); line-height:0;
+  display:block; width:100%; padding:0; border:0; background:none;
+  cursor:pointer; text-align:left; font:inherit; color:inherit;
 }
-.video-facade img{width:100%; aspect-ratio:16/9; object-fit:cover; display:block}
+.video-facade .frame{
+  position:relative; display:block; width:100%; padding-top:56.25%;
+  background:var(--bg-tint); overflow:hidden;
+}
+.video-facade .frame img{
+  position:absolute; top:0; right:0; bottom:0; left:0;
+  width:100%; height:100%; object-fit:cover; display:block;
+  transition:transform .5s cubic-bezier(.2,.7,.3,1);
+}
+.video-facade:hover .frame img{transform:scale(1.028)}
+.video-facade .frame::after{
+  content:""; position:absolute; top:0; right:0; bottom:0; left:0;
+  background:linear-gradient(rgba(10,9,7,0) 45%, rgba(10,9,7,.5));
+}
 .video-facade .play{
-  position:absolute; inset:0; display:grid; place-items:center;
-  font-size:34px; line-height:1; color:#fff;
-  text-shadow:0 2px 12px rgba(0,0,0,.5);
-  background:linear-gradient(rgba(10,9,7,.05), rgba(10,9,7,.35));
-  transition:background .18s;
+  position:absolute; top:50%; left:50%; width:62px; height:62px; z-index:1;
+  margin:-31px 0 0 -31px; border-radius:50%;
+  background:rgba(18,16,13,.55); border:1.5px solid rgba(255,255,255,.92);
+  box-shadow:0 8px 28px rgba(0,0,0,.34);
+  transition:background .16s ease, transform .16s ease;
 }
-.video-facade:hover .play{background:linear-gradient(rgba(10,9,7,.1), rgba(10,9,7,.5))}
-iframe.video{width:100%; aspect-ratio:16/9; border:0; border-radius:12px; display:block}
+/* 三角用 border 画，不用 ▶ 字形：字形在不同系统里大小和基线都不一样，
+   还会被当成 emoji 渲染成彩色的。 */
+.video-facade .play::after{
+  content:""; position:absolute; top:50%; left:50%;
+  margin:-10px 0 0 -6px; width:0; height:0; border-style:solid;
+  border-width:10px 0 10px 16px;
+  border-color:transparent transparent transparent #fff;
+}
+.video-facade:hover .play{background:var(--accent); transform:scale(1.06)}
+.video-facade:active .play{transform:scale(.95)}
+.video-facade .vdur{
+  position:absolute; right:10px; bottom:10px; z-index:1;
+  font-family:var(--mono); font-size:11px; padding:2px 7px; border-radius:5px;
+  color:#fff; background:rgba(10,9,7,.72);
+}
+
+/* 音频那一栏 */
+.player .strip{padding:12px 14px; background:var(--surface-2)}
+.player .video-facade + .strip{border-top:1px solid var(--rule)}
+.player .strip audio{width:100%; height:36px}   /* 脚本没跑时的原生兜底 */
+
+/* 自己画的音频控件：圆形播放键 + 进度轨 + mono 时码。
+   原生 controls 在每个平台长得都不一样，放在这张卡里像贴上去的。 */
+.aui{display:flex; align-items:center; gap:13px}
+.aplay{
+  flex:none; position:relative; width:38px; height:38px; border-radius:50%;
+  background:var(--accent); border:0; cursor:pointer;
+  transition:transform .14s ease, filter .14s ease;
+}
+.aplay:hover{transform:scale(1.06)}
+.aplay:active{transform:scale(.95)}
+/* 三角和暂停条都用 border/背景画，不用字形——字形在各系统里基线和大小不一，
+   还会被当成 emoji 上色。 */
+.aplay::before,.aplay::after{content:""; position:absolute; top:50%; left:50%}
+.aplay::before{
+  margin:-7px 0 0 -4px; width:0; height:0; border-style:solid;
+  border-width:7px 0 7px 11px; border-color:transparent transparent transparent #fff;
+}
+.aplay::after{display:none}
+.aui.playing .aplay::before{
+  margin:-7px 0 0 -6px; width:4px; height:14px; border:0; background:#fff;
+}
+.aui.playing .aplay::after{
+  display:block; margin:-7px 0 0 2px; width:4px; height:14px; background:#fff;
+}
+.abar{
+  flex:1; min-width:0; height:22px; position:relative; cursor:pointer;
+  touch-action:none;                    /* 拖进度时别触发页面滚动 */
+}
+.abar::before{
+  content:""; position:absolute; top:50%; left:0; right:0; height:3px;
+  margin-top:-1.5px; border-radius:999px; background:var(--rule-2);
+}
+.afill{
+  position:absolute; top:50%; left:0; width:0; height:3px; margin-top:-1.5px;
+  border-radius:999px; background:var(--accent);
+}
+.afill::after{
+  content:""; position:absolute; top:50%; right:-5px; width:10px; height:10px;
+  margin-top:-5px; border-radius:50%; background:var(--accent);
+  box-shadow:0 0 0 2px var(--surface-2);
+}
+.abar:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:4px}
+.atime{
+  flex:none; font-family:var(--mono); font-size:11.5px; color:var(--muted);
+  font-variant-numeric:tabular-nums; letter-spacing:.01em;
+}
+.atime .asep{margin:0 4px; color:var(--rule-2)}
+.atime .atot{color:var(--faint)}
+
+/* 点开之后：YT.Player 会把给它的元素**换成** iframe，换掉之后 class 不一定
+   还在，所以尺寸交给外层，别指望 iframe 自己带样式。 */
+.vwrap{position:relative; width:100%; padding-top:56.25%; background:#000}
+.vwrap>iframe,.vwrap>div{
+  position:absolute; top:0; right:0; bottom:0; left:0;
+  width:100%; height:100%; border:0;
+}
+.vfail{
+  display:block; padding:16px 18px; background:var(--bg-tint);
+  color:var(--muted); font-size:13.5px; line-height:1.6;
+}
+.vfail a{color:var(--accent); font-weight:600}
 
 /* ---------------------------------------------------------------- 加载更多 */
 .more{display:flex; flex-direction:column; align-items:center; gap:10px;

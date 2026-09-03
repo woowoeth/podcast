@@ -1099,8 +1099,9 @@ class RangeReplacementsDeleteMoreThanYouThink(unittest.TestCase):
         js = (ROOT / "assets" / "site.js").read_text()
         defined = set(re.findall(r"function ([A-Za-z0-9_]+)", js))
         for name in ("run", "loadDeep", "loadPage", "loadAll", "maybeLoad",
-                     "showCount", "pageUrl", "mountYouTube", "ytSrc",
-                     "copy", "toast", "track", "apply", "current"):
+                     "showCount", "pageUrl", "mountYouTube", "loadYTApi",
+                     "seekVideo", "fmt", "copy", "toast", "track", "apply",
+                     "current"):
             if name + "(" in js:
                 self.assertIn(name, defined, f"site.js 调用了 {name}() 但没有定义")
 
@@ -1920,10 +1921,12 @@ class InlinePlayerServesTheTimestamps(unittest.TestCase):
         self.assertNotIn("<iframe", body)
         self.assertIn("i.ytimg.com", body)      # 封面用 YouTube 自己的缩略图
 
-    def test_timestamps_seek_the_video_with_start(self):
+    def test_timestamps_seek_the_video(self):
+        """机制换了：以前自己拼 embed 的 src（每跳一次重载整个播放器，要等好
+        几秒，还丢掉已缓冲的部分），现在用官方 API 的 seekTo 就地跳。"""
         js = (ROOT / "assets" / "site.js").read_text()
-        self.assertIn("youtube-nocookie.com/embed/", js)
-        self.assertIn("start=", js)
+        self.assertIn("youtube-nocookie.com", js)
+        self.assertIn("seekTo", js)
         self.assertIn("mountYouTube(t)", js)
 
 
@@ -2109,3 +2112,130 @@ class YouTubeChannelIds(unittest.TestCase):
         srcs = json.loads((ROOT / "data" / "sources.json").read_text())["sources"]
         with_yt = [s["id"] for s in srcs if s.get("yt")]
         self.assertEqual(with_yt, [], f"sources.json 里还有 yt 字段：{with_yt}")
+
+
+class Player(unittest.TestCase):
+    """正文顶部那张播放器卡。这一类的 bug 全是"线上长得不对"，而本地看不出来，
+    所以判据都盯着**已知的失效机制**，不是外观描述。
+    """
+
+    @staticmethod
+    def _strip(text: str, kind: str) -> str:
+        """把注释剥掉再判。不剥的话，"别再用 autoplay=1" 这句解释本身就会
+        让"不许出现 autoplay=1"的检查失败——检查在读文档，不是在读代码。"""
+        if kind == "py":
+            text = re.sub(r'"""[\s\S]*?"""', "", text)
+            return re.sub(r"(?m)^\s*#.*$", "", text)
+        if kind == "css":
+            return re.sub(r"/\*[\s\S]*?\*/", "", text)
+        text = re.sub(r"/\*[\s\S]*?\*/", "", text)
+        return re.sub(r"(?m)^\s*//.*$", "", text)
+
+    def setUp(self):
+        self.build = (ROOT / "pipeline" / "build.py").read_text()
+        i = self.build.index("def player_block")
+        self.fn = self._strip(
+            self.build[i:self.build.index("def episode_page", i)], "py")
+        self.css_raw = (ROOT / "assets" / "site.css").read_text()
+        self.css = self._strip(self.css_raw, "css")
+        self.js_raw = (ROOT / "assets" / "site.js").read_text()
+        self.js = self._strip(self.js_raw, "js")
+
+    # ---------------------------------------------------------- 有视频≠没音频
+    def test_video_never_replaces_audio(self):
+        """之前是有视频就把音频整个换掉，于是 YouTube 一放不出来（区域限制、
+        嵌入被关、脚本被拦）读者什么都没有：一个死框，时间戳也没处跳。
+        音频走播客 CDN，它才是兜底的那条，必须始终在。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        build = importlib.import_module("build")
+        html = build.player_block({"youtube_id": "abc12345678",
+                                   "audio": "https://cdn.example/x.mp3",
+                                   "duration": 3600})
+        self.assertIn("video-facade", html)
+        self.assertIn("<audio", html, "有视频时音频不该消失")
+
+    def test_audio_only_still_gets_a_player(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        build = importlib.import_module("build")
+        html = build.player_block({"audio": "https://cdn.example/x.mp3",
+                                   "duration": 1800})
+        self.assertIn("<audio", html)
+        self.assertNotIn("video-facade", html)
+
+    # -------------------------------------------------- 16:9 不能靠新语法
+    def test_poster_has_no_height_attribute(self):
+        """给 img 写 height="360" 属性等于指定了 height，两边都定死时 CSS 的
+        aspect-ratio **不生效**——16:9 的框退回 4:3，露出 YouTube 缩略图自带的
+        黑边。线上就是这么丑起来的。"""
+        self.assertNotIn('height="', self.fn,
+                         "封面图不能带 height 属性，它会把 aspect-ratio 废掉")
+
+    def test_player_ratio_does_not_depend_on_aspect_ratio(self):
+        """用户那台浏览器不认新语法：inset 不认就掉回静态位置（播放键跑到图片
+        下面去了），aspect-ratio 不认就塌成 0 高。padding-top 百分比没有门槛。"""
+        # 用分节标题定位，不用"页内播放器"这四个字——.cover 兜底那段的注释里
+        # 也提到了它，按关键词找会定位到上千行之前。
+        i = self.css_raw.index("------ 页内播放器 */")
+        block = self._strip(
+            self.css_raw[i:self.css_raw.index("加载更多", i)], "css")
+        self.assertIn("padding-top:56.25%", block, "16:9 必须用 padding-top 撑")
+        self.assertNotIn("aspect-ratio", block, "播放器不该再依赖 aspect-ratio")
+        self.assertNotIn("inset:", block, "别用 inset 简写，写全四个方向")
+
+    def test_card_covers_have_a_fallback_too(self):
+        """首页卡片封面也用 aspect-ratio。同一类浏览器上它会塌成 0 高，
+        补上同一个 padding-top 兜底。"""
+        self.assertIn("@supports not (aspect-ratio:16/9)", self.css_raw)
+
+    # ------------------------------------------------------- 播放要真能播
+    def test_uses_the_official_iframe_api(self):
+        """上一版点了假门就新建一个 `?autoplay=1` 的 iframe，而**在新建的
+        iframe 上加 autoplay 不算用户手势**（iOS 尤其严），播放器加载了却不会动
+        ——用户看到的就是"点播放没生效"。官方 API 的 playVideo() 在点击这条链路
+        里调，算手势；seekTo 还能就地跳，不用换 src 重载。"""
+        self.assertIn("iframe_api", self.js, "必须用官方 IFrame Player API")
+        self.assertIn("playVideo", self.js)
+        self.assertIn("seekTo", self.js)
+        self.assertNotIn("autoplay=1", self.js,
+                         "别再自己拼 autoplay 的 embed src，那个不算手势")
+
+    def test_api_script_loads_only_on_click(self):
+        """API 脚本约 100 KB。不点视频的读者不该下载它——首屏刚从 109 KB
+        压到 17 KB。"""
+        i = self.js_raw.index("function loadYTApi")
+        self.assertIn("iframe_api", self.js_raw[i:i + 1400])
+        i2 = self.js_raw.index("function mountYouTube")
+        self.assertIn("loadYTApi", self.js_raw[i2:i2 + 2200],
+                      "loadYTApi 只该由 mountYouTube 触发，即点击之后")
+
+    def test_embed_stays_on_the_nocookie_host(self):
+        self.assertIn("youtube-nocookie.com", self.js)
+
+    def test_dead_embed_gets_a_way_out(self):
+        """放不了（区域限制、嵌入被关、脚本取不到）不能停在一个黑框上。"""
+        self.assertIn("onError", self.js)
+        self.assertIn("vfail", self.js)
+        self.assertIn("vfail", self.css)
+
+    # --------------------------------------------------- 音频控件是渐进增强
+    def test_custom_audio_ui_degrades_to_native(self):
+        """自己画的控件更好看，但脚本没跑（报错、被拦）时不能变成一个点不动的
+        死条。所以 HTML 里 <audio> 带着 controls 出，自定义那层默认 hidden，
+        脚本跑起来才对调。"""
+        self.assertIn("controls", self.fn, "<audio> 必须带 controls 出")
+        self.assertIn("hidden", self.fn, "自定义层必须默认 hidden")
+        self.assertIn("removeAttribute('controls')", self.js)
+        self.assertIn("ui.hidden = false", self.js)
+        self.assertIn('.player .strip audio{', self.css_raw,
+                      "原生兜底也得有样式，不然掉回去很难看")
+
+    # ------------------------------------------------------------ 底部间距
+    def test_last_card_is_not_flush_against_the_footer(self):
+        """桌面端最后一块是 .prevnext，它自带 72px 下边距；单列时 aside 排到
+        最后，谁都没给它下边距，于是"这篇是怎么来的"那张卡紧贴页脚的分隔线。"""
+        self.assertRegex(
+            self.css_raw,
+            r"@media \(max-width:940px\)\{ \.ep\{padding-bottom:",
+            "单列布局下 .ep 必须有下边距")
