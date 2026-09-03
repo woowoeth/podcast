@@ -90,8 +90,17 @@ _OG_RESIZE = (
 
 
 def og_image(url: str) -> str:
-    """把封面图换成 600×600 的缩略版本，能换就换。"""
-    if not url or "?" in url:          # 已经带参数的不动，免得叠加出错
+    """把封面图换成 600×600 的缩略版本，能换就换。
+
+    协议一律升到 https：数据源给的有 3 张是 http://（BBC ichef），而页面本身是 https——
+    抓图的一方（微信、各家社交）对 https 页面上的 http 图常常直接拒，分享卡就成了空白。
+    尺寸不动：og 要的是大图。
+    """
+    if not url:
+        return url
+    if url.startswith("http://"):
+        url = url.replace("http://", "https://", 1)
+    if "?" in url:                     # 已经带参数的不动，免得叠加出错
         return url
     for host, q in _OG_RESIZE:
         if host in url:
@@ -350,7 +359,14 @@ def thumb(url: str, w: int = 400) -> str:
         return url.replace("size=Large", "size=Medium").replace("size=large", "size=Medium")
     if host.endswith("imgix.net"):
         return url + ("&" if "?" in url else "?") + "w=%d&auto=format" % w
-    return url
+    if host.endswith("ichef.bbci.co.uk"):
+        # 路径里那段就是尺寸：/images/ic/3000x3000/xxx.jpg。3000 见方一张 2952 KB，
+        # 换成 400 见方是 32 KB，同一张图。顺手把 http 升成 https——原始数据给的是
+        # http，在 https 页面上要么被拦要么被浏览器升级，不如自己写对。
+        u = re.sub(r"/images/ic/\d+x\d+/", "/images/ic/%dx%d/" % (w, w), url)
+        return u.replace("http://", "https://", 1)
+    # 其余域名不认识尺寸参数：只把 http 升成 https，别的原样返回。
+    return url.replace("http://", "https://", 1) if url.startswith("http://") else url
 
 
 def card(ep: dict, *, hero: bool) -> str:
