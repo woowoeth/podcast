@@ -137,9 +137,16 @@ ROBOTS = "index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:
 
 
 # 语言层：静态 hreflang（爬虫不执行 JS，只有静态标签能让搜索引擎知道
-# 这两个地址是同一篇的两种语言）+ 首访按浏览器语言跟随 + 右上角切换按钮。
-# 按钮文字由 JS 按当前路径决定，不写死 —— 简体页显示「繁體」，繁体页显示
-# 「简体」，后者会被 tw.py 一并转成「簡體」，正好是繁体页该有的写法。
+# 这两个地址是同一篇的两种语言）+ 首访按浏览器语言跟随 + 头部的切换按钮。
+#
+# 按钮本身由 mast() 渲染在 .mast-side 里（跟主题按钮并排），这里只负责接上它。
+# 第一版是 JS 造一个 position:fixed 贴在 body 上 —— 它飘在页面最右上角，
+# 跟下面那排头部控件完全脱节，看着像掉出来的。
+#
+# 两种语言的文案写在 data-sc / data-tw 上，由 JS 按当前路径选：简体页显示
+# 「繁體」，繁体页显示「简体」（tw.py 会把它一并转成「簡體」，正好对）。
+# 不能只写一个字符串靠转换 —— 繁体页需要的是「簡體」，而「繁體」转换后还是
+# 「繁體」，一个字符串出不来两种结果。
 # 点过切换就把选择记进 localStorage，优先级高于浏览器语言，否则一个在台湾
 # 用简体的读者每次都被弹走。整段在 <head> 里同步跑，首屏渲染前完成。
 LANG_JS = ("<script>(function(){try{"
@@ -152,16 +159,12 @@ LANG_JS = ("<script>(function(){try{"
            "(navigator.languages||[navigator.language||'']).join(',')))?'tw':'sc');"
            "if(want!==cur){location.replace(other);return}"
            "document.addEventListener('DOMContentLoaded',function(){"
-           "var b=document.createElement('button');b.id='lang-toggle';b.type='button';"
-           "b.textContent=tw?'简体':'繁體';"
+           "var b=document.getElementById('lang-toggle');if(!b)return;"
+           "b.textContent=tw?b.dataset.tw:b.dataset.sc;"
            "b.setAttribute('aria-label',tw?'切换到简体':'切換到繁體');"
            "b.onclick=function(){try{localStorage.setItem(K,tw?'sc':'tw')}catch(e){};"
-           "location.href=other};document.body.appendChild(b)})"
-           "}catch(e){}})();</script>"
-           "<style>#lang-toggle{position:fixed;top:12px;right:12px;z-index:9999;height:32px;"
-           "padding:0 10px;border:1px solid currentColor;opacity:.55;background:transparent;"
-           "color:inherit;font:inherit;font-size:13px;line-height:30px;cursor:pointer;"
-           "border-radius:3px}#lang-toggle:hover{opacity:1}</style>")
+           "location.href=other}})"
+           "}catch(e){}})();</script>")
 
 
 def head(title: str, desc: str, *, path: str = "/", image: str = "",
@@ -341,8 +344,7 @@ def masthead(n: int | None, *, home: bool) -> str:
 {brand}
 <div class="mast-side">
 {count}
-<a class="pill ghost" href="{BASE}/sources/">信源</a>
-<a class="pill ghost" href="{BASE}/feed.xml">RSS</a>
+<button class="pill ghost" id="lang-toggle" type="button" data-sc="繁體" data-tw="简体"></button>
 <button class="icon-btn" data-theme-toggle aria-label="切换深浅色">{ICON_THEME}</button>
 </div></div>
 <p class="slogan">{TAGLINE}</p>
