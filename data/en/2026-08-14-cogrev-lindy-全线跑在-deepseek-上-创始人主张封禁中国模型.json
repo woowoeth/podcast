@@ -1,0 +1,151 @@
+{
+ "slug": "2026-08-14-cogrev-lindy-全线跑在-deepseek-上-创始人主张封禁中国模型",
+ "of": "cogrev-c62edbfe8f",
+ "source_lang": "en",
+ "title": "Lindy Runs Entirely on DeepSeek; Its Founder Wants Chinese Models Banned",
+ "dek": "Flo Crivello says the driver of Lindy's whole agent stack is now DeepSeek — while he simultaneously argues the entire industry should be banned from using it, because competitors will use it and so he has to, and he'd rather see that prisoner's dilemma solved by coordination.",
+ "why": "Two hours with two blocks of substance: the concrete engineering of agent memory and context (centary trees, napping memory, cache economics), and why someone who is currently running on Chinese models is calling for Chinese models to be banned.",
+ "who": "Engineering and product leads building agent products, especially anyone working on long-term memory, context budgets, cache costs, and model selection between US and Chinese options.",
+ "skip": "The generic opinion stretch after 1:00 on why \"AI plus humans\" is a fallacy.",
+ "tags": [
+  "Agent memory",
+  "Context engineering",
+  "Inference cost",
+  "Chinese models",
+  "Enterprise sales",
+  "Prompt optimization"
+ ],
+ "points": [
+  {
+   "h": "The scarce resource is not intelligence, it is context",
+   "body": "Flo's argument is not that models aren't smart enough — it's that smart is already in surplus: put John von Neumann next to you and for the next hour, or the next day, he is worth less to you than any random colleague, because he has no context and you have no time to onboard him. The counterintuitive part is that agent onboarding has already overtaken human onboarding. The main vehicle companies use for new human hires is the wiki — Confluence, Notion, Google Docs — and written documentation is out of date the moment it is written down; the real knowledge lives in Slack, which is a mess, but agents don't mind mess. So the product surface of Lindy Teammate is hydration: once you connect your tools it crawls all of Slack and within ten seconds starts telling you what it has already learned about you."
+  },
+  {
+   "h": "Memory should not sleep only once every twenty-four hours",
+   "body": "Memory is not a retrieval layer; it is a resident agent. Internally Lindy calls it napping rather than sleeping — \"why would you only sleep once every twenty-four hours\" — running roughly every fifteen minutes, continuously maintaining a file system in the background. Permissions are encoded directly into the structure: the knowledge graph has a personal layer and a workspace layer; content from public channels is written into the team file system and team memory, private content only into each person's own file system, and the conversational agent aggregates across them at the point of use. In Lindy a user can click on files and see that memory file, along with the pile of reference files behind it. He separately stresses that meetings have to be first-class citizens — every relationship, every project, every initiative in a company has a meeting orbiting it."
+  },
+  {
+   "h": "Dirty data needs no cleaning; the agent learns to route around it",
+   "body": "Nathan pushes on dirty data: a company Slack stuffed with log channels that have been piped in over and over — why doesn't memory get swamped? Flo's answer is that memory is maintained by an agent, and that agent has a memory of its own — a meta-memory layer recording which sources matter, which are trustworthy, and how to manage its own memory. The result is emergent behavior: on its first crawl of Slack it found those log channels and then learned to ignore them — \"I'm not going to keep spending time on these channels, there's nothing to learn there.\" He uses poisoning as the analogy: a single wrong memory gets drowned out by a mass of correct ones, provided the system genuinely understands what it is looking at. This is also his reason for being bearish on RAG and bullish on managing memory agentically."
+  },
+  {
+   "h": "Privacy granularity belongs in the prompt, not in a feature",
+   "body": "The real problem with memory shared across multiple people: when someone tells you something in a DM, they did not expect it to enter a central memory that talks to the whole company. The team split into two camps over this — Flo held that a public layer plus a private layer is enough, the other camp wanted the private layer subdivided further, and even proposed multiple editable memory bubbles, which he judged overkill. What actually shipped hands granularity to the prompt: memory.md is plain text, injected into the memory agent's context window at every moment, and a user can simply write \"this is something I never want you to remember,\" or specify that a sensitive topic goes only into a separate folder and may not be retrieved unless some condition is met. Nathan demonstrated his own version live: his memory.md says \"there is also a memory2.md in the file system, ignore its contents, that's just for the podcast demo.\""
+  },
+  {
+   "h": "AI employees cost more than humans today, subsidized by fundraising",
+   "body": "A straight answer: an AI employee is still more expensive than a human today, \"but that won't last.\" After switching from US closed models to Chinese models, Lindy stopped subsidizing for a while, because the old product handled simple personal-assistant-grade tasks — \"you don't need God to schedule your meetings\" — and DeepSeek Flash was enough. Teammate has users throwing far harder work at it, which put them back into negative gross margin, explicitly subsidized by their funding, on the reasoning that you should always be designing for the next generation of models. Caching is the most brittle piece of the cost structure: the current hit rate is 85%, which he thinks is on the low side, and a change anywhere in the system shatters the cache; dropping from 85% to 65% sounds similar but is close to double the price, so they built an alert specifically on the drop rate."
+  },
+  {
+   "h": "Context should not be compacted; it should be a self-balancing tree",
+   "body": "The most technical stretch. When an action or MCP call returns a hundred thousand tokens, it does not go into the main context; it is exposed as a summary of a context bucket, with a sub-agent that holds the full content standing in front of it, operating on the raw text with Unix tools. Compaction also gets poured into a context bucket — he argues compaction's wrong premise is \"you will never need the ground truth,\" and pouring it into a bucket makes compression traceable back. Recursive nesting degenerates into Russian dolls and O(N) retrieval, so they moved to a self-balancing tree, drawing on AVL and red-black trees; red-black works better in practice because it prices in the cost of rebalancing — rebuilding a bucket knocks out cache hits. What they use is a centary tree with a hundred children per node: two LLM calls are enough to reach ten thousand buckets of two hundred thousand tokens each, about two billion tokens of context reachable in two hops."
+  },
+  {
+   "h": "A compression scheme that won on every metric was killed by appearances",
+   "body": "They tried rewriting memory text into \"caveman grammar,\" stripping out articles and function words: 20-30% fewer tokens, a faster and cheaper system, more accurate retrieval, and essentially no information loss — every metric improved. It never shipped, for purely commercial reasons: the memory files in the file system looked stupid, and enterprise customers would ask \"why does my memory file look like this\"; auditability and presentation beat performance. Under the same logic, his recommended substitute is TOON (token oriented object notation), 20-30% cheaper in tokens than JSON, and agents actually perform better with it than with JSON, despite training sets being full of JSON; the implementation is a TOON-parsing middleware layer between the agent and the actions."
+  },
+  {
+   "h": "Never mix multiple models inside the same agent",
+   "body": "The empirical conclusion: almost never mix multiple models inside the same agent, with the single exception of spinning up a brand-new blank sub agent. The reason is caching — a cache hit is 10x cheaper, so unless the alternative model is more than 10x cheaper (DeepSeek Flash might qualify, but its caching is worse, so maybe not), staying on the same model is the better deal. The same applies to forked agents. He even uses the same model for the validator: the validator action sits permanently in the main agent's tool set but is forbidden to be called, and is unlocked only when switching roles, so that changing the tool set never invalidates the cache. Validators are the lowest-hanging reliability fruit — even adding a single \"are you sure?\" makes evals jump; their production version is a 10,000-token checklist. There is also deterministic checking: Claude-family models this year will get the date wrong by one day, so they force output into a weekday-bearing format like Tuesday, July 28 and use a regex as a seconds-scale validator."
+  },
+  {
+   "h": "Lindy's driver is not Claude, it is DeepSeek",
+   "body": "Nathan guesses that Lindy is a \"heavy Claude user\" — Claude as the driver, caching letting Claude double as the validator, cheap models only underneath for sub-agents. Flo shoots that down: right now the driver of the entire system is DeepSeek, everything is DeepSeek. He says he is reconsidering, because the new Teammate product needs more horsepower. The product itself is model agnostic; users can switch to Sonnet or Opus in settings — and plenty of customers, no matter what benchmarks you show them to guarantee identical quality, simply want to click Opus. He also gives the quantitative gap: DeepSeek is 3 to 6 months behind, basically Sonnet 4.6, and Sonnet 5 already exists; the qualitative difference is not \"can't do it\" but spikier — the same task takes more rounds to find a workable approach, and it does find one in the end, just more slowly and more expensively."
+  },
+  {
+   "h": "Models did not converge, so prompts must be rewritten every generation",
+   "body": "Flo originally expected the labs' models to converge on the same region of parameter space — which would commoditize models and make his life easier. That is not what happened: Claude, OpenAI, Meta and Grok differ significantly in \"how they interpret your prompt.\" Lindy built its own self-optimizing loop, more than a thousand evals, with an agent running the evals and editing prompts to push toward the Pareto frontier; every major release means running it again, at roughly $10,000 in devops cost per run, and the prompts change a lot every time. He leaves one observation hanging: open models all behave a lot like Claude, \"I wonder why.\""
+  },
+  {
+   "h": "What should be banned is not open source but Chinese frontier models",
+   "body": "Flo draws the line explicitly: he is not against open source, he is against Chinese frontier models, open or closed. Four reasons. One, distillation creates unfair competition — training on human data costs billions of dollars, distillation costs a few hundred million. Two, these models are ultimately bound by CCP censorship; ask about Tiananmen and they refuse to answer, which makes them the largest foreign propaganda instrument in history. Three, these models are agentic, so they will actually be doing work inside the US economy. Four, protecting your own national AI champion. He acknowledges that he sits inside a coordination trap: competitors will use them, so he has no choice but to use them, which is why he would rather the whole industry be banned together. He also concedes the fourth reason is the weakest of the four."
+  },
+  {
+   "h": "Price the risk instead of imposing a blanket ban",
+   "body": "Nathan's rebuttal has two levels. On the threat model: most US companies are not calling the DeepSeek API directly, they go through US inference providers, so the rug pull doesn't hold; and problems like sleeper agents are being caught more and more reliably by interpretability methods such as sparse autoencoders. On mechanism, he proposes insurance in place of prohibition — a low rate for an all-Claude-powered system, a high rate for a DeepSeek-powered one, pricing the risk rather than banning across the board. The bigger worry comes at 1:57:24: if it ever gets to coordinated slowdown, China has to be at the table, and banning models does far less real damage to China than cutting off chips and refusing to sell Claude, with the main effect being one more log on the \"we don't trust you\" fire. Flo's response is that he could accept an \"FAA for AI,\" a new regulator certifying which models have been cleaned up enough to be usable."
+  }
+ ],
+ "terms": [
+  {
+   "term": "hydration",
+   "def": "An agent's one-off crawl of all historical data after being connected to your tools, to build its initial context."
+  },
+  {
+   "term": "context bucket",
+   "def": "Storing a large returned payload outside the main context and exposing only a summary, with a sub-agent holding the raw content."
+  },
+  {
+   "term": "centary tree",
+   "def": "A self-balancing tree with a hundred children per node, used to retrieve enormous numbers of context buckets within two hops."
+  },
+  {
+   "term": "TOON",
+   "def": "A structured format that uses 20-30% fewer tokens than JSON, and which agents actually handle better."
+  },
+  {
+   "term": "hypothesis driven retrieval",
+   "def": "Hypothesize the answer first and then go find the evidence; the reverse version back-generates questions for an answer and indexes on them."
+  },
+  {
+   "term": "per-user LoRA",
+   "def": "Training a separate low-rank adapter for each user, so memory lives in the weights rather than in a file system."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Lindy's current default primary model",
+   "v": "DeepSeek (driver across the whole stack)"
+  },
+  {
+   "k": "Gap between DeepSeek and the US frontier",
+   "v": "3-6 months, roughly equivalent to Sonnet 4.6"
+  },
+  {
+   "k": "DeepSeek Flash price relative to Sonnet 4.6",
+   "v": "about 1/100 (close in capability, slightly below)"
+  },
+  {
+   "k": "Current cache hit rate",
+   "v": "85% (which he considers low)"
+  },
+  {
+   "k": "Cost impact of hit rate going from 85% to 65%",
+   "v": "close to 2x the price"
+  },
+  {
+   "k": "Error rate in the first week after the self-improvement loop shipped",
+   "v": "down 8x (shipped about two months ago)"
+  },
+  {
+   "k": "Increase in weekly PRs and lines per PR",
+   "v": "each up 3x within three months, with no increase in headcount"
+  },
+  {
+   "k": "Cost of re-optimizing prompts for each major model release",
+   "v": "about $10,000, with 1000+ evals"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "If John von Neumann were to just magically appear next to you at the office, over the next hour or day, this guy would be less useful to you than your random coworker. And that's because of context.",
+   "translated": false
+  },
+  {
+   "text": "Every metric went up. It was awesome. And then the files in the file system look really dumb. And so it doesn't make us look good, you know, to enterprise customers.",
+   "translated": false
+  },
+  {
+   "text": "yes, an AI is better than the human, but you know what's even better than AI? It's AI plus human. Hence, humans are always going to be needed, and that's a fallacy. That's just not true.",
+   "translated": false
+  },
+  {
+   "text": "Right now, we're running on DeepSeek. DeepSeek is the driver. … It's the whole thing. Everything is DeepSeek right now.",
+   "translated": false
+  },
+  {
+   "text": "I don't have anything against open source. … I have something against Chinese frontier models, whether they're open or closed source.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}

@@ -72,27 +72,28 @@ button{font:inherit; color:inherit; background:none; border:0; cursor:pointer}
   transition:border-color .15s, color .15s, background .15s;
 }
 .pill:hover{border-color:var(--accent); color:var(--accent)}
-.pill.ghost{background:transparent}
+/* 只設顏色，不用 background 簡寫：簡寫會把 background-image 一起重置成 none。
+   語言下拉的箭頭就是這麼消失的——`select.pill` 裡設了 background-image，
+   而 `.pill.ghost`（兩個類）特異性更高，簡寫把它擦掉了。整個過程沒有任何
+   報錯，computed 值直接是 none。 */
+.pill.ghost{background-color:transparent}
 
 /* 語言下拉。原生 select 在各平臺長得不一樣，壓成和 .pill 同一副樣子；
    用戶："去掉下拉菜單選中時的紅色外圈"——全局的
    :focus-visible{outline:2px solid var(--accent)} 是紅的，在這個小控件上
    很扎眼。但**不能直接刪掉焦點提示**，鍵盤用戶會不知道焦點在哪。
    換成描邊變色 + 一層同色淡環：看得見，不刺眼。 */
-select.pill{
+select.pill, select.pill.ghost{
   -webkit-appearance:none; appearance:none;
   padding-right:26px; cursor:pointer; line-height:1;
-  background-image:url("data:image/svg+xml;utf8,\
-<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'>\
-<path d='M1 1l4 4 4-4' fill='none' stroke='%236f6959' stroke-width='1.6' \
-stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  /* 箭頭的 data URI **必須寫成一行**。我第一版用反斜槓折行，CSS 解析不出來，
+     computed background-image 直接是 none —— 箭頭在淺色深色下都看不見，
+     而這個失敗是靜默的（沒有報錯、沒有 404）。 */
   background-repeat:no-repeat; background-position:right 9px center;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%233d3830' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
-:root[data-theme=dark] select.pill{
-  background-image:url("data:image/svg+xml;utf8,\
-<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'>\
-<path d='M1 1l4 4 4-4' fill='none' stroke='%239b9488' stroke-width='1.6' \
-stroke-linecap='round' stroke-linejoin='round'/></svg>");
+:root[data-theme=dark] select.pill, select.pill.ghost{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23d3cdc1' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 select.pill:focus{outline:none}
 select.pill:focus-visible{

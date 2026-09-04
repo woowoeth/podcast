@@ -23,7 +23,10 @@ LANG = os.environ.get("PODCAST_LANG", "zh")      # zh | en
 NAMES = {"zh": "原声", "en": "OurWord"}
 TAGLINES = {
     "zh": "世界太吵，来原声听播客",
-    "en": "The world is too loud. Read the podcasts that matter.",
+    # 52 字符在 375px 上会折成两行。用户："移动端 slogn 换行了，简化下写法"。
+    # 中文原句是"世界太吵，来原声听播客"——短句 + 一个立场。英文照这个结构，
+    # 41 字符，320px 上也只有一行。
+    "en": "The world is too loud. Read what matters.",
 }
 
 # 界面文案对照表。键是简体原文，值是英文。

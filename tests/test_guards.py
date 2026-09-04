@@ -3050,6 +3050,33 @@ class LanguageSwitchIsOneControl(unittest.TestCase):
                            f"{'有' if d.name in have else '没有'}")
         self.assertEqual(bad[:4], [], f"{len(bad)} 页的 data-en 和实际不符")
 
+    def test_arrow_survives_the_pill_shorthand(self):
+        """`.pill.ghost` 用 background 简写会把 background-image 一起重置成 none，
+        而它（两个类）的特异性高过 select.pill——箭头就是这么消失的，
+        整个过程没有报错、没有 404，computed 值直接是 none。
+
+        另外那个 data URI **必须写成一行**：我第一版用反斜杠折行，CSS 解析不出来。
+        """
+        css = (ROOT / "assets" / "site.css").read_text()
+        i = css.index(".pill.ghost{")
+        self.assertIn("background-color:transparent", css[i:i + 60],
+                      ".pill.ghost 不许用 background 简写")
+        j = css.index("select.pill")
+        blk = css[j:j + 1400]
+        self.assertIn("background-image:url(", blk)
+        # 折行会让它解析失败：url( 到 ) 之间不许有换行
+        for m in re.finditer(r"background-image:url\(", blk):
+            seg = blk[m.start():blk.index(")", m.start())]
+            self.assertNotIn("\n", seg, "data URI 折行了，CSS 解析不出来")
+
+    def test_tagline_fits_one_line_on_mobile(self):
+        """用户："移动端 slogn 换行了"。英文那句 52 字符在 375px 上折两行。
+        判据用字符数近似（真实换行由渲染层体检量）。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import i18n
+        self.assertLessEqual(len(i18n.TAGLINES["en"]), 44,
+                             "英文口号太长，手机上会折行")
+
     def test_focus_ring_is_not_the_accent_colour(self):
         """用户："去掉下拉菜单选中时的红色外圈"。全局 :focus-visible 是
         2px accent（红）。**但不能直接删掉焦点提示**——键盘用户会不知道焦点在

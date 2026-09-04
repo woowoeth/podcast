@@ -222,6 +222,19 @@ class Render(unittest.TestCase):
                 return /\/podcast\/?$/.test(s.getAttribute('href') || '');
               })(),
             })""")
+            # 口号在手机上必须一行，语言下拉的箭头必须真的画出来。
+            # 两条都只有在浏览器里量才看得出：箭头那次是 CSS 简写把
+            # background-image 重置了，源码里那条规则是对的。
+            chrome = p.evaluate("""() => {
+              const sl = document.querySelector('.slogan');
+              const sel = document.getElementById('lang-toggle');
+              const lh = sl ? parseFloat(getComputedStyle(sl).lineHeight) : 0;
+              return {
+                lines: sl && lh ? Math.round(sl.getBoundingClientRect().height / lh) : 0,
+                arrow: sel ? getComputedStyle(sel).backgroundImage !== 'none' : false,
+                isSelect: sel ? sel.tagName === 'SELECT' : false,
+              };
+            }""")
             p.context.close()
             self.assertEqual(bad, [], f"{path} 上有中英混排：{bad}")
             # 样式和脚本必须真的加载上。英文站上线第一版的 asset() 用了英文的
@@ -233,6 +246,10 @@ class Render(unittest.TestCase):
             self.assertEqual(langs["html"], "en", f"{path} 的 html lang 不对")
             self.assertIn("zh-Hans", langs["hreflang"], f"{path} 缺 hreflang")
             self.assertTrue(langs["backToZh"], f"{path} 没有回中文站的入口")
+            self.assertLessEqual(chrome["lines"], 1,
+                                 f"{path} 的口号在 375px 上折了 {chrome['lines']} 行")
+            if chrome["isSelect"]:
+                self.assertTrue(chrome["arrow"], f"{path} 语言下拉没有箭头")
 
     def test_english_episode_quotes_are_the_original_words(self):
         """英文源节目的金句在页面上必须和中文站的 raw **逐字一致**。
