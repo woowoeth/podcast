@@ -1,0 +1,123 @@
+{
+ "slug": "2026-08-25-trainingdata-人类点击数据是-bug-agent-搜索重建网络经济",
+ "of": "trainingdata-8aa1bfcb6d",
+ "source_lang": "en",
+ "title": "Human Click Data Is a Bug: Agent Search Has to Rebuild Indexing and Pricing",
+ "dek": "When search's customer stops being a human and becomes an agent, click data stops working, and the index, the pricing and the business model all have to be built again; Parag offers a new framework built on a quality/cost/latency triangle and on Shapley values.",
+ "why": "Parag turned from Twitter CEO to building agent search infrastructure. The first half is engineering trade-offs, the second half is web economics and Shapley pricing, and the information density is high throughout.",
+ "who": "People working on AI search, agent infrastructure, data licensing and content monetization; founders and investors who want to understand how agents are rewriting the economics of search.",
+ "skip": "The first 12 minutes — basic definitions of search and the product's origin story — can be fast-forwarded. The weight is in the second half, on ad economics and Shapley pricing.",
+ "tags": [
+  "Agent search",
+  "Web economics",
+  "Shapley value",
+  "Google Cloud",
+  "Data pricing",
+  "Infrastructure"
+ ],
+ "points": [
+  {
+   "h": "Search built for humans cannot simply be handed over to agents",
+   "body": "Parag founded Parallel on the premise that agents will use the web to get work done more than a thousand times as often as humans do. That means you cannot just port the old browser and search-engine model over to agents; everything from indexing and ranking to the business model has to be rebuilt as a search infrastructure aimed at agents. He believes many of the old moats are losing their force."
+  },
+  {
+   "h": "The competitor is not Google, it is people compiling web data by hand",
+   "body": "Parallel did not build a full index on day one. It shipped a search agent product first and used one to ten minutes of deep research to make up for thin index coverage. The competitor it picked was ‘hiring people to compile web data by hand’, not Google's index scale. Early customers used it for insurance underwriting, claims processing, sales data cleanup and data collection for financial modeling, and the index got built up step by step along the way."
+  },
+  {
+   "h": "The hard part is not crawling pages, it is compressing them into 1000 tokens",
+   "body": "Parag does not call Parallel a neo lab, because the output is not a model but a complementary layer on top of models. The core problem is condensing a trillion web pages into the right 1000 tokens, which takes a great deal of research on retrieval, ranking and memory hierarchy, ultimately compressed into a very small ranking model. Every advance in model capability unlocks more scenarios Parallel can serve, rather than making Parallel's work wasted."
+  },
+  {
+   "h": "A model company's pretraining crawler will not become a real-time index",
+   "body": "Model companies can own search outright, or they can buy it. Parag does not accept that a pretraining crawler is naturally the same thing as a real-time index: model companies will skip slow JavaScript pages because the token payoff is not worth it, whereas Parallel is a completionist and is willing to fill in those edges. Today Parallel works with Google Cloud as one of the search and grounding providers for Gemini/GCP enterprise agents, and enterprises can choose between Google search and Parallel search."
+  },
+  {
+   "h": "The multiplier on search volume sits with developers, not the chat box",
+   "body": "A typical search agent runs 5–20 searches even when it answers within seconds; each ChatGPT prompt triggers 5–10 searches on the medium setting, and hundreds to thousands once it is turned up. The faster multiplier comes from developers: one customer managing a credit portfolio of ten thousand small businesses moved from a once-a-month manual risk assessment to an automatic weekly run, and the multiplier on search volume reached several hundred thousand to a million."
+  },
+  {
+   "h": "Agents have no conversion rate, so ad pricing loses its foundation",
+   "body": "Most Google queries lose money and a small number of queries pull the profit back, and that works through differential pricing against a limited supply of human attention. Once agents go on the web in place of humans, that premise begins to collapse: agents carry no conversion-rate statistics, and content owners still set their business models around ‘human visits’, so they will look for every way to keep agents from crawling. If AI inference volume grows 7x in each of two years while fixed-price licensing contracts do not rise, existing content businesses will take damage at renewal."
+  },
+  {
+   "h": "To learn what content is worth, take it out and run again",
+   "body": "To decide what a content source is worth, you can remove it from the corpus, run the agent, and see how much output quality drops; if one more cent of compute buys the quality back, that source is worth close to a cent. The Shapley value is the mathematical framework that formalizes this intuition, but computing it in full is extremely expensive — allocating $1 might burn several dollars. Parallel's approach is to train good estimates from data and models rather than run an exhaustive simulation."
+  },
+  {
+   "h": "The web's endgame is you calling me, not me going to look",
+   "body": "Parag's endgame comes in three ascending layers: in the first, agents call the web as a tool; the second is multi-agent and subagent collaboration handling long-running, compute-heavy tasks; in the third, the web shifts from ‘I go look it up’ to ‘you come call me’. Much future work will be triggered by changes in the world: satellite imagery changed, customer reviews changed, another agent finished its computation. Parallel's role is to keep allocating compute across the entire web, watching for those changes on behalf of every customer."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Shapley value",
+   "def": "A method from cooperative game theory for splitting total value according to marginal contribution; in content pricing it is used to estimate the incremental value of a given content source."
+  },
+  {
+   "term": "grounding",
+   "def": "Linking model output to reliable external data sources, cutting hallucination and adding real-time information."
+  },
+  {
+   "term": "fresh index",
+   "def": "Indexing newly published and fast-changing pages separately, so they are not mixed in with the full offline index."
+  },
+  {
+   "term": "memory hierarchy",
+   "def": "Storing the index in tiers by access speed and cost, so limited compute can still hit results inside the latency budget."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Parallel's target for cost compression",
+   "v": "keep most of the quality, bring cost down to one tenth"
+  },
+  {
+   "k": "Searches a typical search agent runs per task",
+   "v": "5–20"
+  },
+  {
+   "k": "Profit structure of Google queries (as Parag puts it)",
+   "v": "most queries lose money, a small number of queries earn the profit back"
+  },
+  {
+   "k": "Growth in AI inference demand over two years (Parag's assumption)",
+   "v": "7x per year, roughly 50x in total"
+  },
+  {
+   "k": "Cost of computing a full Shapley value for a content source",
+   "v": "several dollars, far more than the $1 being allocated"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "human click data is a.Bug.An agent.Doing work with search should rely on agent feedback, not human feedback.",
+   "translated": false
+  },
+  {
+   "text": "we announced today, actually, that we are working with Google Cloud",
+   "translated": false
+  },
+  {
+   "text": "It'll do somewhere between 5 to 20 searches, even if it answers within a few seconds",
+   "translated": false
+  },
+  {
+   "text": "Google search wouldn't be free without ads, Twitter wouldn't be free without ads.",
+   "translated": false
+  },
+  {
+   "text": "their deal size is not growing 50 x",
+   "translated": false
+  },
+  {
+   "text": "And Shaly values is a mathematical way of effectively answering this question",
+   "translated": false
+  },
+  {
+   "text": "We will do tomorrow work in response.To something that circles through either another agent's work.Or something changes in the world.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}

@@ -1,0 +1,131 @@
+{
+ "slug": "2026-08-25-techtechpotato-自研芯片百倍领先-基准选择与商业筹码才是关键",
+ "of": "techtechpotato-3f2ca301c8",
+ "source_lang": "en",
+ "title": "OpenAI's Own Chip Is 100x Ahead? That's a Self-Chosen Benchmark on a Dedicated Stack",
+ "dek": "OpenAI's first in-house chip, Jalapeno, beats the GB200 by 100x on a benchmark OpenAI picked — but that result comes from a dedicated chip running dedicated models on a dedicated software stack; the real moat is system integration and pricing power.",
+ "why": "This is not a neutral review. It is a page-by-page teardown of the Hot Chips announcement: which numbers you can trust, which are selection bias, and what an in-house chip actually means for OpenAI's business.",
+ "who": "People who decide compute purchases, founders building inference services, chip product managers, and AI engineers who want to read a vendor's capability curve out of the benchmark numbers.",
+ "skip": "The first minute is an event plug — skip it and start at the 2:11 timeline.",
+ "tags": [
+  "Chip design",
+  "OpenAI",
+  "Benchmarking",
+  "Inference performance",
+  "Custom AI silicon",
+  "Business strategy"
+ ],
+ "points": [
+  {
+   "h": "Nine months counts from RTL, not from a blank sheet",
+   "body": "Most coverage calls Jalapeno a ‘clean sheet design’, but OpenAI's own timeline says otherwise: architectural concept work started from a blank page in October 2024, a codec CLI existed in April 2025, silicon came back in November 2025, codecs were running in May 2026, and ChatGPT ran on the chip in July. The host questions the definition of ‘nine months’ throughout: the starting line here is RTL, not product definition, and the layers a chip program normally spends time on — EDA, verification — were compressed or run in parallel. So the nine months is real, but it does not mean anyone else can replicate a chip in nine months."
+  },
+  {
+   "h": "The rules of this benchmark set favor whoever set the questions",
+   "body": "OpenAI chose SemiAnalysis's Inference X open-model benchmark, on the reasoning that open models let anyone run the same set on their own hardware. The host points to two amplifiers. First, the benchmark is explicitly ‘open to hardware specific optimization’, and combined with hardware-aware training and fine-tuning, every vendor can shape the model into whatever form suits its own silicon best. Second, Jalapeno's results use single token prediction only, while the chosen baselines include multi-token prediction. Add the non-goals — time to first token and per-chip throughput are both excluded — and the whole number set carries a strong policy lean."
+  },
+  {
+   "h": "Speculative decoding saves serial passes, not compute",
+   "body": "Jalapeno's slides put speculative decoding very early in the deck. The mechanism resembles CPU branch prediction: instead of predicting one token at a time, run seven mini passes to generate draft tokens, then use a single ‘batched large trunk pass’ to verify all seven and predict the eighth at once. As long as the drafts are right, the serial cost falls from eight passes to one. The host draws an analogy to super sampling and frame generation in games. But note: this set of official benchmarks does not have speculative decoding turned on, which means the 100x figures still have performance headroom left — and also that a genuinely fully loaded run has to be accounted for separately."
+  },
+  {
+   "h": "The hundredfold gap only holds at speeds humans cannot use",
+   "body": "On GPT-OSS 120B, Jalapeno against Nvidia GB200 (NVL72): roughly 100x the performance at 500 tokens/s, and 53.7x at another 500 tokens/s point. End-to-end time to last token is 4.2x lower in long context, and the lowest-latency figure drops by close to half. The host notes that 500 tokens/s is meaningless for human reading, but meaningful for agents talking to each other and for batch workloads. On the larger 670B open model the numbers get pressed down, though the peak still reaches 104x. All comparisons are power-normalized: Jalapeno at 700W, GB200 at roughly 1.2kW."
+  },
+  {
+   "h": "Memory latency decides utilization, not bandwidth",
+   "body": "OpenAI's own example: a 128-chip HBM4 system with 1PB/s of bandwidth divided by 0.5TB of parameters means you could in theory read the complete model weights 2000 times a second — and in practice you get nowhere near it. The latency comes from memory, congested paths, cores falling out of step, and global synchronization. Jalapeno's answer is to ‘co-design the architecture to address the bottleneck’ — the host says flatly that he has heard that exact line on fifty different pieces of hardware. What matters is not the slogan but how the design keeps computation local and touches global memory only when it must. In the story of the previous hardware generation, where that ‘must’ boundary sits is where the gap comes from."
+  },
+  {
+   "h": "The in-house advantage lives in network topology, not the single chip",
+   "body": "Jalapeno is not a retail chip; it is a rack-scale system. OpenAI uses Broadcom Tomahawk 6 to build a two-tier network: a 128-chip scale-up domain and a 48-chip scale-out domain. A large scale-up domain means big models cross fewer hops; a large scale-out domain means the bandwidth constraint on tensor parallelism is looser. The full system is 448 chips, 27 exaflops (4-bit matrix), 432TB of HBM, 32PB/s. Because OpenAI only runs its own workloads, it can aim the network topology precisely at its own models' communication patterns — this is the shared logic of every hyperscaler's in-house chip, and the biggest difference from a general-purpose GPU."
+  },
+  {
+   "h": "What AI saves is iteration count, not engineers",
+   "body": "OpenAI says it used AI tools for improvements at every design stage: 10% area improvement on the matrix unit, 8% on the SIMD unit, and both against an ‘optimized human baseline’. The host picks up the thread from what Synopsys and Cadence have been saying: an AI approach can beat a human team — six months of work from a 50-person team done by AI in a week. That does not mean engineers are out of a job; it means the same people can iterate through more versions in half a year. The closing judgment is worth pulling out on its own: humans handle abstraction, frontier AI handles mapping, and that is how the layers grow."
+  },
+  {
+   "h": "The return on custom silicon is negotiating leverage, not cost savings",
+   "body": "Having Jalapeno will not stop OpenAI from buying Nvidia, and it will not make OpenAI abandon partnerships like the one with Cerebras. The motive for building in-house is optionality, leverage, and the ability to mix and match across different models, different performance tiers and different price points. Enterprise customers will pick one model and stay on it for 3 to 24 months, and what OpenAI wants is to offer every kind of demand an option that is not held hostage to a bundle. The host also separates the roles: Richard's job is to make the chip good; pricing belongs to the product team. That is why a chip that only ever runs internally still carries strategic value."
+  }
+ ],
+ "terms": [
+  {
+   "term": "speculative decoding",
+   "def": "Generate several draft tokens in parallel first, then verify them in one large batched pass, cutting the number of serial inference steps."
+  },
+  {
+   "term": "multi-token prediction (MTP)",
+   "def": "The model predicts several following tokens at once instead of generating them one by one; available in Jalapeno's baselines, but not used in the official results."
+  },
+  {
+   "term": "time to last token (TTLT)",
+   "def": "End-to-end latency from request to the final generated token — OpenAI's primary optimization metric."
+  },
+  {
+   "term": "MXFP4",
+   "def": "A 4-bit floating-point format for matrix compute; Jalapeno reports 13.4 PFLOPS in it."
+  },
+  {
+   "term": "scale-up / scale-out domain",
+   "def": "The two interconnect tiers in the Jalapeno system, 128 chips and 48 chips, serving large models and bandwidth constraints respectively."
+  },
+  {
+   "term": "Tomahawk 6",
+   "def": "Broadcom's switch chip, which OpenAI uses to connect Jalapeno's scale-up and scale-out networks."
+  }
+ ],
+ "facts": [
+  {
+   "k": "GPT-OSS 120B peak vs GB200",
+   "v": "roughly 100x the performance at 500 tokens/s"
+  },
+  {
+   "k": "GPT-OSS end-to-end latency vs GB200",
+   "v": "time to last token 4.2x lower in long context; lowest latency down by close to 50%"
+  },
+  {
+   "k": "GPT-OSS multiple at 500 tokens/s",
+   "v": "53.7x"
+  },
+  {
+   "k": "670B open model vs GB300",
+   "v": "104x at 169 tokens/s per user; another comparison set runs from 51.2x to 104.3x"
+  },
+  {
+   "k": "Gains from AI-assisted design",
+   "v": "10% area improvement on the matrix unit, 8% on the SIMD unit (on top of an optimized human baseline)"
+  },
+  {
+   "k": "GB300 comparison power draw",
+   "v": "Jalapeno 1.2kW/accelerator, GB300 MTP 2.5kW/accelerator"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "Most media were reporting it as a clean sheet design. They've got a timeline in the deck. We'll see in a second.",
+   "translated": false
+  },
+  {
+   "text": "rather than having a full eight passes of what tokens coming next, you can do seven mini passes and then one big what they've called batched large trunk pass that enables you to verify all seven of the draft tokens and predict token 8.",
+   "translated": false
+  },
+  {
+   "text": "if you can use multi-threading, you use multi-threading because it gets you more performance.",
+   "translated": false
+  },
+  {
+   "text": "Now that's not a unique statement. If you follow the channel in any way, you'll know that we've covered 50 different pieces of hardware that say exactly the same thing. We co-design the architecture to address the bottleneck.",
+   "translated": false
+  },
+  {
+   "text": "a human will abstract, but a frontier AI will map and that's how you get the hierarchy.",
+   "translated": false
+  },
+  {
+   "text": "The reason why they want Jalapeno internally and why they still will buy Nvidia and they'll still buy other people's chips is because they want optionality and leverage and the ability to offer multiple different models at multiple different performance levels and at multiple different pricing points to suit whichever whichever business or whichever API uh gets on board with certain models.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}

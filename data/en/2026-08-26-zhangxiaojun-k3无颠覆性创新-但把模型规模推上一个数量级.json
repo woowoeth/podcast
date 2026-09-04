@@ -1,0 +1,99 @@
+{
+ "slug": "2026-08-26-zhangxiaojun-k3无颠覆性创新-但把模型规模推上一个数量级",
+ "of": "zhangxiaojun-652cd9c10a",
+ "source_lang": "zh",
+ "title": "K3 breaks no new ground, but pushes activated parameters to the 100B class",
+ "dek": "Sun Yutao walks through the Kimi K3 technical report and argues it has no single breakthrough: it fuses techniques that already existed — linear attention, hybrid attention, dynamic load balancing — and gets activated parameters up to the 100B class. His judgment: large models will see no more Transformer-style invention, only refinement.",
+ "why": "Extremely high information density. The guest strings together more than a dozen papers to explain where K3's architecture came from, and gives blunt verdicts on the contested questions — MLA, WSD, positional encoding.",
+ "who": "Researchers working on large-model architecture, and pretraining and inference engineers — anyone who wants to understand Kimi K3's technical decisions and how the field is currently fusing architectures.",
+ "skip": "",
+ "tags": [
+  "Architecture innovation",
+  "Attention mechanisms",
+  "MoE",
+  "Pretraining",
+  "Inference optimization",
+  "Kimi K3"
+ ],
+ "points": [
+  {
+   "h": "Architecture work no longer competes on quality, only on inference efficiency",
+   "body": "Sun Yutao points out that in the era of large models, parameter count is the dominant factor in how good a model is; the quality gain from architectural changes is comparatively small. But different architectures differ enormously in inference performance, and that difference sets the price at which a model can be deployed. Research in the field has therefore shifted from being quality-oriented to being efficiency-oriented, organized around efficient inference. His own PhD topic, begun in 2023, has been mainly about solving the inefficiency of the large-model inference stage — including directions such as linear attention and hybrid attention."
+  },
+  {
+   "h": "Hybrid attention is an engineering trade-off that costs no capability",
+   "body": "Architecturally, hybrid attention is a trade-off, but judged by how the model performs it is not one. As long as a certain proportion of full attention is retained, the model reaches a ceiling that is no worse and can be better — that is, you get the engineering benefit without sacrificing the capability of a full-attention model. That experimental finding is why hybrid attention has been adopted at scale. Sun Yutao also names its limit: the inference speedup is proportional to the mixing ratio. If full attention accounts for a quarter, the speedup is bounded accordingly — a constant-factor improvement. That is why he later moved on to architectures with shared KV."
+  },
+  {
+   "h": "Parameter count is still the most fundamental variable setting the intelligence ceiling",
+   "body": "Kimi K3's core selling point is effective scaling: 2.8T total parameters, roughly 100B activated parameters, and context length reaching the 1M class. Sun Yutao stresses that only a bigger model has a higher intelligence ceiling — parameter size remains the most fundamental variable for solving model intelligence. At release, K3 was much larger than other domestic open-source models, and it was a model that reached that scale successfully quite early."
+  },
+  {
+   "h": "MLA is not new — it is an equivalent form of MQA",
+   "body": "On V4 dropping MLA, Sun Yutao's view is that MLA is essentially an equivalent form of MQA and brings nothing new; it is just a better implementation path. MLA's benefit comes mainly from its parameter design, and its compute cost is far higher than what is actually needed, which wastes compute at inference time. Lu Fuli's view is that on inference cards MTP uses compute more effectively, which is why V4 switched to MTP. Sun Yutao does not see this as a matter of right and wrong but as a choice. K3 stuck with MLA because K2 was about getting things working — if it does not have to change, do not change it — and it will not necessarily keep using it in the future."
+  },
+  {
+   "h": "If you split two matrices apart, you must put a normalization between them",
+   "body": "Sun Yutao offers an architectural design principle: two matrices multiplied in sequence can, in terms of expressive power, be merged into one, but they are not equivalent in their optimization properties, and the split version frequently makes training unstable. So if you have no choice but to write two matrices separately, you must add a normalization in between to stabilize training. Both MLA and the two-layer matrices in the FFN run into this. He adds that clipping intermediate activations outright is a crude approach; the smoother approach is to use normalization to keep intermediate activations within a mathematically controllable range."
+  },
+  {
+   "h": "Today's Transformer is already the ship of Theseus",
+   "body": "Sun Yutao argues that model training today has no single enormous so-called innovation; instead it fuses a great deal of prior work and searches for better combinations. He uses the ship of Theseus as a metaphor for the Transformer: the 2017 ship was assembled from parts like attention plus MLP, and over eight or nine years of sailing certain parts have been replaced again and again, so its similarity to the original is now very low. Whether it should still be called a Transformer is a philosophical question, but as an engineering matter everyone still calls it that. The technology improves slowly, pushed forward by everyone together."
+  },
+  {
+   "h": "WSD did not make tuning easier, so K3 chose a simpler scheme",
+   "body": "Sun Yutao explains the WSD learning-rate strategy proposed by MiniMax: the model learns fastest during the cooldown stage, so you can concentrate high-quality data in that stage and get better results than distributing the data evenly. WSD also lets you freely switch the actual token count partway through training, which makes it easy to adjust the release date. But the K3 team took the view that WSD does not reduce tuning difficulty, because the optimal cooldown proportion still depends on the total token count. They chose a simpler scheme with only two variables — total token count and peak learning rate — which is easier to tune."
+  },
+  {
+   "h": "Large models may never see another Transformer-level innovation",
+   "body": "Sun Yutao offers a deliberately extreme take: large models may have no more innovation on the order of the Transformer itself, and everything from here is incremental improvement. He believes that as long as a capability can be clearly defined, it can be reached; a pure language model reaching AGI is not much of a problem, but AGI involving interaction with the real physical world is still a long way off. Model size cannot grow without limit, because the amount of information that can be gathered from the human internet is finite, so there is no need for models to be infinitely large. He adds that because the room for improvement in large models is small, he has personally turned to exploring world models."
+  }
+ ],
+ "terms": [
+  {
+   "term": "MLA / Multi-head Latent Attention",
+   "def": "An attention mechanism that compresses KV into a latent representation, reducing cache overhead at inference time."
+  },
+  {
+   "term": "WSD / Warmup-Stable-Decay learning-rate schedule",
+   "def": "A three-stage schedule in which the model learns fastest during the decay stage, so high-quality data can be concentrated there."
+  },
+  {
+   "term": "MTP / Multi-token Prediction",
+   "def": "Having the model predict several future tokens at once, paired with speculative decoding to accelerate inference."
+  },
+  {
+   "term": "EP / Expert Parallelism",
+   "def": "Distributing MoE experts across different GPUs, which raises load-balancing and communication-optimization problems."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Kimi K3 total parameters",
+   "v": "2.8T"
+  },
+  {
+   "k": "Kimi K3 context length",
+   "v": "1M (one million)"
+  },
+  {
+   "k": "K3 activated-parameter growth over K2",
+   "v": "more than 3x"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "I think K3 does show some nerve — on the base of the open-source models that already exist, they wanted to go up by an order of magnitude.",
+   "translated": true
+  },
+  {
+   "text": "My view, actually, is that in scientific research there is no such thing as a leap in improvement. It's just that people are used to treating certain nodes in a technology's incremental improvement as milestones.",
+   "translated": true
+  },
+  {
+   "text": "Let me give you my judgment — my judgment is a fairly extreme take. My extreme take is that large models may have no more innovation on the order of the Transformer itself; from here on it's all incremental refinement.",
+   "translated": true
+  }
+ ],
+ "model": "claude-cli:opus"
+}

@@ -1,0 +1,130 @@
+{
+ "slug": "2026-08-23-peteryang-自下而上的评估-是-ai-给不了你的护城河",
+ "of": "peteryang-841ff232ab",
+ "source_lang": "en",
+ "title": "The moat in evals is not the AI — it is human taste",
+ "dek": "You cannot leave eval design to the AI: it is good at top-down criteria, but the bottom-up evals that actually decide whether a product is good — the taste distilled out of error data — have to come from a human, and only then get executed at scale with Claude Code.",
+ "why": "No hand-waving. A 15-minute live demo turns ‘finding your errors’ into an actual workflow, plus benchmark numbers on the automated eval tools. The second half, on how precise those tools really are, is the most valuable part.",
+ "who": "Engineers and founders building products on LLMs — chatbots, writing tools, agents especially — and anyone currently stuck on how to design an eval system.",
+ "skip": "[08:04] Ad break, skippable.",
+ "tags": [
+  "Eval systems",
+  "Claude Code",
+  "Error analysis",
+  "LLM products",
+  "Human review"
+ ],
+ "points": [
+  {
+   "h": "The model can write your criteria, but never your taste",
+   "body": "Shreya splits evals into two kinds. Top-down criteria are set in advance from the nature of the task itself — length, actionability. Bottom-up criteria come out of browsing a large volume of samples and hardening a vague, intuitive dissatisfaction into a rule. Claude is very good at the top-down half, but the bottom-up half has to be supplied by a human, because the model has no way of knowing your taste out of thin air. That is also why evals have to be iterative: every new failure mode you find adds another criterion — though be careful not to overfit to a single interview."
+  },
+  {
+   "h": "Hand a judge too long a rubric and it will quietly skip criteria",
+   "body": "Shreya suggests splitting your criteria into two groups and having subagents grade each group separately, so the model does not get lazy and ignore items when facing one long checklist. She also has the skill auto-generate a spreadsheet (or pivot table) laying out pass and fail for every criterion, which lets you see quickly which criteria matter more for the task in front of you — and even weight them by hand, instead of deferring blindly to uniform weights."
+  },
+  {
+   "h": "Fifteen minutes building an interface beats squinting at a spreadsheet",
+   "body": "Shreya demoed her error discovery skill. Step one: read the data and work out its semantic type — is this an article, code, or a trace? Step two: design the visual encoding, using color, spacing and opacity to make differences in the data pop so a human can actually see them. Step three: build the review interface with HTML and Python. Step four: let the AI cluster the data and pick out a diverse set of samples. Step five: enter the interaction loop — you leave open-ended feedback in the interface, and Claude Code reads it in real time and folds it back into new samples or new eval criteria. The whole flow takes about 15 minutes, and what you buy is readability far beyond what a table gives you."
+  },
+  {
+   "h": "Humans only have to say what they dislike; let the AI do the sorting",
+   "body": "Hamel explains the machinery behind that loop. As a person reads samples, they drop open-ended comments in passing — ‘I don't like the negative contrast’, ‘this is annoying but I can't say why’ — and a Claude monitor tool running in the background keeps digesting those comments. Once roughly ten have accumulated it starts inducing themes on its own, then proactively sweeps the full sample set and labels every instance of the same problem. The core philosophy: humans supply taste and judgment, the AI supplies discovery and categorization at scale, rather than inventing the criteria for you."
+  },
+  {
+   "h": "What error analysis produces is your eval rubric itself",
+   "body": "Shreya points out that error analysis yields more than a list of problems — those failure modes convert directly into your rubric, which is to say your eval criteria. Of the 361 suggestions auto-generated in her demo, the most common were staccato fragments of fewer than four words (249 of them). Write those criteria into the skill and every future generation can be judged against them item by item with an LLM judge. And because you already have a human-labeled dataset, you can run the check in reverse and validate whether the eval criteria themselves are reliable."
+  },
+  {
+   "h": "What automated eval tools miss is exactly the product judgment",
+   "body": "Hamel shared their benchmarking of automated eval tools like Brain Trust, Arize and LangSmith: they catch the obvious failures — tool calls that fail, users expressing dissatisfaction — but they broadly miss the implicit errors that require product judgment. Take a real estate sales bot facing the objection ‘you don't have this listing’: it will only say ‘sorry, we don't’, and never propose an alternative. More notable still: coding agents like Claude Code and Codex perform the same as those tools, because the underlying models and prompts are essentially the same."
+  },
+  {
+   "h": "Even 90% precision is not enough — false positives skew your direction",
+   "body": "Shreya adds that automated eval tools top out at 80%-90% precision even in the best case, which means 10%-20% of the errors they flag are false positives, and acting on them blindly will skew your product direction. So the approach that actually works is: use the tools to find the obvious errors fast, then review the data by hand — validating what the tools found, filling in what they missed, and making sure your taste gets injected into the product. That is what opens a gap between you and your competitors."
+  },
+  {
+   "h": "Trade evals for a cheaper model and cut cost by 100x",
+   "body": "On the depth of the course, Shreya says that beyond error analysis and productionizing, it also covers wiring evals into CI/CD, monitoring long-term drift, and adversarial evals (guarding against tenant data leakage). The most practical part is the improvement module: using evals to guide a model switch — when you move to a cheaper model, you use evals to optimize its accuracy, and they have in practice cut costs for students and clients by 100x. That is an engineering capability on top of pure eval skill."
+  }
+ ],
+ "terms": [
+  {
+   "term": "bottom-up evals",
+   "def": "Eval criteria formed by a human distilling failure modes out of a large volume of real outputs."
+  },
+  {
+   "term": "top-down evals",
+   "def": "Eval criteria set in advance from the nature of the task and domain knowledge, independent of the data."
+  },
+  {
+   "term": "LLM judge",
+   "def": "Having a model return a pass/fail verdict on an output against explicit criteria."
+  },
+  {
+   "term": "error discovery",
+   "def": "The workflow of reviewing data to identify failure modes and harden them into eval criteria."
+  },
+  {
+   "term": "staccato fragments",
+   "def": "Broken sentences of fewer than four words — a common filler style in AI writing."
+  },
+  {
+   "term": "slop",
+   "def": "Empty, formulaic, low-information boilerplate in AI generation."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Total suggestions auto-generated by the error discovery skill",
+   "v": "361"
+  },
+  {
+   "k": "Staccato fragments (sentences of 4 words or fewer)",
+   "v": "249"
+  },
+  {
+   "k": "Time to build the review interface",
+   "v": "15 minutes"
+  },
+  {
+   "k": "Peak precision of automated eval tools",
+   "v": "80%-90%"
+  },
+  {
+   "k": "Cost reduction achieved by optimizing with evals",
+   "v": "100x"
+  },
+  {
+   "k": "Human comments needed to trigger auto-labeling",
+   "v": "about 10"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "Now Claude is very very bad at coming up with bottomup evals. That's all you",
+   "translated": false
+  },
+  {
+   "text": "we joke that writing is the final boss for LLMs",
+   "translated": false
+  },
+  {
+   "text": "the interface that it comes up with is going to be so much better than me looking at my data in say Google spreadsheets or something",
+   "translated": false
+  },
+  {
+   "text": "the hardest part of eval is error analysis which is coming up with this rubric",
+   "translated": false
+  },
+  {
+   "text": "There's there is no world in the future. Even if you have AGI, if you're building a product, you have to look at your data.",
+   "translated": false
+  },
+  {
+   "text": "It's really hard for humans to upfront think of like from top down like what are all the things that are good and bad. It's like almost impossible.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}

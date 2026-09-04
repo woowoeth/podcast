@@ -327,6 +327,22 @@ LANG_JS = ("<script>(function(){try{"
            "}catch(e){}})();</script>")
 
 
+def _has_en(path: str) -> bool:
+    """这个 path 有英文版吗。
+
+    列表页（/、/sources/、/log/、/s/<id>/）总是有；单集页要看那一篇译了没有。
+    判断落在**磁盘上真有那个目录**，不是"数据里有译文"——两者会在构建中途
+    不一致（英文那趟还没跑到），而 hreflang 说的是"那个 URL 存在"。
+    """
+    if LANG == "en":
+        return True
+    if not path.startswith("/p/"):
+        return True
+    slug = path[3:].rstrip("/")
+    from urllib.parse import unquote
+    return (ROOT / "en" / "p" / unquote(slug)).is_dir()
+
+
 def hreflangs(path: str) -> str:
     """三语互指。
 
@@ -339,7 +355,9 @@ def hreflangs(path: str) -> str:
     zh = SITE_ZH + path
     rows = [f'<link rel="alternate" hreflang="zh-Hans" href="{e(zh)}">',
             f'<link rel="alternate" hreflang="zh-Hant" href="{e(SITE_ZH + "/tw" + path)}">']
-    if EN_LIVE:
+    # **只在这一页真有英文版时才声明 en。** 译文是逐篇补的，没译的集不进 /en/；
+    # 在它们的中文页上写 hreflang=en 就等于把搜索引擎指到一个 404。
+    if EN_LIVE and _has_en(path):
         rows.append(f'<link rel="alternate" hreflang="en" href="{e(SITE_ZH + "/en" + path)}">')
     rows.append(f'<link rel="alternate" hreflang="x-default" href="{e(zh)}">')
     return "\n".join(rows)

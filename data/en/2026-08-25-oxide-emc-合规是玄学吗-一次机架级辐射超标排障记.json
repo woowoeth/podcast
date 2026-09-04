@@ -1,0 +1,122 @@
+{
+ "slug": "2026-08-25-oxide-emc-合规是玄学吗-一次机架级辐射超标排障记",
+ "of": "oxide-c4de6cb514",
+ "source_lang": "en",
+ "title": "Rack Radiation Over the Limit: Two Rounds of Debugging Failed, and the Fix Was Hiding at an Unrelated Conference",
+ "dek": "Radiation at 26.565GHz off the back of the rack came in over the limit. Two rounds of troubleshooting turned up nothing, and the fix finally came from a paper presented at an unrelated conference: add absorber material at the connector. This is not black magic, it is high-frequency physics.",
+ "why": "A full post-mortem of an EMC debugging campaign, which is rare: the physical mechanism behind the exceedance, the methods used to localize it, and how the fix gets into factory process. Very high information density. Worth listening to if you are a hardware engineer or you care about R&D detail.",
+ "who": "Hardware engineers, EMC engineers, server and rack designers, and any product lead curious about how system-level compliance testing actually works.",
+ "skip": "The first 5 minutes of baseball and neighborhood-dispute chatter can be skipped. The substance starts at 7 minutes with the explanation of EMC.",
+ "tags": [
+  "EMC",
+  "Hardware engineering",
+  "Rack servers",
+  "Optical transceivers",
+  "Compliance testing"
+ ],
+ "points": [
+  {
+   "h": "EMC looks like witchcraft, but it is really geometry",
+   "body": "Robert explains what EMC is: the signals inside electronic equipment operate at various frequencies, and any of them can turn the device into a radiator that interferes with the equipment around it. The main problem is unintentional antennas — not the telescoping kind you find on a phone, but slot antennas and cavities. Take 26.565GHz: a quarter wavelength at that frequency is only about 3 millimeters, so if the opening in a metal cavity happens to be a few millimeters across, it becomes an accidental resonant antenna. Bryan says this is the one engineering field where the words ‘witchcraft’ and ‘voodoo’ come up constantly, because it looks like dark magic when it is actually geometry."
+  },
+  {
+   "h": "The spring fingers in a drive caddy are not there to hold the drive",
+   "body": "Bryan uses the spring fingers on a drive caddy as his example: those little metal leaves that look like they are there to retain the drive are actually there to break up the continuous slot around the bay, splitting one long slot into several short ones and thereby pushing the radiated energy up to a higher frequency where there is less of it. This is the cheapest and most common trick in all of EMC. Bryan's observation is that it does not feel like first principles so much as ‘last principles’ — the thing you are forced to deal with right before you ship. But physics is physics, not mysticism."
+  },
+  {
+   "h": "A company that sells whole racks cannot get away with testing one server",
+   "body": "Robert lays out why they were back in the chamber at all: the Cosmo rack went from 24 slots to 32, because the power constraint that had capped it was lifted. But 32 Gen5 PCIe devices running at higher frequencies means the radiation adds up, so the entire rack-level compliance test suite has to be run again. He contrasts this with how server vendors do it — they test a single machine on its own 12V supply. Oxide sells the whole rack, so the whole rack has to go into the chamber, and every cable, backplane and cavity across all the switches and sleds is a potential radiator. That is why the thing under test here is a complete system."
+  },
+  {
+   "h": "The worst case the product cannot actually reach is what forced the flaw out",
+   "body": "Stu describes the first trip into the chamber: Rack model 0.5 powering on for the first time, the rectifier fans louder and higher-pitched than expected. The surprise was radiation over the limit at 26.565GHz. They started with the spring-finger contact points on the QSFP cages and found the paint masking was imperfect; sanding it down did nothing. Then they tried tidying up the internal flyover cables; that did nothing either. They shielded locally with aluminum foil, still nothing. After two rounds of testing they had made no progress at all, and left with the problem unresolved and not even one viable next step."
+  },
+  {
+   "h": "A worst case the product cannot reach is what forced the flaw out",
+   "body": "After they left, Joe raised a lead: the transceivers used this time were not from the same batch as last time. Same spec, but each year's new revision updates the DSP, so the emission characteristics can shift slightly. Robert did not think much of it at first, because even if true it was not an actionable fix — the product has to support these transceivers. But it was an important line of inquiry: the configuration was an artificially constructed worst case, 64 200G transceivers of the same model all running at once, which the real product cannot even do, because the side boards have no 200G backplane. It is exactly this ‘fake worst case’ that dragged the latent problem into the open."
+  },
+  {
+   "h": "The fix came out of an unrelated conference, and that was not luck",
+   "body": "Around the third trip into the chamber, Dan heard a paper at an SI conference in Texas on simulating electromagnetic fields with the finite-difference time-domain method, and one of its case studies happened to be an optical transceiver — where the fix was to apply absorber material around the connector. Dan sent it straight to Robert, and Robert and Stu were at that moment getting ready to start hand-cutting exactly that kind of material. The paper mattered because it gave them the precise recipe: the material goes on top of the connector, underneath the QSFP cage, and the closer to the transceiver pins the better. That was not luck, it was the value of a technical community sharing what it knows."
+  },
+  {
+   "h": "Verifying it by hand is easy; getting the line to place it identically is hard",
+   "body": "Robert describes what applying the absorber is actually like: working a 10mm by 5mm strip into the cramped space under a QSFP cage, with tweezers, measuring with a ruler, like doing craftwork. The good news is that the material genuinely works, but they only tested the top row, so the effect of doing all four rows has to be extrapolated by adding up the power contributions. The real difficulty is at the factory: this has to be applied before the connector is press-fit, using little squares die-cut with a tool, so that a line worker can place them like stickers. The factory would like to kill them over this plan, but right now it is the only fix they have."
+  },
+  {
+   "h": "Putting absorber on the connector is not a mitigation, it is a fix",
+   "body": "Bryan insists this should not be called a mitigation; it should be called a fix. Dan adds that energy leaking out at the connector like this is close to an inherent property of how transceiver drivers are designed — it is not the result of an Oxide design error. Putting an absorber right where the energy first leaves its intended path is cooperating with the laws of physics rather than fighting them. Stu says, laughing, that through the whole test campaign he had to actively suppress any optimism, because the moment you expect a given change to work, it turns out not to. In the end they walked out with two dB of margin, and they have to go back into the chamber in two weeks for the final confirmation."
+  }
+ ],
+ "terms": [
+  {
+   "term": "EMC (electromagnetic compatibility)",
+   "def": "A device's ability to work correctly in an electromagnetic environment without producing unacceptable interference."
+  },
+  {
+   "term": "Slot antenna",
+   "def": "An unintentional antenna formed by a slot in a metal body, where the slot length sets the resonant frequency."
+  },
+  {
+   "term": "Grounded coplanar waveguide",
+   "def": "A routing structure that suppresses radiation with nearby ground vias, at the cost of high insertion loss."
+  },
+  {
+   "term": "QSFP cage",
+   "def": "The metal shielding shell that encloses a pluggable optical module and ties it to chassis ground."
+  },
+  {
+   "term": "Line (EMC chamber)",
+   "def": "The chamber's power input filter, whose current rating limits how much power the equipment under test can draw."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Frequency of the exceedance",
+   "v": "26.565 GHz"
+  },
+  {
+   "k": "Physical dimension of the corresponding quarter wavelength",
+   "v": "about 10-12 millimeters"
+  },
+  {
+   "k": "Rack slot count (previously), now 32",
+   "v": "24→32"
+  },
+  {
+   "k": "Original capacity of the chamber line",
+   "v": "60 amps"
+  },
+  {
+   "k": "Capacity of the new line",
+   "v": "100 amps"
+  },
+  {
+   "k": "Time for a single test run",
+   "v": "1-2 hours"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "It's the things that you don't normally encounter or think about in your when you would go to a conference on design.",
+   "translated": false
+  },
+  {
+   "text": "It feels like last principles engineering.",
+   "translated": false
+  },
+  {
+   "text": "We have so many places where things can go bad and be sad and cause problems.",
+   "translated": false
+  },
+  {
+   "text": "There's no atheist in the chamber.",
+   "translated": false
+  },
+  {
+   "text": "Even if that is the problem, that's not an actionable solution.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}

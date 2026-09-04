@@ -1,0 +1,123 @@
+{
+ "slug": "2026-09-01-cogrev-agent-的瓶颈不在上下文-在记忆的写改召回遗忘",
+ "of": "cogrev-f921a692db",
+ "source_lang": "en",
+ "title": "The Agent Bottleneck Isn't Context — It's Write, Change, Recall, Forget",
+ "dek": "Uber burned through its 2026 token budget in 13 weeks, proof that stuffing the context window is the wrong answer; MongoDB points the agent-performance bottleneck at memory — write, change, recall, forget — and recommends starting deployment with employee-facing use cases and a human in the loop.",
+ "why": "This episode clears obstacles for people doing agent engineering: how to set chunk size, the 100,000-vector threshold, who writes memory and who deletes it. Not worth much if all you want is model progress.",
+ "who": "Engineers building agent and RAG applications, technical leads picking data stacks for enterprises, investors watching the embedding-model and vector-database race.",
+ "skip": "The first 30 minutes lean toward product pitch — you can start at 16:38; around 31:51 is a feature announcement, fast-forward it.",
+ "tags": [
+  "Agent memory",
+  "Vector retrieval",
+  "Embedding models",
+  "RAG",
+  "Enterprise AI",
+  "MongoDB"
+ ],
+ "points": [
+  {
+   "h": "A database model follows whichever resource is scarcest at the time",
+   "body": "Pete takes E.F. Codd's 1970 paper on the relational model as the starting point: storage was the most expensive thing then, so normalized tables were the rational choice. By 2007, when MongoDB was born, the scarce resource had become time, so the document model is deliberately denormalized, using JSON/BSON to cut disk reads. He also corrects a positioning that gets misread over and over: MongoDB is not ‘schemaless’, it is ‘flexible schema’ — the same collection can hold documents of different shapes, which lets the schema evolve along with the product. That design logic points to one thing: a database model should follow whichever resource is scarcest at the time."
+  },
+  {
+   "h": "Stuffing data into the context actually lowers quality",
+   "body": "The news that Uber burned through its 2026 token budget in 13 weeks is treated here as a sample of the token maxing strategy failing. When you push large amounts of data into the context, cost is only half the problem — quality drops too: research shows the first and last few thousand tokens of the window matter most, and the middle is basically noise. That pushes the industry toward ‘categorized memory’ — each turn selects only the few terms relevant to the current agent loop, rather than dumping the entire history back in. The key point is not saving money; it is that attention decay inside the context makes selective retrieval a performance problem."
+  },
+  {
+   "h": "AI features have to grow out of where customers already hurt",
+   "body": "MongoDB's search capability grew out of customer pain one layer at a time: lexical search came first, in 2020, because many customers were standing up their own Lucene; vector search followed, because a vector is fundamentally an array of floats and so fits naturally as a document field; then lexical, vector and metadata pre-filtering were folded into a single hybrid search. In 2025 the company simply acquired Voyage AI, bringing the embedding model in house too, for a ‘better together’ offering. The sequence itself makes the argument: when an infrastructure company reaches for AI features, it usually starts where customers already hurt, rather than buying a model first and then inventing scenarios for it."
+  },
+  {
+   "h": "Tuning chunk size is the model's job, not a human trial-and-error loop",
+   "body": "The first grinding problem in RAG is chunk size: chunks too small and there is not enough context, so retrieval quality suffers; chunks too large and storage grows while precision actually falls — leaving humans to tune it by repeated trial and error. Voyage's contextual chunking sends the sentence and the extra context into the model as two separate strings, lets the model judge the optimal chunk size itself, and returns just a single vector at the end. That way very small chunks can deliver retrieval quality close to full context, at lower storage cost as well; it is now on its fourth version. This is a concrete example of moving a process engineers used to tune by hand into the model's weights."
+  },
+  {
+   "h": "Embedding models are not commoditized, and the pick decides hallucination",
+   "body": "Pete gives two thresholds for the decision. On scale: things only start to really hurt once your vector count reaches something like 100,000. On quality: Voyage leads on the RTEB benchmark on Hugging Face, improving on other embedding models by up to 14%, and that gap can show up directly as whether or not you get hallucinations. He also points out that embedding models have not been commoditized — Anthropic does not build an embedding model itself — so his advice is to just use Voyage. For a lot of teams, the choice of embedding model has been underrated for a long time; this stretch puts it back at the center of performance and hallucination."
+  },
+  {
+   "h": "Memory has a half-life, so it has to be actively retired",
+   "body": "Why is memory hard? Pete's analogy: the industry has been building databases for sixty years and building agents for roughly eighteen months. The long-context strategy is no longer to stuff the whole session back in; it is to recall the best context at query time and write the new facts back into memory after answering. Enterprise systems also use RBAC to control how memory is shared and isolated. He sums up the whole loop with a colleague's phrase: Write, change, recall, forget. Memory has a half-life — recent information matters more than information from weeks or even months ago. Which means agent memory has to be treated as a first-class citizen, with deliberate writes, updates and retirement."
+  },
+  {
+   "h": "The first wave of enterprise AI lands on employees, not customers",
+   "body": "Most of the Fortune 500 companies Pete deals with are building employee-facing use cases, and keeping a human in the loop. The reasons come in two layers: ROI is easier to compute, because those roles already have KPIs; and the data-security consequences are milder, since a leak of employee data is easier to deal with than a leak of customer data. Conversely, a fully autonomous agent that customers can face is the worse risk-reward bet right now. This gives budget judgments in enterprise AI a coordinate: the first wave of deployment is more likely to happen in internal efficiency tools than in bots making the final call for customers."
+  },
+  {
+   "h": "The most complex customers are not in the US but in Mexico City and São Paulo",
+   "body": "Pete met the most complex customers of his year in Mexico City and São Paulo, and this group usually assumes their US competitors are more advanced. He says what he sees is exactly the opposite. The reason he gives is the spread of hyperscale data centers and AI services: geographic barriers matter even less than they did in the cloud era, and the ability of enterprises worldwide to get hold of technology has been leveled. The observation says something useful: when judging whether a company can put frontier AI to work, the country label is becoming less and less reliable."
+  }
+ ],
+ "terms": [
+  {
+   "term": "token maxing",
+   "def": "Cramming every token in the budget into the context — expensive, and quality decays through the middle."
+  },
+  {
+   "term": "contextual chunking",
+   "def": "Sends the sentence and the extra context into the model as two inputs, decides the optimal chunk size automatically, and returns a single vector."
+  },
+  {
+   "term": "Matryoshka embedding",
+   "def": "An embedding model that supports truncating high-dimensional vectors down to fewer dimensions, sparing you from re-embedding the whole corpus."
+  },
+  {
+   "term": "agent skills",
+   "def": "Curated system prompts MongoDB provides as markdown files, covering topics such as data modeling and operations."
+  }
+ ],
+ "facts": [
+  {
+   "k": "MongoDB's share of the database market",
+   "v": "about 3%"
+  },
+  {
+   "k": "Time it took Uber to burn through its 2026 token budget",
+   "v": "13 weeks"
+  },
+  {
+   "k": "Voyage contextual chunking versions",
+   "v": "third version shipped last summer, fourth version shipped within the last six weeks"
+  },
+  {
+   "k": "Voyage's retrieval-quality gain over other embedding models",
+   "v": "up to 14%"
+  },
+  {
+   "k": "Retrieval-quality gain available from using a reranker",
+   "v": "5-10%"
+  },
+  {
+   "k": "Price MongoDB paid to acquire Voyage AI",
+   "v": "$220 million"
+  },
+  {
+   "k": "Voyage acquisition price as a share of MongoDB's market cap",
+   "v": "less than 1%"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "Most people think that we're schemaless, and that's not actually true. It's not that we're schemaless, it's that we're schema flexible",
+   "translated": false
+  },
+  {
+   "text": "There's no lamp stack for agents yet in the way that we have with web development. We will get there. Having lived through that having lived through that life cycle, we'll eventually get there. But, like, there's there's no React in Angular. There's no LAMP stack for agents right now.",
+   "translated": false
+  },
+  {
+   "text": "Most of Fortune five hundreds that I talked to are Dewey employee facing use cases with human in the loop for exactly the reasons that you just laid out and for some of the ROI reasons that I laid out before.",
+   "translated": false
+  },
+  {
+   "text": "there's a presumption in other countries that The US is ahead and doing things that other people are not, and I found the opposite to be true.",
+   "translated": false
+  },
+  {
+   "text": "every other embedding model is gonna force you to pay tokens during your development cycle to hit against their embedding model.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}

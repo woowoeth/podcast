@@ -1,0 +1,98 @@
+{
+ "slug": "2026-08-22-mlst-加密思考不是秘密-小模型能把大模型的推理念出来",
+ "of": "mlst-2e77e66eb7",
+ "source_lang": "en",
+ "title": "Encrypted Reasoning Is Not a Secret: A Small Model Will Read the Big One's Thinking Out Loud",
+ "dek": "Frontier models hand the user an encrypted copy of their thinking along with the answer, but that ciphertext can be replayed verbatim into a smaller model from the same family, which will simply read it out — opening the door to privacy leaks, jailbreaks, prompt injection, and even a channel for distilling capability.",
+ "why": "This episode takes the claim that encrypted reasoning can be replayed all the way down to a reproducible level, and lays out three attack paths: privacy, poisoning, and distillation. For anyone working on AI security or running agents in production, the density is high.",
+ "who": "People doing LLM security and red-teaming, engineering teams putting agents into production, and researchers following open-model distillation and regulatory policy.",
+ "skip": "If you only want the conclusions, skip the two product segments at the start and the small talk at the end; everything hardcore sits between the 3-minute and 43-minute marks.",
+ "tags": [
+  "Reasoning encryption",
+  "Jailbreaks",
+  "Model distillation",
+  "AI security",
+  "Prompt injection",
+  "Privacy leaks"
+ ],
+ "points": [
+  {
+   "h": "This is not one vendor's bug — all three frontier labs are hit",
+   "body": "The core finding is not that one company got cracked, but that Anthropic, OpenAI and Google all behave the same way: the encrypted reasoning from a larger model can be replayed into a smaller model in the same family, and the smaller model will keep generating along that line of thought — thereby speaking aloud the thinking that was supposed to stay confidential. The technical bar for an attacker is not high; it took roughly the third attempt to obtain a general-purpose decoding of Anthropic models. From there you can build model downgrading, steal secrets out of a user's session, train a distillation, run prompt injection, jailbreak, and more."
+  },
+  {
+   "h": "You redacted the question and the answer; the password is still in the thinking",
+   "body": "Before sharing a conversation, users usually clean the API keys and passwords out of the visible parts — but the attached encrypted reasoning blob stays in the file. An attacker who downloads those sessions from GitHub or Hugging Face can decode the thinking directly and see the passwords, email addresses and internal IPs the model wrote down internally at the time. Even if you scrub both the question and the answer, keeping the reasoning blob leaks the private information anyway, through the traces of the thinking — and medical information is no exception."
+  },
+  {
+   "h": "Kimi looks like it distilled Opus, but this does not count as hard proof",
+   "body": "The researchers extracted Opus reasoning from real user sessions, took only the first two tokens, placed them at the start of Kimi's thinking, and let Kimi continue freely; Kimi's final visible answer then came out phrased almost identically to Opus. The authors stress this is not hard proof of distillation, only the closest correlational evidence currently available on the public web; the effect showed up on Kimi alone, and on none of the other models tested. It speaks directly to the speculation about whether Chinese models distill frontier models, but the authors keep their wording very careful."
+  },
+  {
+   "h": "Plaintext reasoning would let open models catch the frontier immediately",
+   "body": "Asked what would happen if labs simply returned reasoning to users in plaintext, the author's answer was: if reasoning-based distillation really works, that would let open models catch up with frontier models immediately. The remark exposes the other face of the whole attack — the same mechanism is both a leak channel and a lever for leveling capability, depending on which side you stand on. It also explains why the labs' response has been to start up anti-distillation teams rather than to simply switch encrypted reasoning off."
+  },
+  {
+   "h": "The hard part was not breaking it; nobody had thought to try",
+   "body": "The author says the thing that shocked him most in the whole paper is that this barely qualifies as a carefully designed attack: it took roughly the third attempt to get a general-purpose decoding of Anthropic's reasoning. He had assumed he would at least have to deal with encryption, signatures and integrity checks; instead the system broke itself — the server side decrypts as normal, the smaller model is perfectly happy to recite the thinking, and no cryptography was broken at all. The difficulty is not in breaking through; it is that nobody thought to take this step."
+  },
+  {
+   "h": "Two tokens are enough to move the length of an entire reasoning trace",
+   "body": "The prefill experiment produced an effect the author still cannot explain: putting the first two tokens of Opus reasoning at the start of Kimi's or GLM's thinking changes not only the style of the continuation but the length distribution of the entire reasoning trace, shifting length toward the source model. The author stresses this is not causal evidence and cannot establish who distilled whom, but an anomalous signal at the distribution level is stranger than imitation of phrasing — and more worth further experiments."
+  },
+  {
+   "h": "Sharing a trace means shipping an unverified binary along with it",
+   "body": "The more insidious threat is poisoning: if someone shares a long trace from their own agent session, an attacker can inject malicious reasoning extracted from another context into it. Because the reasoning is encrypted, whoever downloads the trace cannot spot anything wrong by eye; once they keep running that trace, the agent may do strange things purely because its thinking was implanted. The author likens it to downloading a project whose source looks clean but which ships an unverified binary next to it."
+  },
+  {
+   "h": "The answers exist already; the problem is that the world implements slowly",
+   "body": "Asked what should be done, the author's response is that the question is the wrong one: capability-based access control, full software verification and similar measures have existed in the security literature for 25 years, and the crux is not that nobody knows how to do it but that the world implements slowly. His other judgment is that the gains for defense may be far larger than the gains for offense — models can in fact help security engineers write more reliable code at scale — and that this side of it has yet to be fully recognized."
+  }
+ ],
+ "terms": [
+  {
+   "term": "reasoning trace",
+   "def": "The internal thinking a model generates before delivering its final answer, usually returned with the answer in encrypted form."
+  },
+  {
+   "term": "prefill",
+   "def": "Specifying the first few tokens before a model generates, steering it to continue in a particular style or line of thought."
+  },
+  {
+   "term": "replay attack",
+   "def": "Injecting a legitimate request verbatim into a different context so the system mistakes it for part of the same legitimate session."
+  },
+  {
+   "term": "responsible disclosure",
+   "def": "Telling the vendor about a vulnerability privately before going public, giving them time to fix it."
+  }
+ ],
+ "facts": [],
+ "quotes": [
+  {
+   "text": "thoughts of bigger models can be replay into smaller models",
+   "translated": false
+  },
+  {
+   "text": "instantly enable open source models catching up with the frontier models",
+   "translated": false
+  },
+  {
+   "text": "I think it's very unlikely that they use the same key. that would be very odd. I think it's more likely that it doesn't really matter what the key is because we can still nonetheless, like, inject the same thoughts everywhere.",
+   "translated": false
+  },
+  {
+   "text": "But nobody checks like a signature and a binary.",
+   "translated": false
+  },
+  {
+   "text": "We all know it's in the security literature for the past 25 years. It's there. We know exactly what to do. It's I think we'll get there. It's just the world is slow.",
+   "translated": false
+  },
+  {
+   "text": "I think it's a bit premature now because we are in the heat of the moment. It's not, it's not very obvious what what what the reality is like.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}

@@ -1,0 +1,122 @@
+{
+ "slug": "2026-08-23-techtechpotato-etched的芯片-可能解决的是带宽而不是算力",
+ "of": "techtechpotato-bf5a9cfa11",
+ "source_lang": "en",
+ "title": "What Etched's chip really solves may be bandwidth, not compute",
+ "dek": "Etched welds the transformer into hardware with 0.45-volt ultra-low-voltage transistors and direct cross-chip SRAM access, but the host suspects the problem actually being solved is bandwidth, not compute.",
+ "why": "Two technologies that had previously been announced by name only, with no explanation of how they work, are taken apart and explained for the first time — but chip power draw, bandwidth, the compiler and customer volume are all still unanswered. Information density is moderate to high.",
+ "who": "Investors and chip engineers following non-Nvidia AI chip startups, compute efficiency and bandwidth bottlenecks, who want to know whether transformer-specific chips have anything real behind the funding hype.",
+ "skip": "The closing stretch where the host pitches his own merch store can be skipped; it contains no information.",
+ "tags": [
+  "AI chips",
+  "Transformer-specific chips",
+  "Compute efficiency",
+  "Funding",
+  "Bandwidth bottleneck"
+ ],
+ "points": [
+  {
+   "h": "The founder himself admits this chip may turn out to be wasted work",
+   "body": "Two years ago Etched went public with a position: build a chip just for transformers. The transformer was already the mainstream architecture for language models at that point, but it was still a very specific type of workload. The public argument was that a chip built only for transformers can run both fast and cheap, at the cost that once the technical direction shifts, the chip may be worthless. The CEO admits himself that if the market turns, everything they have done may have been for nothing. This is a bet whose risk of failure was publicly acknowledged from the very beginning."
+  },
+  {
+   "h": "A 23-year-old dropout plus chip veterans is what unlocked the big rounds",
+   "body": "CEO Gavin Uberti is a 23-year-old dropout from Harvard's computer science department. Co-founder Robert Wacken also came out of Harvard, but from the university's tech-transfer side, helping companies get from zero to funded. CTO Mark Ross has Cisco and Cypress Semi on his record; his LinkedIn says he led the team that built the first multi-port Ethernet switch on the market, and he also worked on Soho-related technology. The combination of young founders and seasoned chip veterans is part of why this company has been able to raise such large rounds."
+  },
+  {
+   "h": "A reporter's site visit turned up blinking lights, not silicon",
+   "body": "When the company first appeared it claimed a chassis of eight chips could take on Nvidia, saying it could reach 500,000 tokens per second — many times the figure Nvidia was advertising at the time. Around the same period, EE Times reporter Sally visited the headquarters in person and saw a pile of servers blinking and beeping, but never actually saw the silicon itself. It took more than a year before the company really came out of stealth and the chip taped out, so what Sally saw at the time was in all likelihood only a test chip."
+  },
+  {
+   "h": "Low voltage buys more compute units, at the cost of clock frequency",
+   "body": "An ordinary high-end desktop CPU runs at roughly 1.2 to 1.3 volts, and even the most efficient desktop and laptop processors sit in the range close to 1 volt. etched's low-voltage inference chip runs at about 450 millivolts, that is 0.45 volts, already approaching the threshold voltage at which a transistor can just barely switch. The lower the voltage, the more you can multiply the number of compute units you pack in; the price is that frequency cannot go high. The only high-compute industry currently using ultra-low-voltage transistors like this at scale is Bitcoin mining rigs, because mining algorithms need only a tiny amount of data moving in and out, whereas machine learning is precisely a workload of hauling data back and forth — which is exactly the next problem etched has to solve."
+  },
+  {
+   "h": "Cache should not belong only to the chip that holds it",
+   "body": "etched's chip has HBM inside the package, and inside the chip a large block of SRAM cache (scratch pad) shared by all the compute units on-die. The second technology, cluster scale memory, opens that SRAM cache up to other chips for direct access over a high-speed interconnect — something like RDMA across chips, directly reading and writing another chip's cache and scratch pad rather than using it only inside the chip. High-speed interconnect needs voltage, so the power saved by low-voltage compute may be shifted over to feeding this cross-chip communication."
+  },
+  {
+   "h": "A chassis full of black cables reveals where the power budget goes",
+   "body": "In the photos etched showed of the physical server, the first thing that draws the eye is the dense mass of black cabling, visibly far more than in Nvidia's or AMD's systems. Some of the cables are for liquid cooling, but a large share is believed to be for high-bandwidth interconnect like cluster scale memory. From this the host infers that what etched really solves may not be a compute problem but the bandwidth problem of chip-to-chip communication — the power headroom saved by low-voltage compute gets spent piling up interconnect bandwidth."
+  },
+  {
+   "h": "Hard-coded does not mean frozen; the chip is still programmable",
+   "body": "Neither of the two technology names — low-voltage inference and cluster scale memory — mentions transformers, which suggests the real binding happens in the physical arrangement of the compute units: this is a chip hard-coded for the transformer, but still programmable, able to run different versions of the transformer, unlike the other special-purpose chip design reported on a few weeks ago, which was rigid. The host has not yet had the chance to go through the details with the team on how transcendental functions get computed, how memory addresses are managed, and how data moving in and out of the scratch pad is tracked — if all of that falls back on the compiler, then you have to hope their compiler is genuinely good."
+  },
+  {
+   "h": "Before selling a million chips, first prove you can sell a thousand",
+   "body": "etched says it already has plenty of interest from hyperscale cloud providers, but the host cites Jim Keller's line: if you want to sell a million chips, you first have to prove you can sell a hundred thousand; to sell a hundred thousand, you first have to prove ten thousand; to sell ten thousand, you first have to prove a thousand — the question a startup should really be asked is always where your hundred-unit, thousand-unit and ten-thousand-unit customers are. Co-founder Robert Wacken said at a funding event that etched's internal core tenet is ‘delivery’, meaning getting the chip built a year earlier than other startups founded around the same time, and that they intend to keep up this fast iteration pace as much as possible in bringing out the next generation of chips."
+  }
+ ],
+ "terms": [
+  {
+   "term": "tape out",
+   "def": "The final step after a chip design is frozen: sending it to the fab for full production manufacturing."
+  },
+  {
+   "term": "RDMA",
+   "def": "Remote direct memory access: reading and writing another device's memory or cache directly, bypassing its CPU."
+  },
+  {
+   "term": "threshold voltage",
+   "def": "The minimum voltage needed for a transistor to just barely turn on (conduct)."
+  },
+  {
+   "term": "cluster scale memory",
+   "def": "A technology proposed by etched that lets multiple chips share each other's SRAM cache over a high-speed interconnect."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Etched Series B raise",
+   "v": "$800 million"
+  },
+  {
+   "k": "Etched Series C raise",
+   "v": "$300 million"
+  },
+  {
+   "k": "CEO Gavin Uberti's age when founding the company",
+   "v": "23"
+  },
+  {
+   "k": "Threshold voltage of the low-voltage inference transistors",
+   "v": "about 450 millivolts (0.45 volts)"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "if the market pivots then what they've done might be for nothing",
+   "translated": false
+  },
+  {
+   "text": "We're going to challenge Nvidia uh with an eight-way box claiming 500,000 tokens per second",
+   "translated": false
+  },
+  {
+   "text": "these ultra low voltage transistors run at around 450 molts, 0.45 volts, uh, which is really low",
+   "translated": false
+  },
+  {
+   "text": "You're actively accessing the cache and the scratchpad of another chip directly.",
+   "translated": false
+  },
+  {
+   "text": "that's a lot of cabling. It's a lot of black cabling going here, there, and everywhere.",
+   "translated": false
+  },
+  {
+   "text": "what etched have solved here isn't so much the compute problem, but maybe a bandwidth problem",
+   "translated": false
+  },
+  {
+   "text": "if you want to sell a million chips, you got to be able to sell 100,000. If you want to sell 100,000, you got to be able to sell 10,000.",
+   "translated": false
+  },
+  {
+   "text": "the key ethos at etched is deliver deliver as in their internal metrics.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}

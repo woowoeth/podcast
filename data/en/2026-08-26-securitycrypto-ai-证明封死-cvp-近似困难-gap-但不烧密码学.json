@@ -1,0 +1,127 @@
+{
+ "slug": "2026-08-26-securitycrypto-ai-证明封死-cvp-近似困难-gap-但不烧密码学",
+ "of": "securitycrypto-3373407d4b",
+ "source_lang": "en",
+ "title": "AI Proofs Close In on the Square-Root Barrier, Worst-Case Lattices Still Safe",
+ "dek": "An OpenAI model proved CVP stays NP-hard under an approximation factor of n^(1/400), and within days the result was pushed to the square root; the exact-SVP exponent improved to 2^0.7n and McEliece took a quasi-polynomial attack, yet real-world lattice crypto is safe for now thanks to dimension blowup and the gap in approximation factors.",
+ "why": "Three sets of new results appeared in the same week, each pulling on something different: complexity theory, the question of AI originality, and how to judge post-quantum security. Stop early and you miss the mechanisms and the numbers in the second half.",
+ "who": "Engineers choosing post-quantum primitives and putting FHE into production, investors trying to gauge how good AI has gotten at mathematics, and researchers tracking the newest attacks on lattice crypto.",
+ "skip": "The last 2 minutes of Michigan football chat and the ads are skippable; everything else runs at high density.",
+ "tags": [
+  "lattice crypto",
+  "post-quantum crypto",
+  "AI mathematics",
+  "cryptanalysis",
+  "quantum algorithms",
+  "McEliece"
+ ],
+ "points": [
+  {
+   "h": "One paper raised a lattice hardness threshold that had not moved in 20 years",
+   "body": "The exact version of CVP was already proved NP-hard back in the 1980s; work in the 1990s pushed NP-hardness up to any constant approximation factor, and even to a factor of n^(1/log log n). After that settled in 1998, nothing moved for 20 years. On August 1 an OpenAI paper broke the deadlock with a fixed polynomial approximation factor of n^(1/400). Chris stresses that this is not the parameter regime cryptography actually uses — it is a pure complexity-theory result — but the way it is proved, a direct algebraic reduction from 3SAT to CVP, took everyone by surprise."
+  },
+  {
+   "h": "The square root is the end of the road; go further and the theory breaks",
+   "body": "Once Chris had the n^(1/400) result, he tried to get the model to improve it; fixing nothing but the bookkeeping yielded n^(1/28), and then someone else got n^(1/8). Within days, a Twitter user named Mira pushed the result to an arbitrary n^(1/2 - ε) through repeated prompting. The square root is a known co-NP barrier: if approximating CVP within the square root were also NP-hard, the polynomial hierarchy would collapse, so the gap is now completely closed. The approximation factors cryptography works with are small polynomials like n to n², which sit close to the new NP-hard region, and that has strengthened the community's confidence in the hardness of lattice problems."
+  },
+  {
+   "h": "The AI is no longer just bolting parts together; this time it took a new route",
+   "body": "Chris says this is the first AI mathematical result that struck him as genuinely original. Many earlier AI proofs were experts assembling pieces that already existed, with the AI only responsible for finding the first domino. This proof instead goes straight from 3SAT to the nearest-codeword problem and then to CVP, using Reed-Solomon codes to encode the formula and the clauses separately, then stitching the pieces into a lattice instance via constraints. He asked colleagues who work on coding complexity, and none of them had seen a path like it. It calls to mind AlphaGo's \"alien player\" style of solution, except that every component here comes from known mathematics — only the route is completely different."
+  },
+  {
+   "h": "SVP improved for the first time in 11 years, and crypto strength did not budge",
+   "body": "SVP is the problem of finding the shortest nonzero vector in a given lattice. Since 2015 the best exact algorithm has run in time about 2^n; within three days, three ePrint papers independently squeezed the constant in the exponent down to roughly 0.7, all using the same body of techniques, and some of the papers acknowledge that AI contributed core ideas. This is the first improvement in 11 years. But Chris says it makes almost no difference to real-world cryptography, because what it attacks is worst-case exact SVP, heuristic algorithms already do better than that, and security estimates do not rest on this exact exponent."
+  },
+  {
+   "h": "The quantum paper claiming to break lattice crypto contains substantive errors",
+   "body": "Shor's algorithm is, at bottom, solving a hidden shift problem over a cyclic group; the dihedral group is a cyclic group plus a flip, and quantum algorithms have long been unable to handle it. Once lattice problems are reduced to hidden shift over a huge dihedral group, solving DCP in polynomial time would break all lattice-based cryptography. The new paper claims to do exactly that, but Chris says the community has found several substantive errors in the proof, and they do not look easy to fix. His analogy: if the paradigm really did hold, it would be like the whole house being on fire — no point fussing over exactly what the temperature is."
+  },
+  {
+   "h": "The new McEliece attack does not just distinguish public keys, it decrypts",
+   "body": "The new attack on Classic McEliece gives a quasi-polynomial time (n^{log n}) distinguisher that can tell a public key apart from a random string; at concrete parameters the running time is about 2 to the power of a hundred and something. More important, they can turn the distinguisher into decryption: append the ciphertext to the public key, run the distinguisher, and the output exposes every bit of the error vector, which recovers the message. Decryption also takes quasi-polynomial time and depends on some heuristics. The paper states explicitly that the same idea could in principle be used to recover the private key from the public key, but leaves that for future work."
+  },
+  {
+   "h": "The uneasy feeling about McEliece is not imagined, it just lacks an explanation",
+   "body": "Chris explains why the community has long had a \"something feels a little off\" vibe about McEliece: over the years, nearly every variant — swapping the code, shrinking the key — has been broken, and only the original McEliece still stands, yet nobody can offer a deeper explanation for why. Attack ideas have also kept narrowing down to variants of information set decoding. This latest result came out of a privacy group working on doubly efficient PIR; they ran into a barrier in their construction and realized their algebraic geometry tools could break McEliece. That shows a different mathematical viewpoint can produce a breakthrough, but it also deepens the discomfort about the foundations of McEliece's security."
+  }
+ ],
+ "terms": [
+  {
+   "term": "CVP / Closest Vector Problem",
+   "def": "Given a lattice and a target point, find the nearest lattice point; the approximate version allows an error factor."
+  },
+  {
+   "term": "SVP / Shortest Vector Problem",
+   "def": "Find the shortest nonzero vector in a lattice — the core hard problem behind lattice cryptography."
+  },
+  {
+   "term": "Dihedral coset problem",
+   "def": "Solving hidden shift over the dihedral group; a quantum hard problem connected to lattice problems by reduction."
+  },
+  {
+   "term": "Reed-Solomon code",
+   "def": "An algebraic error-correcting code, used in the new CVP proof to encode 3SAT formulas."
+  },
+  {
+   "term": "Information set decoding",
+   "def": "The traditional way to attack McEliece-style cryptosystems, decoding by guessing an information set."
+  },
+  {
+   "term": "Doubly efficient PIR",
+   "def": "Private information retrieval with fast server-side computation and low communication — where this research came from."
+  }
+ ],
+ "facts": [
+  {
+   "k": "CVP approximation factor proved by OpenAI",
+   "v": "n^(1/400)"
+  },
+  {
+   "k": "CVP approximation factor days later",
+   "v": "an arbitrary n^(1/2 - ε)"
+  },
+  {
+   "k": "Best exact SVP algorithm time (since 2015)",
+   "v": "about 2^n"
+  },
+  {
+   "k": "New SVP algorithm exponent",
+   "v": "about 2^0.7n"
+  },
+  {
+   "k": "Time since the last SVP improvement",
+   "v": "11 years"
+  },
+  {
+   "k": "McEliece distinguisher complexity",
+   "v": "quasi-polynomial n^{log n}"
+  },
+  {
+   "k": "Concrete running time of McEliece distinguishing",
+   "v": "about 2 to the power of a hundred and something"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "So now we have this like total phase change, you know, up to square root n, but not quite is NP at square root n and beyond. You have, you know, very good reason to think it's not NP-hard. And so we went from like this huge unknown gap to like completely closed gap in a matter of a few days with just miles poking on things. I mean, that's insane.",
+   "translated": false
+  },
+  {
+   "text": "I don't, I don't think that's, that's going to be even true, much less do I expect it. And then, so it just completely changed our understanding of these problems.",
+   "translated": false
+  },
+  {
+   "text": "And it's just unlike anything I've ever seen. I asked some people around, and they hadn't seen it either.",
+   "translated": false
+  },
+  {
+   "text": "So the reason it doesn't kind of move the needle on that, which is a great question, is that these worst case to average case reductions usually have a blow up in the dimension to some amount.",
+   "translated": false
+  },
+  {
+   "text": "if that paradigm had worked out if that algorithm had actually been correct and correct analysis we're quibbling over the approximation factor",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}

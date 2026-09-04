@@ -1,0 +1,135 @@
+{
+ "slug": "2026-08-26-lex-程序员的价值从写码转向调度-agent",
+ "of": "lex-ea85f26356",
+ "source_lang": "en",
+ "title": "A programmer's value shifts to orchestrating agents: DHH wrote an entire product with AI",
+ "dek": "DHH has already written all of Omachi's code with AI, and found a counterintuitive result: agents don't need verbose instructions, they need to run in parallel. What is genuinely scarce is judgment, taste and architectural constraint.",
+ "why": "This is not a bystander's commentary. It is a first-hand report from DHH, the creator of Rails, rebuilding a commercial product with AI: with a workflow, cost figures and architectural lessons.",
+ "who": "Engineers already putting AI coding into real projects, solo-founder SaaS builders, and anyone trying to judge what value a programmer has left.",
+ "skip": "The details about shipping the computer and installation times are skippable (roughly 1:51-2:15) and don't affect the main line.",
+ "tags": [
+  "AI coding",
+  "Agents",
+  "Linux",
+  "Omachi",
+  "Programming philosophy",
+  "Personal software"
+ ],
+ "points": [
+  {
+   "h": "AI poses no existential threat to programmers",
+   "body": "DHH feels only excitement and optimism about AI's role in programming, no existential threat. He quotes Lenin — \"there are decades where nothing happens, and there are weeks where decades happen\" — and says he has watched decades of progress compress into the past nine months. He positions himself as someone who has lived through two era transitions, the internet and AI, and considers that experience rare and lucky. This framing explains why every judgment that follows rests on the premise that the change is real."
+  },
+  {
+   "h": "The watershed in AI coding is usability, not intelligence",
+   "body": "He calls Opus 4.5, released on November 24, 2025, the watershed moment for AI coding. He recalls his first use: the output quality was startlingly close to code he would have written himself, and he leaned back thinking \"what just happened.\" He stresses that the key improvement was not only intelligence but usability: the AI can use tools and check its own work, and therefore can complete genuinely meaningful work. This is the direct evidence behind his later claim that AI outperforms the average programmer."
+  },
+  {
+   "h": "In an old codebase, AI has to be led by an experienced programmer",
+   "body": "Basecamp 5 was 37signals' first product genuinely accelerated by AI, but early on they let designers vibe code directly, which produced a mass of PRs that broke the system's architecture and eventually had to be cleaned up by hand. DHH's conclusion is not that AI is unreliable, but this: on an existing large codebase, preserving architectural integrity requires an experienced programmer to steer the AI. For teams about to plug AI into a legacy codebase, that is a concrete operational warning."
+  },
+  {
+   "h": "Stop settling for general-purpose tools — build only the 5% you want",
+   "body": "DHH describes using AI to write a replacement for Tapura in C++ and Qt in 20 minutes, and switching over completely within two days. He believes in \"building only the 5% you need\": AI lets an individual developer easily create customized software instead of settling for general-purpose tools. He also suggests publishing these small tools to GitHub, where AI will manage the repository, write the README and handle releases on its own. This is a concrete sample of \"personal software\" turning from a slogan into a daily practice."
+  },
+  {
+   "h": "The more detailed your instructions, the worse the agent performs",
+   "body": "The counterintuitive finding: over-specified instructions actually damage an agent's performance. DHH points to Opus 5 in Claude Code, where the system prompt was cut by 80% because the agent no longer needs that many human instructions and can even be harmed by over-prescription. He draws an analogy to the \"pointy-haired boss\" — the sort of person who assumes they know better and demands micromanagement, and in practice drags performance down. The right move is to leave the agent enough ambiguity to explore the best approach itself. This directly challenges the mainstream instinct that more detailed prompts are better."
+  },
+  {
+   "h": "Flow in the agent era comes from parallelism, not immersion",
+   "body": "Agent programming needs a different toolset, and the core shift is from single-threaded to parallel. When writing code by hand, deep immersion is flow; but agents are both too fast and too slow, and there is waiting involved, so you have to run several agents at once. DHH wrote Herder for this — essentially tmux plus agent notifications, ringing a bell when an agent finishes or needs a decision. A month ago he decided one machine wasn't fast enough, bought several Geekom mini PCs and put them in a closet, joined them into a virtual LAN over Tailscale, and can currently run about 16 threads in parallel. Arguing from the standpoint of staying in flow, he shows that parallel orchestration is not optional but the inevitable shape of programming in the agent era."
+  },
+  {
+   "h": "The strongest model isn't always the one to use — it costs over ten times more",
+   "body": "DHH gives his current judgment on model selection: the best model is Fable, then Opus 5, but the gap isn't large. He ran a real test — translating a Python library into Rust: Fable was fastest (45 minutes) but cost 550 dollars; Sonnet and Grok 4.6 cost far less (roughly 40-55 dollars) but took longer. The conclusion: you can't just reach for the \"strongest model,\" you have to trade off speed, cost and capability per task. He also relays research from Shopify's CTO — PRs that were reviewed by agents cause fewer problems in production."
+  },
+  {
+   "h": "What AI eliminates first is not programmers but bullshit jobs",
+   "body": "DHH cites David Graeber's research in Bullshit Jobs: a UK survey found that about 30% of workers consider their own work worthless. One reason he insists on staying a small company and taking no VC money is precisely his doubt about the efficiency of large-scale programmer collaboration. He argues the current wave of layoffs is mostly the hangover from pandemic-era over-hiring, with AI as the excuse, though it will genuinely eliminate some roles. He also uses F1 as an analogy for the future: tens of thousands of people doing something with no intrinsic value, and yet we are willing to spend billions of dollars on it — once AI frees people up, more \"frivolous\" but real professions may appear."
+  }
+ ],
+ "terms": [
+  {
+   "term": "vibe coding",
+   "def": "A way of programming where you hand the software requirements to an AI agent and don't read the implementation line by line yourself."
+  },
+  {
+   "term": "agentic engineering",
+   "def": "Engineering built around AI agents, done through task definition, orchestration and review."
+  },
+  {
+   "term": "harness",
+   "def": "The tooling layer that runs and manages AI agents, for example Claude Code."
+  },
+  {
+   "term": "fast takeoff",
+   "def": "The assumption that AI capability will jump sharply in a short span of time and bring disruptive change."
+  },
+  {
+   "term": "bullshit jobs",
+   "def": "A concept from anthropologist David Graeber, referring to jobs the workers themselves consider worthless."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Opus 4.5 release date",
+   "v": "November 24, 2025"
+  },
+  {
+   "k": "Share of Omachi Quatro's code written by AI",
+   "v": "100%"
+  },
+  {
+   "k": "Omachi plugins (within three days)",
+   "v": "330"
+  },
+  {
+   "k": "Reduction in the Opus 5 system prompt",
+   "v": "80%"
+  },
+  {
+   "k": "Chromatic Tetris speed gain",
+   "v": "400%"
+  },
+  {
+   "k": "Threads run in parallel",
+   "v": "16"
+  },
+  {
+   "k": "Omachi installation time world record",
+   "v": "45 seconds"
+  },
+  {
+   "k": "Fable translation cost",
+   "v": "550 dollars"
+  },
+  {
+   "k": "Share of UK workers who consider their work worthless",
+   "v": "about 30%"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "I love this quote. I think Lenin, there are decades where nothing happens and weeks where decades happen. And we have seen decades of progress happen in the last nine months.",
+   "translated": false
+  },
+  {
+   "text": "I remember just leaning back. And thinking. What just happened?",
+   "translated": false
+  },
+  {
+   "text": "The psychosis is believing that the world is barely different. We just have some electronic parrots. Reiting things to us.",
+   "translated": false
+  },
+  {
+   "text": "the agent not only needed far less human instruction. It was actually being damaged by overly prescriptive humans.",
+   "translated": false
+  },
+  {
+   "text": "I don't want to lock down computer, I want to own my computer. Better yet, I want to mutate my computer.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}

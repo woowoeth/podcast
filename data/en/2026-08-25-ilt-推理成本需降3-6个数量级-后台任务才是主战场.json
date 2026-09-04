@@ -1,0 +1,131 @@
+{
+ "slug": "2026-08-25-ilt-推理成本需降3-6个数量级-后台任务才是主战场",
+ "of": "ilt-7b5b8f154e",
+ "source_lang": "en",
+ "title": "Background agents will eat 90% of compute, so inference should trade latency for throughput",
+ "dek": "The next wave of AI inference is not chat but background agents, and they will eat 90% of compute. Sale Research therefore optimizes for throughput rather than latency, and will even accept 80% availability, in exchange for prices that fall by orders of magnitude — and it argues Nvidia's performance-per-watt advantage is overrated.",
+ "why": "The conversation runs from GPU kernels all the way to data center siting, laying out a concrete path for inference costs to come down along with several anti-consensus calls. Useful for founders and investors focused on AI infrastructure.",
+ "who": "AI infrastructure founders, compute investors, model deployment engineers, and product leaders who care about inference cost and turning AI into products.",
+ "skip": "",
+ "tags": [
+  "AI Inference",
+  "GPUs",
+  "Data Centers",
+  "Open Models",
+  "Agents",
+  "Compute Cost"
+ ],
+ "points": [
+  {
+   "h": "Every inference company races on latency; agents need endurance instead",
+   "body": "He positions Sale Research as a ‘token factory’: serving open-source large language model tokens at prices nothing else in the market can match, and supporting the building of agents. They also offer Sale Box, a cloud virtual machine for long-running agents, built specifically for agents that run for hours, days, or even weeks. The company's theme is ‘abundance’ — delivering intelligence to as many people as possible at a sustainable cost. The rise of open models is an important tailwind, because customers want control and sovereignty over their intelligence. Existing inference companies all focus on low-latency inference, but agents need work that is more durable and runs over longer horizons."
+  },
+  {
+   "h": "Background work ends at 90% because no human sits in the loop",
+   "body": "He predicts that by the end of this year, background and real-time workloads will each account for 50%, but that over the long run background work will be 90%. The reason is that background tasks have no human in the loop, so token consumption is unbounded, whereas human attention is finite. Deep research and cybersecurity, for example, are better suited to running in the background; Parallel Web Systems wants to index the entire internet and monitor changes in real time, a task that requires intelligence at scale. The background market is unbounded, and that is the decisive advantage."
+  },
+  {
+   "h": "Chatbots are forcing GPUs off their best operating point",
+   "body": "A GPU is a throughput machine and likes to run at full load, but interactive chatbots demand low latency, which forces the GPU off its best operating point. The most profound change of the coming year is the shift from chatbots to proactive or background agents, at which point building a throughput-centric stack makes far more sense. The best latency is no latency at all — when you wake up, the work has already been done overnight. This shift changes what the entire inference system is optimized for."
+  },
+  {
+   "h": "The internet was a one-time subsidy; data is no longer free",
+   "body": "The internet was a one-time data subsidy: roughly 30 trillion tokens of high-quality text, or about 300 trillion under a broad definition, and models have already read the whole internet several times over. Future data will come from models improving themselves on verifiable tasks, using reinforcement learning environments — coding, math problems — that let the model iterate on its own. Random human feedback no longer has value, because models have already surpassed the average human; what is needed is expert-level feedback. Data is no longer free, and that is the new bottleneck on scaling."
+  },
+  {
+   "h": "Inference does not need giant data centers; 1MW is plenty",
+   "body": "Building a data center with 100,000 GPUs is much harder than building one with 10,000. In the US, a 100MW data center is already difficult, 1GW is close to impossible, 10MW is barely feasible, and 1MW is plenty. The market still assumes that centralized mega data centers are required, but inference workloads suit distributed 1MW data centers, and he is willing to buy those small pools of compute. He would even accept 95%, or even 80%, availability, because background agents are not latency-sensitive: a robust control plane can migrate around a single point of failure, and what you get in return is extreme price-performance."
+  },
+  {
+   "h": "Distillation cannot be stopped, so the only moat is the speed of staying ahead",
+   "body": "If users own the output of their interactions with AI and publish it to GitHub, then over the long run distillation is unavoidable. The diffusion of information cannot be stopped; the only question is how fast it happens. So the key question is how long the value of a 3-to-6-month lead can last. Enterprise adoption is slow — many are still running Opus 4.6 or 4.7 — and they will not adopt the frontier quickly. That means a model's moat lies in the speed at which it keeps extending its lead, not in absolute capability."
+  },
+  {
+   "h": "Route around HBM and offload the KV cache to flash",
+   "body": "The view that most makes his friends think he has some superhuman ability is routing around HBM, and more extreme still, offloading to flash. He is keen to change model architectures so that offloading the KV cache to flash becomes more efficient. The inference community designs its systems around serving at 1 to 10 tokens per second, and that is the north star. At OpenAI's pricing, a trillion tokens costs at least $5 million, so a cost improvement of 3 to 6 orders of magnitude is needed. The world's demand for intelligence will always be there; the challenge is how the product community provides the entry point to it."
+  },
+  {
+   "h": "Losing TSMC costs at worst a 2x gap in performance per watt",
+   "body": "From Hopper to Blackwell to Rubin, the gain in performance per watt on Bfloat16 multiplies has not been large; and from TSMC 5nm to 4nm to 3nm, performance per watt does not change dramatically either. Even if TSMC were lost, the best Western process — Intel, for instance — is at worst a 2x gap in performance per watt, far less severe than people imagine. Chip founders have to understand 3 to 5 supply-chain bottlenecks: TSMC wafer capacity, HBM capacity, advanced packaging, and possibly power. Designs should be spiky, picking the directions Nvidia has not prioritized — betting on an HBM shortage, for example."
+  }
+ ],
+ "terms": [
+  {
+   "term": "KV cache",
+   "def": "Memory that caches the keys and values in Transformer attention, avoiding recomputation during generation."
+  },
+  {
+   "term": "HBM (high-bandwidth memory)",
+   "def": "Memory packaged together with the GPU, providing extremely high bandwidth but limited capacity."
+  },
+  {
+   "term": "SRAM (static random-access memory)",
+   "def": "Extremely fast but small-capacity memory, typically used as on-chip cache."
+  },
+  {
+   "term": "Tensor Core",
+   "def": "The hardware unit on a GPU dedicated to accelerating matrix multiplication, the compute core of deep learning."
+  },
+  {
+   "term": "Harness",
+   "def": "The agent framework or toolchain built around a model; here, a user's own custom agent workflow."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Forecast split of background vs. real-time work",
+   "v": "50/50 by the end of this year, 90/10 long term"
+  },
+  {
+   "k": "Internet text token count",
+   "v": "about 30 trillion high-quality, about 300 trillion broadly defined"
+  },
+  {
+   "k": "Chip units in an NVL72",
+   "v": "72"
+  },
+  {
+   "k": "Nvidia Blackwell chip output this year",
+   "v": "5 million"
+  },
+  {
+   "k": "Cost of a trillion tokens at OpenAI pricing",
+   "v": "at least $5 million"
+  },
+  {
+   "k": "Cost improvement required",
+   "v": "3 to 6 orders of magnitude"
+  },
+  {
+   "k": "Performance-per-watt gap between Intel and TSMC",
+   "v": "at worst about 2x"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "I love this market because it's unbounded. There's no human in the loop. So you can consume as many tokens as you like in the background versus human attention span.",
+   "translated": false
+  },
+  {
+   "text": "I like the phrase that Internet was a one time subsidy on data. We got it for free. It's extremely high quality about 30 trillion tokens of high quality text, 300 trillion tokens. if you take a wider view on what qualifies as a good text and we've basically looked at it all already.",
+   "translated": false
+  },
+  {
+   "text": "I like to say we write kernels in the whiteboard we go to the whiteboard, we describe what we think the machine should be doing then we succcly describe that in the natural language to a model and then the model is able to do the execution",
+   "translated": false
+  },
+  {
+   "text": "I will buy like5% up time. And the reason for that is because it's background engine thing is things running in the background. You don't care.",
+   "translated": false
+  },
+  {
+   "text": "I want abundant tokens and diverse harnesses. I want everyone to build their own harness, every company, every user, even make the agent your own.",
+   "translated": false
+  },
+  {
+   "text": "There is always demand for intelligence in the world. The on ramps to that intelligence are our challenge as a product community.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}

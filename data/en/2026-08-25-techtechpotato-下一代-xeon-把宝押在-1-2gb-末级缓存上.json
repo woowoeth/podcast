@@ -1,0 +1,115 @@
+{
+ "slug": "2026-08-25-techtechpotato-下一代-xeon-把宝押在-1-2gb-末级缓存上",
+ "of": "techtechpotato-3bdf5e83f5",
+ "source_lang": "en",
+ "title": "Intel Drops EMIB for UCIe: 1.2GB of Cache Behind 256 Cores",
+ "dek": "Diamond Rapids is expected in 2027 with up to 256 P-cores, 1.2GB of last-level cache and 16 channels of DDR5; it replaces EMIB with trimmable compute building blocks and a UCIe interconnect, and the huge cache is its answer to the AI era.",
+ "why": "This episode has an exclusive read of Intel's official Hot Chips slides, laying out how the next Xeon's architecture evolves and how Intel is scaling cache — useful for judging where Intel's data center roadmap is going.",
+ "who": "Data center CPU architects, founders building AI compute, chip-industry investors, and anyone trying to see Intel's 2027 server roadmap clearly.",
+ "skip": "The opening boilerplate about data center demand and the store promo at the end.",
+ "tags": [
+  "CPU architecture",
+  "Data centers",
+  "Intel Xeon",
+  "Chiplets",
+  "Last-level cache",
+  "AI infrastructure"
+ ],
+ "points": [
+  {
+   "h": "What matters in Diamond Rapids is the interconnect, not the performance",
+   "body": "Diamond Rapids is the next-generation data center CPU Intel plans to launch in 2027, aimed at AI, enterprise and general-purpose compute workloads. The opening is the usual narrative: data centers need more performance, better efficiency, more scalability and more security. The real substance is the interconnect architecture — Intel uses a single evolution slide to trace the path from ring to mesh to chiplet, then to Clearwater Forest's 3D mesh, with the next step being this episode's subject, the fan-out fabric. The presenter, Sistla, is an Intel fellow and chief architect for Xeon performance."
+  },
+  {
+   "h": "Separating cores from IO lets NUMA domains be assembled on demand",
+   "body": "The fan-out fabric architecture separates \"where the cores go\" from \"where the IO goes.\" All the cores sit in compute building blocks, each one connected through a fabric hub; the fabric hub concentrates the memory channels, PCIe, CXL, accelerators and a unified memory fabric. That makes it possible to compose NUMA domains as needed, and Intel says explicitly that this is the key to scaling in the future. The host notes that the structure \"looks a bit like something another company has already shipped, if you squint\" — but in Intel's version the core unit is the building block."
+  },
+  {
+   "h": "Holding all the LLC on the base tile makes cache both huge and trimmable",
+   "body": "Each compute building block consists of one base tile plus up to 4 core chiplets; each core chiplet carries 16 P-cores, so a single block tops out at 64 cores. The base tile holds the entire last-level cache (LLC), shared within that block. The core chiplets connect to the base tile through an internal crossbar. This \"the cache travels with the base tile\" design is what makes it possible to build a very large cache and still trim the configuration down as needed."
+  },
+  {
+   "h": "One dedicated accelerator is gone because software is already fast enough",
+   "body": "Each fabric hub provides 416 high-speed IO lanes, and two hubs together yield 128 usable PCIe Gen6 lanes, with support for CXL 3 and UPI 3 socket-to-socket links. Inside the hub sits 16MB of IO cache used as a snoop filter to maintain memory coherence; the memory controllers, CXL multi-mode support, the memory encryption engine and the home agent all live in the hub as well. This generation has one fewer dedicated accelerator than the last, because the software implementation is now fast enough — a tradeoff worth noting."
+  },
+  {
+   "h": "At 1.2GB of cache, Intel essentially matches the competition's V-cache",
+   "body": "The peak configuration is 4 compute building blocks; in the image, two central IO chiplets face each other, each connected to every block by 4 die-to-die links. Each block has 320MB of LLC, so the full part comes to roughly 1.2GB (the final spec page says 1.28GB). The host stresses that this cache figure is \"basically the same number as the competition's V-cache.\" Memory is 16-channel DDR5, up to DDR5-8000 or MRDIMM 12800, plus 128 lanes of PCIe Gen6."
+  },
+  {
+   "h": "Intel drops its own EMIB and uses UCIe to reach the IO",
+   "body": "The process nodes are all Intel's own: the fabric hub on Intel 3, the base tile on Intel 3T with TSVs, the core chiplets on 18A P. The packaging decision is the interesting part: the core chiplets are joined to the base tile with Foveros 3D Direct hybrid bonding, while the link between a compute building block and the fabric tile does not use Intel's usual EMIB — it runs across the package over UCIe. From that the host works out the bandwidth: 1.6TB/s of memory bandwidth divided across the blocks comes to 400GB/s each, and estimating UCIe at 16 lanes per group, the real figure is at least 512GB/s, with roughly 2TB/s between the IO dies."
+  },
+  {
+   "h": "APX is free performance: you get it by recompiling",
+   "body": "APX is this generation's new performance extension to the instruction set: it adds spill/fill optimization instructions and three-operand instructions, and raises the count of general-purpose integer registers to 32. The core gain is cutting the long latencies caused by GPR spills; software needs no code changes — a recompile picks up the new instructions automatically, and the compiler will use them wherever it judges them a fit. The host considers this \"pretty important.\" On the AI side, workloads get FP8/FP16/BF16 support; on reliability, directory state moves off DRAM and into the CPU, reducing latency and coherence traffic."
+  },
+  {
+   "h": "A crazy SKU pairing 4 cores with 1.2GB of cache is possible",
+   "body": "The presentation leads with the flagship SKU, but the design value of chiplets is that they can be trimmed. Intel's Xeon lines usually run 20-60 SKUs; under this architecture, a block can carry only 3, 2 or 1 core chiplet — even just 1 core per block — which in theory allows a \"crazy SKU\" with 4 cores, 1.2GB of LLC and 1.6TB/s of memory bandwidth. TDP went unmentioned this time; the previous generation topped out at 450-500W, and this one is expected to land in a similar range. An E-core version, an NVLink partnership version and the next-generation Coral Rapids all remain unknown."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Fan-out fabric architecture",
+   "def": "The scalable architecture of Intel's next-generation Xeon: cores concentrated in compute building blocks, memory and IO concentrated in fabric hubs, the two joined by high-speed links."
+  },
+  {
+   "term": "Compute building block",
+   "def": "The basic unit, made up of 1 base tile (holding the shared LLC) and up to 4 core chiplets (16 cores each)."
+  },
+  {
+   "term": "Fabric hub",
+   "def": "The central chiplet carrying the memory controllers, PCIe/CXL, UPI, IO cache, snoop filter and related functions."
+  },
+  {
+   "term": "UCIe",
+   "def": "The open standard for high-speed chiplet-to-chiplet interconnect; Diamond Rapids uses it to link compute blocks to the IO tiles."
+  },
+  {
+   "term": "Foveros 3D Direct",
+   "def": "Intel's 3D stacking packaging technology, bonding core chiplets directly onto the base tile."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Peak core count (P-core)",
+   "v": "256 cores"
+  },
+  {
+   "k": "PCIe lanes",
+   "v": "128 lanes of PCIe Gen6 + 8 lanes of PCIe Gen4 for management"
+  },
+  {
+   "k": "High-speed IO lanes per fabric hub",
+   "v": "416 lanes"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "Well, it's the next frontier of data center CPU architecture. And this is how Intel thinks it's going to scale. And what we get introduced to is Intel's fan-out fabric architecture.",
+   "translated": false
+  },
+  {
+   "text": "That means there's 1.2 GB of total last level cache across the whole chip. Which if you follow again comps numbers, that's almost that's essentially equivalent to V-cache numbers.",
+   "translated": false
+  },
+  {
+   "text": "So, my estimate here is that there's at least a 512 GB per second link from compute building block to IO die, and then a 2 TB per second go uh yeah, 2 TB per second going from IO die to IO die.",
+   "translated": false
+  },
+  {
+   "text": "But, the idea is that you can recompile without any code changes, and if the compiler thinks you could use the APX features, it will.",
+   "translated": false
+  },
+  {
+   "text": "Instead of having four core chiplets per compute building block, you could have three, you could have two, could have one. You could have one core on each.",
+   "translated": false
+  },
+  {
+   "text": "must clarify this doesn't have hyper-threading. This is still one core per thread.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}

@@ -1,0 +1,119 @@
+{
+ "slug": "2026-08-20-complexsys-两家银行连四年级数学都对不齐",
+ "of": "complexsys-2420f304ba",
+ "source_lang": "en",
+ "title": "Banks Reconcile by Phone, Not by System: One Wrong Ticket Can Cost Hundreds of Millions",
+ "dek": "Who owes whom, and how much, between two institutions is often settled not by an automated reconciliation system but by phone calls, personal relationships, and the unspoken understanding that ‘we still have to do business together tomorrow’.",
+ "why": "A rare first-hand account from operations and clearing that makes legible the layer of human plumbing behind trade execution — the layer that could collapse any day and has to hold together every day.",
+ "who": "People working middle- and back-office, clearing and settlement, or operations at investment banks, hedge funds and brokerages, and fintech SREs who want to understand the manual plumbing behind trades that is always one step from breaking.",
+ "skip": "22:45-25:50 and 33:38 are sponsor segments for Mercury, Granola and MongoDB, and can be skipped.",
+ "tags": [
+  "Clearing & settlement",
+  "Middle & back office",
+  "Prime brokerage",
+  "Trading incidents",
+  "Risk management",
+  "Order flow"
+ ],
+ "points": [
+  {
+   "h": "The biggest cost of a large order is being seen at all",
+   "body": "Post an order to sell a million shares of Microsoft straight into the market and the market reads the signal immediately and quotes against you. Ways to hide it include slicing the order into dozens of pieces worked out slowly across the day, splitting it across five or six brokers who each show only part of it, or handing it to an investment bank that takes it onto its own book — so what the market sees is the bank trading, not the real seller, and the bank then breaks the position up and digests it over the course of a day. Slicing has its own tell: if the same size at the same price appears every five minutes, the other side can immediately guess more is coming behind it and position ahead of you."
+  },
+  {
+   "h": "An error message nobody looked at liquidated all 20 million shares",
+   "body": "A client asked to sell 20 million shares of a highly volatile name: 5 million were to be executed manually, in one go, by a senior trader, and the remaining 15 million handed to a junior trader to work into the market in pieces at prevailing prices. When the senior trader clicked to execute, the system threw an error, because the other trader had already started posting orders and the inventory had gone from 20 million to 12 million. The trader handling the remainder did not notice the error and assumed the whole order would go out normally. The result: all 20 million shares were cleared out at once at the market close price, and the team was called back in over the weekend to hedge the exposure with futures."
+  },
+  {
+   "h": "The exchange could see it was a typo and still did not dare block it",
+   "body": "A Japanese brokerage meant to sell 1 share of a security at roughly 6,000 yen per share; the order that actually went out was a sale of 600,000 shares at 1 yen — size and price written the wrong way round. When the order reached the exchange, staff could see it was obviously an input error, but took the view that they had no authority to unilaterally cancel a bank's order, so they let it through. The brokerage lost on the order of hundreds of millions of dollars, while a US firm known for trading aggressively bought heavily at that price and made a great deal of money. Afterwards the regulator was extremely unhappy with the exchange staff's acquiescence in not daring to block it."
+  },
+  {
+   "h": "What killed Knight was not the bug but that nobody had authority to stop",
+   "body": "A technical failure caused Knight Capital to fire orders out into the market uncontrollably for a few minutes, losing far more money than the firm's capital. The post-mortem found that the thorniest problem was not the technical error itself but that at the time nobody had clear authority to halt trading — because the firm had signed agreements with some clients requiring it to stay online, in some cases as their exclusive trading channel, which perversely gave those clients an incentive to put money in and keep it alive during the crisis rather than let it shut down. The rest of the industry was almost entirely unaffected, because everyone's exposure was already designed around the assumption that a counterparty might go down."
+  },
+  {
+   "h": "In reconciliation's final half hour, one side carries the difference alone",
+   "body": "Two institutions have to confirm before a fixed daily cutoff (the episode's example is 5:15pm, 5:30pm at the latest) that the day's net amount matches on both sides, after which one side wires the difference over via Fedwire. If the person responsible happens to be on vacation with no backup, urgent calls go up the chain internally from the operations level: first to confirm the other side agrees with the number, then to confirm the money can actually arrive — because during those few dozen minutes, one side always has to bear the risk on that money unilaterally. In normal times this is merely an embarrassing day; if it happens on a Friday when the market is in general panic about the banking system, the mood is entirely different."
+  },
+  {
+   "h": "Reconstructing the true positions came down to using Yahoo Finance",
+   "body": "A code bug in an algorithmic trading system mismatched the security symbols on execution reports — Microsoft fills were tagged as Apple, and nobody knew exactly which records had been swapped. The team pulled every fill from that day, looked up each stock's actual trading range for the day on Yahoo Finance, and checked them by hand one at a time — ‘this order filled at $47, but Apple never traded below $90 that day, so this one has to be a different stock’ — piecing the correct positions back together from an outside quote website. The same firm also had one position that sat unresolved for four or five years, because the counterparty firm had gone under or the product had long since stopped trading."
+  },
+  {
+   "h": "What saved Goldman Sachs in 2008 was a single position database",
+   "body": "During the 2008 crisis, because Goldman Sachs had a single, centralized position database, a few keystrokes were enough to know whether it was net long or net short a given underlying, so when the crisis hit it could turn around fast, close positions and free up capital. Plenty of institutions historically stitched together through acquisitions had cash, options, equities and Treasuries each sitting in different systems, making a single firm-wide picture of positions very hard to obtain. One firm's central position server did in fact go down, and what kept it from going completely blind was that each trading desk quietly kept its own copy of its positions to reconcile against the others; that outage took 27 hours to work through."
+  },
+  {
+   "h": "What you price is not the order, it is who sent it",
+   "body": "A retail order at Schwab or Robinhood almost certainly carries no information capable of moving the market — a daughter starting college so money has to come out, a 401(k) buying on payday — and that kind of flow can be given very generous prices. But once genuinely informed money is mixed in, quoting has to get careful; if it is Goldman Sachs on the phone, quote with particular caution, because ‘this is Goldman Sachs — if you give them money, they will take it’. This is also the hidden yardstick behind a prime broker's decisions about who gets credit and how much: the same seemingly ordinary flow may be smart money or dumb money behind it, and the treatment is completely different."
+  }
+ ],
+ "terms": [
+  {
+   "term": "MPID (Market Participant Identifier)",
+   "def": "The firm-level code attached to quotes and executions, used to identify which firm is trading"
+  },
+  {
+   "term": "Reg NMS / NBBO (national best bid and offer)",
+   "def": "The US rule requiring brokers to fill client orders at the best price currently available across the whole market"
+  },
+  {
+   "term": "Prime broker",
+   "def": "The intermediary that provides hedge funds and similar clients with market access, settlement and credit leverage"
+  },
+  {
+   "term": "Golden record",
+   "def": "The position and holdings database a firm designates internally as its single authoritative source"
+  },
+  {
+   "term": "Payment for order flow",
+   "def": "The practice of market makers paying brokers in exchange for routing retail orders to them to fill"
+  },
+  {
+   "term": "Busting a trade",
+   "def": "An exchange or counterparty agreeing to treat an obviously erroneous execution as if it never happened"
+  }
+ ],
+ "facts": [
+  {
+   "k": "Size of the Friday fat-finger order",
+   "v": "The client asked to sell 20 million shares, with 5 million to be executed manually and 15 million worked out into the market in pieces; the result was all 20 million shares liquidated at once at the market price"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "The rest of the market will understand the totality of the trade before you put it on and start quoting less favorable numbers to you.",
+   "translated": false
+  },
+  {
+   "text": "And so 20 million shares went out to the street rather than at the price we agreed on with the customer.",
+   "translated": false
+  },
+  {
+   "text": "There is a formal resolution process for determining, like, if two people disagree on reality as to whether a trade happened, did that trade actually happen?",
+   "translated": false
+  },
+  {
+   "text": "It's sometimes unclear even with formal rules, et cetera, as to who has authority on things.",
+   "translated": false
+  },
+  {
+   "text": "Instead, they sell 600,000 shares at one yen, which is a fraction of a cent.",
+   "translated": false
+  },
+  {
+   "text": "Hey, just checking. We really think that you guys owe us thirty-six million dollars. One, do you agree on thirty-six million dollars? Two, is the wire going to happen?",
+   "translated": false
+  },
+  {
+   "text": "There was a bug in the code that flipped the symbol on the executions. So if it was an execution for Microsoft, it got flipped to Apple.",
+   "translated": false
+  },
+  {
+   "text": "This is Goldman Sachs. If you offer us money, we're gonna take it.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}

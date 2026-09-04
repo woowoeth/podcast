@@ -1,0 +1,139 @@
+{
+ "slug": "2026-08-26-latentspace-物理没有基础模型-神经算子正在补上这一课",
+ "of": "latentspace-274aa0eb33",
+ "source_lang": "en",
+ "title": "There Is No Foundation Model for Physics — Neural Operators Start Filling That Gap With Weather",
+ "dek": "Anima Anandkumar brings weather forecasting into the AI era with neural operators: comparable accuracy at tens of thousands of times the speed, on a single consumer GPU — and shows how the physical world can reach foundation models with little data plus geometric inductive bias.",
+ "why": "Anima is one of the few AI scientists who spans academia and industry, and this episode does not do vague AGI talk: it gives you the concrete mechanisms and numbers behind neural operators, verifiable AI, weather and fusion. The middle and back half are all substance.",
+ "who": "AI for Science researchers, engineers in scientific computing and in climate or energy, and large-model practitioners who want to understand why Transformers are not enough for the physical world.",
+ "skip": "The host self-introduction and small talk from 0:00-2:02 at the open can be skipped; the main body is uniformly dense.",
+ "tags": [
+  "Neural Operators",
+  "Weather Forecasting",
+  "AI for Science",
+  "Formal Verification",
+  "Climate Models",
+  "Fusion"
+ ],
+ "points": [
+  {
+   "h": "The bottleneck in AI for science is verification, not hypothesis generation",
+   "body": "Anima argues that the bottleneck in AI for science is not producing hypotheses but verifying them. Torch Lean lets you write a neural network inside Lean using PyTorch-like abstractions and then prove properties about it: an upper bound on how much the output changes when the input is perturbed, the effect of finite precision, the kinds of robustness a control system cares about. That is what allows a neural network to sit inside the control loop of a drone or a nuclear reactor with formal guarantees. She also concedes that Lean today runs on CPUs, and scaling it to Transformer-scale models is still a long way off."
+  },
+  {
+   "h": "PINNs optimize from scratch for every equation, so turbulence breaks them",
+   "body": "Physics-informed neural networks turn a PDE into a loss function, but a PINN has to optimize from scratch for every single equation, and once you hit time-dependent, turbulent or chaotic problems the optimization landscape is simply intractable. Neural operators take a different route: instead of solving from the equation, they use large amounts of data to learn a mapping from function space to function space, hand you the answer directly at test time, and use the physics constraints only as guidance. Because the correct answers were seen during training, the dead end of optimizing from scratch is bypassed entirely."
+  },
+  {
+   "h": "Only modeling the world as continuous functions buys you super-resolution",
+   "body": "A standard neural network has fixed input and output dimensions: language has a vocabulary, images have a resolution, and once training is done you cannot change them. Phenomena in the physical world are inherently multi-scale, and behind coarse-resolution data there is still fine-scale physics. Neural operators model inputs and outputs as continuous functions, so any discretization is allowed; after training they can do zero-shot super-resolution from coarse data, and physics constraints can be imposed at the finer resolution. That is the core of what separates them from an ordinary neural network."
+  },
+  {
+   "h": "Meteorologists said it was impossible; it ran tens of thousands of times faster",
+   "body": "When the team set out to do weather with neural operators in 2021, the meteorologists all said it was impossible — traditional physical models had decades of accumulated work behind them. But once the model was trained, its accuracy came close to the traditional methods at tens of thousands of times the speed, and a single consumer-grade GPU could do what previously required a supercomputer. FourCastNet was the first AI weather model that was open source and permitted commercial use; DeepMind, Huawei and others only followed a year later. Smaller institutions can now get the kind of fidelity that used to belong to large ones."
+  },
+  {
+   "h": "Short-range weather and long-range climate should not be two separate models",
+   "body": "Traditionally short-range weather forecasting and long-range climate simulation are two separate systems. Anima's position is that there is only one Earth, and a foundation model should be good at both nowcasting and climate. FourCastNet 3 adds spherical geometry, which lets a single trajectory roll out stably for months or even a year; other models that treat the world as a rectangle blow up soon after a long run begins. Climate prediction relies on ensembles: add noise to the initial conditions, run many trajectories, then do probabilistic statistics over the set. Because AI models are fast enough, ensembles can be far larger than what traditional methods allow."
+  },
+  {
+   "h": "Extreme events have few samples yet turn out easier to learn",
+   "body": "Intuitively, rare events have few samples, so AI should learn them poorly — but on the very first visualization, the model already captured hurricanes and storms. The reason is that extreme events have very specific physical signatures, and the physical world itself carries a great deal of structure. Fusion plasma has only a few thousand samples, and disruption can still be predicted accurately, a million times faster than traditional simulation. Anima's read is that traditional numerical methods aim to be solvable under any circumstances, whereas AI reveals from the data how solvable a problem actually is."
+  },
+  {
+   "h": "AI should not bet on one fusion path; it should accelerate all of them",
+   "body": "Beyond weather, the team uses neural operators to build a digital twin of plasma evolution inside a tokamak, a million times faster than traditional simulation. The next step is to design control and simulation together, with the goal of predicting and preventing disruption so that fusion becomes sustainable. The project is a collaboration with the UK Atomic Energy Authority (UKAEA), along with several US laboratories. Anima says that as an AI researcher she does not want to bet early on any one fusion approach — she would rather have AI accelerate all of them."
+  },
+  {
+   "h": "AI should not validate human designs; it should produce the design itself",
+   "body": "Anima notes that we have foundation models for language and vision today, but not yet for physics. What should come next are models that can handle coupled multiphysics, and then inverse design: instead of a human designing first and simulation validating afterwards, let AI produce the optimal design directly, with the physics constraints acting as safety guardrails. Her examples include lithography masks, quantum dot gating, and nonlinear photonics. These are highly nonlinear combinations where humans searching by hand are very inefficient, while AI can find designs that genuinely work inside a closed simulation loop."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Neural Operator",
+   "def": "A neural network that learns mappings between function spaces, with inputs and outputs at arbitrary resolution — well suited to modeling physical fields."
+  },
+  {
+   "term": "Fourier Neural Operator",
+   "def": "A neural operator that models global dependencies in the Fourier domain, with near-linear complexity, balancing efficiency and expressive power."
+  },
+  {
+   "term": "Physics-informed neural networks",
+   "def": "Neural networks that impose the PDE as a loss constraint; effective on simple problems, prone to failure on time-dependent and turbulent ones."
+  },
+  {
+   "term": "Certified Robustness",
+   "def": "Using formal methods to give an upper bound on how much the output changes under input perturbation, for safety-critical settings."
+  },
+  {
+   "term": "Reanalysis data",
+   "def": "Historical weather data produced by assimilating satellite observations into physical models, used as the training set for AI weather models."
+  },
+  {
+   "term": "Ensemble prediction",
+   "def": "Perturbing the initial conditions to run many trajectories, then taking statistics over them to get a probabilistic forecast."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Weather training samples",
+   "v": "about 50,000"
+  },
+  {
+   "k": "Speedup of AI weather models over traditional models",
+   "v": "tens of thousands of times"
+  },
+  {
+   "k": "FourCastNet went live at ECMWF",
+   "v": "fall 2023"
+  },
+  {
+   "k": "FourCastNet's lead time on Hurricane Lee",
+   "v": "several days earlier than standard models"
+  },
+  {
+   "k": "Fusion plasma training samples",
+   "v": "about a few thousand"
+  },
+  {
+   "k": "Speedup of fusion simulation over traditional simulation",
+   "v": "one million times"
+  },
+  {
+   "k": "Ensemble members",
+   "v": "tens of them, and can be larger"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "we can now have neural networks be part of the verification loop and have confidence that we can use them appropriately",
+   "translated": false
+  },
+  {
+   "text": "we're talking like hundreds of billions to even a trillion context length right so forget ever having a transformer for anything of this scale all of the world's compute will not be enough",
+   "translated": false
+  },
+  {
+   "text": "it's not only you know accurate it's almost as close to the uh what the traditional weather models can do accurately but also tens of thousands of times faster",
+   "translated": false
+  },
+  {
+   "text": "there's only one earth. You know, if you want a foundation model, if the claim is that it should be able to do both very short-term as well as very long-term together.",
+   "translated": false
+  },
+  {
+   "text": "the physical world may be more forgiving because you know where there are extreme events like hurricanes that have very specific physical signature",
+   "translated": false
+  },
+  {
+   "text": "we have foundation models for language maybe vision but not for physics",
+   "translated": false
+  },
+  {
+   "text": "without that we cannot experiment, we cannot innovate. I think this is a part that I push a lot",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}

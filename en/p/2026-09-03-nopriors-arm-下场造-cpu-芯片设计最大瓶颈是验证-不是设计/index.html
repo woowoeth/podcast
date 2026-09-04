@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arm Is Building Its Own CPU: Chip Design&#x27;s Biggest Bottleneck Is Verification, Not Design — No Priors · OurWord</title>
+<meta name="description" content="The real time sink in a chip cycle is verification, debug and documentation, not RTL; 80%-90% of Arm&#x27;s engineers already use AI every day, and the company is breaking its own 98.5%-gross-margin licensing model to go build a CPU itself.">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/en/p/2026-09-03-nopriors-arm-下场造-cpu-芯片设计最大瓶颈是验证-不是设计/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="OurWord">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="Arm Is Building Its Own CPU: Chip Design&#x27;s Biggest Bottleneck Is Verification, Not Design — No Priors · OurWord">
+<meta property="og:description" content="The real time sink in a chip cycle is verification, debug and documentation, not RTL; 80%-90% of Arm&#x27;s engineers already use AI every day, and the company is breaking its own 98.5%-gross-margin licensing model to go build a CPU itself.">
+<meta property="og:url" content="https://ourword.ai/podcast/en/p/2026-09-03-nopriors-arm-下场造-cpu-芯片设计最大瓶颈是验证-不是设计/">
+<meta property="og:image" content="https://megaphone.imgix.net/podcasts/8476d0dc-a726-11f1-86e6-bbc25e1787ef/image/59b85abbe413929b3eeb28fd0ea4c5bf.jpg?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-09-03T10:00:00Z">
+<meta property="article:modified_time" content="2026-09-03T11:11:50Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Arm Is Building Its Own CPU: Chip Design&#x27;s Biggest Bottleneck Is Verification, Not Design — No Priors · OurWord">
+<meta name="twitter:description" content="The real time sink in a chip cycle is verification, debug and documentation, not RTL; 80%-90% of Arm&#x27;s engineers already use AI every day, and the company is breaking its own 98.5%-gross-margin licensing model to go build a CPU itself.">
+<meta name="twitter:image" content="https://megaphone.imgix.net/podcasts/8476d0dc-a726-11f1-86e6-bbc25e1787ef/image/59b85abbe413929b3eeb28fd0ea4c5bf.jpg?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress">
+<link rel="icon" type="image/svg+xml" href="/podcast/en/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/en/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="OurWord" href="/podcast/en/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-09-03-nopriors-arm-下场造-cpu-芯片设计最大瓶颈是验证-不是设计/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-09-03-nopriors-arm-下场造-cpu-芯片设计最大瓶颈是验证-不是设计/">
+<link rel="alternate" hreflang="en" href="https://ourword.ai/podcast/en/p/2026-09-03-nopriors-arm-下场造-cpu-芯片设计最大瓶颈是验证-不是设计/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-09-03-nopriors-arm-下场造-cpu-芯片设计最大瓶颈是验证-不是设计/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname,tw=/^\/podcast\/tw(\/|$)/.test(p);var cur=tw?'tw':'sc';var other=tw?p.replace(/^\/podcast\/tw/,'/podcast')||'/podcast/':p.replace(/^\/podcast/,'/podcast/tw');var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur==='tw'){if(!saved){try{localStorage.setItem(K,'tw')}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='tw'){location.replace(other);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;sel.setAttribute('aria-label','\u8bed\u8a00 Language');[['sc','\u7b80\u4f53'],['tw','\u7e41\u9ad4']].forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=other};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/en/assets/site.css?v=6842e1a363">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/en/p/2026-09-03-nopriors-arm-下场造-cpu-芯片设计最大瓶颈是验证-不是设计/#episode", "name": "Arm Is Building Its Own CPU: Chip Design's Biggest Bottleneck Is Verification, Not Design", "headline": "Arm Is Building Its Own CPU: Chip Design's Biggest Bottleneck Is Verification, Not Design", "description": "The real time sink in a chip cycle is verification, debug and documentation, not RTL; 80%-90% of Arm's engineers already use AI every day, and the company is breaking its own 98.5%-gross-margin licensing model to go build a CPU itself.", "abstract": "The real time sink in a chip cycle is verification, debug and documentation, not RTL; 80%-90% of Arm's engineers already use AI every day, and the company is breaking its own 98.5%-gross-margin licensing model to go build a CPU itself.", "datePublished": "2026-09-03T10:00:00Z", "dateModified": "2026-09-03T11:11:50Z", "url": "https://ourword.ai/podcast/en/p/2026-09-03-nopriors-arm-下场造-cpu-芯片设计最大瓶颈是验证-不是设计/", "timeRequired": "PT37M", "partOfSeries": {"@type": "PodcastSeries", "name": "No Priors", "url": "https://ourword.ai/podcast/en/s/nopriors/"}, "inLanguage": "zh-CN", "isBasedOn": null, "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "Arm, Chip Design, AI Infrastructure, SoftBank, Supply Chain, Robotics, IP licensing, compute subsystem, RTL, GDSII, Gross margin of Arm's traditional licensing business, Share of Arm engineers using AI tools every day, Total chip design cycle", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}, "associatedMedia": {"@type": "AudioObject", "contentUrl": "https://traffic.megaphone.fm/PDP3024512727.mp3"}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://ourword.ai/podcast/en/"}, {"@type": "ListItem", "position": 2, "name": "No Priors", "item": "https://ourword.ai/podcast/en/s/nopriors/"}, {"@type": "ListItem", "position": 3, "name": "Arm Is Building Its Own CPU: Chip Design's Biggest Bottleneck Is Verification, Not Design"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/en/"><span class="wordmark">OurWord<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<a class="pill ghost" lang="zh" href="/podcast/">中文</a>
+<button class="icon-btn" data-theme-toggle aria-label="Toggle light/dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">The world is too loud. Read the podcasts that matter.</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/en/">Home</a><span class="sep">/</span>
+<a href="/podcast/en/s/nopriors/">No Priors</a>
+<span class="sep">/</span><span>2026-09-03</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">No Priors</span>
+<time class="date" datetime="2026-09-03T10:00:00Z">2026-09-03</time>
+<button class="share-btn" type="button" data-share data-share-title="Arm Is Building Its Own CPU: Chip Design&#x27;s Biggest Bottleneck Is Verification, Not Design" data-share-url="https://ourword.ai/podcast/en/e/nopriors-14c0c72322/" data-share-text="《Arm Is Building Its Own CPU: Chip Desig…》&#10;No Priors · 37 分钟 · OurWord深读&#10;&#10;The real time sink in a chip cycle is verification, debug and documentation, not RTL; 80%-90% of Ar…&#10;&#10;· Arm is building its own CPU becau…&#10;· Banning AI tools just sends your…&#10;· Idea straight to layout is a five…&#10;&#10;「There&#x27;s no computing problem that&#x27;s ever been invented that doesn&#x27;t utilize…」 — Rene Haas&#10;&#10;https://ourword.ai/podcast/en/e/nopriors-14c0c72322/" aria-label="Copy share text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>Share</span></button></div>
+<h1>Arm Is Building Its Own CPU: Chip Design&#x27;s Biggest Bottleneck Is Verification, Not Design</h1>
+<p class="dek-lead">The real time sink in a chip cycle is verification, debug and documentation, not RTL; 80%-90% of Arm&#x27;s engineers already use AI every day, and the company is breaking its own 98.5%-gross-margin licensing model to go build a CPU itself.</p>
+<div class="ep-meta"><span class="tag">Arm</span><span class="tag">Chip Design</span><span class="tag">AI Infrastructure</span><span class="tag">SoftBank</span><span class="tag">Supply Chain</span><span class="tag">Robotics</span></div>
+</div>
+<div class="player" data-player-box>
+  <div class="strip" data-audio-strip>
+    <p class="afallback">The video won't play here. Listen to the audio instead:</p>
+    <audio data-player controls preload="none" src="https://traffic.megaphone.fm/PDP3024512727.mp3"></audio>
+    <div class="aui" data-audio-ui data-dur="2226" hidden>
+      <button class="aplay" type="button" aria-label="{T("播放")}"></button>
+      <div class="abar" role="slider" tabindex="0" aria-label="{T("播放进度")}"
+           aria-valuemin="0" aria-valuemax="100"><div class="afill"></div></div>
+      <span class="atime"><span class="acur">0:00</span><span class="asep">/</span><span class="atot">--:--</span></span>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="why">It uses Arm&#x27;s own internal numbers to show where AI is actually useful in chip design, then ties product, capital and supply-chain judgments into a single loop — worth checking against your own expectations if you work in AI infrastructure.</div></section>
+
+<section class="section"><h2>The argument · tap a timestamp to hear it</h2><div class="point" id="p0"><a class="ts" data-t="223" href="https://traffic.megaphone.fm/PDP3024512727.mp3#t=223" target="_blank" rel="noopener">3:43</a><div><h4>Arm is building its own CPU because customers came asking for it</h4>
+<p class="body">Arm used to sell only IP licenses: 98.5% gross margin, no inventory, no wafers. One step forward from that, its compute subsystem business already has customers grabbing pre-assembled ‘subsystems’ of CPU, GPU and memory as a module. One step beyond that, the push came from customers who wanted a general-purpose CPU for the large-model era and could not find a supplier, so they came to Arm directly to place the order. Before the announcement Arm asked nearly every one of its license customers; objections were few, because a bigger software ecosystem benefits every customer — which is why Nvidia, Amazon, Microsoft and Google, all of them companies building Arm server chips, publicly backed it.</p>
+<span class="spk">— Rene Haas</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="487" href="https://traffic.megaphone.fm/PDP3024512727.mp3#t=487" target="_blank" rel="noopener">8:07</a><div><h4>Banning AI tools just sends your engineers back to the library</h4>
+<p class="body">A chip design cycle runs 24-36 months, and the biggest time sink is not RTL generation or architecture mapping but verification, validation, debug and documentation. AI is particularly well suited to exactly those stages, and roughly 80%-90% of Arm&#x27;s engineers already use it every day. Turning the tools off is the equivalent of letting people use the internet only two hours a day in the 1990s and sending them back down to the library for the rest. Where AI is weakest right now is RTL generation and physical design, because the models depend on public corpora while the industry&#x27;s most critical details are private data — which is precisely the gap a company like Arm can fill.</p>
+<span class="spk">— Rene Haas</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="635" href="https://traffic.megaphone.fm/PDP3024512727.mp3#t=635" target="_blank" rel="noopener">10:35</a><div><h4>Idea straight to layout is a five-year prospect, not two or three</h4>
+<p class="body">The host asks whether, once AI eats verification — the most time-consuming step — the 24-36 months could shrink to 6-12. Rene Haas gives a measured answer: two to three years is unrealistic; beyond five years, for designs whose constraints are not too complex, going from an idea all the way to GDSII (the layout file handed to the foundry) is possible. If what you feed into the tool is ‘build me a chip 10% faster, 20% cheaper and 30% lower power than this reference’, do not expect one click to finish it. His judgment is that in 5-10 years the whole industry&#x27;s design methodology will look noticeably different.</p>
+<span class="spk">— Rene Haas</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="900" href="https://traffic.megaphone.fm/PDP3024512727.mp3#t=900" target="_blank" rel="noopener">15:00</a><div><h4>AI supply still trails demand; the choke point is construction, not wafers</h4>
+<p class="body">On the AI bubble question, Rene Haas argues you have to separate valuation froth at the stock level from the industry chain itself; he says explicitly that supply and demand are ‘nowhere close’. Transformer inference and training eat both compute and memory, so demand is not going to stop. The real hard constraint moves toward data-center construction: plenty of projects are being delayed and need more people, and resistance to new data-center builds is showing up in various places. Over the next 3-5 years the binding constraint may not be wafer capacity or memory but a physical build-out stage that stays tight throughout.</p>
+<span class="spk">— Rene Haas</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="1034" href="https://traffic.megaphone.fm/PDP3024512727.mp3#t=1034" target="_blank" rel="noopener">17:14</a><div><h4>SoftBank going into cloud makes it a customer for chip companies</h4>
+<p class="body">For founders in asset-heavy, high-capex chip and AI businesses: access to capital is itself a gate, and strategic partnerships need to reach the supply chain, PE and bank layers early. Behind Arm is SoftBank, and not merely as a shareholder — SoftBank has just announced it will build a ‘neo cloud’-type cloud service, which means a young chip company does not have to compete for a design win only at Microsoft&#x27;s or Google&#x27;s door, but can form a direct customer relationship inside the Arm/SoftBank ecosystem: one more path to market.</p>
+<span class="spk">— Rene Haas</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="1285" href="https://traffic.megaphone.fm/PDP3024512727.mp3#t=1285" target="_blank" rel="noopener">21:25</a><div><h4>Humanoids will not win outright; purpose-built robots will coexist for years</h4>
+<p class="body">Rene Haas describes robotics 1.0 as purpose-built: the mechanics and the software are both optimized for one single motion, so switching production lines means tearing it down and starting again. The new generation — robots whose task can be redefined through training and whose mechanical body is genuinely general — will first take on repetitive labor in construction, infrastructure and security. Form factor will not converge on a single direction: factories, warehouses and tools are all designed to human dimensions, which favors humanoids; another set of tasks is better served by a specialized form. Cost has to come down first, and delivery and warehousing will be the earliest scenarios to be automated.</p>
+<span class="spk">— Rene Haas</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="1633" href="https://traffic.megaphone.fm/PDP3024512727.mp3#t=1633" target="_blank" rel="noopener">27:13</a><div><h4>Restricting chips to China is an infinite game no one wins</h4>
+<p class="body">He is direct on the American manufacturing question: the US should build more fabs on home soil, for national security and for supply-chain diversification alike. On export controls he talks about an ‘infinite game’ — restricting chips to China does not manufacture a victory with an endgame, and may instead push critical technology out of the United States. He also rejects the notion that data centers are ‘big warehouses with no jobs’: energy, liquid cooling and the rest of that ecosystem chain are all employment that can be created in the US.</p>
+<span class="spk">— Rene Haas</span></div></div>
+<div class="point" id="p7"><a class="ts" data-t="2160" href="https://traffic.megaphone.fm/PDP3024512727.mp3#t=2160" target="_blank" rel="noopener">36:00</a><div><h4>In a token world, every road still runs through the CPU</h4>
+<p class="body">If you use the token factory metaphor for accelerators, Rene Haas argues the real system question is who orchestrates and arbitrates where those tokens go, and gets them to the user. He thinks every road passes through the CPU: beyond training there is inference scheduling, system orchestration, context and tool calls. Out at the edge, on devices that cannot house a 50W GPU, Arm&#x27;s power advantage is even more pronounced. The CPU has not disappeared; instead it is generating sustained demand right alongside the accelerator.</p>
+<span class="spk">— Rene Haas</span></div></div></section>
+<section class="section"><h2>In their own words · checked verbatim</h2><blockquote class="quote"><p class="raw">There&#x27;s no computing problem that&#x27;s ever been invented that doesn&#x27;t utilized and can&#x27;t utilize the microprocessor. It is the heart of everything. All roads lead through it around it past it. Something has to do the orchestration, arbitration decision around where those tokens go. That&#x27;s what CPU is doing.</p>
+
+<div class="attrib"><b>Rene Haas</b><a class="ts" data-t="0" href="https://traffic.megaphone.fm/PDP3024512727.mp3#t=0" target="_blank" rel="noopener">0:00</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">So now we&#x27;re in that soup ourselves from the standpoint of.We&#x27;re also having to figure out how to buy substrates and buy wafers and buy memory, et cetera, et cetera.</p>
+
+<div class="attrib"><b>Rene Haas</b><a class="ts" data-t="157" href="https://traffic.megaphone.fm/PDP3024512727.mp3#t=157" target="_blank" rel="noopener">2:37</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">but I think in five to 10 years... We&#x27;re going to see some amazing differences relative to how chips are designed.</p>
+
+<div class="attrib"><b>Rene Haas</b><a class="ts" data-t="635" href="https://traffic.megaphone.fm/PDP3024512727.mp3#t=635" target="_blank" rel="noopener">10:35</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">I call BS on that because if you think about whether it&#x27;s around energy.Liquid cooling.All of the things that make the data center better.That&#x27;s all those are all jobs that can be created and done here.</p>
+
+<div class="attrib"><b>Rene Haas</b><a class="ts" data-t="1700" href="https://traffic.megaphone.fm/PDP3024512727.mp3#t=1700" target="_blank" rel="noopener">28:20</a></div>
+</blockquote></section>
+<section class="section"><h2>Figures</h2><table class="facts"><tr><td class="k">Gross margin of Arm&#x27;s traditional licensing business</td><td class="v">98.5%</td><td class="t"><a class="ts" data-t="362" href="https://traffic.megaphone.fm/PDP3024512727.mp3#t=362" target="_blank" rel="noopener">6:02</a></td></tr>
+<tr><td class="k">Share of Arm engineers using AI tools every day</td><td class="v">80%-90%</td><td class="t"><a class="ts" data-t="487" href="https://traffic.megaphone.fm/PDP3024512727.mp3#t=487" target="_blank" rel="noopener">8:07</a></td></tr>
+<tr><td class="k">Total chip design cycle</td><td class="v">24-36 months</td><td class="t"><a class="ts" data-t="487" href="https://traffic.megaphone.fm/PDP3024512727.mp3#t=487" target="_blank" rel="noopener">8:07</a></td></tr></table></section>
+<section class="section"><h2>Glossary</h2><dl class="terms"><div><dt>IP licensing<span></span></dt><dd>The business model in which a chip company sells design blueprints rather than physical chips.</dd></div>
+<div><dt>compute subsystem<span></span></dt><dd>A half-finished design in which Arm has pre-assembled components such as CPU and memory, leaving customers less room to modify.</dd></div>
+<div><dt>RTL<span></span></dt><dd>A form of code describing a chip&#x27;s logic layer, sitting between the architecture and the physical layout.</dd></div>
+<div><dt>GDSII<span></span></dt><dd>The physical layout file that a finished chip design hands to the foundry for manufacturing.</dd></div></dl></section>
+<section class="section"><h2>How to listen</h2>
+<div class="panel guide">
+<div><span class="k">Who it's for</span><p>AI infra investors, chip founders, cloud decision-makers, and hard-tech people who want to understand why Arm is moving from licensing IP to selling CPUs.</p></div>
+<div><span class="k">Skip</span><p>Listeners who already know Arm&#x27;s licensing ecosystem can skip 0:49-2:37; first-time listeners can go straight into the chip-building story at 2:37.</p></div>
+</div></section>
+<nav class="prevnext"><a href="/podcast/en/p/2026-09-03-ycsp-驱动创始人的不是当亿万富翁-是怕服务器半夜崩掉/"><span class="lbl">← Newer</span><strong>What drives founders isn&#x27;t becoming a billionaire — it&#x27;s fear the server crashes at 3am</strong></a><a class="r" href="/podcast/en/p/2026-09-03-rationalreminder-金融舞弊头号预警-不是贪婪-是个人财务先失控/"><span class="lbl">Older →</span><strong>Finance&#x27;s top fraud red flag: not greed, but personal finances out of control</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>The episode</h4>
+<div class="row"><span>Show</span><span>No Priors</span></div>
+<div class="row"><span>Original title</span><span>Redefining Chip Architecture with Arm CEO Rene Haas</span></div>
+<div class="row"><span>Published</span><span>2026-09-03</span></div>
+<div class="row"><span>Length</span><span>37:06</span></div>
+
+
+</div>
+
+<div class="panel"><h4>On this page</h4><nav class="toc"><a href="#p0"><span class="t">3:43</span><span>Arm is building its own CPU because customers came asking for it</span></a>
+<a href="#p1"><span class="t">8:07</span><span>Banning AI tools just sends your engineers back to the library</span></a>
+<a href="#p2"><span class="t">10:35</span><span>Idea straight to layout is a five-year prospect, not two or three</span></a>
+<a href="#p3"><span class="t">15:00</span><span>AI supply still trails demand; the choke point is construction, not wafers</span></a>
+<a href="#p4"><span class="t">17:14</span><span>SoftBank going into cloud makes it a customer for chip companies</span></a>
+<a href="#p5"><span class="t">21:25</span><span>Humanoids will not win outright; purpose-built robots will coexist for years</span></a>
+<a href="#p6"><span class="t">27:13</span><span>Restricting chips to China is an infinite game no one wins</span></a>
+<a href="#p7"><span class="t">36:00</span><span>In a token world, every road still runs through the CPU</span></a></nav></div>
+
+<div class="panel"><h4>How this was made</h4>
+<div class="row"><span>Editorial score</span><span>8 / 10</span></div>
+<div class="row"><span>Transcript</span><span>Machine transcription</span></div>
+<div class="row"><span>Transcript words</span><span>7115</span></div>
+<div class="row"><span>Words per minute</span><span>191.8 wpm</span></div>
+<div class="row"><span>Quotes checked verbatim</span><span>4 quotes</span></div>
+<div class="row"><span>Figures checked against source</span><span>3 figures</span></div>
+<div class="row"><span>Dropped in QA</span><span>2 dropped</span></div>
+<p class="note">Every quote is matched word for word against the transcript and every figure is checked back to the source. Anything that cannot be found is cut, not published.
+A separate model then scores the finished piece on density, fidelity, selection and specificity. Below 7 out of 10 it is not shown.
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>OurWord · <a href="https://ourword.ai">OurWord.ai</a> — the podcast desk. Deep reads of other people's podcasts;
+copyright stays with each show. Every piece links to the original — please go support them.</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/" lang="zh">人类世界生存法则</a> · <a href="/podcast/en/">OurWord</a> · <a href="/skill/" lang="zh">品味</a></div>
+<div class="links"><a href="/podcast/en/">Home</a><a href="/podcast/en/sources/">Shows</a>
+<a href="/podcast/en/log/">Changelog</a><a href="/podcast/en/feed.xml">RSS</a>
+<a href="/podcast/en/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">Source</a></div>
+</div></div></footer>
+<script src="/podcast/en/assets/site.js?v=6b63b16c74" defer></script>
+</body></html>

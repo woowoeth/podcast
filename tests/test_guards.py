@@ -2976,3 +2976,26 @@ class RenderSiteMustNotShadowItsOutputRoot(unittest.TestCase):
         n_alias = len([d for d in (ROOT / "e").iterdir() if d.is_dir()]) \
             if (ROOT / "e").exists() else 0
         self.assertEqual(n_eps, n_alias, "短链页数量和篇数对不上")
+
+
+class HreflangIsPerPage(unittest.TestCase):
+    """只在这一页真有英文版时才声明 hreflang=en。
+
+    译文是逐篇补的，没译的集不进 /en/。在它们的中文页上写 hreflang=en 等于把
+    搜索引擎指到一个 404——而这类错误不会有任何症状，只会安静地损失收录。
+    """
+
+    def test_no_en_hreflang_without_an_english_page(self):
+        en_p = ROOT / "en" / "p"
+        if not en_p.exists():
+            self.skipTest("英文站还没建")
+        have = {d.name for d in en_p.iterdir() if d.is_dir()}
+        bad = []
+        for d in sorted((ROOT / "p").iterdir())[:120]:
+            f = d / "index.html"
+            if not f.exists():
+                continue
+            claims = 'hreflang="en"' in f.read_text()
+            if claims != (d.name in have):
+                bad.append(f"{d.name[:34]} claims={claims} has_en={d.name in have}")
+        self.assertEqual(bad[:4], [], f"{len(bad)} 页的 hreflang=en 和实际不符")

@@ -1,0 +1,107 @@
+{
+ "slug": "2026-08-26-deepmind-ai-的下一步不是更大模型-而是学会承认不确定",
+ "of": "deepmind-161b4b6da2",
+ "source_lang": "en",
+ "title": "AI's next step isn't bigger models, it's learning to admit uncertainty",
+ "dek": "DeepMind researcher Zubin draws on 30 years of research to show that today's large models make things up confidently because they lack any explicit representation of probability; Bayesian updating, forecast ensembles and calibration are what reliable AI and AGI actually turn on.",
+ "why": "This episode pulls uncertainty back out of philosophy and into mathematics: calibration, semantic entropy and Bayesian updating each have an explicit mechanism. Good for anyone who wants to understand where LLM nonsense comes from.",
+ "who": "Engineers and researchers building LLM applications, AI products and decision systems; investors following the argument over the technical road to AGI.",
+ "skip": "9:40-16:00, the personal recollections of the 1980s and the introductory explanation of Bayes - fast-forward if that ground is already familiar.",
+ "tags": [
+  "Uncertainty",
+  "Bayesian methods",
+  "Calibration",
+  "LLMs",
+  "Continual learning",
+  "AGI"
+ ],
+ "points": [
+  {
+   "h": "Uncertainty isn't a defect; it's the precondition for deciding anything",
+   "body": "The core of intelligence is making decisions, and in the real world perception is limited and the future can't be predicted, so any intelligent system has to be able to represent uncertainty, update it, and act on it. Uncertainty comes in two kinds. One is randomness inherent in the world - which way a pedestrian will turn next. The other is situations the system has never seen - a self-driving car meeting a horse that leaps out in the middle of a hailstorm. Mathematically both reduce to probability, and the rules of probability theory handle them in one uniform way. If a system can sense that it is in an unfamiliar situation, it should slow down; that is uncertainty of the self-aware kind."
+  },
+  {
+   "h": "A neural network can call a school bus a cheetah with 99% confidence",
+   "body": "For image classification we care about correctness and about confidence. More than a decade ago people found that if you adjust a few pixels in a photo of a school bus - still obviously a school bus to the human eye - the neural network will say with 99% confidence that it is a cheetah. Adversarial examples show that a system can be overconfidently wrong. We don't want to see systems that are easily fooled. With an LLM, you ask a question and it answers confidently; question it once and it changes its answer. That overconfidence makes it impossible to trust. We want AI that has a sense of its own limits, and that is exactly what AGI still has to make up."
+  },
+  {
+   "h": "Good AI should be better than people at changing its mind",
+   "body": "Bayes' rule is compact: before you observe any evidence you hold prior beliefs, expressed as a probability distribution; once you see the evidence, you multiply the prior by the likelihood and normalize, which gives you posterior beliefs. That posterior becomes the prior for the next round, over and over. The move in a detective story - I suspected him, then new evidence arrived, so I changed my judgment - is Bayesian updating described in one sentence. Learning works the same way: the model holds a prior over unknown parameters, data comes in one piece after another, and the parameters update step by step. This gives a rigorous framework for accumulating knowledge and for not swinging back and forth with no grounds. Better AI should even be more rational than humans, as good at handling probability as a calculator is at multiplication."
+  },
+  {
+   "h": "When it says \"I was wrong,\" that's just next-token prediction",
+   "body": "Today's large language models don't explicitly represent how confident they are in an answer. Ask one how sure it is and it is only doing next-token prediction; it isn't computing Bayes. It may have learned to imitate the traces of reasoning across trillions of tokens, which is why it looks capable of admitting error - push it and it says \"oh, sorry, I was wrong,\" and it won't hold its position. This is because the training paradigm never made confidence a priority: the data is a mixture of every kind of human belief, and what comes out of it is just soup. To really build self-driving cars and robots, a system has to be able to reason causally about the real world and honestly assess its own uncertainty."
+  },
+  {
+   "h": "Admitting uncertainty is what makes the weather forecast more accurate",
+   "body": "Weather is the Bayesian success story. DeepMind's GenCast forecasts 15 days of weather and finishes a run in a few minutes, far faster than a supercomputer. It uses a diffusion model to manipulate probability distributions, and it produces an ensemble of forecasts rather than a single answer. When you track a hurricane, you have a whole probability distribution over the future track; you run the model repeatedly, and hours later, when new observations come in, you update the ensemble - that is Bayesian updating. Adding uncertainty makes the prediction more accurate rather than less: only by honestly admitting that the sensors are imprecise and that the model's assumptions may be wrong do you get a well-calibrated forecast. Uncertainty is not noise; it is information."
+  },
+  {
+   "h": "Say a 70% chance of rain and it really has to rain 70% of the time",
+   "body": "For repeatable events, uncertainty has to be calibrated: if I say the chance of rain is 70%, then across all the days on which I said 70%, the share that actually saw rain should be exactly 70%, with the other 30% staying dry. That is the definition of a reliable probability. For one-off events - the date humans first land on Mars, say - Bayesian statistics holds that you can still express belief as a probability, and it resolves itself naturally when the event happens. The hard part is communicating uncertainty to people without producing either over-trust or dismissal. Take medical AI assisting a diagnosis: every probability the system states feeds directly into a treatment plan and may be a life-or-death decision, so the uncertainty has to be made visible."
+  },
+  {
+   "h": "Retraining once every few months doesn't count as learning",
+   "body": "The first road, scale alone, has already produced enormous progress, but it isn't enough. Three directions for a breakthrough. Continual learning: models today are retrained once every few months, whereas humans learn continuously from a stream of data, and Bayesian updating in theory doesn't suffer catastrophic forgetting - many attempts at continual learning are approximations of exactly that. Energy efficiency: the human brain draws about 20 watts, while training a large model consumes orders of magnitude more electricity. And new architectures: transformers and diffusion models are the two workhorses, but there may be new architectures co-designed across software and hardware, such as sparse neural networks. Bayesian methods look magical, but the price is that they are extremely slow to compute - though back in the 1980s everyone said neural networks were too slow as well. Perhaps it is time to look at these old ideas again with the compute we have today."
+  }
+ ],
+ "terms": [
+  {
+   "term": "aleatoric uncertainty",
+   "def": "Uncertainty arising from randomness inherent in the world, such as a coin flip or a pedestrian turning at random."
+  },
+  {
+   "term": "semantic entropy",
+   "def": "A method for estimating confidence by comparing the entropy across the semantically equivalent answers a model generates."
+  },
+  {
+   "term": "posterior beliefs",
+   "def": "The updated probability distribution you get after Bayesian updating, combining the prior with the evidence."
+  },
+  {
+   "term": "calibration",
+   "def": "The property that predicted probabilities agree with the frequency at which the events actually occur."
+  }
+ ],
+ "facts": [
+  {
+   "k": "GenCast forecast horizon",
+   "v": "15 days"
+  },
+  {
+   "k": "GenCast time per forecast run",
+   "v": "about 8 minutes"
+  },
+  {
+   "k": "Rain probability in the calibration example",
+   "v": "70%"
+  },
+  {
+   "k": "Human brain power draw",
+   "v": "about 20 watts"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "What's missing is we're not really doing what I said, which is the careful representational probabilities",
+   "translated": false
+  },
+  {
+   "text": "You want a calculator that actually calculates.",
+   "translated": false
+  },
+  {
+   "text": "what you're doing is you're being honest about the fact that, you know, your sensors are inaccurate",
+   "translated": false
+  },
+  {
+   "text": "if I'm calibrated, then on 70% of those days, it actually rained",
+   "translated": false
+  },
+  {
+   "text": "I would rather have an AI system that knows when it doesn't know, than an AI system that is arrogant",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}
