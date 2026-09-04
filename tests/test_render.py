@@ -459,10 +459,27 @@ class Render(Harness):
             p = self.page()
             p.goto(self.url(f"/p/{slug[0]}/"), wait_until="load")
             p.click(".video-facade")
-            p.wait_for_timeout(800)
-            got = p.evaluate("() => !!document.querySelector('.vwrap, .vfail')")
+            # **等到站点自己声明的那个上限。** site.js 里的兜底是 6 秒：
+            # 拿不到 iframe_api 就换普通 embed。原来这里只等 800ms——
+            # 本机网络快，API 一下就到，所以本机永远过；CI 的机房 IP 拿不到
+            # 那个脚本，6 秒兜底还没触发，于是 CI 里一直是红的。
+            # 而那条红一直没人看见：ci.yml 的测试步骤是 `| tail -40` 且
+            # **没有 pipefail**，退出码取的是 tail 的，永远 0。
+            deadline = 7000
+            try:
+                p.wait_for_selector(".vwrap, .vfail", timeout=deadline)
+                got = True
+            except Exception:
+                got = p.evaluate(
+                    "() => !!document.querySelector('.vwrap, .vfail')")
+            state = p.evaluate("""() => ({
+                facade: !!document.querySelector('.video-facade'),
+                wrap: !!document.querySelector('.vwrap'),
+                fail: !!document.querySelector('.vfail'),
+                yt: !!(window.YT && window.YT.Player)})""")
             p.context.close()
-            self.assertTrue(got, "点了假门既没换成播放器也没给出口")
+            self.assertTrue(got, f"点了假门 {deadline}ms 内既没换成播放器也没给"
+                                 f"出口（site.js 声明的兜底是 6 秒）：{state}")
 
         p = self.page()
         p.goto(self.url("/"), wait_until="load")

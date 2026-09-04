@@ -35,6 +35,11 @@ jobs:
 
       - name: 守护检查与单元测试
         run: |
+          # **必须有 pipefail。** 下面是 `... | tail -40`，没有它退出码取的是
+          # tail 的——永远 0。这条 CI 是这个仓库的安全网，而它在这一行上
+          # **一直是失败时放行的**：测试红了照样报 success，实测有一条渲染层
+          # 检查在 CI 里失败了好几轮，没有任何人知道。
+          set -o pipefail
           python -m pip install --quiet pyyaml
           python -m pip install --quiet "opencc==1.4.2"
           # 渲染层体检要真的开浏览器。这一层是补上来的：用户一轮报的 11 个问题

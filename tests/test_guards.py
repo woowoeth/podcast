@@ -3949,3 +3949,52 @@ class NoBrokenInternalLinks(unittest.TestCase):
                 self.assertTrue((d / "index.html").exists(),
                                 f"{sid} 有 {n} 篇集，但 {tree or 'zh'} 树里没有它的"
                                 f"信源页 —— 读者点节目名会 404")
+
+
+class CiMustNotSwallowFailures(unittest.TestCase):
+    """把命令的输出管进 tail/head/grep 时必须有 pipefail。
+
+    实测过的洞：ci.yml 里的
+        python -m unittest discover -s tests -v 2>&1 | tail -40
+    没有 `set -o pipefail`，于是这一步的退出码是 **tail 的**，永远 0。
+    这条 CI 是整个仓库的安全网，而它在这一行上一直是失败时放行的——
+    有一条渲染层检查在 CI 里连着失败了好几轮，每一轮都报 success。
+
+    这类洞的形状是「退出码被管道吃掉」，所以判据落在那里，不落在具体命令上。
+    """
+
+    WATCH = re.compile(r"(unittest|pytest|healthcheck|enscan|coverage\.py|"
+                       r"require-browser-layers|run\.py|build\.py)")
+    PIPED = re.compile(r"\|\s*(tail|head|grep|tee)\b")
+
+    def test_no_run_block_pipes_a_checker_without_pipefail(self):
+        d = ROOT / ".github" / "workflows"
+        bad = []
+        for f in sorted(d.glob("*.yml")):
+            s = f.read_text()
+            for m in re.finditer(r"run: \|\n((?:[ \t]+.*\n)+)", s):
+                blk = m.group(1)
+                if "pipefail" in blk:
+                    continue
+                for line in blk.splitlines():
+                    if line.strip().startswith("#"):
+                        continue
+                    # tee 不吃退出码（它在管道末尾时才吃），只查真会吃的
+                    if self.WATCH.search(line) and self.PIPED.search(line):
+                        if re.search(r"\|\s*tee\b", line) and "| tail" not in line:
+                            continue
+                        ln = s[:m.start()].count("\n") + 1
+                        bad.append(f"{f.name}:{ln}  {line.strip()[:80]}")
+        self.assertFalse(bad, "这些步骤把检查命令的输出管进了 tail/head/grep，"
+                              "却没有 set -o pipefail —— 退出码会被管道吃掉，"
+                              "检查失败也报成功：\n  " + "\n  ".join(bad[:6]))
+
+    def test_shell_scripts_that_pipe_checkers_use_pipefail(self):
+        for f in sorted((ROOT / "scripts").glob("*.sh")):
+            s = f.read_text()
+            piped = [l.strip() for l in s.splitlines()
+                     if not l.strip().startswith("#")
+                     and self.WATCH.search(l) and self.PIPED.search(l)]
+            if piped and "pipefail" not in s:
+                self.fail(f"{f.name} 把检查命令管进了 tail/head，"
+                          f"却没有 set -o pipefail：{piped[:2]}")
