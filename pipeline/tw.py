@@ -79,6 +79,16 @@ POST = [("佈", "布")]
 
 FONT = [("Noto+Serif+SC", "Noto+Serif+TC"), ("Noto Serif SC", "Noto Serif TC")]
 
+# 语言标记：繁体页必须自报繁体，否则搜索引擎和分享卡片都按简体归类。
+# 这几处转换转不到（它们是标记不是正文），只能显式替换。
+LOCALE = [
+    ('property="og:locale" content="zh_CN"', 'property="og:locale" content="zh_TW"'),
+    ('"inLanguage": "zh-CN"', '"inLanguage": "zh-TW"'),
+    ('"inLanguage":"zh-CN"', '"inLanguage":"zh-TW"'),
+    ("<language>zh-cn</language>", "<language>zh-tw</language>"),
+    ("<language>zh-CN</language>", "<language>zh-TW</language>"),
+]
+
 URLISH = re.compile(r"^(https?:|//|/|#|\.\.?/|mailto:|data:)")
 ATTR = re.compile(r'\b(href|src|action|srcset|content|url)\s*=\s*"([^"]*)"')
 
@@ -188,6 +198,8 @@ def build(base="/podcast"):
                                   "https://ourword.ai" + base + "/tw/")
                     s = s.replace(base + "/tw/tw/", base + "/tw/")
                 for a, b in FONT:
+                    s = s.replace(a, b)
+                for a, b in LOCALE:
                     s = s.replace(a, b)
                 os.makedirs(os.path.dirname(dst), exist_ok=True)
                 open(dst, "w", encoding="utf-8").write(s)

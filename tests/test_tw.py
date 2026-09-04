@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """繁体站的守护检查。
 
-七条判据，各防一类真实发生过的事故（多数在主站那边都真的抓到过东西）：
+八条判据，各防一类真实发生过的事故（多数在主站那边都真的抓到过东西）：
 
 ① 结构一一对应 —— 简体站每页 /tw/ 都要有，反过来不能多。少一页是死链，
    多一页是没人维护的孤儿。
@@ -140,6 +140,28 @@ class TraditionalSite(unittest.TestCase):
             if n:
                 bad.append((f, n))
         self.assertEqual([], bad, "繁体站的地图文件指向了简体站")
+
+    def test_6b_locale_markers(self):
+        """语言标记必须自报繁体。
+
+        og:locale / inLanguage / <language> 是标记不是正文，转换转不到它们。
+        漏了的后果是搜索引擎和分享卡片把繁体页按简体归类 —— 页面看着全对，
+        只有翻 head 才看得见。
+        """
+        bad = []
+        for k, p in sorted(self.tw.items()):
+            with open(p, encoding="utf-8") as fh:
+                t = fh.read()
+            if re.search(r'og:locale"\s*content="zh_CN"', t):
+                bad.append((k, "og:locale 仍是 zh_CN"))
+            elif re.search(r'"inLanguage":\s*"zh-CN"', t):
+                bad.append((k, "inLanguage 仍是 zh-CN"))
+        fp = os.path.join(TWDIR, "feed.xml")
+        if os.path.exists(fp):
+            with open(fp, encoding="utf-8") as fh:
+                if re.search(r"<language>zh-c?n</language>", fh.read(), re.I):
+                    bad.append(("feed.xml", "<language> 仍是 zh-CN"))
+        self.assertEqual([], bad[:3], "繁体站的语言标记还写着简体")
 
     def test_7_no_missegmented(self):
         """绝不该出现的组合：分词切错的系统性筛子。
