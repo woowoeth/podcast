@@ -25,49 +25,49 @@
   "points": [
    {
     "t": 61,
-    "h": "2027 年数据中心 CPU 定位",
+    "h": "Diamond Rapids 的关键在互连，不在性能",
     "body": "Diamond Rapids 是 Intel 计划在 2027 年推出的下一代数据中心 CPU，用于应对 AI、企业级和通用计算负载。开场仍是常规叙事：数据中心需要更高性能、更好能效、更强可扩展性和安全性。真正的关键在互连架构——Intel 用一张演进图说明，从 ring 到 mesh 到 chiplet，再到 Clearwater Forest 的 3D mesh，下一步就是本集主角 fan-out fabric。演示者 Sistla 是 Intel fellow、Xeon 性能首席架构师。",
     "spk": ""
    },
    {
     "t": 245,
-    "h": "fan-out fabric 架构登场",
+    "h": "核心和 IO 分家，NUMA 域按需拼出来",
     "body": "fan-out fabric 架构把「放核心的地方」和「放 IO 的地方」分开。所有核心集中在 compute building blocks，每个 block 通过 fabric hub 连接；fabric hub 集中了内存通道、PCIe、CXL、加速器和统一内存 fabric。这样就能按需组合 NUMA 域，Intel 明确说这是未来扩展的关键。主持人说这个结构「眯着眼看有点像别家已经发布的东西」，但 Intel 版本的核心单元是 building block。",
     "spk": ""
    },
    {
     "t": 366,
-    "h": "计算构建块：64 核共享 LLC",
+    "h": "LLC 全放 base tile，缓存才能又大又可裁",
     "body": "每个 compute building block 由一块 base tile 和最多 4 个 core chiplets 组成；每个 core chiplet 有 16 个 P-core，因此一个 block 最多 64 核。base tile 持有全部末级缓存 LLC，在同一 block 内共享。核心 chiplet 通过内部 crossbar 连到 base tile。这种「缓存跟着 base tile 走」的设计是缓存量能做得很大、同时还能按需裁剪的基础。",
     "spk": ""
    },
    {
     "t": 488,
-    "h": "fabric hub 的 IO 与缓存",
+    "h": "专用加速器少了一个，因为软件已经够快",
     "body": "每个 fabric hub 提供 416 条高速 IO lanes，两个 hub 合计可用 128 条 PCIe Gen6，支持 CXL 3 和 UPI 3 插座互联。hub 内部有 16MB IO cache 用于 snoop filter，保证内存一致性；内存控制器、CXL 多模式支持、内存加密引擎、home agent 也都在 hub 里。这一代比上一代少了一个专用加速器，因为软件实现已经足够快，这个取舍值得注意。",
     "spk": ""
    },
    {
     "t": 671,
-    "h": "峰值配置：256 核与 1.2GB LLC",
+    "h": "1.2GB 缓存，基本追平竞品的 V-cache",
     "body": "峰值配置为 4 个 compute building block，图片上两个中央 IO chiplet 面对面，各自通过 4 条 die-to-die 链路连到各 block。每个 block 有 320MB LLC，所以全片约 1.2GB（最终规格页写 1.28GB）。主持人强调，这个缓存量「基本上等于竞品 V-cache 的数字」。内存为 16 通道 DDR5，最高 DDR5-8000 或 MRDIMM 12800，另有 128 条 PCIe Gen6。",
     "spk": ""
    },
    {
     "t": 795,
-    "h": "封装：弃 EMIB 改 UCIe",
+    "h": "Intel 弃用自家 EMIB，改用 UCIe 连 IO",
     "body": "工艺全部 Intel 自家：fabric hub 用 Intel 3，base tile 用带 TSV 的 Intel 3T，core chiplets 用 18A P。封装决策很有意思：core chiplets 与 base tile 之间用 Foveros 3D Direct 混合键合，而 compute building block 与 fabric tile 之间不用 Intel 常用的 EMIB，改用 UCIe 走 package。主持人据此推算带宽：1.6TB/s 内存带宽摊到每个 block 是 400GB/s，按 UCIe 一组 16 条估算，实际至少 512GB/s，IO die 之间约 2TB/s。",
     "spk": ""
    },
    {
     "t": 916,
-    "h": "APX 指令集：免费的性能",
+    "h": "APX 是免费的性能：重编译就能拿到",
     "body": "APX 是这一代新的性能扩展指令集：新增 spill/fill 优化指令、三操作数指令，并把通用整数寄存器增加到 32 个。核心收益是减少 GPR 溢出带来的长延迟；软件无需改代码，重新编译就能自动利用这些新指令，编译器认为适合就会用。主持人认为这「相当重要」。同时 AI 负载支持 FP8/FP16/BF16；可靠性方面把 DRAM 上的目录状态移到 CPU 内，降低延迟和一致性流量。",
     "spk": ""
    },
    {
     "t": 1098,
-    "h": "SKU 可裁剪性与 TDP 悬念",
+    "h": "可能出现 4 核配 1.2GB 缓存的疯狂 SKU",
     "body": "演示先讲旗舰 SKU，但 chiplet 的设计价值在于可裁剪。Intel 的 Xeon 通常有 20-60 个 SKU；按这个架构，一个 block 可以只放 3/2/1 个 core chiplet，甚至每个 block 只放 1 个核——理论上会有 4 核 + 1.2GB LLC + 1.6TB/s 内存带宽的「疯狂 SKU」。TDP 这次没提，前代最高 450-500W，预计也在类似区间。E-core 版本、NVLink 合作版本和下一代 Coral Rapids 仍是未知。",
     "spk": ""
    }

@@ -25,49 +25,49 @@
   "points": [
    {
     "t": 131,
-    "h": "九个月是从RTL到回片",
+    "h": "9 个月不是从零起算，是从 RTL 起算",
     "body": "媒体大多把 Jalapeno 说成「clean sheet design」，但 OpenAI 自己的时间线显示：2024年10月才从空白页开始架构概念，2025年4月才有 codec CLI，2025年11月回片，2026年5月 codecs 跑起来，7月 ChatGPT 才上芯。主播全程质疑「9个月」的定义：这里的起点是 RTL 而非产品定义，芯片设计里 EDA、验证这些层都被压缩或并行掉了。所以 9 个月是真的，但它不等于别人也能 9 个月复制一颗芯片。",
     "spk": ""
    },
    {
     "t": 313,
-    "h": "基准允许厂商各调各的",
+    "h": "这组基准的规则本身偏向出题的人",
     "body": "OpenAI 选的是 SemiAnalysis 的 Inference X 开源模型基准，理由是开源模型让别人也能在自己的硬件上跑同一组模型。但主播点出两个放大器：一是明确「open to hardware specific optimization」，配合 hardware-aware training/fine-tuning，每个厂商都能把模型调成对自己最有利的形状；二是 Jalapeno 的结果只用 single token prediction，而选中的基线里包含 multi-token prediction。再加上非目标里排除了 time to first token 和单芯片吞吐，整组数字的政策倾向很强。",
     "spk": ""
    },
    {
     "t": 434,
-    "h": "投机解码省的是串行步骤",
+    "h": "投机解码省下的是串行次数，不是算力",
     "body": "Jalapeno 的 PPT 把 speculative decoding 放在很靠前的位置。机制类似 CPU 分支预测：与其每次只预测一个 token，不如先做七个 mini pass 生成草稿 token，再用一个「batched large trunk pass」同时验证前七个并预测第八个；只要草稿对，串行代价就从八次降到一次。主播类比了游戏里的 super sampling/frame generation。但注意：这批官方基准并没有启用投机解码，意味着 100x 那组数字还留了性能空间，也说明真正跑满负载时要另算。",
     "spk": ""
    },
    {
     "t": 617,
-    "h": "百倍领先只在特定条件成立",
+    "h": "百倍差距只在人类用不上的速度点上成立",
     "body": "在 GPT-OSS 120B 上，Jalapeno 对比 Nvidia GB200（NVL72）：500 tokens/s 时性能高约 100 倍，另一个 500 tokens/s 点上是 53.7x；端到端 time to last token 在长上下文下低 4.2 倍，最低延迟降幅接近一半。主播提醒 500 tokens/s 对人类阅读没有意义，但对 agent 互聊和批量场景有意义。更大的 670B 开源模型上数字被压低，峰值仍到 104x。所有对照都做了功率归一化，Jalapeno 700W，GB200 约 1.2kW。",
     "spk": ""
    },
    {
     "t": 978,
-    "h": "内存延迟才决定利用率",
+    "h": "决定利用率的是内存延迟，不是带宽",
     "body": "OpenAI 给的例子：128 芯片 HBM4 系统，1PB/s 带宽除以 0.5TB 参数，理论上一秒可以读 2000 遍完整模型权重，但实际根本到不了。延迟来自内存、拥塞路径、核不同步和全局同步。Jalapeno 的答案是「co-design the architecture to address the bottleneck」——主播直接说这句话在五十个硬件上都听过，真正要看的不是口号，而是它怎么把计算放在本地、只在必要时访问全局内存。上一代硬件的故事里，这个「必要」的边界才是差距来源。",
     "spk": ""
    },
    {
     "t": 1098,
-    "h": "卖的是 448 芯片的系统",
+    "h": "自研的优势在网络拓扑，不在单颗芯片",
     "body": "Jalapeno 不是零售芯片，而是机架级系统。OpenAI 用 Broadcom Tomahawk 6 做两层网络：scale-up 域 128 芯片，scale-out 域 48 芯片。scale-up 大，意味着大模型可以少跨跳步；scale-out 大，意味着 tensor parallelism 的带宽约束更低。完整系统是 448 芯片、27 exaflops（4-bit 矩阵）、432TB HBM、32PB/s。因为 OpenAI 只跑自己的负载，可以把网络拓扑精确对准自己模型的通信模式——这是 hyperscaler 自研芯片的共同逻辑，也是它跟通用 GPU 最大的差别。",
     "spk": ""
    },
    {
     "t": 1220,
-    "h": "AI 帮芯片省面积",
+    "h": "AI 省下的不是工程师，是迭代次数",
     "body": "OpenAI 说他们在每个设计阶段用 AI 工具做改进：矩阵单元面积提升 10%，SIMD 单元面积提升 8%，且是相对「优化后的人类基线」。主播把话头接上 Synopsys/Cadence 的说法：AI 方案能赢人类团队，比如 50 人团队六个月的活 AI 一周做完。这不代表工程师失业，而是同一批人能在半年里迭代更多版。最后那句判断值得单独划出来：人类负责抽象，前沿 AI 负责映射，层级就是这么长出来的。",
     "spk": ""
    },
    {
     "t": 1651,
-    "h": "自研芯片是商业筹码",
+    "h": "自研芯片的回报是谈判筹码，不是省钱",
     "body": "OpenAI 不会因为有了 Jalapeno 就不买 Nvidia，也不会放弃 Cerebras 这类合作；自研的动机是 optionality、leverage，以及能在不同模型、不同性能档和不同价格点之间做组合。企业客户会选一个模型用 3 到 24 个月不换，OpenAI 想要的是给每一种需求都提供一个不被打包绑架的选项。主播还区分了分工：Richard 的任务是把芯片做好，定价是产品团队的事。这解释了为什么一颗只在内部跑的芯片也有战略价值。",
     "spk": ""
    }

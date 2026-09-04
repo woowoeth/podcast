@@ -383,6 +383,12 @@ h1.sec-title, h2.sec-title, .sec-title{font-family:var(--serif);
   display:block; width:100%; padding:0; border:0; background:none;
   cursor:pointer; text-align:left; font:inherit; color:inherit;
 }
+/* 作者寫的 display 永遠贏過瀏覽器默認的 [hidden]{display:none}——不是特異性
+   問題，是作者樣式表本來就排在 UA 樣式表後面。凡是會帶 hidden 屬性出場、
+   或者被腳本 .hidden=true 藏起來的元素，都得自己補這一條。
+   線上後果：點播放之後假門根本沒藏起來，.vwrap 加在它旁邊，播放器卡片從
+   192px 變成 381px，整頁往下跳 189px。 */
+.video-facade[hidden]{display:none}
 .video-facade .frame{
   position:relative; display:block; width:100%; padding-top:56.25%;
   background:var(--bg-tint); overflow:hidden;
@@ -424,6 +430,10 @@ h1.sec-title, h2.sec-title, .sec-title{font-family:var(--serif);
 /* 自己畫的音頻控件：圓形播放鍵 + 進度軌 + mono 時碼。
    原生 controls 在每個平臺長得都不一樣，放在這張卡里像貼上去的。 */
 .aui{display:flex; align-items:center; gap:13px}
+/* 同上。這一條更隱蔽：.aui 是帶著 hidden 出場的（漸進增強，腳本跑起來才對調），
+   而 display:flex 讓它一直可見——於是腳本跑起來之前，自繪控件和原生 controls
+   同時顯示在 150 多個只有音頻的頁面上。 */
+.aui[hidden]{display:none}
 .aplay{
   flex:none; position:relative; width:38px; height:38px; border-radius:50%;
   background:var(--accent); border:0; cursor:pointer;

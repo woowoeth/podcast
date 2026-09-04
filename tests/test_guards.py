@@ -2492,3 +2492,96 @@ class BackfillToolsMustNotRenormalize(unittest.TestCase):
                         bad.append(f"{f.name}:{k}")
                         break
         self.assertEqual(bad, [], f"{len(set(bad))} 篇有字符串型时间戳")
+
+
+class HiddenAttributeMustActuallyHide(unittest.TestCase):
+    """带 hidden 出场（或被脚本藏起来）的元素，必须自己补一条 [hidden] 规则。
+
+    浏览器默认表里有 `[hidden]{display:none}`，但**作者样式表排在 UA 表之后**，
+    所以任何 `.foo{display:block}` 都会把 hidden 废掉。这不是特异性问题，
+    加权重也没用，只能显式写 `.foo[hidden]{display:none}`。
+
+    线上两处真实后果：
+      · `.video-facade{display:block}` → 点播放之后假门根本没藏起来，.vwrap 加在
+        它旁边，播放器卡片从 192px 变成 381px，整页往下跳 189px。用户报的
+        「点播放按钮整个界面会跳一下」就是这个。
+      · `.aui{display:flex}` → 它是带着 hidden 出场的（渐进增强），于是脚本跑
+        起来之前，自绘控件和原生 controls 在 150 多个只有音频的页面上同时显示。
+
+    这条检查是机械的：从 CSS 里收集"给某个类设了 display"的类名，从构建产物里
+    收集"带 hidden 属性出场"和"被脚本 .hidden = true / .hidden=false 操作"的类名，
+    两边一交叉，就必须有对应的 [hidden] 规则。
+    """
+
+    def setUp(self):
+        self.css = (ROOT / "assets" / "site.css").read_text()
+        self.js = (ROOT / "assets" / "site.js").read_text()
+
+    def _classes_with_display(self):
+        """CSS 里给某个类设了 display 的类名。"""
+        body = re.sub(r"/\*[\s\S]*?\*/", "", self.css)
+        out = set()
+        for sel, decl in re.findall(r"([^{}]+)\{([^{}]*)\}", body):
+            if not re.search(r"(^|;)\s*display\s*:", decl):
+                continue
+            if "[hidden]" in sel:
+                continue
+            for part in sel.split(","):
+                # 只取选择器**最后一段**：display 设在后代上（`.empty b`、
+                # `.player .strip .afallback`）跟祖先那个类没关系。第一版把整条
+                # 选择器里所有类都收进来，误报了 .empty 和 .strip。
+                last = re.split(r"[\s>+~]+", part.strip())[-1]
+                for m in re.finditer(r"\.([A-Za-z][\w-]*)", last):
+                    out.add(m.group(1))
+        return out
+
+    def _has_hidden_rule(self, cls):
+        return bool(re.search(r"\.%s\[hidden\]\s*\{[^}]*display\s*:\s*none"
+                              % re.escape(cls), self.css))
+
+    def test_elements_that_ship_hidden(self):
+        """构建产物里凡是带 hidden 属性出场的元素。"""
+        with_display = self._classes_with_display()
+        bad = []
+        pages = [ROOT / "index.html"]
+        pages += [d / "index.html" for d in sorted((ROOT / "p").iterdir())[:40]]
+        for page in pages:
+            if not page.exists():
+                continue
+            html = page.read_text()
+            # `hidden` 必须是独立属性：\b 会把 aria-hidden="true" 也匹配上，
+            # 因为连字符算词边界——我第一版就这么误报了 32 处。
+            for tag in re.findall(r"<[a-z]+[^>]*(?<![-\w])hidden(?=[\s=>])[^>]*>",
+                                  html):
+                for cls in re.findall(r'class="([^"]*)"', tag):
+                    for c in cls.split():
+                        if c in with_display and not self._has_hidden_rule(c):
+                            bad.append(f"{c} @ {page.parent.name}")
+        self.assertEqual(sorted(set(bad)), [],
+                         "这些元素带 hidden 出场，但 CSS 给它们设了 display，"
+                         "hidden 会被废掉；补 .<类名>[hidden]{display:none}")
+
+    def test_elements_the_script_hides(self):
+        """脚本里被 `.hidden = ` 操作的元素。它们不带 hidden 出场，所以上一条
+        查不到——假门正是这一类，也正是线上跳 189px 的那个。
+
+        做法是两趟：先找出所有被赋值 .hidden 的变量名，再回去看那个变量是从哪个
+        选择器来的。不列白名单——按名字列清单的检查只能靠白名单苟活。"""
+        with_display = self._classes_with_display()
+        hidden_vars = set(re.findall(r"\b([A-Za-z_$][\w$]*)\.hidden\s*=", self.js))
+        bad = []
+        for v in sorted(hidden_vars):
+            # var v = document.querySelector('.cls') / ('[attr]')
+            for m in re.finditer(r"\b%s\s*=\s*[^;\n]*querySelector\w*\("
+                                 r"\s*'([^']+)'" % re.escape(v), self.js):
+                for c in re.findall(r"\.([A-Za-z][\w-]*)", m.group(1)):
+                    if c in with_display and not self._has_hidden_rule(c):
+                        bad.append(f"{v} → .{c}")
+        self.assertEqual(sorted(set(bad)), [],
+                         "脚本把这些元素 .hidden 掉，但 CSS 给它们设了 display，"
+                         f"藏不住：{sorted(set(bad))}")
+
+    def test_the_two_known_ones_are_covered(self):
+        for cls in ("video-facade", "aui"):
+            self.assertTrue(self._has_hidden_rule(cls),
+                            f".{cls}[hidden]{{display:none}} 不见了")
