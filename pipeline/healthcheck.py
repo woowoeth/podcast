@@ -289,6 +289,45 @@ def check_point_headings(r: Report) -> None:
         r.good(line)
 
 
+def check_english_edition(r: Report) -> None:
+    """英文站做到哪一步了。
+
+    为什么要报：它默认不建（界面文案层没做完，零漏译闸门会拦，而那个闸门挂在
+    日常构建上会把简体站的部署一起挡住）。默认不建就意味着**它会被忘掉**，
+    所以进度必须有个地方一直说着。
+    """
+    n_eps = len(list((DATA / "episodes").glob("*.json")))
+    n_tr = len(list((DATA / "en").glob("*.json"))) if (DATA / "en").exists() else 0
+    ui = 0
+    try:
+        import sys as _s
+        _s.path.insert(0, str(ROOT / "pipeline"))
+        import i18n as _i
+        ui = len(_i.UI)
+    except Exception:
+        pass
+    if not n_tr:
+        r.note("英文站：还没有译文。跑 python3 pipeline/translate.py")
+        return
+    leak = None
+    en = ROOT / "en"
+    if en.exists():
+        try:
+            import sys as _s2
+            _s2.path.insert(0, str(ROOT / "pipeline"))
+            import enscan
+            leak = len(enscan.leaks(en))
+        except Exception:
+            leak = None
+    line = f"英文站：译文 {n_tr}/{n_eps} 篇 · 界面文案表 {ui} 条"
+    if leak:
+        r.note(line + f" · **还有 {leak} 种中文漏在 lang=\"zh\" 之外，未完工**")
+    elif leak == 0:
+        r.good(line + " · 零漏译，可以上线")
+    else:
+        r.note(line + " · 还没建过，跑 PODCAST_EN=1 python3 pipeline/build.py")
+
+
 def check_render_layer(r: Report) -> None:
     """渲染层体检这一层还在吗。
 
@@ -364,6 +403,7 @@ def main(argv: list[str] | None = None) -> int:
     check_videos(r)
     check_point_headings(r)
     check_render_layer(r)
+    check_english_edition(r)
     if a.online:
         check_online(r)
 

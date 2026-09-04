@@ -19,11 +19,15 @@ import urllib.parse
 from xml.sax.saxutils import escape as xesc
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import i18n                                                    # noqa: E402
+from i18n import T                                             # noqa: E402
 from lib.util import hhmmss, log, squeeze                      # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 BASE = os.environ.get("PODCAST_BASE", "/podcast").rstrip("/")
+BASE_ZH = BASE          # 简体的原值，render_site 切语言时要回退到它
+LANG = "zh"
 
 
 def asset(rel: str) -> str:
@@ -46,6 +50,7 @@ def asset(rel: str) -> str:
         h = "0"
     return f"{BASE}/{rel.lstrip('/')}?v={h}"
 SITE = os.environ.get("PODCAST_SITE", "https://ourword.ai") + BASE
+SITE_ZH = SITE
 NAME = "原声"
 TAGLINE = "世界太吵，来原声听播客"
 def _n_sources() -> int:
@@ -110,6 +115,74 @@ def og_image(url: str) -> str:
 
 def e(s) -> str:
     return html.escape(str(s or ""), quote=True)
+
+
+def en_store() -> dict[str, dict]:
+    """data/en/<slug>.json，按 slug 取。"""
+    out = {}
+    d = DATA / "en"
+    if not d.exists():
+        return out
+    for f in d.glob("*.json"):
+        try:
+            r = json.loads(f.read_text())
+        except Exception:
+            continue
+        if r.get("slug"):
+            out[r["slug"]] = r
+    return out
+
+
+_EN: dict[str, dict] = {}
+
+
+def D(ep: dict) -> dict:
+    """这一集在**当前语言**下要显示的成稿。
+
+    简体模式就是 ep["digest"]。英文模式把正文字段换成译文，但
+    **quality / tags 的时间戳、数字这些不动**，金句另有规矩：
+    英文源节目直接用 raw（说话人原话），中文源才用译文并标出来。
+    """
+    d = ep["digest"]
+    if LANG == "zh":
+        return d
+    en = _EN.get(ep.get("slug") or "")
+    if not en:
+        return d
+    q_src = d.get("quotes") or []
+    q_en = en.get("quotes") or []
+    quotes = []
+    for i, q in enumerate(q_src):
+        got = q_en[i] if i < len(q_en) else {}
+        text = got.get("text") or q.get("raw") or ""
+        quotes.append({"t": q.get("t"), "spk": q.get("spk"),
+                       "raw": text,
+                       # 中文源：把中文原文留在 zh 位上，页面会标 lang="zh"
+                       "zh": (q.get("raw") or "") if got.get("translated") else "",
+                       "translated": bool(got.get("translated"))})
+    merged = dict(d)
+    merged.update({
+        "title": en.get("title") or d.get("title"),
+        "dek": en.get("dek") or d.get("dek"),
+        "why": en.get("why") or "",
+        "who": en.get("who") or "",
+        "skip": en.get("skip") or "",
+        "tags": en.get("tags") or [],
+        "points": [dict(p, h=(en["points"][i].get("h") or p.get("h")),
+                        body=(en["points"][i].get("body") or p.get("body")))
+                   for i, p in enumerate(d.get("points") or [])
+                   if i < len(en.get("points") or [])],
+        "terms": [dict(t, term=(en["terms"][i].get("term") or t.get("term")),
+                       zh="", **{"def": en["terms"][i].get("def") or t.get("def")})
+                  for i, t in enumerate(d.get("terms") or [])
+                  if i < len(en.get("terms") or [])],
+        "facts": [dict(f, k=(en["facts"][i].get("k") or f.get("k")),
+                       v=(en["facts"][i].get("v") or f.get("v")))
+                  for i, f in enumerate(d.get("facts") or [])
+                  if i < len(en.get("facts") or [])],
+        "quotes": quotes,
+    })
+    return merged
 
 
 def load() -> tuple[list[dict], dict]:
@@ -256,7 +329,7 @@ def episode_share_text(ep: dict) -> str:
 
     控制在 500 字以内——朋友圈超长会折叠，群里刷屏也没人读。
     """
-    d = ep["digest"]
+    d = D(ep)
     src = ep.get("source_zh") or ep.get("source") or ""
     mins = int((ep.get("duration") or 0) // 60)
     meta = " · ".join(x for x in (src, f"{mins} 分钟" if mins else "", f"{NAME}深读") if x)
@@ -297,7 +370,7 @@ def alias_page(ep: dict) -> str:
     """
     real = f"{BASE}/p/{urllib.parse.quote(ep['slug'])}/"
     full = f"{SITE}/p/{urllib.parse.quote(ep['slug'])}/"
-    d = ep["digest"]
+    d = D(ep)
     t = e(d.get("title") or "")
     desc = e(_clip(d.get("dek") or "", 150))
     img = e(og_image(ep.get("image") or ""))
@@ -342,7 +415,7 @@ def source_share_text(src: dict, rows: list[dict]) -> str:
     if src.get("desc"):
         lines += [_clip(src["desc"], 96), ""]
     for x in rows[:3]:
-        lines.append("· " + _clip(x["digest"].get("title"), 34))
+        lines.append("· " + _clip(D(x).get("title"), 34))
     lines += ["", f"本站已深读 {len(rows)} 篇：{SITE}/s/{src['id']}/"]
     return "\n".join(lines)
 
@@ -354,7 +427,7 @@ def site_share_text(eps: list[dict]) -> str:
              _clip(BLURB, 110), ""]
     for x in eps[:3]:
         src = x.get("source_zh") or x.get("source") or ""
-        lines.append(f"· {_clip(x['digest'].get('title'), 30)}（{_clip(src, 14)}）")
+        lines.append(f"· {_clip(D(x).get('title'), 30)}（{_clip(src, 14)}）")
     lines += ["", f"{SITE}/"]
     return "\n".join(lines)
 
@@ -438,7 +511,7 @@ def thumb(url: str, w: int = 400) -> str:
 
 
 def card(ep: dict, *, hero: bool) -> str:
-    d = ep["digest"]
+    d = D(ep)
     q = d.get("quality") or {}
     date = (ep.get("published") or "")[5:10].replace("-", "")
     hay = " ".join([d.get("title", ""), d.get("dek", ""), ep.get("source", ""),
@@ -478,7 +551,7 @@ def search_index(eps: list[dict]) -> str:
     """
     rows = []
     for x in eps:
-        d = x["digest"]
+        d = D(x)
         parts = [d.get("title", ""), d.get("dek", ""), d.get("why", ""),
                  d.get("who", ""), x.get("source", ""), x.get("source_zh", ""),
                  x.get("title_original", ""), " ".join(d.get("tags") or [])]
@@ -506,7 +579,7 @@ def _publisher() -> dict:
     return {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}
 
 
-def write_card_pages(eps: list[dict]) -> int:
+def write_card_pages(eps: list[dict], out: pathlib.Path | None = None) -> int:
     """首屏之外的卡片，按页写成 cards-1.json、cards-2.json……
 
     为什么分页而不是一个大文件：第一版把剩下 231 张全塞进一个 cards.json，
@@ -516,17 +589,22 @@ def write_card_pages(eps: list[dict]) -> int:
     为什么存 HTML 而不是存数据让前端拼：卡片的标记必须和首屏那批一模一样，
     两份渲染逻辑迟早会长歪（首屏加了个角标、这边没加）。存 HTML 只有一份真相。
     """
+    # **必须收输出目录。** 这个函数原来直接写 ROOT，而 render_site 现在会被
+    # 调两次（简体渲到仓库根、英文渲到 en/）——于是英文那一趟把**根目录**的
+    # cards-*.json 覆盖成了带 /podcast/en/ 链接的版本，简体首页滚到第二页就
+    # 全跳到英文站去了。凡是写文件的函数都不许再自己决定往哪写。
+    out = out or ROOT
     rest = eps[FIRST_PAGE:]
     pages = 0
     for i in range(0, len(rest), FIRST_PAGE):
         pages += 1
-        (ROOT / f"cards-{pages}.json").write_text(
+        (out / f"cards-{pages}.json").write_text(
             json.dumps([card(x, hero=False) for x in rest[i:i + FIRST_PAGE]],
                        ensure_ascii=False))
     # 页数变少时把多出来的旧文件删掉，否则前端会取到过期的卡片
     n = pages + 1
-    while (ROOT / f"cards-{n}.json").exists():
-        (ROOT / f"cards-{n}.json").unlink()
+    while (out / f"cards-{n}.json").exists():
+        (out / f"cards-{n}.json").unlink()
         n += 1
     old = ROOT / "cards.json"          # 第一版的单文件，不再用
     if old.exists():
@@ -564,7 +642,7 @@ def index_page(eps: list[dict], srcs: dict) -> str:
                         "itemListElement": [
                             {"@type": "ListItem", "position": i + 1,
                              "url": f"{SITE}/p/{x['slug']}/",
-                             "name": x["digest"].get("title")}
+                             "name": D(x).get("title")}
                             for i, x in enumerate(eps[:60])]}}]})
     return (head(TAGLINE, BLURB, path="/",
                  image=(eps[0].get("image") if eps else ""), extra=ld)
@@ -688,7 +766,7 @@ def player_block(ep: dict) -> str:
 
 
 def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
-    d = ep["digest"]
+    d = D(ep)
     q = d.get("quality") or {}
     src_label = ep.get("source_zh") or ep.get("source") or ""
     date = (ep.get("published") or "")[:10]
@@ -743,9 +821,9 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
     prevnext = ""
     if prev or nxt:
         left = (f'<a href="{BASE}/p/{e(prev["slug"])}/"><span class="lbl">← 更新</span>'
-                f'<strong>{e(prev["digest"]["title"])}</strong></a>' if prev else "<span></span>")
+                f'<strong>{e(D(prev)["title"])}</strong></a>' if prev else "<span></span>")
         right = (f'<a class="r" href="{BASE}/p/{e(nxt["slug"])}/"><span class="lbl">更早 →</span>'
-                 f'<strong>{e(nxt["digest"]["title"])}</strong></a>' if nxt else "<span></span>")
+                 f'<strong>{e(D(nxt)["title"])}</strong></a>' if nxt else "<span></span>")
         prevnext = f'<nav class="prevnext">{left}{right}</nav>'
 
     # 关键词给答案引擎用：标签 + 术语 + facts 的指标名，都是这一篇真实覆盖的实体
@@ -1104,7 +1182,7 @@ def llms_txt(eps: list[dict], srcs: dict) -> str:
         L.append("")
     L += [f"## Entries ({len(eps)})", ""]
     for x in eps:
-        d = x["digest"]
+        d = D(x)
         L.append(f"- [{d.get('title')}]({SITE}/p/{x['slug']}/) — {d.get('dek')} "
                  f"[{x.get('source_zh') or x.get('source')}, {(x.get('published') or '')[:10]}]")
     L.append("")
@@ -1117,7 +1195,7 @@ def llms_full_txt(eps: list[dict]) -> str:
            f"{len(eps)} entries. Source: {SITE}/ · Generated from the sources listed in "
            f"{SITE}/llms.txt", ""]
     for x in eps:
-        d = x["digest"]
+        d = D(x)
         q = d.get("quality") or {}
         rv = x.get("review") or {}
         out += ["=" * 78, "",
@@ -1174,7 +1252,7 @@ def llms_full_txt(eps: list[dict]) -> str:
 def rss(eps: list[dict]) -> str:
     items = []
     for x in eps[:60]:
-        d = x["digest"]
+        d = D(x)
         body = [f"<p><strong>{xesc(d.get('dek',''))}</strong></p>"]
         if d.get("why"):
             body.append(f"<p>{xesc(d['why'])}</p>")
@@ -1242,23 +1320,45 @@ def not_found() -> str:
 </div></main>""" + foot())
 
 
-def main() -> int:
-    global BLURB
+def render_site(out: pathlib.Path, lang: str = "zh") -> int:
+    """把整站渲染到 out 目录。lang 决定文案层和正文取哪份数据。
+
+    从 main() 里抽出来，就为了能用**同一套模板**渲染两次：简体渲到仓库根，
+    英文渲到 en/。繁体不走这条路——它是 tw.py 对构建好的 HTML 做字形转换，
+    那对翻译不成立（见 i18n.py 的说明）。
+
+    抽的时候唯一的要求是简体输出**逐字节不变**，这一点由构建幂等那道闸门
+    和重构前后的指纹对比一起兜住。
+    """
+    global BLURB, BASE, SITE, LANG
+    LANG = lang
+    out.mkdir(parents=True, exist_ok=True)
+    i18n.LANG = lang
+    if lang != "zh":
+        BASE = f"{BASE_ZH}/{lang}"
+        SITE = f"{SITE_ZH}/{lang}"
+    else:
+        BASE, SITE = BASE_ZH, SITE_ZH
     BLURB = _blurb()
     eps, srcs = load()
+    global _EN
+    if lang == "en":
+        _EN = en_store()
+        # 没译文的不进英文站。宁可少几篇，也不要中英混排的页面。
+        eps = [x for x in eps if x.get("slug") in _EN]
     log(f"building {len(eps)} episodes, {len(srcs.get('sources') or [])} sources")
-    (ROOT / "index.html").write_text(index_page(eps, srcs))
-    (ROOT / "sources").mkdir(exist_ok=True)
-    (ROOT / "sources" / "index.html").write_text(sources_page(srcs, eps))
-    (ROOT / "404.html").write_text(not_found())
-    (ROOT / "feed.xml").write_text(rss(eps))
-    (ROOT / "sitemap.xml").write_text(sitemap(eps))
-    (ROOT / "search.json").write_text(search_index(eps))
-    n_pages = write_card_pages(eps)
-    (ROOT / "log").mkdir(exist_ok=True)
-    (ROOT / "log" / "index.html").write_text(log_page(eps, srcs))
+    (out / "index.html").write_text(index_page(eps, srcs))
+    (out / "sources").mkdir(exist_ok=True)
+    (out / "sources" / "index.html").write_text(sources_page(srcs, eps))
+    (out / "404.html").write_text(not_found())
+    (out / "feed.xml").write_text(rss(eps))
+    (out / "sitemap.xml").write_text(sitemap(eps))
+    (out / "search.json").write_text(search_index(eps))
+    n_pages = write_card_pages(eps, out)
+    (out / "log").mkdir(exist_ok=True)
+    (out / "log" / "index.html").write_text(log_page(eps, srcs))
 
-    sdir = ROOT / "s"
+    sdir = out / "s"
     by_src: dict[str, list[dict]] = {}
     for x in eps:
         by_src.setdefault(x["source_id"], []).append(x)
@@ -1291,12 +1391,12 @@ def main() -> int:
         rb += [f"User-agent: {b}", "Allow: /", ""]
     rb += [f"Sitemap: {SITE}/sitemap.xml",
            f"# 给模型读的导览：{SITE}/llms.txt", ""]
-    (ROOT / "robots.txt").write_text("\n".join(rb))
-    (ROOT / "llms.txt").write_text(llms_txt(eps, srcs))
-    (ROOT / "llms-full.txt").write_text(llms_full_txt(eps))
-    (ROOT / ".nojekyll").write_text("")
+    (out / "robots.txt").write_text("\n".join(rb))
+    (out / "llms.txt").write_text(llms_txt(eps, srcs))
+    (out / "llms-full.txt").write_text(llms_full_txt(eps))
+    (out / ".nojekyll").write_text("")
 
-    pdir = ROOT / "p"
+    pdir = out / "p"
     live = set()
     for i, x in enumerate(eps):
         prev = eps[i - 1] if i > 0 else None
@@ -1312,7 +1412,7 @@ def main() -> int:
                 log(f"  removed stale page /p/{d.name}/")
 
     # 分享短链：/e/<id>/ → /p/<中文 slug>/
-    edir = ROOT / "e"
+    edir = out / "e"
     alive = set()
     for x in eps:
         out = edir / x["id"]
@@ -1327,12 +1427,45 @@ def main() -> int:
     # 必须在这里、由 build.py 自己产出 —— CI 有两条判据是「跑一遍 build.py 后
     # git diff 必须干净」和「连续两次构建结果一致」，繁体站交给别的脚本生成的话
     # 这两条就管不到它，内容一改它就悄悄过期。
-    import tw as _tw
-    n_t, n_b = _tw.build(BASE)
-    log(f"  繁体站 /tw/：文本 {n_t}，二进制 {n_b}")
+    if lang == "zh":
+        import tw as _tw
+        n_t, n_b = _tw.build(BASE)
+        log(f"  繁体站 /tw/：文本 {n_t}，二进制 {n_b}")
 
     log(f"built: index, sources, {len(eps)} episode pages "
         f"(+{len(alive)} 分享短链), feed.xml, sitemap.xml")
+    return 0
+
+
+def main() -> int:
+    render_site(ROOT, "zh")
+    # 英文站默认**不建**：界面文案层还没做完（零漏译闸门会拦），而这个闸门要是
+    # 挂在日常构建上，简体站的部署就一起被挡住了。用显式开关而不是静默跳过——
+    # 静默跳过会让这件事被忘掉，体检那边也会一直报未完工的进度。
+    want_en = os.environ.get("PODCAST_EN") == "1"
+    n = len(list((DATA / "en").glob("*.json"))) if (DATA / "en").exists() else 0
+    if want_en and n:
+        i18n.reset()
+        render_site(ROOT / "en", "en")
+        miss = i18n.missed()
+        if miss:
+            log(f"  ::error:: 英文站有 {len(miss)} 条界面文案没登记："
+                f"{miss[:8]}")
+            return 1
+        # 零漏译闸门：汉字只许在 lang="zh" 里。这条不过就不该有英文站。
+        import enscan
+        leak = enscan.leaks(ROOT / "en")
+        if leak:
+            log(f"  ::error:: 英文站有 {len(leak)} 种中文漏在 lang=\"zh\" 之外，"
+                f"最多的几种：{[k for k, _ in leak.most_common(5)]}")
+            return 1
+        log(f"  英文站 /en/：{len(eps)} 篇，零漏译")
+    elif want_en:
+        log("  英文站：data/en/ 还没有译文，跳过")
+    # 语言切完了要把常量还原，免得同一个进程里后续调用拿到英文的 BASE
+    render_site.__globals__["BASE"] = BASE_ZH
+    render_site.__globals__["SITE"] = SITE_ZH
+    i18n.LANG = "zh"
     return 0
 
 

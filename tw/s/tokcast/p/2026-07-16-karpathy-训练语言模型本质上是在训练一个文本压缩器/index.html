@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>交叉熵損失為何勝出：它在訓練一個文本壓縮器 — Andrej Karpathy · 原聲</title>
+<meta name="description" content="交叉熵損失之所以被選中，是因為數學上可以證明它是唯一能保證「模型輸出等於數據真實分布時損失最小」的函數形式，而這恰好等價於把模型訓練成逼近香農極限的文本壓縮器。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/tw/p/2026-07-16-karpathy-训练语言模型本质上是在训练一个文本压缩器/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原聲">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:title" content="交叉熵損失為何勝出：它在訓練一個文本壓縮器 — Andrej Karpathy · 原聲">
+<meta property="og:description" content="交叉熵損失之所以被選中，是因為數學上可以證明它是唯一能保證「模型輸出等於數據真實分布時損失最小」的函數形式，而這恰好等價於把模型訓練成逼近香農極限的文本壓縮器。">
+<meta property="og:url" content="https://ourword.ai/podcast/tw/p/2026-07-16-karpathy-训练语言模型本质上是在训练一个文本压缩器/">
+<meta property="og:image" content="https://i4.ytimg.com/vi/GlYgs6v2YfU/hqdefault.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-07-16T11:56:04Z">
+<meta property="article:modified_time" content="2026-08-24T17:56:04Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="交叉熵損失為何勝出：它在訓練一個文本壓縮器 — Andrej Karpathy · 原聲">
+<meta name="twitter:description" content="交叉熵損失之所以被選中，是因為數學上可以證明它是唯一能保證「模型輸出等於數據真實分布時損失最小」的函數形式，而這恰好等價於把模型訓練成逼近香農極限的文本壓縮器。">
+<meta name="twitter:image" content="https://i4.ytimg.com/vi/GlYgs6v2YfU/hqdefault.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/tw/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/tw/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原聲" href="/podcast/tw/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-07-16-karpathy-训练语言模型本质上是在训练一个文本压缩器/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-07-16-karpathy-训练语言模型本质上是在训练一个文本压缩器/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-07-16-karpathy-训练语言模型本质上是在训练一个文本压缩器/">
+<script>(function(){try{var K='podcast_lang',p=location.pathname,tw=/^\/podcast\/tw(\/|$)/.test(p);var cur=tw?'tw':'sc';var other=tw?p.replace(/^\/podcast\/tw/,'/podcast')||'/podcast/':p.replace(/^\/podcast/,'/podcast/tw');var saved=null;try{saved=localStorage.getItem(K)}catch(e){}var want=saved||((/zh-(hant|tw|hk|mo)/i.test((navigator.languages||[navigator.language||'']).join(',')))?'tw':'sc');if(want!==cur){location.replace(other);return}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;b.textContent=tw?b.dataset.tw:b.dataset.sc;b.setAttribute('aria-label',tw?'切換到簡體':'切換到繁體');b.onclick=function(){try{localStorage.setItem(K,tw?'sc':'tw')}catch(e){};location.href=other}})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/tw/assets/site.css?v=6842e1a363">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-07-16-karpathy-訓練語言模型本質上是在訓練一個文本壓縮器/#episode", "name": "交叉熵損失為何勝出：它在訓練一個文本壓縮器", "headline": "交叉熵損失為何勝出：它在訓練一個文本壓縮器", "description": "交叉熵損失之所以被選中，是因為數學上可以證明它是唯一能保證「模型輸出等於數據真實分布時損失最小」的函數形式，而這恰好等價於把模型訓練成逼近香農極限的文本壓縮器。", "abstract": "交叉熵損失之所以被選中，是因為數學上可以證明它是唯一能保證「模型輸出等於數據真實分布時損失最小」的函數形式，而這恰好等價於把模型訓練成逼近香農極限的文本壓縮器。", "datePublished": "2026-07-16T11:56:04Z", "dateModified": "2026-08-24T17:56:04Z", "url": "https://ourword.ai/podcast/p/2026-07-16-karpathy-訓練語言模型本質上是在訓練一個文本壓縮器/", "timeRequired": "PT0M", "partOfSeries": {"@type": "PodcastSeries", "name": "Andrej Karpathy", "url": "https://ourword.ai/podcast/s/karpathy/"}, "inLanguage": "zh-TW", "isBasedOn": "https://www.youtube.com/watch?v=GlYgs6v2YfU", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "信息論, 交叉熵, 語言模型訓練, 模型蒸餾, 壓縮, KL散度, cross-entropy, KL divergence, distillation, Lagrange multiplier, Shannon limit, 機器人指令舊編碼應對新分布時的交叉熵, 90/10偏態分布編碼用於50/50均勻分布時的交叉熵, 《Language Trees and Zipping》論文發表年份", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首頁", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "Andrej Karpathy", "item": "https://ourword.ai/podcast/s/karpathy/"}, {"@type": "ListItem", "position": 3, "name": "交叉熵損失為何勝出：它在訓練一個文本壓縮器"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/tw/"><span class="wordmark">原聲<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<button class="pill ghost" id="lang-toggle" type="button" data-sc="繁體" data-tw="簡體"></button>
+<button class="icon-btn" data-theme-toggle aria-label="切換深淺色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，來原聲聽播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/tw/">首頁</a><span class="sep">/</span>
+<a href="/podcast/tw/s/karpathy/">Andrej Karpathy</a>
+<span class="sep">/</span><span>2026-07-16</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">Andrej Karpathy</span>
+<time class="date" datetime="2026-07-16T11:56:04Z">2026-07-16</time>
+<button class="share-btn" type="button" data-share data-share-title="交叉熵損失為何勝出：它在訓練一個文本壓縮器" data-share-url="https://ourword.ai/podcast/tw/e/karpathy-509fc0065a/" data-share-text="《交叉熵損失為何勝出：它在訓練一個文本壓縮器》&#10;Andrej Karpathy · 原聲深讀&#10;&#10;交叉熵損失之所以被選中，是因為數學上可以證明它是唯一能保證「模型輸出等於數據真實分布時損失最小」的函數形式，而這恰好等價於把模型訓練成逼近香農極限的文本壓縮器。&#10;&#10;· gzip能畫出語言家族樹&#10;· 舊編碼遇上新分布的代價&#10;· 交叉熵的最小值就是熵本身&#10;&#10;「但每當你看到同一個公式在兩個不相關的場景裡冒出來，這就是數學在向你眨眼睛，暗示背後有一層聯繫。」 — Grant Sanderson&#10;&#10;https://ourword.ai/podcast/e/karpathy-509fc0065a/" aria-label="複製分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>交叉熵損失為何勝出：它在訓練一個文本壓縮器</h1>
+<p class="dek-lead">交叉熵損失之所以被選中，是因為數學上可以證明它是唯一能保證「模型輸出等於數據真實分布時損失最小」的函數形式，而這恰好等價於把模型訓練成逼近香農極限的文本壓縮器。</p>
+<div class="ep-meta"><span class="tag">信息論</span><span class="tag">交叉熵</span><span class="tag">語言模型訓練</span><span class="tag">模型蒸餾</span><span class="tag">壓縮</span><span class="tag">KL散度</span></div>
+</div>
+<div class="player" data-player-box>
+  <button class="video-facade" data-yt="GlYgs6v2YfU" type="button"
+          aria-label="播放原節目視頻">
+    <span class="frame">
+      <img src="https://i.ytimg.com/vi/GlYgs6v2YfU/hq720.jpg" alt="" loading="lazy" width="1280"
+           onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/GlYgs6v2YfU/hqdefault.jpg'">
+      <span class="play" aria-hidden="true"><svg viewBox="0 0 44 44" width="44" height="44" focusable="false"><circle cx="22" cy="22" r="21" fill="rgba(18,16,13,.55)" stroke="rgba(255,255,255,.92)" stroke-width="1.5"/><path d="M17 14.5 32 22 17 29.5Z" fill="#fff"/></svg></span>
+    </span>
+  </button>
+</div>
+
+<section class="section"><div class="why">把「下一詞預測」和「壓縮」這兩個聽起來毫不相干的框架用一條公式釘在一起，適合想搞懂損失函數為什麼長這樣、而不只是會調用它的人。</div></section>
+
+<section class="section"><h2>核心論點 · 點時間戳可跳到原聲</h2><div class="point" id="p0"><a class="ts" data-t="0" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=0s" target="_blank" rel="noopener">0:00</a><div><h4>gzip能畫出語言家族樹</h4>
+<p class="body">一篇2002年的論文只用gzip這種通用文件壓縮，就能給不同語言的文本自動聚類，甚至還原出語系之間的譜系樹，全程不依賴任何語言學先驗知識。方法是把文檔B的一個片段接到文檔A末尾再壓縮，比較這個結果和單獨壓縮A的文件大小差異——這個差值本質上是在問「為A優化的壓縮方案，處理B的片段效果有多好」，同樣的思路後來也被用來做文本作者識別。</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="373" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=373s" target="_blank" rel="noopener">6:13</a><div><h4>舊編碼遇上新分布的代價</h4>
+<p class="body">如果一套編碼方案是為某個分布Q優化的（比如給機器人指令up/down/left/right分配1/2、1/4、1/8、1/8的概率並設計對應比特長度），但實際數據變成了新分布P，繼續用舊編碼會產生浪費。按新分布重新加權計算這套舊編碼平均要用掉的比特數，這個值就叫做「Q相對於P的交叉熵」——它衡量的正是「為一種情境優化的壓縮方案，搬到另一種情境下表現如何」。</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="622" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=622s" target="_blank" rel="noopener">10:22</a><div><h4>交叉熵的最小值就是熵本身</h4>
+<p class="body">把交叉熵公式想像成固定P、讓Q變化畫出的曲線，會發現這條曲線總在Q等於P的地方取得最小值，而這個最小值恰好就是P的熵。這是因為交叉熵問的問題——「為一種設定優化的編碼，在另一種設定下表現如何」——只有在兩種設定完全一致時，壓縮效率才能達到理論最優。這條性質是後面整個論證的樞紐。</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="1048" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=1048s" target="_blank" rel="noopener">17:28</a><div><h4>預訓練損失就是每個token的平均信息量</h4>
+<p class="body">訓練語言模型時，對訓練數據裡每一個真實出現的下一個token，取模型給它分配的概率的負對數，再對所有token取平均，這就是整個預訓練的損失函數。模型越「聰明」，對真實發生的token給出的概率越高，對應的負對數值（信息量/驚訝程度）就越低；一個訓練很差的模型則會對什麼都不自信，處處感到「意外」。</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="1233" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=1233s" target="_blank" rel="noopener">20:33</a><div><h4>為什麼必須是負對數，而不是隨便一個遞減函數</h4>
+<p class="body">常見的解釋是「交叉熵公式裡除了真實token那一項全是0，剩下的自然就是負對數」，但這解釋不了為什麼一開始要選交叉熵。更紮實的論證是：如果只要求某個函數F滿足「全體訓練樣本的平均損失只有在模型輸出分布等於數據真實統計分布時才取得最小值」，用拉格朗日乘子做約束優化可以證明F必須是對數函數——選擇權其實並不在你手裡，負對數是被數學逼出來的，而這時的平均損失公式恰好就是交叉熵的定義。</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="1601" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=1601s" target="_blank" rel="noopener">26:41</a><div><h4>蒸餾：把大模型的整個概率分布餵給小模型</h4>
+<p class="body">普通預訓練每個token只給「真實發生的那一個」滿權重，其餘全是0；蒸餾則是讓小模型對每個位置的預測去匹配大模型給出的完整概率分布，損失定義為小模型分布相對大模型分布的交叉熵。這樣一個訓練樣本傳遞的信息量遠大於普通預訓練——好比學下棋不是只看一步實際走法，而是有個更強的人把每一步的所有候選走法和權重都講給你聽。</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="1788" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=1788s" target="_blank" rel="noopener">29:48</a><div><h4>交叉熵損失等價於訓練一個文本壓縮器</h4>
+<p class="body">從壓縮的角度看，交叉熵天然衡量「一種壓縮方案搬到另一種情境下有多浪費」；從語言模型訓練的角度看，損失函數就是每個token的平均信息量。只要能把一個通用的預測器（比如語言模型）轉化成一個壓縮器——用大約等於該文本在模型看來的信息量那麼多的比特去編碼它——這兩條線索就完全對上了：用交叉熵損失訓練模型，等價於把它訓練成儘可能好的文本壓縮器。</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p7"><a class="ts" data-t="1909" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=1909s" target="_blank" rel="noopener">31:49</a><div><h4>KL散度：編碼浪費了多少比特</h4>
+<p class="body">交叉熵減去熵，就得到KL散度（Kolbach-Leibler divergence），它專門衡量「用一套沒優化好的編碼方案，平均每個符號浪費了多少比特」。在機器學習裡KL散度常被當作兩個分布之間的「距離」，兩分布相同時為0，差異越大越大，但它不對稱——Q相對P的KL散度不等於P相對Q的KL散度，這也是為什麼蒸餾時用交叉熵而非KL散度是一個值得琢磨的選擇。</p>
+<span class="spk">— Grant Sanderson</span></div></div></section>
+<section class="section"><h2>原話 · 已逐字校驗</h2><blockquote class="quote"><p class="raw">But whenever you see the same formula pop up in two separate contexts, it&#x27;s math&#x27;s way of kind of winking at you and hinting at a connection.</p>
+<p class="zh">但每當你看到同一個公式在兩個不相關的場景裡冒出來，這就是數學在向你眨眼睛，暗示背後有一層聯繫。</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="125" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=125s" target="_blank" rel="noopener">2:05</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">for an optimal code, the number of bits that you allocate to a given symbol looks like the negative log base 2 of the probability for that symbol showing up.</p>
+<p class="zh">對於最優編碼而言，分配給某個符號的比特數，看起來就是該符號出現概率的負的以2為底的對數。</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="249" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=249s" target="_blank" rel="noopener">4:09</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">A very nice way to think about the loss function we use in this case is that you measure the average information per token from the model&#x27;s perspective.</p>
+<p class="zh">理解這裡所用損失函數的一個很好的方式是：你衡量的是從模型視角看，每個token的平均信息量。</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="1048" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=1048s" target="_blank" rel="noopener">17:28</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">You might think this loss function would go by a name like information loss, or log loss, but in fact, people call it cross-entropy loss, which at first might sound really strange, given that nowhere in the explanation have we actually used the cross-entropy formula.</p>
+<p class="zh">你可能以為這個損失函數會被叫做「信息損失」或「對數損失」，但實際上人們把它叫做「交叉熵損失」，這一開始聽起來會很奇怪，因為前面的解釋裡我們根本沒用到交叉熵公式。</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="1233" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=1233s" target="_blank" rel="noopener">20:33</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">you would like it to be the case that the full average loss over all of the examples is minimized only when the model&#x27;s output matches the statistics that show up in the data, there&#x27;s actually a really nice mathematical argument for why F has to be a logarithm.</p>
+<p class="zh">如果你希望所有樣本上的平均損失只在模型輸出與數據中呈現的統計分布相匹配時才取得最小值，那麼其實有一個很漂亮的數學論證，可以說明F必須是對數函數。</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="1478" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=1478s" target="_blank" rel="noopener">24:38</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">it&#x27;s the difference between trying to learn chess just by watching a game versus having someone better than you talk through all the possible good moves and how heavily they would weight them at each new turn.</p>
+<p class="zh">這就好比只是看一盤棋來學下棋，和有一個比你厲害的人把每一步所有可能的好棋以及他們會賦予的權重都講給你聽，這兩者之間的區別。</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="1662" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=1662s" target="_blank" rel="noopener">27:42</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">And once you understand this, it makes clear how using cross-entropy loss is actually equivalent to training the model to be the best possible text compressor.</p>
+<p class="zh">一旦理解了這一點，就能看清使用交叉熵損失，實際上等價於把模型訓練成儘可能好的文本壓縮器。</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="1788" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=1788s" target="_blank" rel="noopener">29:48</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">In the language of compression, you would think of it as describing how many bits per symbol are you wasting by using a poorly optimized code.</p>
+<p class="zh">用壓縮的語言來說，你可以把它理解為：使用一套沒有優化好的編碼方案，每個符號平均浪費了多少比特。</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="1909" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=1909s" target="_blank" rel="noopener">31:49</a></div>
+</blockquote></section>
+<section class="section"><h2>數字與實體</h2><table class="facts"><tr><td class="k">機器人指令舊編碼應對新分布時的交叉熵</td><td class="v">2.625 bits/符號</td><td class="t"><a class="ts" data-t="373" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=373s" target="_blank" rel="noopener">6:13</a></td></tr>
+<tr><td class="k">90/10偏態分布編碼用於50/50均勻分布時的交叉熵</td><td class="v">約1.74 bits/符號</td><td class="t"><a class="ts" data-t="560" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=560s" target="_blank" rel="noopener">9:20</a></td></tr>
+<tr><td class="k">《Language Trees and Zipping》論文發表年份</td><td class="v">2002年</td><td class="t"><a class="ts" data-t="0" href="https://www.youtube.com/watch?v=GlYgs6v2YfU&amp;t=0s" target="_blank" rel="noopener">0:00</a></td></tr></table></section>
+<section class="section"><h2>術語</h2><dl class="terms"><div><dt>cross-entropy<span>交叉熵</span></dt><dd>用為分布Q優化的編碼去編碼分布P的數據時，平均每個符號所需的比特數</dd></div>
+<div><dt>KL divergence<span>KL散度（相對熵）</span></dt><dd>交叉熵減去熵，衡量一套編碼方案相對最優方案浪費了多少比特</dd></div>
+<div><dt>distillation<span>模型蒸餾</span></dt><dd>用大模型輸出的完整概率分布而非單一正確答案來訓練小模型</dd></div>
+<div><dt>Lagrange multiplier<span>拉格朗日乘子</span></dt><dd>求帶約束條件下函數極值的一種數學方法</dd></div>
+<div><dt>Shannon limit<span>香農極限</span></dt><dd>無損壓縮理論上能達到的最優比特數下界</dd></div></dl></section>
+<section class="section"><h2>收聽指南</h2>
+<div class="panel guide">
+<div><span class="k">誰該聽</span><p>對損失函數設計、信息論與深度學習交叉點感興趣的工程師和研究者，尤其是想搞懂「交叉熵損失」命名由來的人。</p></div>
+<div><span class="k">可跳過</span><p>24:38處拉格朗日乘子的嚴格推導可跳過，不影響後續結論。</p></div>
+</div></section>
+<nav class="prevnext"><a href="/podcast/tw/p/2026-07-20-interconnects-开闭源差距只剩-3-5-个月-这层时间差就是全部的安全边际/"><span class="lbl">← 更新</span><strong>開源落後閉源只剩 3-5 個月，這層時間差就是全部安全邊際</strong></a><a class="r" href="/podcast/tw/p/2026-07-15-naturepod-裸鼹鼠女王不靠尿液-靠一种5美元分子维持王位/"><span class="lbl">更早 →</span><strong>裸鼴鼠女王靠5美元分子統治：不是尿液，是護膚成分</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原節目</h4>
+<div class="row"><span>節目</span><span>Andrej Karpathy</span></div>
+<div class="row"><span>原標題</span><span>But what is cross-entropy? | Compression is Intelligence Part 2</span></div>
+<div class="row"><span>發布</span><span>2026-07-16</span></div>
+<div class="row"><span>時長</span><span>—</span></div>
+<a class="row" href="https://www.youtube.com/watch?v=GlYgs6v2YfU" target="_blank" rel="noopener"><span>原頁面</span><span>打開 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇結構</h4><nav class="toc"><a href="#p0"><span class="t">0:00</span><span>gzip能畫出語言家族樹</span></a>
+<a href="#p1"><span class="t">6:13</span><span>舊編碼遇上新分布的代價</span></a>
+<a href="#p2"><span class="t">10:22</span><span>交叉熵的最小值就是熵本身</span></a>
+<a href="#p3"><span class="t">17:28</span><span>預訓練損失就是每個token的平均信息量</span></a>
+<a href="#p4"><span class="t">20:33</span><span>為什麼必須是負對數，而不是隨便一個遞減函數</span></a>
+<a href="#p5"><span class="t">26:41</span><span>蒸餾：把大模型的整個概率分布餵給小模型</span></a>
+<a href="#p6"><span class="t">29:48</span><span>交叉熵損失等價於訓練一個文本壓縮器</span></a>
+<a href="#p7"><span class="t">31:49</span><span>KL散度：編碼浪費了多少比特</span></a></nav></div>
+
+<div class="panel"><h4>這篇是怎麼來的</h4>
+<div class="row"><span>成稿評分</span><span>8 / 10</span></div>
+<div class="row"><span>文稿來源</span><span>YouTube 字幕</span></div>
+<div class="row"><span>文稿字數</span><span>6655</span></div>
+<div class="row"><span>語速核驗</span><span>196.2 wpm</span></div>
+<div class="row"><span>逐字校驗金句</span><span>8 條</span></div>
+<div class="row"><span>回溯校驗數字</span><span>3 條</span></div>
+
+<p class="note">金句在逐字稿裡逐字比對過，數字回原文核對過；對不上的當場刪掉，不上站。
+成稿另經一道獨立評審（信息密度／忠實度／選擇力／具體性／中文），低於 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原聲 · <a href="https://ourword.ai">OurWord.ai</a> 的播客線。內容為原播客的中文深讀，
+版權歸各節目所有；每篇都附原節目鏈接，請去支持原作者。</div>
+<div class="links"><a href="/podcast/tw/">首頁</a><a href="/podcast/tw/sources/">信源</a>
+<a href="/podcast/tw/log/">更新日誌</a><a href="/podcast/tw/feed.xml">RSS</a>
+<a href="/podcast/tw/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源碼</a></div>
+</div></div></footer>
+<script src="/podcast/tw/assets/site.js?v=6b63b16c74" defer></script>
+</body></html>
