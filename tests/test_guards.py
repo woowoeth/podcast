@@ -431,12 +431,34 @@ class ProbationIsVisibleToReaders(unittest.TestCase):
         i = src.index("def log_page")
         seg = src[i:i + 3000]
         self.assertIn('r.get("probation")', seg)
-        self.assertIn('分{flag}</span>', seg)
+        # 判据是**意图**：试用标记必须和分数在同一个 span 里（.ev 是四列网格，
+        # 多一个子元素会另起一行）。原来断言的是字面量 '分{flag}</span>'，
+        # 而分数格式化在英文化时抽成了 i18n.score()——判据跟着搬，不是把改动退回去。
+        self.assertRegex(seg, r'class="ev-score">\{sc\}\{flag\}</span>')
 
     def test_log_page_explains_what_probation_means(self):
         src = (ROOT / "pipeline" / "build.py").read_text()
         i = src.index("def log_page")
-        self.assertIn("还没有任何一篇成稿走完四道闸门", src[i:i + 5000])
+        # 这段文案在英文化时搬进了 i18n.UI（log_page 里现在是 T("LOG_LEDE_2B")）。
+        # 判据跟着搬——原意是"页面上必须解释试用标记是什么"，那个意思没变。
+        self.assertIn('T("LOG_LEDE_2B")', src[i:i + 5000],
+                      "log 页必须解释试用标记")
+        import sys as _s
+        _s.path.insert(0, str(ROOT / "pipeline"))
+        import i18n as _i
+        self.assertIn("还没有任何一篇成稿走完四道闸门", _i.ZH.get("LOG_LEDE_2B", ""),
+                      "试用标记的中文解释不见了")
+
+    def test_artificial_keys_have_chinese_originals(self):
+        """人造键（LOG_LEDE_1 这种长段落）必须在 i18n.ZH 里给出中文原文。
+        不给的话，简体模式下 T() 的恒等行为会把**键名**直接印到页面上——
+        线上真出过：日志页显示 "LOG_LEDE_1"，首页显示 "BLURB_HEADBLURB_TAIL"。
+        是同伴写的一条守护抓到的，不是我自己发现的。"""
+        import sys as _s
+        _s.path.insert(0, str(ROOT / "pipeline"))
+        import i18n as _i
+        self.assertEqual(_i.unresolved_zh(), [],
+                         "这些人造键会把键名印到简体页面上")
 
     def test_css_selectors_match_the_markup(self):
         # `.ev.add .what` 是上次把 .why 改成 .ev-why 时留下的死规则
@@ -2894,8 +2916,15 @@ class EnglishEdition(unittest.TestCase):
         src = (ROOT / "pipeline" / "build.py").read_text()
         i = src.index("def write_card_pages")
         body = src[i:src.index("\ndef ", i + 10)]
-        self.assertNotIn("ROOT /", body, "write_card_pages 不许自己决定往哪写")
-        self.assertIn("out = out or ROOT", body)
+        self.assertIn("out = out or ROOT", body, "必须收输出目录")
+        # 写卡片的那几行必须用 out。（清理第一版遗留的 ROOT / "cards.json"
+        # 是仓库根独有的一次性动作，不在此列。）
+        for ln in body.split("\n"):
+            if ".write_text(" in ln or ".unlink()" in ln:
+                if 'cards.json"' in ln:      # 旧单文件，只在仓库根
+                    continue
+                self.assertNotIn("ROOT /", ln,
+                                 f"这行还在写 ROOT：{ln.strip()[:70]}")
 
     def test_source_loop_does_not_shadow_the_output_root(self):
         """把 main() 里的 ROOT 机械替换成 out 时，源站页循环 `out = sdir / id`
@@ -2903,8 +2932,12 @@ class EnglishEdition(unittest.TestCase):
         （仓库里留下过 s/tokcast/p/）。"""
         src = (ROOT / "pipeline" / "build.py").read_text()
         i = src.index("def render_site")
-        self.assertNotIn('out = sdir /', src[i:],
-                         "源站页循环不许用 out 当变量名")
+        import re as _re
+        i2 = src.index("sdir / src[", i)
+        line = src[src.rindex("\n", 0, i2) + 1:src.index("\n", i2)]
+        # 用词边界匹配："out =" 是 "sout =" 的子串，直接 in 会误报
+        self.assertIsNone(_re.search(r"\bout\s*=", line),
+                          f"源站页循环不许用 out 当变量名：{line.strip()}")
 
     def test_no_stray_nested_page_dirs(self):
         """上面那个 bug 的产物长这样：s/<id>/p/。它在仓库里躺过一阵。"""
@@ -2912,3 +2945,34 @@ class EnglishEdition(unittest.TestCase):
         bad = [d.name for d in s.iterdir()
                if d.is_dir() and (d / "p").exists()] if s.exists() else []
         self.assertEqual(bad, [], f"这些源站目录下有多余的 p/：{bad}")
+
+
+class RenderSiteMustNotShadowItsOutputRoot(unittest.TestCase):
+    """render_site(out, lang) 的函数体里不许再给 out 赋值。
+
+    这是一次机械替换（把 main() 里的 ROOT 全换成 out）留下的坑，**三处**，
+    每处症状都不一样，而且都不会让构建报错：
+
+      · 源站页循环 `out = sdir / src["id"]` → 之后的 p/、e/、robots.txt、
+        llms.txt 全写进了 s/<最后一个源>/ 下（仓库里留下了 s/tokcast/p/）
+      · 短链循环 `out = edir / x["id"]` → 循环结束后 out 指向最后一集的目录
+      · 正文页循环 `out = pdir / x["slug"]` → 同上
+
+    症状是"少了两个短链页"、"多了个 s/tokcast/p 目录"这种，离原因很远。
+    判据直接编在机制上：**函数体内对 out 的赋值一律禁止**。
+    """
+
+    def test_no_assignment_to_out_inside_render_site(self):
+        src = (ROOT / "pipeline" / "build.py").read_text()
+        i = src.index("def render_site")
+        body = src[i:src.index("\ndef main", i)]
+        bad = [ln.strip() for ln in body.split("\n")
+               if re.match(r"\s*out\s*=\s*\S", ln)]
+        self.assertEqual(bad, [],
+                         f"render_site 里给 out 赋了值，会遮蔽输出根目录：{bad}")
+
+    def test_alias_count_matches_episodes(self):
+        n_eps = len(list((ROOT / "data" / "episodes").glob("*.json")))
+        n_alias = len([d for d in (ROOT / "e").iterdir() if d.is_dir()]) \
+            if (ROOT / "e").exists() else 0
+        self.assertEqual(n_eps, n_alias, "短链页数量和篇数对不上")

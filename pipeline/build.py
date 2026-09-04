@@ -124,9 +124,15 @@ def T_dict(table: dict, key, default=None) -> str:
 
     字典是模块常量，语言是运行时才定的——所以不能在字典里存两套，
     取的时候翻译。TSRC_LABEL / KIND_LABEL / CAT_LABEL 都走这里。
+
+    **字典里没有这个键时，兜底值原样返回，不进 T()。** 兜底值是 id 本身
+    （比如 cat="sci" 在 CAT_LABEL 里没有条目），那不是界面文案，塞进文案表
+    只会让"漏译清单"里混进一堆 id。
     """
-    v = table.get(key, default if default is not None else key)
-    return T(v) if isinstance(v, str) else v
+    if key in table:
+        v = table[key]
+        return T(v) if isinstance(v, str) else v
+    return default if default is not None else key
 
 
 def show_name(x: dict) -> str:
@@ -1526,9 +1532,12 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
     for i, x in enumerate(eps):
         prev = eps[i - 1] if i > 0 else None
         nxt = eps[i + 1] if i + 1 < len(eps) else None
-        out = pdir / x["slug"]
-        out.mkdir(parents=True, exist_ok=True)
-        (out / "index.html").write_text(episode_page(x, prev, nxt))
+        # 同上：第三处遮蔽。三处都是同一次机械替换（main() 里的 ROOT → out）
+        # 留下的，而每一处的症状都不一样：源站页循环让 p/、e/、robots.txt 写进了
+        # s/<最后一个源>/ 下；短链循环让 out 在循环后指向最后一集的目录。
+        pout = pdir / x["slug"]
+        pout.mkdir(parents=True, exist_ok=True)
+        (pout / "index.html").write_text(episode_page(x, prev, nxt))
         live.add(x["slug"])
     if pdir.exists():                      # drop pages whose record is gone
         for d in pdir.iterdir():
@@ -1540,9 +1549,11 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
     edir = out / "e"
     alive = set()
     for x in eps:
-        out = edir / x["id"]
-        out.mkdir(parents=True, exist_ok=True)
-        (out / "index.html").write_text(alias_page(x))
+        # 同上：不许用 out 当循环变量，那是本函数的输出根目录。
+        # 这是那次机械替换留下的**第二处**遮蔽（第一处是源站页循环）。
+        eout = edir / x["id"]
+        eout.mkdir(parents=True, exist_ok=True)
+        (eout / "index.html").write_text(alias_page(x))
         alive.add(x["id"])
     if edir.exists():
         for d in edir.iterdir():

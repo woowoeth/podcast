@@ -160,8 +160,6 @@ UI: dict[str, str] = {
     '取不到可核对的文稿时不会发，等文稿到位再上。': 'Nothing goes up without a transcript we can check against. It waits until one exists.',
     '正在打开': 'Opening ',
     '最新一集': 'Latest',
-    'show': 'show',
-    'sci': 'Science',
     '科学 / 医学': 'Science & Medicine',
     'BLURB_HEAD': 'Every day, the judgements worth remembering from {n} Chinese- and English-language podcasts. ',
     'BLURB_HEAD_NONE': 'Every day, the judgements worth remembering from the podcasts worth reading. ',
@@ -236,10 +234,41 @@ class Missing(KeyError):
 _missed: set[str] = set()
 
 
+# 长段落用人造键（LOG_LEDE_1 这种），因为原文太长、不适合当字典键。
+# **人造键必须在这里给出中文原文**，否则简体模式下 T() 的恒等行为会把键名
+# 直接印到页面上——线上真出过：日志页显示 "LOG_LEDE_1"，首页显示
+# "BLURB_HEADBLURB_TAIL"。是同伴写的一条守护测试抓到的。
+ZH: dict[str, str] = {
+    "BLURB_HEAD": "每天从 {n} 档中英文播客里挑出值得记住的判断。",
+    "BLURB_HEAD_NONE": "每天从中英文播客里挑出值得记住的判断。",
+    "BLURB_TAIL": "要点和金句都带时间戳，点一下就回到它在原声里被说出的那一秒；"
+                  "金句逐字校验过、数字回原文核对过——查不到出处的，一律不上站。",
+    "SOURCES_DESC": "NAME 目前追踪 {n} 档中英文播客的完整信源清单与抓取健康度。",
+    "SRC_LEDE_1": "以 Apple Podcasts 官方 RSS 为主干，而不是只抓 YouTube 频道"
+                  "——这样纯音频节目（Acquired、Odd Lots、Invest Like the Best）"
+                  "和中文播客才不会整块缺失。feed 地址不写死在代码里，节目换托管商时"
+                  "会自动从 Apple 目录重新解析，所以不会悄悄断更。",
+    "SRC_LEDE_2": "T1 表示每集必读，T2 有实质内容时收，T3 只在特别强的一集时收。",
+    "LOG_LEDE_1": "信源清单每三天自动复查一次。判据全部来自实测数据，不靠印象："
+                  "feed 是否失效、停更多少天、选题闸门的通过率、成稿评分的中位数。"
+                  "同时从近期发布的内容里挖新线索（被提到的其他节目、反复出现的"
+                  "受访者），实测文稿可得性后打分，只收 8 分以上。",
+    "LOG_LEDE_2A": "标着",
+    "LOG_LEDE_2B": "的是刚收的：那个分数照着标题、分集说明和文稿抽样打的，"
+                   "还没有任何一篇成稿走完四道闸门。跑一段之后，出得来内容的提级，"
+                   "出不来的移除，两种结果都会记在下面。",
+    "LOG_LEDE_3": "一个聚合站悄悄换掉信源，等于悄悄换掉它的口味，"
+                  "所以每一次改动都记在这里。完整清单见",
+}
+
+
 def T(zh: str) -> str:
-    """界面文案。简体模式是恒等函数。"""
+    """界面文案。
+
+    简体模式下：键就是原文时是恒等函数；人造键（长段落）从 ZH 表取中文。
+    """
     if LANG == "zh":
-        return zh
+        return ZH.get(zh, zh)
     v = UI.get(zh)
     if v is None:
         _missed.add(zh)
@@ -247,6 +276,20 @@ def T(zh: str) -> str:
         # 构建结束时 missed() 非空就让整次构建失败。
         return zh
     return v
+
+
+def unresolved_zh() -> list[str]:
+    """简体模式下会把键名直接印出去的人造键。
+
+    判据：键本身不含汉字（说明是人造键），却没有在 ZH 表里给中文原文。
+    这条是补上一次真实故障的——日志页曾经显示 "LOG_LEDE_1"。
+    """
+    import re as _re
+    bad = []
+    for k in UI:
+        if not _re.search(r"[一-鿿]", k) and k not in ZH:
+            bad.append(k)
+    return sorted(bad)
 
 
 def missed() -> list[str]:
