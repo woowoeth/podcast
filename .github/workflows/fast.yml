@@ -102,8 +102,18 @@ jobs:
         run: |
           # 说话人译名表排在前面：它是全站去重的短字符串表，
           # 渲染时查不到就会在英文页上原样显示中文。
+          python pipeline/transsources.py || true
           python pipeline/transspeakers.py || true
-          python pipeline/translate.py --limit 4 --workers 4
+          # **译到没有待译为止，不是译固定几篇。** --limit 是成本护栏；
+          # 某一轮发得比译得多时，固定篇数会让多出来的只带中文上线，
+          # 而输出上和"全译完了"分不出来。三棵树要同一次推送一起上。
+          for i in 1 2 3; do
+            n=$(python pipeline/translate.py --pending | tail -1)
+            echo "第 $i 轮：待译 $n 篇"
+            [ "$n" = "0" ] && break
+            python pipeline/translate.py --limit 12 --workers 4 || break
+          done
+          echo "剩余待译：$(python pipeline/translate.py --pending | tail -1) 篇"
 
       - name: Rebuild and push
         run: |
@@ -128,3 +138,11 @@ jobs:
             echo "push retry $i"; sleep $(( (RANDOM % 7) + 3 ))
           done
           [ "$ok" = 1 ] || { echo "::error::站点推送失败"; exit 1; }
+
+      - name: Notify search engines (IndexNow)
+        if: success()
+        run: |
+          # **每条发布线都要通知。** 原来只有日更接了，而快车道是每 2 小时
+          # 发一次的那条、本机线又是中文播客的主力——它们发的内容只能等爬虫
+          # 自己回来，那是几天到几周。三棵树的 URL 都提交（见 indexnow.py）。
+          python pipeline/indexnow.py || true

@@ -364,7 +364,16 @@ LANG_JS = ("<script>(function(){try{"
            "var b=document.getElementById('lang-toggle');if(!b)return;"
            "var hasEn=!!b.getAttribute('data-en');"
            "var sel=document.createElement('select');sel.id='lang-toggle';"
-           "sel.className=b.className;sel.setAttribute('aria-label','\\u8bed\\u8a00 Language');"
+           "sel.className=b.className;"
+           # 英文页上只留 Language。原来固定是「语言 Language」，而它在源码里
+           # 写成 \u8bed\u8a00——只扫字面汉字的检查看不见它，enscan 只扫文本
+           # 节点也看不见它（是 JS 运行时设的属性），而屏幕阅读器会照着念。
+           # 这里让 JS 自己读 <html lang>：LANG_JS 是模块级常量，取不到构建时
+           # 的语言，而这一行三棵树通用。
+           # （下拉里的 简/繁 保留中文：语言选择器用各自的文字称呼各自，
+           #  而且那两个 option 带 lang，是标注过的中文，不是漏译。）
+           "var _en=document.documentElement.lang.slice(0,2)==='en';"
+           "sel.setAttribute('aria-label',_en?'Language':'\\u8bed\\u8a00 Language');"
            # 每一项用**它自己的语言**写（简体 / 繁體 / English），这是语言选择器
            # 的惯例——一个只读英文的人也认得出 English 那一项。所以中文那两项
            # 带 lang，不是漏译：渲染层体检查的是"中文必须被显式标注"，

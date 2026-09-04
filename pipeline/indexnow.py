@@ -27,14 +27,34 @@ def key_file() -> pathlib.Path:
     return KEY_FILE
 
 
+def _trees() -> list[str]:
+    """现在真的存在哪几棵树。加第四棵不需要改这里。"""
+    root = pathlib.Path(__file__).resolve().parent.parent
+    return [""] + [f"/{d}" for d in ("tw", "en")
+                   if (root / d / "index.html").exists()]
+
+
 def urls_to_submit(limit: int = 40) -> list[str]:
+    """**三棵树的 URL 都要提交。**
+
+    原来这里只提交简体：`SITE` 是简体的站点根，`ep_url()` 也走简体的 BASE。
+    于是 /en/ 和 /tw/ 的新页面从来没被推给搜索引擎——它们只能等爬虫自己
+    回来，而那是几天到几周。三棵树同一次推送上线，通知也该是三份。
+    """
     eps, _ = load()
-    out = [SITE + "/", SITE + "/sitemap.xml", SITE + "/llms.txt", SITE + "/sources/"]
+    out = []
+    for t in _trees():
+        base = SITE + t
+        out += [base + "/", base + "/sitemap.xml", base + "/llms.txt",
+                base + "/sources/"]
     for ep in eps[:limit]:
         try:
-            out.append(ep_url(ep))
+            u = ep_url(ep)
         except Exception:
             continue
+        for t in _trees():
+            # ep_url 给的是简体地址；换成这棵树的前缀
+            out.append(u.replace(SITE + "/", SITE + t + "/", 1) if t else u)
     # unique, stable order
     seen, uniq = set(), []
     for u in out:

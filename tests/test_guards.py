@@ -3695,3 +3695,257 @@ class RuntimeStringsMustGoThroughTheTable(unittest.TestCase):
         unused = [k for k in keys if f"T('{k}')" not in rest and f'T("{k}")' not in rest]
         self.assertFalse(unused, f"文案表里这些条目没人用，是漏接了还是该删："
                                  f"{unused}")
+
+
+class ScheduledRunsMustNotHardcodeSources(unittest.TestCase):
+    """定时跑批不许写死信源 id 或分类清单。
+
+    实测过的洞：日更的「薄分类波」是三行硬编码的 34 个信源 id，只覆盖
+    hist/ideas/sci。两个后果都发生了——同分类里 28 个源不在清单上，
+    2026 年后加的源永远进不了；ai/biz/cn/parent 的 tier2/3 **结构上到不了**，
+    因为主跑批按 tier 打分（1=100 / 2=55 / 3=25）而每天只有 6-8 集预算。
+    实测 23 档 feed 里有能进候选的集却一篇都没出过，15 档就落在没有波的分类。
+
+    「加一档源、它悄悄不工作」——这条检查就是为了让那件事不可能再发生。
+    """
+
+    def workflows(self):
+        d = ROOT / ".github" / "workflows"
+        return sorted(d.glob("*.yml")) if d.is_dir() else []
+
+    @staticmethod
+    def _scheduled_body(text):
+        """只查定时触发的工作流。手动 dispatch 里写 --only 是合理的。"""
+        if "schedule:" not in text:
+            return ""
+        # 把 inputs 段落摘掉：那是手动参数的默认值，不是定时行为
+        out, skip = [], False
+        for line in text.splitlines():
+            st = line.strip()
+            if st.startswith("workflow_dispatch:"):
+                skip = True
+            elif skip and st.startswith(("jobs:", "permissions:", "concurrency:", "env:")):
+                skip = False
+            out.append("" if skip else line)
+        return "\n".join(out)
+
+    def test_no_long_source_id_list_in_a_scheduled_step(self):
+        ids = {s["id"] for s in
+               json.loads((ROOT / "data" / "sources.json").read_text())["sources"]}
+        for f in self.workflows():
+            body = self._scheduled_body(f.read_text())
+            for m in re.finditer(r"--only\s+([A-Za-z0-9_,\-]+)", body):
+                got = [x for x in m.group(1).split(",") if x]
+                # 一两个 id 是定点补漏，可以；一长串就是会过期的清单
+                if len(got) <= 2:
+                    continue
+                stale = [x for x in got if x not in ids]
+                self.fail(
+                    f"{f.name} 的定时步骤里写死了 {len(got)} 个信源 id"
+                    + (f"（其中 {stale} 已经不存在了）" if stale else "")
+                    + " —— 用 --cat 从 data/sources.json 现取，"
+                      "不然新加的源永远进不来")
+
+    def test_the_sweep_covers_every_category(self):
+        """扫描波必须覆盖 sources.json 里**所有**分类。
+
+        加第八个分类时，这条会立刻报——而不是等到那个分类的源
+        一年都没出过一篇才有人发现。
+        """
+        cats = {s.get("cat") for s in
+                json.loads((ROOT / "data" / "sources.json").read_text())["sources"]}
+        cats.discard(None)
+        f = ROOT / ".github" / "workflows" / "daily.yml"
+        body = f.read_text()
+        m = re.search(r"CATS=\(([a-z ]+)\)", body)
+        self.assertIsNotNone(m, "daily.yml 里找不到 CATS=(...) 轮转清单")
+        listed = set(m.group(1).split())
+        self.assertFalse(cats - listed,
+                         f"这些分类没进轮转清单：{sorted(cats - listed)} —— "
+                         f"里面的源结构上到不了")
+        self.assertFalse(listed - cats,
+                         f"轮转清单里有不存在的分类：{sorted(listed - cats)}")
+
+    def test_the_rotation_reaches_every_category(self):
+        """轮转本身要能走遍。步长和分类数不互质的话会永远漏掉几个。"""
+        body = (ROOT / ".github" / "workflows" / "daily.yml").read_text()
+        cats = re.search(r"CATS=\(([a-z ]+)\)", body).group(1).split()
+        m = re.search(r"%\s*\$\{#CATS\[@\]\}", body)
+        self.assertIsNotNone(m, "轮转没有对分类数取模")
+        step = re.search(r"10#\$DAY\s*\*\s*(\d+)", body)
+        per = re.search(r"for i in ([0-9 ]+); do", body)
+        self.assertIsNotNone(step, "找不到轮转步长")
+        self.assertIsNotNone(per, "找不到每天扫几个")
+        k = len(per.group(1).split())
+        seen = set()
+        for day in range(1, len(cats) + 1):
+            for i in range(k):
+                seen.add(cats[(day * int(step.group(1)) + i) % len(cats)])
+        self.assertEqual(seen, set(cats),
+                         f"{len(cats)} 天内轮不到这些分类："
+                         f"{sorted(set(cats) - seen)}——步长和分类数不互质")
+
+
+class EveryPublishLineMustShipAllLanguagesAndTellTheWorld(unittest.TestCase):
+    """一次发布要做完四件事：发、译、建三棵树、通知。
+
+    这四件事此前**各自漏在不同的线上**，而每一处漏都是静默的：
+      · 只有 daily.yml 跑 translate.py（本机线是中文播客的主力，从没跑过）；
+      · 只有 daily.yml 通知 IndexNow（快车道每 2 小时发一次，从不通知）；
+      · daily.yml 单轮能发 18 篇却只译 12 篇，多出来的只带中文上线；
+      · indexnow 只提交简体 URL，/en/ 和 /tw/ 的新页面从没被推过。
+
+    判据只认**真正的调用行**，不认注释。第一版在整份文件里找字符串，
+    反向注入时三条里三条被注释骗过去了——把调用换成 echo、把函数改名，
+    检查照样"通过"，因为文件里还留着提到它的注释。
+    """
+
+    LINES = {"daily.yml": ".github/workflows/daily.yml",
+             "fast.yml": ".github/workflows/fast.yml",
+             "backfill.yml": ".github/workflows/backfill.yml",
+             "local-daily.sh": "scripts/local-daily.sh"}
+
+    # 行首（允许缩进）真的执行了某个 pipeline 脚本，注释行不算
+    @staticmethod
+    def _calls(text, tool):
+        pat = re.compile(r"^[^#\n]*\bpython3?\s+\S*pipeline/" + re.escape(tool),
+                         re.M)
+        return [m.start() for m in pat.finditer(text)]
+
+    def bodies(self):
+        for name, rel in self.LINES.items():
+            f = ROOT / rel
+            self.assertTrue(f.exists(), f"{name} 不见了")
+            yield name, f.read_text()
+
+    def test_every_line_translates(self):
+        for name, s in self.bodies():
+            for tool in ("translate.py", "transspeakers.py", "transsources.py"):
+                if not self._calls(s, tool):
+                    self.fail(f"{name} 没有真正调用 {tool}（注释里提到不算）")
+
+    def test_every_line_notifies_search_engines(self):
+        for name, s in self.bodies():
+            if not self._calls(s, "indexnow.py"):
+                self.fail(f"{name} 发完不通知搜索引擎 —— "
+                          f"它发的内容只能等爬虫自己回来，那是几天到几周")
+
+    def test_translation_happens_before_the_site_is_built(self):
+        # 顺序错了就不是"同时上线"：先建站再译，这一轮的英文站永远少几篇。
+        # 位置取**真实调用**的位置：--pending 那一行也是 translate.py 的调用，
+        # 所以取最后一次真正的翻译调用，和最后一次建站比。
+        for name, s in self.bodies():
+            tr = self._calls(s, "translate.py")
+            bd = self._calls(s, "build.py")
+            if not tr:
+                self.fail(f"{name} 没有真正调用 translate.py")
+            if not bd:
+                self.fail(f"{name} 没有真正调用 build.py")
+            if max(tr) > max(bd):
+                self.fail(f"{name} 里 translate.py 排在 build.py 之后 —— "
+                          f"这一轮的英文站会少掉刚发的那几篇")
+
+    def test_translation_is_not_capped_below_what_the_line_can_publish(self):
+        """译的上限不能小于发的上限。
+
+        实测：daily 单轮能发 18 篇（主跑批 6 + 三波扫描 3×4），
+        而 translate.py 曾是 --limit 12。差出来的 6 篇只带中文上线，
+        而输出上和"全译完了"分不出来。四条线现在都是 while-pending 循环，
+        所以判据落在"有没有真的问过待译数"上。
+        """
+        for name, s in self.bodies():
+            asked = [i for i in self._calls(s, "translate.py")
+                     if "--pending" in s[i:i + 120]]
+            if not asked:
+                self.fail(f"{name} 用固定篇数译，没有「译到没有待译为止」的循环"
+                          f" —— 某一轮发得比译得多时会静默只推中文")
+
+    def test_indexnow_submits_every_tree(self):
+        s = (ROOT / "pipeline" / "indexnow.py").read_text()
+        # 判据落在**行为**上：真去算一次要提交哪些 URL，三棵树都要在里面。
+        import subprocess
+        code = ("import sys,pathlib;"
+                "sys.path.insert(0,str(pathlib.Path('pipeline').resolve()));"
+                "import indexnow;print('\\n'.join(indexnow.urls_to_submit(3)))")
+        r = subprocess.run([sys.executable, "-c", code], cwd=ROOT,
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0,
+                         f"indexnow.urls_to_submit 跑不起来：{r.stderr[-300:]}")
+        urls = r.stdout.split()
+        for sub in ("tw", "en"):
+            if not (ROOT / sub / "index.html").exists():
+                continue
+            got = [u for u in urls if f"/podcast/{sub}/" in u]
+            self.assertTrue(got, f"indexnow 一个 /{sub}/ 的 URL 都没提交 —— "
+                                 f"那棵树的新页面只能等爬虫自己回来")
+
+
+class NoBrokenInternalLinks(unittest.TestCase):
+    """站内链接一个都不许指向不存在的东西。
+
+    走查时抓到的：5 篇已发布的集，点节目名是 404——addvideo.py 单集入库时
+    source_id 不进 sources.json，信源页从来没生成过（线上实测 404）；
+    英文页的 favicon 指向 /podcast/en/icon.svg，也是 404，于是每个英文页的
+    浏览器标签都没有图标。两处都**产物齐全检查全过**，因为那些检查数的是
+    "该生成的都生成了"，不是"链过去的都在"。
+
+    跨站链接（/skill/ 等）不查：它们在别的仓库里，本地必然找不到。
+    """
+
+    SISTER = ("/skill", "/taste", "/hw", "/humanworld")
+
+    def test_every_internal_href_resolves(self):
+        import urllib.parse
+        href = re.compile(r'(?:href|src)="([^"]+)"')
+        pages = (list(ROOT.glob("index.html")) + list(ROOT.glob("*/index.html"))
+                 + list(ROOT.glob("p/*/index.html")) + list(ROOT.glob("s/*/index.html"))
+                 + list(ROOT.glob("e/*/index.html")))
+        for sub in ("en", "tw"):
+            if (ROOT / sub).is_dir():
+                pages += list((ROOT / sub).rglob("index.html"))
+        self.assertGreater(len(pages), 100, f"只找到 {len(pages)} 个页面，路径是不是变了")
+        broken: dict[str, str] = {}
+        for f in pages:
+            for u in set(href.findall(f.read_text(errors="replace"))):
+                if u.startswith(("http://", "https://", "mailto:", "#",
+                                 "data:", "javascript:")):
+                    continue
+                path = urllib.parse.unquote(u.split("#")[0].split("?")[0])
+                if not path:
+                    continue
+                if any(path.startswith(x + "/") or path == x for x in self.SISTER):
+                    continue
+                if path.startswith("/podcast/"):
+                    t = ROOT / path[len("/podcast/"):]
+                elif path.startswith("/"):
+                    t = ROOT / path.lstrip("/")
+                else:
+                    t = f.parent / path
+                if not (t.exists() or (t / "index.html").exists()):
+                    broken.setdefault(path, str(f.relative_to(ROOT)))
+        self.assertFalse(
+            broken,
+            "这些站内链接指向不存在的东西：\n  "
+            + "\n  ".join(f"{k}  （出现在 {v}）" for k, v in list(broken.items())[:8]))
+
+    def test_every_source_with_episodes_has_a_page(self):
+        """判据落在后果上：读者点得到的节目名，必须点得开。"""
+        import collections
+        cnt: collections.Counter = collections.Counter()
+        for f in (ROOT / "data" / "episodes").glob("*.json"):
+            try:
+                cnt[json.loads(f.read_text()).get("source_id")] += 1
+            except Exception:
+                continue
+        for sid, n in cnt.items():
+            if not sid:
+                continue
+            for tree in ("", "tw", "en"):
+                d = ROOT / tree / "s" / sid if tree else ROOT / "s" / sid
+                if tree and not (ROOT / tree / "index.html").exists():
+                    continue
+                if tree == "en" and not (ROOT / "en" / "p").is_dir():
+                    continue
+                self.assertTrue((d / "index.html").exists(),
+                                f"{sid} 有 {n} 篇集，但 {tree or 'zh'} 树里没有它的"
+                                f"信源页 —— 读者点节目名会 404")

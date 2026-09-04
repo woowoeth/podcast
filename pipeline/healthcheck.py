@@ -391,6 +391,170 @@ def check_translation_side_tables(r: Report) -> None:
         r.good(f"信源简介译文 {len(srcs)}/{len(srcs)} 条齐全")
 
 
+def check_source_coverage(r: Report) -> None:
+    """每档信源为什么有／没有产出——按需要的**动作**分类。
+
+    为什么必须报：163 档里 67 档一篇都没出过，而这 67 档在任何一处输出里
+    都长得一模一样。"源自己三个月没更新"和"我们的抓取坏了"要的动作完全不同，
+    混在一起的结果是：**新加一档源、它悄悄不工作，没有任何人会知道。**
+
+    硬伤只给"我们的问题"：抓取坏了、tier1 从没被尝试过。
+    拿不到文稿和源自己安静了是按设计不发，只报数。
+    """
+    try:
+        import sys as _s
+        _s.path.insert(0, str(ROOT / "pipeline"))
+        import coverage as _cov
+    except Exception as ex:
+        r.fail(f"覆盖率诊断跑不起来（{type(ex).__name__}）——"
+               f"信源有没有被抓到就没人报了")
+        return
+    c = _cov.classify()
+    n = sum(len(v) for v in c.values())
+    ok = len(c.get("有产出") or [])
+    broke = _cov.broken(c)
+    if broke:
+        r.fail(f"{len(broke)} 档信源抓取坏了（我们的问题）："
+               f"{'、'.join(x['id'] for x in broke[:6])}"
+               f" —— 跑 python3 pipeline/coverage.py 看详情")
+    nocheck = c.get("从没体检过") or []
+    if nocheck:
+        r.note(f"{len(nocheck)} 档从没体检过（status.ok 是 None，不是坏）："
+               f"{'、'.join(x['id'] for x in nocheck[:6])}"
+               f" —— 跑 python3 pipeline/resolve_sources.py --check")
+    untried = c.get("从没被尝试过") or []
+    # 实探结果（coverage.py --probe --write 写的）：**原因是算出来的，
+    # 不是一张"已知不可达"的名单**。名单会过期，而且下一个人看不出它当初
+    # 为什么在名单上。Sharp Tech 就是例子：tier1、每周更新、feed 好的，
+    # 却一集没出过——实探一句话说清，它公开 feed 里每一集标题都是
+    # (Preview)（订阅制节目只放试听），SKIP_TITLE 拦得对。
+    probe, probe_age = {}, None
+    f = DATA / "coverage.json"
+    if f.exists():
+        try:
+            d = json.loads(f.read_text())
+            probe = d.get("untried") or {}
+            import datetime as _dt
+            t = _dt.datetime.strptime(d["at"][:19], "%Y-%m-%dT%H:%M:%S").replace(
+                tzinfo=_dt.timezone.utc)
+            probe_age = (_dt.datetime.now(_dt.timezone.utc) - t).days
+        except Exception:
+            probe = {}
+    def explained(sid: str) -> str | None:
+        why = probe.get(sid)
+        # "本该被抓到"不算解释——那正是要报的那一类
+        return None if (not why or "本该被抓到" in why) else why
+    t1_bad = [x["id"] for x in untried
+              if x["tier"] == 1 and not explained(x["id"])]
+    t1_ok = [(x["id"], explained(x["id"])) for x in untried
+             if x["tier"] == 1 and explained(x["id"])]
+    if t1_bad:
+        r.fail(f"tier1 信源 {'、'.join(t1_bad)} feed 是新鲜的、却从没被尝试过，"
+               f"而且实探也说不出原因 —— tier1 的意思是「必收」。"
+               f"跑 python3 pipeline/coverage.py --probe")
+    for sid, why in t1_ok:
+        r.note(f"tier1 信源 {sid} 一集都出不来，原因已实探：{why}"
+               f"（不是故障；要么它不该是 tier1，要么这档只能放弃）")
+    should = [k for k, v in probe.items() if "本该被抓到" in v]
+    # 硬伤的判据是**结构上到不了**，不是"还没赢到预算"。
+    #
+    # 主跑批按 tier 打分（1=100 / 2=55 / 3=25），每天预算 6-8 集，所以
+    # tier2/3 靠的是分类扫描波轮到它。原来那三波是硬编码的 34 个 id、
+    # 只覆盖 hist/ideas/sci——ai/biz/cn/parent 的低优先级源**一次都轮不到**，
+    # 实测 23 档 feed 里有能进候选的集却一篇没出过，15 档就落在那几个分类。
+    #
+    # 所以这里查的是"它所在的分类在不在轮转清单里"。轮到了还没出，那是
+    # 排序和预算的结果，报个数就够；轮不到，才是漏。
+    swept = set()
+    wf = ROOT / ".github" / "workflows" / "daily.yml"
+    if wf.exists():
+        import re as _re
+        m = _re.search(r"CATS=\(([a-z ]+)\)", wf.read_text())
+        if m:
+            swept = set(m.group(1).split())
+    srcs = {x["id"]: x for x in
+            json.loads((DATA / "sources.json").read_text())["sources"]}
+    unreachable = [k for k in should
+                   if (srcs.get(k, {}).get("cat") or "?") not in swept]
+    if unreachable:
+        r.fail(f"{len(unreachable)} 档信源的 feed 里有能进候选的集，而它们所在的"
+               f"分类**不在定时扫描的轮转清单里**——结构上永远轮不到："
+               f"{'、'.join(unreachable[:6])}。"
+               f"把分类加进 daily.yml 的 CATS")
+    elif should:
+        r.note(f"{len(should)} 档信源有能进候选的集但还没出过稿（分类都在轮转"
+               f"清单里，是排序和每日预算的结果，不是漏）—— "
+               f"python3 pipeline/coverage.py --probe 看每一档")
+    if untried:
+        r.note(f"{len(untried)} 档 feed 新鲜却从没被尝试过 —— "
+               f"python3 pipeline/coverage.py --probe 看每一档的原因")
+    if probe_age is None:
+        r.note("信源实探还没跑过（data/coverage.json 不存在）—— "
+               "跑 python3 pipeline/coverage.py --probe --write")
+    elif probe_age > 7:
+        r.note(f"信源实探是 {probe_age} 天前的，可能过期了 —— "
+               f"跑 python3 pipeline/coverage.py --probe --write")
+    r.good(f"信源覆盖：{ok}/{n} 档有产出 · "
+           f"拿不到文稿 {len(c.get('拿不到文稿') or [])} 档 · "
+           f"源自己安静了 {len(c.get('源自己安静了') or [])} 档")
+
+
+def check_language_parity(r: Report) -> None:
+    """三棵树是不是**同一次推送**一起上线的。
+
+    判据落在后果上：有没有哪一篇只有中文、以及它已经这样多久了。
+
+    四条发布线的顺序都是「跑批 → 译 → 建站 → 推」，所以正常情况下三棵树
+    同时上线。会打破它的是三件事，都实测过：
+      · 译的上限比发的上限小（日更单轮能发 18 篇、只译 12 篇）；
+      · translate.py 是 continue-on-error，失败就整轮只推中文；
+      · build.py 只渲染有译文的集——少几篇是**静默**的，
+        产物齐全检查照样全过，因为它查的是"三个数字相等"，
+        而那三个数字都是从同一棵树数出来的。
+
+    所以这条不看流程，只看结果，并且报出**滞后时长**：超过一个发布周期
+    （快车道 2 小时）还没补上，就说明不是"正在译"，而是"漏了"。
+    """
+    import datetime as _dt
+    d = DATA / "en"
+    if not d.exists():
+        return
+    have = {f.stem for f in d.glob("*.json") if not f.name.startswith("_")}
+    lag = []
+    for f in sorted((DATA / "episodes").glob("*.json")):
+        try:
+            ep = json.loads(f.read_text())
+        except Exception:
+            continue
+        slug = ep.get("slug") or ""
+        if not slug or slug in have:
+            continue
+        at = ep.get("generated") or ep.get("at") or ""
+        hours = None
+        try:
+            t = _dt.datetime.strptime(at[:19], "%Y-%m-%dT%H:%M:%S").replace(
+                tzinfo=_dt.timezone.utc)
+            hours = (_dt.datetime.now(_dt.timezone.utc) - t).total_seconds() / 3600
+        except Exception:
+            pass
+        lag.append((hours if hours is not None else 1e9, slug))
+    if not lag:
+        r.good(f"三语齐平：{len(have)}/{len(have)} 篇都有译文，"
+               f"三棵树同一次推送上线")
+        return
+    lag.sort(reverse=True)
+    worst, slug = lag[0]
+    age = "时间未知" if worst > 1e8 else f"{worst:.1f} 小时"
+    line = (f"{len(lag)} 篇只有中文，最久的已经 {age}"
+            f"（{slug[:44]}）")
+    # 一个快车道周期是 2 小时。超过 3 小时还没补上，就不是"正在译"。
+    if worst > 3:
+        r.fail(line + " —— 超过一个发布周期还没补上，"
+                      "跑 python3 pipeline/translate.py --limit 24 --workers 4")
+    else:
+        r.note(line + " —— 还在一个发布周期内，下一班会补上")
+
+
 def check_discovery(r: Report) -> None:
     """三棵树都能被爬虫和答案引擎找到吗。
 
@@ -495,6 +659,8 @@ def main(argv: list[str] | None = None) -> int:
     check_english_edition(r)
     check_translation_side_tables(r)
     check_discovery(r)
+    check_source_coverage(r)
+    check_language_parity(r)
     if a.online:
         check_online(r)
 

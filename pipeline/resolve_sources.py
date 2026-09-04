@@ -447,6 +447,23 @@ def main() -> int:
             s = dict(s)
             if s.get("cat") in CATS:
                 s["cat_label"] = CATS[s["cat"]]
+            # **带过来的也要体检。** 原来这里是原样复制，于是 curate.py 写进来的
+            # 试用源**永远没被探过**：status 是空字典，`ok` 是 None。
+            # 后果是它们既不在"坏了"里也不在"好了"里，40 档 feed 新鲜的源
+            # 从没被尝试过，8 档连状态都没有——加了源、它悄悄不工作，
+            # 没有任何人会知道。这正是"新增的源要能及时抓到"栽的那一处。
+            if a.check:
+                st = probe(s)
+                s["status"] = st
+                flag = "ok " if st["ok"] else ("skip" if st.get("blocked_here")
+                                               else "DEAD")
+                log(f"{flag} {sid:<15} {st.get('episodes','-'):>5} eps  "
+                    f"age={st.get('age_days','?'):>6}d  "
+                    f"cadence={st.get('cadence_days','?'):>5}d  "
+                    f"tscr={st.get('official_transcripts','-')}/12  "
+                    f"（试用源，之前从没探过）{st.get('error','')}")
+                if st.get("image") and not s.get("image"):
+                    s["image"] = st["image"]
             out.append(s)
             known.add(sid)
 

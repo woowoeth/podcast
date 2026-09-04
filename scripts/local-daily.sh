@@ -145,8 +145,16 @@ export LLM_MODEL
   # 新集要译成英文才会进 /en/。**每条发布线都要接**——原来只有云端日更接了，
   # 本机线（住宅 IP 那条，中文播客主要靠它）发的内容在英文站上一直缺。
   # 失败不阻塞：没译的不渲染，宁可少几篇也不要中英混排。
+  python3 pipeline/transsources.py || true
   python3 pipeline/transspeakers.py || true
-  python3 pipeline/translate.py --limit 12 --workers 4 || true
+  # 译到没有待译为止：三棵树要同一次推送一起上线，
+  # 译固定篇数的话，发得比译得多的那一轮就会只推中文。
+  for i in 1 2 3; do
+    n=$(python3 pipeline/translate.py --pending | tail -1)
+    [ "$n" = "0" ] && break
+    echo "待译 $n 篇（第 $i 轮）"
+    python3 pipeline/translate.py --limit 20 --workers 4 || break
+  done
   python3 pipeline/build.py
   # 这张清单每次加新产物都必须跟着改，漏了就是"本机线永远不提交它"——
   # e（分享短链）和 log（更新日志）就漏过：日志里躺着一堆未跟踪的 e/ 目录，
@@ -166,7 +174,14 @@ export LLM_MODEL
   # `git pull --rebase` + `commit --amend`，两轮跑批同时重建站点必然在
   # index.html / feed.xml 上冲突，rebase 反复失败——云端就是这么丢掉 11 篇的。
   for i in 1 2 3 4 5; do
-    if git push -q origin main; then echo "已推送"; exit 0; fi
+    if git push -q origin main; then
+      echo "已推送"
+      # **每条发布线都要通知搜索引擎。** 原来只有云端日更接了，而这条线是
+      # 中文播客的主力（住宅 IP）——它发的内容只能等爬虫自己回来，
+      # 那是几天到几周。三棵树的 URL 都提交（见 indexnow.py）。
+      python3 pipeline/indexnow.py || echo "indexnow 通知失败（不致命）"
+      exit 0
+    fi
     # 留下未合并文件就先脱身，否则之后每次 pull 都报 unmerged
     if [ -n "$(git ls-files -u)" ]; then
       git rebase --abort 2>/dev/null || git merge --abort 2>/dev/null || true

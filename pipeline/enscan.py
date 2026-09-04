@@ -32,10 +32,26 @@ class _Scan(HTMLParser):
         self._zh = 0            # lang="zh" 子树深度
         self._stack: list[tuple[str, bool, bool]] = []
 
+    # 会被读者「读到」的属性。**它们和文本一样算漏译**：
+    # 屏幕阅读器念的是 aria-label，鼠标悬停看到的是 title，
+    # 图片加载失败时看到的是 alt，输入框里看到的是 placeholder。
+    # 实测漏过一处：语言下拉的 aria-label 在英文页上是「语言 Language」，
+    # 而它在源码里写成 \u8bed\u8a00——只扫文本节点看不到，
+    # 只扫字面汉字也看不到（转义把它藏起来了）。
+    _TEXT_ATTRS = ("aria-label", "title", "alt", "placeholder",
+                   "aria-description", "aria-placeholder")
+
     def handle_starttag(self, tag, attrs):
         d = dict(attrs)
         is_skip = tag in _SKIP_TAGS
         is_zh = d.get("lang", "").lower().startswith("zh")
+        # 属性上的文字：这个元素自己带 lang="zh" 就放行（中文节目的真名
+        # 该显示中文），否则算漏译。祖先在 zh 子树里的同理。
+        if not (self._skip or self._zh or is_zh or tag in _SKIP_TAGS):
+            for k in self._TEXT_ATTRS:
+                v = d.get(k) or ""
+                if CJK.search(v):
+                    self.out.append(f"[@{k}] {v.strip()}")
         # 自闭合标签不入栈
         if tag in {"br", "img", "meta", "link", "input", "hr", "source"}:
             return

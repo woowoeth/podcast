@@ -101,7 +101,14 @@ def _episode_slugs(n=3, want_video=None):
 @unittest.skipUnless(HAVE_PW, "没装 playwright —— 渲染层这一层没跑，"
                               "跑 python3 -m pip install playwright "
                               "&& python3 -m playwright install chromium")
-class Render(unittest.TestCase):
+class Harness(unittest.TestCase):
+    """只有脚手架，不含判据。
+
+    test_walkthrough.py 复用它。**不要让那一层去继承 Render**：
+    继承会把这里的每条测试在那边再跑一遍（实测 11 条变 30 条，多花两分钟
+    却一条新信息都没有）。
+    """
+
     srv = None
     port = 0
 
@@ -132,6 +139,10 @@ class Render(unittest.TestCase):
             p.add_init_script(
                 "try{localStorage.setItem('podcast-theme','%s')}catch(e){}" % theme)
         return p
+
+
+class Render(Harness):
+    """渲染层的判据：页面长得对不对。全部来自他实际报过的界面问题。"""
 
     def test_plays_inline_even_when_the_api_script_is_blocked(self):
         """内容拦截器常把 youtube.com/iframe_api 当追踪脚本拦掉。拦法有两种，

@@ -100,16 +100,26 @@ jobs:
           # 薄分类只在傍晚那班扫一次，避免早/午/晚各扫三遍。
           SCHED="${{ github.event.schedule }}"
           if [ -z "${{ github.event.inputs.only }}" ] && [ "$SCHED" = "0 10 * * *" ]; then
-            echo "::group::thin-cat waves (evening only)"
-            python pipeline/run.py --only restishistory,fallciv,throughline,empirehist,historyextra,tides,revolutions,histrome,ancients,britishhist,historyhit,stuffmissed,witness \
-              --tiers feed,notes,page --skip-residential --no-build --limit 4 --max-words 14000 \
-              --triage-min "$TRIAGE" --review-min "$REVIEW" 2>&1 | tee -a "${RUNNER_TEMP}/run.log" || true
-            python pipeline/run.py --only thinkingallowed,verybad,rationally,inourtime,tyler,phibites,pel,hopwag,philosophize,cautionary,econtalk,grayarea,mindscape \
-              --tiers feed,notes,page --skip-residential --no-build --limit 4 --max-words 14000 \
-              --triage-min "$TRIAGE" --review-min "$REVIEW" 2>&1 | tee -a "${RUNNER_TEMP}/run.log" || true
-            python pipeline/run.py --only sciencevs,naturepod,sciencepod,ologies,skeptics,huberman,tpwky,twiv \
-              --tiers feed,notes,page --skip-residential --no-build --limit 3 --max-words 14000 \
-              --triage-min "$TRIAGE" --review-min "$REVIEW" 2>&1 | tee -a "${RUNNER_TEMP}/run.log" || true
+            # **按分类轮转，不写 id 清单，也不漏分类。** 这里原来是三行硬编码
+            # 的 34 个信源 id、只覆盖 hist/ideas/sci，两个后果实测都发生了：
+            #   · 同分类里有 28 个源不在清单上——2026 年后加的源永远进不了；
+            #   · ai/biz/cn/parent 的 tier2/3 **结构上到不了**：主跑批按
+            #     tier 打分（1=100 / 2=55 / 3=25），每天预算只有 6-8 集，
+            #     低优先级的源永远赢不了。实测 23 档 feed 里有能进候选的集、
+            #     却一篇都没出过，其中 15 档就落在没有扫描波的那几个分类里。
+            # 现在七个分类全都轮到，按天轮转，每天扫三个——每个分类至少
+            # 三天一遍，而单班的量和原来（三波）一样。
+            # 质量线不变：选题闸门和成稿评分照旧，扫得到 ≠ 发得出。
+            echo "::group::category sweep (evening only, rotating)"
+            CATS=(ai biz cn ideas hist parent sci)
+            DAY=$(date -u +%j)
+            for i in 0 1 2; do
+              c=${CATS[$(( (10#$DAY * 3 + i) % ${#CATS[@]} ))]}
+              echo "--- sweep $c ---"
+              python pipeline/run.py --cat "$c" \
+                --tiers feed,notes,page --skip-residential --no-build --limit 4 --max-words 14000 \
+                --triage-min "$TRIAGE" --review-min "$REVIEW" 2>&1 | tee -a "${RUNNER_TEMP}/run.log" || true
+            done
             echo "::endgroup::"
           fi
 
@@ -173,7 +183,24 @@ jobs:
         run: |
           python pipeline/transsources.py || true
           python pipeline/transspeakers.py || true
-          python pipeline/translate.py --limit 12
+          # **译到没有待译为止，不是译固定几篇。** 这一班单轮最多能发 18 篇
+          # （主跑批 6 + 三波扫描 3×4），而这里原来是 --limit 12——多出来的
+          # 会只带中文上线，而三棵树本该同一次推送一起上。
+          # --limit 是成本护栏，循环是"确保这一轮的都译完"；最多三轮，
+          # 免得积压很大时一班烧掉整天预算。
+          for i in 1 2 3; do
+            n=$(python pipeline/translate.py --pending | tail -1)
+            echo "第 $i 轮：待译 $n 篇"
+            [ "$n" = "0" ] && break
+            python pipeline/translate.py --limit 24 --workers 4 || break
+          done
+          echo "剩余待译：$(python pipeline/translate.py --pending | tail -1) 篇"
+
+      # 每天重算一次"每档源为什么有/没有产出"。它随站点一起提交，
+      # 这样体检在任何机器上都读得到，也不会变成一份过期的名单。
+      - name: 信源实探
+        continue-on-error: true
+        run: python pipeline/coverage.py --probe --write || true
 
       - name: Rebuild the site from the merged set and push
         run: |

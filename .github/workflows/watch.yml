@@ -35,6 +35,13 @@ jobs:
         with:
           python-version: "3.12"
 
+      # 实探要**先跑**：体检读它的结果来判断"某档源一集都出不来"是漏了
+      # 还是有原因（Sharp Tech 的公开 feed 全是 (Preview)）。
+      # 原因是算出来的，不是一张会过期的名单——所以它得定期重算。
+      - name: 信源实探（原因是算出来的，不是名单）
+        continue-on-error: true
+        run: python pipeline/coverage.py --probe --write || true
+
       - name: Health check
         id: hc
         run: |

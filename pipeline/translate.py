@@ -221,6 +221,8 @@ def check(ep: dict, en: dict, en_source: bool) -> list[str]:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=4)
+    ap.add_argument("--pending", action="store_true",
+                    help="只打印待译篇数就退出（不调模型），发布线和体检用")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--only", default="", help="只处理这些 slug 片段，逗号分隔")
     ap.add_argument("--redo", action="store_true")
@@ -250,9 +252,21 @@ def main() -> int:
         if slug in seen:
             continue
         todo.append(ep)
+    pending = len(todo)
+    if a.pending:
+        print(pending)
+        return 0
     if a.limit:
         todo = todo[:a.limit]
-    log(f"要译 {len(todo)} 篇，并发 {a.workers}")
+    # **译不完要说出来。** 发布线里 --limit 是成本护栏，不是"这轮该译多少"。
+    # 日更单轮最多能发 18 篇（主跑批 6 + 三波扫描 3×4），而这里原来是
+    # --limit 12——多出来的 6 篇会只带中文上线，而输出上看不出区别。
+    if pending > len(todo):
+        log(f"要译 {len(todo)} 篇，并发 {a.workers}"
+            f"（**还有 {pending - len(todo)} 篇没排上，这轮它们只会有中文**"
+            f"——把 --limit 提到 {pending} 以上）")
+    else:
+        log(f"要译 {len(todo)} 篇，并发 {a.workers}")
 
     lock = threading.Lock()
     tally = {"done": 0, "failed": 0}

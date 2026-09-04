@@ -41,7 +41,13 @@ jobs:
           # 里 10 个在渲染层，而当时 300 多项守护没有一项打开过真实页面。
           python -m pip install --quiet playwright
           python -m playwright install --with-deps chromium
-          python -m unittest discover -s tests -v 2>&1 | tail -30
+          python -m unittest discover -s tests -v 2>&1 | tail -40
+
+      # **依赖缺失时 unittest 会静默 skip**，而上面是 `| tail -40`——
+      # "跳过了整层浏览器检查"和"全过"在输出上分不出来。这两层是唯一
+      # 会打开真实页面的检查，静默消失等于没有。
+      - name: 浏览器那两层必须真的跑了
+        run: python scripts/require-browser-layers.py
 
       - name: shell 语法
         run: |
