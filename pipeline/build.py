@@ -284,22 +284,56 @@ def ep_url(ep: dict) -> str:
 
 
 def alias_page(ep: dict) -> str:
-    """短链页：canonical 指回正文，noindex 防止和正文抢排名，然后立刻跳走。"""
+    """短链页：canonical 指回正文，noindex 防止和正文抢排名，然后立刻跳走。
+
+    **og 标签必须齐。** 分享按钮给出的就是这个短链（正文 slug 是中文，
+    percent-encode 之后两百多字符，粘到朋友圈里链接比内容还长），而抓预览图的
+    一方（微信、Twitter、Slack）**只读它拿到的那个 URL 的 meta，不跟 canonical、
+    不跟 refresh、更不执行 JS**。这个页面原来只有 title 和 canonical，
+    于是**全站每一次分享都没有预览图**——用户报的"分享 url 时没带预览图片"。
+
+    canonical 指回正文是给搜索引擎看的，跟社交抓图是两套完全独立的机制，
+    别指望前者能替后者办事。
+    """
     real = f"{BASE}/p/{urllib.parse.quote(ep['slug'])}/"
     full = f"{SITE}/p/{urllib.parse.quote(ep['slug'])}/"
-    t = e(ep["digest"].get("title") or "")
-    return f"""<!DOCTYPE html>
-<html lang="zh-CN"><head><meta charset="utf-8">
-<title>{t} — {e(NAME)}</title>
-<meta name="robots" content="noindex,follow">
-<link rel="canonical" href="{e(full)}">
-<meta http-equiv="refresh" content="0;url={e(real)}">
-<script>location.replace({json.dumps(real)})</script>
-</head><body>
-<p>正在打开《{t}》…… 没有自动跳转的话
-<a href="{e(real)}">点这里</a>。</p>
-</body></html>
-"""
+    d = ep["digest"]
+    t = e(d.get("title") or "")
+    desc = e(_clip(d.get("dek") or "", 150))
+    img = e(og_image(ep.get("image") or ""))
+    src = e(ep.get("source_zh") or ep.get("source") or "")
+    pic = ""
+    if img:
+        pic = ('<meta property="og:image" content="%s">\n'
+               '<meta property="og:image:alt" content="%s">\n'
+               '<meta name="twitter:image" content="%s">' % (img, t, img))
+    head = "\n".join([
+        '<!DOCTYPE html>',
+        '<html lang="zh-CN"><head><meta charset="utf-8">',
+        '<meta name="viewport" content="width=device-width,initial-scale=1">',
+        f'<title>{t} — {e(NAME)}</title>',
+        '<meta name="robots" content="noindex,follow">',
+        f'<link rel="canonical" href="{e(full)}">',
+        f'<meta name="description" content="{desc}">',
+        '<meta property="og:type" content="article">',
+        f'<meta property="og:site_name" content="{e(NAME)}">',
+        '<meta property="og:locale" content="zh_CN">',
+        f'<meta property="og:title" content="{t}">',
+        f'<meta property="og:description" content="{desc}">',
+        f'<meta property="og:url" content="{e(full)}">',
+        f'<meta property="article:section" content="{src}">',
+        pic,
+        '<meta name="twitter:card" content="summary_large_image">',
+        f'<meta name="twitter:title" content="{t}">',
+        f'<meta name="twitter:description" content="{desc}">',
+        f'<meta http-equiv="refresh" content="0;url={e(real)}">',
+        f'<script>location.replace({json.dumps(real)})</script>',
+        '</head><body>',
+        f'<p>正在打开《{t}》…… 没有自动跳转的话',
+        f'<a href="{e(real)}">点这里</a>。</p>',
+        '</body></html>',
+    ])
+    return head.replace("\n\n", "\n") + "\n"
 
 
 def source_share_text(src: dict, rows: list[dict]) -> str:

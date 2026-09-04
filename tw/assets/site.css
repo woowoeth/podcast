@@ -7,7 +7,11 @@
      舊 CSS，配的是新 HTML）。取不到 ok 就別做那些替換。 */
   --css:ok;
   --bg:#f4f2ec; --bg-tint:#eae7de; --surface:#fffefa; --surface-2:#f9f7f1;
-  --ink:#14120e; --ink-2:#3d3830; --muted:#6f6959; --faint:#9b9484;
+  /* --faint 原來是 #9b9484，在 #f4f2ec 上只有 2.69:1——11px 的日期、篇數、
+     角標就是拿它上色的，小字加低對比等於看不清。深色主題那邊同一個變量是
+     4.25:1，說明是淺色這一個偏了，不是設計有意為之。調到 3.97:1，仍明顯
+     淺於 --muted 的 4.88:1，層級還在。 */
+  --ink:#14120e; --ink-2:#3d3830; --muted:#6f6959; --faint:#7e7767;
   --rule:#e2ddd0; --rule-2:#cec8b8;
   --accent:#a83c1b; --accent-soft:#f2e3dc;
   --ai:#a83c1b; --biz:#1f5546; --cn:#5a3a86;
@@ -415,6 +419,9 @@ h1.sec-title, h2.sec-title, .sec-title{font-family:var(--serif);
 .video-facade .play svg{width:62px; height:62px; display:block}
 .video-facade:hover .play{transform:scale(1.06)}
 .video-facade:hover .play circle{fill:var(--accent)}
+/* 作者關掉了站外嵌入（YT 錯誤碼 101/150）時，說清是誰的問題——
+   用戶問過"是我們的問題還是 youtube 問題"，那時頁面上什麼都不說。 */
+.video-facade.noembed .frame::before{content:"作者已關閉站外播放 · 去 YouTube ↗"}
 .video-facade:active .play{transform:scale(.95)}
 
 /* 音頻那一欄。有視頻時它是 hidden 的，只在視頻放不出來時由腳本放出來。 */

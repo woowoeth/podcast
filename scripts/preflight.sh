@@ -29,6 +29,24 @@ else
   bad "测试没全过"
 fi
 
+step "渲染层体检（真的打开页面）"
+# 这一层是补上来的：用户一轮报了 11 个问题，10 个在渲染层，而当时 300 多项守护
+# 里没有一项打开过真实页面。没装 playwright 就 skip，但**必须说出来**——
+# 静默 skip 的检查等于不存在。
+if $PY -c 'import playwright' 2>/dev/null; then
+  if $PY -m unittest tests.test_render -q 2>&1 | tail -3 | grep -q '^OK'; then
+    good "$($PY -m unittest tests.test_render 2>&1 | grep -o 'Ran [0-9]* tests') 全过"
+  else
+    bad "渲染层有不通过的项"
+    $PY -m unittest tests.test_render 2>&1 | tail -20
+  fi
+else
+  bad "没装 playwright —— 渲染层这一层没跑。装：
+       python3 -m pip install playwright && python3 -m playwright install chromium
+       （这一层专门抓那些静态断言看不见的问题：布局位移、hidden 没藏住、
+         封面比例、点了没反应、首屏体积、深色主题对比度）"
+fi
+
 step "shell 与 YAML 语法"
 for f in scripts/*.sh; do
   bash -n "$f" 2>/dev/null && good "$f" || bad "$f 语法错误"
@@ -62,11 +80,24 @@ fi
 step "构建是幂等的"
 # 同样的数据连续构建两次必须一字不差。不成立就说明生成产物里混进了时间戳
 # 或随机顺序，而那会让每一轮跑批都在生成产物上冲突。
+# 先给输入数据取一次指纹，构建完再取一次。**输入变了就不能怪构建不幂等**——
+# 回填工具（repoint / video --audit）在后台跑的时候会改 data/，两次构建自然不同，
+# 而报成"构建不幂等"是个错的原因，下次会照着错方向查。
+dhash() { find data -name '*.json' -type f -exec shasum {} + 2>/dev/null | sort | shasum | cut -c1-16; }
+d0=$(dhash)
 $PY pipeline/build.py >/dev/null 2>&1
 a=$(git status --porcelain | sort | md5 2>/dev/null || git status --porcelain | sort | md5sum)
 $PY pipeline/build.py >/dev/null 2>&1
 b=$(git status --porcelain | sort | md5 2>/dev/null || git status --porcelain | sort | md5sum)
-[ "$a" = "$b" ] && good "连续两次构建结果一致" || bad "构建不幂等：两次结果不同"
+d1=$(dhash)
+if [ "$d0" != "$d1" ]; then
+  bad "data/ 在构建期间被改了（有别的任务在写），这一项判断不了。
+       等它跑完再来：$(pgrep -fl 'pipeline/(repoint|video|run)\.py' 2>/dev/null | head -2 | tr '\n' ' ')"
+elif [ "$a" = "$b" ]; then
+  good "连续两次构建结果一致"
+else
+  bad "构建不幂等：数据没变，两次结果却不同"
+fi
 
 step "体检（只查文件，不连线上）"
 if $PY pipeline/healthcheck.py >/tmp/preflight-hc.txt 2>&1; then

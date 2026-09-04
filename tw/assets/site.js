@@ -270,10 +270,21 @@
   var pendingSeek = null;     // API 還沒就緒時先記下要跳到哪
   var prefer = null;          // 讀者已經在用哪個：'video' | 'audio' | null
 
-  function loadYTApi(cb) {
+  /* 加載官方 API，**並且給它一個截止時間**。
+     為什麼需要超時：內容攔截器常把 youtube.com/iframe_api 當追蹤腳本攔掉
+     （EasyPrivacy 一類的名單裡就有），而攔法有兩種——
+       · 返回錯誤 → onerror 觸發
+       · 返回 200 但空 body → **onerror 不觸發**，window.YT 永遠不出現，
+         回調永遠不跑，頁面上就掛著一個空的黑框，沒有任何出口
+     第二種我原來完全沒處理。實測這臺機器上取 iframe_api 就是 0 字節。 */
+  function loadYTApi(cb, fail) {
     if (window.YT && window.YT.Player) return cb();
+    var fired = false;
+    var once = function (f) { return function () { if (!fired) { fired = true; f(); } }; };
+    var ok = once(cb), no = once(fail);
+    setTimeout(function () { if (!(window.YT && window.YT.Player)) no(); }, 6000);
     var waiting = window.__ytApiWaiting || (window.__ytApiWaiting = []);
-    waiting.push(cb);
+    waiting.push(ok);
     if (window.__ytApiLoading) return;
     window.__ytApiLoading = true;
     window.onYouTubeIframeAPIReady = function () {
@@ -283,12 +294,35 @@
     var s = document.createElement('script');
     s.src = 'https://www.youtube.com/iframe_api';
     s.async = true;
-    s.onerror = function () {
-      // 腳本都取不到（網絡受限、被攔）：別留個轉圈的空框
-      window.__ytApiLoading = false;
-      videoFailed(document.querySelector('.vwrap'));
-    };
+    s.onerror = function () { window.__ytApiLoading = false; no(); };
     document.head.appendChild(s);
+  }
+
+  /* API 拿不到時的兜底：直接放一個普通 embed iframe。
+     **拿不到 API 腳本不等於視頻不能內嵌播** ——實測攔掉 iframe_api 的同時
+     nocookie/embed 頁照樣能取到。我原來的兜底直接跳去 YouTube，太悲觀了，
+     用戶報的"為啥非要讓我跳出去看"就是這個。
+     代價只是跳轉精度：沒有 seekTo，只能靠 ?start= 重設 src。 */
+  var plainFrame = null;
+
+  function mountPlain(wrap, vid, seconds) {
+    if (!wrap || !wrap.isConnected) return;
+    var f = document.createElement('iframe');
+    f.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; ' +
+      'encrypted-media; gyroscope; picture-in-picture');
+    f.setAttribute('allowfullscreen', '');
+    f.setAttribute('title', '原節目視頻');
+    f.src = plainSrc(vid, seconds);
+    wrap.innerHTML = '';
+    wrap.appendChild(f);
+    plainFrame = f;
+    plainFrame.setAttribute('data-yt', vid);
+  }
+
+  function plainSrc(vid, seconds) {
+    return 'https://www.youtube-nocookie.com/embed/' + vid
+      + '?rel=0&playsinline=1&autoplay=1'
+      + (seconds ? '&start=' + Math.floor(seconds) : '');
   }
 
   /* 視頻這條路走不通了：把收起的音頻條放出來。
@@ -306,7 +340,7 @@
      不留那句"這段視頻不能內嵌播放，去 YouTube 打開"——有音頻的話音頻條自己
      會帶一行說明，那句是重複的。沒音頻的 21 篇才需要出口：把封面放回來，點
      它去 YouTube 開原視頻（正文裡每個時間戳的 href 本來也指向那兒）。 */
-  function videoFailed(wrap) {
+  function videoFailed(wrap, code) {
     if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap);
     ytPlayer = null;
     ytReady = false;
@@ -314,6 +348,8 @@
     if (!facadeNode) return;
     facadeNode.hidden = false;
     facadeNode.classList.add('offsite');
+    // 說清是誰的問題：101/150 就是作者關掉了站外嵌入，不是我們的頁面壞了
+    if (code === 101 || code === 150) facadeNode.classList.add('noembed');
     facadeNode.setAttribute('aria-label', '去 YouTube 打開原視頻');
     facadeNode.onclick = function (ev) {
       ev.preventDefault();
@@ -323,8 +359,8 @@
   }
 
   function mountYouTube(seconds) {
-    if (!facade && !ytPlayer) return;
-    if (ytPlayer) {
+    if (!facade && !ytPlayer && !plainFrame) return;
+    if (ytPlayer || plainFrame) {
       if (seconds != null) seekVideo(seconds);
       return;
     }
@@ -360,15 +396,30 @@
             pendingSeek = null;
             try { ev.target.playVideo(); } catch (err) {}
           },
-          onError: function () {
-            videoFailed(wrap);          // 區域限制、嵌入被關
+          onError: function (ev) {
+            // 101/150 是"作者關掉了站外嵌入"，那是 YouTube 那邊的設置，
+            // 換成普通 iframe 也放不出來，只能給外鏈。
+            // 其餘碼（2/5/100）多是播放器自身問題，普通 iframe 往往還能放。
+            var code = ev && ev.data;
+            if (window.console) console.warn('[player] YT onError', code);
+            if (code === 101 || code === 150) videoFailed(wrap, code);
+            else mountPlain(wrap, vid, pendingSeek);
           }
         }
       });
+    }, function () {
+      // API 腳本被攔或超時 → 直接上普通 embed，別跳出站
+      if (window.console) console.warn('[player] iframe_api 拿不到，改用普通 embed');
+      mountPlain(wrap, vid, pendingSeek);
     });
   }
 
   function seekVideo(t) {
+    if (plainFrame) {
+      // 沒有 API，只能重設 src。跳一次要重新握手，但比不能跳好。
+      plainFrame.src = plainSrc(plainFrame.getAttribute('data-yt'), t);
+      return;
+    }
     if (!ytPlayer) return;
     if (!ytReady) { pendingSeek = t; return; }
     try {
@@ -406,7 +457,7 @@
       } catch (err) {}
       return;
     }
-    if (facade || ytPlayer) {
+    if (facade || ytPlayer || plainFrame) {
       e.preventDefault();
       mountYouTube(t);
       var box = document.querySelector('[data-player-box]');

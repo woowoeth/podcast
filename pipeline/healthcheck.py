@@ -289,6 +289,31 @@ def check_point_headings(r: Report) -> None:
         r.good(line)
 
 
+def check_render_layer(r: Report) -> None:
+    """渲染层体检这一层还在吗。
+
+    为什么要报：它依赖 playwright，而依赖缺失时 unittest 会**静默 skip**——
+    检查从"全过"变成"没跑"，输出上看不出区别。用户一轮报的 11 个问题里 10 个
+    在渲染层，这一层不能悄悄消失。
+    """
+    f = ROOT / "tests" / "test_render.py"
+    if not f.exists():
+        r.fail("tests/test_render.py 不见了——渲染层体检没了")
+        return
+    try:
+        import importlib.util
+        have = importlib.util.find_spec("playwright") is not None
+    except Exception:
+        have = False
+    n = len(re.findall(r"    def test_", f.read_text()))
+    if have:
+        r.good(f"渲染层体检 {n} 项可跑（playwright 在）")
+    else:
+        r.note(f"渲染层体检 {n} 项**跑不了**：没装 playwright。"
+               f"装：python3 -m pip install playwright && "
+               f"python3 -m playwright install chromium")
+
+
 def check_online(r: Report) -> None:
     """线上和仓库是不是同一个版本。
 
@@ -338,6 +363,7 @@ def main(argv: list[str] | None = None) -> int:
     check_sources(r)
     check_videos(r)
     check_point_headings(r)
+    check_render_layer(r)
     if a.online:
         check_online(r)
 

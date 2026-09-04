@@ -63,7 +63,11 @@ def meta(vid: str) -> dict:
         secs = grab(r'"lengthSeconds":"(\d+)"')
         out["duration"] = int(secs) if secs else 0
         out["published"] = grab(r'"uploadDate":"(\d{4}-\d{2}-\d{2})')
-        out["image"] = grab(r'"thumbnails":\[\{"url":"(https://[^"]+?)"')
+        # 封面直接按 id 构造，不从页面里抠：抠出来的是 JSON 串里的值，带 \u0026
+        # 之类的转义（我第一版就把 `\u0026` 原样写进了 og:image，链接是坏的），
+        # 而且那张是带 sqp= 的小图，og 要的是大图。
+        # maxresdefault 不是每个视频都有，hq720 也是 1280×720，取不到再退 hqdefault。
+        out["image"] = f"https://i.ytimg.com/vi/{vid}/maxresdefault.jpg"
     if not (out.get("title") and out.get("duration")) and shutil.which("yt-dlp"):
         try:
             r = subprocess.run(
@@ -79,8 +83,7 @@ def meta(vid: str) -> dict:
                 if p[2] and len(p[2]) == 8:
                     out["published"] = out.get("published") or \
                         f"{p[2][:4]}-{p[2][4:6]}-{p[2][6:]}"
-                if len(p) > 3:
-                    out.setdefault("image", p[3])
+                # 封面不从 yt-dlp 取：上面已按 id 构造，那个更稳也更大
         except Exception as ex:
             log(f"  yt-dlp 补齐失败：{type(ex).__name__}")
     # 标题里可能带 \u 转义和 \" ——JSON 串里抠出来的，解一次

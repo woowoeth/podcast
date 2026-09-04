@@ -2209,8 +2209,14 @@ class Player(unittest.TestCase):
         self.assertIn("iframe_api", self.js, "必须用官方 IFrame Player API")
         self.assertIn("playVideo", self.js)
         self.assertIn("seekTo", self.js)
-        self.assertNotIn("autoplay=1", self.js,
-                         "别再自己拼 autoplay 的 embed src，那个不算手势")
+        # autoplay=1 只许出现在兜底那条路上（API 脚本被拦时的普通 embed）。
+        # 主路径必须走 API 的 playVideo()——在新建 iframe 上加 autoplay 不算
+        # 用户手势，那正是"点播放没生效"的原因。兜底那条退化成"多点一下"，
+        # 比跳出站好，所以允许。
+        for m in re.finditer(r"autoplay=1", self.js):
+            around = self.js[max(0, m.start() - 400):m.start()]
+            self.assertIn("function plainSrc", around,
+                          "autoplay=1 只许出现在 plainSrc 兜底里，不许在主路径")
 
     def test_api_script_loads_only_on_click(self):
         """API 脚本约 100 KB。不点视频的读者不该下载它——首屏刚从 109 KB
@@ -2238,10 +2244,29 @@ class Player(unittest.TestCase):
         self.assertIn("facadeNode.hidden = false", body,
                       "没音频时必须把封面放回来，不然是一张空卡")
         self.assertIn("youtube.com/watch", body, "放回来的封面要能去 YouTube")
-        for hook in ("onError", "s.onerror"):
-            k = self.js.index(hook)
-            self.assertIn("videoFailed", self.js[k:k + 400],
-                          f"{hook} 这条路没接上收场逻辑")
+        # onError：101/150 是作者关掉了站外嵌入，换普通 iframe 也没用 → 给外链；
+        # 其余码换普通 embed 再试。
+        k = self.js.index("onError: function")
+        blk = self.js[k:k + 700]
+        self.assertIn("videoFailed", blk, "101/150 要能落到外链")
+        self.assertIn("mountPlain", blk, "其余错误码要先试普通 embed")
+
+        # API 脚本拿不到 → **不许**直接跳出站，要上普通 embed。
+        # 内容拦截器常把 youtube.com/iframe_api 当追踪脚本拦掉，而 embed 本身
+        # 是好的；我原来这条路直接给外链，用户报"非要让我跳出去看"。
+        k2 = self.js.index("s.onerror")
+        self.assertNotIn("videoFailed", self.js[k2:k2 + 200],
+                         "API 脚本拿不到不等于不能内嵌播，别直接跳出站")
+
+    def test_api_load_has_a_deadline(self):
+        """拦截器有两种拦法：返回错误（onerror 触发），和**返回 200 但空 body**
+        （onerror 不触发，window.YT 永远不出现，回调永远不跑）。第二种只能靠
+        超时兜底——实测这台机器上取 iframe_api 就是 0 字节。"""
+        i = self.js.index("function loadYTApi")
+        body = self.js[i:i + 1200]
+        self.assertIn("setTimeout", body, "loadYTApi 必须有截止时间")
+        self.assertRegex(body, r"window\.YT && window\.YT\.Player\)\) no\(\)",
+                         "超时时要走失败回调")
 
     def test_facade_is_hidden_not_replaced(self):
         """假门得藏起来、别替换掉——放不出来的时候要能把它放回来。
@@ -2585,3 +2610,60 @@ class HiddenAttributeMustActuallyHide(unittest.TestCase):
         for cls in ("video-facade", "aui"):
             self.assertTrue(self._has_hidden_rule(cls),
                             f".{cls}[hidden]{{display:none}} 不见了")
+
+
+class ShareLinkCarriesAPreview(unittest.TestCase):
+    """分享短链页必须自带完整的 og 标签。
+
+    用户："分享 url 时没带预览图片"。分享按钮给出的是 /e/<id>/ 短链（正文 slug
+    是中文，percent-encode 之后两百多字符，粘到朋友圈里链接比内容还长），而这个
+    页面原来只有 title 和 canonical——**全站每一次分享都没有预览图**。
+
+    根因是一个想当然：我以为 canonical 指回正文就够了。抓预览图的一方（微信、
+    Twitter、Slack）只读它拿到的那个 URL 的 meta，**不跟 canonical、不跟
+    http-equiv refresh、更不执行 JS**。canonical 是给搜索引擎的，两套机制。
+    """
+
+    def _alias_pages(self, n=6):
+        d = ROOT / "e"
+        out = []
+        for sub in sorted(d.iterdir())[:n] if d.exists() else []:
+            f = sub / "index.html"
+            if f.exists():
+                out.append((sub.name, f.read_text()))
+        return out
+
+    def test_every_alias_has_the_full_card(self):
+        need = ["og:title", "og:description", "og:url", "og:type",
+                "twitter:card", "twitter:title"]
+        for name, html in self._alias_pages():
+            for k in need:
+                self.assertIn(k, html, f"/e/{name}/ 缺 {k}")
+
+    def test_alias_has_an_image_when_the_episode_has_one(self):
+        import json as _j
+        by_id = {}
+        for f in (ROOT / "data" / "episodes").glob("*.json"):
+            d = _j.loads(f.read_text())
+            if d.get("id"):
+                by_id[d["id"]] = d
+        missing = []
+        for name, html in self._alias_pages(12):
+            ep = by_id.get(name)
+            if ep and ep.get("image") and "og:image" not in html:
+                missing.append(name)
+        self.assertEqual(missing, [],
+                         f"这些短链页有封面却没写 og:image：{missing}")
+
+    def test_no_json_escapes_left_in_urls(self):
+        """封面 URL 曾经是从页面里的 JSON 串抠出来的，带着字面量 \\u0026，
+        写进 og:image 就是个坏链接。图片地址一律按 id 构造，不从 JSON 里抠。"""
+        import json as _j
+        bad = []
+        for f in (ROOT / "data" / "episodes").glob("*.json"):
+            d = _j.loads(f.read_text())
+            for k in ("image", "audio", "link", "transcript_url"):
+                v = d.get(k) or ""
+                if "\\u" in v or "\\/" in v:
+                    bad.append(f"{d.get('slug','?')[:30]}:{k}")
+        self.assertEqual(bad, [], f"这些 URL 里有 JSON 转义残留：{bad[:5]}")
