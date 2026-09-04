@@ -25,7 +25,11 @@ def leaks(root: pathlib.Path) -> collections.Counter:
         h = f.read_text()
         h = _SCRIPT.sub(" ", h)
         h = _ZH_EL.sub(" ", h)
-        text = re.sub(r"<[^>]+>", "\x01", h)
+        # 去标签要认引号里的内容。`<[^>]+>` 遇到属性值里有 `>` 就会提前收尾，
+        # 于是后面的属性（比如带中文 slug 的 href）被当成正文——我第一版就这么
+        # 误报了一批"漏译"，实际是 URL 里的中文 slug（slug 故意保持中文）。
+        text = re.sub(r"""<[a-zA-Z/!][^>"']*(?:(?:"[^"]*"|'[^']*')[^>"']*)*>""",
+                      "\x01", h)
         for seg in re.split(r"[\x01\n]+", text):
             seg = seg.strip()
             if seg and CJK.search(seg):

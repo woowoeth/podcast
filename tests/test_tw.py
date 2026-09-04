@@ -34,7 +34,9 @@ sys.path.insert(0, os.path.join(ROOT, "pipeline"))
 import tw as TW  # noqa: E402
 
 TWDIR = os.path.join(ROOT, "tw")
-SKIP = TW.SKIP_DIRS
+# en/ 是英文版（.gitignore 里，界面文案层未完工，默认不上线），
+# 另一份内容，不参与繁简结构比对。
+SKIP = TW.SKIP_DIRS | {"en"}
 TAG = re.compile(r"<script.*?</script>|<style.*?</style>", re.S)
 LINK = re.compile(r'\b(?:href|src)="([^"]*)"')
 ALT = re.compile(r'<link rel="alternate" hreflang[^>]*>')
@@ -94,7 +96,13 @@ class TraditionalSite(unittest.TestCase):
         for k in sorted(set(self.sc) & set(self.tw)):
             a = LINK.findall(ALT.sub("", open(self.sc[k], encoding="utf-8").read()))
             b = LINK.findall(ALT.sub("", open(self.tw[k], encoding="utf-8").read()))
+            # 跨站地址两版**本来就不同**，不能靠去前缀对齐：简体页脚写 /
+            # 和 /skill/，繁体页脚写 /tw/ 和 /skill/tw/ —— 后者才是对的。
+            # 这一条以前把繁体的正确写法判成「对不上」，等于在要求繁体页
+            # 把读者送回简体主站。
             b = [x.replace("/podcast/tw/", "/podcast/") for x in b]
+            for pair in (("/tw/", "/"), ("/skill/tw/", "/skill/")):
+                b = [pair[1] if x == pair[0] else x for x in b]
             b = [x.replace("Noto+Serif+TC", "Noto+Serif+SC") for x in b]
             if a != b:
                 bad.append((k, [(x, y) for x, y in zip(a, b) if x != y][:2]))

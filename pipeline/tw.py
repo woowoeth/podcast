@@ -149,9 +149,33 @@ def _protect(s):
     return ATTR.sub(attr, s), keep
 
 
+# 同域下的另外两个站。它们各归独立仓库，繁体版在各自站内：
+#   主站繁体 = /tw/          品味繁体 = /skill/tw/
+# 原来 _retarget 只改自己 base 底下的路径，跨站链接一律不动 —— 于是繁体
+# 原声页上的「人类世界生存法则」指向**简体**主站。读者切了一次语言，
+# 一点页脚就掉回简体，还得再切一次。
+SISTER = {"/": "/tw/", "/skill/": "/skill/tw/"}
+
+
+def _sister(val):
+    """跨站地址：返回该指向的繁体地址；不是跨站就返回 None。"""
+    for a, b in sorted(SISTER.items(), key=lambda kv: -len(kv[0])):
+        if val == a:
+            return b
+        if a != "/" and val.startswith(a) and not val.startswith(b):
+            return b + val[len(a):]
+    return None
+
+
 def _retarget(s, base):
     def one(m):
         name, val = m.group(1), m.group(2)
+        bare = (val.replace("https://ourword.ai", "", 1)
+                if val.startswith("https://ourword.ai") else val)
+        if not bare.startswith(base + "/") and bare != base:
+            sis = _sister(bare)
+            if sis is not None:
+                return '%s="%s"' % (name, val.replace(bare, sis, 1))
         if val.startswith(base + "/") and not val.startswith(base + "/tw/"):
             val = base + "/tw" + val[len(base):]
         elif val.startswith("https://ourword.ai" + base + "/") and "/tw/" not in val:
