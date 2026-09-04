@@ -89,6 +89,22 @@ jobs:
           done
           [ "$ok" = 1 ] || { echo "::error::快车道推送失败"; exit 1; }
 
+      # 新集要译成英文才会进 /en/。**每条发布线都要接**——原来只有 daily 接了，
+      # 于是快车道和 backfill 发的内容在英文站上一直缺（用户报的"新发的内容
+      # 没更新英文版"）。没译的不渲染，所以这一步失败不阻塞。
+      - name: 译新集
+        continue-on-error: true
+        env:
+          LLM_API_KEY:  ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_MODEL_REVIEW: ${{ secrets.LLM_MODEL_REVIEW }}
+          LLM_AUTH:     ${{ secrets.LLM_AUTH }}
+        run: |
+          # 说话人译名表排在前面：它是全站去重的短字符串表，
+          # 渲染时查不到就会在英文页上原样显示中文。
+          python pipeline/transspeakers.py || true
+          python pipeline/translate.py --limit 4 --workers 4
+
       - name: Rebuild and push
         run: |
           git pull --rebase --autostash origin main || true

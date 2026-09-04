@@ -163,7 +163,7 @@ jobs:
 
       # 新集要译成英文才会进 /en/。没译的那几篇不会渲染（宁可少几篇，也不要
       # 中英混排），所以这一步失败不阻塞——但体检会一直报"译文 N/M 篇"。
-      - name: 译新集 + 新信源简介
+      - name: 译新集 + 新信源简介 + 新说话人
         continue-on-error: true
         env:
           LLM_API_KEY:  ${{ secrets.LLM_API_KEY }}
@@ -172,6 +172,7 @@ jobs:
           LLM_AUTH:     ${{ secrets.LLM_AUTH }}
         run: |
           python pipeline/transsources.py || true
+          python pipeline/transspeakers.py || true
           python pipeline/translate.py --limit 12
 
       - name: Rebuild the site from the merged set and push

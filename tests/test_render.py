@@ -219,7 +219,7 @@ class Render(unittest.TestCase):
                 if (!s) return false;
                 if (s.tagName === 'SELECT')
                   return [...s.options].some(o => o.value === 'sc');
-                return /\/podcast\/?$/.test(s.getAttribute('href') || '');
+                return /[/]podcast[/]?$/.test(s.getAttribute('href') || '');
               })(),
             })""")
             # 口号在手机上必须一行，语言下拉的箭头必须真的画出来。
@@ -497,42 +497,87 @@ class Render(unittest.TestCase):
                 other, MAX_THIRD_PARTY_KB,
                 f"{path} 第三方脚本 {other} KB > {MAX_THIRD_PARTY_KB} KB")
 
-    # ------------------------------------------------ ⑦ 深色也得能看
-    def test_dark_theme_has_no_invisible_text(self):
-        """深色主题下如果某处颜色没跟着换，就会变成白底白字或黑底黑字。
-        判据是文字和它背后的底色对比度不能低于 3:1。"""
-        for theme in ("dark", "light"):
-            for path in ["/", f"/p/{_episode_slugs(1)[0]}/"]:
-                p = self.page(theme=theme)
+    # ------------------------------------------------ ⑦ 两套主题都得能看清
+    def test_text_meets_wcag_aa_in_both_themes(self):
+        """判据是 WCAG AA：正文 4.5:1，大字（≥24px 或 ≥18.66px 加粗）3:1。
+
+        原来这一条的判据是 3:1，用意只是抓"某个颜色没跟着主题换"（白底白字）。
+        那个目的它达到了，但 3:1 放过了真正难读的一档：走查时实测浅色主题下
+        有 **76 处**在 4.5 以下，最差 3.97——全是 11-13px 的日期、篇数、角标，
+        用的都是 --faint。小字加低对比，"差一点"就是看不清。
+
+        两处必须做对，不然量出来的是假数（这两个坑我都踩了）：
+        · **底色要逐层合成 alpha。** 吸顶条底色带 0.88 透明度，不合成会把
+          浅色底算成近黑，量出 3.05:1（真值 4.88）。而 color(srgb 0.95 …)
+          的分量是 0-1 不是 0-255，读错同样会算成近黑。
+        · **主题要在加载前定下来。** 站里的脚本自己写 data-theme，加载后再改
+          会跟它抢，getComputedStyle 还可能读到改之前的值——上一版就这样
+          量出 12 处假的低对比。所以设完要断言真的设上了。
+        """
+        js = """() => {
+          const px = c => {
+            const srgb = /^color\\(\\s*srgb/i.test(c);
+            const m = (c.match(/[\\d.]+/g) || [0,0,0]).map(Number);
+            const k = srgb ? 255 : 1;
+            return [(m[0]||0)*k, (m[1]||0)*k, (m[2]||0)*k, m.length>3 ? m[3] : 1];
+          };
+          const over = (f,b) => { const a=f[3];
+            return [f[0]*a+b[0]*(1-a), f[1]*a+b[1]*(1-a), f[2]*a+b[2]*(1-a), 1]; };
+          const lum = c => { const f=v=>{v/=255;
+            return v<=.03928 ? v/12.92 : Math.pow((v+.055)/1.055,2.4);};
+            return .2126*f(c[0])+.7152*f(c[1])+.0722*f(c[2]); };
+          const bgOf = el => { const st=[]; let n=el;
+            while(n){ const c=px(getComputedStyle(n).backgroundColor);
+              if(c[3]>0) st.push(c); n=n.parentElement; }
+            st.push([255,255,255,1]);
+            let acc=st[st.length-1];
+            for(let i=st.length-2;i>=0;i--) acc=over(st[i],acc);
+            return acc; };
+          const R=(f,b)=>{const a=lum(f),c=lum(b);
+            return (Math.max(a,c)+.05)/(Math.min(a,c)+.05)};
+          const bad=[];
+          for (const el of document.querySelectorAll('*')) {
+            const cs=getComputedStyle(el);
+            if (cs.visibility==='hidden' || cs.display==='none') continue;
+            if (parseFloat(cs.opacity) < 0.5) continue;
+            const r0=el.getBoundingClientRect();
+            if (r0.width<4 || r0.height<4) continue;
+            const t=[...el.childNodes].filter(n=>n.nodeType===3)
+                     .map(n=>n.textContent.trim()).join('');
+            if (t.length<2) continue;
+            const bg=bgOf(el);
+            const r=R(over(px(cs.color), bg), bg);
+            const size=parseFloat(cs.fontSize);
+            const bold=parseInt(cs.fontWeight)>=700;
+            const need=(size>=24 || (size>=18.66 && bold)) ? 3 : 4.5;
+            if (r < need-0.005)
+              bad.push(el.tagName+'.'+(el.className||'').toString().slice(0,20)+
+                       ' '+r.toFixed(2)+'/'+need+' '+size+'px '+
+                       JSON.stringify(t.slice(0,20)));
+          }
+          return [...new Set(bad)].slice(0, 6);
+        }"""
+        slug = _episode_slugs(1)[0]
+        paths = ["/", "/sources/", f"/p/{slug}/", "/log/"]
+        for sub in ("tw", "en"):
+            if os.path.isdir(os.path.join(ROOT, sub)):
+                paths += [f"/{sub}/", f"/{sub}/p/{slug}/"]
+        for theme in ("light", "dark"):
+            for path in paths:
+                p = self.page(width=1280, height=900, theme=theme)
                 p.goto(self.url(path), wait_until="load")
-                bad = p.evaluate("""() => {
-                  const lum = c => { const m = c.match(/[\\d.]+/g).map(Number);
-                    const f = v => { v/=255; return v <= .03928 ? v/12.92
-                      : Math.pow((v+.055)/1.055, 2.4); };
-                    return .2126*f(m[0]) + .7152*f(m[1]) + .0722*f(m[2]); };
-                  const bg = el => { let a = el;
-                    while (a) { const c = getComputedStyle(a).backgroundColor;
-                      if (c && !/rgba\\(0, 0, 0, 0\\)|transparent/.test(c)) return c;
-                      a = a.parentElement; }
-                    return 'rgb(255,255,255)'; };
-                  const bad = [];
-                  document.querySelectorAll('p,h1,h2,h3,h4,li,td,a,span,b').forEach(el => {
-                    if (!el.textContent.trim()) return;
-                    const r = el.getBoundingClientRect();
-                    if (r.width < 8 || r.height < 8 || r.top > window.innerHeight) return;
-                    const cs = getComputedStyle(el);
-                    if (cs.visibility === 'hidden' || cs.display === 'none') return;
-                    if (parseFloat(cs.opacity) < .5) return;
-                    const l1 = lum(cs.color), l2 = lum(bg(el));
-                    const ratio = (Math.max(l1,l2)+.05)/(Math.min(l1,l2)+.05);
-                    if (ratio < 3) bad.push(el.tagName + '.' + el.className +
-                      ' ' + ratio.toFixed(2) + ':1');
-                  });
-                  return [...new Set(bad)].slice(0, 4);
-                }""")
+                p.evaluate("t => document.documentElement.setAttribute('data-theme', t)",
+                           theme)
+                p.wait_for_timeout(200)
+                got = p.evaluate(
+                    "() => document.documentElement.getAttribute('data-theme')")
+                bad = p.evaluate(js)
                 p.context.close()
+                self.assertEqual(got, theme,
+                                 f"{path} 的主题没设上（想要 {theme}，实际 {got}）"
+                                 f"——量出来的数是假的")
                 self.assertEqual(bad, [],
-                                 f"{theme} 主题 {path} 首屏这些文字对比度不足 {bad}")
+                                 f"{theme} 主题 {path} 这些文字不到 WCAG AA：{bad}")
 
 
 if __name__ == "__main__":

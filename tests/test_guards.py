@@ -3331,3 +3331,367 @@ class NoUnevaluatedTemplateExpressions(unittest.TestCase):
             for m in pat.finditer(body):
                 bad.append(f"{f.relative_to(ROOT)}: {m.group(0)}")
         self.assertEqual(bad[:4], [], f"{len(bad)} 处可疑的花括号占位")
+
+
+class TraditionalTreeMustNotSwallowTheEnglishTree(unittest.TestCase):
+    """tw.py 是整树做简→繁**字形转换**，英文站不能进去。
+
+    真出过：`en` 不在 SKIP_DIRS 里，于是生成了 tw/en/ —— 一个"繁体化的英文站"，
+    644 个页面，而且里面的 hreflang 和 canonical 全指错。构建照样绿，
+    只是仓库和线上多了一堆没人该看到的页面。
+    """
+
+    def test_en_is_skipped(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import tw
+        self.assertIn("en", tw.SKIP_DIRS, "tw.py 会把英文站也转一遍")
+        self.assertIn("tw", tw.SKIP_DIRS)
+
+    def test_no_tw_en_on_disk(self):
+        self.assertFalse((ROOT / "tw" / "en").exists(),
+                         "tw/en/ 是繁体化的英文站，不该存在")
+
+
+class EveryPublishLineTranslates(unittest.TestCase):
+    """每条发布线都要译新集，本机线的提交清单要覆盖全部产物。
+
+    用户报的"新发的内容没更新英文版"是两个洞叠加：
+
+    1. **四条发布线里只有 daily 接了翻译。** 快车道（每两小时）、backfill 和
+       本机线（住宅 IP 那条，中文播客主要靠它）都没接，而它们是新内容的主要来源。
+    2. **本机线用显式清单提交**，而 data/en 和 en 都不在里面——和当年漏掉
+       e（分享短链）、log（更新日志）是同一个坑：云端用 git add -A 所以看不出，
+       只有本机线在悄悄少推东西。
+    """
+
+    LINES = ("daily.yml", "fast.yml", "backfill.yml")
+
+    def test_every_workflow_that_publishes_also_translates(self):
+        bad = []
+        for name in self.LINES:
+            f = ROOT / ".github" / "workflows" / name
+            if not f.exists():
+                continue
+            src = f.read_text()
+            if "pipeline/run.py" in src and "pipeline/translate.py" not in src:
+                bad.append(name)
+        self.assertEqual(bad, [], f"这些发布线不译新集，英文站会缺内容：{bad}")
+
+    def test_local_line_translates(self):
+        src = (ROOT / "scripts" / "local-daily.sh").read_text()
+        self.assertIn("pipeline/translate.py", src, "本机线不译新集")
+
+    def test_local_commit_list_covers_every_artifact(self):
+        """清单漏一项就是"本机线永远不推它"。三棵树、译文、分页文件都要在。"""
+        src = (ROOT / "scripts" / "local-daily.sh").read_text()
+        for need in ("data/en", " tw ", " en\"", "cards-*.json", "assets"):
+            self.assertIn(need, src, f"本机线的提交清单里少了 {need!r}")
+
+    def test_no_hardcoded_page_number(self):
+        """cards-*.json 是动态数量，写死一个（cards-1.json）就漏其余的。"""
+        src = re.sub(r"(?m)^\s*#.*$", "", (ROOT / "scripts" / "local-daily.sh").read_text())
+        self.assertNotIn("cards-1.json", src, "分页文件不许写死编号")
+
+
+class DiscoveryMustCoverEveryLanguageTree(unittest.TestCase):
+    """三棵树都要能被爬虫和答案引擎找到。
+
+    实测过的洞：robots.txt 里只声明了简体的 sitemap，于是 /en/ 和 /tw/
+    只能靠中文页上的 hreflang 被发现——英文站等于半个隐身；llms.txt
+    三份互不提及，答案引擎读到中文那份就以为只有中文。
+    """
+
+    def trees(self):
+        """当前实际存在的语言子树。加第四棵树时这里会自动带上它。"""
+        t = [("zh", ROOT)]
+        for sub in ("tw", "en"):
+            if (ROOT / sub / "index.html").exists():
+                t.append((sub, ROOT / sub))
+        return t
+
+    def test_robots_declares_a_sitemap_for_every_tree(self):
+        rb = (ROOT / "robots.txt").read_text()
+        for name, d in self.trees():
+            want = "/sitemap.xml" if name == "zh" else f"/{name}/sitemap.xml"
+            self.assertTrue(
+                any(l.startswith("Sitemap:") and l.rstrip().endswith(want)
+                    for l in rb.splitlines()),
+                f"robots.txt 没声明 {name} 的 sitemap（{want}）——爬虫找不到这棵树")
+            self.assertTrue((d / "sitemap.xml").exists(), f"{name} 没有 sitemap.xml")
+
+    def test_no_robots_txt_inside_a_subtree(self):
+        # robots.txt 只在站点根目录被读取。子目录里放一份没有任何爬虫会看，
+        # 留着只是一个会过期、会跟根目录说法冲突的死文件。
+        for name, d in self.trees():
+            if name == "zh":
+                continue
+            self.assertFalse((d / "robots.txt").exists(),
+                             f"{name}/robots.txt 是死文件：robots.txt 只在站点根被读")
+
+    def test_every_llms_txt_points_at_the_other_editions(self):
+        for name, d in self.trees():
+            t = (d / "llms.txt").read_text()
+            for other, _ in self.trees():
+                if other == name:
+                    continue
+                path = "/podcast/" if other == "zh" else f"/podcast/{other}/"
+                self.assertIn(path, t,
+                              f"{name}/llms.txt 里没有指向 {other} 的链接")
+
+
+class LocaleTagsMustMatchTheTree(unittest.TestCase):
+    """og:locale / inLanguage / <language> 必须跟着这棵树走。
+
+    实测过的洞：这三个标记在 build.py 里硬编码 zh_CN 七处。繁体靠 tw.py
+    做字符串替换救回来了，英文站没人救——每个英文页都在告诉社交平台和
+    抓取方「这是中文页」，英文 RSS 自称 <language>zh-CN</language>。
+    """
+
+    WANT = {"zh": ("zh-CN", "zh_CN", "zh-CN"),
+            "tw": ("zh-Hant", "zh_TW", "zh-TW"),
+            "en": ("en", "en_US", "en")}
+
+    def test_html_and_og_and_rss_agree(self):
+        for name, want in self.WANT.items():
+            d = ROOT if name == "zh" else ROOT / name
+            if not (d / "index.html").exists():
+                continue
+            lang, og, rss = want
+            for page in ("index.html",):
+                h = (d / page).read_text()
+                self.assertIn(f'<html lang="{lang}"', h, f"{name}/{page} html lang 不对")
+                self.assertIn(f'og:locale" content="{og}"', h,
+                              f"{name}/{page} og:locale 不是 {og}")
+            self.assertIn(f"<language>{rss}</language>", (d / "feed.xml").read_text(),
+                          f"{name}/feed.xml 自称的语言不是 {rss}")
+
+    def test_episode_and_alias_pages_too(self):
+        # 分享短链是**唯一**会被社交平台抓到的那个 URL，它自己必须带对的
+        # locale——抓取方只读它收到的那一个 URL，不会顺着 canonical 走。
+        for name in ("tw", "en"):
+            d = ROOT / name
+            if not (d / "index.html").exists():
+                continue
+            og = self.WANT[name][1]
+            for pat in ("p/*/index.html", "e/*/index.html"):
+                pages = sorted(d.glob(pat))[:5]
+                self.assertTrue(pages, f"{name}/{pat} 一个页面都没有")
+                for f in pages:
+                    self.assertIn(f'og:locale" content="{og}"', f.read_text(),
+                                  f"{f.relative_to(ROOT)} 的 og:locale 不是 {og}")
+
+
+class EnglishTextSurfacesMustNotCarryBilingualLabels(unittest.TestCase):
+    """英文站的 .txt 里不许留「中文 / english」这种对照标签。
+
+    「零漏译」那道闸只扫 HTML。而答案引擎真正读的是 llms.txt 和
+    llms-full.txt——实测那两份文件里曾有 427 和 3717 行中文：一整套硬编码的
+    双语标签（发布 / published、核心论点 / points）、163 条中文节目简介、
+    中文分类名。页面零漏译，GEO 面全是中文。
+    """
+
+    # 就是这个 bug 的形状：汉字紧跟 " / " 再接拉丁字母
+    BILINGUAL = re.compile(r"[一-鿿]+\s*/\s*[A-Za-z]")
+
+    def files(self):
+        d = ROOT / "en"
+        return [f for f in (d / "llms.txt", d / "llms-full.txt") if f.exists()]
+
+    @staticmethod
+    def _body(text):
+        """去掉「## Other editions」那一段。
+
+        那一段里「简体中文 / Simplified Chinese」是**故意**的——用对方自己的
+        文字称呼对方的版本，跟语言选择器一个道理。豁免只限这一段，不做成
+        通用后门：段界由 build.py 生成，tw.py 的跨版本保护用的是同一个段界。
+        """
+        out, skip = [], False
+        for line in text.splitlines():
+            if line.startswith("## "):
+                skip = line.strip() == "## Other editions"
+            out.append("" if skip else line)
+        return out
+
+    def test_no_bilingual_label_survives(self):
+        # 只查**结构行的标签部分**（冒号之前）。整行去匹配会误报：中文节目的
+        # 原集标题里就有「萝博派对创始人/CEO」这种写法，那是原文，不是标签。
+        for f in self.files():
+            for i, line in enumerate(self._body(f.read_text()), 1):
+                if not (line.startswith("- ") or line.startswith("#")):
+                    continue
+                label = line.split(":", 1)[0]
+                m = self.BILINGUAL.search(label)
+                if m:   # assertIsNone 的消息是**先求值**的，不能在里面碰 m
+                    self.fail(f"{f.name}:{i} 留着双语标签 {m.group(0)!r} —— "
+                              f"英文站的这一行该只有英文：{line[:90]!r}")
+
+    def test_headings_are_english(self):
+        for f in self.files():
+            for i, line in enumerate(self._body(f.read_text()), 1):
+                if line.startswith("#"):
+                    self.assertFalse(
+                        re.search(r"[一-鿿]", line.split("(")[0]),
+                        f"{f.name}:{i} 标题里有汉字：{line[:80]!r}")
+
+    def test_llms_txt_describes_itself_as_english(self):
+        f = ROOT / "en" / "llms.txt"
+        if not f.exists():
+            self.skipTest("英文站没建")
+        head = "\n".join(f.read_text().splitlines()[:10])
+        self.assertIn("written in English", head,
+                      "英文站的 llms.txt 自称 written in Chinese —— "
+                      "答案引擎读的就是这一份，写错了它就照错的引用")
+        self.assertNotIn("written in Chinese", head)
+
+
+class SpeakerNamesMustBeRenderedInTheSiteLanguage(unittest.TestCase):
+    """说话人字段也要跟着语言走。
+
+    实测过的洞：translate.py 从来没译过 spk——2143 条译文论点里带 spk 的
+    是 0 条，英文页一律回退到中文原值。3144 处里有 451 处是汉字：
+    「主持人」、「Tim Harford（旁白）」，还有「西格尔·塞缪尔」——
+    Sigal Samuel 音译成中文，又原样端给了英文读者。
+
+    **HTML 的「零漏译」闸门放行了它们**，因为渲染处包了 lang="zh"。
+    那条判据的用意是保住人名的原文（中文节目叫「硅谷101」就该显示
+    「硅谷101」），不是给漏译开后门；所以说话人得单独有一条。
+    """
+
+    SPK = re.compile(r'<span class="spk"[^>]*>—\s*([^<]*)</span>'
+                     r'|<div class="attrib">(?:<b[^>]*>([^<]*)</b>)')
+
+    def test_english_pages_have_no_chinese_speaker_labels(self):
+        d = ROOT / "en"
+        if not (d / "index.html").exists():
+            self.skipTest("英文站没建")
+        bad, n = [], 0
+        for f in sorted(d.glob("p/*/index.html")):
+            for m in self.SPK.finditer(f.read_text()):
+                v = (m.group(1) or m.group(2) or "").strip()
+                if not v:
+                    continue
+                n += 1
+                if re.search(r"[一-鿿]", v):
+                    bad.append(f"{f.parent.name[:44]} → {v}")
+        self.assertTrue(n, "英文页上一个说话人都没找到——正则该跟着模板改")
+        self.assertFalse(bad, f"{len(bad)}/{n} 处说话人在英文页上还是中文，"
+                              f"跑 pipeline/transspeakers.py：\n  "
+                              + "\n  ".join(bad[:8]))
+
+    def test_speaker_table_has_no_chinese_on_the_english_side(self):
+        f = ROOT / "data" / "en" / "_speakers.json"
+        if not f.exists():
+            self.skipTest("说话人译名表还没生成")
+        for zh, en in json.loads(f.read_text())["speakers"].items():
+            self.assertFalse(re.search(r"[一-鿿]", en),
+                             f"说话人译名里还有汉字：{zh} -> {en}")
+
+    def test_every_publish_line_translates_speakers(self):
+        # 和 translate.py 一样：四条发布线**都**要跑，不然新出现的说话人
+        # 会在英文页上以中文形态上线。这个仓库栽过一次——只有 daily.yml
+        # 跑了 translate.py，本机线（中文播客主要靠它）一次没跑过。
+        lines = {"daily.yml": ROOT / ".github/workflows/daily.yml",
+                 "fast.yml": ROOT / ".github/workflows/fast.yml",
+                 "backfill.yml": ROOT / ".github/workflows/backfill.yml",
+                 "local-daily.sh": ROOT / "scripts/local-daily.sh"}
+        for name, f in lines.items():
+            self.assertTrue(f.exists(), f"{name} 不见了")
+            self.assertIn("transspeakers.py", f.read_text(),
+                          f"{name} 没跑 transspeakers.py —— 新说话人会以中文上线")
+
+
+class TraditionalTreeIsAConversionOfTheSiteNotTheWorkingDirectory(unittest.TestCase):
+    """繁体树里只许有站点产物。
+
+    实测过的洞：tw.py 遍历时只挡 SKIP_DIRS，**点目录照走**，于是
+    .claude/ 和 .cache/ 被整个抄进了 tw/——.cache/tr/ 里是第三方文稿，
+    版权原因绝不能进公开仓库，而它们是 .json，正好在拷贝白名单里。
+    唯一拦住它们的是 .gitignore 里的一行。一层网不是判据。
+    """
+
+    def test_no_dot_directories_in_the_traditional_tree(self):
+        tw = ROOT / "tw"
+        if not tw.is_dir():
+            self.skipTest("繁体树还没建")
+        bad = [str(d.relative_to(ROOT)) for d in tw.rglob(".*") if d.is_dir()]
+        self.assertFalse(bad, f"繁体树里有点目录：{bad[:5]} —— "
+                              f"tw.py 又在镜像工作目录，而不是转换站点")
+
+    def test_no_cached_transcripts_anywhere_in_the_output(self):
+        # 判据写在后果上：第三方文稿一份都不许出现在任何产物树里。
+        for tree in ("tw", "en"):
+            d = ROOT / tree
+            if not d.is_dir():
+                continue
+            for name in (".cache", "cache"):
+                self.assertFalse((d / name).exists(),
+                                 f"{tree}/{name} 存在 —— 缓存文稿混进了产物树")
+
+    def test_traditional_tree_has_the_same_page_count_as_simplified(self):
+        # 上一条修完要能看出「有没有把该带的也一起挡掉」。
+        tw = ROOT / "tw"
+        if not tw.is_dir():
+            self.skipTest("繁体树还没建")
+        for sub in ("p", "e", "s"):
+            a = len(list((ROOT / sub).glob("*/index.html")))
+            b = len(list((tw / sub).glob("*/index.html")))
+            self.assertEqual(a, b, f"tw/{sub}/ 有 {b} 页，简体有 {a} 页")
+
+
+class RuntimeStringsMustGoThroughTheTable(unittest.TestCase):
+    """site.js 注入的文案也要跟着语言走。
+
+    「零漏译」那道闸只扫**静态 HTML**，扫不到 JS 在运行时写进 DOM 的字。
+    走查时实测：英文站上有 10 处中文是它放行的——加载提示、全文索引提示、
+    播放/暂停的 aria-label、「去 YouTube 打开原视频」、三条分享提示。
+    英文读者点一下分享就弹一句中文。
+
+    繁体不用管：tw.py 会把这个文件里的中文一并转成繁体（.js 在它的
+    TEXT_EXT 里），所以表里只有 zh 和 en 两列。
+    """
+
+    JS = ROOT / "assets" / "site.js"
+
+    def source(self):
+        s = self.JS.read_text()
+        s = re.sub(r"/\*.*?\*/", "", s, flags=re.S)
+        return re.sub(r"^\s*//.*$", "", s, flags=re.M)
+
+    def test_no_chinese_string_literal_outside_the_table(self):
+        s = self.source()
+        i, j = s.index("var STR = {"), s.index("function T(k)")
+        outside = s[:i] + s[j:]
+        bad = []
+        for m in re.finditer(r"""(['"])((?:[^'"\\\n]|\\.)*[一-鿿](?:[^'"\\\n]|\\.)*)\1""",
+                             outside):
+            v = m.group(2)
+            # console.log 的日志是给开发者看的，不是界面文案
+            if "[player]" in v or "[search]" in v or "[feed]" in v:
+                continue
+            bad.append(v[:44])
+        self.assertFalse(bad, f"site.js 里这些中文没走文案表，英文站会原样显示："
+                              f"{bad}")
+
+    def test_every_table_entry_has_an_english_column(self):
+        s = self.source()
+        block = s[s.index("var STR = {"):s.index("function T(k)")]
+        keys = re.findall(r"^\s*(\w+):\s*\[", block, re.M)
+        self.assertGreaterEqual(len(keys), 8, f"文案表只有 {len(keys)} 条，是不是被改小了")
+        # 英文列不许有汉字
+        for m in re.finditer(r"^\s*(\w+):\s*\[(.*?)\],?\s*$", block, re.M | re.S):
+            k, body = m.group(1), m.group(2)
+            parts = body.split("],")[0]
+            # 粗切成两列：第一个逗号之后（跨行拼接的也算在内）
+            zh, _, en = parts.partition(",")
+            self.assertTrue(en.strip(), f"文案表 {k} 只有一列，缺英文")
+            self.assertFalse(re.search(r"[一-鿿]", en),
+                             f"文案表 {k} 的英文列里有汉字：{en.strip()[:50]}")
+
+    def test_the_table_keys_are_all_used(self):
+        s = self.source()
+        block = s[s.index("var STR = {"):s.index("function T(k)")]
+        keys = re.findall(r"^\s*(\w+):\s*\[", block, re.M)
+        rest = s[s.index("function T(k)"):]
+        unused = [k for k in keys if f"T('{k}')" not in rest and f'T("{k}")' not in rest]
+        self.assertFalse(unused, f"文案表里这些条目没人用，是漏接了还是该删："
+                                 f"{unused}")

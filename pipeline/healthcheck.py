@@ -297,7 +297,11 @@ def check_english_edition(r: Report) -> None:
     所以进度必须有个地方一直说着。
     """
     n_eps = len(list((DATA / "episodes").glob("*.json")))
-    n_tr = len(list((DATA / "en").glob("*.json"))) if (DATA / "en").exists() else 0
+    # 下划线开头的是**跨集共用的译名表**（_sources / _speakers），不是集。
+    # 原来一并算进去，于是这行报"译文 275/273 篇"——超过总数的分数是假的，
+    # 而假的分数会盖住真的缺口。
+    n_tr = (len([f for f in (DATA / "en").glob("*.json")
+                 if not f.name.startswith("_")]) if (DATA / "en").exists() else 0)
     ui = 0
     try:
         import sys as _s
@@ -326,6 +330,91 @@ def check_english_edition(r: Report) -> None:
         r.good(line + " · 零漏译，可以上线")
     else:
         r.note(line + " · 还没建过，跑 python3 pipeline/build.py")
+
+
+def check_translation_side_tables(r: Report) -> None:
+    """说话人和信源简介的译名表跟得上吗。
+
+    为什么单独报：这两张表是**全站去重**的短字符串，不按集跑，所以
+    translate.py 的进度看不出它们缺没缺。说话人表原来根本不存在——
+    英文页上 3144 处说话人里 451 处是中文，其中「西格尔·塞缪尔」
+    是 Sigal Samuel 音译过去又原样端给了英文读者。HTML 的零漏译闸门
+    放行了它们（渲染处包了 lang="zh"），所以只有这里能报。
+    """
+    import re as _re
+    cjk = _re.compile(r"[一-鿿]")
+    d = DATA / "en"
+    if not d.exists():
+        return
+    want = set()
+    for f in sorted((DATA / "episodes").glob("*.json")):
+        try:
+            dg = (json.loads(f.read_text()).get("digest") or {})
+        except Exception:
+            continue
+        for row in (dg.get("points") or []) + (dg.get("quotes") or []):
+            v = (row.get("spk") or "").strip()
+            if v and cjk.search(v):
+                want.add(v)
+    have = {}
+    f = d / "_speakers.json"
+    if f.exists():
+        try:
+            have = json.loads(f.read_text()).get("speakers", {})
+        except Exception:
+            have = {}
+    miss = sorted(want - set(have))
+    if not want:
+        pass
+    elif miss:
+        r.fail(f"说话人译名缺 {len(miss)}/{len(want)} 个，英文页上会显示中文"
+               f"（{'、'.join(miss[:4])}…）。跑 python3 pipeline/transspeakers.py")
+    else:
+        r.good(f"说话人译名 {len(want)}/{len(want)} 个齐全")
+
+    srcs = []
+    f = DATA / "sources.json"
+    if f.exists():
+        srcs = [x for x in json.loads(f.read_text()).get("sources") or [] if x.get("desc")]
+    hs = {}
+    f = d / "_sources.json"
+    if f.exists():
+        try:
+            hs = json.loads(f.read_text()).get("sources", {})
+        except Exception:
+            hs = {}
+    m = [x["id"] for x in srcs if x["id"] not in hs]
+    if srcs and m:
+        r.fail(f"信源简介译文缺 {len(m)}/{len(srcs)} 条，英文站的信源页会显示中文"
+               f"（{'、'.join(m[:4])}…）。跑 python3 pipeline/transsources.py")
+    elif srcs:
+        r.good(f"信源简介译文 {len(srcs)}/{len(srcs)} 条齐全")
+
+
+def check_discovery(r: Report) -> None:
+    """三棵树都能被爬虫和答案引擎找到吗。
+
+    robots.txt 只在**站点根目录**被读取，里面只声明一个 sitemap 的后果是
+    /en/ 和 /tw/ 只能靠中文页上的 hreflang 被发现——英文站等于半个隐身。
+    """
+    rb = ROOT / "robots.txt"
+    if not rb.exists():
+        r.fail("robots.txt 不见了")
+        return
+    decl = [l.split(":", 1)[1].strip() for l in rb.read_text().splitlines()
+            if l.startswith("Sitemap:")]
+    missing = []
+    for sub in ("", "tw", "en"):
+        d = ROOT / sub if sub else ROOT
+        if not (d / "index.html").exists():
+            continue
+        want = "/sitemap.xml" if not sub else f"/{sub}/sitemap.xml"
+        if not any(u.endswith(want) for u in decl):
+            missing.append(want)
+    if missing:
+        r.fail(f"robots.txt 没声明 {'、'.join(missing)} —— 爬虫找不到这些树")
+    else:
+        r.good(f"robots.txt 声明了 {len(decl)} 份 sitemap，每棵树都有")
 
 
 def check_render_layer(r: Report) -> None:
@@ -404,6 +493,8 @@ def main(argv: list[str] | None = None) -> int:
     check_point_headings(r)
     check_render_layer(r)
     check_english_edition(r)
+    check_translation_side_tables(r)
+    check_discovery(r)
     if a.online:
         check_online(r)
 

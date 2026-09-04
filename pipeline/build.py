@@ -143,6 +143,20 @@ def T_dict(table: dict, key, default=None) -> str:
     return default if default is not None else key
 
 
+def spk_name(s) -> str:
+    """说话人在**当前语言**下的写法。
+
+    英文站查 data/en/_speakers.json（transspeakers.py 生成，全站去重后
+    只有几十个值，所以同一个人不会译出两种写法）。查不到就原样返回中文，
+    而中文会被渲染处的 zh_attr() 标出来——不会静默变成乱码，但也确实是漏译，
+    所以 healthcheck 会报覆盖率。
+    """
+    s = (s or "").strip()
+    if LANG != "en" or not s:
+        return s
+    return _EN_SPK.get(s, s)
+
+
 def show_name(x: dict) -> str:
     """这一集的节目名。
 
@@ -224,6 +238,7 @@ def en_store() -> dict[str, dict]:
 
 _EN: dict[str, dict] = {}
 _EN_SRC: dict[str, dict] = {}
+_EN_SPK: dict[str, str] = {}
 
 
 def D(ep: dict) -> dict:
@@ -245,7 +260,7 @@ def D(ep: dict) -> dict:
     for i, q in enumerate(q_src):
         got = q_en[i] if i < len(q_en) else {}
         text = got.get("text") or q.get("raw") or ""
-        quotes.append({"t": q.get("t"), "spk": q.get("spk"),
+        quotes.append({"t": q.get("t"), "spk": spk_name(q.get("spk")),
                        "raw": text,
                        # 中文源：把中文原文留在 zh 位上，页面会标 lang="zh"
                        "zh": (q.get("raw") or "") if got.get("translated") else "",
@@ -437,7 +452,7 @@ def head(title: str, desc: str, *, path: str = "/", image: str = "",
 <link rel="canonical" href="{e(url)}">
 <meta property="og:type" content="{'article' if published else 'website'}">
 <meta property="og:site_name" content="{e(NAME)}">
-<meta property="og:locale" content="zh_CN">
+<meta property="og:locale" content="{og_locale()}">
 <meta property="og:title" content="{e(title)}">
 <meta property="og:description" content="{e(desc)}">
 <meta property="og:url" content="{e(url)}">
@@ -448,8 +463,8 @@ def head(title: str, desc: str, *, path: str = "/", image: str = "",
 <meta name="twitter:title" content="{e(title)}">
 <meta name="twitter:description" content="{e(desc)}">
 {f'<meta name="twitter:image" content="{e(image)}">' if image else ''}
-<link rel="icon" type="image/svg+xml" href="{BASE}/icon.svg">
-<link rel="apple-touch-icon" sizes="180x180" href="{BASE}/apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="{BASE_ZH}/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="{BASE_ZH}/apple-touch-icon.png">
 <link rel="alternate" type="application/rss+xml" title="{e(NAME)}" href="{BASE}/feed.xml">
 {hreflangs(path)}
 {LANG_JS}
@@ -513,7 +528,7 @@ def episode_share_text(ep: dict) -> str:
     q = next((x for x in (d.get("quotes") or []) if x.get("zh") or x.get("raw")), None)
     if q:
         lines += ["", "「" + _clip(q.get("zh") or q.get("raw"), 76) + "」"
-                  + (f" — {q['spk']}" if q.get("spk") else "")]
+                  + (f" — {spk_name(q['spk'])}" if q.get("spk") else "")]
     lines += ["", ep_url(ep)]
     return "\n".join(lines)
 
@@ -562,7 +577,7 @@ def alias_page(ep: dict) -> str:
         f'<meta name="description" content="{desc}">',
         '<meta property="og:type" content="article">',
         f'<meta property="og:site_name" content="{e(NAME)}">',
-        '<meta property="og:locale" content="zh_CN">',
+        f'<meta property="og:locale" content="{og_locale()}">',
         f'<meta property="og:title" content="{t}">',
         f'<meta property="og:description" content="{desc}">',
         f'<meta property="og:url" content="{e(full)}">',
@@ -751,9 +766,9 @@ def search_index(eps: list[dict]) -> str:
                  d.get("who", ""), x.get("source", ""), x.get("source_zh", ""),
                  x.get("title_original", ""), " ".join(d.get("tags") or [])]
         for p in d.get("points") or []:
-            parts += [p.get("h", ""), p.get("body", ""), p.get("spk", "")]
+            parts += [p.get("h", ""), p.get("body", ""), spk_name(p.get("spk"))]
         for q in d.get("quotes") or []:
-            parts += [q.get("raw", ""), q.get("zh", ""), q.get("spk", "")]
+            parts += [q.get("raw", ""), q.get("zh", ""), spk_name(q.get("spk"))]
         for f in d.get("facts") or []:
             parts += [f.get("k", ""), f.get("v", "")]
         for t in d.get("terms") or []:
@@ -825,14 +840,14 @@ def index_page(eps: list[dict], srcs: dict) -> str:
     ld = _ld({"@context": "https://schema.org", "@graph": [
         {"@type": "WebSite", "@id": SITE + "/#site", "url": SITE + "/",
          "name": NAME, "alternateName": "OurWord Podcast", "description": BLURB,
-         "inLanguage": "zh-CN", "publisher": _publisher(),
+         "inLanguage": in_language(), "publisher": _publisher(),
          "potentialAction": {"@type": "SearchAction",
                              "target": {"@type": "EntryPoint",
                                         "urlTemplate": SITE + "/?q={search_term_string}"},
                              "query-input": "required name=search_term_string"}},
         {"@type": "CollectionPage", "@id": SITE + "/#page", "url": SITE + "/",
          "name": f"{NAME} — {TAGLINE}", "isPartOf": {"@id": SITE + "/#site"},
-         "inLanguage": "zh-CN",
+         "inLanguage": in_language(),
          "mainEntity": {"@type": "ItemList", "numberOfItems": len(eps),
                         "itemListElement": [
                             {"@type": "ListItem", "position": i + 1,
@@ -971,13 +986,13 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
     points = "\n".join(
         f"""<div class="point">{ts(p['t'])}<div><h4>{mark_zh(e(p['h']))}</h4>
 <p class="body">{mark_zh(e(p['body']))}</p>
-{f'<span class="spk"{zh_attr(p["spk"])}>— {e(p["spk"])}</span>' if p.get('spk') else ''}</div></div>"""
+{f'<span class="spk"{zh_attr(spk_name(p["spk"]))}>— {e(spk_name(p["spk"]))}</span>' if p.get('spk') else ''}</div></div>"""
         for p in d.get("points") or [])
 
     quotes = "\n".join(
         f"""<blockquote class="quote"><p class="raw"{zh_attr(qq['raw'])}>{e(qq['raw'])}</p>
 {f'<p class="zh"{zh_attr(qq["zh"])}>{e(qq["zh"])}</p>' if qq.get('zh') else ''}
-<div class="attrib">{f'<b{zh_attr(qq["spk"])}>{e(qq["spk"])}</b>' if qq.get('spk') else ''}{ts(qq['t'])}</div>
+<div class="attrib">{f'<b{zh_attr(spk_name(qq["spk"]))}>{e(spk_name(qq["spk"]))}</b>' if qq.get('spk') else ''}{ts(qq['t'])}</div>
 </blockquote>"""
         for qq in d.get("quotes") or [])
 
@@ -1034,7 +1049,7 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
         "timeRequired": f"PT{int((ep.get('duration') or 0) // 60)}M",
         "partOfSeries": {"@type": "PodcastSeries", "name": ep.get("source"),
                          "url": f"{SITE}/s/{ep.get('source_id')}/"},
-        "inLanguage": "zh-CN",
+        "inLanguage": in_language(),
         "isBasedOn": orig or None,
         "publisher": _publisher(),
         "keywords": ", ".join(x for x in kw if x) or None,
@@ -1171,7 +1186,7 @@ def sources_page(srcs: dict, eps: list[dict]) -> str:
     n = len(srcs["sources"])
     ld = _ld({"@context": "https://schema.org", "@type": "CollectionPage",
               "url": SITE + "/sources/", "name": f'{T("信源")} — {NAME}',
-              "inLanguage": "zh-CN", "isPartOf": {"@id": SITE + "/#site"},
+              "inLanguage": in_language(), "isPartOf": {"@id": SITE + "/#site"},
               "mainEntity": {"@type": "ItemList", "numberOfItems": n,
                              "itemListElement": [
                                  {"@type": "ListItem", "position": i + 1,
@@ -1294,7 +1309,7 @@ def log_page(eps: list[dict], srcs: dict) -> str:
         '任何一次改动都会记在这里。</p></div>')
 
     ld = _ld({"@context": "https://schema.org", "@type": "CollectionPage",
-              "url": SITE + "/log/", "name": f'{T("更新日志")} — {NAME}', "inLanguage": ("en" if LANG == "en" else "zh-CN"),
+              "url": SITE + "/log/", "name": f'{T("更新日志")} — {NAME}', "inLanguage": in_language(),
               "isPartOf": {"@id": SITE + "/#site"}})
     return (head(f'{T("更新日志")} — {NAME}',
                  f"{NAME} 的信源增删记录：什么时候收了谁、踢了谁、为什么。当前 {n_src} 档。",
@@ -1310,6 +1325,24 @@ def log_page(eps: list[dict], srcs: dict) -> str:
 <div style="height:56px"></div></main>""" + foot())
 
 
+def og_locale() -> str:
+    return "en_US" if LANG == "en" else "zh_CN"
+
+
+def in_language() -> str:
+    return "en" if LANG == "en" else "zh-CN"
+
+
+def rss_language() -> str:
+    return "en" if LANG == "en" else "zh-CN"
+
+
+def bi(en: str, zh: str) -> str:
+    """双语小标题。中文站留「文稿 / transcript」这种对照，英文站只留英文——
+    不然它就是英文页面上的一处漏译。"""
+    return en if LANG == "en" else zh
+
+
 # ------------------------------------------------------------- llms.txt (GEO)
 
 def llms_txt(eps: list[dict], srcs: dict) -> str:
@@ -1323,17 +1356,25 @@ def llms_txt(eps: list[dict], srcs: dict) -> str:
     per: dict[str, int] = {}
     for x in eps:
         per[x["source_id"]] = per.get(x["source_id"], 0) + 1
+    # 自称必须跟着这一棵树走。英文站的 llms.txt 里原来整段是中文、还自称
+    # "written in Chinese"——答案引擎读的就是这一份，写错了它就照错的引用。
+    # （零漏译那道闸只扫 HTML，扫不到 .txt，所以这里必须自己对。）
+    written_in = "English" if LANG == "en" else "Chinese"
     L = [f"# {NAME} (Yuansheng)", "",
-         f"> {TAGLINE}", "> Chinese deep-reads of Chinese and English podcasts, "
-         "every claim anchored to a timestamp in the original audio.", "",
-         f"每天从 {n} 档中英文播客里挑出值得记住的判断。要点和金句都带时间戳，"
-         "点一下就回到它在原声里被说出的那一秒。", "",
-         "A daily digest of podcasts, written in Chinese. Each entry carries 5-8 argued "
-         "points with clickable timestamps, verbatim quotes in the original language plus "
-         "a Chinese translation, and the numbers stated in the episode. "
-         "Quotes are checked character-by-character against the transcript and numbers are "
-         "traced back to it; anything that cannot be located is deleted before publishing.",
-         "", "## Read it", "",
+         f"> {TAGLINE}",
+         f"> {written_in} deep-reads of Chinese and English podcasts, "
+         "every claim anchored to a timestamp in the original audio.", ""]
+    if LANG != "en":
+        L += [f"每天从 {n} 档中英文播客里挑出值得记住的判断。要点和金句都带时间戳，"
+              "点一下就回到它在原声里被说出的那一秒。", ""]
+    L += [f"A daily digest of podcasts, written in {written_in}. Each entry carries 5-8 "
+          "argued points with clickable timestamps, verbatim quotes in the original "
+          f"language plus {'an' if LANG == 'en' else 'a'} {written_in} translation, "
+          "and the numbers stated in the "
+          "episode. Quotes are checked character-by-character against the transcript and "
+          "numbers are traced back to it; anything that cannot be located is deleted "
+          "before publishing.",
+          "", "## Read it", "",
          f"- Site: {SITE}/",
          f"- Every source, with coverage and fetch health: {SITE}/sources/",
          f"- One page per source: {SITE}/s/<source-id>/",
@@ -1342,18 +1383,29 @@ def llms_txt(eps: list[dict], srcs: dict) -> str:
          f"- All URLs: {SITE}/sitemap.xml",
          f"- RSS: {SITE}/feed.xml",
          f"- Search index (JSON, one row per entry): {SITE}/search.json",
+         "", "## Other editions", "",
+         "The same entries are published in three languages. Each has its own sitemap, "
+         "feed, search index and llms.txt; the URL structure below is identical in all "
+         "three.", "",
+         f"- 简体中文 / Simplified Chinese: {SITE_ZH}/ (llms.txt: {SITE_ZH}/llms.txt)",
+         f"- 繁體中文 / Traditional Chinese: {SITE_ZH}/tw/ (llms.txt: {SITE_ZH}/tw/llms.txt)"]
+    if EN_LIVE:
+        L.append(f"- English: {SITE_ZH}/en/ (llms.txt: {SITE_ZH}/en/llms.txt)")
+    L += ["", "Simplified is the source of record; Traditional is a glyph conversion of it, "
+              "and English is translated from it. Every page links to its counterparts with "
+              "hreflang, so either edition can be cited directly.",
          "", "## How an entry is made", "",
-         "1. 文稿 / transcript, in strict order of quality: the show's own machine-readable "
+         "1. " + bi("transcript", "文稿 / transcript") + ", in strict order of quality: the show's own machine-readable "
          "transcript from its RSS feed; the full text when the feed carries it; a transcript "
          "page on the show's site; YouTube auto-captions; audio transcription as the last "
          "resort. Every entry states which one it used.",
-         "2. 选题 / triage: an editorial pass on the title and show notes decides whether the "
+         "2. " + bi("triage", "选题 / triage") + ": an editorial pass on the title and show notes decides whether the "
          "episode carries anything worth writing about before any expensive work happens.",
-         "3. 机器闸门 / mechanical gate: quotes must occur verbatim in the transcript "
+         "3. " + bi("mechanical gate", "机器闸门 / mechanical gate") + ": quotes must occur verbatim in the transcript "
          "(spoken numbers included — \"twenty fourteen\" counts as 2014); every number in the "
          "facts table must be traceable to the transcript; every timestamp must fall inside "
          "the episode's duration. Whatever fails is deleted, not softened.",
-         "4. 成稿评分 / review: a separate model scores the finished piece 0-10 against the "
+         "4. " + bi("review", "成稿评分 / review") + ": a separate model scores the finished piece 0-10 against the "
          "transcript around every citation plus an even sample of the whole episode, judging "
          "information density, faithfulness, selection, concreteness and Chinese prose. "
          "Below 7 does not publish. The score is shown on each page.",
@@ -1365,26 +1417,33 @@ def llms_txt(eps: list[dict], srcs: dict) -> str:
         rows = [x for x in srcs["sources"] if x.get("cat") == c]
         if not rows:
             continue
-        L.append(f"### {CAT_LABEL[c]} ({len(rows)})")
+        L.append(f"### {T(CAT_LABEL[c])} ({len(rows)})")
         L.append("")
         rows.sort(key=lambda x: (x.get("tier", 3), x["name"]))
         for x in rows:
             mine = per.get(x["id"], 0)
             url = f"{SITE}/s/{x['id']}/" if mine else ""
-            L.append(f"- {x.get('zh') or x['name']} — {x.get('desc','')}"
+            # 用页面同一套 helper。原来这里直接读 zh/desc，于是英文站的 llms.txt
+            # 里 163 条简介全是中文——而这份文件正是答案引擎真正读的那一份。
+            L.append(f"- {src_display(x)} — {src_desc(x)}"
                      + (f" ({mine} entries: {url})" if mine else " (not yet covered)"))
         L.append("")
     L += [f"## Entries ({len(eps)})", ""]
     for x in eps:
         d = D(x)
         L.append(f"- [{d.get('title')}]({SITE}/p/{x['slug']}/) — {d.get('dek')} "
-                 f"[{x.get('source_zh') or x.get('source')}, {(x.get('published') or '')[:10]}]")
+                 f"[{show_name(x)}, {(x.get('published') or '')[:10]}]")
     L.append("")
     return "\n".join(L)
 
 
 def llms_full_txt(eps: list[dict]) -> str:
-    """全部条目的完整正文，一个文件。答案引擎要引用时不必逐页抓。"""
+    """全部条目的完整正文，一个文件。答案引擎要引用时不必逐页抓。
+
+    **每个标签和名字都得走本地化 helper。** 这份文件原来是硬编码的双语标签
+    加直接读中文字段，结果英文站这一份里有 3717 行中文——HTML 页面零漏译，
+    而答案引擎读的恰恰是这一份。
+    """
     out = [f"# {NAME} — {TAGLINE}", "",
            f"{len(eps)} entries. Source: {SITE}/ · Generated from the sources listed in "
            f"{SITE}/llms.txt", ""]
@@ -1392,52 +1451,61 @@ def llms_full_txt(eps: list[dict]) -> str:
         d = D(x)
         q = d.get("quality") or {}
         rv = x.get("review") or {}
+        tsrc = T_dict(TSRC_LABEL, q.get("transcript_source"),
+                      q.get("transcript_source") or "—")
         out += ["=" * 78, "",
                 f"## {d.get('title')}", "",
                 f"- URL: {SITE}/p/{x['slug']}/",
-                f"- 节目 / show: {x.get('source_zh') or x.get('source')}"
+                f"- {bi('show', '节目 / show')}: {show_name(x)}"
                 f" ({SITE}/s/{x.get('source_id')}/)",
-                f"- 原集标题 / original episode: {x.get('title_original')}",
-                f"- 发布 / published: {(x.get('published') or '')[:10]}"
-                f" · 时长 / duration: {hhmmss(x.get('duration')) or '—'}",
-                f"- 文稿来源 / transcript: {T_dict(TSRC_LABEL, q.get('transcript_source'), q.get('transcript_source') or '—')}"
+                f"- {bi('original episode', '原集标题 / original episode')}:"
+                f" {x.get('title_original')}",
+                f"- {bi('published', '发布 / published')}: {(x.get('published') or '')[:10]}"
+                f" · {bi('duration', '时长 / duration')}: {hhmmss(x.get('duration')) or '—'}",
+                f"- {bi('transcript', '文稿来源 / transcript')}: {tsrc}"
                 f" · {q.get('words') or '?'} words"
                 + (" · timestamps are estimated from position in the transcript"
                    if q.get("approx_timestamps") else " · timestamps are exact"),
-                f"- 校验 / verification: {q.get('verified_quotes', 0)} quotes matched verbatim,"
+                f"- {bi('verification', '校验 / verification')}:"
+                f" {q.get('verified_quotes', 0)} quotes matched verbatim,"
                 f" {q.get('grounded_facts', 0)} numbers traced to the transcript"
-                + (f", review score {rv['score']:.0f}/10" if isinstance(rv.get("score"), (int, float)) else ""),
+                + (f", review score {rv['score']:.0f}/10"
+                   if isinstance(rv.get("score"), (int, float)) else ""),
                 "", f"**{d.get('dek')}**", ""]
         if d.get("why"):
-            out += [f"为什么听 / why: {d['why']}", ""]
-        out.append("### 核心论点 / points")
-        out.append("")
+            out += [f"{bi('why listen', '为什么听 / why')}: {d['why']}", ""]
+        out += [f"### {bi('points', '核心论点 / points')}", ""]
         for pt in d.get("points") or []:
-            spk = f" ({pt['spk']})" if pt.get("spk") else ""
+            spk = f" ({spk_name(pt['spk'])})" if pt.get("spk") else ""
             out.append(f"[{hhmmss(pt.get('t'))}]{spk} **{pt.get('h')}** — {pt.get('body')}")
             out.append("")
         if d.get("quotes"):
-            out += ["### 原话 / verbatim quotes", ""]
+            out += [f"### {bi('verbatim quotes', '原话 / verbatim quotes')}", ""]
             for qq in d["quotes"]:
-                out.append(f"[{hhmmss(qq.get('t'))}] {qq.get('spk')}: \"{qq.get('raw')}\"")
-                out.append(f"    译 / zh: {qq.get('zh')}")
+                out.append(f"[{hhmmss(qq.get('t'))}] {spk_name(qq.get('spk'))}:"
+                           f" \"{qq.get('raw')}\"")
+                # zh 位只在「原声是中文、正文给了译文」时才有内容。英文站上
+                # 它是**原文**而不是译文，标签得跟着反过来。
+                if qq.get("zh"):
+                    out.append(f"    {bi('original (zh)', '译 / zh')}: {qq['zh']}")
                 out.append("")
         if d.get("facts"):
-            out += ["### 数字 / figures", ""]
+            out += [f"### {bi('figures', '数字 / figures')}", ""]
             for f in d["facts"]:
                 t = f" [{hhmmss(f['t'])}]" if f.get("t") is not None else ""
                 out.append(f"- {f.get('k')}: {f.get('v')}{t}")
             out.append("")
         if d.get("terms"):
-            out += ["### 术语 / glossary", ""]
+            out += [f"### {bi('glossary', '术语 / glossary')}", ""]
             for t in d["terms"]:
-                out.append(f"- {t.get('term')} ({t.get('zh')}): {t.get('def')}")
+                zh = f" ({t['zh']})" if t.get("zh") else ""
+                out.append(f"- {t.get('term')}{zh}: {t.get('def')}")
             out.append("")
         if d.get("who"):
-            out += [f"谁该听 / who: {d['who']}"]
+            out += [f"{bi('who it is for', '谁该听 / who')}: {d['who']}"]
         if d.get("skip"):
-            out += [f"可跳过 / skip: {d['skip']}"]
-        out += [f"标签 / tags: {', '.join(d.get('tags') or [])}", ""]
+            out += [f"{bi('what to skip', '可跳过 / skip')}: {d['skip']}"]
+        out += [f"{bi('tags', '标签 / tags')}: {', '.join(d.get('tags') or [])}", ""]
     return "\n".join(out)
 
 
@@ -1478,7 +1546,7 @@ def rss(eps: list[dict]) -> str:
 <link>{xesc(SITE)}/</link>
 <atom:link href="{xesc(SITE)}/feed.xml" rel="self" type="application/rss+xml"/>
 <description>{xesc(BLURB)}</description>
-<language>zh-CN</language>
+<language>{rss_language()}</language>
 {''.join(items)}
 </channel></rss>
 """
@@ -1539,10 +1607,13 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
     eps, srcs = load()
     global _EN
     global _EN_SRC
+    global _EN_SPK
     if lang == "en":
         _EN = en_store()
         f = DATA / "en" / "_sources.json"
         _EN_SRC = json.loads(f.read_text()).get("sources", {}) if f.exists() else {}
+        f = DATA / "en" / "_speakers.json"
+        _EN_SPK = json.loads(f.read_text()).get("speakers", {}) if f.exists() else {}
         # 没译文的不进英文站。宁可少几篇，也不要中英混排的页面。
         eps = [x for x in eps if x.get("slug") in _EN]
     log(f"building {len(eps)} episodes, {len(srcs.get('sources') or [])} sources")
@@ -1562,7 +1633,26 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
     for x in eps:
         by_src.setdefault(x["source_id"], []).append(x)
     live_src = set()
-    for src in srcs["sources"]:
+    # **已发布的集指向的信源，必须有页面。** 信源表里没登记的也算——
+    # addvideo.py 单集入库时 source_id 不进 sources.json，于是 every 和
+    # peteryang 的 5 集里，读者点节目名得到的是 404（线上实测）。
+    # 这里按后果补齐：名字取自集本身。它只补页面，不改「每天抓哪些节目」
+    # ——那是产品判断，不该由一处断链顺手决定。
+    known = {x["id"] for x in srcs["sources"]}
+    orphans = []
+    for sid, rows in by_src.items():
+        if sid and sid not in known:
+            e0 = rows[0]
+            orphans.append({"id": sid, "name": e0.get("source") or sid,
+                            "zh": e0.get("source_zh") or e0.get("source") or sid,
+                            "cat": e0.get("cat") or "ai", "tier": 3,
+                            "lang": e0.get("lang") or "en",
+                            "kind": "youtube", "desc": "",
+                            "unregistered": True})
+    if orphans:
+        log(f"  {len(orphans)} 个未登记信源也建页："
+            f"{'、'.join(x['id'] for x in orphans)}")
+    for src in list(srcs["sources"]) + orphans:
         rows = by_src.get(src["id"]) or []
         if not rows:
             continue
@@ -1592,9 +1682,19 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
           "User-agent: *", "Allow: /", ""]
     for b in ai_bots:
         rb += [f"User-agent: {b}", "Allow: /", ""]
-    rb += [f"Sitemap: {SITE}/sitemap.xml",
-           f"# 给模型读的导览：{SITE}/llms.txt", ""]
-    (out / "robots.txt").write_text("\n".join(rb))
+    # **三棵树的 sitemap 都要声明。** robots.txt 只在站点根目录被读取，
+    # 里面只写一个 sitemap 的后果是爬虫找不到 /en/ 和 /tw/ ——英文站只能靠
+    # 中文页上的 hreflang 被发现，等于半个隐身。
+    rb += [f"Sitemap: {SITE_ZH}/sitemap.xml",
+           f"Sitemap: {SITE_ZH}/tw/sitemap.xml"]
+    if EN_LIVE:
+        rb.append(f"Sitemap: {SITE_ZH}/en/sitemap.xml")
+    rb += ["", f"# 给模型读的导览：{SITE_ZH}/llms.txt"
+               f"（English: {SITE_ZH}/en/llms.txt）", ""]
+    # ③ 只在根目录写。子目录里的 robots.txt 没有任何爬虫会读，
+    #    留着只是一个会过期的死文件。
+    if lang == "zh":
+        (out / "robots.txt").write_text("\n".join(rb))
     (out / "llms.txt").write_text(llms_txt(eps, srcs))
     (out / "llms-full.txt").write_text(llms_full_txt(eps))
     (out / ".nojekyll").write_text("")

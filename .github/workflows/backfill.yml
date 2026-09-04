@@ -77,6 +77,20 @@ jobs:
             --triage-min "${{ github.event.inputs.triage_min || '8' }}" \
             --review-min "${{ github.event.inputs.review_min || '7' }}" \
             2>&1 | tee "${RUNNER_TEMP}/backfill.log"
+      # 新集要译成英文才会进 /en/。**每条发布线都要接**——原来只有 daily 接了。
+      - name: 译新集
+        continue-on-error: true
+        env:
+          LLM_API_KEY:  ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_MODEL_REVIEW: ${{ secrets.LLM_MODEL_REVIEW }}
+          LLM_AUTH:     ${{ secrets.LLM_AUTH }}
+        run: |
+          # 说话人译名表排在前面：它是全站去重的短字符串表，
+          # 渲染时查不到就会在英文页上原样显示中文。
+          python pipeline/transspeakers.py || true
+          python pipeline/translate.py --limit 20 --workers 4
+
       - name: Commit and push
         run: |
           set -uo pipefail

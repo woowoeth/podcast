@@ -138,16 +138,51 @@ class TraditionalSite(unittest.TestCase):
         self.assertEqual([], bad[:3], "hreflang 两版不一致")
 
     def test_6_maps_point_at_self(self):
+        """繁体的地图文件只许指向繁体自己。
+
+        唯一的例外是 llms.txt 里「## Other editions」那一段——那是**故意**
+        指向另外两棵树的，答案引擎靠它知道还有简体和英文版。tw.py 会给
+        这一段打洞保护（否则它那记无条件重写会把 English 那条改成
+        /podcast/tw/en/，一个不存在的 URL）。段界是两边共用的约定。
+        """
         bad = []
         for f in ("sitemap.xml", "feed.xml", "search.json", "llms.txt"):
             p = os.path.join(TWDIR, f)
             if not os.path.exists(p):
                 continue
             with open(p, encoding="utf-8") as fh:
-                n = len(re.findall(r"https://ourword\.ai/podcast/(?!tw/)", fh.read()))
+                text = fh.read()
+            body, skip = [], False
+            for line in text.splitlines():
+                if line.startswith("## "):
+                    skip = line.strip() == "## Other editions"
+                body.append("" if skip else line)
+            n = len(re.findall(r"https://ourword\.ai/podcast/(?!tw/)",
+                               "\n".join(body)))
             if n:
                 bad.append((f, n))
         self.assertEqual([], bad, "繁体站的地图文件指向了简体站")
+
+    def test_6a_other_editions_survives_the_rewrite(self):
+        """反过来也要盯：那一段必须**还在**，而且指对。
+
+        豁免一段的代价是它从此不受那条检查保护，所以要单独把它查一遍——
+        不然「打了洞」和「洞里内容被改坏」在测试上分不出来。
+        """
+        p = os.path.join(TWDIR, "llms.txt")
+        if not os.path.exists(p):
+            self.skipTest("繁体站还没建")
+        with open(p, encoding="utf-8") as fh:
+            text = fh.read()
+        self.assertIn("## Other editions", text, "繁体的 llms.txt 丢了跨版本段")
+        blk = text.split("## Other editions", 1)[1].split("\n## ", 1)[0]
+        self.assertIn("https://ourword.ai/podcast/ ", blk + " ",
+                      "跨版本段里指向简体的链接被重写成了 /tw/")
+        if os.path.isdir(os.path.join(os.path.dirname(TWDIR), "en")):
+            self.assertIn("https://ourword.ai/podcast/en/", blk,
+                          "跨版本段里指向英文的链接不对")
+            self.assertNotIn("/podcast/tw/en/", blk,
+                             "英文那条被重写成了 /podcast/tw/en/ —— 那个 URL 不存在")
 
     def test_6b_locale_markers(self):
         """语言标记必须自报繁体。

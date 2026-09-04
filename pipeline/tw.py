@@ -103,8 +103,11 @@ ATTR = re.compile(r'\b(href|src|action|srcset|content|url)\s*=\s*"([^"]*)"')
 # sources/index.html 写的是一个真页面。第一版跳过了它，繁体站少一页 ——
 # 而结构判据用的是同一份跳过表，两边一起漏，它看不见自己漏了什么。
 # 所以下面 test_tw 里另有一条独立的「顶层该有哪些东西」断言，不依赖这张表。
+# **en 必须在这里。** 这个脚本是整树走一遍做简→繁字形转换，而英文站是第三棵树
+# ——转出来是"繁体化的英文站"，644 个页面的垃圾，而且 hreflang 和 canonical
+# 全都指错。tw/ 自己在名单里是同一个道理（不能转自己的产物）。
 SKIP_DIRS = {".git", ".github", "pipeline", "scripts", "tests", "data",
-             "node_modules", "__pycache__", "tw"}
+             "node_modules", "__pycache__", "tw", "en"}
 SKIP_FILES = {"robots.txt", "CNAME", "LICENSE"}
 TEXT_EXT = {".html", ".js", ".json", ".txt", ".xml", ".css", ".svg"}
 BIN_EXT = {".png", ".jpg", ".jpeg", ".ico", ".webp", ".gif", ".woff", ".woff2"}
@@ -198,6 +201,28 @@ def _retarget(s, base):
     return re.sub("(\\d+)", lambda m: holes[int(m.group(1))], s)
 
 
+# "## Other editions" 到下一个 "## " 之间是**故意的跨版本链接**，
+# 那一段的 URL 指向别的语言树，不能被 /tw/ 重写。段界由 build.py 生成，
+# 两边的守护测试盯着这个约定（DiscoveryMustCoverEveryLanguageTree）。
+_XED = re.compile(r"(^## Other editions$.*?)(?=^## |\Z)", re.S | re.M)
+
+
+def _protect_cross_edition(s):
+    holes = []
+
+    def punch(m):
+        holes.append(m.group(1))
+        return "\x00XED%d\x00" % (len(holes) - 1)
+
+    return _XED.sub(punch, s), holes
+
+
+def _restore_cross_edition(s, holes):
+    for i, txt in enumerate(holes):
+        s = s.replace("\x00XED%d\x00" % i, txt)
+    return s
+
+
 def build(base="/podcast"):
     if os.path.isdir(OUT):
         shutil.rmtree(OUT)
@@ -207,7 +232,12 @@ def build(base="/podcast"):
         if set(rel.split(os.sep)) & SKIP_DIRS:
             dn[:] = []
             continue
-        dn[:] = [d for d in dn if d not in SKIP_DIRS]
+        # **点目录一律不进。** 这里原来只挡 SKIP_DIRS，于是 .claude/ 和
+        # .cache/ 被整个抄进了繁体树——.cache/tr/ 里是第三方文稿（版权原因
+        # 绝不能进公开仓库），而它们是 .json，正好在拷贝白名单里。
+        # 唯一拦住它们的是 .gitignore，那是一层，不是判据：繁体树是
+        # **已发布站点**的字形转换，不是工作目录的镜像。
+        dn[:] = [d for d in dn if d not in SKIP_DIRS and not d.startswith(".")]
         for f in fn:
             if f in SKIP_FILES or f.startswith("."):
                 continue
@@ -225,9 +255,15 @@ def build(base="/podcast"):
                 s = re.sub("(\\d+)", lambda m: keep[int(m.group(1))], kept)
                 s = _retarget(s, base)
                 if f in URLFILE:
+                    # **跨版本链接不许被改。** 这里是一记无条件全局替换，
+                    # 它把 llms.txt 里「Other editions」段落也改了：
+                    # 简体那条变成指向自己，English 那条变成 /podcast/tw/en/
+                    # ——一个不存在的 URL。答案引擎照着它就找不到别的版本。
+                    s, xed = _protect_cross_edition(s)
                     s = s.replace("https://ourword.ai" + base + "/",
                                   "https://ourword.ai" + base + "/tw/")
                     s = s.replace(base + "/tw/tw/", base + "/tw/")
+                    s = _restore_cross_edition(s, xed)
                 for a, b in FONT:
                     s = s.replace(a, b)
                 for a, b in LOCALE:
@@ -240,3 +276,11 @@ def build(base="/podcast"):
                 shutil.copy2(src, dst)
                 n_b += 1
     return n_t, n_b
+
+
+if __name__ == "__main__":
+    # 原来没有这一段：`python3 pipeline/tw.py` 什么也不做、还退出 0。
+    # 我自己就被骗过——以为繁体树重建了，其实是 build.py 顺手建的。
+    # 静默空转还报成功的脚本，比报错的脚本更危险。
+    t, b = build()
+    print(f"繁体站 {OUT}/：{t} 个文本文件，{b} 个二进制文件")

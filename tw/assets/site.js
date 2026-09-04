@@ -4,6 +4,38 @@
 (function () {
   'use strict';
 
+  /* ------------------------------------------------------------- 運行時文案 */
+  /* **JS 注入的文案也要跟著語言走。** 「零漏譯」那道閘只掃靜態 HTML，
+     掃不到這裡——所以英文站上有 10 處中文是它放行的：加載提示、
+     全文索引提示、播放/暫停、去 YouTube、三條分享提示。英文讀者點一下分享
+     就彈一句中文，這正是"半成品"的樣子。
+
+     繁體不用管：tw.py 會把這個文件裡的中文一併轉成繁體（.js 在它的
+     TEXT_EXT 裡），所以這張表只需要 zh 和 en 兩列。 */
+  var EN = document.documentElement.lang.slice(0, 2).toLowerCase() === 'en';
+  var STR = {
+    loading:      ['正在載入…', 'Loading\u2026'],
+    loadFailed:   ['加載失敗，點一下重試', 'Could not load. Tap to retry.'],
+    idxLoading:   ['正在載入全文索引，稍後會把正文和金句一起搜進來…',
+                   'Loading the full-text index \u2014 points and quotes will be '
+                   + 'searchable in a moment\u2026'],
+    idxFailed:    ['全文索引沒載入成功，現在只搜了標題、結論和標籤。',
+                   'The full-text index did not load; searching titles, '
+                   + 'summaries and tags only.'],
+    videoTitle:   ['原節目視頻', 'Episode video'],
+    openOnYT:     ['去 YouTube 打開原視頻', 'Open the video on YouTube'],
+    pause:        ['暫停', 'Pause'],
+    play:         ['播放', 'Play'],
+    copiedWeChat: ['已複製，長按粘貼發給朋友；發朋友圈點右上角 ···',
+                   'Copied. Long-press to paste; for Moments use the \u00b7\u00b7\u00b7 '
+                   + 'menu at the top right.'],
+    copied:       ['已複製，粘到微信、朋友圈或任何地方',
+                   'Copied \u2014 paste it anywhere.'],
+    copyFailed:   ['複製沒成功，長按選中下面的鏈接：',
+                   'Copy did not work. Select this link by hand: ']
+  };
+  function T(k) { var v = STR[k]; return v ? (EN ? v[1] : v[0]) : k; }
+
   /* ---------------------------------------------------------------- theme */
   var KEY = 'podcast-theme';
   function apply(t) {
@@ -77,7 +109,7 @@
       if (!moreCount) return;
       var have = cards.length, total = feed.getAttribute('data-total');
       moreCount.textContent = pageState === 'loading'
-        ? '正在載入…' : have + ' / ' + total;
+        ? T('loading') : have + ' / ' + total;
     }
 
     function loadPage(then) {
@@ -110,7 +142,7 @@
         })
         .catch(function () {
           pageState = 'idle';
-          if (moreBtn) { moreBtn.hidden = false; moreBtn.textContent = '加載失敗，點一下重試'; }
+          if (moreBtn) { moreBtn.hidden = false; moreBtn.textContent = T('loadFailed'); }
           if (moreCount) moreCount.textContent = '';
           var fs = [then].concat(waiting); waiting = [];
           fs.forEach(function (f) { f && f(); });
@@ -196,8 +228,8 @@
         if (note) {
           note.hidden = deepState === 'ready' || deepState === 'idle';
           note.textContent = deepState === 'loading'
-            ? '正在載入全文索引，稍後會把正文和金句一起搜進來…'
-            : '全文索引沒載入成功，現在只搜了標題、結論和標籤。';
+            ? T('idxLoading')
+            : T('idxFailed');
         }
       }
       if (count) count.textContent = shown;
@@ -311,7 +343,7 @@
     f.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; ' +
       'encrypted-media; gyroscope; picture-in-picture');
     f.setAttribute('allowfullscreen', '');
-    f.setAttribute('title', '原節目視頻');
+    f.setAttribute('title', T('videoTitle'));
     f.src = plainSrc(vid, seconds);
     wrap.innerHTML = '';
     wrap.appendChild(f);
@@ -350,7 +382,7 @@
     facadeNode.classList.add('offsite');
     // 說清是誰的問題：101/150 就是作者關掉了站外嵌入，不是我們的頁面壞了
     if (code === 101 || code === 150) facadeNode.classList.add('noembed');
-    facadeNode.setAttribute('aria-label', '去 YouTube 打開原視頻');
+    facadeNode.setAttribute('aria-label', T('openOnYT'));
     facadeNode.onclick = function (ev) {
       ev.preventDefault();
       window.open('https://www.youtube.com/watch?v=' + facadeNode.getAttribute('data-yt'),
@@ -527,7 +559,7 @@
       var sync = function () {
         var on = !audio.paused && !audio.ended;
         ui.classList.toggle('playing', on);
-        btn.setAttribute('aria-label', on ? '暫停' : '播放');
+        btn.setAttribute('aria-label', on ? T('pause') : T('play'));
       };
       audio.addEventListener('play', sync);
       audio.addEventListener('pause', sync);
@@ -635,10 +667,9 @@
     function fallback(t) {
       copy(t).then(function () {
         track('share_copy');
-        toast(wx ? '已複製，長按粘貼發給朋友；發朋友圈點右上角 ···'
-                 : '已複製，粘到微信、朋友圈或任何地方');
+        toast(wx ? T('copiedWeChat') : T('copied'));
       }).catch(function () {
-        toast('複製沒成功，長按選中下面的鏈接：' + url);
+        toast(T('copyFailed') + url);
       });
     }
   });

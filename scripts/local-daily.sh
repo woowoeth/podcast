@@ -138,17 +138,26 @@ export LLM_MODEL
 
   # 只加数据。原来这里是 git add -A，会把工作区里未提交的源码改动一起扫进
   # bot 的提交，历史就变成误导性的（"build: regenerate site" 里躺着 run.py 的改动）。
-  git add data/episodes data/state.json data/sources.json data/heartbeat-local.json 2>/dev/null || true
+  git add data/episodes data/en data/state.json data/sources.json data/heartbeat-local.json 2>/dev/null || true
   n=$(git diff --cached --name-only | grep -c 'data/episodes/' || true)
   git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
       commit -q -m "digest: $n new (local)"
+  # 新集要译成英文才会进 /en/。**每条发布线都要接**——原来只有云端日更接了，
+  # 本机线（住宅 IP 那条，中文播客主要靠它）发的内容在英文站上一直缺。
+  # 失败不阻塞：没译的不渲染，宁可少几篇也不要中英混排。
+  python3 pipeline/transspeakers.py || true
+  python3 pipeline/translate.py --limit 12 --workers 4 || true
   python3 pipeline/build.py
   # 这张清单每次加新产物都必须跟着改，漏了就是"本机线永远不提交它"——
   # e（分享短链）和 log（更新日志）就漏过：日志里躺着一堆未跟踪的 e/ 目录，
   # 而云端用 git add -A 所以看不出问题，只有本机线在悄悄少推东西。
   # 体检脚本的"数据／正文页／短链三个数字必须相等"就是为了抓这种漏。
+  # tw 和 en 也在清单里：三棵树都是产物，漏一棵就是"本机线永远不推它"。
   SITE_FILES="index.html sources s p e log feed.xml sitemap.xml robots.txt 404.html
-              search.json llms.txt llms-full.txt icon.svg .nojekyll"
+              search.json llms.txt llms-full.txt icon.svg .nojekyll
+              assets tw en"
+  # 分页文件是动态数量（cards-1.json … cards-N.json），不能写死一个。
+  SITE_FILES="$SITE_FILES $(ls cards-*.json 2>/dev/null | tr '\n' ' ')"
   git add $SITE_FILES 2>/dev/null || true
   git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
       commit -q -m "build: regenerate site" || true
