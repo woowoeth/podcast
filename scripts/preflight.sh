@@ -17,6 +17,7 @@ export PATH="/Library/Frameworks/Python.framework/Versions/3.14/bin:$PATH"
 PY=$(command -v python3 || echo python)
 
 fail=0
+say() { printf '  %s\n' "$1"; }
 step() { printf '\n\033[1m▸ %s\033[0m\n' "$1"; }
 bad()  { printf '  \033[31m✗ %s\033[0m\n' "$1"; fail=1; }
 good() { printf '  \033[32m✓ %s\033[0m\n' "$1"; }
@@ -85,9 +86,10 @@ step "构建是幂等的"
 # 而报成"构建不幂等"是个错的原因，下次会照着错方向查。
 dhash() { find data -name '*.json' -type f -exec shasum {} + 2>/dev/null | sort | shasum | cut -c1-16; }
 d0=$(dhash)
-$PY pipeline/build.py >/dev/null 2>&1
+# 带上英文站：它现在是部署的一部分，零漏译闸门要在推之前拦住，不是在 CI 里
+PODCAST_EN=1 PODCAST_EN_LIVE=1 $PY pipeline/build.py >/dev/null 2>&1
 a=$(git status --porcelain | sort | md5 2>/dev/null || git status --porcelain | sort | md5sum)
-$PY pipeline/build.py >/dev/null 2>&1
+PODCAST_EN=1 PODCAST_EN_LIVE=1 $PY pipeline/build.py >/dev/null 2>&1
 b=$(git status --porcelain | sort | md5 2>/dev/null || git status --porcelain | sort | md5sum)
 d1=$(dhash)
 if [ "$d0" != "$d1" ]; then
@@ -97,6 +99,19 @@ elif [ "$a" = "$b" ]; then
   good "连续两次构建结果一致"
 else
   bad "构建不幂等：数据没变，两次结果却不同"
+fi
+
+step "英文站零漏译"
+# 判据：汉字只许出现在 lang="zh" 的元素里。漏一条界面文案就不该推——
+# 交一个中英混排的页面比不交更糟。
+if [ -d en ]; then
+  if $PY pipeline/enscan.py en >/tmp/preflight-en.txt 2>&1; then
+    good "英文站零漏译"
+  else
+    bad "英文站有漏译"; head -12 /tmp/preflight-en.txt
+  fi
+else
+  say "英文站没建（PODCAST_EN=1 才建）"
 fi
 
 step "体检（只查文件，不连线上）"

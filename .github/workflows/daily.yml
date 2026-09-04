@@ -161,10 +161,23 @@ jobs:
         continue-on-error: true
         run: python pipeline/video.py --audit --limit 30
 
+      # 新集要译成英文才会进 /en/。没译的那几篇不会渲染（宁可少几篇，也不要
+      # 中英混排），所以这一步失败不阻塞——但体检会一直报"译文 N/M 篇"。
+      - name: 译新集 + 新信源简介
+        continue-on-error: true
+        env:
+          LLM_API_KEY:  ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_MODEL_REVIEW: ${{ secrets.LLM_MODEL_REVIEW }}
+          LLM_AUTH:     ${{ secrets.LLM_AUTH }}
+        run: |
+          python pipeline/transsources.py || true
+          python pipeline/translate.py --limit 12
+
       - name: Rebuild the site from the merged set and push
         run: |
           git pull --rebase --autostash origin main || true
-          python pipeline/build.py
+          PODCAST_EN=1 PODCAST_EN_LIVE=1 python pipeline/build.py
           git add -A
           if git diff --cached --quiet; then echo "site unchanged"; exit 0; fi
           git commit -m "build: regenerate site"
@@ -182,7 +195,7 @@ jobs:
               git checkout -- "$f" 2>/dev/null || true
             done
             python pipeline/run.py --reconcile || true
-            python pipeline/build.py
+            PODCAST_EN=1 PODCAST_EN_LIVE=1 python pipeline/build.py
             git add -A
             git diff --cached --quiet && { ok=1; break; }
             git commit -m "build: regenerate site"
