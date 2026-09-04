@@ -726,8 +726,8 @@ def card(ep: dict, *, hero: bool) -> str:
 <div class="card-body">
 <div class="kicker" data-cat="{e(ep.get('cat'))}"><span class="src"{zh_attr(src_label)}>{e(src_label)}</span>
 <span class="date">{e(date)}</span></div>
-<h2>{e(d.get('title'))}</h2>
-<p class="dek">{e(d.get('dek'))}</p>
+<h2>{mark_zh(e(d.get('title')))}</h2>
+<p class="dek">{mark_zh(e(d.get('dek')))}</p>
 <div class="card-foot">
 <span class="badge"><b>{q.get('points', 0)}</b> {T("要点")}</span>
 <span class="badge"><b>{q.get('verified_quotes', 0)}</b> {T("金句")}</span>
@@ -997,7 +997,7 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
         terms = f'<section class="section"><h2>{T("术语")}</h2><dl class="terms">{items}</dl></section>'
 
     toc = "\n".join(f'<a href="#p{i}"><span class="t">{hhmmss(p["t"])}</span>'
-                    f'<span>{e(p["h"])}</span></a>'
+                    f'<span>{mark_zh(e(p["h"]))}</span></a>'
                     for i, p in enumerate(d.get("points") or []))
     points = re.sub(r'<div class="point">', lambda m, c=iter(range(999)):
                     f'<div class="point" id="p{next(c)}">', points)
@@ -1071,7 +1071,7 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
 <div class="kicker" data-cat="{e(ep.get('cat'))}"><span class="src"{zh_attr(src_label)}>{e(src_label)}</span>
 <time class="date" datetime="{e(ep.get('published'))}">{e(date)}</time>
 {share_button(episode_share_text(ep), url=ep_url(ep), title=d.get('title') or '')}</div>
-<h1>{e(d.get('title'))}</h1>
+<h1>{mark_zh(e(d.get('title')))}</h1>
 <p class="dek-lead">{mark_zh(e(d.get('dek')))}</p>
 <div class="ep-meta">{tags}</div>
 </div>

@@ -1,5 +1,56 @@
 /* ourword.ai/podcast — editorial, paper-toned, legible at 320px and 2560px. */
 
+/* ---------------------------------------------------- 英文版的字體 */
+/* Playfair Display 做標題、Source Serif 4 做正文。原來英文頁用的是中文 UI 字體
+   的拉丁字形（標題 Songti SC、正文 PingFang SC）——它們的西文是配角，
+   小字號下筆畫和字距都不適合長讀。
+
+   **自託管，不引 Google Fonts。** 這個站在隱私上一直很剋制（nocookie 域、
+   點播放才向 YouTube 請求），不該為字體在每一頁加一個第三方請求。
+
+   兩個都用**單軸變體**（只要 wght）：Source Serif 4 帶 opsz 軸的那份是 119 KB，
+   只留 wght 是 49 KB，省 70 KB。合計 87 KB，而且**只有英文頁會下載**——
+   @font-face 聲明本身不觸發下載，只有被匹配到的選擇器用到才下。
+
+   文件名帶內容指紋：CSS 裡沒法算指紋，所以放在文件名上，改字體就換名字。 */
+@font-face{
+  font-family:"Playfair Display";
+  src:url("fonts/playfair-display.5d91eb5d.woff2") format("woff2");
+  font-weight:400 700; font-style:normal; font-display:swap;
+}
+@font-face{
+  font-family:"Source Serif 4";
+  src:url("fonts/source-serif-4.286e05e5.woff2") format("woff2");
+  font-weight:400 700; font-style:normal; font-display:swap;
+}
+/* 只覆蓋英文樹。簡體和繁體的輸出必須一個字節都不變。 */
+html[lang="en"]{
+  /* 標題用 Playfair Display，正文用 Source Serif 4。
+     **--sans 不動**：按鈕、篩選條、搜索框這些控件仍然是系統無襯線——
+     把它們一起換成襯線超出了"標題 + 正文"的範圍，而控件用襯線會顯舊。 */
+  --serif:"Playfair Display",Charter,"Iowan Old Style",Georgia,serif;
+  --text:"Source Serif 4",Charter,"Iowan Old Style",Georgia,serif;
+  /* 控件和標籤仍是無襯線，但**拉丁優先**：原來 --sans 以 PingFang SC 開頭，
+     英文頁上的標籤和按鈕拿的是中文 UI 字體的西文字形。這裡不引新字體，
+     只換成系統自帶的拉丁無襯線。 */
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+/* 正文類的文字走 --text。逐字引文也歸這裡：**Playfair 是展示字體**，
+   筆畫反差大，排一到三句要細讀的引文（那是可核對的證據，不是裝飾）
+   在 17.5px 和深色底上會發虛。 */
+html[lang="en"] .slogan,
+html[lang="en"] .dek-lead,
+html[lang="en"] .card .dek,
+html[lang="en"] .point .body,
+html[lang="en"] .quote .raw,
+html[lang="en"] .quote .zh,
+html[lang="en"] .why,
+html[lang="en"] .lede,
+html[lang="en"] .guide p,
+html[lang="en"] .panel p,
+html[lang="en"] .terms dd,
+html[lang="en"] .foot-in > div:first-child{font-family:var(--text)}
+
 :root{
   /* 腳本用它確認這份樣式表真的生效了。為什麼需要：腳本會做依賴樣式的 DOM
      替換（摘掉原生 audio controls、換上自己畫的控件）。樣式表沒到位時那些
@@ -63,7 +114,11 @@ button{font:inherit; color:inherit; background:none; border:0; cursor:pointer}
 /* slogan 是 .mast-top 的兄弟節點，獨佔一行。放回 .brand 裡會讓字標那一塊佔滿
    寬度，把右側入口擠到下一行去。 */
 .slogan{margin:9px 0 0; color:var(--muted); font-size:13.5px; letter-spacing:.02em}
-.mast-side{display:flex; align-items:center; gap:7px; flex-wrap:wrap;
+/* **不許在內部換行。** 換行會把 .mast-side 撐成兩行，而 .mast-top 是
+   align-items:flex-end，字標就被壓到第二行去了——用戶報的"英文還是會換行"。
+   去掉 deep 之後 375px 上餘量只剩 12px，所以再加一道：篇數在很窄的屏上先讓位，
+   它是次要信息，字標和語言切換不是。 */
+.mast-side{display:flex; align-items:center; gap:7px; flex-wrap:nowrap;
   justify-content:flex-end; padding-bottom:4px}
 .pill{
   display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 13px;
@@ -101,7 +156,9 @@ select.pill:focus-visible{
   border-color:var(--rule-2);
   box-shadow:0 0 0 3px var(--bg-tint);
 }
-.stat{font-family:var(--mono); font-size:11.5px; color:var(--faint); letter-spacing:.06em; text-transform:uppercase}
+.stat{font-family:var(--mono); font-size:11.5px; color:var(--faint);
+  letter-spacing:.06em; text-transform:uppercase; white-space:nowrap}
+@media (max-width:359px){ .stat{display:none} }
 
 /* ------------------------------------------------------------------ toolbar */
 .toolbar{

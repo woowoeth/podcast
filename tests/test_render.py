@@ -225,14 +225,26 @@ class Render(unittest.TestCase):
             # 口号在手机上必须一行，语言下拉的箭头必须真的画出来。
             # 两条都只有在浏览器里量才看得出：箭头那次是 CSS 简写把
             # background-image 重置了，源码里那条规则是对的。
+            p.wait_for_timeout(600)
             chrome = p.evaluate("""() => {
               const sl = document.querySelector('.slogan');
               const sel = document.getElementById('lang-toggle');
               const lh = sl ? parseFloat(getComputedStyle(sl).lineHeight) : 0;
+              const br = document.querySelector('.brand');
+              const sd = document.querySelector('.mast-side');
+              const fam = el => el ? getComputedStyle(el)
+                .fontFamily.split(',')[0].replace(/"/g, '') : null;
+              const h1 = document.querySelector('.brand h1, .brand .wordmark, .card h3');
+              // 只看真正的正文元素。.slogan 也算（字标下那句是句子，不是控件）
+              const bd = document.querySelector('.card .dek, .point .body, .slogan');
               return {
                 lines: sl && lh ? Math.round(sl.getBoundingClientRect().height / lh) : 0,
                 arrow: sel ? getComputedStyle(sel).backgroundImage !== 'none' : false,
                 isSelect: sel ? sel.tagName === 'SELECT' : false,
+                mastWrapped: (br && sd)
+                  ? Math.abs(br.getBoundingClientRect().top
+                             - sd.getBoundingClientRect().top) > 8 : false,
+                h1Font: fam(h1), bodyFont: fam(bd),
               };
             }""")
             p.context.close()
@@ -250,6 +262,16 @@ class Render(unittest.TestCase):
                                  f"{path} 的口号在 375px 上折了 {chrome['lines']} 行")
             if chrome["isSelect"]:
                 self.assertTrue(chrome["arrow"], f"{path} 语言下拉没有箭头")
+            # 字标行不许换行：.mast-side 一换行就把 .mast-side 撑成两行，
+            # 而 .mast-top 是 align-items:flex-end，字标被压到第二行去
+            # ——用户报过两次"英文还是会换行"。
+            self.assertFalse(chrome["mastWrapped"],
+                             f"{path} 的字标行换行了")
+            # 字体必须真的加载上，而且解析到指定的那两个
+            self.assertEqual(chrome["h1Font"], "Playfair Display",
+                             f"{path} 标题字体是 {chrome['h1Font']}")
+            self.assertEqual(chrome["bodyFont"], "Source Serif 4",
+                             f"{path} 正文字体是 {chrome['bodyFont']}")
 
     def test_english_episode_quotes_are_the_original_words(self):
         """英文源节目的金句在页面上必须和中文站的 raw **逐字一致**。

@@ -2849,19 +2849,28 @@ class EnglishEdition(unittest.TestCase):
                     f"{r['slug'][:30]} 的 {k} 条数和原稿不一致")
 
     def test_no_chinese_left_in_english_fields(self):
+        """判据是**预算**，不是零。只有中文名的中国应用（懂车帝、玄界、朱雀三号）
+        在英文正文里是合法专名，实测占比 0.3%；漏译一整句是 30% 以上。
+        原来按"一个汉字都不许有"判，66/265 篇卡在这上面。"""
         import re as _re
         cjk = _re.compile(r"[一-鿿]")
         punct = _re.compile(r"[「」『』，。、；：？！（）《》【】〔〕]")
         bad = []
+
+        def over(v):
+            n = len(cjk.findall(v))
+            return bool(n) and (n > max(8, len(v) * 0.04)
+                                or not _re.search(r"[A-Za-z]", v))
+
         for r in self._records(60):
             for k in ("title", "dek", "why", "who", "skip"):
                 v = r.get(k) or ""
-                if cjk.search(v) or punct.search(v):
+                if over(v) or punct.search(v):
                     bad.append(f"{r['slug'][:26]}.{k}")
             for k in ("points", "terms", "facts"):
                 for i, row in enumerate(r.get(k) or []):
                     for kk, vv in row.items():
-                        if isinstance(vv, str) and (cjk.search(vv) or punct.search(vv)):
+                        if isinstance(vv, str) and (over(vv) or punct.search(vv)):
                             bad.append(f"{r['slug'][:26]}.{k}[{i}].{kk}")
         self.assertEqual(bad[:5], [], f"{len(bad)} 个英文字段里有中文残留")
 
@@ -3180,3 +3189,92 @@ class ChineseProperNounsInEnglishText(unittest.TestCase):
         src = (ROOT / "pipeline" / "translate.py").read_text()
         self.assertIn("need = max(", src, "max_tokens 要按原稿长度给")
         self.assertNotIn("max_tokens=4000", src, "固定 4000 会让长稿子拿不到答案")
+
+
+class EveryDigestTextGoesThroughMarkZh(unittest.TestCase):
+    """英文页上凡是输出成稿文本的地方，都必须过 mark_zh。
+
+    译文里会有合法的中文专名（Xuanjie (玄界)、Zhuque-3 (朱雀三号)）。漏一处
+    不包，英文站的"零漏译"闸门就把它报成漏译——而这**不是**判据误报，是渲染处
+    真的少标了一个 lang。
+
+    我漏过三处：卡片的 dek、卡片的标题、单集页的 h1。所以判据不写成"记得包"，
+    写成机械扫描：模板里凡是 `e(d.get(...))` / `e(p[...])` 这类输出成稿字段的，
+    外面必须套 mark_zh。
+    """
+
+    # 这些字段是成稿正文，会带中文专名
+    TEXT_FIELDS = ("title", "dek", "why", "who", "skip", "body", "h",
+                   "term", "def", "k", "v")
+
+    def test_all_digest_text_is_wrapped(self):
+        src = (ROOT / "pipeline" / "build.py").read_text()
+        # 只看渲染函数，跳过 D()、share_text 这些不产 HTML 的
+        bad = []
+        for fn in ("card", "episode_page"):
+            i = src.index(f"def {fn}(")
+            body = src[i:src.index("\ndef ", i + 8)]
+            for m in re.finditer(r"\{e\((?:d\.get\(|p\[|f\[|t\[|t\.get\()"
+                                 r"[\"']([\w]+)[\"']", body):
+                if m.group(1) in self.TEXT_FIELDS:
+                    line = body[body.rindex("\n", 0, m.start()) + 1:
+                                body.index("\n", m.start())]
+                    bad.append(f"{fn}: {line.strip()[:70]}")
+        self.assertEqual(bad, [],
+                         "这些成稿文本没过 mark_zh，英文页上的中文专名会被"
+                         f"报成漏译：{bad}")
+
+
+class EnglishTypography(unittest.TestCase):
+    """英文版的字体：Playfair Display 做标题、Source Serif 4 做正文，**自托管**。
+
+    原来英文页用的是中文 UI 字体的拉丁字形（标题 Songti SC、正文 PingFang SC）
+    ——它们的西文是配角，小字号下不适合长读。用户："找到最合适的英文杂志字体，
+    现在看起来很不适合阅读"，并指定了这两个。
+
+    三条硬约束：
+      · **只作用于英文树**，简体和繁体的输出一个字节都不能变
+      · **不引第三方请求**：这个站在隐私上一直很克制（nocookie 域、点播放才向
+        YouTube 请求），不该为字体在每页加一个 fonts.googleapis.com
+      · 逐字引文走正文字体，不走 Playfair：Playfair 是展示字体，笔画反差大，
+        排一到三句要细读的证据在 17.5px 和深色底上会发虚
+    """
+
+    def setUp(self):
+        self.css = (ROOT / "assets" / "site.css").read_text()
+
+    def test_fonts_are_self_hosted(self):
+        self.assertNotIn("fonts.googleapis.com", self.css)
+        self.assertNotIn("fonts.gstatic.com", self.css)
+        d = ROOT / "assets" / "fonts"
+        files = sorted(d.glob("*.woff2")) if d.exists() else []
+        self.assertEqual(len(files), 2, f"应该正好两个字体文件，现在 {files}")
+        for f in files:
+            self.assertIn(f.name, self.css, f"{f.name} 没被 CSS 引用")
+            # 文件名带内容指纹：CSS 里算不了指纹，只能放文件名上
+            self.assertRegex(f.name, r"\.[0-9a-f]{8}\.woff2$",
+                             "字体文件名要带内容指纹，否则改字体后浏览器不重取")
+
+    def test_only_the_english_tree_is_affected(self):
+        i = self.css.index('html[lang="en"]{')
+        blk = self.css[i:self.css.index("}", i)]
+        for k in ("--serif", "--text", "--sans"):
+            self.assertIn(k, blk)
+        # 简体的 :root 里不许出现这两个字体
+        j = self.css.index(":root{")
+        root = self.css[j:self.css.index("}", j)]
+        for f in ("Playfair Display", "Source Serif 4"):
+            self.assertNotIn(f, root, f"{f} 不该出现在简体的变量里")
+
+    def test_only_one_axis_per_font(self):
+        """Source Serif 4 带 opsz 轴的那份是 119 KB，只留 wght 是 49 KB。
+        两个字体合计要压在 100 KB 以内——英文页要下载它们。"""
+        d = ROOT / "assets" / "fonts"
+        total = sum(f.stat().st_size for f in d.glob("*.woff2")) if d.exists() else 0
+        self.assertLess(total, 100 * 1024,
+                        f"字体合计 {total // 1024} KB，太大了")
+
+    def test_quotes_use_the_text_face_not_the_display_face(self):
+        i = self.css.index('html[lang="en"] .dek-lead')
+        blk = self.css[i:self.css.index("{font-family:var(--text)}", i)]
+        self.assertIn(".quote .raw", blk, "逐字引文必须走正文字体")

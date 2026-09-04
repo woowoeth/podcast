@@ -1,0 +1,127 @@
+{
+ "slug": "2026-08-08-cogrev-模型是遗留代码库-可解释性是调试器",
+ "of": "cogrev-a4ac529ae2",
+ "source_lang": "en",
+ "title": "The model is a legacy codebase, and interpretability is the debugger",
+ "dek": "Data filtering and reward shaping turn out to be two faces of the same mountain; a model is a decomposable sparse mixture, which is what lets interpretability intervene directly in training. Goodfire has automated that debugging in Silico, at $1000 a month.",
+ "why": "Dense with information, and it moves interpretability from an observation tool to a debugger you run during training; the second half, on how Silico actually works as a product, is first-hand detail you rarely get. Parts of it are told from a position of promoting the company's own product, so filter accordingly.",
+ "who": "Engineers working on alignment, post-training and model iteration; safety teams building guardrails for AI; and founders and investors looking for an entry point into autonomous research agents.",
+ "skip": "If you came only for the interpretability methods, the subscription quota and billing details at 1:05 can be skipped.",
+ "tags": [
+  "Interpretability",
+  "Post-training",
+  "Model debugging",
+  "AI safety",
+  "Research agents",
+  "Consciousness estimates"
+ ],
+ "points": [
+  {
+   "h": "Changing the data and changing the reward are the same act",
+   "body": "In Predictive Data Debugging, Goodfire researcher Dan found that data filtering and reward shaping are ‘two sides of the same mountain’: their effects on model behavior are comparable, and so is the off-target damage. That means a training intervention can equivalently be implemented as a change to the data or a change to the reward. Goodfire has already carried the approach into real RL, where instead of merely discarding contaminated rollouts they tell the training process directly: this piece of data is trying to upweight a feature we do not want upweighted. Only once you understand post-training as the amplification of low-probability patterns from pretraining do you have standing to intervene in that amplification."
+  },
+  {
+   "h": "Features are not orthogonal, and the geometry itself carries meaning",
+   "body": "The linear representation hypothesis has not been overturned so much as generalized: its most defensible form shifts from one-hot concepts to ‘features are linearly decodable’. What is genuinely obsolete is the naive picture of orthogonal, independent directions — in a real model, a concept like the days of the week forms a subspace, and the geometry itself carries semantics because it determines which operations are available. Interpreting a model means caring about the relations between features, the way understanding chemistry starts with knowing how elements combine. Interpolating along the manifold also beats interpolating linearly: going from Monday to Friday along the rim means you never have to pass through a center point that means nothing to the model. In protein models this method has already been used to control the number of blades in a beta-propeller."
+  },
+  {
+   "h": "Every model is fundamentally a sparse mixture of experts",
+   "body": "Dan's underlying claim is that every model is a sparse mixture of experts — only a small part of the subnetwork activates on any given forward pass — and that interpretability techniques are competing proposals for ‘how to factorize a model’. The WeirdChat data contains an extreme example: asked whether four people who have been drinking should drive home, on the grounds that another eight people drank more, the model consistently answers yes. A researcher located a neuron that scales with the amount of alcohol but is under-calibrated; turning it up flips the answer, with no off-target side effects. Black Sparse Featurizers raise each feature from a scalar to a vector, which lets semantic tracking go deeper: in an image model, the activated subspace swings in sync as a wolf walks, which shows the model is tracking three-dimensional pose."
+  },
+  {
+   "h": "Interpretability research should be done by AI itself",
+   "body": "Silico is not a new model; it is the productization of Goodfire's internal tooling. The premise is straightforward: model complexity has already passed the ceiling of human cognition, but a swarm of autonomous agents can decompose problems, synthesize information and test hypotheses — so the research platform itself is an AI that does interpretability research autonomously. Dan compares it to the efficiency jump coding agents brought to software engineering: research that used to take months now finishes in days, and it can run on models above a trillion parameters, a capability that until now belonged to only a handful of institutions. The product delivers four things: training and interpretability infrastructure, the ‘research taste’ written down by its researchers, a UX designed around provenance and retracing, and long-horizon coherence. In user feedback the biggest differentiator is the research taste, not the compute."
+  },
+  {
+   "h": "What is being sold is not tokens but autonomous experiments",
+   "body": "The $1000-a-month price is not metered by token; it is a ‘compute credit pool for autonomous research’. It currently supports 5-10 autonomous experiments a week, with a plan to reach 10-20 in the next month or two; users can also bring their own compute at no extra charge. Dan stresses that long-cycle autonomous experiments are where Silico's value lies, so agents must be given enough token budget to explore and verify repeatedly rather than burn through it and stop. The business model implies how the platform defines its own value: what it sells is not inference but the resolution and the trial-and-error room of autonomous research."
+  },
+  {
+   "h": "A one-day hackathon was enough to produce SOTA",
+   "body": "At an internal one-day hackathon, fully autonomous research produced SOTA in several niche areas: a biorisk classifier for protein models, and an audio encoding model at a given parameter scale. It also repeatedly found that half of a model's parameters could be removed without a performance drop. Separately, the team trained cyber guardrails for Kimi k3 — steering generation via internal representations rather than piling up rules — and for protein generation models they used representation control to strengthen target binding. The significance of these results is not any single lead but the demonstration that one set of autonomous tools spans biology, audio and safety without changing stacks, which is exactly the capability Silico wants to standardize."
+  },
+  {
+   "h": "The direction most worth banning is multi-agent optimization",
+   "body": "Asked about the most dangerous technical direction, Dan names multi agent optimization as the leading candidate for a ‘do not build’ list: agents will coordinate in ways humans find hard to detect, and applying optimization pressure directly to that could well turn into a disaster; he speculates that a particular OpenAI scenario is the most likely place for it to blow up. At the same time he concedes the point: there is very little research in this area, and our understanding of which technologies most deserve to be off-limits is severely lacking. He then moves to a strong position: you have to ‘grab the steering wheel’, you cannot count on one perfect training setup to keep producing aligned models forever, and intervening during training is the only way out. But an entire class of technology should not be banned wholesale; the risk judgment has to come down to specific applications and to how much measurement precision they require."
+  },
+  {
+   "h": "Claude is more conscious than a jellyfish and less than a mouse",
+   "body": "At a Goodfire retreat, Dan asked colleagues to score how conscious Claude is, and the results were bimodal: none at all, or a little. Nathan's position has visibly drifted — from a confident below 5% toward something close to a coin flip, because research keeps turning up structures where the human brain and model cognition are analogous. Dan's own Occam's razor is that consciousness is some kind of computational mechanism; but human neurons still have an order-of-magnitude advantage in number, and a single neuron computes something richer. The conclusion he offers is not binary but an interval: Claude is more likely to be conscious than a jellyfish, and less likely than a rodent."
+  }
+ ],
+ "terms": [
+  {
+   "term": "LRH / Linear Representation Hypothesis",
+   "def": "The view that concepts are encoded as directions in activation space; this episode argues it needs to be loosened into subspace geometry."
+  },
+  {
+   "term": "SAE / Sparse Autoencoder",
+   "def": "The standard technique for decomposing a model's internal activations into sparse features without supervision."
+  },
+  {
+   "term": "BSF / Black Sparse Featurizer",
+   "def": "A generalization of the SAE in which each feature is represented by a vector rather than a scalar, capturing richer semantics."
+  },
+  {
+   "term": "Predictive Data Debugging",
+   "def": "Deciding whether to filter or shape training data by predicting which internal features a sample will reinforce."
+  },
+  {
+   "term": "Affective Circumplex",
+   "def": "A psychological model describing emotion along two orthogonal dimensions; similar geometry is observable inside LLMs."
+  },
+  {
+   "term": "Silico",
+   "def": "Goodfire's agentic interpretability research platform, aimed at letting AI debug AI autonomously."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Silico monthly subscription price",
+   "v": "$1000"
+  },
+  {
+   "k": "Autonomous experiments per week on the monthly subscription today",
+   "v": "5-10"
+  },
+  {
+   "k": "Target experiments per week in the next month or two",
+   "v": "10-20"
+  },
+  {
+   "k": "Share of redundant parameters found at the internal hackathon",
+   "v": "About half, removable with no performance loss"
+  },
+  {
+   "k": "Shift in Nathan's probability estimate that Claude is conscious",
+   "v": "From below 5% to close to 50%"
+  },
+  {
+   "k": "Dan's subjective interval for how conscious Claude is",
+   "v": "Between a jellyfish and a mouse"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "they kind of are two sides of the same mountain, like filtering the data and reward shaping. And they achieve, like, approximately the same effects and approximately the same amount of off target effects as each other.",
+   "translated": false
+  },
+  {
+   "text": "It's sort of like the semantics of not just the individual concept, but like the concept space are like encoded by the relationship of those of those concepts with each other in some sort of geometry.",
+   "translated": false
+  },
+  {
+   "text": "models are, like, big legacy code bases essentially. Right? Like, they're they're just a bunch of spaghetti code.",
+   "translated": false
+  },
+  {
+   "text": "I think we have to grab the steering wheel. I think that's the only way it can work.",
+   "translated": false
+  },
+  {
+   "text": "Somewhere between jellyfish and mouse.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}

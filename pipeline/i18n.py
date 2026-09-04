@@ -187,7 +187,9 @@ UI: dict[str, str] = {
 _PLURALS = {
     "quote": ("quote", "quotes"),
     "figure": ("figure", "figures"),
-    "read": ("deep read", "deep reads"),
+    # 用户："去掉 deep"。"215 deep reads" 在 375px 上把字标挤到了第二行，
+    # 而 deep 也没带来信息——它是中文"深读"的直译。
+    "read": ("read", "reads"),
     "episode": ("episode", "episodes"),
     "point": ("point", "points"),
     "dropped": ("dropped", "dropped"),
