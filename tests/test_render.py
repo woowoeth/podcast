@@ -169,6 +169,80 @@ class Render(unittest.TestCase):
                             f"iframe_api 被{how}掉之后页面上没有能播的 iframe："
                             f"{got}")
 
+    # ------------------------------------------------------ 英文站
+    def test_english_edition_renders(self):
+        """英文站真的打开来看：没有中英混排、语言切换能回中文、hreflang 三语齐。
+
+        构建时的 enscan 是查 HTML 源码，这一条查**渲染出来的可见文字**——
+        两者会漏的东西不一样（CSS 生成内容 ::before、JS 插进来的文案，
+        源码扫不到）。"""
+        en = os.path.join(ROOT, "en", "index.html")
+        if not os.path.exists(en):
+            self.skipTest("英文站还没建（PODCAST_EN=1 python3 pipeline/build.py）")
+        for path in ("/en/", "/en/sources/", "/en/log/"):
+            p = self.page()
+            p.goto(self.url(path), wait_until="load")
+            bad = p.evaluate("""() => {
+              const cjk = /[\u4e00-\u9fff]/;
+              const bad = [];
+              const walk = el => {
+                if (el.closest('[lang^="zh"]')) return;
+                const cs = getComputedStyle(el);
+                for (const pseudo of ['::before', '::after']) {
+                  const c = getComputedStyle(el, pseudo).content;
+                  if (c && c !== 'none' && cjk.test(c)) bad.push(pseudo + ' ' + c);
+                }
+              };
+              document.querySelectorAll('body *').forEach(walk);
+              document.querySelectorAll('body *').forEach(el => {
+                if (el.children.length) return;
+                if (el.closest('[lang^="zh"]')) return;
+                const t = (el.textContent || '').trim();
+                if (t && cjk.test(t)) bad.push(el.tagName + ': ' + t.slice(0, 40));
+              });
+              return [...new Set(bad)].slice(0, 5);
+            }""")
+            langs = p.evaluate("""() => ({
+              html: document.documentElement.lang,
+              hreflang: [...document.querySelectorAll('link[rel=alternate][hreflang]')]
+                          .map(l => l.hreflang).sort(),
+              backToZh: !!document.querySelector('a[lang="zh"][href$="/podcast/"]'),
+            })""")
+            p.context.close()
+            self.assertEqual(bad, [], f"{path} 上有中英混排：{bad}")
+            self.assertEqual(langs["html"], "en", f"{path} 的 html lang 不对")
+            self.assertIn("zh-Hans", langs["hreflang"], f"{path} 缺 hreflang")
+            self.assertTrue(langs["backToZh"], f"{path} 没有回中文站的入口")
+
+    def test_english_episode_quotes_are_the_original_words(self):
+        """英文源节目的金句在页面上必须和中文站的 raw **逐字一致**。
+        这是这个站的前提：读者点时间戳能核对到那一秒说的就是这句。"""
+        import json as _j
+        en_dir = os.path.join(ROOT, "data", "en")
+        if not os.path.isdir(en_dir):
+            self.skipTest("还没有译文")
+        rec = None
+        for f in sorted(os.listdir(en_dir)):
+            if f.startswith("_") or not f.endswith(".json"):
+                continue
+            r = _j.load(open(os.path.join(en_dir, f), encoding="utf-8"))
+            if r.get("source_lang") == "en" and os.path.isdir(
+                    os.path.join(ROOT, "en", "p", r["slug"])):
+                rec = r
+                break
+        if not rec:
+            self.skipTest("没有可测的英文源译文")
+        src = _j.load(open(os.path.join(ROOT, "data", "episodes",
+                                        rec["slug"] + ".json"), encoding="utf-8"))
+        want = [q.get("raw") for q in (src["digest"].get("quotes") or [])]
+        p = self.page()
+        p.goto(self.url(f"/en/p/{rec['slug']}/"), wait_until="load")
+        got = p.evaluate("""() => [...document.querySelectorAll('.quote .raw')]
+                                  .map(e => e.textContent.trim())""")
+        p.context.close()
+        self.assertEqual(got, [w for w in want if w][:len(got)],
+                         "英文页上的金句和原话不一致——被回译了")
+
     # ------------------------------------------------------ ① 点了不许跳
     def test_clicking_play_does_not_shift_the_page(self):
         """用户："为啥点播放按钮整个界面会跳一下"。真因是 .video-facade{display:block}
