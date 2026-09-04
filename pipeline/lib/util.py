@@ -84,9 +84,19 @@ def parse_duration(v: str | int | None) -> int | None:
 
 
 def hhmmss(sec: float | int | None) -> str:
-    if sec is None:
+    """秒 → 0:00 / 1:02:03。认不出来的值返回空串，**不抛异常**。
+
+    为什么：这是个格式化助手，全站几千处在用。模型某次给了 facts[].t = ""，
+    int("") 抛 ValueError，把**整站构建**炸掉了——一个字段的坏值不该让 267 篇
+    都发不出去。坏数据该在 digest.normalize 里挡掉（那才是它的位置），
+    这里只负责不放大故障。
+    """
+    if sec is None or sec == "":
         return ""
-    sec = int(sec)
+    try:
+        sec = int(float(sec))
+    except (TypeError, ValueError):
+        return ""
     h, rem = divmod(max(sec, 0), 3600)
     m, s = divmod(rem, 60)
     return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"

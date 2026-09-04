@@ -2355,3 +2355,140 @@ class DegradesWithoutStylesheet(unittest.TestCase):
                               "播放键里必须有内联 SVG")
                 return
         del page
+
+
+class DigestRubric(unittest.TestCase):
+    """dek / 要点 / 金句 都得有判据，不能只有标题有。
+
+    用户："我觉得我们文章内展示的重点和金句还不够核心"。查下来不是展示问题，
+    是判据缺失：SYSTEM 里标题有一整套硬约束，dek、要点、金句一条都没有，
+    只有机械规则（必须逐字、必须带时间戳、不许推测）。
+
+    后果可量化：全站 2095 条要点小标题里，**只有 16% 带否定/转折/断言标记**，
+    另外 84% 是名词短语式的话题名——「折旧与晶圆厂滞留风险」「与长鑫合作意义」
+    「第一笔钱投向哪里」「2017年的转折」。读者扫一遍拿不到任何判断，等于把节目
+    目录翻译了一遍。
+    """
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib.digest import SYSTEM
+        self.sys = SYSTEM
+
+    def test_has_a_rubric_for_each_part(self):
+        for sec in ("一句话结论（dek）怎么写", "要点怎么选、怎么写",
+                    "金句怎么选", "标题怎么写"):
+            self.assertIn(sec, self.sys, f"SYSTEM 里少了「{sec}」这一节")
+
+    def test_points_rubric_encodes_selection_not_just_style(self):
+        """判据必须先解决"选什么"。原来的提示说了"找出最值钱的 5-8 处"，
+        但从没定义什么叫值钱，于是要点顺着节目章节排。"""
+        i = self.sys.index("要点怎么选、怎么写")
+        blk = self.sys[i:self.sys.index("金句怎么选", i)]
+        self.assertIn("不是这集的目录", blk)
+        for k in ("会改变读者的判断", "给出了机制", "读者一周后还记得"):
+            self.assertIn(k, blk, f"选择判据里少了「{k}」")
+        self.assertIn("能被反对的话", blk, "小标题必须要求是论断")
+        self.assertIn("具体画面", blk,
+                      "要点必须要求留住说话人给的画面——那是让判断粘住的东西")
+
+    def test_quote_rubric_is_about_load_bearing(self):
+        i = self.sys.index("金句怎么选")
+        blk = self.sys[i:]
+        self.assertIn("承重句", blk, "金句判据必须说清它不是格言")
+
+    def test_dek_rubric_forbids_stacking_claims(self):
+        """dek 曾经把四个论断串成一句——正是标题判据明令禁止的并列，
+        但 dek 没有对应的规则。"""
+        i = self.sys.index("一句话结论（dek）怎么写")
+        blk = self.sys[i:self.sys.index("要点怎么选", i)]
+        self.assertIn("只承载一个论断", blk)
+
+    def test_verbatim_rule_survives(self):
+        """加判据不能把机械闸门那条挤掉——金句逐字复制是四道工序里的一道。"""
+        self.assertIn("金句必须逐字复制原文", self.sys)
+        self.assertIn("会被机器逐字比对", self.sys)
+
+
+class YouTubeOnlyEpisodes(unittest.TestCase):
+    """只在 YouTube 上发的节目也得能收。
+
+    管线是 feed 驱动的，而有些节目**只在频道上发**。实测 Y Combinator：
+    「Paul Graham On Startups, Ambition, and Great Founders」（5bxp78i96S8）
+    在频道上是最新一条，336 集的 RSS feed 里根本没有它——全 feed 里和这个标题
+    最相似的只有 0.18 分，是 5 月另一期 PG。这类内容我们以前一集都收不到，
+    而且没有任何信号告诉我们漏了。
+    """
+
+    def test_tool_reuses_the_pipeline_gates(self):
+        """收录一条视频不能自己另写一套发布逻辑——四道闸门必须原样跑。"""
+        src = (ROOT / "pipeline" / "addvideo.py").read_text()
+        self.assertIn("R.process(ep, state", src,
+                      "必须走 run.process()，不能自己拼发布")
+        self.assertNotIn("json.dumps(rec", src, "别自己写单集文件，那会绕过闸门")
+
+    def test_dedups_against_the_feed_version(self):
+        """频道版和 feed 版标题常常不一样（实测 Max Hodak 那集 feed 叫
+        How Startups Build Speed、频道叫 Average Is Not Good Enough），
+        只按标题查会把同一场对话发两遍。"""
+        src = (ROOT / "pipeline" / "addvideo.py").read_text()
+        self.assertIn("def dup_by_duration", src)
+        self.assertIn("seek_tolerance", src, "时长判据要和时间戳容差用同一个数")
+        self.assertIn("def already_have", src)
+
+    def test_metadata_does_not_hinge_on_yt_dlp(self):
+        """批量跑时 yt-dlp 会撞 bot 检查。watch 页不吃这个，必须是主路径。"""
+        src = (ROOT / "pipeline" / "addvideo.py").read_text()
+        body = src[src.index("def meta"):src.index("def already_have")]
+        code = re.sub(r'"""[\s\S]*?"""', "", body)     # 文档串里也提 yt-dlp
+        self.assertIn("net.get_text", code, "先读 watch 页")
+        self.assertIn("yt-dlp", code, "yt-dlp 作为第二条路还是要有")
+        self.assertLess(code.index("net.get_text"), code.index("yt-dlp"),
+                        "watch 页必须在前：yt-dlp 只是补齐，不是主路径")
+
+
+class BackfillToolsMustNotRenormalize(unittest.TestCase):
+    """回填工具只许改它声明要改的字段，不许对已发布的数据整体 normalize。
+
+    digest.normalize 是给**模型原始输出**用的：它把每个字段 str() 一遍，于是
+    `t: None` 会变成 `""`。对已发布的数据调它，时间戳会被整片写成空串——而
+    hhmmss("") 当时会抛 ValueError，把整站 267 篇的构建一起炸掉。
+
+    我在写 repoint.py 时就这么干了一次，回填跑起来了才发现（幸好第一篇还没写盘）。
+    retitle.py 和 repunct.py 一直是逐字段过 _cn_punct，正是因为这个。
+    """
+
+    def test_no_tool_calls_normalize_on_published_data(self):
+        for name in ("repoint.py", "retitle.py", "repunct.py", "video.py"):
+            f = ROOT / "pipeline" / name
+            if not f.exists():
+                continue
+            src = f.read_text()
+            code = re.sub(r'"""[\s\S]*?"""', "", src)
+            self.assertNotIn("normalize(", code,
+                             f"{name} 对已发布数据调了 normalize()，"
+                             f"会把 t: None 写成空串")
+
+    def test_hhmmss_survives_junk(self):
+        """一个字段的坏值不该让 267 篇都发不出去。判据放在 normalize 那层，
+        但格式化助手不能放大故障。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib.util import hhmmss
+        for junk in ("", None, "abc", [], {}):
+            self.assertEqual(hhmmss(junk), "", f"hhmmss({junk!r}) 应该给空串")
+        self.assertEqual(hhmmss(0), "0:00")
+        self.assertEqual(hhmmss("125"), "2:05")
+        self.assertEqual(hhmmss(3725), "1:02:05")
+
+    def test_no_string_timestamps_on_disk(self):
+        """线上不该有字符串型的时间戳。gate 会把它们规成 int | None，
+        出现字符串就说明有工具绕过了 gate 直接写盘。"""
+        bad = []
+        for f in (ROOT / "data" / "episodes").glob("*.json"):
+            d = json.loads(f.read_text()).get("digest") or {}
+            for k in ("points", "quotes", "facts"):
+                for it in (d.get(k) or []):
+                    if isinstance(it.get("t"), str):
+                        bad.append(f"{f.name}:{k}")
+                        break
+        self.assertEqual(bad, [], f"{len(set(bad))} 篇有字符串型时间戳")

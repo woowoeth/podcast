@@ -247,6 +247,48 @@ def check_videos(r: Report) -> None:
         r.good(f"{vids} 篇内嵌视频，时间轴都核对过")
 
 
+def check_point_headings(r: Report) -> None:
+    """要点小标题是论断，还是节目目录的翻译。
+
+    为什么要报这一条：用户说"展示的重点还不够核心"时，我才第一次去量这个——
+    全站 2095 条里只有 16% 带否定/转折/断言标记，另外 84% 是名词短语式的话题名
+    （「与长鑫合作意义」「第一笔钱投向哪里」「2017年的转折」）。判据已经写进
+    digest.SYSTEM，但**判据只影响以后生成的**，而"以后生成的到底变好了没有"
+    需要一个持续的数字，不能每次都等人来问。
+
+    这是提醒，不是硬伤：单篇比例天然波动，而且它是内容判断，不该半夜报警。
+    """
+    import re as _re
+    claim = _re.compile(r"不是.*而是|不|没|非|反而|其实|却|才|只|会|要|能")
+    # 按稿子自己的 generated 排，**不是文件 mtime**：回填工具一跑，mtime 就变成
+    # 回填顺序，"最近 30 篇"会立刻变成"最后被回填的 30 篇"，这个信号就失真了。
+    rows = []
+    for f in (DATA / "episodes").glob("*.json"):
+        try:
+            d = json.loads(f.read_text())
+        except Exception:
+            continue
+        hh = [bool(claim.search(p.get("h") or ""))
+              for p in ((d.get("digest") or {}).get("points") or [])]
+        if hh:
+            rows.append((d.get("generated") or "", hh))
+    rows.sort(key=lambda x: x[0], reverse=True)
+    hs = [x for _, hh in rows for x in hh]
+    recent = [x for _, hh in rows[:30] for x in hh]
+    if not hs:
+        return
+    all_pct = sum(hs) / len(hs) * 100
+    new_pct = (sum(recent) / len(recent) * 100) if recent else 0
+    line = (f"要点小标题里是论断的：全站 {all_pct:.0f}%（{len(hs)} 条）、"
+            f"最近 30 篇 {new_pct:.0f}%")
+    # 40% 是从回填前后的实测差里定的：判据生效时单批能到 70% 上下，
+    # 掉回 40% 以下说明提示词那节被改坏了或者被模型忽略了。
+    if new_pct < 40:
+        r.note(line + "——新稿掉回话题名了，检查 digest.SYSTEM 的要点判据那节")
+    else:
+        r.good(line)
+
+
 def check_online(r: Report) -> None:
     """线上和仓库是不是同一个版本。
 
@@ -295,6 +337,7 @@ def main(argv: list[str] | None = None) -> int:
     check_build_consistency(r)
     check_sources(r)
     check_videos(r)
+    check_point_headings(r)
     if a.online:
         check_online(r)
 
