@@ -1,0 +1,122 @@
+{
+ "slug": "2026-08-10-techtechpotato-超大规模自研芯片-不只为省钱-更怕被-nvidia-绑架",
+ "of": "techtechpotato-44475ae966",
+ "source_lang": "en",
+ "title": "Custom Silicon Isn't About Saving Money, It's About Escaping Nvidia's Generational Grip",
+ "dek": "The real motive behind hyperscaler custom silicon is not cost but control: not being held hostage to Nvidia's generational cadence, while using sheer scale to squeeze down networking and compute costs. The Broadcom tax is cheaper than the Nvidia tax, but only the largest players can afford to play.",
+ "why": "High information density. It uses concrete cases like Meta demolishing a data center and Amazon's Nitro, plus scale figures, to work through the motives and cost structure of hyperscaler custom silicon, correcting the simplistic view that it is «to save money».",
+ "who": "Founders and investors tracking the compute supply chain, infrastructure engineers at cloud providers, and chip people trying to understand the competitive landscape around Nvidia.",
+ "skip": "The opening and the Arteris ad starting at 14:10 can be skipped; everything else is densely packed.",
+ "tags": [
+  "Hyperscalers",
+  "Custom silicon",
+  "AI hardware",
+  "Nvidia",
+  "Arm"
+ ],
+ "points": [
+  {
+   "h": "The first motive for custom silicon is control, not cost",
+   "body": "The first reason hyperscalers design their own chips is not to save money, it is control. They do not want to hand something business-critical entirely over to Nvidia. Designing in-house lets them control the vertical integration of their own silicon, run their own optimizations, and decide which direction to optimize in, and it avoids long-term purchase commitments to a single supplier. Nvidia's chips change a great deal from generation to generation, so buyers have to commit to large orders far in advance, which amounts to a strategic risk. Custom silicon is fundamentally an act of taking active control of the supply chain and the product roadmap."
+  },
+  {
+   "h": "Meta tore down a $1 billion data center that was still being built",
+   "body": "Generational chip changes are so large that Meta once demolished a data center that was under construction and rebuilt it. Roughly $1 billion had already gone in, but the changes in the chips forced a wholesale redesign of the data center architecture. This is an extreme case: on someone else's general-purpose chip roadmap, the buyer can only follow along passively. If you control the silicon design yourself, you know the chip specifications well in advance and avoid this kind of tear-it-all-down waste. The example turns «generational change you cannot control» into the core argument for building your own chips."
+  },
+  {
+   "h": "Google keeps TPUs in-house; Amazon rents its silicon out",
+   "body": "Google is the most emblematic case of custom silicon: the TPU has been through many generations, and a great deal of its infrastructure runs on its own chips, though it still buys plenty of Nvidia. The difference between Google and Amazon is this: Google's TPUs are mainly for internal workloads, and the whole system is designed around internal needs; Amazon turns its custom chips into instances customers can rent, a different business model. Google also has frontier models like Gemini, and the TPU carries those too. There have already been reports that OpenAI will use TPUs in the future. So even under the same label of «custom silicon», the profit model and the customer being served are completely different."
+  },
+  {
+   "h": "Nearly every custom CPU is Arm, not x86",
+   "body": "Beyond AI accelerators, hyperscalers are also starting to design their own CPUs. The logic is the same as with accelerators: take a general-purpose CPU and specialize it for your own workloads. Nearly all of these custom CPUs are Arm. Arm's data center opportunity has suddenly exploded, and it is the hyperscalers driving it. Unlike the traditional model of general-purpose x86 chips, these companies want full control from the instruction set down to the silicon. Physical design companies like Broadcom and Marvell take on the actual implementation, while Arm supplies compute subsystems (CSS), forming a new chain distinct from Nvidia's supply chain."
+  },
+  {
+   "h": "However pricey, the Broadcom tax is cheaper than the Nvidia tax",
+   "body": "Does custom silicon actually save money? It depends on who builds it. Hyperscalers do not deal directly with the foundries; design houses like Broadcom handle the interface with TSMC. Because Broadcom holds several customers, it can drive prices down, so even after paying the «Broadcom tax» you come out cheaper than paying the «Nvidia tax». This is a counterintuitive conclusion: Nvidia's margins on AI chips are extremely high, and going custom through a design house actually squeezes out that premium. But it also means the hyperscalers have not fully disintermediated anything, they have simply swapped in a cheaper middleman."
+  },
+  {
+   "h": "Amazon's custom silicon started with networking, not AI",
+   "body": "Amazon's in-house effort began with networking rather than AI. In the early days every server needed its own networking chip, connected up to a top-of-rack switch, but network utilization was low. Amazon first implemented Nitro on FPGAs, letting multiple CPUs share a single network interface; later it decided to replace the FPGAs with ASICs, and so acquired the chip company Annapurna. The decision came down to scale: with large numbers of microservice instances, network activity levels do not justify one networking chip per CPU, and compressing network connections saves an enormous amount. Nitro later evolved into an elastic fabric architecture and spawned chips like Graviton and Trainium."
+  },
+  {
+   "h": "Without a million servers, don't even think about custom silicon",
+   "body": "Why build your own chips? Because the scale is so large. Take an example: if you have 1.2 million servers and compress network connections 4:1, you only need 300,000 network adapters, saving 900,000 adapters plus their switches and infrastructure. What you save is enough to fund designing your own CPU or AI chip. This explains why only the biggest players can do this kind of thing — scale sets the break-even point for going custom. An ordinary company does not deploy enough volume to amortize the development cost, so it can only buy general-purpose chips."
+  },
+  {
+   "h": "Ten thousand servers serve five million people: here is the arithmetic",
+   "body": "Humans are bad at picturing hyperscale numbers. Here is one conversion: serving 5 million people takes 10,000 servers; the United States has roughly 300 million to 330 million people, so you need 60 warehouses of that size, or 600,000 servers; and that is just the United States. Global population is somewhere above 8 billion, and even if per-capita demand is lower elsewhere, the total is still enormous. It is exactly this order of magnitude that lets every specialized optimization in custom silicon turn into real returns across a large deployment, and that forms the economic basis for hyperscalers building their own chips."
+  }
+ ],
+ "terms": [
+  {
+   "term": "TPU",
+   "def": "Tensor Processing Unit: Google's purpose-built chip for accelerating neural network training and inference."
+  },
+  {
+   "term": "Nitro",
+   "def": "AWS's in-house networking and I/O offload hardware, originally built on FPGAs and later moved to ASICs, letting multiple CPUs share a single network interface."
+  },
+  {
+   "term": "RISC-V",
+   "def": "An open instruction set architecture any company can use free of charge to design processors; seen as a potential alternative to Arm."
+  },
+  {
+   "term": "Arm CSS",
+   "def": "Arm Compute Subsystems: pre-integrated compute blocks from Arm, including CPU cores and interconnect, that shorten custom chip design cycles."
+  }
+ ],
+ "facts": [
+  {
+   "k": "AI accelerator market share (including TPUs)",
+   "v": "roughly 85:15"
+  },
+  {
+   "k": "When Annapurna was acquired",
+   "v": "around 2015-2016"
+  },
+  {
+   "k": "Example deployment scale",
+   "v": "1.2 million servers"
+  },
+  {
+   "k": "Network compression ratio",
+   "v": "4:1"
+  },
+  {
+   "k": "Warehouses needed for the US population",
+   "v": "60"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "they don't want to be beholden entirely to Nvidia for something that is so, so important to their business, right?",
+   "translated": false
+  },
+  {
+   "text": "Facebook um demolished a data center they were in the process of building because the chips had changed so much gen on gen that they had to redesign the architecture of their deployment.",
+   "translated": false
+  },
+  {
+   "text": "A general chip has to be general for everyone.",
+   "translated": false
+  },
+  {
+   "text": "It turns out Broadcom is cheaper as weird as it is to say.",
+   "translated": false
+  },
+  {
+   "text": "having your own in-house silicon design team can be really beneficial if you want to optimize every cent.",
+   "translated": false
+  },
+  {
+   "text": "So, if you turn around and say, \"Well, I've got 1.2 million servers deployed.\" Like yeah, I can't picture that number.",
+   "translated": false
+  },
+  {
+   "text": "if you can identify patterns, you can increase watch time on your platform.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}

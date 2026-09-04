@@ -70,6 +70,10 @@ You are translating an already-finished piece. Discipline:
   ("大概率", "也许"), hedge in English. If it asserts, assert.
 - Company, model and product names are already in Latin script in the source —
   keep them byte-identical. Never re-spell them.
+- Chinese apps, companies and people that have no Latin name: romanise (pinyin,
+  no tone marks) and put the characters in parentheses on first mention, e.g.
+  Dongchedi (懂车帝). Do not leave a bare Chinese name with no romanisation, and
+  do not invent an English name that the company does not use.
 - Numbers, dates and timestamps: copy exactly. Never convert units, never round,
   never add a figure that is not in the source.
 - A point heading must stay a claim someone could disagree with, not a topic
@@ -184,8 +188,16 @@ def check(ep: dict, en: dict, en_source: bool) -> list[str]:
     # 漏译：英文字段里不该有汉字（公司名产品名在中文稿里本来就是拉丁字母）
     def scan(v, path):
         if isinstance(v, str):
-            if _CJK.search(v):
-                bad.append(f"{path} 里有汉字没译：{v[:40]}")
+            # 只有中文名的中国应用和公司（懂车帝、幸福里、海豚股票）在英文正文里
+            # 是**合法的专名**，不是漏译——实测这类占比 0.30%。而真正漏译一整句
+            # 的话汉字占比在 30% 以上。给一个预算，两者离得很远。
+            # 渲染时这些汉字会被 build.py 包进 <span lang="zh">，所以英文站的
+            # "零漏译"闸门也不会误报。
+            n_cjk = len(_CJK.findall(v))
+            if n_cjk and (n_cjk > max(8, len(v) * 0.04)
+                          or not re.search(r"[A-Za-z]", v)):
+                bad.append(f"{path} 里有 {n_cjk} 个汉字没译（占 "
+                           f"{n_cjk / max(len(v), 1) * 100:.0f}%）：{v[:40]}")
             elif _CJK_PUNCT.search(v):
                 bad.append(f"{path} 里有中文标点：{v[:40]}")
         elif isinstance(v, list):
@@ -235,11 +247,26 @@ def main() -> int:
         en_src = is_english_source(ep)
         ask = ASK % ("" if en_src else QUOTE_ASK)
         body = brief(ep) + ("" if en_src else quote_brief(ep))
+        # max_tokens 按原稿长度给。固定 4000 的后果实测过：长稿子（8 条要点
+        # 加术语加数字加金句）本身就要三四千 token 输出，而 review 角色是推理
+        # 模型——思考先把额度吃掉，答案是空的，报 "内容为空（finish_reason=length）"。
+        need = max(4000, int(len(body) * 1.6))
         try:
             r = llm.call_json(SYSTEM, body + "\n\n" + ask,
-                              max_tokens=4000, temperature=0.2, role="review")
+                              max_tokens=need, temperature=0.2, role="review")
         except Exception as ex:
-            log(f"  {slug[:44]} 译失败：{type(ex).__name__}")
+            # 只对"额度用光"这一种再试一次，加倍。其他错误直接记账，
+            # 盲目重试只是把同一个失败花两遍钱。
+            if "内容为空" not in str(ex):
+                raise
+            log(f"      额度不够（{need}），加倍重试")
+            r = llm.call_json(SYSTEM, body + "\n\n" + ask,
+                              max_tokens=need * 2, temperature=0.2, role="review")
+        except Exception as ex:      # noqa: F811 —— 外层兜住两次都失败的情况
+            # **把消息也记下来。** 只记 type(ex).__name__ 的后果：60 篇连着
+            # 因为"推理把 max_tokens 用光了，没留给答案"失败，日志里全是
+            # 一模一样的 RuntimeError，看不出是同一个可修的原因。
+            log(f"  {slug[:44]} 译失败：{type(ex).__name__}: {str(ex)[:160]}")
             failed += 1
             continue
         # 先归一化标点，再过闸门——闸门查的是"还有没有漏的"，不是"模型有没有

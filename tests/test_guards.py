@@ -3115,3 +3115,68 @@ class BuildOutputMustNotDependOnEnvFlags(unittest.TestCase):
         i = src.index("EN_LIVE =")
         self.assertIn('DATA / "en"', src[i:i + 220],
                       "EN_LIVE 必须由 data/en/ 决定")
+
+
+class ChineseProperNounsInEnglishText(unittest.TestCase):
+    """只有中文名的中国应用和公司，在英文正文里是合法的专名，不是漏译。
+
+    实测：一篇中文源节目的译文里出现 懂车帝、幸福里、海豚股票 —— 占正文
+    0.30%，而真正漏译一整句的话汉字占比在 30% 以上。原来的判据是"一个汉字
+    都不许有"，把这类合法专名连着整篇一起打回，**66/265 篇卡在这上面**。
+
+    现在两头都管住：
+      · translate.py 给一个预算（≤4% 且必须含拉丁字母），超了才算漏译
+      · build.py 渲染时把汉字连续段包进 <span lang="zh">，否则英文站的
+        "零漏译"闸门会把合法专名报成漏译
+    """
+
+    def test_budget_allows_a_gloss_but_not_a_sentence(self):
+        import importlib.util as iu
+        sp = iu.spec_from_file_location("tr", ROOT / "pipeline" / "translate.py")
+        m = iu.module_from_spec(sp)
+        sp.loader.exec_module(m)
+        base = {"digest": {"points": [], "terms": [], "facts": [], "tags": [],
+                           "quotes": []}}
+        gloss = ("Apps like 懂车帝 and 幸福里 took the traffic, which is why the "
+                 "standalone app never needed its own brand at all here.")
+        untranslated = "这一段完全没有翻译，整句都是中文，应该被判为漏译。"
+        ok = m.check(base, {"title": "x" * 20, "dek": "y" * 40, "points": [],
+                            "terms": [], "facts": [], "tags": [], "why": gloss}, True)
+        self.assertEqual(ok, [], f"合法专名被误判成漏译：{ok}")
+        bad = m.check(base, {"title": "x" * 20, "dek": "y" * 40, "points": [],
+                             "terms": [], "facts": [], "tags": [],
+                             "why": untranslated}, True)
+        self.assertTrue(bad, "整句中文没被判为漏译")
+
+    def test_renderer_marks_cjk_runs(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import build
+        old = build.LANG
+        try:
+            build.LANG = "en"
+            got = build.mark_zh("apps like 懂车帝 and 幸福里 won")
+            self.assertEqual(got.count('<span lang="zh">'), 2)
+            build.LANG = "zh"
+            self.assertEqual(build.mark_zh("要点 懂车帝"), "要点 懂车帝",
+                             "简体模式下 mark_zh 必须是恒等函数")
+        finally:
+            build.LANG = old
+
+    def test_marking_happens_after_escaping(self):
+        """先包 span 再转义会把标签本身转掉。渲染处必须是 mark_zh(e(...))。"""
+        src = (ROOT / "pipeline" / "build.py").read_text()
+        self.assertNotIn("e(mark_zh(", src, "顺序反了：应该是 mark_zh(e(...))")
+        self.assertIn("mark_zh(e(", src)
+
+    def test_translate_logs_the_message_not_just_the_type(self):
+        """60 篇连着因为"推理把 max_tokens 用光了"失败，而日志里只有一模一样的
+        RuntimeError——看不出是同一个可修的原因。"""
+        src = (ROOT / "pipeline" / "translate.py").read_text()
+        i = src.index("译失败")
+        self.assertIn("str(ex)", src[i - 200:i + 200],
+                      "异常消息必须记下来，不能只记类型")
+
+    def test_token_budget_scales_with_input(self):
+        src = (ROOT / "pipeline" / "translate.py").read_text()
+        self.assertIn("need = max(", src, "max_tokens 要按原稿长度给")
+        self.assertNotIn("max_tokens=4000", src, "固定 4000 会让长稿子拿不到答案")

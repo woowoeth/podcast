@@ -170,6 +170,25 @@ def src_display(src: dict) -> str:
     return src.get("zh") or src.get("name") or ""
 
 
+_CJK_RUN = re.compile(r"[\u4e00-\u9fff\u3400-\u4dbf]+")
+
+
+def mark_zh(html: str) -> str:
+    """英文页正文里的中文专名包进 <span lang="zh">。
+
+    只有中文名的中国应用和公司（懂车帝、幸福里、海豚股票）在英文正文里是合法的
+    专名——译文里会按"Dongchedi (懂车帝)"这样写。它们**必须被标注**，两个理由：
+    一是字体和读屏软件要知道这几个字是中文；二是英文站的"零漏译"闸门判据就是
+    "汉字只许出现在 lang=zh 里"，不标就会把合法专名报成漏译。
+
+    **必须在 HTML 转义之后再调**——先包 span 再转义会把标签本身转掉。
+    简体页上是恒等函数。
+    """
+    if LANG == "zh" or not html:
+        return html
+    return _CJK_RUN.sub(lambda m: f'<span lang="zh">{m.group(0)}</span>', html)
+
+
 def zh_attr(text) -> str:
     """英文页上，中文内容要显式标 lang="zh"。
 
@@ -335,10 +354,14 @@ LANG_JS = ("<script>(function(){try{"
            # 的惯例——一个只读英文的人也认得出 English 那一项。所以中文那两项
            # 带 lang，不是漏译：渲染层体检查的是"中文必须被显式标注"，
            # 而这些 option 是 JS 建的，构建期的 enscan 看不到，只有它能抓到。
-           "var opts=[['sc','\\u7b80\\u4f53','zh-Hans'],"
-           "['tw','\\u7e41\\u9ad4','zh-Hant']];"
+           # 标签只用一个字／两个字母，和另外两个站一致：「English」
+           # 一个词就占 87px，窄屏页头放不下。原生 <select> 收起和展开
+           # 是同一份文字，所以列表里也是短的 —— 语言选择器的惯例是
+           # 每一项用它自己的语言写，简／繁／EN 三个都认得出。
+           "var opts=[['sc','\\u7b80','zh-Hans'],"
+           "['tw','\\u7e41','zh-Hant']];"
            # 这一页没有英文版就不给这一项——比跳 404 或悄悄跳回英文首页都好
-           "if(hasEn)opts.push(['en','English','en']);"
+           "if(hasEn)opts.push(['en','EN','en']);"
            "opts.forEach(function(kv){"
            "var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];"
            "if(kv[2])o.lang=kv[2];"
@@ -946,8 +969,8 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
                 f'target="_blank" rel="noopener">{hhmmss(t)}</a>')
 
     points = "\n".join(
-        f"""<div class="point">{ts(p['t'])}<div><h4>{e(p['h'])}</h4>
-<p class="body">{e(p['body'])}</p>
+        f"""<div class="point">{ts(p['t'])}<div><h4>{mark_zh(e(p['h']))}</h4>
+<p class="body">{mark_zh(e(p['body']))}</p>
 {f'<span class="spk"{zh_attr(p["spk"])}>— {e(p["spk"])}</span>' if p.get('spk') else ''}</div></div>"""
         for p in d.get("points") or [])
 
@@ -961,7 +984,7 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
     facts = ""
     if d.get("facts"):
         rows = "\n".join(
-            f'<tr><td class="k">{e(f["k"])}</td><td class="v">{e(f["v"])}</td>'
+            f'<tr><td class="k">{mark_zh(e(f["k"]))}</td><td class="v">{mark_zh(e(f["v"]))}</td>'
             f'<td class="t">{ts(f["t"]) if f.get("t") is not None else ""}</td></tr>'
             for f in d["facts"])
         facts = f'<section class="section"><h2>{T("数字与实体")}</h2><table class="facts">{rows}</table></section>'
@@ -969,8 +992,8 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
     terms = ""
     if d.get("terms"):
         items = "\n".join(
-            f'<div><dt>{e(t["term"])}<span>{e(t["zh"])}</span></dt>'
-            f'<dd>{e(t.get("def"))}</dd></div>' for t in d["terms"])
+            f'<div><dt>{mark_zh(e(t["term"]))}<span{zh_attr(t["zh"])}>{e(t["zh"])}</span></dt>'
+            f'<dd>{mark_zh(e(t.get("def")))}</dd></div>' for t in d["terms"])
         terms = f'<section class="section"><h2>{T("术语")}</h2><dl class="terms">{items}</dl></section>'
 
     toc = "\n".join(f'<a href="#p{i}"><span class="t">{hhmmss(p["t"])}</span>'
@@ -1049,12 +1072,12 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
 <time class="date" datetime="{e(ep.get('published'))}">{e(date)}</time>
 {share_button(episode_share_text(ep), url=ep_url(ep), title=d.get('title') or '')}</div>
 <h1>{e(d.get('title'))}</h1>
-<p class="dek-lead">{e(d.get('dek'))}</p>
+<p class="dek-lead">{mark_zh(e(d.get('dek')))}</p>
 <div class="ep-meta">{tags}</div>
 </div>
 {player_block(ep)}
 
-{f'<section class="section"><div class="why">{e(d.get("why"))}</div></section>' if d.get('why') else ''}
+{f'<section class="section"><div class="why">{mark_zh(e(d.get("why")))}</div></section>' if d.get('why') else ''}
 
 <section class="section"><h2>{T('核心论点 · 时间戳为按文稿位置估算') if q.get('approx_timestamps') else T('核心论点 · 点时间戳可跳到原声')}</h2>{points}</section>
 {f'<section class="section"><h2>{T("原话 · 已逐字校验")}</h2>{quotes}</section>' if quotes else ''}
@@ -1062,8 +1085,8 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
 {terms}
 {f'''<section class="section"><h2>{T("收听指南")}</h2>
 <div class="panel guide">
-<div><span class="k">{T("谁该听")}</span><p>{e(d.get("who"))}</p></div>
-{f'<div><span class="k">{T("可跳过")}</span><p>{e(d.get("skip"))}</p></div>' if d.get('skip') else ''}
+<div><span class="k">{T("谁该听")}</span><p>{mark_zh(e(d.get("who")))}</p></div>
+{f'<div><span class="k">{T("可跳过")}</span><p>{mark_zh(e(d.get("skip")))}</p></div>' if d.get('skip') else ''}
 </div></section>''' if d.get('who') else ''}
 {prevnext}
 </article>

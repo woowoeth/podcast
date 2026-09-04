@@ -1,0 +1,154 @@
+{
+ "slug": "2026-08-11-latentspace-0-33å-误差背后的信号-药物发现正转向敏捷闭环",
+ "of": "latentspace-9e9a1dd3c8",
+ "source_lang": "en",
+ "title": "Behind a 0.33Å Error: Drug Design Is Moving From Waterfall to Agile Loop",
+ "dek": "Chai designed antibodies for 50 targets and got hits on about half of them, with cryo-EM validation showing a 0.33Å error. The real moat is not the model — it is data, compute, and a validation pipeline pharma companies will actually pay for.",
+ "why": "Dense throughout, and the back half is where the value is: compute allocation, the conflict between architectural complexity and the bitter lesson, and the economics of GLP-1 all come with specific numbers and specific judgments. Worth a second listen for founders and engineers.",
+ "who": "Founders building in biocomputing and AI-for-science, heads of digital R&D inside pharma companies, and pharma investors trying to judge when structure prediction starts genuinely saving money.",
+ "skip": "You can skip 18:54-24:01 on the details of the Chai 1 launch. Do not miss the economics at 1:24:23.",
+ "tags": [
+  "Biopharma",
+  "Structure prediction",
+  "Antibody design",
+  "Compute",
+  "AI4S"
+ ],
+ "points": [
+  {
+   "h": "Drug discovery should run as an agile loop, not a waterfall",
+   "body": "The analogy for biological design is software tooling: an interface closer to a design suite like Photoshop, where a tool in the spirit of ‘content-aware fill’ has Chai generate a binder for you. Traditional drug discovery is a waterfall — target discovery, hit discovery, then optimization, strictly in series, with each gate taking months to years, which makes early-stage trial and error extremely expensive. If a model can reliably hand you promising candidates, that sequence turns into a loop, much the way software development moved to agile. The next rung of abstraction to climb is agonists, ADCs, and precisely triggering switches inside cells."
+  },
+  {
+   "h": "Hit rates only rose after switching to CRO-validated targets",
+   "body": "Chai ran an internal challenge: design antibodies against 50 targets. The first pass picked targets that were ‘interesting’, and half of them did not work. The team then switched to targets a CRO had already validated, choosing from the CRO's own catalog. In the end, roughly half of the 50 targets produced hits, with an average binding hit rate of about 20%. This is the experiment that got pharma companies to believe there was a real signal here, and it explains why the large pharma companies were willing to sign big deals."
+  },
+  {
+   "h": "Open-sourcing Chai 1 was a forcing function for building infrastructure",
+   "body": "Chai 1 does structure prediction, it was open sourced, and the team behind it was five people. The point of building Chai 1 was not the model itself — it was using the model as an excuse to build the infrastructure, MSA and everything around it, properly and in one pass, as a forcing function for a long-term investment. Both co-founders have ties to OpenAI, OpenAI led the seed round, and for a stretch the team sat in OpenAI's office. In the 48 hours before release they pulled all-nighters standing up the web server, and Josh went on Bloomberg TV at 7am with not a single employee in the office."
+  },
+  {
+   "h": "The 0.33Å figure is not data leakage but atomic-level accuracy",
+   "body": "In the Chai 2 paper, the predicted structure was overlaid on the cryo-EM electron density and you cannot see the difference: the error is 0.33Å, one third the width of an atom. The team's first assumption was that the other side had simply mailed back their own design, or that there was data leakage somewhere. But they had deliberately chosen targets with no known antibody binder, so this was the first antibody hit against that target. This validation is direct evidence that structure prediction has reached atomic-level accuracy."
+  },
+  {
+   "h": "Antibodies have no evolutionary template, so MSA stops working",
+   "body": "An epitope is the site on a protein you want to block, and identifying it is harder than finding an antibody, because it requires global understanding. Even the multimer version of AlphaFold2 is correct on only about 11% of antibody-antigen binding predictions — meaning 90% are wrong. The crux is MSA. An MSA functions as a structural template, and antibodies are precisely the case where evolution cannot supply a template: every person has to generate unique antibodies against the antigens they personally have encountered, relying on recombination to match pathogens that have never been seen."
+  },
+  {
+   "h": "Compute is power-law distributed and startups fight over the leftovers",
+   "body": "Starting last September, spot and on-demand compute went short again and again, forcing Chai to stockpile its own cards. Compute is power-law distributed: of ten thousand B300s shipped, say, the hyperscalers and the top AI labs take 95%+, and startups fight over the remainder. On top of that, the new hardware is built for LLMs — large KV caches, 72-chip interconnects — so this class of structure model needs its own inference optimization. Technically, the batched attention in Chai-1 has L³ complexity, memory bandwidth binds harder than flops, and even layer norm can turn out to be expensive."
+  },
+  {
+   "h": "Complexity fights the bitter lesson, and the right move is subtraction",
+   "body": "Complexity and the ‘bitter lesson’ principle are in fundamental conflict. AlphaFold 3 may have 23 submodules — the speaker says he is not certain of the count — and a system like that is extremely hard to optimize and to do research on: change one submodule and it moves everything else. The reflexive idea is to add another module, but perhaps the right move is subtraction. Chai's engineering culture leans hard toward simplicity, and a comparison of SpaceX's Raptor 1 and Raptor 2 engines hangs on the office wall as a reminder to keep deleting things. Part of why AlphaFold 2 and 3 succeeded is that they are relatively small models — compute-intensive and data-efficient."
+  },
+  {
+   "h": "GLP-1 brings in more revenue than every AI lab combined",
+   "body": "Measured per token, pharma may be the field with the highest downstream value per token: a single drug can be a multi-billion-dollar asset, and the two classes of GLP-1 drugs together may add up to a trillion-dollar asset. By Chai's estimate, up until three months ago GLP-1's total revenue exceeded that of all AI labs put together, while its market capitalization is relatively far lower. Pharma is fundamentally a VC-style business — one of the largest early venture returns in Silicon Valley was Genentech in the 1980s — and the biggest problem in all of biopharma is precisely its funding model."
+  }
+ ],
+ "terms": [
+  {
+   "term": "binder",
+   "def": "A candidate molecule that binds to a target; in this episode, an antibody or antibody fragment."
+  },
+  {
+   "term": "epitope",
+   "def": "The specific region on an antigen that an antibody recognizes and binds to."
+  },
+  {
+   "term": "MSA (multiple sequence alignment)",
+   "def": "Homologous sequences aligned together and used as input features for inferring structure."
+  },
+  {
+   "term": "cryo-EM",
+   "def": "An experimental method that resolves a protein's three-dimensional structure with an electron beam at cryogenic temperatures."
+  },
+  {
+   "term": "durable execution",
+   "def": "An engineering pattern that lets long multi-step processes retry automatically and resume from where they stopped."
+  },
+  {
+   "term": "bitter lesson",
+   "def": "The principle in AI of substituting compute and search for hand-encoded domain knowledge."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Pharma partners",
+   "v": "Eli Lilly, Pfizer, Novartis, Argenx (4 companies)"
+  },
+  {
+   "k": "50-target validation hits",
+   "v": "Antibodies designed against 50 targets; roughly half produced hits"
+  },
+  {
+   "k": "Average binding hit rate",
+   "v": "About 20%"
+  },
+  {
+   "k": "When multimer structure-prediction models appeared",
+   "v": "2021"
+  },
+  {
+   "k": "Chai 2 cryo-EM validation error",
+   "v": "0.33 Å (one third the width of an atom)"
+  },
+  {
+   "k": "AlphaFold2 multimer accuracy on antibody-antigen prediction",
+   "v": "11% (i.e. 90% wrong)"
+  },
+  {
+   "k": "Top buyers' share of B300 shipments",
+   "v": "95%+"
+  },
+  {
+   "k": "Chai's new funding round",
+   "v": "$400 million"
+  },
+  {
+   "k": "AlphaFold 3 submodule count (estimated)",
+   "v": "23"
+  },
+  {
+   "k": "Total headcount at Chai",
+   "v": "30 people"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "We see ourselves as almost a neutral software factory for making medicines.",
+   "translated": false
+  },
+  {
+   "text": "Josh, our CEO, likes to say that our, our biggest competitor is the mouse.",
+   "translated": false
+  },
+  {
+   "text": "and in this case, it was a 0.33 angstrom error, which is one third the width of an atom.",
+   "translated": false
+  },
+  {
+   "text": "LFOLD2 got, like, I think 11%. The multimer version of this got, like, 11% of antibody antigen prediction cases correct. That means 90% of the time it's wrong.",
+   "translated": false
+  },
+  {
+   "text": "there's, say, 10,000, you know, B300 units that are shipping everywhere, right? The hyperscalers and the, you know, the biggest AI labs are buying 95 plus percent of it",
+   "translated": false
+  },
+  {
+   "text": "complexity and being bitter lesson-filled are, like, fundamentally at odds.",
+   "translated": false
+  },
+  {
+   "text": "in the case of GLP-1s, I think the two GLP-1 drugs combined, like, maybe a trillion dollar asset.",
+   "translated": false
+  },
+  {
+   "text": "the cost of actually making a drug in pharma is kind of, like, increasing exponentially.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}

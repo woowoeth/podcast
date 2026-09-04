@@ -1,0 +1,131 @@
+{
+ "slug": "2026-08-12-pragmatic-ai-写代码不必逐行读-但信任必须重建",
+ "of": "pragmatic-3d38360eab",
+ "source_lang": "en",
+ "title": "You don't have to read AI's code line by line, but trust has to be rebuilt",
+ "dek": "AI in 2025 is where the cloud was in 2010. The real question is not whether to read the code AI writes, but when not to read it, and how to rebuild trust with tests, evals, and an honest accounting of the on-call cost.",
+ "why": "This episode makes both cases — that AI is turning code into slop, and that AI is an enormous win — and it hands you an operational verification discipline plus an experimental way to deal with the fatigue. Useful whether you want to win the argument or actually ship something.",
+ "who": "Engineers writing code with LLM assistance, the on-call people who have to backstop AI-written code, and engineering managers caught in their teams' velocity-versus-quality fight.",
+ "skip": "The first few minutes introducing the company Parse are skippable; the substance starts at 10:13.",
+ "tags": [
+  "AI coding",
+  "code review",
+  "observability",
+  "platform engineering",
+  "engineering leadership",
+  "AI fatigue"
+ ],
+ "points": [
+  {
+   "h": "Whether to read AI-written code is no longer worth arguing about",
+   "body": "Charity says 2025 is to AI what 2010 was to the cloud. At first she treated AI as ‘a feature bigger than a programming language’ rather than a generational shift. The real turn came before Opus 4.5, and what changed was the harness and the tooling, not the model itself. She admits her first round of skepticism was right and her second was wrong. So ‘should you read the code AI writes’ is not worth arguing about anymore; the real questions are when, and under what conditions. Whether that day arrives is no longer the question — the question is when."
+  },
+  {
+   "h": "Once rewriting is cheap, editing in place only accumulates entropy",
+   "body": "Infrastructure has long run on the principle of never fixing a running thing but replacing it, and AI pushes that principle up into application code. When rewriting gets cheap, editing in place accumulates entropy, while replacing resets it to zero. Charity says generating 10,000 variants of a function is faster than hand-writing one, and cost will push the industry toward generate-and-verify rather than manual modification. That is why ‘delete it and start over’ becomes the default move inside AI workflows, and it means an engineer's core skill shifts from writing code to judging and verifying it."
+  },
+  {
+   "h": "If you skip reading every line, you owe that trust back in evals",
+   "body": "If you are not reading the code line by line, you have to rebuild trust with tests and evals. She names conformance testing specifically — confirming that performance boundaries have not drifted. Deterministic systems are not going away; AI has to be domesticated into predictable channels. Her example is HackerRank's ATS: the same resume run 100 times locally scored anywhere between 66 and 99, which shows that ‘AI is not the right tool for every situation’. This is what turns ‘AI is unreliable, so be careful’ from a slogan into a concrete engineering constraint."
+  },
+  {
+   "h": "Never send anyone something you have not read yourself",
+   "body": "The floor is that you do not send people content you have not read. If it takes the recipient longer to read than it took you to generate, it is probably slop. Every send is a claim on someone else's time and attention. AI should be used to think more deeply, not to avoid thinking — though for non-native English speakers and neurodivergent people, using AI can itself be an act of respect. There is no need to invent new standards for quality and respect; the ones we have are sufficient, and the work is to apply them. That gives an operational test for what counts as AI garbage: before you send, ask whether you read it."
+  },
+  {
+   "h": "The AI victory narrative leaves the on-call bill out of the accounting",
+   "body": "Charity mentions that Meta tracks SEV zero internally — its highest incident severity level — and that over roughly the past two months there was a string of them, at Instagram and WhatsApp, the two divisions whose trust and safety and reliability teams had just been removed. She says you cannot deny the connection, though it is only circumstantial evidence. She also credits Intercom for publishing real data: 18 months of declining reliability and code quality, with a possible upturn only recently. Optimists see the wins from rewrites and automated toil; the people carrying the pager only see systems getting worse. Her ask is to tell the whole story and name the costs."
+  },
+  {
+   "h": "AI cutting into software first is an optimistic signal, not bad news",
+   "body": "Why is software AI's killer application? Because software is made of logic and language, and so is AI, which means you can build in guardrails, checks, and validation in a way other fields cannot. She contrasts this with courts going after lawyers who filed hallucinated briefs — no structured data, no way to verify. She also argues that what AI cannot pull off in software probably cannot be pulled off in other industries either, because software has excellent training data in the form of compilable code. That single point flips ‘AI eats the software industry first’ from a pessimistic story into an optimistic one."
+  },
+  {
+   "h": "The central goal of twenty years of DevOps has failed",
+   "body": "The core goal of the DevOps movement for 20 years was to build a feedback loop connecting the people who write code to how that code behaves in production, and that goal failed — the two are still separate fields. Platform teams manage infrastructure, engineers deploy on top of it, and there is no loop. She does think the split is a healthy separation of concerns, though: are you responsible for the stability of the code you deploy, or for the user experience the code creates? Anthropic has a platform team and an Applied AI team internally as well, and the two sides do not see the question of whether engineers will be made obsolete the same way."
+  },
+  {
+   "h": "Do not wait for top-down permission; act first, report afterward",
+   "body": "Her answer to AI fatigue is deliberate experimentation: agree as a team not to write AI-generated PR descriptions, or to go without AI on Wednesdays — act first, report afterward. Most leaders will welcome a team that proposes trying something; better still is to run it and then tell your leader what worked, what did not, and what you learned. Do not wait for top-down permission, because leadership does not know what to approve either; only bottom-up action actually wins back control of your time and your calendar. This turns anxiety into a specific move, and it is where the episode lands: inside uncertainty, agency comes from acting."
+  }
+ ],
+ "terms": [
+  {
+   "term": "harness",
+   "def": "The machinery outside the model that handles invocation, validation, and assembling the result."
+  },
+  {
+   "term": "conformance testing",
+   "def": "Testing that verifies a system's output still meets its established performance boundaries."
+  },
+  {
+   "term": "slop",
+   "def": "Low-quality AI-generated content that even the sender does not read."
+  },
+  {
+   "term": "SEV zero",
+   "def": "The severity level for a service outage that affects users or revenue."
+  },
+  {
+   "term": "doom trolling",
+   "def": "Repeatedly working someone's emotions with predictions of doom."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Spotify deployment frequency",
+   "v": "4,500 changes per day or per week (speaker unsure)"
+  },
+  {
+   "k": "HackerRank ATS score spread",
+   "v": "the same resume scored between 66 and 99 across 100 runs"
+  },
+  {
+   "k": "How long Intercom's reliability and code quality declined",
+   "v": "18 months"
+  },
+  {
+   "k": "X core engineers (now vs before)",
+   "v": "60 vs 1,700"
+  },
+  {
+   "k": "Observability Engineering second edition page count (first edition)",
+   "v": "600 pages (250 pages)"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "When rewriting is cheap, editing in place becomes risky. Mutation accumulates entropy. Replacements resets it.",
+   "translated": false
+  },
+  {
+   "text": "You cannot send anyone something you haven't read.",
+   "translated": false
+  },
+  {
+   "text": "Software is made of logic and language. AI is made of logic and language.",
+   "translated": false
+  },
+  {
+   "text": "The most effective leaders are kind, caring humans and skilled business operators. The second most effective leaders are terrible humans and skilled business operators.",
+   "translated": false
+  },
+  {
+   "text": "If we don't do it ourselves, someone will come and do it to us.",
+   "translated": false
+  },
+  {
+   "text": "And he's like, it's just doom trolling and they shouldn't, they need to stop it because they're stressing everyone the fuck out.",
+   "translated": false
+  },
+  {
+   "text": "You have to decide what matters.",
+   "translated": false
+  },
+  {
+   "text": "the heat death of the universe, you guys. Literally the only thing we know about exponential growth is that it must end.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}
