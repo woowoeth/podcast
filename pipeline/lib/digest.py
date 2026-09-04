@@ -14,7 +14,7 @@ import json
 import re
 
 from . import llm
-from .util import hhmmss, log, squeeze
+from .util import parse_ts, hhmmss, log, squeeze
 
 def _default_max_chars() -> int:
     """How much transcript fits in one call.
@@ -329,8 +329,19 @@ _VERBATIM = {("quotes", "raw"), ("terms", "term")}
 
 
 def normalize(raw: dict) -> dict:
-    out = {k: _cn_punct(squeeze(str(raw.get(k) or "")))
-           for k in ("title", "dek", "why", "who", "skip")}
+    """把模型的原始输出规整成成稿。
+
+    **从 raw 的浅拷贝出发，不要从零重建 dict。** 原来是列举已知字段重新组装，
+    于是任何没被列举的字段**静默消失**——`quality`（成稿评分、文稿来源、字数、
+    逐字校验条数那一整块）就这么丢过一次，页面上"这篇是怎么来的"整个模块是空的，
+    而且是用户报的。字段是被 gate 算出来放进 digest 的，normalize 不认识它，
+    也不该因此把它扔掉。
+
+    这个函数只有一个职责：把**文本**字段规整。不认识的字段原样带过去。
+    """
+    out = dict(raw)
+    out.update({k: _cn_punct(squeeze(str(raw.get(k) or "")))
+                for k in ("title", "dek", "why", "who", "skip")})
     out["title"] = _clean_title(out["title"])
     for name, keys in _LIST_FIELDS.items():
         items = raw.get(name)
@@ -339,8 +350,14 @@ def normalize(raw: dict) -> dict:
             for it in items:
                 if not isinstance(it, dict):
                     continue
-                row = {}
+                row = dict(it)
                 for k in keys:
+                    if k == "t":
+                        # 时间戳不是文本。str() 一遍会把 None 变成 ""，
+                        # 而 hhmmss("") 当时会抛 ValueError，把整站构建炸掉；
+                        # 数字变成字符串也让守护测试和 gate 的规整互相打架。
+                        row[k] = parse_ts(it.get(k)) if it.get(k) not in (None, "") else None
+                        continue
                     v = squeeze(str(it.get(k) or ""))
                     row[k] = v if (name, k) in _VERBATIM else _cn_punct(v)
                 if any(row.values()):

@@ -1,3 +1,13 @@
 data/state.json merge=podcast-state
 # 心跳是「某条线某一刻还活着」，不是累积状态：取更新的那份
 data/heartbeat-*.json merge=podcast-state
+
+# 构建产物：内容完全由 data/ 决定，冲突没有"合并"的语义——取任意一边，
+# 紧接着重新构建才是正确解。这几个文件是全量重写的（每篇文章一行），
+# 所以两条线各加一篇就必然撞，而每次手工挑边都是纯浪费。
+# 注意：**只列全量重写的聚合文件**，单页 HTML 不列——那些撞了同样靠重建解决，
+# 但列上去会让真正的模板冲突也被悄悄吞掉。
+search.json      merge=ours
+tw/search.json   merge=ours
+llms-full.txt    merge=ours
+tw/llms-full.txt merge=ours

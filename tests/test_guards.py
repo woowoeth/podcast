@@ -2667,3 +2667,78 @@ class ShareLinkCarriesAPreview(unittest.TestCase):
                 if "\\u" in v or "\\/" in v:
                     bad.append(f"{d.get('slug','?')[:30]}:{k}")
         self.assertEqual(bad, [], f"这些 URL 里有 JSON 转义残留：{bad[:5]}")
+
+
+class ProvenancePanelMustHaveContent(unittest.TestCase):
+    """每篇的 digest.quality 必须齐全，页面上"这篇是怎么来的"那块不能是空的。
+
+    用户报的："这篇是怎么来的，这个模块里面都是空的"。真因是 digest.normalize
+    **从零重建 dict**——列举已知的文本字段重新组装，于是任何没被列举的字段静默
+    消失。`quality` 是 gate 算出来放进 digest 的（文稿来源、字数、语速、逐字校验
+    条数、质检剔除），normalize 不认识它，就把它扔了。
+
+    这是同一个 normalize 误用的**第二处后果**。第一处（t: None → ""，
+    hhmmss 抛异常炸掉整站构建）我修了，却没发现 quality 也没了——因为那次我只
+    照着报错去查，没问一句"它还丢了什么"。所以这条检查查的是**字段齐全**，
+    不是查某一个具体症状。
+    """
+
+    NEED = ("transcript_source", "words", "wpm", "verified_quotes",
+            "grounded_facts", "points", "approx_timestamps")
+
+    def test_every_episode_has_a_full_quality_block(self):
+        bad = []
+        for f in (ROOT / "data" / "episodes").glob("*.json"):
+            d = json.loads(f.read_text())
+            q = (d.get("digest") or {}).get("quality")
+            if not q:
+                bad.append(f"{d.get('slug','?')[:40]}: quality 整块缺失")
+                continue
+            miss = [k for k in self.NEED if q.get(k) is None]
+            if miss:
+                bad.append(f"{d.get('slug','?')[:40]}: 缺 {miss}")
+        self.assertEqual(bad, [], f"{len(bad)} 篇的来源信息不全：{bad[:4]}")
+
+    def test_normalize_carries_unknown_fields_through(self):
+        """判据编的是失败机制本身：normalize 只负责规整文本，
+        不认识的字段必须原样带过去。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib.digest import normalize
+        raw = {"title": "甲乙丙丁", "dek": "", "why": "", "who": "", "skip": "",
+               "points": [{"t": 5, "h": "标题", "body": "正文"}],
+               "quotes": [], "facts": [], "terms": [], "tags": [],
+               "quality": {"words": 123}, "未来某个新字段": "别丢我"}
+        out = normalize(raw)
+        self.assertEqual(out.get("quality"), {"words": 123},
+                         "normalize 把 quality 丢了")
+        self.assertEqual(out.get("未来某个新字段"), "别丢我",
+                         "normalize 会丢掉它不认识的字段——这就是 quality 消失的原因")
+
+    def test_normalize_keeps_timestamps_numeric(self):
+        """t 不是文本。str() 一遍会把 None 变成 ""，而 hhmmss("") 曾抛
+        ValueError 把整站 267 篇的构建一起炸掉。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib.digest import normalize
+        out = normalize({"title": "甲乙丙丁", "dek": "", "why": "", "who": "",
+                         "skip": "", "quotes": [], "facts": [], "terms": [],
+                         "tags": [],
+                         "points": [{"t": 5, "h": "a", "body": "b"},
+                                    {"t": None, "h": "c", "body": "d"},
+                                    {"t": "2:05", "h": "e", "body": "f"}]})
+        got = [p["t"] for p in out["points"]]
+        self.assertEqual(got, [5, None, 125], f"时间戳被改坏了：{got}")
+
+    def test_the_panel_renders_something(self):
+        """数据齐全不等于页面上渲染出来了。抽查构建产物里那块面板有内容。"""
+        import re as _re
+        for d in sorted((ROOT / "p").iterdir())[:8]:
+            f = d / "index.html"
+            if not f.exists():
+                continue
+            html = f.read_text()
+            i = html.find("这篇是怎么来的")
+            self.assertGreater(i, 0, f"{d.name} 没有来源面板")
+            block = html[i:i + 2200]
+            rows = _re.findall(r'class="row"', block)
+            self.assertGreaterEqual(len(rows), 4,
+                                    f"{d.name} 来源面板只有 {len(rows)} 行，是空的")
