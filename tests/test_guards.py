@@ -2999,3 +2999,92 @@ class HreflangIsPerPage(unittest.TestCase):
             if claims != (d.name in have):
                 bad.append(f"{d.name[:34]} claims={claims} has_en={d.name in have}")
         self.assertEqual(bad[:4], [], f"{len(bad)} 页的 hreflang=en 和实际不符")
+
+
+class LanguageSwitchIsOneControl(unittest.TestCase):
+    """三语共用一个下拉，而且不许把读者送到不存在的页面。
+
+    用户："英和简繁放到同一个下拉菜单"。原来是"简繁一个按钮 + 英文一个链接"，
+    对读者是同一件事却给了两种控件（同伴把三个站的这个控件统一过，这里只是把
+    英文加进同一个下拉）。
+
+    另一条更要紧：译文是逐篇补的，**这一页没有英文版就不许出现英文那一项**，
+    否则读者点下去是 404。占位元素上的 data-en 说明有没有，JS 照它决定。
+    """
+
+    def test_single_control_no_separate_en_link(self):
+        src = (ROOT / "pipeline" / "build.py").read_text()
+        i = src.index("def lang_switch")
+        body = src[i:src.index("\ndef masthead", i)]
+        self.assertEqual(body.count('id="lang-toggle"'), 2,
+                         "简体树和英文树各一个占位元素，不该有别的语言控件")
+        self.assertNotIn('/en/">EN', body, "英文不该是另一个独立链接")
+
+    def test_dropdown_offers_three_options(self):
+        src = (ROOT / "pipeline" / "build.py").read_text()
+        i = src.index("LANG_JS")
+        blk = src[i:src.index("def _has_en", i)]
+        for k in ("'sc'", "'tw'", "'en'"):
+            self.assertIn(k, blk, f"下拉里少了 {k}")
+        self.assertIn("if(hasEn)opts.push", blk,
+                      "没有英文版时不许给英文那一项")
+
+    def test_data_en_matches_reality(self):
+        """data-en 必须和磁盘上真有没有英文页一致。"""
+        import re as _re
+        en_p = ROOT / "en" / "p"
+        if not en_p.exists():
+            self.skipTest("英文站还没建")
+        have = {d.name for d in en_p.iterdir() if d.is_dir()}
+        bad = []
+        for d in sorted((ROOT / "p").iterdir())[:120]:
+            f = d / "index.html"
+            if not f.exists():
+                continue
+            m = _re.search(r'id="lang-toggle"[^>]*data-en="([^"]*)"', f.read_text())
+            if not m:
+                bad.append(f"{d.name[:30]} 没有 data-en")
+                continue
+            if bool(m.group(1)) != (d.name in have):
+                bad.append(f"{d.name[:30]} data-en={m.group(1)!r} 但 en 页 "
+                           f"{'有' if d.name in have else '没有'}")
+        self.assertEqual(bad[:4], [], f"{len(bad)} 页的 data-en 和实际不符")
+
+    def test_focus_ring_is_not_the_accent_colour(self):
+        """用户："去掉下拉菜单选中时的红色外圈"。全局 :focus-visible 是
+        2px accent（红）。**但不能直接删掉焦点提示**——键盘用户会不知道焦点在
+        哪。换成描边变色 + 淡环。"""
+        css = (ROOT / "assets" / "site.css").read_text()
+        i = css.index("select.pill:focus-visible")
+        blk = css[i:i + 220]
+        self.assertIn("outline:none", blk)
+        self.assertNotIn("var(--accent)", blk, "焦点环不该再用红色")
+        self.assertIn("box-shadow", blk, "去掉红圈之后必须留一个看得见的焦点提示")
+
+
+class BuildOutputMustNotDependOnEnvFlags(unittest.TestCase):
+    """同样的数据必须产出同样的站。
+
+    英文站原来由 PODCAST_EN / PODCAST_EN_LIVE 两个环境变量控制，后果是**同样的
+    数据能产出两种 HTML**：裸跑 build.py 的中文页不声明英文版，工作流里带开关跑
+    的声明——committed HTML 会在两次构建之间来回翻。而"构建是幂等的"那道闸门
+    只在同一次调用里比两遍，抓不到这种跨调用的分叉。
+
+    现在英文站由 data/en/ 里有没有译文决定。
+    """
+
+    def test_no_language_env_switches(self):
+        for f in list((ROOT / ".github" / "workflows").glob("*.yml")) + \
+                 list((ROOT / "scripts").glob("*.sh")) + \
+                 [ROOT / "pipeline" / "build.py"]:
+            src = re.sub(r"(?m)^\s*#.*$", "", f.read_text())
+            for k in ("PODCAST_EN=", "PODCAST_EN_LIVE"):
+                self.assertNotIn(k, src,
+                                 f"{f.name} 里还有语言开关 {k}——"
+                                 f"同样的数据会产出两种站")
+
+    def test_en_live_comes_from_data(self):
+        src = (ROOT / "pipeline" / "build.py").read_text()
+        i = src.index("EN_LIVE =")
+        self.assertIn('DATA / "en"', src[i:i + 220],
+                      "EN_LIVE 必须由 data/en/ 决定")

@@ -92,7 +92,7 @@ jobs:
       - name: Rebuild and push
         run: |
           git pull --rebase --autostash origin main || true
-          PODCAST_EN=1 PODCAST_EN_LIVE=1 python pipeline/build.py
+          python pipeline/build.py
           git add -A
           if git diff --cached --quiet; then echo "site unchanged"; exit 0; fi
           git commit -m "build: regenerate site"
@@ -105,7 +105,7 @@ jobs:
               git checkout -- "$f" 2>/dev/null || true
             done
             python pipeline/run.py --reconcile || true
-            PODCAST_EN=1 PODCAST_EN_LIVE=1 python pipeline/build.py
+            python pipeline/build.py
             git add -A
             git diff --cached --quiet && { ok=1; break; }
             git commit -m "build: regenerate site"

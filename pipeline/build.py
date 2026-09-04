@@ -29,9 +29,13 @@ BASE = os.environ.get("PODCAST_BASE", "/podcast").rstrip("/")
 BASE_ZH = BASE          # 简体的原值，render_site 切语言时要回退到它
 LANG = "zh"
 LANG_ATTR = "zh-CN"
-# 英文站建好了吗（决定要不要在导航里露出 EN 入口）。
-# 半成品期间是 False：宁可没有入口，不要指向中英混排的页面。
-EN_LIVE = os.environ.get("PODCAST_EN_LIVE") == "1"
+# 英文站上线了吗 —— **由数据决定，不由环境变量决定。**
+# 原来是 PODCAST_EN_LIVE 开关，后果是同样的数据能产出两种 HTML：裸跑
+# build.py 的中文页不声明英文版，工作流里带开关跑的声明——committed HTML
+# 会在两次构建之间来回翻，而"构建是幂等的"那道闸门只在同一次调用里比两遍，
+# 抓不到这种跨调用的分叉。
+EN_LIVE = (DATA / "en").is_dir() and any(
+    f for f in (DATA / "en").glob("*.json") if not f.name.startswith("_"))
 
 
 def asset(rel: str) -> str:
@@ -294,39 +298,53 @@ LANG_JS = ("<script>(function(){try{"
            # localStorage 是通的。原来各站一个键（hwx_lang / podcast_lang），
            # 读者在主站选了繁體，进原声还是简体 —— 同一个人同一个域，
            # 选一次却不通用。
-           "var K='hwx_lang',p=location.pathname,tw=/^\\/podcast\\/tw(\\/|$)/.test(p);"
-           "var cur=tw?'tw':'sc';"
-           "var other=tw?p.replace(/^\\/podcast\\/tw/,'/podcast')||'/podcast/'"
-           ":p.replace(/^\\/podcast/,'/podcast/tw');"
+           "var K='hwx_lang',p=location.pathname;"
+           "var tw=/^\\/podcast\\/tw(\\/|$)/.test(p),en=/^\\/podcast\\/en(\\/|$)/.test(p);"
+           "var cur=en?'en':(tw?'tw':'sc');"
+           # 三棵树之间互相换前缀。先剥掉现有前缀拿到"简体路径"，再加目标前缀。
+           "var bare=p.replace(/^\\/podcast\\/(tw|en)/,'/podcast')||'/podcast/';"
+           "var to={sc:bare,tw:bare.replace(/^\\/podcast/,'/podcast/tw'),"
+           "en:bare.replace(/^\\/podcast/,'/podcast/en')};"
            "var saved=null;try{saved=localStorage.getItem(K)}catch(e){}"
            # **URL 里已经写了语言，就以 URL 为准。**
            # 原来无条件跟随浏览器语言，后果实测过：打开
            # /podcast/tw/p/… 会被改写成 /podcast/p/… —— 只要浏览器的语言列表里
            # 有 zh。台湾读者转给朋友的繁体链接，落地全变简体。
-           # 现在只在读者落在默认语言（无 /tw/ 前缀）时才跟随浏览器。
-           "if(cur==='tw'){"
+           # 现在只在读者落在默认语言（无前缀）时才跟随偏好或浏览器语言。
+           "if(cur!=='sc'){"
            # 没记过偏好的把这次当成他的选择；已经记过的不动 ——
            # 一条别人分享的链接不该永久改掉你的语言。
-           "if(!saved){try{localStorage.setItem(K,'tw')}catch(e){}}"
+           "if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}"
            "}else{"
            "var L=(navigator.languages||[navigator.language||'']).join(',');"
            "var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');"
-           "if(want==='tw'){location.replace(other);return}"
+           # 只有这一页真有英文版时才跟随 en 偏好——译文是逐篇补的，
+           # 跳到一个 404 比不跳糟得多。占位元素上的 data-en 说明有没有。
+           "if(want==='en'){var g=document.getElementById('lang-toggle');"
+           "if(!(g&&g.getAttribute('data-en')))want='sc'}"
+           "if(want!=='sc'){location.replace(to[want]);return}"
            "}"
            "document.addEventListener('DOMContentLoaded',function(){"
-           # 切换控件改成下拉，和主站一致。原来是一个「繁體/簡體」的单按钮，
-           # 三个站三种样子（主站下拉、原声单按钮、品味两按钮），
-           # 同一个读者在三个站要学三次。
-           #
-           # 原声没有英文版，所以下拉里只有两项 —— 用同一个控件，不是同一份内容。
+           # 切换控件是**一个下拉、三项**。原来是"简繁一个按钮 + 英文一个链接"，
+           # 对读者是同一件事，却给了两种控件。三个站的这个控件长得一样。
            "var b=document.getElementById('lang-toggle');if(!b)return;"
+           "var hasEn=!!b.getAttribute('data-en');"
            "var sel=document.createElement('select');sel.id='lang-toggle';"
            "sel.className=b.className;sel.setAttribute('aria-label','\\u8bed\\u8a00 Language');"
-           "[['sc','\\u7b80\\u4f53'],['tw','\\u7e41\\u9ad4']].forEach(function(kv){"
+           # 每一项用**它自己的语言**写（简体 / 繁體 / English），这是语言选择器
+           # 的惯例——一个只读英文的人也认得出 English 那一项。所以中文那两项
+           # 带 lang，不是漏译：渲染层体检查的是"中文必须被显式标注"，
+           # 而这些 option 是 JS 建的，构建期的 enscan 看不到，只有它能抓到。
+           "var opts=[['sc','\\u7b80\\u4f53','zh-Hans'],"
+           "['tw','\\u7e41\\u9ad4','zh-Hant']];"
+           # 这一页没有英文版就不给这一项——比跳 404 或悄悄跳回英文首页都好
+           "if(hasEn)opts.push(['en','English','en']);"
+           "opts.forEach(function(kv){"
            "var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];"
+           "if(kv[2])o.lang=kv[2];"
            "if(kv[0]===cur)o.selected=true;sel.appendChild(o)});"
            "sel.onchange=function(){if(sel.value===cur)return;"
-           "try{localStorage.setItem(K,sel.value)}catch(e){};location.href=other};"
+           "try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};"
            "b.parentNode.replaceChild(sel,b)})"
            "}catch(e){}})();</script>")
 
@@ -344,7 +362,13 @@ def _has_en(path: str) -> bool:
         return True
     slug = path[3:].rstrip("/")
     from urllib.parse import unquote
-    return (ROOT / "en" / "p" / unquote(slug)).is_dir()
+    # **看译文数据，不看构建产物。** 我第一版读的是 en/p/<slug> 目录，
+    # 而简体那趟**先跑**——CI 上是全新 checkout，那时 en/ 还不存在，于是没有
+    # 一个中文页会声明英文版。本地能过只因为上一轮的 en/ 还留在盘上：
+    # 典型的顺序依赖被残留状态掩盖。
+    # 译文数据在两趟之前就都在，而英文那趟渲染的正是"有译文的那些集"，
+    # 所以这个判断和最终产物必然一致。
+    return (DATA / "en" / f"{unquote(slug)}.json").exists()
 
 
 def hreflangs(path: str) -> str:
@@ -557,24 +581,27 @@ def site_share_text(eps: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def lang_switch() -> str:
-    """三语切换。简体 ↔ 繁体在前端用 localStorage 记住（同一份 HTML 两套树），
-    英文是**另一棵树**，所以它是一个真链接。
+def lang_switch(path: str = "/") -> str:
+    """三语切换，**一个下拉搞定三项**。
 
-    英文站还没完工时不显示这个入口——宁可没有，不要指向一个中英混排的页面。
+    简体 ↔ 繁体是同一份 HTML 的两棵树（tw.py 转的），英文是第三棵树；对读者来说
+    这是同一件事，所以不该是"一个按钮加一个链接"两种控件。三个站的这个控件
+    长得一样（同伴统一过），这里只是把英文加进同一个下拉。
+
+    `data-en` 说明**这一页有没有英文版**：译文是逐篇补的，没译的集不进 /en/。
+    没有就不给英文那一项——比给一个跳到 404 或悄悄跳回英文首页都好。
+    JS 里再降级一次（没有 JS 时它就是个空占位，不会显示一个点不动的控件）。
     """
-    parts = []
     if LANG == "en":
-        parts.append(f'<a class="pill ghost" lang="zh" href="{BASE_ZH}/">中文</a>')
-    else:
-        parts.append('<button class="pill ghost" id="lang-toggle" type="button"'
-                     ' data-sc="繁體" data-tw="简体"></button>')
-        if EN_LIVE:
-            parts.append(f'<a class="pill ghost" href="{BASE_ZH}/en/">EN</a>')
-    return "".join(parts)
+        # 英文树上：JS 把它换成三项下拉；没有 JS 时退化成一个回中文站的链接
+        return (f'<a class="pill ghost" id="lang-toggle" lang="zh" '
+                f'data-cur="en" data-en="1" href="{BASE_ZH}/">中文</a>')
+    en = "1" if (EN_LIVE and _has_en(path)) else ""
+    return ('<button class="pill ghost" id="lang-toggle" type="button"'
+            f' data-en="{en}" data-sc="繁體" data-tw="简体"></button>')
 
 
-def masthead(n: int | None, *, home: bool) -> str:
+def masthead(n: int | None, *, home: bool, path: str = "/") -> str:
     """字标和右侧那几个入口同一行，slogan 独占下一行。
 
     原来 slogan 在 .brand 里面，于是 .brand 整块占满宽度，右侧那几项在窄屏被挤到
@@ -593,7 +620,7 @@ def masthead(n: int | None, *, home: bool) -> str:
 {brand}
 <div class="mast-side">
 {count}
-{lang_switch()}
+{lang_switch(path)}
 <button class="icon-btn" data-theme-toggle aria-label="{T("切换深浅色")}">{ICON_THEME}</button>
 </div></div>
 <p class="slogan">{TAGLINE}</p>
@@ -791,7 +818,7 @@ def index_page(eps: list[dict], srcs: dict) -> str:
                             for i, x in enumerate(eps[:60])]}}]})
     return (head(TAGLINE, BLURB, path="/",
                  image=(eps[0].get("image") if eps else ""), extra=ld)
-            + masthead(len(eps), home=True)
+            + masthead(len(eps), home=True, path="/")
             + f"""
 <div class="toolbar"><div class="wrap"><div class="toolbar-in">
 <label class="search">{ICON_SEARCH}
@@ -1008,7 +1035,7 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
                  published=ep.get("published", ""),
                  modified=ep.get("generated") or ep.get("published", ""),
                  extra=f'<script type="application/ld+json">{ld}</script>')
-            + masthead(None, home=False)
+            + masthead(None, home=False, path=f"/p/{urllib.parse.quote(ep['slug'])}/")
             + f"""
 <main class="wrap ep">
 <nav class="crumb"><a href="{BASE}/">{T("首页")}</a><span class="sep">/</span>
@@ -1133,7 +1160,7 @@ def sources_page(srcs: dict, eps: list[dict]) -> str:
                                  for i, s0 in enumerate(srcs["sources"])]}})
     return (head(f'{T("信源")} — {NAME}', T("SOURCES_DESC").replace("NAME", NAME).replace("{n}", str(n)),
                  path="/sources/", extra=ld)
-            + masthead(len(eps), home=False)
+            + masthead(len(eps), home=False, path="/sources/")
             + f"""<main class="wrap">
 <h1 class="sec-title" style="margin-top:34px">{T("信源")} · {i18n.n(n, "show", "档")}</h1>
 <p class="lede">{T("SRC_LEDE_1")}</p>
@@ -1174,7 +1201,7 @@ def source_page(src: dict, eps: list[dict], total_known: int | None) -> str:
             {"@type": "ListItem", "position": 2, "name": T("信源"), "item": SITE + "/sources/"},
             {"@type": "ListItem", "position": 3, "name": name}]}]})
     return (head(f"{name} — {NAME}", src_desc(src), path=f"/s/{src['id']}/", extra=ld)
-            + masthead(len(eps), home=False)
+            + masthead(len(eps), home=False, path=f"/s/{src['id']}/")
             + f"""<main class="wrap">
 <nav class="crumb" style="margin-top:26px"><a href="{BASE}/">{T("首页")}</a><span class="sep">/</span>
 <a href="{BASE}/sources/">{T("信源")}</a><span class="sep">/</span><span{zh_attr(name)}>{e(name)}</span></nav>
@@ -1249,7 +1276,7 @@ def log_page(eps: list[dict], srcs: dict) -> str:
     return (head(f'{T("更新日志")} — {NAME}',
                  f"{NAME} 的信源增删记录：什么时候收了谁、踢了谁、为什么。当前 {n_src} 档。",
                  path="/log/", extra=ld)
-            + masthead(len(eps), home=False)
+            + masthead(len(eps), home=False, path="/log/")
             + f"""<main class="wrap">
 <h1 class="sec-title" style="margin-top:34px">{T("更新日志")}</h1>
 <p class="lede">{T("LOG_LEDE_1")}</p>
@@ -1458,7 +1485,7 @@ def sitemap(eps: list[dict]) -> str:
 def not_found() -> str:
     return (head(f'{T("找不到这一页")} — {NAME}', "", path="/404.html",
                  robots="noindex,follow")
-            + masthead(0, home=False)
+            + masthead(0, home=False, path="/404.html")
             + f"""<main class="wrap"><div class="empty" style="padding:110px 0">
 <h1><b>{T("这一页不在了")}</b></h1><p><a href="{BASE}/" style="color:var(--accent)">{T("回到首页")}</a></p>
 </div></main>""" + foot())
@@ -1600,9 +1627,9 @@ def main() -> int:
     # 英文站默认**不建**：界面文案层还没做完（零漏译闸门会拦），而这个闸门要是
     # 挂在日常构建上，简体站的部署就一起被挡住了。用显式开关而不是静默跳过——
     # 静默跳过会让这件事被忘掉，体检那边也会一直报未完工的进度。
-    want_en = os.environ.get("PODCAST_EN") == "1"
-    n = len(list((DATA / "en").glob("*.json"))) if (DATA / "en").exists() else 0
-    if want_en and n:
+    n = len([f for f in (DATA / "en").glob("*.json")
+             if not f.name.startswith("_")]) if (DATA / "en").exists() else 0
+    if n:
         i18n.reset()
         render_site(ROOT / "en", "en")
         miss = i18n.missed()
@@ -1619,7 +1646,7 @@ def main() -> int:
             return 1
         n_en = len(list((ROOT / "en" / "p").iterdir())) if (ROOT / "en" / "p").exists() else 0
         log(f"  英文站 /en/：{n_en} 篇，零漏译")
-    elif want_en:
+    else:
         log("  英文站：data/en/ 还没有译文，跳过")
     # 语言切完了要把常量还原，免得同一个进程里后续调用拿到英文的 BASE
     render_site.__globals__["BASE"] = BASE_ZH

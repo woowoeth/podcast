@@ -73,6 +73,33 @@ button{font:inherit; color:inherit; background:none; border:0; cursor:pointer}
 }
 .pill:hover{border-color:var(--accent); color:var(--accent)}
 .pill.ghost{background:transparent}
+
+/* 语言下拉。原生 select 在各平台长得不一样，压成和 .pill 同一副样子；
+   用户："去掉下拉菜单选中时的红色外圈"——全局的
+   :focus-visible{outline:2px solid var(--accent)} 是红的，在这个小控件上
+   很扎眼。但**不能直接删掉焦点提示**，键盘用户会不知道焦点在哪。
+   换成描边变色 + 一层同色淡环：看得见，不刺眼。 */
+select.pill{
+  -webkit-appearance:none; appearance:none;
+  padding-right:26px; cursor:pointer; line-height:1;
+  background-image:url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'>\
+<path d='M1 1l4 4 4-4' fill='none' stroke='%236f6959' stroke-width='1.6' \
+stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat:no-repeat; background-position:right 9px center;
+}
+:root[data-theme=dark] select.pill{
+  background-image:url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'>\
+<path d='M1 1l4 4 4-4' fill='none' stroke='%239b9488' stroke-width='1.6' \
+stroke-linecap='round' stroke-linejoin='round'/></svg>");
+}
+select.pill:focus{outline:none}
+select.pill:focus-visible{
+  outline:none;
+  border-color:var(--rule-2);
+  box-shadow:0 0 0 3px var(--bg-tint);
+}
 .stat{font-family:var(--mono); font-size:11.5px; color:var(--faint); letter-spacing:.06em; text-transform:uppercase}
 
 /* ------------------------------------------------------------------ toolbar */

@@ -325,7 +325,7 @@ def check_english_edition(r: Report) -> None:
     elif leak == 0:
         r.good(line + " · 零漏译，可以上线")
     else:
-        r.note(line + " · 还没建过，跑 PODCAST_EN=1 python3 pipeline/build.py")
+        r.note(line + " · 还没建过，跑 python3 pipeline/build.py")
 
 
 def check_render_layer(r: Report) -> None:

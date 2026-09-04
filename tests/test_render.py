@@ -213,7 +213,14 @@ class Render(unittest.TestCase):
               html: document.documentElement.lang,
               hreflang: [...document.querySelectorAll('link[rel=alternate][hreflang]')]
                           .map(l => l.hreflang).sort(),
-              backToZh: !!document.querySelector('a[lang="zh"][href$="/podcast/"]'),
+              // 回中文的入口现在在语言下拉里（三项一个控件），不再是独立链接
+              backToZh: (() => {
+                const s = document.getElementById('lang-toggle');
+                if (!s) return false;
+                if (s.tagName === 'SELECT')
+                  return [...s.options].some(o => o.value === 'sc');
+                return /\/podcast\/?$/.test(s.getAttribute('href') || '');
+              })(),
             })""")
             p.context.close()
             self.assertEqual(bad, [], f"{path} 上有中英混排：{bad}")

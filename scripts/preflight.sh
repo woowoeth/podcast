@@ -86,10 +86,9 @@ step "构建是幂等的"
 # 而报成"构建不幂等"是个错的原因，下次会照着错方向查。
 dhash() { find data -name '*.json' -type f -exec shasum {} + 2>/dev/null | sort | shasum | cut -c1-16; }
 d0=$(dhash)
-# 带上英文站：它现在是部署的一部分，零漏译闸门要在推之前拦住，不是在 CI 里
-PODCAST_EN=1 PODCAST_EN_LIVE=1 $PY pipeline/build.py >/dev/null 2>&1
+$PY pipeline/build.py >/dev/null 2>&1
 a=$(git status --porcelain | sort | md5 2>/dev/null || git status --porcelain | sort | md5sum)
-PODCAST_EN=1 PODCAST_EN_LIVE=1 $PY pipeline/build.py >/dev/null 2>&1
+$PY pipeline/build.py >/dev/null 2>&1
 b=$(git status --porcelain | sort | md5 2>/dev/null || git status --porcelain | sort | md5sum)
 d1=$(dhash)
 if [ "$d0" != "$d1" ]; then
@@ -111,7 +110,7 @@ if [ -d en ]; then
     bad "英文站有漏译"; head -12 /tmp/preflight-en.txt
   fi
 else
-  say "英文站没建（PODCAST_EN=1 才建）"
+  say "英文站没建（data/en/ 还没有译文）"
 fi
 
 step "体检（只查文件，不连线上）"
