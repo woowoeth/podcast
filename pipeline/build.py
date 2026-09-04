@@ -52,7 +52,11 @@ def asset(rel: str) -> str:
         h = hashlib.sha256(f.read_bytes()).hexdigest()[:10]
     except OSError:
         h = "0"
-    return f"{BASE}/{rel.lstrip('/')}?v={h}"
+    # **一律用简体的 BASE。** assets/ 只有一份，在仓库根；用英文的 BASE 会指向
+    # /podcast/en/assets/，那里什么都没有——英文站上线时就这么裸奔了一轮，
+    # 而我的渲染层测试当时没断言"样式生效"，所以没拦住。
+    # 共用一份还有个好处：读者切语言时命中同一个缓存条目。
+    return f"{BASE_ZH}/{rel.lstrip('/')}?v={h}"
 SITE = os.environ.get("PODCAST_SITE", "https://ourword.ai") + BASE
 SITE_ZH = SITE
 NAME = i18n.name()          # 语言切换时由 render_site 重算

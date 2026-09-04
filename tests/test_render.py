@@ -202,6 +202,13 @@ class Render(unittest.TestCase):
               });
               return [...new Set(bad)].slice(0, 5);
             }""")
+            css_ok = p.evaluate(
+                "() => getComputedStyle(document.documentElement)"
+                ".getPropertyValue('--css').trim()")
+            js_ok = p.evaluate(
+                "() => !!document.querySelector('script[src*=\"site.js\"]')"
+                " && [...document.querySelectorAll('script[src]')]"
+                ".every(s => s.src.indexOf('/en/assets/') === -1)")
             langs = p.evaluate("""() => ({
               html: document.documentElement.lang,
               hreflang: [...document.querySelectorAll('link[rel=alternate][hreflang]')]
@@ -210,6 +217,12 @@ class Render(unittest.TestCase):
             })""")
             p.context.close()
             self.assertEqual(bad, [], f"{path} 上有中英混排：{bad}")
+            # 样式和脚本必须真的加载上。英文站上线第一版的 asset() 用了英文的
+            # BASE，指向 /podcast/en/assets/（不存在），整站裸奔——而那一版的
+            # 这条测试只查文字，没查样式，所以放过去了。
+            self.assertEqual(css_ok, "ok",
+                             f"{path} 的样式表没生效（--css 探针取不到）")
+            self.assertTrue(js_ok, f"{path} 的脚本没加载")
             self.assertEqual(langs["html"], "en", f"{path} 的 html lang 不对")
             self.assertIn("zh-Hans", langs["hreflang"], f"{path} 缺 hreflang")
             self.assertTrue(langs["backToZh"], f"{path} 没有回中文站的入口")

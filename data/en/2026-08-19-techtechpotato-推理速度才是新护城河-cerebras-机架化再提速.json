@@ -1,0 +1,131 @@
+{
+ "slug": "2026-08-19-techtechpotato-推理速度才是新护城河-cerebras-机架化再提速",
+ "of": "techtechpotato-37b3d58783",
+ "source_lang": "en",
+ "title": "Cerebras hits 4400 tok/s on a single chip: inference speed is the moat",
+ "dek": "Cerebras pushes WSE 3.5 to 4400 tok/s per chip, and the CS4 rack packs three wafers into a 120kW cabinet. The core argument: inference has to be split into prefill and decode, and speed is the moat.",
+ "why": "Cerebras rarely opens up its system design to this level of detail. This episode gives hard numbers on rack power, interconnect latency and component reduction — useful for anyone trying to verify whether the SRAM inference approach actually holds up.",
+ "who": "Founders tracking generational roadmaps in AI inference silicon, engineers making infra selection decisions, and investors following the OpenAI supply chain.",
+ "skip": "Listeners already familiar with Cerebras's earlier generations can skip the 0:01-3:09 background recap and start at the CS4 rack design.",
+ "tags": [
+  "Inference chips",
+  "Cerebras",
+  "Wafer-scale computing",
+  "SRAM",
+  "OpenAI",
+  "Compute"
+ ],
+ "points": [
+  {
+   "h": "Doubling performance did not wait for a new process node — they just cranked the clock",
+   "body": "Rather than waiting for a new process node, Cerebras clocked WSE3 aggressively: frequency is close to double, so power is close to double as well. The company stresses this is not simple binning, but design optimization for voltage and frequency done with TSMC on the same N5 node. The previous generation's 125 petlops of sparse FP16 goes to 250 petlops, while the core count stays at 900,000 and SRAM stays at 44GB. Physical yield remains close to 100% thanks to dynamically routing around defective cores, but parametric yield has always been the point outside observers question."
+  },
+  {
+   "h": "Three wafers in one rack turns the oddity into a standard form factor",
+   "body": "The old design was a 16U complete system with its own power delivery and liquid cooling for the single chip, leaving the data center side to do air cooling only. CS4 moves to rack scale: fans and power supplies on the front panel, and behind them a module called the backpack, with liquid cooling piped in from the top to the wafer chips mounted vertically. One rack holds three wafers; the author estimates from the number of power supplies roughly 40kW per wafer and roughly 120kW for the full rack, which sounds like the same class as Nvidia's NVL72. This is not a spec flex — it is about fitting wafer-scale into a standard data center form factor."
+  },
+  {
+   "h": "Making IO a swappable module means what they sell is really a rack platform",
+   "body": "Networking per chip doubles from the previous generation to 2.4Tbps, and the IO modules are designed to be replaceable: if 800G/200G/100G or other interconnect standards need supporting later, you swap the module instead of redoing the system. The backpack is also compatible with future wafer sizes, because the wafer is already at its physical limit and the power and liquid cooling interfaces are broadly similar. The author's read is that Cerebras is effectively building a rack-scale platform, which is why they can say CS5 will follow in the second half of 2027."
+  },
+  {
+   "h": "The bulk of the OpenAI revenue comes from chips that do not exist yet",
+   "body": "WSE3 runs at roughly 2300 tok/s on models that fit entirely on a single chip; WSE 3.5 reaches 4400 tok/s. GPT-5.6 Sol currently runs at 750 tok/s, and close to 1500 tok/s on the new chip. CEO Andrew Feldman says explicitly that while deals like the OpenAI agreement do include near-term supply, the bulk of the revenue comes from future chip generations — which makes a platform product like CS4 the key to fulfilling those orders. The previously announced OpenAI partnership corresponds to roughly $20 billion in revenue, and that was the growth story told at IPO."
+  },
+  {
+   "h": "Capacity is constrained by custom machined parts, not by the wafer itself",
+   "body": "The first-generation wafer-scale system used a large number of custom machined parts because volumes were small, pushing infrastructure costs far past any reasonable level. CS4 cuts component count by half, possibly by 60%, and automates heavily so the production line can ramp — capacity has been a recurring question on earnings calls. The line the author was given: the new-generation system will cost more than the previous one, but they would not say how much more; early systems have started shipping, with volume before year end."
+  },
+  {
+   "h": "Call it not disaggregation but assigning compute and memory-access work separately",
+   "body": "Cerebras recommends using GPUs for prefill and Cerebras for decode. The author argues disaggregation is the wrong word for this; it should be called workload partitioning: give the compute-bound part to compute hardware and the memory-access-bound part to memory-access hardware. Nvidia bought Groq precisely for SRAM decode performance, but he is more interested in whether Groq can really compete once NVLink is integrated; a slide he saw says every NVL72 rack needs 9 Groq racks. As an independent company Cerebras can still partner with AMD and AWS, which is where it is more flexible than Groq."
+  },
+  {
+   "h": "Fast is not about a nicer experience — it is about running several ideas at once",
+   "body": "Cerebras's tradeoff is generality in exchange for power and deployment. Purpose-built chips like Talis can hit 17000 tok/s, but only run a single small model; Cerebras can run any transformer model. For coding or agentic workflows, where every input means waiting for a result, speed is not just experience — it lets you run multiple ideas in parallel and cut down the waiting. Cerebras's business model is exactly that customers pay a premium for high-speed tokens — priced per million tokens, and demand for speed never goes away."
+  },
+  {
+   "h": "Nothing has shaken the speed crown, and the bet rides on CS5",
+   "body": "The author's summary: in AI hardware Cerebras is still the king of speed. Other companies compete on context length or math optimizations, but nobody has beaten it on speed. Going from a single 16U box to a 120kW three-system rack amounts to turning the ‘oddity’ into a standard data center form factor. What to watch next is whether CS5 lands on schedule in the second half of 2027, and whether future 10-trillion-parameter models can be supported on this platform."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Wafer Scale Engine (WSE)",
+   "def": "Building an entire wafer into a single chip, interconnected by cross-reticle stitching, avoiding high-latency interconnects between multiple chips."
+  },
+  {
+   "term": "Cross-reticle stitching",
+   "def": "Stitching lithography reticle fields together on the wafer into one enormous chip, letting the area exceed the limit of a single exposure."
+  },
+  {
+   "term": "Backpack",
+   "def": "The pluggable module at the back of the CS4 rack, integrating liquid cooling, power delivery and replaceable network IO — shaped like a backpack."
+  },
+  {
+   "term": "Prefill/Decode",
+   "def": "The two phases of LLM inference: prefill processes the input in parallel, decode generates token by token, and the two put different demands on hardware."
+  },
+  {
+   "term": "Parametric yield",
+   "def": "The share of chips on a wafer that hit the target frequency/voltage, as distinct from physical yield."
+  }
+ ],
+ "facts": [
+  {
+   "k": "WSE3.5 sparse FP16 compute",
+   "v": "250 petlops (previous generation 125 petlops)"
+  },
+  {
+   "k": "CS4 power per chip / per full rack",
+   "v": "roughly 40kW / roughly 120kW"
+  },
+  {
+   "k": "Network bandwidth per chip",
+   "v": "2.4 Tbps, double the previous generation"
+  },
+  {
+   "k": "Chip-to-chip interconnect latency",
+   "v": "2 microseconds in fast mode, roughly 3 microseconds in regular mode (previous generation 5 microseconds)"
+  },
+  {
+   "k": "CS4 component count",
+   "v": "reduced by roughly half, possibly 60%"
+  },
+  {
+   "k": "NVL72 to Groq rack ratio",
+   "v": "every 1 NVL72 rack needs 9 Groq racks"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "I believe one of these chips is probably pushing based on how many power supplies there are, 40 kW. That means three in a rack is about 120, which kind of sounds like Nvidia's NVL72 of course.",
+   "translated": false
+  },
+  {
+   "text": "what used to be five microsconds is now two microsconds uh for chip to chip in fast mode I think they have a regular mode which is more like three microsconds",
+   "translated": false
+  },
+  {
+   "text": "So, wave scale engine 3 previous generation did about 2300 tokens per second um on a standard model that fit all within memory I think in one chip. Um with this new chip, you can now get 4,400 tokens per second.",
+   "translated": false
+  },
+  {
+   "text": "look, when these, uh, agreements are made, there's obviously some supply that's of the current generation, but you go into it knowing that a lot of that uh, revenue is going to come from future generation chips.",
+   "translated": false
+  },
+  {
+   "text": "If you use GPU only, you might be getting 250 tokens per second. uh with Cerebrus with their new CS4 you can get over 4,500 tokens per second.",
+   "translated": false
+  },
+  {
+   "text": "I think disagregation is the wrong word to be talking about it. We should be talking about partitioning workloads.",
+   "translated": false
+  },
+  {
+   "text": "CUDA is not the moat. Speed is the moat and Cerebrus is one of those chips that gets you there with that speed.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}
