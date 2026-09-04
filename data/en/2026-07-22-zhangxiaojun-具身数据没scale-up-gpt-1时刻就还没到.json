@@ -1,0 +1,135 @@
+{
+ "slug": "2026-07-22-zhangxiaojun-具身数据没scale-up-gpt-1时刻就还没到",
+ "of": "zhangxiaojun-e797b3a766",
+ "source_lang": "zh",
+ "title": "Embodied AI hasn't reached its GPT-1 moment; the block is data that won't scale",
+ "dek": "Shen Yujun (沈宇军) of Ant Lingbo (蚂蚁灵波) argues embodied AI has not reached its GPT-1 moment, and the bottleneck is that data has not scaled up: internet data is two orders of magnitude larger than real-robot data, and an ideal pretraining run would start at a million hours. To get there the team rebuilt visual pretraining from scratch and insists on starting from real sensors.",
+ "why": "It is a rare episode that works all the way through the engineering trade-offs of a natively embodied model and the real data bottleneck, and it is honest about what MOE and unidirectional modeling cost to train. Useful if you are trying to judge when embodied AI hits its inflection point.",
+ "who": "Embodied-AI founders, robotics algorithm engineers, and investors following AI in the physical world — especially teams still torn between building the brain and building the body.",
+ "skip": "The first 16 minutes of personal academic history can be fast-forwarded; the substance starts with the origins of Ant Lingbo (蚂蚁灵波).",
+ "tags": [
+  "Embodied AI",
+  "Robot brains",
+  "Pretraining",
+  "Data",
+  "Ant Lingbo",
+  "Founding a startup"
+ ],
+ "points": [
+  {
+   "h": "Giving up on GAN: it uses too little of the compute you give it",
+   "body": "Shen Yujun has worked on generative models since 2017, and his team kept pushing on scaling GANs — even after Diffusion took off, they made one last attempt earlier this year. It was better than their work of previous years, but the fundamental problem with GAN is how little of the available compute it can actually put to use: Diffusion can iterate many times to produce a single image, while GAN runs out of capacity when the content gets complex, video especially. They open-sourced what they had accumulated on GAN and closed the chapter, though he thinks the know-how from adversarial training — running two models at once, playing them off against each other — will not go to waste."
+  },
+  {
+   "h": "Digital-world models do not fit the physical world's requirements",
+   "body": "The first-generation model relied on a digital-world model for pretraining, but the team found that the motivations driving digital-world development do not match what the physical world needs: video generation chases image quality, and robot actions simply do not require high image quality. The digital world moves on its own iteration cycle, and there was no way to push back upstream and get the model changed for them. So in 2026 they decided to rebuild everything around physical-world requirements: everything vision-related, both understanding and generation, is trained from scratch, and only the language model continues to reuse an LLM. Their other commitment is to start from real sensors, precisely because real sensors are noisy — which is inherently at odds with the clean datasets academia works on."
+  },
+  {
+   "h": "Depth estimation had to be relearned from geometry, not semantics",
+   "body": "The first-generation depth model used DINO v2, a digital-world semantic model, and semantic understanding is not enough for the physical world — knowing there is a dog there is not the same as knowing how far away it is. This time they dropped DINO and redid pretraining entirely from a geometric angle — points, lines, surfaces, edges — then iterated a new depth estimation model on top. Two examples: on a reflective faucet, the new model can see where the water flow is; and a cat behind a glass door is completely invisible to the new depth model, because the cat is blocked by the glass and only gradually appears once you pull the door open. In semantic understanding the cat is there the whole time; in spatial perception you have to hit the door first. That is why semantic pretraining from the digital world does not transfer directly to the physical world."
+  },
+  {
+   "h": "Native to the physical world means unidirectional modeling and MOE",
+   "body": "Generating video in the digital world can afford to wait 30 seconds, so bidirectional attention is available; robot execution has to be real time, and history cannot see the future, so the model has to be unidirectional. That cost them three to four months of training unidirectional attention from scratch — forcing a bidirectional model into a unidirectional one causes the pretrained knowledge to be forgotten, so that route had to be abandoned. The other technical piece is native MOE: every expert has to be activated with equal probability, because sparsity only counts as real sparsity if it is evenly spread, and just getting MOE to work took two months and dozens of failures. The physical world lets you sacrifice image quality, and that is where the room for efficiency optimization comes from."
+  },
+  {
+   "h": "The GPT-1 moment has not arrived, and data is what is blocking it",
+   "body": "Shen Yujun's judgment is that embodied AI has not reached its GPT-1 moment today, because no good way to scale up data has emerged yet. This time they used 60,000 hours of real-robot data, but that is not an order-of-magnitude increase, and it is nowhere near enough. Natively embodied pretraining still depends on large volumes of internet data, and internet data is two orders of magnitude larger than real-robot data. The architecture is already native; the data is not native yet. The GPT-1 moment, as he pictures it, is when embodied data itself can scale up — reaching at least the same order of magnitude as internet data."
+  },
+  {
+   "h": "Why they build only the brain and not the body",
+   "body": "Many companies have pivoted this year to building only the brain, and Shen Yujun sees two reasons. First, a single body is very hard to make general-purpose, and if it is not general-purpose you have to pick the right scenario and design for that use specifically, or the cost is certain to be high. Second, the binding constraint right now is that the brain lags behind the body — it still isn't good enough at getting work done. Brain and body necessarily rise in alternation; the brain is behind now, but as more people work on brains the intelligence layer will move faster, and at some point it will overtake the body. That will give rise to a wave of body companies whose hardware is redefined by intelligence. Last generation's hardware will not necessarily suit the next generation's models."
+  },
+  {
+   "h": "A startup is something you bet your way into",
+   "body": "His first startup taught him two things. On execution: he used to care about whether the technology was ahead, and now he cares about which dimension it is ahead in — the lead has to be on something valuable. On starting a company: nobody knows which path is certain to work, and with limited resources you have to dare to bet. If everyone knew which path led to success, the big companies would win by definition and there would be no opening for you. He names three big bets: sensors, a native model, and not building the body. Going native is the boldest of them — training could fail to converge halfway through, or the approach could be wrong, or they could be too early, or resources could run short — but he sees it as the road that has to be taken."
+  },
+  {
+   "h": "The shape of the market: two or three startups plus one or two giants",
+   "body": "Competition in robot brains will look like the large-model market: one or two players out of the big companies and two or three out of the startups, each running its own ecosystem covering data, bodies and scenarios. Because the ecosystem exists, scenarios plus bodies produce data, and the models gradually differentiate to fit that particular ecosystem. Before robots get into homes, each company's model will have different characteristics — some good at delicate tasks, some good at long-horizon tasks — and it will converge on a general-purpose ecosystem in the end."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Ego (first-person-view) data",
+   "def": "Operation video collected by a person wearing a head-mounted camera, recorded from their own point of view, used to scale up robot data."
+  },
+  {
+   "term": "WAM (world action model)",
+   "def": "A model that learns from video how the world responds to actions; it can serve either as a world simulator for a robot or as its executor."
+  },
+  {
+   "term": "VLA (vision-language-action model)",
+   "def": "The mainstream route for robot manipulation: visual input plus a language instruction in, actions out."
+  },
+  {
+   "term": "MOE (mixture of experts)",
+   "def": "A sparsely activated architecture that only activates part of the parameters per inference pass, lowering compute requirements."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Second-generation pretraining data volume",
+   "v": "60,000 hours"
+  },
+  {
+   "k": "First-generation pretraining data volume (what actually survived cleaning)",
+   "v": "about 10,000-plus hours (from 20,000 hours before cleaning)"
+  },
+  {
+   "k": "Drop in real-robot data cost over the past two years",
+   "v": "at least 3x"
+  },
+  {
+   "k": "Data needed for post-training",
+   "v": "down from about 100 demonstrations to about 20"
+  },
+  {
+   "k": "Internet data volume relative to real-robot data volume",
+   "v": "two orders of magnitude larger"
+  },
+  {
+   "k": "Ideal pretraining data volume",
+   "v": "starting at a million hours"
+  },
+  {
+   "k": "Data collected for post-training on the billiards task",
+   "v": "about 20 demonstrations"
+  },
+  {
+   "k": "Time to get MOE working properly",
+   "v": "about 2 months"
+  },
+  {
+   "k": "Time to train unidirectional attention from scratch",
+   "v": "about three to four months"
+  },
+  {
+   "k": "Generalist's publicly stated data volume",
+   "v": "several hundred thousand hours (possibly close to a million by now)"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "You can see it, but you can't touch it — and being able to see it is semantic understanding, while not being able to touch it is spatial perception.",
+   "translated": true
+  },
+  {
+   "text": "What I'd say is that training MOE, getting MOE right, is a question of capability, not a question of attitude.",
+   "translated": true
+  },
+  {
+   "text": "Embodiment will definitely have its own model — a model designed for embodiment.",
+   "translated": true
+  },
+  {
+   "text": "The best outcome I could hope for is that I actually see robots go into homes, and the robots in those homes are running Lingbo's model. That's my best case.",
+   "translated": true
+  },
+  {
+   "text": "But on data at least, I think China is definitely moving faster than the US.",
+   "translated": true
+  }
+ ],
+ "model": "claude-cli:opus"
+}

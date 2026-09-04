@@ -1,0 +1,143 @@
+{
+ "slug": "2026-07-23-latentspace-poolside-小模型的持久性-比参数量更重要",
+ "of": "latentspace-b022dbba0c",
+ "source_lang": "en",
+ "title": "Can a small model that grinds for eight weeks break the foundation-model oligopoly?",
+ "dek": "With a model of 118 billion total parameters and 8 billion active, Poolside argues that persistence and verification behaviour lift coding ability more than raw parameter count does — which is why they believe small open models can break the incumbents' lock on the future.",
+ "why": "Worth finishing if you care about the engineering details of model training, where RL actually bottlenecks, and the logic of the open-source ecosystem; listeners here for the gossip can skip the technical stretch in the middle.",
+ "who": "Research and engineering leads at foundation-model companies, plus investors following the open-model ecosystem and the bottlenecks in RL training.",
+ "skip": "Around 1:20:40 the origin of the Poolside name and some fundraising anecdotes — colourful but low information density, skippable.",
+ "tags": [
+  "Open models",
+  "Model training",
+  "Reinforcement learning",
+  "AI infrastructure",
+  "AGI",
+  "Compute"
+ ],
+ "points": [
+  {
+   "h": "One blog post set the direction, and four years later $12 million was gone",
+   "body": "Karpathy's 2015 post on RNNs made Eiso pivot his company overnight to writing code with neural networks. Over the next four or five years the team worked through RNNs, LSTMs and Transformers. The direction was right, but they never realised that the only thing left to do was keep scaling. The team burned $12 million of investors' money, which he calls the biggest failure of his career; for roughly two years afterwards he barely touched language models at all, until ChatGPT shipped and delivered a kind of belated vindication."
+  },
+  {
+   "h": "Better a world with 100 foundation-model companies than one with five",
+   "body": "Like most labs, Poolside had no intention of going open when it was founded. The turn came earlier this year: they concluded the world was heading for a script in which three or four companies decide the entire future of intelligence, which strikes him as dystopian fiction rather than science-fiction optimism. Because they have not reached the frontier yet, the decision was still cheap to make — he admits that once you are actually at the frontier there is probably no going back. So they chose to open their research and their weights, for a blunt reason: he would rather live in a world with 100 foundation-model companies than one with only five, even if his own company were one of the five."
+  },
+  {
+   "h": "The model factory: eight weeks from first token to a shipped model",
+   "body": "Poolside treats model training as an industrial process. Three years ago the industry standard was to package a dataset, copy it to the training cluster and then distribute it — change the data and you had to repackage everything, which ate enormous amounts of time. They switched to streaming data into training instead, with an immutable data layer where every token can be traced back to a specific version of the code, so an experiment from two years ago is still fully reproducible. With fewer than 70 researchers and 35 engineers, the team runs 10,000 to 20,000 experiments a month: Laguna XS2 took 5 weeks from the start of training to release, Laguna S took 8 weeks, and the day S was finished they began training the larger Medium. What he mostly sees now is agents writing the code, running the experiments and evaluating the results — the early shoots of recursive self-improvement."
+  },
+  {
+   "h": "Small models win by grinding at problems, not by being smarter",
+   "body": "Peng Ming, Poolside's head of applied research, told Eiso that Laguna S improved more through changes in behaviour than through greater intelligence: it verifies more, is slower to declare premature success, and grinds at a problem more persistently. This small model — 118 billion total parameters, 8 billion active, small enough to fit on a single DGX Spark — solved Erdős problem 397 on its own, and with no network access managed to write a Wi-Fi scanner by repeatedly probing low-level APIs until it worked. That has Eiso wondering whether the price-performance inflection point for the model size that knowledge work requires — roughly 25% of the global economy, or $25 trillion — may sit far lower than he previously assumed. He stresses this is not an argument against continuing to build big models; it is that there is still a lot left unsqueezed inside small ones."
+  },
+  {
+   "h": "Piling on RL environments may be taking the whole industry down the wrong road",
+   "body": "Eiso expects reinforcement learning to move earlier and earlier into the training process rather than staying a post-training step after the model is done — he treats DeepSeek's R1-Zero paper as the industry's earliest public signal that reasoning behaviour can be elicited from a model as soon as it has learned to use language. He says the industry currently has two \"drugs\" it is getting addicted to: distillation, and piling on ever more RL environments. Both make models better and make people feel good, but he admits he is not sure this is the right path to AGI, nor sure whether the information in web data has already been fully extracted by next-token prediction."
+  },
+  {
+   "h": "MCP and conventional tool calling are a dumb design",
+   "body": "For two years Eiso has held an unpopular view: MCP and traditional tool calling are actually dumb. His reasoning is that complex long-horizon tasks are fundamentally about dealing with data sources and systems, and rather than inserting an MCP or tool-calling layer between the model and those systems, you should just hand the model a repository with the libraries, documentation and API keys already installed and let it write code, using ifs and for loops, to get the job done — an RL-trained model instinctively wants to work this way. He predicts that within 12 months nobody will still be stuffing twenty or thirty tools into a system prompt, though Poolside currently supports tool calling and parallel tool calling anyway, because the industry has not come around yet."
+  },
+  {
+   "h": "Restricting open models today could manufacture tomorrow's oligopoly",
+   "body": "Eiso objects to any single company unilaterally deciding who may use its model to build foundation models — he thinks restrictions of that kind belong to democratic decision-making, not to a handful of companies ruling on their own. His example: banning cigarette advertising was the right call in itself, but it also created an oligopoly in tobacco, because new entrants could no longer build a brand by advertising. He worries a similar lock-in will happen in AI: start restricting open models at the capability level models have today and you are sentencing the future in advance, when in his view current model capabilities are nowhere near dangerous enough to warrant it."
+  },
+  {
+   "h": "RL's bottleneck is batch size, not the number of GPUs",
+   "body": "Pretraining can use the entire internet as data, so batch size can be scaled almost without limit; RL training is constrained by a finite number of tasks and environments, so batch size cannot be scaled the same way, which makes RL training time the real bottleneck rather than GPU count itself. Eiso is therefore keen to bring inference ideas into RL training — separating prefill from decode, using dedicated hardware for different stages — and mentions a blog post he saw a few days ago on doing RL training at lower precision than the FP8 Poolside uses today. He returns to the point repeatedly: this is a race measured in calendar time rather than GPU count, and cutting the wall-clock time of RL training may be the single biggest lever available for speeding up the whole industry right now."
+  }
+ ],
+ "terms": [
+  {
+   "term": "RSI / recursive self-improvement",
+   "def": "An AI system's ability to improve the AI R&D process itself, treated as a signal of closing in on AGI"
+  },
+  {
+   "term": "MCP / Model Context Protocol",
+   "def": "The standard protocol for letting models call external tools and data sources; Eiso thinks letting the model write code directly is better"
+  },
+  {
+   "term": "FP8/NVFP4 / 8-bit and 4-bit low-precision training",
+   "def": "Training models at lower numerical precision to save compute, one of Poolside's bets"
+  },
+  {
+   "term": "DGX Spark / NVIDIA desktop-class AI machine",
+   "def": "A small compute box able to run a model with tens of billions of parameters on a single device"
+  },
+  {
+   "term": "prefill/decode disaggregation",
+   "def": "Splitting prompt processing and answer generation onto different hardware during inference; Eiso wants to bring it into RL training"
+  }
+ ],
+ "facts": [
+  {
+   "k": "Investment burned in Sourced's failure",
+   "v": "$12 million"
+  },
+  {
+   "k": "Poolside researchers / engineers",
+   "v": "fewer than 70 researchers, plus 35 engineers"
+  },
+  {
+   "k": "Laguna XS2 training cycle",
+   "v": "5 weeks from start of training to release"
+  },
+  {
+   "k": "Laguna S training cycle",
+   "v": "8 weeks from start of training to release"
+  },
+  {
+   "k": "Laguna S parameter count",
+   "v": "118 billion total parameters, 8 billion active"
+  },
+  {
+   "k": "Knowledge work as a share of the global economy",
+   "v": "about 25%, or $25 trillion"
+  },
+  {
+   "k": "Training cycle for the new Laguna Medium",
+   "v": "39 days"
+  },
+  {
+   "k": "Poolside funding raised",
+   "v": "$500 million"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "I had built a completely unreasonable belief, that neural nets should be able to generalize to anything and everything, and that language should be able to generalize, to a lot of things that are intelligent and the ability to write code.",
+   "translated": false
+  },
+  {
+   "text": "I rather live in a world that has 100 foundation model companies than a world that has five, even if I was one of the five.",
+   "translated": false
+  },
+  {
+   "text": "The model that we’re gonna talk about today was eight weeks from start of training, to launch. We started the next model literally yesterday because we now finished the post-training required for the model we’re launching, next week or by the time this comes out today.",
+   "translated": false
+  },
+  {
+   "text": "I have the feeling that a lot of the gains in Laguna S come not from more intelligence, but more from different behavior, more verification, less taking things for granted, not declaring victory early, and being way more persistent.",
+   "translated": false
+  },
+  {
+   "text": "we’ve got some drugs in the industry. One of the drugs is distillation. Another drug is, more environments. Like, and they’re great, and they make us feel good, and they make the models better, and like we’re all addicted to them, and we’ll use them, right?",
+   "translated": false
+  },
+  {
+   "text": "I think MCP and tools are stupid.",
+   "translated": false
+  },
+  {
+   "text": "I always think back about when we banned advertising on cigarettes. Good thing. I’m not saying I’m against that. But it effectively established an oligopoly of cigarette companies because no one else could ever compete.",
+   "translated": false
+  },
+  {
+   "text": "The race is measured not in how many GPUs, but the race is measured on calendar time, and that’s probably one of the biggest impacts we can have right now to speed up our industry.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}

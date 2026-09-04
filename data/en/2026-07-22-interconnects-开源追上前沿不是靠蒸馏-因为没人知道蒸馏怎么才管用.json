@@ -1,0 +1,123 @@
+{
+ "slug": "2026-07-22-interconnects-开源追上前沿不是靠蒸馏-因为没人知道蒸馏怎么才管用",
+ "of": "interconnects-7d7f0c09d3",
+ "source_lang": "en",
+ "title": "Open models aren't closing the gap by distilling — nobody knows how to distill usefully",
+ "dek": "Nathan Lambert takes apart, point by point, the narrative that Chinese open models are just distilled: using Fable/GPT 5.6 as a judge inside the RL stage does not pencil out on cost, and even if you were handed the strongest model's reasoning traces for free, the research community still does not know how to convert them into capability.",
+ "why": "This episode hands you criteria rather than conclusions: the cost arithmetic of distillation, the capital-efficiency gap at Chinese labs, and a concrete case where banning open weights weakens American defenders.",
+ "who": "Founders and post-training engineers choosing agentic coding tools, evaluating whether open-weight models can replace Claude/Codex, or needing to judge the US-China open-source landscape.",
+ "skip": "19:47-24:08, a vendor-by-vendor run-through of the Chinese labs; low information density.",
+ "tags": [
+  "Open models",
+  "Distillation",
+  "Post-training",
+  "Compute",
+  "US-China rivalry",
+  "Cybersecurity"
+ ],
+ "points": [
+  {
+   "h": "Run Kimi K3 as the main agent and GLM as the sub-agent",
+   "body": "Florian's actual layering is quite specific. Kimi K3 writes noticeably simpler, more readable code, but it misses edge cases — he places it at GPT 5.4 to 5.5 level, and his method is to let Kimi write first and then have Codex go over it to pick up what was dropped. GLM 5.2 is Sonnet-class and wins on speed: going through an internal endpoint or an API doing two to three hundred tokens per second is less hassle than picking a model, picking a reasoning effort and picking fast inside Codex, so cleanup work and grunt work go straight to it. Put together, that is Kimi K3 as the main agent and GLM as the sub-agent. Kimi's weak spot is wall-clock time — the servers are in China and the API is swamped, so it is much slower than GPT, though not to the point of being unusable."
+  },
+  {
+   "h": "Models getting bigger actually slows the spread of open weights",
+   "body": "There is an explicit disagreement here. Nathan thinks a model at Kimi K3's scale changes the game: in the past, Chinese models went from finishing an RL run to opening the weights in anything from a few hours to a week, and the ecosystem immediately knew how to plug them in; now just loading the weights takes a full node of B300, and that infrastructure lift eats up an extra month, while closed labs do all of that work before they ship — so the lag is being artificially manipulated. And the Kimi API is completely swamped right now, so the model is not actually diffusing. Florian disagrees: the open ecosystem has professionalized a great deal over the past few months, launches come with inference partners from day one and vLLM patches land weeks ahead, so day-one availability will be decent, followed by an arms race among providers on speed."
+  },
+  {
+   "h": "The capital-efficiency gap may well be structural",
+   "body": "Nathan admits his call last year was wrong: he had assumed the capital intensity of training would widen the gap between open and closed, and it went the other way. He now leans toward thinking Chinese labs are more efficient along the chain that converts capital into compute, data and talent — if the next generation of models costs Anthropic $10 billion and Kimi only $4 billion, that becomes an enormous difference as the number of iterations grows. But the cause is unclear: it could be that the education system produces better-matched talent, it could be that compute and labor simply cost less, it could be subsidies. The reply from Kimi engineer Big Eagle offers a fourth explanation — they are not pushing the frontier, only catching up, and that target range is cheap by definition."
+  },
+  {
+   "h": "The frontier is splitting into two layers, and only one commoditizes",
+   "body": "Florian's baseline read is that the capability curve is forking. On tasks like coding, both the open and the closed current frontier are already good enough, and the marginal value of further gains is falling. The real frontier — finding new mathematical proofs, finding new drugs, inventing new things — is a different animal, and will be monopolized by the very leading edge for quite some time. His inference is that this layer gets sealed off further and further: Mythos is already not open to everyone on cybersecurity and biology, and if Anthropic really is standing up a drug-discovery lab internally, then even outside partners will not get access. The result is a real frontier inaccessible to everyone, while near-frontier capability keeps being commoditized."
+  },
+  {
+   "h": "Guardrails on US frontier models push defenders onto GLM",
+   "body": "Hugging Face reported that after they were attacked by an agent, they wanted to go back through the attack data, and both GPT and Claude blocked them on guardrails; in the end they had to switch to GLM — a weaker model that puts up no obstacle to this kind of defensive analysis. Florian calls this a bad state of affairs: American companies end up depending on weaker models because the closed frontier is unavailable to them. Nathan picks it up and turns it into the core of his argument against a ban: if everyone in the world can use these open weights and only American companies are barred, that structurally stops defenders from getting stronger while leaving attackers unconstrained — and that is the path that turns cyber risk from fake into real."
+  },
+  {
+   "h": "Distillation does not pencil out in the RL stage",
+   "body": "In \"Who's afraid of Chinese models,\" Ben Thompson argues that distillation becomes more important as RL takes up a larger share of training — the reasoning being that Chinese labs may be using Fable or GPT 5.6 as the grading model inside RL, judging each step of a rollout trajectory. Nathan's rebuttal is pure arithmetic: one large-scale RL run is millions to tens of millions of rollouts, and the final RL run Thinking Machines disclosed had twenty to forty million. Hanging that volume off an external API is not just absurdly expensive; the slowness also becomes a time bottleneck, and it is not necessarily better than a custom grader you train yourself."
+  },
+  {
+   "h": "Even the strongest traces, handed over free, would not be usable",
+   "body": "A layer harsher than cost: even if the distillation data landed in your lap for free, nobody knows how to use it. Open Thoughts 3 and Open Thoughts Agent, the main line of work on scaling reasoning SFT, keep arriving at a conclusion that is not \"the strongest model in your domain is the best teacher\" — the strongest open SFT dataset today is still built on an old reasoning model like QwQ-32B. Why can you not just generate completions with GLM 5.2, do SFT on them and push the model up? Nobody knows. Nathan's guess is that mid-training and reasoning SFT are entangled too deeply and would have to be redone together. His own words: give him a magic API that spits out Claude/Gemini reasoning traces, and he still is not sure that fine-tuning OLMo on them would make OLMo smarter."
+  },
+  {
+   "h": "A US lab may crack the top cluster for the first time by year-end",
+   "body": "The two of them redid last year's tier list. The frontier is Kimi and Zhipu, with DeepSeek and Qwen as close competitors. Florian bets MiniMax will produce a surprise by year-end — not at M3's size, but a large model above a trillion parameters; his wild card is Tencent, which has new leadership and has moved Hunyuan to an Apache license this time (the previous custom license excluded the EU, the UK and South Korea entirely), and its roughly 250B model is already quite capable. On the American side, Nathan guesses that by the end of November one of them — Nvidia, Thinking Machines or Reflection — will probably squeeze into this rough top-five cluster, which would be the first time in a long while. Florian's reasoning is different: the value of Nemotron and Thinking Machines lies in serving as a fine-tunable base, not in being used directly the way a frontier model is."
+  }
+ ],
+ "terms": [
+  {
+   "term": "distillation",
+   "def": "Using a stronger model's outputs — especially its reasoning traces — as training data for your own model."
+  },
+  {
+   "term": "rollout",
+   "def": "A single behavioral trajectory produced when a model runs all the way through a task during RL training."
+  },
+  {
+   "term": "grading model / judge",
+   "def": "The model in RL that judges whether each step of a rollout has earned reward."
+  },
+  {
+   "term": "mid-training",
+   "def": "The stage between pretraining and SFT; Nathan considers it hard to separate from reasoning SFT."
+  },
+  {
+   "term": "shadow ban",
+   "def": "Effectively prohibiting a use through the threat of legal action or penalties rather than explicit legislation."
+  },
+  {
+   "term": "fine-tunability",
+   "def": "How readily a model works as a base for domain fine-tuning, which is not the same as its leaderboard scores."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Next-generation training cost, compared",
+   "v": "Anthropic roughly $10 billion vs Kimi roughly $4 billion"
+  },
+  {
+   "k": "Hardware floor to load Kimi K3's weights",
+   "v": "one node of B300"
+  },
+  {
+   "k": "Context on Kimi K3's top subscription tier (the $200 plan)",
+   "v": "1 million tokens"
+  },
+  {
+   "k": "Thinking Machines Inkling parameter count",
+   "v": "1 trillion (total parameters)"
+  },
+  {
+   "k": "Research team size at Chinese labs",
+   "v": "200-300 people, mostly around 25 years old"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "the main thing I found with Kimi is its code is a lot simpler uh which makes it way more readable uh but it misses some things that Codex just or like we’re talking 56, 55 and especially 54 would be on those levels. So, I would say that Kimi K3 is like 54-55 level for these kind of tasks.",
+   "translated": false
+  },
+  {
+   "text": "And if a next generation model costs $10 billion for Anthropic but only $4 billion for Kimi like this this is like could be very huge but it’s not clear why this is the case.",
+   "translated": false
+  },
+  {
+   "text": "So they had to use GLM, a lesser capable model, but it had no guardrails for this kind of defensive action. … which is a horrible state to be in that we have US-based companies now relying on lesser models because the closed frontier is inaccessible to them.",
+   "translated": false
+  },
+  {
+   "text": "The problem is that big RL runs are millions and millions of rollouts. I think Thinking Machines blog post had like 20 to 40 million or something for their final RL run. So to do this on an API like Fable or GPT 5.6 would be insanely expensive",
+   "translated": false
+  },
+  {
+   "text": "if I had a magical API that gave me reasoning traces from Claude/Gemini. I actually don’t know if me like fine-tuning an OLMo model on that would make OLMo smarter. It’s one of the most wild unanswered research questions.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}

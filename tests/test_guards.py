@@ -3278,3 +3278,56 @@ class EnglishTypography(unittest.TestCase):
         i = self.css.index('html[lang="en"] .dek-lead')
         blk = self.css[i:self.css.index("{font-family:var(--text)}", i)]
         self.assertIn(".quote .raw", blk, "逐字引文必须走正文字体")
+
+
+class NoUnevaluatedTemplateExpressions(unittest.TestCase):
+    """页面里不许出现未求值的模板表达式，比如字面量 `{T("播放")}`。
+
+    真实发生过三处，全是同一个原因：**嵌套字符串少了 f 前缀**。外层是 f-string，
+    里面拼接的普通字符串写了 `{T("...")}`，Python 当字面量原样输出，于是页面上
+    印的是代码而不是文案。
+
+    这类错误没有任何症状——不报错、不 404、构建照样绿。第一处（"时间戳会跳到
+    原节目对应位置。"）是英文站的零漏译闸门抓到的，而它**在简体站上也一直是错的**，
+    只是没人扫过。所以这条检查同时管三棵树。
+
+    要排除 <script>：内联 JS 里的 `{` 是合法的语法。
+    """
+
+    _SCRIPT = re.compile(r"<script[\s\S]*?</script>", re.I)
+    # 模板里会用到的辅助函数名。写死这张表而不是通配 `{任意标识符(`：
+    # 后者会把 JS 里的 `{location.replace(` 一起报进来。
+    _PAT = re.compile(r"\{(?:T|e|i18n\.\w+|mark_zh|zh_attr|T_dict|hhmmss|"
+                      r"asset|share_button|masthead|foot)\(")
+
+    def _pages(self, n=40):
+        out = [ROOT / "index.html", ROOT / "sources" / "index.html",
+               ROOT / "log" / "index.html", ROOT / "404.html"]
+        for sub in ("p", "en/p", "tw/p", "s", "en/s"):
+            d = ROOT / sub
+            if d.exists():
+                out += [x / "index.html" for x in sorted(d.iterdir())[:n]
+                        if x.is_dir()]
+        return [f for f in out if f.exists()]
+
+    def test_no_literal_template_calls_in_html(self):
+        bad = []
+        for f in self._pages():
+            body = self._SCRIPT.sub(" ", f.read_text())
+            for m in self._PAT.finditer(body):
+                bad.append(f"{f.relative_to(ROOT)}: "
+                           f"{body[m.start():m.start() + 40]!r}")
+        self.assertEqual(sorted(set(b.split(': ', 1)[1] for b in bad)), [],
+                         f"{len(bad)} 处未求值的模板表达式（少了 f 前缀）")
+
+    def test_no_stray_braces_in_visible_text(self):
+        """再宽一档：正文里不该出现 `{某个标识符}` 这种形状。
+        （CSS/JS 已排除；真实文案里的花括号极少，出现就值得看一眼。）"""
+        pat = re.compile(r"\{[a-z_][a-z0-9_.]{2,}\}")
+        bad = []
+        for f in self._pages(12):
+            body = self._SCRIPT.sub(" ", f.read_text())
+            body = re.sub(r"<style[\s\S]*?</style>", " ", body)
+            for m in pat.finditer(body):
+                bad.append(f"{f.relative_to(ROOT)}: {m.group(0)}")
+        self.assertEqual(bad[:4], [], f"{len(bad)} 处可疑的花括号占位")

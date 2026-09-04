@@ -947,8 +947,8 @@ def player_block(ep: dict) -> str:
             f'    <p class="afallback">{T("原视频在 YouTube 上放不出来，用音频听：")}</p>\n'
             f'    <audio data-player controls preload="none" src="{e(audio)}"></audio>\n'
             f'    <div class="aui" data-audio-ui data-dur="{secs}" hidden>\n'
-            '      <button class="aplay" type="button" aria-label="{T("播放")}"></button>\n'
-            '      <div class="abar" role="slider" tabindex="0" aria-label="{T("播放进度")}"\n'
+            f'      <button class="aplay" type="button" aria-label="{T("播放")}"></button>\n'
+            f'      <div class="abar" role="slider" tabindex="0" aria-label="{T("播放进度")}"\n'
             '           aria-valuemin="0" aria-valuemax="100"><div class="afill"></div></div>\n'
             '      <span class="atime"><span class="acur">0:00</span>'
             '<span class="asep">/</span><span class="atot">--:--</span></span>\n'
@@ -1098,7 +1098,7 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
 <div class="row"><span>{T("发布")}</span><span>{e(date)}</span></div>
 <div class="row"><span>{T("时长")}</span><span>{hhmmss(ep.get('duration')) or '—'}</span></div>
 {f'<a class="row" href="{e(orig)}" target="_blank" rel="noopener"><span>{T("原页面")}</span><span>{T("打开 ↗")}</span></a>' if orig else ''}
-{'' if (ep.get("audio") or ep.get("youtube_id")) else '<p class="note">{T("时间戳会跳到原节目对应位置。")}</p>'}
+{'' if (ep.get("audio") or ep.get("youtube_id")) else f'<p class="note">{T("时间戳会跳到原节目对应位置。")}</p>'}
 </div>
 
 {f'<div class="panel"><h4>{T("本篇结构")}</h4><nav class="toc">{toc}</nav></div>' if toc else ''}

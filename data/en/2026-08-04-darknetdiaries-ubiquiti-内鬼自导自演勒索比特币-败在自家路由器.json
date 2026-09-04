@@ -1,0 +1,119 @@
+{
+ "slug": "2026-08-04-darknetdiaries-ubiquiti-内鬼自导自演勒索比特币-败在自家路由器",
+ "of": "darknetdiaries-ce8e58625f",
+ "source_lang": "en",
+ "title": "A $250,000 Salary Wasn't Enough, So He Extorted His Own Company",
+ "dek": "Ubiquiti's cloud team lead decided $250,000 a year was not enough, staged an intrusion into his own company and demanded 25 bitcoin — and was pinned down by a MAC address logged by his own Ubiquiti router. Six years in prison.",
+ "why": "This is a complete specimen of an insider attack: privilege abuse, VPN cover, framing a colleague, and the forensic break that undid it all. Every stage works as a corporate security teaching case.",
+ "who": "Cloud infrastructure leads, corporate security teams, and anyone who holds the highest privileges at their company and thinks the pay is too low.",
+ "skip": "The sandwich-thief opening from 0:00-3:11 has nothing to do with the main story; skip it if you are short on time.",
+ "tags": [
+  "Insider Attack",
+  "Corporate Extortion",
+  "GitHub",
+  "VPN",
+  "Cloud Security",
+  "Forensics"
+ ],
+ "points": [
+  {
+   "h": "The skills that got him hired were the tools of his crime",
+   "body": "Nick had been working on video cloud services at AWS's Portland office, one mile from Ubiquiti. In August 2018 he jumped to Ubiquiti, leading the cloud division inside an 800-person team. Even before hiring him, the company had noticed that his AWS skills were an exact match for its own cloud needs. That job made him, several years later, head of the entire cloud team, holding top-level privileges over the AWS environment, the private GitHub repositories and Slack — and that résumé is precisely the precondition for the insider attack that came later."
+  },
+  {
+   "h": "$250,000 felt small because he was measuring himself against a billionaire",
+   "body": "Nick earned $250,000 a year, and after a few years at Ubiquiti he was promoted to head of the cloud team. But his pay stopped growing, and he felt his skills were rare and himself undervalued. He compared himself with CEO Robert Pera: the two were close in age, and Pera was already one of the youngest billionaires in the world while Nick was standing still. That psychological imbalance, combined with his habit of making a name for himself by discovering security problems, eventually led him to the idea of manufacturing a security incident that would give him a chance to shine."
+  },
+  {
+   "h": "This was not an intrusion — it was access management failing outright",
+   "body": "Nick used no backdoor and cracked nothing. At three in the morning he logged into AWS with the same corporate credentials he used for work every day, found a key that unlocked the entire credential store, and logged out. Two minutes later another account appeared, hidden behind a different IP, using exactly that key. He ran a single get-caller-identity command to confirm the identity, then sat back and watched for a week. The whole test proved only one thing: Ubiquiti's access management violated the principle of least privilege — one employee could freely obtain the key to every system, and nobody would notice."
+  },
+  {
+   "h": "What caught him was not technique but a 30-minute internet outage",
+   "body": "On December 21 he moved for real, using a shared high-privilege GitHub account to clone private repositories over SSH. Just as he was about to finish, his home internet went down. He spent 30 minutes on the phone with his ISP, and although he had a VPN kill switch running, the GitHub logs still recorded a Portland residential IP — sitting right alongside his VPN IP. He later altered the AWS log retention period and pinned 18 sessions on a DevOps colleague, without knowing that the real IP had already become the core evidence for his future conviction. His panic on the technical side mattered more to how the case turned out than his hacking skills did."
+  },
+  {
+   "h": "A $2 million ransom cannot move a $23 billion company",
+   "body": "On the first morning of the new year, several Ubiquiti executives received an anonymous extortion email: hand over 25 bitcoin (about $2 million at the time) or the stolen data would be published; pay another 25 bitcoin and the hacker would disclose the backdoors he had found. Nick figured the company would pay, given the precedents of CWT paying $4.5 million and Garmin possibly paying $10 million. But Ubiquiti's market capitalization was over $23 billion, $2 million did not hurt enough, no ransomware had been installed in the systems, and the business had not stopped — so the company chose to ignore it. He also used Keybase to show a senior employee the evidence sitting in a public folder, but Keybase cooperated with law enforcement and deleted the data, and the extortion plan collapsed completely."
+  },
+  {
+   "h": "A VPN can hide your IP, but it cannot hide your MAC address",
+   "body": "Forensic investigators found nothing at first in the company laptop and cameras Nick had turned in. But when they examined the Ubiquiti router in his home, they found that during the window of the attack a separate MacBook had connected to the router over Wi-Fi and transferred an amount of traffic consistent with the volume of stolen data. A VPN operates at OSI layer three; the MAC address the router recorded comes from layer two, and a VPN cannot conceal it. That became the key pointing to a second computer. Nick did not hand over the MacBook right away — he reset it first — but the FBI arrived with a search warrant on March 24 and seized it anyway."
+  },
+  {
+   "h": "Revenge wiped out $4 billion in market value and cost him six years",
+   "body": "After the FBI questioned him, Nick did not flee or hire a lawyer. Instead he contacted the reporter Brian Krebs anonymously, posing as a whistleblower, and claimed that Ubiquiti was lying and downplaying the breach, handing over damaging material such as root privileges being granted and passwords being stored in LastPass. After Krebs's article \"Whistleblower: Ubiquiti Breach Catastrophic\" went live, two days of investor selling drove the stock down 20% and evaporated roughly $4 billion in market value. Nick also filed reports with regulators at home and abroad. The thrill of revenge was real, but in December 2021 he was arrested anyway, pleaded guilty to three counts in February 2023, and was ultimately sentenced to six years in prison."
+  }
+ ],
+ "terms": [
+  {
+   "term": "least privilege",
+   "def": "Users should hold only the minimum privileges their job requires; Ubiquiti violated it, which is how the insider could collect a whole ring of keys."
+  },
+  {
+   "term": "VPN kill switch",
+   "def": "Automatically blocks network connections when the VPN drops, to keep the real IP from being exposed; Nick had it on and still left an IP behind."
+  },
+  {
+   "term": "MAC address",
+   "def": "The hardware address of a network interface, operating at layer 2; a VPN masks only the IP, never the MAC."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Ubiquiti team size",
+   "v": "800 people"
+  },
+  {
+   "k": "Ubiquiti share price in 2020",
+   "v": "doubled"
+  },
+  {
+   "k": "CWT extortion case",
+   "v": "$10 million demanded initially, $4.5 million paid after negotiation"
+  },
+  {
+   "k": "Garmin ransom reports",
+   "v": "$10 million demanded"
+  },
+  {
+   "k": "Nick's ransom demand",
+   "v": "25 bitcoin (about $2 million at the time), plus another 25 bitcoin to buy the backdoor intelligence"
+  },
+  {
+   "k": "Ubiquiti's market cap at the time",
+   "v": "over $23 billion"
+  },
+  {
+   "k": "Sentence",
+   "v": "six years in prison; pleaded guilty to three counts in February 2023"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "He just wanted to be seen, to be heard, to matter.",
+   "translated": false
+  },
+  {
+   "text": "The hacker has given Ubiquiti an ultimatum; either cough up twenty-five Bitcoin or your stolen data will be published online.",
+   "translated": false
+  },
+  {
+   "text": "No BTC, he types out. No talk. We done here.",
+   "translated": false
+  },
+  {
+   "text": "We have evidence you purchased a Surfshark VPN back in July 2020",
+   "translated": false
+  },
+  {
+   "text": "Whistleblower: Ubiquiti Breach Catastrophic",
+   "translated": false
+  },
+  {
+   "text": "The whole thing was just an unsanctioned security drill to make Ubiquiti a safer place.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:opus"
+}

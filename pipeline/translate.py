@@ -18,10 +18,12 @@
 from __future__ import annotations
 
 import argparse
+import concurrent.futures as cf
 import json
 import pathlib
 import re
 import sys
+import threading
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from lib import llm                                              # noqa: E402
@@ -222,6 +224,8 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--only", default="", help="只处理这些 slug 片段，逗号分隔")
     ap.add_argument("--redo", action="store_true")
+    ap.add_argument("--workers", type=int, default=4,
+                    help="并发数。串行一篇约 25-30 秒，269 篇要两小时")
     a = ap.parse_args()
 
     OUT.mkdir(parents=True, exist_ok=True)
@@ -231,10 +235,11 @@ def main() -> int:
     if seen:
         log(f"已译过 {len(seen)} 篇，跳过")
 
-    done = failed = 0
+    # 并发。llm.py 里只有 _json_mode 一个可变标志（能力探测用，并发写同一个值
+    # 无害），其余都是只读配置，所以线程池是安全的。断点记录和日志各上一把锁：
+    # save_done 每次重写整个文件，两个线程同时写会互相截断。
+    todo = []
     for f in files:
-        if done >= a.limit:
-            break
         try:
             ep = json.loads(f.read_text())
         except Exception:
@@ -244,33 +249,37 @@ def main() -> int:
             continue
         if slug in seen:
             continue
+        todo.append(ep)
+    if a.limit:
+        todo = todo[:a.limit]
+    log(f"要译 {len(todo)} 篇，并发 {a.workers}")
+
+    lock = threading.Lock()
+    tally = {"done": 0, "failed": 0}
+
+    def one(ep):
+        slug = ep.get("slug") or ""
         en_src = is_english_source(ep)
         ask = ASK % ("" if en_src else QUOTE_ASK)
         body = brief(ep) + ("" if en_src else quote_brief(ep))
-        # max_tokens 按原稿长度给。固定 4000 的后果实测过：长稿子（8 条要点
-        # 加术语加数字加金句）本身就要三四千 token 输出，而 review 角色是推理
-        # 模型——思考先把额度吃掉，答案是空的，报 "内容为空（finish_reason=length）"。
         need = max(4000, int(len(body) * 1.6))
         try:
-            r = llm.call_json(SYSTEM, body + "\n\n" + ask,
-                              max_tokens=need, temperature=0.2, role="review")
+            try:
+                r = llm.call_json(SYSTEM, body + "\n\n" + ask,
+                                  max_tokens=need, temperature=0.2, role="review")
+            except Exception as ex:
+                if "内容为空" not in str(ex):
+                    raise
+                with lock:
+                    log(f"      额度不够（{need}），加倍重试 {slug[:34]}")
+                r = llm.call_json(SYSTEM, body + "\n\n" + ask,
+                                  max_tokens=need * 2, temperature=0.2, role="review")
         except Exception as ex:
-            # 只对"额度用光"这一种再试一次，加倍。其他错误直接记账，
-            # 盲目重试只是把同一个失败花两遍钱。
-            if "内容为空" not in str(ex):
-                raise
-            log(f"      额度不够（{need}），加倍重试")
-            r = llm.call_json(SYSTEM, body + "\n\n" + ask,
-                              max_tokens=need * 2, temperature=0.2, role="review")
-        except Exception as ex:      # noqa: F811 —— 外层兜住两次都失败的情况
-            # **把消息也记下来。** 只记 type(ex).__name__ 的后果：60 篇连着
-            # 因为"推理把 max_tokens 用光了，没留给答案"失败，日志里全是
-            # 一模一样的 RuntimeError，看不出是同一个可修的原因。
-            log(f"  {slug[:44]} 译失败：{type(ex).__name__}: {str(ex)[:160]}")
-            failed += 1
-            continue
-        # 先归一化标点，再过闸门——闸门查的是"还有没有漏的"，不是"模型有没有
-        # 按我说的写"。归一化能解决的就别退回去重花一次钱。
+            with lock:
+                log(f"  {slug[:44]} 译失败：{type(ex).__name__}: {str(ex)[:160]}")
+                tally["failed"] += 1
+            return
+
         def clean(v):
             if isinstance(v, str):
                 return _en_punct(v)
@@ -282,13 +291,13 @@ def main() -> int:
         r = clean(r)
         problems = check(ep, r, en_src)
         if problems:
-            log(f"  {slug[:44]} 不合格，不写：")
-            for x in problems[:4]:
-                log(f"      {x}")
-            failed += 1
-            continue
-        done += 1
-        # 金句：英文源直接用 raw（说话人原话），中文源用译文并标明
+            with lock:
+                log(f"  {slug[:44]} 不合格，不写：")
+                for x in problems[:4]:
+                    log(f"      {x}")
+                tally["failed"] += 1
+            return
+
         quotes = []
         for i, q in enumerate(ep["digest"].get("quotes") or []):
             if en_src:
@@ -316,14 +325,20 @@ def main() -> int:
                          for x in (r.get("facts") or [])],
                "quotes": quotes,
                "model": f"{llm.provider()}:{llm.model_name()}"}
-        log(f"  {'[dry] ' if a.dry_run else ''}{slug[:40]}"
-            f"（{'英文源，金句用原话' if en_src else '中文源，金句已译'}）")
-        log(f"      {rec['title']}")
-        if not a.dry_run:
-            (OUT / f"{slug}.json").write_text(
-                json.dumps(rec, ensure_ascii=False, indent=1) + "\n")
-            seen.add(slug)
-            save_done(seen)
+        with lock:
+            tally["done"] += 1
+            log(f"  {'[dry] ' if a.dry_run else ''}[{tally['done']}/{len(todo)}] "
+                f"{slug[:38]}（{'英文源，金句用原话' if en_src else '中文源，金句已译'}）")
+            log(f"      {rec['title']}")
+            if not a.dry_run:
+                (OUT / f"{slug}.json").write_text(
+                    json.dumps(rec, ensure_ascii=False, indent=1) + "\n")
+                seen.add(slug)
+                save_done(seen)
+
+    with cf.ThreadPoolExecutor(max_workers=max(1, a.workers)) as pool:
+        list(pool.map(one, todo))
+    done, failed = tally["done"], tally["failed"]
     log(f"\n{'（dry-run，一个字没写）' if a.dry_run else '已写入 data/en/'} "
         f"成 {done} · 不合格 {failed}")
     return 0

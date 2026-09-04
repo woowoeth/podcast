@@ -1,0 +1,111 @@
+{
+ "slug": "2026-07-28-zhangxiaojun-开源模型会赢-vllm-是-ai-推理的-linux",
+ "of": "zhangxiaojun-ccf825f51c",
+ "source_lang": "zh",
+ "title": "Open models will win, and vLLM is the Linux of AI inference",
+ "dek": "vLLM is already the most active open-source project on GitHub, but Kaichao You's (游凯超) real claim is this: model capability cannot stay hidden for long, open models will win in the end, and the inference engine is the next Linux — where the moat is fast iteration, not the model itself.",
+ "why": "High information density, and the second half in particular — the judgments on open-source governance and on model-system co-design — rewards a close read from founders. The pacing runs long, but there is no filler.",
+ "who": "For founders, investors and engineers following open-source governance, AI Infra startups, and model-system co-design.",
+ "skip": "The first half hour on his education can be skimmed; after the 37-minute mark the open-source and co-design material gets much denser.",
+ "tags": [
+  "Open source",
+  "AI Infra",
+  "vLLM",
+  "Model inference",
+  "Startups",
+  "Co-design"
+ ],
+ "points": [
+  {
+   "h": "Hyperparameter tuning was never the bottleneck; the memory hierarchy was",
+   "body": "Kaichao You (游凯超) left algorithm research for three escalating reasons. First, submission volumes at academic conferences were growing geometrically while review quality fell, so submitting a paper came to feel like buying a lottery ticket. Second, he came to see that algorithmic results depend heavily on machine learning systems: behind Kaiming He's (何恺明) ResNet sat large-scale experimentation, whereas a lab with only small data can at best ‘stage a grand ritual inside a snail shell’. Third, friends in industry told him that what gave Megvii (旷视) engineers the worst headaches was the multi-level hardware cache hierarchy, not tuning hyperparameters. Together those three pushed him from algorithms into systems."
+  },
+  {
+   "h": "An open-source project with no company behind it is doomed",
+   "body": "His advisor's view was that vLLM would certainly die without a company behind it — the way Linux would not have got here without Red Hat, Ubuntu without Google, or PyTorch without Meta. An open-source community is not a legal entity: try to sign an NDA and there is nobody to sign it; when a large company donates compute, all it can hand over is a single machine; cluster-level optimisation means begging around, and the machines can be taken back at any moment. You had already decided at the end of 2024 to start a company, and to that end accepted a postdoc offer and waited two years, while repeatedly telling people inside the project ‘if only there were a company behind this’."
+  },
+  {
+   "h": "The core skill in maintaining open source is daring to delete features",
+   "body": "vLLM runs a tiered governance model: a few ‘benevolent dictators’ make the final calls, a dozen or so core maintainers own the critical modules, and several dozen committers write code. One hard call You made was deleting beam search. Users in recommendation systems kept complaining, but his judgment was that mainstream AI inference no longer depends on beam search, and that continuing to maintain it would only pile on complexity the project could not sustain. That willingness to cut is what lets an open-source project set priorities at all."
+  },
+  {
+   "h": "The assumption that community users mean well has broken",
+   "body": "Ranked by contributor activity on GitHub in 2025, vLLM is the most active project. That brings ‘happy troubles’: training outfits file junk PRs to pad their students' résumés, and bot accounts have shown up that submit 20 PRs in 10 minutes, breaking the assumption that everyone in the community is acting in good faith. Maintainers have had to introduce authentication mechanisms and blacklist bots. As coding agents advance, code becomes cheap, and a maintainer is often better off rewriting a PR than reading it — so the community is turning into a two-layer structure of maintainers plus users."
+  },
+  {
+   "h": "A model that does not fit the hardware misses the compute dividend",
+   "body": "He uses hydroelectric power as the analogy: the hardware is the natural resource, the model is the generator, and the inference engine is the electrical system. Give two generators the same flow of water and their efficiency can differ enormously depending on design — that is co-design. He points to the ‘hardware lottery’: once Moore's Law stopped delivering, gains in compute came from specialised chips, and a model architecture that does not fit the hardware gets none of that dividend. Transformer drew the winning GPU ticket, and RoPE became its ideal partner precisely because it does not require modifying the attention kernel. DeepSeek's strength is exactly that its algorithm people understand systems: its exploration of MOE from coarse-grained to fine-grained, for example, was implemented first in its own inference engine."
+  },
+  {
+   "h": "Tokens are not a commodity; each one carries its model's imprint",
+   "body": "Electricity is a commodity — you can modulate voltage and frequency and standardise the whole thing. Tokens are different: you cannot convert a DeepSeek token into a Kimi token, because a token carries the imprint of its model. Model architectures therefore come in every shape, and an inference engine has to support two or three hundred of them while continuously stripping out complexity it does not need. This also explains why open models will win: once a model is used at scale, the user data can train a new model, so model capability cannot stay hidden for long."
+  },
+  {
+   "h": "For models that deal with people, million-token context is enough",
+   "body": "You offers two predictions. First, context requirements for models that deal with people will essentially stop at the million level; only special fields such as biology and chemistry need tens of millions or even hundreds of millions, and long tasks can be handed off to external tools. Second, open models will win in the end, because a model is not like a nuclear weapon that can be kept hidden as a deterrent — it has to be used at scale, and use accumulates data, which reproduces a new model. The moat, therefore, is not model capability but speed of iteration."
+  }
+ ],
+ "terms": [
+  {
+   "term": "PagedAttention",
+   "def": "Manages the KV cache in fixed-size blocks to reduce GPU memory fragmentation; vLLM's core algorithm."
+  },
+  {
+   "term": "KV Cache",
+   "def": "In autoregressive generation, caches the keys and values of earlier tokens so they need not be recomputed."
+  },
+  {
+   "term": "Speculative Decoding",
+   "def": "Guesses several tokens in parallel first, then verifies them in one pass, accelerating autoregressive decoding."
+  },
+  {
+   "term": "MOE (Mixture of Experts)",
+   "def": "Each token activates only a small number of experts, scaling model parameters with less computation."
+  },
+  {
+   "term": "BYOC (Bring Your Own Cloud)",
+   "def": "The customer supplies the machines, the company supplies the software and inference service, billed by token."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Company seed round",
+   "v": "USD 150 million"
+  },
+  {
+   "k": "Points above Tsinghua's gaokao admission line",
+   "v": "2 points"
+  },
+  {
+   "k": "Undergraduate courses with a 4.0 grade",
+   "v": "36 courses"
+  },
+  {
+   "k": "vLLM open-sourced",
+   "v": "around June 2023"
+  },
+  {
+   "k": "GitHub contributor-activity ranking",
+   "v": "No. 1"
+  },
+  {
+   "k": "Current headcount",
+   "v": "30-plus, approaching 40"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "If you don't come start this company with us. You've made a lot of money, but ten years from now, our project has failed — are you happy, or are you not happy?",
+   "translated": true
+  },
+  {
+   "text": "We want to lay down the infrastructure. For this age of intelligence that's coming next.",
+   "translated": true
+  },
+  {
+   "text": "A token is something you can't modulate. You can't take a DeepSeek model's token and turn it into a Kimi token — the token carries the imprint of the model.",
+   "translated": true
+  }
+ ],
+ "model": "claude-cli:opus"
+}

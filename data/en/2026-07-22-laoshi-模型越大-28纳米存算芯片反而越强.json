@@ -1,0 +1,139 @@
+{
+ "slug": "2026-07-22-laoshi-模型越大-28纳米存算芯片反而越强",
+ "of": "laoshi-6776e25fd3",
+ "source_lang": "zh",
+ "title": "A 28nm Chip Outruns the Leading Edge by 1,000x: Compute-in-Memory Black Magic Without EUV",
+ "dek": "Zhicun Technology (知存科技) turned 28nm Flash into compute-in-memory chips. Because the physics make larger arrays more energy-efficient, efficiency rises as models get bigger — and Transformers are pure upside for the approach.",
+ "why": "A rare episode that takes the physics of compute-in-memory, the process choice behind it, and four years of tape-out failures all the way down, with unusual candour from the founder.",
+ "who": "Engineers who care about the underlying architecture of AI chips, semiconductor investors, and founders who want to understand what the compute bottleneck actually is.",
+ "skip": "The opening chat about his student years at Peking University can be skipped; it does not affect the technical material that follows.",
+ "tags": [
+  "Compute-in-Memory",
+  "AI Chips",
+  "Memory",
+  "Transformer",
+  "Semiconductor Manufacturing",
+  "On-Device AI"
+ ],
+ "points": [
+  {
+   "h": "No chip company had heard of compute-in-memory, so founding one was the only route",
+   "body": "Wang Shaodi (王绍迪) already wanted to build compute-in-memory chips while he was doing his PhD. Before graduating in 2016 he approached four or five leading chip companies in China and the US; none of them had heard of the technology, and none was going to open up a new direction for a freshly minted PhD. Academia was no better — a professor at Peking University asked him outright where the funding was supposed to come from, and at the time very few chip projects anywhere in China had budgets above a million yuan, not even enough to pay for a tape-out. With both routes closed, the only option left was to start a company himself."
+  },
+  {
+   "h": "The bigger the model, the faster the read — the exact reverse of von Neumann",
+   "body": "In a conventional von Neumann architecture, doing a matrix multiplication means reading the data out of the memory cells one by one and shipping it to the compute unit; the bigger the memory array, the slower that read becomes, and that is dictated by physics. Compute-in-memory instead turns each memory cell itself into one compute node inside the matrix multiplication: a single activation completes the computation for an entire matrix, with no reading row by row and column by column. That means an algorithm that grows from a few rows to ten thousand rows still needs only one activation, so effective bandwidth and effective compute go up as the model gets bigger — precisely the opposite of how the von Neumann architecture behaves."
+  },
+  {
+   "h": "The black magic is just Ohm's law: voltage times conductance equals current",
+   "body": "The core of compute-in-memory is using the physical relationship in Ohm's law — voltage times conductance equals current — to perform multiplication directly. You apply a voltage along the row direction of the memory; each memory cell is itself a conductance value; and the current that naturally flows out along the column direction is the product of voltage and conductance. Within a single column, the currents from multiple rows converge, which physically performs the addition. The whole matrix multiplication is finished inside one read, with no need for the adder and multiplier circuits of a digital chip at all. In essence, it uses the most basic electrical relationship from middle-school physics to do AI computation."
+  },
+  {
+   "h": "The most ordinary memory won because Flash draws the least compute current",
+   "body": "Faced with a range of storage media — SRAM, non-volatile Flash, the RRAM that academia was excited about — Zhicun picked the one that looked least remarkable: NOR Flash. The reason is that the compute current Flash needs to do analog multiplication is the lowest of any memory, and in compute-in-memory the more cells you can switch on simultaneously, the larger the scale you can process in parallel; lower current therefore means a larger array can be turned on and stronger effective compute. Flash is also the most mature memory process, which makes tape-out and debugging fastest. The price was the fight over precision: it took several hundred people at the company seven to eight years to get accuracy to the point where it met application requirements."
+  },
+  {
+   "h": "Transformers are pure upside for compute-in-memory, not a new problem",
+   "body": "The shift from deep learning to Transformers handed compute-in-memory two dividends. First, deep learning would often read a parameter once and then compute with it tens of thousands of times, so memory bandwidth was not under much pressure; a Transformer reads each parameter once and computes with it once, giving a read-to-compute ratio that is 1 to 1 by nature, whereas architectures like GPUs are typically 64 to 1 or 128 to 1, and the bad cases reach 1,000 to 1. That is a perfect match for compute-in-memory, whose memory-to-compute ratio is also 1 to 1. Second, the matrices in a Transformer are 1,000 to 10,000 times larger than in deep learning, and since compute-in-memory finishes an entire matrix in one go, a larger matrix lifts computational efficiency by that same 1,000 to 10,000 times. On top of that, large models only need INT4, that is 4-bit precision, far below the 12 to 16 bits the deep learning era demanded, which lowers the barrier to deployment dramatically."
+  },
+  {
+   "h": "For compute-in-memory, first light is where debugging begins, not ends",
+   "body": "There are no off-the-shelf EDA tools for compute-in-memory, and every chip that comes back from a tape-out may be hiding dozens of problems — for instance, a design targeting 8-bit precision that in practice only achieves 3 bits. The team has to locate them one at a time: over a month spent cutting the chip open and running experiments again and again to pin down a single problem, then after fixing it, precision barely improves, because dozens of other problems are still dragging it down. So they design a new experiment, cut another chip, and go hunt the next one. For an ordinary chip, first light means the job is done; for compute-in-memory, first light is the start of debugging. That loop ran for four years and through six major failures, and the company has now done close to thirty tape-outs in total."
+  },
+  {
+   "h": "An Anker earbud chip took a Guinness World Record for voice restoration",
+   "body": "After ChatGPT made generative models famous in 2023, Anker's (安克) algorithm team came to Zhicun wanting to run generative audio algorithms inside earbuds for call noise reduction. That requires a chip with strong compute, large capacity and low power, all while staying small and cost-controlled — something a von Neumann architecture can barely deliver. Zhicun carried a Transformer model of several million parameters on a 28nm NOR Flash compute-in-memory chip, at a time when an earbud chip could generally fit fewer than 500,000 parameters, and it took nearly three years to crack. The result was the Guinness World Record for the highest voice-restoration fidelity in call noise reduction, far ahead of second place — what Wang Shaodi calls a dimensional-reduction strike on traditional earbud audio chips."
+  },
+  {
+   "h": "China does not need EUV, but compute-in-memory does need China's speed",
+   "body": "Wang Shaodi believes compute-in-memory's long-term advantage lies in China's manufacturing and iteration speed: China's consumer electronics and new-energy vehicle supply chains can compress the whole chain from materials and components through to finished product into a very short cycle and iterate fast, which is not something overseas can match — and compute-in-memory happens to need the shortest possible interaction and feedback loop between materials and equipment, foundries, design houses and product applications. His judgement is that compute-in-memory has a chance to grow from a co-processor in narrow scenarios like earbuds into a universal memory that unifies the various specialised algorithms running on-device — much the way the market for this technology simply did not exist until someone actually built it."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Von Neumann architecture",
+   "def": "The conventional chip architecture in which memory and compute are separate, so data has to be shuttled back and forth."
+  },
+  {
+   "term": "NOR Flash",
+   "def": "The non-volatile storage medium Zhicun chose; its compute current is far lower than that of other memories."
+  },
+  {
+   "term": "NAND Flash",
+   "def": "Three-dimensionally stacked high-density Flash; slower to read and write but enormous in capacity, suited to holding large models."
+  },
+  {
+   "term": "EDA",
+   "def": "The software toolchain used to design and verify chips; for compute-in-memory it is currently almost non-existent."
+  },
+  {
+   "term": "INT4",
+   "def": "The 4-bit integer format commonly used for large-model inference; a far lower bar for compute-in-memory than early deep learning was."
+  },
+  {
+   "term": "Universal Memory",
+   "def": "The ideal-memory concept: large capacity, high speed, and able to serve multiple scenarios at once."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Early tape-out failures",
+   "v": "6 major failures over 4 years; roughly 30 tape-outs in total"
+  },
+  {
+   "k": "Compute-in-memory read-to-compute ratio",
+   "v": "1:1 by nature (GPUs roughly 64:1 to 128:1; the bad cases reach 1,000:1)"
+  },
+  {
+   "k": "Compute current per Flash cell",
+   "v": "10 to 100 nanoamps (other memories: several hundred nanoamps to tens of microamps)"
+  },
+  {
+   "k": "Time spent cracking Flash precision",
+   "v": "Several hundred people at the company, seven to eight years"
+  },
+  {
+   "k": "Room for future efficiency gains",
+   "v": "3-5x per year over the next three years; with manufacturing-side improvements, possibly up to several thousand times"
+  },
+  {
+   "k": "Size of the R&D team",
+   "v": "More than 500 R&D staff, nearly 100 PhDs"
+  },
+  {
+   "k": "Earbud chip parameter count and process",
+   "v": "A Transformer model of 4 million to 6 million parameters, 28nm NOR Flash process"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "We talked to four or five of the leading chip companies in the US and China, and none of them had heard of this thing.",
+   "translated": true
+  },
+  {
+   "text": "It is not that one or two of us did it — several hundred people at our company spent seven to eight years getting it to meet application requirements.",
+   "translated": true
+  },
+  {
+   "text": "Each memory cell can only hold 1,000 to 2,000 electrons, so I am using 1,000 to 2,000 electrons to produce a linear division into 256 equal steps. That is very hard to do.",
+   "translated": true
+  },
+  {
+   "text": "Today's GPUs might be 64 to 1 or 128 to 1; the ones done well are 32 to 1, the ones done badly might be 1,000 to 1. But compute-in-memory is 1 to 1 by nature.",
+   "translated": true
+  },
+  {
+   "text": "For compute-in-memory, failing your early tape-outs is something I think you simply have to go through. All told, by now we have probably done thirty tape-outs.",
+   "translated": true
+  },
+  {
+   "text": "For a lot of chips, first light is taken to mean the job is done. For us, first light is the beginning of the disaster.",
+   "translated": true
+  },
+  {
+   "text": "In Anker's earbuds, this chip won the Guinness World Record for the highest voice-restoration fidelity in call noise reduction — and it is far above second place.",
+   "translated": true
+  }
+ ],
+ "model": "claude-cli:opus"
+}
