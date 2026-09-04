@@ -28,6 +28,7 @@ DATA = ROOT / "data"
 BASE = os.environ.get("PODCAST_BASE", "/podcast").rstrip("/")
 BASE_ZH = BASE          # 简体的原值，render_site 切语言时要回退到它
 LANG = "zh"
+LANG_ATTR = "zh-CN"
 # 英文站建好了吗（决定要不要在导航里露出 EN 入口）。
 # 半成品期间是 False：宁可没有入口，不要指向中英混排的页面。
 EN_LIVE = os.environ.get("PODCAST_EN_LIVE") == "1"
@@ -66,9 +67,8 @@ def _n_sources() -> int:
 
 def _blurb() -> str:
     n = _n_sources()
-    head = f"每天从 {n} 档中英文播客里挑出值得记住的判断。" if n else "每天从中英文播客里挑出值得记住的判断。"
-    return (head + "要点和金句都带时间戳，点一下就回到它在原声里被说出的那一秒；"
-            "金句逐字校验过、数字回原文核对过——查不到出处的，一律不上站。")
+    head = (T("BLURB_HEAD").replace("{n}", str(n)) if n else T("BLURB_HEAD_NONE"))
+    return head + T("BLURB_TAIL")
 
 CAT_ORDER = ["ai", "biz", "cn", "ideas", "hist", "parent"]
 CAT_LABEL = {
@@ -129,6 +129,33 @@ def T_dict(table: dict, key, default=None) -> str:
     return T(v) if isinstance(v, str) else v
 
 
+def show_name(x: dict) -> str:
+    """这一集的节目名。
+
+    简体／繁体用 source_zh（中文译名），英文用 source（节目自己的名字）。
+    中文节目在英文站上仍然显示中文名——那是它的名字，不是漏译，所以
+    渲染处一律配 zh_attr()。
+    """
+    if LANG == "en":
+        return x.get("source") or x.get("source_zh") or ""
+    return x.get("source_zh") or x.get("source") or ""
+
+
+def src_desc(src: dict) -> str:
+    """节目简介。英文取 data/en/_sources.json 里的译文；没有就退回中文，
+    而中文会被"零漏译"闸门拦下来——所以不会静默漏。"""
+    if LANG == "en":
+        return (_EN_SRC.get(src.get("id") or "") or {}).get("desc") or src.get("desc", "")
+    return src.get("desc", "")
+
+
+def src_display(src: dict) -> str:
+    """信源清单里的节目名，同上。"""
+    if LANG == "en":
+        return src.get("name") or src.get("zh") or ""
+    return src.get("zh") or src.get("name") or ""
+
+
 def zh_attr(text) -> str:
     """英文页上，中文内容要显式标 lang="zh"。
 
@@ -163,6 +190,7 @@ def en_store() -> dict[str, dict]:
 
 
 _EN: dict[str, dict] = {}
+_EN_SRC: dict[str, dict] = {}
 
 
 def D(ep: dict) -> dict:
@@ -293,6 +321,24 @@ LANG_JS = ("<script>(function(){try{"
            "}catch(e){}})();</script>")
 
 
+def hreflangs(path: str) -> str:
+    """三语互指。
+
+    hreflang 必须**每个版本都列出全部三个**，而且都指向同一个 path 的三个语言
+    版本——只在中文页上写、或者各写各的，搜索引擎就认不出它们是同一篇的不同语言。
+    zh-Hans / zh-Hant 是同一棵树的两份产物（tw.py 转的），英文是另一棵树。
+
+    英文站没上线时不列 en：指向一个不存在或半成品的页面比不指更糟。
+    """
+    zh = SITE_ZH + path
+    rows = [f'<link rel="alternate" hreflang="zh-Hans" href="{e(zh)}">',
+            f'<link rel="alternate" hreflang="zh-Hant" href="{e(SITE_ZH + "/tw" + path)}">']
+    if EN_LIVE:
+        rows.append(f'<link rel="alternate" hreflang="en" href="{e(SITE_ZH + "/en" + path)}">')
+    rows.append(f'<link rel="alternate" hreflang="x-default" href="{e(zh)}">')
+    return "\n".join(rows)
+
+
 def head(title: str, desc: str, *, path: str = "/", image: str = "",
          extra: str = "", robots: str = ROBOTS, published: str = "",
          modified: str = "") -> str:
@@ -306,7 +352,7 @@ def head(title: str, desc: str, *, path: str = "/", image: str = "",
     if modified:
         dates += f'<meta property="article:modified_time" content="{e(modified)}">\n'
     return f"""<!doctype html>
-<html lang="zh-CN">
+<html lang="{LANG_ATTR}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -330,9 +376,7 @@ def head(title: str, desc: str, *, path: str = "/", image: str = "",
 <link rel="icon" type="image/svg+xml" href="{BASE}/icon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="{BASE}/apple-touch-icon.png">
 <link rel="alternate" type="application/rss+xml" title="{e(NAME)}" href="{BASE}/feed.xml">
-<link rel="alternate" hreflang="zh-Hans" href="{e(SITE + path)}">
-<link rel="alternate" hreflang="zh-Hant" href="{e(SITE + '/tw' + path)}">
-<link rel="alternate" hreflang="x-default" href="{e(SITE + path)}">
+{hreflangs(path)}
 {LANG_JS}
 <link rel="stylesheet" href="{asset("assets/site.css")}">
 <script>try{{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}}catch(e){{}}</script>
@@ -383,7 +427,7 @@ def episode_share_text(ep: dict) -> str:
     控制在 500 字以内——朋友圈超长会折叠，群里刷屏也没人读。
     """
     d = D(ep)
-    src = ep.get("source_zh") or ep.get("source") or ""
+    src = show_name(ep)
     mins = int((ep.get("duration") or 0) // 60)
     meta = " · ".join(x for x in (src, f"{mins} 分钟" if mins else "", f"{NAME}深读") if x)
     lines = [f"《{_clip(d.get('title'), 40)}》", meta, ""]
@@ -427,7 +471,7 @@ def alias_page(ep: dict) -> str:
     t = e(d.get("title") or "")
     desc = e(_clip(d.get("dek") or "", 150))
     img = e(og_image(ep.get("image") or ""))
-    src = e(ep.get("source_zh") or ep.get("source") or "")
+    src = e(show_name(ep))
     pic = ""
     if img:
         pic = ('<meta property="og:image" content="%s">\n'
@@ -435,7 +479,7 @@ def alias_page(ep: dict) -> str:
                '<meta name="twitter:image" content="%s">' % (img, t, img))
     head = "\n".join([
         '<!DOCTYPE html>',
-        '<html lang="zh-CN"><head><meta charset="utf-8">',
+        '<html lang="{LANG_ATTR}"><head><meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width,initial-scale=1">',
         f'<title>{t} — {e(NAME)}</title>',
         '<meta name="robots" content="noindex,follow">',
@@ -463,10 +507,10 @@ def alias_page(ep: dict) -> str:
 
 
 def source_share_text(src: dict, rows: list[dict]) -> str:
-    name = src.get("zh") or src.get("name") or ""
+    name = src_display(src)
     lines = [f"《{_clip(name, 34)}》· {NAME}深读", ""]
     if src.get("desc"):
-        lines += [_clip(src["desc"], 96), ""]
+        lines += [_clip(src_desc(src), 96), ""]
     for x in rows[:3]:
         lines.append("· " + _clip(D(x).get("title"), 34))
     lines += ["", f"本站已深读 {len(rows)} 篇：{SITE}/s/{src['id']}/"]
@@ -479,7 +523,7 @@ def site_share_text(eps: list[dict]) -> str:
     lines = [f"{NAME} · {TAGLINE}", "",
              _clip(BLURB, 110), ""]
     for x in eps[:3]:
-        src = x.get("source_zh") or x.get("source") or ""
+        src = show_name(x)
         lines.append(f"· {_clip(D(x).get('title'), 30)}（{_clip(src, 14)}）")
     lines += ["", f"{SITE}/"]
     return "\n".join(lines)
@@ -597,12 +641,12 @@ def card(ep: dict, *, hero: bool) -> str:
              else f'<div class="fallback">{e((ep.get("source") or "?")[:1])}</div>')
     dur = (f'<span class="dur">{hhmmss(ep["duration"])}</span>' if ep.get("duration") else "")
     tags = "".join(f'<span class="tag">{e(t)}</span>' for t in (d.get("tags") or [])[:2])
-    src_label = ep.get("source_zh") or ep.get("source") or ""
+    src_label = show_name(ep)
     return f"""<a class="card{' hero' if hero else ''}" data-card data-cat="{e(ep.get('cat'))}"
  data-hay="{e(hay)}" href="{BASE}/p/{e(ep['slug'])}/">
 <div class="cover">{cover}{dur}</div>
 <div class="card-body">
-<div class="kicker" data-cat="{e(ep.get('cat'))}"><span class="src">{e(src_label)}</span>
+<div class="kicker" data-cat="{e(ep.get('cat'))}"><span class="src"{zh_attr(src_label)}>{e(src_label)}</span>
 <span class="date">{e(date)}</span></div>
 <h2>{e(d.get('title'))}</h2>
 <p class="dek">{e(d.get('dek'))}</p>
@@ -691,7 +735,7 @@ def index_page(eps: list[dict], srcs: dict) -> str:
              f'<span class="n">{len(eps)}</span></button>']
     for c in CAT_ORDER:
         chips.append(f'<button class="chip" data-cat-chip="{c}" aria-pressed="false">'
-                     f'{CAT_LABEL[c]}<span class="n">{counts.get(c, 0)}</span></button>')
+                     f'{T(CAT_LABEL[c])}<span class="n">{counts.get(c, 0)}</span></button>')
     # 首屏只渲染前 FIRST_PAGE 张。原来 257 张全内联，index.html 288 KB
     # （gzip 后 109 KB），手机上打开明显慢。其余的进 cards.json，滚到底或一搜索
     # 就补齐——**搜索和筛选必须覆盖全部**，所以补齐是前提不是可选项。
@@ -839,7 +883,7 @@ def player_block(ep: dict) -> str:
 def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
     d = D(ep)
     q = d.get("quality") or {}
-    src_label = ep.get("source_zh") or ep.get("source") or ""
+    src_label = show_name(ep)
     date = (ep.get("published") or "")[:10]
 
     def ts(t, cls="ts"):
@@ -940,13 +984,13 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
             + f"""
 <main class="wrap ep">
 <nav class="crumb"><a href="{BASE}/">{T("首页")}</a><span class="sep">/</span>
-<a href="{BASE}/s/{e(ep.get('source_id'))}/">{e(src_label)}</a>
+<a href="{BASE}/s/{e(ep.get('source_id'))}/"{zh_attr(src_label)}>{e(src_label)}</a>
 <span class="sep">/</span><span>{e(date)}</span></nav>
 
 <div class="ep-grid">
 <article>
 <div class="ep-head">
-<div class="kicker" data-cat="{e(ep.get('cat'))}"><span class="src">{e(src_label)}</span>
+<div class="kicker" data-cat="{e(ep.get('cat'))}"><span class="src"{zh_attr(src_label)}>{e(src_label)}</span>
 <time class="date" datetime="{e(ep.get('published'))}">{e(date)}</time>
 {share_button(episode_share_text(ep), url=ep_url(ep), title=d.get('title') or '')}</div>
 <h1>{e(d.get('title'))}</h1>
@@ -1035,14 +1079,15 @@ def sources_page(srcs: dict, eps: list[dict]) -> str:
             if dead:
                 meta.append(T("抓取异常"))
             mine = per.get(s["id"], 0)
-            body = f"""<h3>{e(s.get('zh') or s['name'])}</h3>
-<p>{e(s.get('desc'))}</p>
+            _nm = src_display(s)
+            body = f"""<h3{zh_attr(_nm)}>{e(_nm)}</h3>
+<p>{e(src_desc(s))}</p>
 <div class="meta">{' · '.join(e(m) for m in meta)}</div>"""
             cards.append(
                 f'<a class="src-card{" dead" if dead else ""}" id="{e(s["id"])}" '
                 f'href="{BASE}/s/{e(s["id"])}/">{body}</a>' if mine else
                 f'<div class="src-card{" dead" if dead else ""}" id="{e(s["id"])}">{body}</div>')
-        blocks.append(f'<h2 class="sec-title">{CAT_LABEL[c]}<span class="stat" '
+        blocks.append(f'<h2 class="sec-title">{T(CAT_LABEL[c])}<span class="stat" '
                       f'style="margin-left:10px">{i18n.n(len(rows), "show", "档")}</span></h2>'
                       f'<div class="src-grid">{"".join(cards)}</div>')
     n = len(srcs["sources"])
@@ -1053,8 +1098,8 @@ def sources_page(srcs: dict, eps: list[dict]) -> str:
                              "itemListElement": [
                                  {"@type": "ListItem", "position": i + 1,
                                   "item": {"@type": "PodcastSeries",
-                                           "name": s0.get("zh") or s0["name"],
-                                           "description": s0.get("desc", ""),
+                                           "name": src_display(s0),
+                                           "description": src_desc(s0),
                                            "url": (f"{SITE}/s/{s0['id']}/" if per.get(s0["id"])
                                                    else None)}}
                                  for i, s0 in enumerate(srcs["sources"])]}})
@@ -1063,10 +1108,8 @@ def sources_page(srcs: dict, eps: list[dict]) -> str:
             + masthead(len(eps), home=False)
             + f"""<main class="wrap">
 <h1 class="sec-title" style="margin-top:34px">{T("信源")} · {i18n.n(n, "show", "档")}</h1>
-<p class="lede">以 Apple Podcasts 官方 RSS 为主干，而不是只抓 YouTube 频道——这样纯音频节目
-（Acquired、Odd Lots、Invest Like the Best）和中文播客才不会整块缺失。feed 地址不写死在代码里，
-节目换托管商时会自动从 Apple 目录重新解析，所以不会悄悄断更。</p>
-<p class="lede">T1 表示每集必读，T2 有实质内容时收，T3 只在特别强的一集时收。</p>
+<p class="lede">{T("SRC_LEDE_1")}</p>
+<p class="lede">{T("SRC_LEDE_2")}</p>
 {''.join(blocks)}
 <div style="height:56px"></div></main>""" + foot())
 
@@ -1094,7 +1137,7 @@ def source_page(src: dict, eps: list[dict], total_known: int | None) -> str:
     meta = "".join(f'<div class="row"><span>{e(k)}</span><span>{e(v)}</span></div>'
                    for k, v in rows)
     ld = _ld({"@context": "https://schema.org", "@graph": [
-        {"@type": "PodcastSeries", "name": name, "description": src.get("desc", ""),
+        {"@type": "PodcastSeries", "name": name, "description": src_desc(src),
          "url": f"{SITE}/s/{src['id']}/", "inLanguage":
              "zh-CN" if src.get("lang") == "zh" else "en",
          "webFeed": src.get("feed")},
@@ -1102,16 +1145,16 @@ def source_page(src: dict, eps: list[dict], total_known: int | None) -> str:
             {"@type": "ListItem", "position": 1, "name": "首页", "item": SITE + "/"},
             {"@type": "ListItem", "position": 2, "name": T("信源"), "item": SITE + "/sources/"},
             {"@type": "ListItem", "position": 3, "name": name}]}]})
-    return (head(f"{name} — {NAME}", src.get("desc", ""), path=f"/s/{src['id']}/", extra=ld)
+    return (head(f"{name} — {NAME}", src_desc(src), path=f"/s/{src['id']}/", extra=ld)
             + masthead(len(eps), home=False)
             + f"""<main class="wrap">
 <nav class="crumb" style="margin-top:26px"><a href="{BASE}/">{T("首页")}</a><span class="sep">/</span>
 <a href="{BASE}/sources/">{T("信源")}</a><span class="sep">/</span><span{zh_attr(name)}>{e(name)}</span></nav>
 <div class="page-head">
-<h1 class="sec-title" style="margin-top:0">{e(name)}</h1>
+<h1 class="sec-title" style="margin-top:0"{zh_attr(name)}>{e(name)}</h1>
 {share_button(source_share_text(src, eps), url=f"{SITE}/s/{src['id']}/", title=name)}
 </div>
-<p class="lede">{e(src.get('desc'))}</p>
+<p class="lede">{e(src_desc(src))}</p>
 <div class="panel" style="max-width:420px;margin:18px 0 4px">{meta}</div>
 <div class="feed" data-feed>{cards or
   f'<div class="empty"><b>{T("这档还没有深读")}</b>{T("取不到可核对的文稿时不会发，等文稿到位再上。")}</div>'}</div>
@@ -1145,7 +1188,11 @@ def log_page(eps: list[dict], srcs: dict) -> str:
     for r in rows:
         kind = r.get("kind", "")
         tone = KIND_TONE.get(kind, "")
-        detail = e(r.get("why") or "")
+        # why 是策展管线写的审计记录（中文）。英文版保留原文并标 lang="zh"：
+        # 含义已经由结构化徽标（收录／降级 + 层级变化 + 分数）用英文表达了，
+        # 这一行是可核对的出处，不是需要翻译的界面文案。
+        _why = r.get("why") or ""
+        detail = f'<span{zh_attr(_why)}>{e(_why)}</span>' if _why else ""
         extra = ""
         if kind == "added" and r.get("score") is not None:
             # 收录分是照着标题与分集说明打的，节目自己写的宣传文案也算在内。
@@ -1159,7 +1206,7 @@ def log_page(eps: list[dict], srcs: dict) -> str:
         items.append(f"""<li class="ev {tone}">
 <span class="ev-when">{e((r.get('at') or '')[:10])}</span>
 <span class="ev-what">{e(T_dict(KIND_LABEL, kind, kind))}</span>
-<span class="ev-who">{e(r.get('name'))}</span>{extra}
+<span class="ev-who"{zh_attr(r.get('name'))}>{e(r.get('name'))}</span>{extra}
 <span class="ev-why">{detail}</span></li>""")
 
     body = ("<ul class=\"evlist\">" + "".join(items) + "</ul>") if items else (
@@ -1177,14 +1224,10 @@ def log_page(eps: list[dict], srcs: dict) -> str:
             + masthead(len(eps), home=False)
             + f"""<main class="wrap">
 <h1 class="sec-title" style="margin-top:34px">{T("更新日志")}</h1>
-<p class="lede">信源清单每三天自动复查一次。判据全部来自实测数据，不靠印象：feed 是否
-失效、停更多少天、选题闸门的通过率、成稿评分的中位数。同时从近期发布的内容里挖新线索
-（被提到的其他节目、反复出现的受访者），实测文稿可得性后打分，只收 8 分以上。</p>
-<p class="lede">标着<em class="ev-flag">试用</em>的是刚收的：那个分数照着标题、分集说明和
-文稿抽样打的，还没有任何一篇成稿走完四道闸门。跑一段之后，出得来内容的提级，出不来的
-移除，两种结果都会记在下面。</p>
-<p class="lede">一个聚合站悄悄换掉信源，等于悄悄换掉它的口味，所以每一次改动都记在这里。
-完整清单见 <a href="{BASE}/sources/" style="color:var(--accent)">信源页</a>。</p>
+<p class="lede">{T("LOG_LEDE_1")}</p>
+<p class="lede">{T("LOG_LEDE_2A")}<em class="ev-flag">{T("试用")}</em>{T("LOG_LEDE_2B")}</p>
+<p class="lede">{T("LOG_LEDE_3")}
+<a href="{BASE}/sources/" style="color:var(--accent)">{T("信源页")}</a>。</p>
 {body}
 <div style="height:56px"></div></main>""" + foot())
 
@@ -1403,11 +1446,12 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
     抽的时候唯一的要求是简体输出**逐字节不变**，这一点由构建幂等那道闸门
     和重构前后的指纹对比一起兜住。
     """
-    global BLURB, BASE, SITE, LANG, NAME, TAGLINE
+    global BLURB, BASE, SITE, LANG, NAME, TAGLINE, LANG_ATTR
     LANG = lang
     out.mkdir(parents=True, exist_ok=True)
     i18n.LANG = lang
     NAME, TAGLINE = i18n.name(), i18n.tagline()   # 站名和口号跟着语言换
+    LANG_ATTR = "en" if lang == "en" else "zh-CN"
     if lang != "zh":
         BASE = f"{BASE_ZH}/{lang}"
         SITE = f"{SITE_ZH}/{lang}"
@@ -1416,8 +1460,11 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
     BLURB = _blurb()
     eps, srcs = load()
     global _EN
+    global _EN_SRC
     if lang == "en":
         _EN = en_store()
+        f = DATA / "en" / "_sources.json"
+        _EN_SRC = json.loads(f.read_text()).get("sources", {}) if f.exists() else {}
         # 没译文的不进英文站。宁可少几篇，也不要中英混排的页面。
         eps = [x for x in eps if x.get("slug") in _EN]
     log(f"building {len(eps)} episodes, {len(srcs.get('sources') or [])} sources")
@@ -1441,9 +1488,13 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
         rows = by_src.get(src["id"]) or []
         if not rows:
             continue
-        out = sdir / src["id"]
-        out.mkdir(parents=True, exist_ok=True)
-        (out / "index.html").write_text(source_page(src, rows, None))
+        # 变量名不能叫 out——那是本函数的输出根目录参数。第一版把 main() 里的
+        # ROOT 机械替换成 out 时，这个循环把参数覆盖掉了，于是后面的 p/、e/、
+        # robots.txt、llms.txt 全写进了**最后一个源**的目录下（仓库里留下了
+        # s/tokcast/p/ 这种垃圾）。机械替换省下的时间，都赔在这一处上了。
+        sout = sdir / src["id"]
+        sout.mkdir(parents=True, exist_ok=True)
+        (sout / "index.html").write_text(source_page(src, rows, None))
         live_src.add(src["id"])
     if sdir.exists():
         for d in sdir.iterdir():
@@ -1533,7 +1584,8 @@ def main() -> int:
             log(f"  ::error:: 英文站有 {len(leak)} 种中文漏在 lang=\"zh\" 之外，"
                 f"最多的几种：{[k for k, _ in leak.most_common(5)]}")
             return 1
-        log(f"  英文站 /en/：{len(eps)} 篇，零漏译")
+        n_en = len(list((ROOT / "en" / "p").iterdir())) if (ROOT / "en" / "p").exists() else 0
+        log(f"  英文站 /en/：{n_en} 篇，零漏译")
     elif want_en:
         log("  英文站：data/en/ 还没有译文，跳过")
     # 语言切完了要把常量还原，免得同一个进程里后续调用拿到英文的 BASE

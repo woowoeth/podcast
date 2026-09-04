@@ -3,37 +3,82 @@
 
 为什么用这条判据而不是维护一份字符串白名单：白名单会漏，而且漏的时候是静默的。
 "任何汉字都必须被显式标成中文内容"是机械可查的，而且标 lang="zh" 本身就是对的
-——节目名（张小珺·商业访谈录）、说话人名、中文源节目的金句原文，都该标，
-对屏幕阅读器和字体选择也都有用。
+——中文播客的真名（科技这碗饭、42章经）、说话人名、中文源节目的金句原文，
+都该标，对屏幕阅读器和字体选择也都有用。
 
-漏一条界面文案，构建就失败。不会交出一个中英混排的半成品。
+**用 HTML 解析器，不用正则去标签。** 我先写了两版正则，两版都误报：第一版
+`<[^>]+>` 遇到属性值里有 `>` 就提前收尾；第二版认了引号，还是在某些页面上把
+href 里的中文 slug 和后面的正文粘成一段。这类问题该换对的工具，不该继续打补丁。
 """
 from __future__ import annotations
 
 import collections
 import pathlib
 import re
+from html.parser import HTMLParser
 
-CJK = re.compile(r"[\u4e00-\u9fff\u3400-\u4dbf]")
-_SCRIPT = re.compile(r"<(script|style)[\s\S]*?</\1>", re.I)
-_ZH_EL = re.compile(r'<(\w+)([^>]*\blang="zh"[^>]*)>[\s\S]*?</\1>')
+CJK = re.compile(r"[一-鿿㐀-䶿]")
+# head 也跳过。<title> 和 <meta> 里的文字是从正文同一批字段派生的，正文查过就够；
+# 而 <title> 里放不了 lang 属性，中文播客的真名（十字路口Crossing、
+# 卫诗婕｜漫谈Light the Star）在英文页的标题里是**对的**，不是漏译。
+_SKIP_TAGS = {"script", "style", "template", "head"}
+
+
+class _Scan(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.out: list[str] = []
+        self._skip = 0          # script/style 深度
+        self._zh = 0            # lang="zh" 子树深度
+        self._stack: list[tuple[str, bool, bool]] = []
+
+    def handle_starttag(self, tag, attrs):
+        d = dict(attrs)
+        is_skip = tag in _SKIP_TAGS
+        is_zh = d.get("lang", "").lower().startswith("zh")
+        # 自闭合标签不入栈
+        if tag in {"br", "img", "meta", "link", "input", "hr", "source"}:
+            return
+        self._stack.append((tag, is_skip, is_zh))
+        if is_skip:
+            self._skip += 1
+        if is_zh:
+            self._zh += 1
+
+    def handle_endtag(self, tag):
+        # 找到最近的同名开标签，弹出它以及它之上没闭合的
+        for i in range(len(self._stack) - 1, -1, -1):
+            if self._stack[i][0] == tag:
+                for _, is_skip, is_zh in self._stack[i:]:
+                    if is_skip:
+                        self._skip -= 1
+                    if is_zh:
+                        self._zh -= 1
+                del self._stack[i:]
+                return
+
+    def handle_data(self, data):
+        if self._skip or self._zh:
+            return
+        t = data.strip()
+        if t and CJK.search(t):
+            self.out.append(t)
 
 
 def leaks(root: pathlib.Path) -> collections.Counter:
     hits: collections.Counter = collections.Counter()
     for f in sorted(root.rglob("*.html")):
-        h = f.read_text()
-        h = _SCRIPT.sub(" ", h)
-        h = _ZH_EL.sub(" ", h)
-        # 去标签要认引号里的内容。`<[^>]+>` 遇到属性值里有 `>` 就会提前收尾，
-        # 于是后面的属性（比如带中文 slug 的 href）被当成正文——我第一版就这么
-        # 误报了一批"漏译"，实际是 URL 里的中文 slug（slug 故意保持中文）。
-        text = re.sub(r"""<[a-zA-Z/!][^>"']*(?:(?:"[^"]*"|'[^']*')[^>"']*)*>""",
-                      "\x01", h)
-        for seg in re.split(r"[\x01\n]+", text):
-            seg = seg.strip()
-            if seg and CJK.search(seg):
-                hits[seg[:60]] += 1
+        p = _Scan()
+        try:
+            p.feed(f.read_text())
+            p.close()
+        except Exception:
+            continue
+        for seg in p.out:
+            for piece in re.split(r"\n+", seg):
+                piece = piece.strip()
+                if piece and CJK.search(piece):
+                    hits[piece[:60]] += 1
     return hits
 
 

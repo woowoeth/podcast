@@ -2742,3 +2742,173 @@ class ProvenancePanelMustHaveContent(unittest.TestCase):
             rows = _re.findall(r'class="row"', block)
             self.assertGreaterEqual(len(rows), 4,
                                     f"{d.name} 来源面板只有 {len(rows)} 行，是空的")
+
+
+class EnglishEdition(unittest.TestCase):
+    """英文版：内容层、文案层、和"不许中英混排"那条闸门。
+
+    英文版和繁体版性质不同：繁体是 tw.py 对构建好的 HTML 做字形转换，翻译不成立。
+    所以英文走两条独立的路——正文来自 data/en/<slug>.json，界面文案来自
+    i18n.UI 那张人工审过的表。
+
+    **最关键的一条：金句绝不回译。** 269 篇里 235 篇是英文源节目，它们的
+    quotes[].raw 本来就是逐字英文原话。回译会毁掉这个站的前提（每句都能跳回原声
+    核对），而英文读者**看不出那是译文**，比中文站上更糟。
+    """
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        self.en_dir = ROOT / "data" / "en"
+
+    def _records(self, n=40):
+        out = []
+        if not self.en_dir.exists():
+            return out
+        for f in sorted(self.en_dir.glob("*.json")):
+            if f.name.startswith("_"):
+                continue
+            out.append(json.loads(f.read_text()))
+            if len(out) >= n:
+                break
+        return out
+
+    def test_quotes_from_english_shows_are_never_retranslated(self):
+        """英文源节目的金句必须和中文稿里的 raw **逐字一致**。
+        差一个字符就说明它被回译过了。"""
+        by_slug = {}
+        for f in (ROOT / "data" / "episodes").glob("*.json"):
+            d = json.loads(f.read_text())
+            if d.get("slug"):
+                by_slug[d["slug"]] = d
+        bad = []
+        checked = 0
+        for r in self._records(60):
+            if r.get("source_lang") != "en":
+                continue
+            src = by_slug.get(r.get("slug"))
+            if not src:
+                continue
+            raws = [q.get("raw") or "" for q in (src["digest"].get("quotes") or [])]
+            for i, q in enumerate(r.get("quotes") or []):
+                if i >= len(raws):
+                    continue
+                checked += 1
+                if q.get("translated"):
+                    bad.append(f"{r['slug'][:30]}[{i}] 标成了译文")
+                elif q.get("text") != raws[i]:
+                    bad.append(f"{r['slug'][:30]}[{i}] 和原话不一致")
+        if checked:
+            self.assertEqual(bad, [], f"{len(bad)} 条金句被回译了：{bad[:3]}")
+
+    def test_chinese_source_quotes_are_marked_as_translations(self):
+        for r in self._records(60):
+            if r.get("source_lang") != "zh":
+                continue
+            for i, q in enumerate(r.get("quotes") or []):
+                self.assertTrue(q.get("translated"),
+                                f"{r['slug'][:30]}[{i}] 是中文源的金句，"
+                                f"译文必须标 translated")
+
+    def test_counts_line_up_with_the_source(self):
+        """条数不齐会让时间戳和内容错位——译文的 points[i] 必须对应原稿的
+        points[i]，因为时间戳只在原稿里。"""
+        by_slug = {}
+        for f in (ROOT / "data" / "episodes").glob("*.json"):
+            d = json.loads(f.read_text())
+            if d.get("slug"):
+                by_slug[d["slug"]] = d
+        for r in self._records(60):
+            src = by_slug.get(r.get("slug"))
+            if not src:
+                continue
+            for k in ("points", "terms", "facts", "tags"):
+                self.assertEqual(
+                    len(src["digest"].get(k) or []), len(r.get(k) or []),
+                    f"{r['slug'][:30]} 的 {k} 条数和原稿不一致")
+
+    def test_no_chinese_left_in_english_fields(self):
+        import re as _re
+        cjk = _re.compile(r"[一-鿿]")
+        punct = _re.compile(r"[「」『』，。、；：？！（）《》【】〔〕]")
+        bad = []
+        for r in self._records(60):
+            for k in ("title", "dek", "why", "who", "skip"):
+                v = r.get(k) or ""
+                if cjk.search(v) or punct.search(v):
+                    bad.append(f"{r['slug'][:26]}.{k}")
+            for k in ("points", "terms", "facts"):
+                for i, row in enumerate(r.get(k) or []):
+                    for kk, vv in row.items():
+                        if isinstance(vv, str) and (cjk.search(vv) or punct.search(vv)):
+                            bad.append(f"{r['slug'][:26]}.{k}[{i}].{kk}")
+        self.assertEqual(bad[:5], [], f"{len(bad)} 个英文字段里有中文残留")
+
+    # ------------------------------------------------------- 文案层
+    def test_zh_build_is_unaffected_by_the_locale_layer(self):
+        """T() 在简体模式必须是恒等函数——给模板加 T() 不许改变简体站的输出。"""
+        import i18n
+        old = i18n.LANG
+        i18n.LANG = "zh"
+        try:
+            for k in list(i18n.UI)[:20]:
+                self.assertEqual(i18n.T(k), k)
+            self.assertEqual(i18n.n(7, "quote"), "7 条")
+            self.assertEqual(i18n.score(8.0), "8.0 分")
+        finally:
+            i18n.LANG = old
+
+    def test_missing_ui_string_fails_the_build(self):
+        """漏一条界面文案必须让构建失败，不能回落到中文——回落会让漏译静默
+        变成中英混排，那正是要防的东西。"""
+        src = (ROOT / "pipeline" / "build.py").read_text()
+        self.assertIn("i18n.missed()", src)
+        i = src.index("i18n.missed()")
+        self.assertIn("return 1", src[i:i + 400],
+                      "有没登记的文案时构建必须非零退出")
+
+    def test_leak_gate_uses_a_parser_not_a_regex(self):
+        """判据是"汉字只许在 lang=zh 里"。用 HTML 解析器，不用正则去标签——
+        我写过两版正则，两版都误报（属性值里有 > 就提前收尾）。"""
+        src = (ROOT / "pipeline" / "enscan.py").read_text()
+        self.assertIn("HTMLParser", src)
+        self.assertNotIn('re.sub(r"<[^>]+>"', src)
+
+    def test_leak_gate_actually_catches(self):
+        """反向验证：造一个漏译，闸门必须报。"""
+        import enscan
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            d = pathlib.Path(td)
+            (d / "leak.html").write_text(
+                "<html><body><p>首页</p></body></html>")
+            self.assertTrue(enscan.leaks(d), "闸门抓不到 body 里的漏译")
+            (d / "leak.html").write_text(
+                '<html><body><p lang="zh">科技这碗饭</p></body></html>')
+            self.assertFalse(enscan.leaks(d), "lang=zh 的中文不该被当成漏译")
+
+    def test_output_dirs_are_never_hardcoded_in_writers(self):
+        """render_site 会被调两次（简体渲到根、英文渲到 en/），所以凡是写文件的
+        函数都必须收输出目录。write_card_pages 原来直接写 ROOT，英文那一趟把
+        **根目录**的 cards-*.json 覆盖成了带 /podcast/en/ 链接的版本——简体首页
+        滚到第二页就全跳去英文站了。"""
+        src = (ROOT / "pipeline" / "build.py").read_text()
+        i = src.index("def write_card_pages")
+        body = src[i:src.index("\ndef ", i + 10)]
+        self.assertNotIn("ROOT /", body, "write_card_pages 不许自己决定往哪写")
+        self.assertIn("out = out or ROOT", body)
+
+    def test_source_loop_does_not_shadow_the_output_root(self):
+        """把 main() 里的 ROOT 机械替换成 out 时，源站页循环 `out = sdir / id`
+        覆盖了函数参数，于是后面的 p/、e/、robots.txt 全写进了最后一个源的目录
+        （仓库里留下过 s/tokcast/p/）。"""
+        src = (ROOT / "pipeline" / "build.py").read_text()
+        i = src.index("def render_site")
+        self.assertNotIn('out = sdir /', src[i:],
+                         "源站页循环不许用 out 当变量名")
+
+    def test_no_stray_nested_page_dirs(self):
+        """上面那个 bug 的产物长这样：s/<id>/p/。它在仓库里躺过一阵。"""
+        s = ROOT / "s"
+        bad = [d.name for d in s.iterdir()
+               if d.is_dir() and (d / "p").exists()] if s.exists() else []
+        self.assertEqual(bad, [], f"这些源站目录下有多余的 p/：{bad}")
