@@ -1001,7 +1001,12 @@ def discover(minimum: float, dry: bool = False,
         # 文稿只能从 YouTube 字幕拿的源，云端做不了：GitHub 机房 IP 会被 YouTube
         # 判成机器人并索要 cookie。标成 residential 交给本机线，否则它每天在云端
         # 白失败一次，而"没有文稿"这条日志看不出是 IP 问题。
-        if c.get("transcript_source") == "youtube":
+        # **路由：云端做不了的一律交给本机线。** 原来只认 youtube 这一种，
+        # 于是走 asr 的新源没标——而云端定时跑批 --tiers feed,notes,page
+        # （不含 asr）、本机 launchd 带 ONLY_RESIDENTIAL=1，两条一夹，
+        # 没标的既不在云端做也不在本机做，**永远零产出**。
+        # 实测：一轮加进来的 17 档里有 13 档是这个情况，全靠手工补。
+        if c.get("transcript_source") in ("youtube", "asr", None):
             entry["residential"] = True
         blob["sources"].append(entry)
         added.append({"at": iso(now()), "kind": "added", "id": sid, "name": c["name"],
