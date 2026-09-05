@@ -222,6 +222,9 @@ def show_name(x: dict) -> str:
 
 
 def src_desc(src: dict) -> str:
+    # 注意：**渲染处要包 mark_zh()**。译文里会留下中文专名（有知有行、
+    # 硅谷101），那是对的——那是公司和节目自己的名字，不是漏译；
+    # 但"零漏译"的判据是「汉字只许出现在 lang="zh" 里」，所以要显式标注。
     """节目简介。英文取 data/en/_sources.json 里的译文；没有就退回中文，
     而中文会被"零漏译"闸门拦下来——所以不会静默漏。"""
     if LANG == "en":
@@ -1362,7 +1365,7 @@ def sources_page(srcs: dict, eps: list[dict]) -> str:
             mine = per.get(s["id"], 0)
             _nm = src_display(s)
             body = f"""<h3{zh_attr(_nm)}>{e(_nm)}</h3>
-<p>{e(src_desc(s))}</p>
+<p>{mark_zh(e(src_desc(s)))}</p>
 <div class="meta">{' · '.join(e(m) for m in meta)}</div>"""
             cards.append(
                 f'<a class="src-card{" dead" if dead else ""}" id="{e(s["id"])}" '
@@ -1435,7 +1438,7 @@ def source_page(src: dict, eps: list[dict], total_known: int | None) -> str:
 <h1 class="sec-title" style="margin-top:0"{zh_attr(name)}>{e(name)}</h1>
 {share_button(source_share_text(src, eps), url=f"{SITE}/s/{src['id']}/", title=name)}
 </div>
-<p class="lede">{e(src_desc(src))}</p>
+<p class="lede">{mark_zh(e(src_desc(src)))}</p>
 <div class="panel" style="max-width:420px;margin:18px 0 4px">{meta}</div>
 <div class="feed" data-feed>{cards or
   f'<div class="empty"><b>{T("这档还没有深读")}</b>{T("取不到可核对的文稿时不会发，等文稿到位再上。")}</div>'}</div>
