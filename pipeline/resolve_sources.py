@@ -338,6 +338,39 @@ def probe(s: dict) -> dict:
     return st
 
 
+RETIRED_FILE = ROOT / "data" / "retired-sources.json"
+
+
+def retired_ids() -> set:
+    """curate 明确移除过、且之后没再收回来的信源 id。
+
+    **为什么必须有这张表**：curate --demote 是从 data/sources.json 里删，
+    而这个文件是从**硬编码的 ALL_SOURCES** 重新生成 sources.json 的 ——
+    删掉的下一轮又长回来。实测 Every 被移除过 5 次、Peter Yang 3 次，
+    每一轮清理都在被下一次 --check 撤销，日志上看还以为在正常工作。
+
+    判据从账本推导，不另存状态：某个 id 最后一条记录是 removed 就算退役。
+    想收回来：在 data/curation.json 里追加一条 kind="added"，或直接删掉
+    data/retired-sources.json 里的那一行（它只是缓存，下次会重算）。
+    """
+    ledger = ROOT / "data" / "curation.json"
+    last = {}
+    try:
+        for row in json.loads(ledger.read_text()):
+            sid, kind = row.get("id"), row.get("kind")
+            if sid and kind in ("added", "removed"):
+                last[sid] = kind
+    except Exception:
+        return set()
+    out = {sid for sid, kind in last.items() if kind == "removed"}
+    try:
+        RETIRED_FILE.write_text(json.dumps(sorted(out), ensure_ascii=False,
+                                           indent=1) + "\n")
+    except Exception:
+        pass
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--only-residential", action="store_true",
@@ -358,7 +391,13 @@ def main() -> int:
 
     healed: dict[str, str] = {}
     out = []
+    gone = retired_ids()
+    if gone:
+        log(f"  退役信源 {len(gone)} 档，不再从硬编码清单里生成："
+            f"{'、'.join(sorted(gone)[:6])}")
     for s in ALL_SOURCES:
+        if s["id"] in gone:
+            continue
         if a.only_residential and not s.get("residential"):
             out.append(dict(s, cat_label=CATS[s["cat"]]))
             continue
@@ -442,7 +481,7 @@ def main() -> int:
             prev_srcs = []
         for s in prev_srcs:
             sid = s.get("id")
-            if not sid or sid in known:
+            if not sid or sid in known or sid in gone:
                 continue
             s = dict(s)
             if s.get("cat") in CATS:

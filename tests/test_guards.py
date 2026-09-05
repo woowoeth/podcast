@@ -4419,3 +4419,70 @@ class TheWeeklyYoutubePassRunsWhereItCanWork(unittest.TestCase):
             self.assertNotIn(" ", r.strip(),
                              f"{r!r} 看起来是显示名不是句柄 —— "
                              f"解析器会先试句柄再回落到搜索，写句柄更稳")
+
+
+class RemovalsMustStick(unittest.TestCase):
+    """curate 移除的信源，不许下一轮又被生成回来。
+
+    实测过的循环：`curate --demote` 从 data/sources.json 里删，而
+    `resolve_sources.py` 是从**硬编码的 ALL_SOURCES** 重新生成那个文件的
+    —— 删掉的下一轮又长回来。账本里 Every 被移除过 **5 次**、
+    Peter Yang **3 次**，每一轮清理都在被下一次 --check 撤销，
+    而日志上看两边都在"正常工作"。
+
+    「这件事要持续每周迭代」——迭代的前提是上一轮的结论能留住。
+    """
+
+    def ledger(self):
+        f = ROOT / "data" / "curation.json"
+        return json.loads(f.read_text()) if f.exists() else []
+
+    def retired(self):
+        last = {}
+        for row in self.ledger():
+            sid, kind = row.get("id"), row.get("kind")
+            if sid and kind in ("added", "removed"):
+                last[sid] = kind
+        return {s for s, k in last.items() if k == "removed"}
+
+    def test_resolve_sources_honours_retirement(self):
+        src = (ROOT / "pipeline" / "resolve_sources.py").read_text()
+        if "retired_ids" not in src:
+            self.fail("resolve_sources 不看退役表 —— "
+                      "curate 删掉的源下一轮又会从硬编码清单里长回来")
+        i = src.index("def main(")
+        body = src[i:]
+        self.assertIn("gone = retired_ids()", body)
+        # 两条生成路径都要挡：硬编码清单 + 从上一版带过来的
+        self.assertGreaterEqual(body.count("in gone"), 2,
+                                "只挡住了一条生成路径")
+
+    def test_no_retired_source_is_in_the_registry(self):
+        gone = self.retired()
+        if not gone:
+            self.skipTest("账本里还没有被移除的信源")
+        have = {s["id"] for s in json.loads(
+            (ROOT / "data" / "sources.json").read_text())["sources"]}
+        back = gone & have
+        self.assertFalse(back, f"这些信源被移除过、又回到清单里了：{sorted(back)}"
+                               f" —— 清理和生成在互相撤销")
+
+    # 循环是 2026-09-06 修好的（resolve_sources 开始认退役表）。
+    # 这之前的反复移除是历史，改不了也不该让它一直红；
+    # 这之后再出现同一档被移除两次，就说明有新的东西在把它加回来。
+    LOOP_FIXED_AT = "2026-09-06"
+
+    def test_no_new_remove_loop_since_the_fix(self):
+        """同一档源在修复之后又被移除第二次 = 循环还在。
+
+        历史上 Every 被移除过 5 次、Peter Yang 3 次，全部发生在
+        resolve_sources 认退役表之前。判据只看修复之后的记录——
+        拿历史数据去断言一条刚立的规矩，只会得到一条永远红的检查。
+        """
+        import collections
+        n = collections.Counter(
+            r.get("id") for r in self.ledger()
+            if r.get("kind") == "removed" and r.get("at", "") >= self.LOOP_FIXED_AT)
+        loop = {k: v for k, v in n.items() if v > 1}
+        self.assertFalse(loop, f"修复之后这些源又被反复移除，说明有新的东西"
+                               f"在把它们加回来：{loop}")
