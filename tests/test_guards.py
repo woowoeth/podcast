@@ -4216,3 +4216,74 @@ class AssetsAreSharedByAllTrees(unittest.TestCase):
         tag = m.group(0)[m.group(0).index("<img"):]
         self.assertNotIn('loading="lazy"', tag, "hero 那张封面还是 lazy 的")
         self.assertIn('fetchpriority="high"', tag, "hero 那张没有提优先级")
+
+
+class SourceEvaluatorMustKnowEveryTranscriptPath(unittest.TestCase):
+    """入库前体检必须认得**这个站真正用的每一条取稿路径**。
+
+    实测过的错：第一版只试 feed / notes / page / youtube 四层，于是把
+    「高能量」「不合时宜」这些和已收录中文源形状完全一样的节目判成
+    「取不到文稿」——差点按这个结论把它们排除掉。
+    而已发布的中文集里 **33/36 篇的文稿来自 ASR**（本机转写），
+    只有 2 篇来自 YouTube、1 篇来自 feed。
+
+    判据按数据反查：站上真实用过的 transcript_source，体检里都要有对应分支。
+    """
+
+    def sources_used(self):
+        seen = set()
+        for f in (ROOT / "data" / "episodes").glob("*.json"):
+            try:
+                q = (json.loads(f.read_text()).get("digest") or {}).get("quality") or {}
+            except Exception:
+                continue
+            v = q.get("transcript_source")
+            if v:
+                seen.add(v)
+        return seen
+
+    def test_evaluator_covers_every_path_the_site_actually_uses(self):
+        src = (ROOT / "pipeline" / "evalsource.py").read_text()
+        for path in self.sources_used():
+            if path not in src:      # assertIn 会把整份文件打进消息里
+                self.fail(f"站上有 {path} 层来的文稿，而 evalsource.py 不认得"
+                          f"这条路 —— 会把能产出的源判成不能产出")
+
+    def test_every_verdict_is_printable(self):
+        """evaluate() 给得出的每个结论都要在 ORDER 里。
+
+        漏一个那一档就整个不打印——「可收（走转写）」第一版就漏了，
+        三档候选凭空消失，而输出看起来完全正常。
+        """
+        src = (ROOT / "pipeline" / "evalsource.py").read_text()
+        verdicts = set(re.findall(r'verdict="([^"]+)"', src))
+        order = re.search(r"ORDER = \[(.*?)\]", src, re.S).group(1)
+        listed = set(re.findall(r'"([^"]+)"', order))
+        self.assertFalse(verdicts - listed,
+                         f"这些结论不在 ORDER 里，会被静默漏掉："
+                         f"{sorted(verdicts - listed)}")
+
+    def test_the_two_routing_facts_this_decision_rests_on(self):
+        """加新源时"该不该标 residential"依赖这两条，它们变了就得重看。
+
+        · 云端定时跑批 --skip-residential：标了的它不碰；
+        · 本机 launchd 带 ONLY_RESIDENTIAL=1 → --only-residential：
+          没标的它不碰。
+
+        两条一夹的后果：**只能靠 asr 出稿的源，如果没标 residential，
+        定时线两边都不做它**，只有手动 dispatch（TIERS 里带 asr）才出得来，
+        而每次定时跑还会白失败一次、攒 DEAD_ATTEMPTS。
+
+        这条只钉事实，不钉"谁该标"——存量 56 档只靠 asr 出稿的源没标
+        residential，改不改是成本取舍（本机只有一台），由体检报数字、人来定。
+        """
+        y = (ROOT / ".github" / "workflows" / "daily.yml").read_text()
+        if "--skip-residential" not in y:
+            self.fail("云端不再跳过 residential 源了 —— "
+                      "「该不该标 residential」这个判断的前提变了")
+        sh = (ROOT / "scripts" / "local-daily.sh").read_text()
+        if "--only-residential" not in sh:
+            self.fail("本机线不再按 residential 挑源了 —— 同上，前提变了")
+        # 定时跑批不含 asr 这一层，也是前提之一
+        self.assertIn('TIERS="feed,notes,page"', y,
+                      "云端定时跑批的文稿层变了 —— 重看 asr 源的路由")

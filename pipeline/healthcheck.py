@@ -555,6 +555,51 @@ def check_language_parity(r: Report) -> None:
         r.note(line + " —— 还在一个发布周期内，下一班会补上")
 
 
+def check_asr_only_routing(r: Report) -> None:
+    """只靠转写出稿、却没标 residential 的源，在定时线上两边都不做。
+
+    云端定时跑批用 --tiers feed,notes,page（不含 asr），本机 launchd 带
+    ONLY_RESIDENTIAL=1（只挑标了的）。夹在中间的源只有手动 dispatch 才出得来，
+    而每次定时跑还白失败一次、攒 DEAD_ATTEMPTS（满 10 次自动移除）。
+
+    只报数不报错：全标上会把负载压到本机那一台，是成本取舍，不是纯技术问题。
+    """
+    import collections as _c
+    try:
+        srcs = {s["id"]: s for s in
+                json.loads((DATA / "sources.json").read_text())["sources"]}
+        state = json.loads((DATA / "state.json").read_text())
+    except Exception:
+        return
+    by = _c.defaultdict(_c.Counter)
+    for f in (DATA / "episodes").glob("*.json"):
+        try:
+            d = json.loads(f.read_text())
+        except Exception:
+            continue
+        q = (d.get("digest") or {}).get("quality") or {}
+        by[d.get("source_id")][q.get("transcript_source") or "?"] += 1
+    fails = _c.Counter()
+    for v in (state.get("fail") or {}).values():
+        if "transcript" in (v.get("why") or ""):
+            fails[v.get("src")] += 1
+    stuck = []
+    for sid, c in by.items():
+        if set(c) == {"asr"} and not (srcs.get(sid) or {}).get("residential"):
+            stuck.append((fails[sid], sid))
+    if not stuck:
+        return
+    stuck.sort(reverse=True)
+    burning = [s for n, s in stuck if n >= 3]
+    line = (f"{len(stuck)} 档只靠转写出稿、却没标 residential —— "
+            f"定时线两边都不做它们，只有手动 dispatch 才出得来")
+    if burning:
+        r.note(line + f"；其中 {len(burning)} 档已在云端反复白失败"
+                      f"（{'、'.join(burning[:5])}），攒满 10 次会被自动移除")
+    else:
+        r.note(line)
+
+
 def check_discovery(r: Report) -> None:
     """三棵树都能被爬虫和答案引擎找到吗。
 
@@ -661,6 +706,7 @@ def main(argv: list[str] | None = None) -> int:
     check_discovery(r)
     check_source_coverage(r)
     check_language_parity(r)
+    check_asr_only_routing(r)
     if a.online:
         check_online(r)
 
