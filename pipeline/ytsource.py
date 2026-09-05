@@ -34,7 +34,14 @@ DATA = ROOT / "data"
 FEED = "https://www.youtube.com/feeds/videos.xml?channel_id=%s"
 CHANNEL_ID = re.compile(r'"channelId":"(UC[\w-]{20,})"')
 CHANNEL_ID2 = re.compile(r'channel_id=(UC[\w-]{20,})')
-SAMPLE = 3
+# 抽几支。**不能只看最新 3 支**：课程频道混着 1 分钟的课程预告和完整讲座，
+# 实测 stanfordonline 最新 15 支里前几支全是预告（58 词），于是整个频道被
+# 判成「没有字幕」——而它的 AA203 完整讲座字幕有 10108 词。
+# 实测 8 支仍然不够：AA203 的完整讲座排在第 12 支之后。所以扫满整个 feed
+# （频道 Atom feed 就给 15 支），**命中一支就停**——判据是「这个频道有没有
+# 可用的长内容」，不是「最新那支是不是长内容」，一支 10108 词的讲座
+# 已经把这个问题回答了。
+SAMPLE = 15
 # 字幕够密才算数。一集一小时的访谈几千词起步；几百词的是自动生成的标题描述。
 MIN_WORDS = 1500
 
@@ -153,11 +160,12 @@ def check(handle: str, cat: str = "ai", captions: bool = True) -> dict:
                                           f"（没验字幕）")
         return row
     # **验字幕**：这才是走 YouTube 的全部理由
-    got, words = 0, 0
+    got, words, tried = 0, 0, 0
     for ep in eps[:SAMPLE]:
         vid = ep.get("youtube_id") or ep.get("guid", "").split(":")[-1]
         if not vid:
             continue
+        tried += 1
         try:
             tr = T.from_youtube(vid, "en")
         except Exception:
@@ -167,14 +175,15 @@ def check(handle: str, cat: str = "ai", captions: bool = True) -> dict:
             if n >= MIN_WORDS:
                 got += 1
                 words = max(words, n)
-    row["captions"] = f"{got}/{min(SAMPLE, len(eps))}"
+                break     # 命中即停：每支都要跑一次 yt-dlp，不必扫完
+    row["captions"] = f"{got}/{tried}"
     if got:
         row.update(verdict="可收",
-                   note=f"{got}/{min(SAMPLE, len(eps))} 支视频有够密的字幕"
-                        f"（最多 {words} 词）")
+                   note=f"抽 {tried} 支命中 {got} 支有够密的字幕（最多 {words} 词）")
     else:
         row.update(verdict="没有字幕",
-                   note="抽查的视频都没有够密的字幕 —— 走 YouTube 的理由就没了")
+                   note=f"抽了 {tried} 支都没有够密的字幕 —— "
+                        f"走 YouTube 的理由就没了")
     return row
 
 

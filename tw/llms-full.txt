@@ -1,6 +1,6 @@
 # 原聲 — 世界太吵，來原聲聽播客
 
-275 entries. Source: https://ourword.ai/podcast/tw/ · Generated from the sources listed in https://ourword.ai/podcast/tw/llms.txt
+277 entries. Source: https://ourword.ai/podcast/tw/ · Generated from the sources listed in https://ourword.ai/podcast/tw/llms.txt
 
 ==============================================================================
 
@@ -214,6 +214,73 @@
 誰該聽 / who: 大模型安全與對齊相關研究人員，AI 公司安全團隊成員，以及所有關心大模型是否能真正被管理的 AI 從業者。
 可跳過 / skip: 開場階段對 agent 定義或通俗解釋部分可跳過；始終注意追蹤 PHASEONE10841 的轉移路徑即可。
 標籤 / tags: AI安全, 智能體, 滲透測試, OpenAI, Hugging Face
+
+==============================================================================
+
+## 瀏覽器 AI 提速：200+ GPU 內核不預編譯、按設備現生成
+
+- URL: https://ourword.ai/podcast/tw/p/2026-09-04-huggingface-瀏覽器-ai-提速-200-gpu-內核不預編譯-按設備現生成/
+- 節目 / show: Hugging Face (https://ourword.ai/podcast/tw/s/huggingface/)
+- 原集標題 / original episode: We shipped 207 WebGPU Kernels for Browser AI
+- 發布 / published: 2026-09-04 · 時長 / duration: —
+- 文稿來源 / transcript: YouTube 字幕 · 1872 words · timestamps are exact
+- 校驗 / verification: 5 quotes matched verbatim, 8 numbers traced to the transcript, review score 8/10
+
+**瀏覽器裡跑 AI 沒有「通用最優內核」：kernel 是算子在具體硬件上的實現，設備不同、最優就不同。200+ 內核不是寫死的程序，而是按你的設備在瀏覽器裡現生成的模板。**
+
+為什麼聽 / why: 11 分鐘單人發布演示，無交鋒、密度中等。內核必須按設備定製這一點講得直觀，值得細看的是模板化內核與 Fleet 眾包調優的機制。
+
+### 核心論點 / points
+
+[2:05] **算子負責定義，內核負責在硬件上跑** — 逐字稿先分清兩個概念：模型是一大張算子圖，一個算子只是數學定義——加法就是 A+B；kernel 則是把定義落到特定硬件上的實現。同一個 add，瀏覽器裡走 WebGPU / WGSL，其他生態則對應 CUDA 或 Metal kernel。兩者常被混著說，但速度差恰恰出在後者：底層 kernel 快，整張推理圖才可能快。這也解釋了為什麼值得為一個簡單運算反覆打磨內核，而不是籠統地調「通用數學庫」。
+
+[4:08] **發布的是 Jinja 模板，不是寫死的內核** — 做法上的區別值得注意：倉庫裡不是一個個寫死的 WGSL 文件，而是若干 Jinja 模板，裡面用 if/else 描述不同設備的分支。執行時，庫會校驗模板、選定合適的數據類型與工作組大小，再渲染成對當前 GPU 適配器最合適的 WGSL 去跑。例如同一個加法函數，左邊數據類型窄、工作組小；右邊因設備支持更寬的數據類型和更大的工作組，同為 add 卻跑得更快。官方發布 200 多個內核條目，真正交付的是「把內核按硬件現做」的能力。
+
+[7:12] **注意力機制在瀏覽器裡只要約 20 行 JS** — 演示把抽象落回實際：在瀏覽器裡跑一小段注意力機制，只寫了約 20 行 JavaScript。流程是文本→token→向量，但 token 的向量不能獨立看，要在上下文裡看其他 token 對它的影響。代碼做的事只是從 Hub 調入 matmul、softmax、add、layer normalization 四個 kernel，剩下的調度與 GPU 數據交換都被 Hugging Face Kernels 庫藏起來。重活全在 kernel 層，這才是「在瀏覽器裡做本地推理」門檻下降的原因。
+
+[8:12] **整片波浪動畫其實只是一次矩陣乘法** — 同一個演示給出了直觀對照：128 道波穿過 1024×1024 的矩陣，每個格子的顏色都是一個矩陣乘法算出的 RGBA。畫面裡一百多萬個像素的動畫在 WebGPU 下跑到約 60fps——60 並不是計算上限，只是 requestAnimationFrame 把渲染鎖在 60，內核自己約能算到 400fps。同一套邏輯改用普通 JavaScript 跑，幀率大約只剩 6.75fps。差距不在數學，而在有沒有人把它寫成貼著這塊 GPU 的實現——這正是那批內核在做的事。
+
+[10:15] **Fleet 借測試把用戶設備變成調優數據源** — Fleet 表面上是個基準測試頁：任何人都能跑自己的 GPU，看它在對比中表現如何。但項目方說得直白：團隊只有自己手頭的幾臺設備，真實世界卻有成千上萬種 WebGPU 設備，可能存在他們沒想過的邊界情況——某些 kernel 在你這臺機器上表現不佳，甚至直接失敗。Fleet 會把真實設備上的運行數據收回去繼續優化，優化完的內核又因開源回到所有用戶手裡。你點一次 Run Benchmark，不只是看分數，還在替項目做一輪真實環境適配測試。
+
+### 原話 / verbatim quotes
+
+[2:05] : "the kernel is the implementation that can actually run the operation."
+    譯 / zh: kernel 就是那個能真正把運算跑起來的實現。
+
+[4:08] : "we don't ship WGSL files. We do ship Jinja files, so Jinja templates."
+    譯 / zh: 我們不發布 WGSL 文件，而是發布 Jinja 文件，也就是 Jinja 模板。
+
+[7:12] : "we basically have implemented an attention mechanism in pure JavaScript."
+    譯 / zh: 我們基本上只用純 JavaScript 就實現了一個注意力機制。
+
+[8:12] : "We only need one kernel. We only need the matrix multiplication."
+    譯 / zh: 我們只需要一個 kernel，只需要那一次矩陣乘法。
+
+[10:15] : "All of that data is so valuable for us."
+    譯 / zh: 所有這些數據對我們來說都極其寶貴。
+
+### 數字 / figures
+
+- 發布的 WebGPU kernels 數量: 200+ [0:03]
+- 開場動畫編碼單元數: 約 8000 個 [0:03]
+- 實現注意力所需 JS 行數: 約 20 行 [7:12]
+- 波浪動畫矩陣規模: 1024 行 × 1024 列 / 128 條波 [8:12]
+- 波浪動畫像素數: 超過 100 萬個 [8:12]
+- GPU 實際幀率: 約 60 fps（受 requestAnimationFrame 限制） [8:12]
+- GPU 理論上可達到的幀率: 約 400 fps [9:14]
+- 純 JavaScript 同任務幀率: 約 6.75 fps [9:14]
+
+### 術語 / glossary
+
+- kernel (內核): 一個算子在特定硬件上的實現；同一個加法在不同 GPU 上要跑不同的 kernel。
+- WGSL (WebGPU 著色語言): WebGPU 環境下編寫 kernel 的語言，是瀏覽器裡與 GPU 溝通的橋梁。
+- Jinja (Jinja 模板): Python 模板引擎；HF 用 .jinja 文件描述內核，運行時再按設備渲染成 WGSL。
+- WebGPU (WebGPU): 瀏覽器訪問 GPU 的新一代 API，本地 AI 推理在瀏覽器端的計算底座。
+- requestAnimationFrame (requestAnimationFrame): 瀏覽器驅動動畫幀的循環回調，通常讓畫面幀率封頂在約 60fps。
+
+誰該聽 / who: 在瀏覽器裡跑 LLM、做高性能前端 AI 應用的工程師，以及關注 WebGPU、WASM 本地推理方案的技術決策者。
+可跳過 / skip: 開場 Demo 的代碼講解和結尾發布渠道介紹可倍速，重點看內核模板機制與 Fleet 數據迴流部分。
+標籤 / tags: 瀏覽器 AI, WebGPU, 內核優化, 開源, 本地推理
 
 ==============================================================================
 
@@ -5427,6 +5494,76 @@
 誰該聽 / who: 寫後端或業務代碼的程序員、做技術選型的架構師，以及正在用 AI 重寫技術棧的初創團隊——產品慢但說不清慢在哪的人尤其該聽。
 可跳過 / skip: 若時間緊可跳過 1:16 到 1:25 的 Clean Code 視頻復盤，聽結論即可；遊戲行業部分看似離題，其實是全片最有預測力的內容。
 標籤 / tags: 性能優化, 架構決策, 理論峰值, AI 編程, 編譯器優化
+
+==============================================================================
+
+## AI 真正缺的不是算力，是自我懷疑
+
+- URL: https://ourword.ai/podcast/tw/p/2026-08-26-googledeepmind-ai-真正缺的不是算力-是自我懷疑/
+- 節目 / show: Google DeepMind (https://ourword.ai/podcast/tw/s/googledeepmind/)
+- 原集標題 / original episode: The mathematics of AI uncertainty
+- 發布 / published: 2026-08-26 · 時長 / duration: 45:04
+- 文稿來源 / transcript: YouTube 字幕 · 7783 words · timestamps are exact
+- 校驗 / verification: 6 quotes matched verbatim, 2 numbers traced to the transcript, review score 8/10
+
+**大模型不是沒有概率，它每一步都在預測概率，但它沒有把「不確定」當作看清自己邊界的工具；要做出真決策，先得把自我懷疑寫進架構。**
+
+為什麼聽 / why: 本集把 AI 的不確定性從對抗樣本講到天氣預報、持續學習與算力代價，是理解「模型什麼時候該被信任」的高密度討論。
+
+### 核心論點 / points
+
+[2:04] (Zoubin Ghahramani) **智能的核心是決策，而不是死記知識** — 從細菌到人類再到機器人，智能最重要的部分是決策，而真實世界感知有限、未來不可預測，所以所有系統都得在不確定性下決策。嘉賓把不確定性分成兩類：一類是行人下一步往哪走的固有隨機性；另一類是從未見過的場景，比如訓練數據裡沒有的冰雹中突然跳出馬。真正智能的系統需要自我覺知，知道眼下的情況不尋常，從而像自動駕駛一樣放慢車速。數學上各種不確定性都可以化成概率，再用概率論規則統一更新。
+
+[8:14] (Zoubin Ghahramani) **模型能 99% 自信地把校車認成獵豹** — 給一張校車圖片改動幾處人眼察覺不到的像素，人類看仍是校車，神經網絡卻以 99% 的置信度說那是獵豹，而且可以對任意類別做類似欺騙。這個經典對抗樣本說明，正確率不是唯一指標，系統還必須不犯「過度自信的錯誤」。嘉賓指出，今天的系統依然能被這樣騙過，意味著我們需要的不是單純正確性，而是「正確且知道自己正確」。
+
+[20:19] (Zoubin Ghahramani) **大模型的不確定感是裝出來的** — 你問一個大模型有多確定，它會給你一個答案，但那只是下一個 token 的預測，並不是對自身信念的概率計算。只要你說「我覺得你錯了」，它就可能立刻道歉改口，不會站穩立場。嘉賓說模型從互聯網數據和人類推理痕跡中模仿出「不確定」的樣子，但真正的系統應該能夠對任意陳述給出自己的置信度估計，而不是被訓練成只顧模仿數據的混合體。
+
+[23:21] (Zoubin Ghahramani) **語義熵能從內部探出模型的底氣** — 嘉賓學生提出的語義熵思路是：大模型在吐出每一個 token 前，內部都有一個對所有可能 token 的概率分布。分布尖而集中代表確定，散而平均代表沒把握。比如問埃菲爾鐵塔在哪，「巴黎」會形成一個大尖峰，而拉斯維加斯、紐約只佔小概率尾巴。但嘉賓提醒，依賴語料共現抓出來的信心本質上仍是裝模作樣：你想要的不是見過很多例子的假計算器，而是真正會計算的計算器。
+
+[27:24] (Zoubin Ghahramani) **給天氣預報加不確定性，反而更準** — Google DeepMind 的天氣模型 GenCast 通過擴散模型生成一組預報集合，而不是跑一次給出唯一答案。追蹤颶風路徑時，它會反覆運行，得到可能軌跡的概率分布，幾小時後把新觀測再匯進去，做一次貝葉斯更新。嘉賓說關鍵點在於：加不確定性不是隨意加噪聲，而是誠實地承認傳感器不精確、模型假設可能有錯；正是這種誠實讓預測校準得更好。
+
+[31:28] (Zoubin Ghahramani) **校準是檢驗「70% 概率下雨」的標準** — 如果模型告訴你下雨概率是 70%，那麼在它給出 70% 的所有日子裡，應當真的在 70% 的天數下雨，這叫校準。對「人類第一次登陸火星是哪一天」這種不會重複發生的事件，貝葉斯思想同樣允許用概率表達你的信念，而不是退化成 50% 的二分。嘉賓說，醫生依賴 AI 做生死決策時，模型必須用可見的方式傳達不確定性，否則人類要麼過度依賴、要麼全盤懷疑。
+
+[38:31] (Zoubin Ghahramani) **每次從零重訓模型，等於丟棄持續學習** — 行業做法是每隔幾個月重新訓練一個更大的模型，而人和動物是在持續的數據流裡不斷更新自身參數。現有神經網絡容易災難性遺忘，貝葉斯更新則在理論上天然支持持續學習：後驗變成下一次更新的先驗。嘉賓還列出另外兩個瓶頸：能耗上人腦大約只有 20 瓦，而訓練大模型差出好幾個數量級；以及數據效率遠低於人類學習。
+
+[40:32] (Zoubin Ghahramani) **貝葉斯的「魔法」代價是計算太慢** — 用貝葉斯做理想 AI 在教科書裡很美，但精確計算往往是 NP-hard 級別的問題，所以業界一度放棄它、轉向純粹從數據訓練。嘉賓說上世紀 80 年代人們也嫌神經網絡太慢，如今他讀書時用的超級並行計算機 Connection Machine 還沒有他口袋裡的 Pixel 手機快。算力進步加幾十年的近似方法積累，讓「舊想法」值得重新被拿出來試。
+
+### 原話 / verbatim quotes
+
+[8:14] Zoubin Ghahramani: "We don't want systems that can be overconfidently wrong."
+    譯 / zh: 我們不想要那種可能過度自信地犯錯的系統。
+
+[20:19] Zoubin Ghahramani: "It's not going to stand its ground."
+    譯 / zh: 它不會站穩自己的立場。
+
+[22:21] Zoubin Ghahramani: "sometimes we want our models to hallucinate."
+    譯 / zh: 有時候我們恰恰希望模型產生幻覺。
+
+[25:22] Zoubin Ghahramani: "You want a calculator that actually calculates."
+    譯 / zh: 你要的是一臺真正會計算的計算器，而不是假裝會算的計算器。
+
+[40:32] Zoubin Ghahramani: "The curse here is that to do all of this is computationally very slow."
+    譯 / zh: 詛咒在於：要做到這一切，計算上非常慢。
+
+[43:33] Zoubin Ghahramani: "I would rather have an AI system that knows when it doesn't know than an AI system that is arrogant and overconfident."
+    譯 / zh: 在所有重要的問題上，我更想要一個知道自己不知道什麼的 AI，而不是一個傲慢、過度自信的 AI。
+
+### 數字 / figures
+
+- Connection Machine 處理器數量: 65,000 個 [12:15]
+- 人腦功耗: 約 20 瓦 [38:31]
+
+### 術語 / glossary
+
+- Bayesian updating (貝葉斯更新): 用先驗概率乘以觀測似然，得到後驗概率並作為下一次更新的先驗。
+- aleatoric uncertainty (偶然不確定性): 來自世界固有隨機性的不確定性，例如拋硬幣和行人轉向。
+- semantic entropy (語義熵): 對模型輸出中語義層面的概率分布求熵，用來衡量回答的確定性。
+- calibration (校準): 概率預測與長期實際頻率一致，例如 70% 的下雨概率當真在 70% 的天數下雨。
+- catastrophic forgetting (災難性遺忘): 神經網絡學習新數據後，會劇烈遺忘此前學到知識的現象。
+
+誰該聽 / who: 做 AI 產品的工程師、研究模型可信度的學者，以及負責採購或審查大模型能力的決策者。
+可跳過 / skip: 開頭的嘉賓個人史回憶（約 9:14–14:16）可跳讀，不影響主線論證。
+標籤 / tags: 不確定性, 貝葉斯, 自我懷疑, 大模型, 天氣預報, 可信AI
 
 ==============================================================================
 

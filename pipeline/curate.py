@@ -1026,7 +1026,7 @@ def discover(minimum: float, dry: bool = False,
                  "kind": "youtube" if "youtube.com/feeds/videos.xml" in c["feed"]
                          else "rss",
                  "feed": c["feed"], "desc": v["desc"],
-                 "cat_label": {"ai": "AI / 技术", "biz": "投资 / 商业",
+                 "cat_label": {"ai": "AI / 技术", "edu": "AI 课程", "biz": "投资 / 商业",
                                "cn": "中国视角", "ideas": "人文 / 思想",
                                "hist": "文明 / 历史", "parent": "育儿 / 教育", "sci": "健康 / 科学"}.get(v["cat"], v["cat"])}
         if c.get("itunes"):

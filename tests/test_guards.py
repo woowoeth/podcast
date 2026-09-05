@@ -4045,6 +4045,20 @@ class NoBrokenInternalLinks(unittest.TestCase):
                 cnt[json.loads(f.read_text()).get("source_id")] += 1
             except Exception:
                 continue
+        # 英文树只渲染**有译文**的集，所以一档源的集还没译时，它在英文树里
+        # 没有页面是对的——判据要按「这棵树里有没有它的集」，不是按全站。
+        en_have = set()
+        d = ROOT / "data" / "en"
+        if d.is_dir():
+            en_have = {f.stem for f in d.glob("*.json")
+                       if not f.name.startswith("_")}
+        by_src = {}
+        for f in (ROOT / "data" / "episodes").glob("*.json"):
+            try:
+                ep = json.loads(f.read_text())
+            except Exception:
+                continue
+            by_src.setdefault(ep.get("source_id"), []).append(ep.get("slug"))
         for sid, n in cnt.items():
             if not sid:
                 continue
@@ -4052,8 +4066,9 @@ class NoBrokenInternalLinks(unittest.TestCase):
                 d = ROOT / tree / "s" / sid if tree else ROOT / "s" / sid
                 if tree and not (ROOT / tree / "index.html").exists():
                     continue
-                if tree == "en" and not (ROOT / "en" / "p").is_dir():
-                    continue
+                if tree == "en":
+                    if not any(sl in en_have for sl in by_src.get(sid) or []):
+                        continue      # 这档的集一篇都还没译，英文树里本就没有
                 self.assertTrue((d / "index.html").exists(),
                                 f"{sid} 有 {n} 篇集，但 {tree or 'zh'} 树里没有它的"
                                 f"信源页 —— 读者点节目名会 404")

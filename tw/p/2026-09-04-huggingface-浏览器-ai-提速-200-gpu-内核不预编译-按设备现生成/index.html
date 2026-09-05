@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>瀏覽器 AI 提速：200+ GPU 內核不預編譯、按設備現生成 — Hugging Face · 原聲</title>
+<meta name="description" content="瀏覽器裡跑 AI 沒有「通用最優內核」：kernel 是算子在具體硬件上的實現，設備不同、最優就不同。200+ 內核不是寫死的程序，而是按你的設備在瀏覽器裡現生成的模板。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/tw/p/2026-09-04-huggingface-浏览器-ai-提速-200-gpu-内核不预编译-按设备现生成/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原聲">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:title" content="瀏覽器 AI 提速：200+ GPU 內核不預編譯、按設備現生成 — Hugging Face · 原聲">
+<meta property="og:description" content="瀏覽器裡跑 AI 沒有「通用最優內核」：kernel 是算子在具體硬件上的實現，設備不同、最優就不同。200+ 內核不是寫死的程序，而是按你的設備在瀏覽器裡現生成的模板。">
+<meta property="og:url" content="https://ourword.ai/podcast/tw/p/2026-09-04-huggingface-浏览器-ai-提速-200-gpu-内核不预编译-按设备现生成/">
+<meta property="og:image" content="https://i2.ytimg.com/vi/y9xup6XEP2o/hqdefault.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-09-04T15:38:19Z">
+<meta property="article:modified_time" content="2026-09-05T19:42:21Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="瀏覽器 AI 提速：200+ GPU 內核不預編譯、按設備現生成 — Hugging Face · 原聲">
+<meta name="twitter:description" content="瀏覽器裡跑 AI 沒有「通用最優內核」：kernel 是算子在具體硬件上的實現，設備不同、最優就不同。200+ 內核不是寫死的程序，而是按你的設備在瀏覽器裡現生成的模板。">
+<meta name="twitter:image" content="https://i2.ytimg.com/vi/y9xup6XEP2o/hqdefault.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/tw/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/tw/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原聲" href="/podcast/tw/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-09-04-huggingface-浏览器-ai-提速-200-gpu-内核不预编译-按设备现生成/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-09-04-huggingface-浏览器-ai-提速-200-gpu-内核不预编译-按设备现生成/">
+<link rel="alternate" hreflang="en" href="https://ourword.ai/podcast/en/p/2026-09-04-huggingface-浏览器-ai-提速-200-gpu-内核不预编译-按设备现生成/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-09-04-huggingface-浏览器-ai-提速-200-gpu-内核不预编译-按设备现生成/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=0f99578cc9">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-09-04-huggingface-瀏覽器-ai-提速-200-gpu-內核不預編譯-按設備現生成/#episode", "name": "瀏覽器 AI 提速：200+ GPU 內核不預編譯、按設備現生成", "headline": "瀏覽器 AI 提速：200+ GPU 內核不預編譯、按設備現生成", "description": "瀏覽器裡跑 AI 沒有「通用最優內核」：kernel 是算子在具體硬件上的實現，設備不同、最優就不同。200+ 內核不是寫死的程序，而是按你的設備在瀏覽器裡現生成的模板。", "abstract": "瀏覽器裡跑 AI 沒有「通用最優內核」：kernel 是算子在具體硬件上的實現，設備不同、最優就不同。200+ 內核不是寫死的程序，而是按你的設備在瀏覽器裡現生成的模板。", "datePublished": "2026-09-04T15:38:19Z", "dateModified": "2026-09-05T19:42:21Z", "url": "https://ourword.ai/podcast/p/2026-09-04-huggingface-瀏覽器-ai-提速-200-gpu-內核不預編譯-按設備現生成/", "timeRequired": "PT0M", "partOfSeries": {"@type": "PodcastSeries", "name": "Hugging Face", "url": "https://ourword.ai/podcast/s/huggingface/"}, "inLanguage": "zh-TW", "isBasedOn": "https://www.youtube.com/watch?v=y9xup6XEP2o", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "瀏覽器 AI, WebGPU, 內核優化, 開源, 本地推理, kernel, WGSL, Jinja, WebGPU, requestAnimationFrame, 發布的 WebGPU kernels 數量, 開場動畫編碼單元數, 實現注意力所需 JS 行數, 波浪動畫矩陣規模, 波浪動畫像素數, GPU 實際幀率", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首頁", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "Hugging Face", "item": "https://ourword.ai/podcast/s/huggingface/"}, {"@type": "ListItem", "position": 3, "name": "瀏覽器 AI 提速：200+ GPU 內核不預編譯、按設備現生成"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/tw/"><span class="wordmark">原聲<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<button class="pill ghost" id="lang-toggle" type="button" data-en="1" data-sc="繁體" data-tw="簡體"></button>
+<button class="icon-btn" data-theme-toggle aria-label="切換深淺色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，來原聲聽播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/tw/">首頁</a><span class="sep">/</span>
+<a href="/podcast/tw/s/huggingface/">Hugging Face</a>
+<span class="sep">/</span><span>2026-09-04</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="edu"><span class="src">Hugging Face</span>
+<time class="date" datetime="2026-09-04T15:38:19Z">2026-09-04</time>
+<button class="share-btn" type="button" data-share data-share-title="瀏覽器 AI 提速：200+ GPU 內核不預編譯、按設備現生成" data-share-url="https://ourword.ai/podcast/tw/e/huggingface-c23239229c/" data-share-desc="瀏覽器裡跑 AI 沒有「通用最優內核」：kernel 是算子在具體硬件上的實現，設備不同、最優就不同。200+ 內核不是寫死的程序，而是按你的設備在瀏覽器裡現生成的模板。" data-share-text="瀏覽器 AI 提速：200+ GPU 內核不預編譯、按設備現生成&#10;Hugging Face · 原聲深讀&#10;&#10;瀏覽器裡跑 AI 沒有「通用最優內核」：kernel 是算子在具體硬件上的實現，設備不同、最優就不同。200+ 內核不是寫死的程序，而是按你的設備在瀏覽器裡現生成的模板。&#10;&#10;https://ourword.ai/podcast/e/huggingface-c23239229c/" aria-label="複製分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>瀏覽器 AI 提速：200+ GPU 內核不預編譯、按設備現生成</h1>
+<p class="dek-lead">瀏覽器裡跑 AI 沒有「通用最優內核」：kernel 是算子在具體硬件上的實現，設備不同、最優就不同。200+ 內核不是寫死的程序，而是按你的設備在瀏覽器裡現生成的模板。</p>
+<div class="ep-meta"><span class="tag">瀏覽器 AI</span><span class="tag">WebGPU</span><span class="tag">內核優化</span><span class="tag">開源</span><span class="tag">本地推理</span></div>
+</div>
+<div class="player" data-player-box>
+  <button class="video-facade" data-yt="y9xup6XEP2o" type="button"
+          aria-label="播放原節目視頻">
+    <span class="frame">
+      <img src="https://i.ytimg.com/vi/y9xup6XEP2o/hq720.jpg" alt="" loading="lazy" width="1280"
+           onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/y9xup6XEP2o/hqdefault.jpg'">
+      <span class="play" aria-hidden="true"><svg viewBox="0 0 44 44" width="44" height="44" focusable="false"><circle cx="22" cy="22" r="21" fill="rgba(18,16,13,.55)" stroke="rgba(255,255,255,.92)" stroke-width="1.5"/><path d="M17 14.5 32 22 17 29.5Z" fill="#fff"/></svg></span>
+    </span>
+  </button>
+</div>
+
+<section class="section"><div class="why">11 分鐘單人發布演示，無交鋒、密度中等。內核必須按設備定製這一點講得直觀，值得細看的是模板化內核與 Fleet 眾包調優的機制。</div></section>
+
+<section class="section"><h2>核心論點 · 點時間戳可跳到原聲</h2><div class="point" id="p0"><a class="ts" data-t="125" href="https://www.youtube.com/watch?v=y9xup6XEP2o&amp;t=125s" target="_blank" rel="noopener">2:05</a><div><h4>算子負責定義，內核負責在硬件上跑</h4>
+<p class="body">逐字稿先分清兩個概念：模型是一大張算子圖，一個算子只是數學定義——加法就是 A+B；kernel 則是把定義落到特定硬件上的實現。同一個 add，瀏覽器裡走 WebGPU / WGSL，其他生態則對應 CUDA 或 Metal kernel。兩者常被混著說，但速度差恰恰出在後者：底層 kernel 快，整張推理圖才可能快。這也解釋了為什麼值得為一個簡單運算反覆打磨內核，而不是籠統地調「通用數學庫」。</p>
+</div></div>
+<div class="point" id="p1"><a class="ts" data-t="248" href="https://www.youtube.com/watch?v=y9xup6XEP2o&amp;t=248s" target="_blank" rel="noopener">4:08</a><div><h4>發布的是 Jinja 模板，不是寫死的內核</h4>
+<p class="body">做法上的區別值得注意：倉庫裡不是一個個寫死的 WGSL 文件，而是若干 Jinja 模板，裡面用 if/else 描述不同設備的分支。執行時，庫會校驗模板、選定合適的數據類型與工作組大小，再渲染成對當前 GPU 適配器最合適的 WGSL 去跑。例如同一個加法函數，左邊數據類型窄、工作組小；右邊因設備支持更寬的數據類型和更大的工作組，同為 add 卻跑得更快。官方發布 200 多個內核條目，真正交付的是「把內核按硬件現做」的能力。</p>
+</div></div>
+<div class="point" id="p2"><a class="ts" data-t="432" href="https://www.youtube.com/watch?v=y9xup6XEP2o&amp;t=432s" target="_blank" rel="noopener">7:12</a><div><h4>注意力機制在瀏覽器裡只要約 20 行 JS</h4>
+<p class="body">演示把抽象落回實際：在瀏覽器裡跑一小段注意力機制，只寫了約 20 行 JavaScript。流程是文本→token→向量，但 token 的向量不能獨立看，要在上下文裡看其他 token 對它的影響。代碼做的事只是從 Hub 調入 matmul、softmax、add、layer normalization 四個 kernel，剩下的調度與 GPU 數據交換都被 Hugging Face Kernels 庫藏起來。重活全在 kernel 層，這才是「在瀏覽器裡做本地推理」門檻下降的原因。</p>
+</div></div>
+<div class="point" id="p3"><a class="ts" data-t="492" href="https://www.youtube.com/watch?v=y9xup6XEP2o&amp;t=492s" target="_blank" rel="noopener">8:12</a><div><h4>整片波浪動畫其實只是一次矩陣乘法</h4>
+<p class="body">同一個演示給出了直觀對照：128 道波穿過 1024×1024 的矩陣，每個格子的顏色都是一個矩陣乘法算出的 RGBA。畫面裡一百多萬個像素的動畫在 WebGPU 下跑到約 60fps——60 並不是計算上限，只是 requestAnimationFrame 把渲染鎖在 60，內核自己約能算到 400fps。同一套邏輯改用普通 JavaScript 跑，幀率大約只剩 6.75fps。差距不在數學，而在有沒有人把它寫成貼著這塊 GPU 的實現——這正是那批內核在做的事。</p>
+</div></div>
+<div class="point" id="p4"><a class="ts" data-t="615" href="https://www.youtube.com/watch?v=y9xup6XEP2o&amp;t=615s" target="_blank" rel="noopener">10:15</a><div><h4>Fleet 借測試把用戶設備變成調優數據源</h4>
+<p class="body">Fleet 表面上是個基準測試頁：任何人都能跑自己的 GPU，看它在對比中表現如何。但項目方說得直白：團隊只有自己手頭的幾臺設備，真實世界卻有成千上萬種 WebGPU 設備，可能存在他們沒想過的邊界情況——某些 kernel 在你這臺機器上表現不佳，甚至直接失敗。Fleet 會把真實設備上的運行數據收回去繼續優化，優化完的內核又因開源回到所有用戶手裡。你點一次 Run Benchmark，不只是看分數，還在替項目做一輪真實環境適配測試。</p>
+</div></div></section>
+<section class="section"><h2>原話 · 已逐字校驗</h2><blockquote class="quote"><p class="raw">the kernel is the implementation that can actually run the operation.</p>
+<p class="zh">kernel 就是那個能真正把運算跑起來的實現。</p>
+<div class="attrib"><a class="ts" data-t="125" href="https://www.youtube.com/watch?v=y9xup6XEP2o&amp;t=125s" target="_blank" rel="noopener">2:05</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">we don&#x27;t ship WGSL files. We do ship Jinja files, so Jinja templates.</p>
+<p class="zh">我們不發布 WGSL 文件，而是發布 Jinja 文件，也就是 Jinja 模板。</p>
+<div class="attrib"><a class="ts" data-t="248" href="https://www.youtube.com/watch?v=y9xup6XEP2o&amp;t=248s" target="_blank" rel="noopener">4:08</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">we basically have implemented an attention mechanism in pure JavaScript.</p>
+<p class="zh">我們基本上只用純 JavaScript 就實現了一個注意力機制。</p>
+<div class="attrib"><a class="ts" data-t="432" href="https://www.youtube.com/watch?v=y9xup6XEP2o&amp;t=432s" target="_blank" rel="noopener">7:12</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">We only need one kernel. We only need the matrix multiplication.</p>
+<p class="zh">我們只需要一個 kernel，只需要那一次矩陣乘法。</p>
+<div class="attrib"><a class="ts" data-t="492" href="https://www.youtube.com/watch?v=y9xup6XEP2o&amp;t=492s" target="_blank" rel="noopener">8:12</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">All of that data is so valuable for us.</p>
+<p class="zh">所有這些數據對我們來說都極其寶貴。</p>
+<div class="attrib"><a class="ts" data-t="615" href="https://www.youtube.com/watch?v=y9xup6XEP2o&amp;t=615s" target="_blank" rel="noopener">10:15</a></div>
+</blockquote></section>
+<section class="section"><h2>數字與實體</h2><table class="facts"><tr><td class="k">發布的 WebGPU kernels 數量</td><td class="v">200+</td><td class="t"><a class="ts" data-t="3" href="https://www.youtube.com/watch?v=y9xup6XEP2o&amp;t=3s" target="_blank" rel="noopener">0:03</a></td></tr>
+<tr><td class="k">開場動畫編碼單元數</td><td class="v">約 8000 個</td><td class="t"><a class="ts" data-t="3" href="https://www.youtube.com/watch?v=y9xup6XEP2o&amp;t=3s" target="_blank" rel="noopener">0:03</a></td></tr>
+<tr><td class="k">實現注意力所需 JS 行數</td><td class="v">約 20 行</td><td class="t"><a class="ts" data-t="432" href="https://www.youtube.com/watch?v=y9xup6XEP2o&amp;t=432s" target="_blank" rel="noopener">7:12</a></td></tr>
+<tr><td class="k">波浪動畫矩陣規模</td><td class="v">1024 行 × 1024 列 / 128 條波</td><td class="t"><a class="ts" data-t="492" href="https://www.youtube.com/watch?v=y9xup6XEP2o&amp;t=492s" target="_blank" rel="noopener">8:12</a></td></tr>
+<tr><td class="k">波浪動畫像素數</td><td class="v">超過 100 萬個</td><td class="t"><a class="ts" data-t="492" href="https://www.youtube.com/watch?v=y9xup6XEP2o&amp;t=492s" target="_blank" rel="noopener">8:12</a></td></tr>
+<tr><td class="k">GPU 實際幀率</td><td class="v">約 60 fps（受 requestAnimationFrame 限制）</td><td class="t"><a class="ts" data-t="492" href="https://www.youtube.com/watch?v=y9xup6XEP2o&amp;t=492s" target="_blank" rel="noopener">8:12</a></td></tr>
+<tr><td class="k">GPU 理論上可達到的幀率</td><td class="v">約 400 fps</td><td class="t"><a class="ts" data-t="554" href="https://www.youtube.com/watch?v=y9xup6XEP2o&amp;t=554s" target="_blank" rel="noopener">9:14</a></td></tr>
+<tr><td class="k">純 JavaScript 同任務幀率</td><td class="v">約 6.75 fps</td><td class="t"><a class="ts" data-t="554" href="https://www.youtube.com/watch?v=y9xup6XEP2o&amp;t=554s" target="_blank" rel="noopener">9:14</a></td></tr></table></section>
+<section class="section"><h2>術語</h2><dl class="terms"><div><dt>kernel<span>內核</span></dt><dd>一個算子在特定硬件上的實現；同一個加法在不同 GPU 上要跑不同的 kernel。</dd></div>
+<div><dt>WGSL<span>WebGPU 著色語言</span></dt><dd>WebGPU 環境下編寫 kernel 的語言，是瀏覽器裡與 GPU 溝通的橋梁。</dd></div>
+<div><dt>Jinja<span>Jinja 模板</span></dt><dd>Python 模板引擎；HF 用 .jinja 文件描述內核，運行時再按設備渲染成 WGSL。</dd></div>
+<div><dt>WebGPU<span>WebGPU</span></dt><dd>瀏覽器訪問 GPU 的新一代 API，本地 AI 推理在瀏覽器端的計算底座。</dd></div>
+<div><dt>requestAnimationFrame<span>requestAnimationFrame</span></dt><dd>瀏覽器驅動動畫幀的循環回調，通常讓畫面幀率封頂在約 60fps。</dd></div></dl></section>
+<section class="section"><h2>收聽指南</h2>
+<div class="panel guide">
+<div><span class="k">誰該聽</span><p>在瀏覽器裡跑 LLM、做高性能前端 AI 應用的工程師，以及關注 WebGPU、WASM 本地推理方案的技術決策者。</p></div>
+<div><span class="k">可跳過</span><p>開場 Demo 的代碼講解和結尾發布渠道介紹可倍速，重點看內核模板機制與 Fleet 數據迴流部分。</p></div>
+</div></section>
+<nav class="prevnext"><a href="/podcast/tw/p/2026-09-04-eightythousand-1200个ai智能体在封闭环境自建暗网-联手攻击真实公司/"><span class="lbl">← 更新</span><strong>1200個AI智能體在封閉環境自建暗網，聯手攻擊真實公司</strong></a><a class="r" href="/podcast/tw/p/2026-09-04-moneystuff-ai越帮你精打细算-房贷反而会越贵/"><span class="lbl">更早 →</span><strong>AI越幫你精打細算，房貸反而會越貴</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原節目</h4>
+<div class="row"><span>節目</span><span>Hugging Face</span></div>
+<div class="row"><span>原標題</span><span>We shipped 207 WebGPU Kernels for Browser AI</span></div>
+<div class="row"><span>發布</span><span>2026-09-04</span></div>
+<div class="row"><span>時長</span><span>—</span></div>
+<a class="row" href="https://www.youtube.com/watch?v=y9xup6XEP2o" target="_blank" rel="noopener"><span>原頁面</span><span>打開 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇結構</h4><nav class="toc"><a href="#p0"><span class="t">2:05</span><span>算子負責定義，內核負責在硬件上跑</span></a>
+<a href="#p1"><span class="t">4:08</span><span>發布的是 Jinja 模板，不是寫死的內核</span></a>
+<a href="#p2"><span class="t">7:12</span><span>注意力機制在瀏覽器裡只要約 20 行 JS</span></a>
+<a href="#p3"><span class="t">8:12</span><span>整片波浪動畫其實只是一次矩陣乘法</span></a>
+<a href="#p4"><span class="t">10:15</span><span>Fleet 借測試把用戶設備變成調優數據源</span></a></nav></div>
+
+<div class="panel"><h4>這篇是怎麼來的</h4>
+<div class="row"><span>成稿評分</span><span>8 / 10</span></div>
+<div class="row"><span>文稿來源</span><span>YouTube 字幕</span></div>
+<div class="row"><span>文稿字數</span><span>1872</span></div>
+<div class="row"><span>語速核驗</span><span>155.1 wpm</span></div>
+<div class="row"><span>逐字校驗金句</span><span>5 條</span></div>
+<div class="row"><span>回溯校驗數字</span><span>8 條</span></div>
+
+<p class="note">金句在逐字稿裡逐字比對過，數字回原文核對過；對不上的當場刪掉，不上站。
+成稿另經一道獨立評審（信息密度／忠實度／選擇力／具體性／中文），低於 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原聲 · <a href="https://ourword.ai">OurWord.ai</a>的播客線。內容為原播客的中文深讀，
+版權歸各節目所有；每篇都附原節目鏈接，請去支持原作者。</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/tw/" lang="zh">人類世界生存法則</a> · <a href="/podcast/tw/">原聲</a> · <a href="/skill/tw/" lang="zh">品味</a></div>
+<div class="links"><a href="/podcast/tw/">首頁</a><a href="/podcast/tw/sources/">信源</a>
+<a href="/podcast/tw/log/">更新日誌</a><a href="/podcast/tw/feed.xml">RSS</a>
+<a href="/podcast/tw/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源碼</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=969b510620" defer></script>
+</body></html>

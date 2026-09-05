@@ -198,7 +198,7 @@ CURATED: list[dict] = [
        desc="公司为什么失败的案例拆解，财务与商业模式讲得干净"),
 ]
 
-CATS = {"ai": "AI / 技术", "biz": "投资 / 商业", "cn": "中国视角",
+CATS = {"ai": "AI / 技术", "edu": "AI 课程", "biz": "投资 / 商业", "cn": "中国视角",
         "ideas": "人文 / 思想", "hist": "文明 / 历史", "parent": "育儿 / 教育",
         "sci": "健康 / 科学"}
 ALL_SOURCES = CURATED + EXTRA

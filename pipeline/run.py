@@ -397,13 +397,23 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
     return "published"
 
 
+def _cats() -> list[str]:
+    """分类清单只有一份出处：build.CAT_ORDER。
+
+    原来这里写死了一份，加 edu 分类时 --cat edu 直接报「invalid choice」——
+    而错在这个清单，不在参数。清单散成两份，迟早只改一份。
+    """
+    import importlib
+    return list(importlib.import_module("build").CAT_ORDER)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="daily podcast digest run")
     ap.add_argument("--limit", type=int, default=int(os.environ.get("MAX_NEW", "8")),
                     help="how many episodes to publish this run")
     ap.add_argument("--days", type=int, default=int(os.environ.get("LOOKBACK_DAYS", "10")))
     ap.add_argument("--only", help="限定信源 id，逗号分隔可给多个")
-    ap.add_argument("--cat", default="", choices=["", "ai", "biz", "cn", "ideas", "hist", "parent", "sci"],
+    ap.add_argument("--cat", default="", choices=[""] + _cats(),
                     help="限定分类：ai / biz / cn / ideas / hist / parent / sci")
     ap.add_argument("--only-residential", action="store_true",
                     help="只跑标了 residential 的信源（本机专属：YouTube 与 Substack）")

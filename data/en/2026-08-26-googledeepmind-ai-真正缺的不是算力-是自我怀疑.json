@@ -1,0 +1,111 @@
+{
+ "slug": "2026-08-26-googledeepmind-ai-真正缺的不是算力-是自我怀疑",
+ "of": "googledeepmind-a4961ee1bb",
+ "source_lang": "en",
+ "title": "AI's real shortage isn't compute—it's self-doubt",
+ "dek": "Large models aren't without probability—they predict probabilities at every step—but they don't treat uncertainty as a tool for seeing their own limits. To make real decisions, you first have to build self-doubt into the architecture.",
+ "why": "This episode takes AI uncertainty from adversarial examples to weather forecasting, continual learning, and the cost of compute—a dense discussion of when models should be trusted.",
+ "who": "Engineers building AI products, researchers studying model trustworthiness, and decision-makers responsible for procuring or auditing large-model capabilities.",
+ "skip": "The opening reminiscence about the guest's personal history (about 9:14–14:16) can be skipped without losing the main thread.",
+ "tags": [
+  "Uncertainty",
+  "Bayesian",
+  "Self-doubt",
+  "Large models",
+  "Weather forecasting",
+  "Trustworthy AI"
+ ],
+ "points": [
+  {
+   "h": "Intelligence is about decisions, not memorizing facts",
+   "body": "From bacteria to humans to robots, the most important part of intelligence is decision-making, and because real-world perception is limited and the future is unpredictable, every system must decide under uncertainty. The guest splits uncertainty into two kinds: the inherent randomness of, say, which way a pedestrian steps next, and never-seen-before scenarios, like a horse suddenly jumping out of hail that wasn't in the training data. A truly intelligent system needs self-awareness to recognize that the current situation is unusual and, like an autonomous car, slow down. Mathematically, all kinds of uncertainty can be turned into probabilities and updated uniformly using the rules of probability theory."
+  },
+  {
+   "h": "A model can be 99% confident a school bus is a cheetah",
+   "body": "Change a few pixels in a school bus image that are imperceptible to the human eye—humans still see a bus, but a neural network says with 99% confidence it's a cheetah, and similar tricks work for any class. This classic adversarial example shows that accuracy isn't the only metric; systems must also avoid 'overconfident errors.' The guest notes that today's systems can still be fooled this way, meaning what we need isn't mere correctness but 'being right and knowing you're right.'"
+  },
+  {
+   "h": "Large models' uncertainty is faked",
+   "body": "Ask a large model how certain it is, and it gives you an answer—but that's just the prediction of the next token, not a probability calculation over its own beliefs. If you say 'I think you're wrong,' it may immediately apologize and change its answer rather than hold its ground. The guest says models imitate 'uncertainty' from internet data and traces of human reasoning, but a true system should be able to give its own confidence estimate for any statement, not be trained to merely imitate a mixture of data."
+  },
+  {
+   "h": "Semantic entropy can probe a model's confidence from within",
+   "body": "The semantic entropy idea from the guest's student: before a large model emits each token, it internally has a probability distribution over all possible tokens. A sharp, concentrated distribution means certainty; a flat, spread-out one means uncertainty. For example, ask where the Eiffel Tower is, and 'Paris' forms a big spike, while Las Vegas and New York occupy only a small tail of probability. But the guest cautions that confidence extracted from corpus co-occurrence is still a pretense: what you want isn't a fake calculator that has seen many examples, but a real calculator that actually computes."
+  },
+  {
+   "h": "Adding uncertainty to weather forecasts makes them more accurate",
+   "body": "Google DeepMind's weather model GenCast uses a diffusion model to generate an ensemble of forecasts rather than running once to give a single answer. When tracking hurricane paths, it runs repeatedly to get a probability distribution of possible trajectories, then folds in new observations a few hours later with a Bayesian update. The guest says the key point: adding uncertainty isn't about injecting random noise, but honestly acknowledging that sensors are imprecise and model assumptions may be wrong—and it's this honesty that makes predictions better calibrated."
+  },
+  {
+   "h": "Calibration is the test for a 70% chance of rain",
+   "body": "If a model tells you there's a 70% chance of rain, then on all days it gives 70%, it should actually rain on 70% of those days—that's calibration. For events that don't repeat, like 'the date of humanity's first Mars landing,' Bayesian thinking still allows you to express your belief as a probability rather than degrading to a 50/50 binary. The guest says when doctors rely on AI for life-and-death decisions, the model must convey uncertainty in a visible way, or humans will either over-rely on it or distrust it entirely."
+  },
+  {
+   "h": "Retraining from scratch each time discards continual learning",
+   "body": "Industry practice is to retrain a larger model every few months, whereas humans and animals continuously update their parameters from an ongoing data stream. Existing neural networks are prone to catastrophic forgetting, while Bayesian updating theoretically supports continual learning naturally: the posterior becomes the prior for the next update. The guest also lists two other bottlenecks: energy—the human brain runs on about 20 watts, while training large models is orders of magnitude more—and data efficiency, which is far lower than human learning."
+  },
+  {
+   "h": "Bayes' 'magic' comes at the cost of slow computation",
+   "body": "Using Bayes for an ideal AI looks beautiful in textbooks, but exact computation is often NP-hard, which is why the field once abandoned it in favor of pure data-driven training. The guest notes that in the 1980s people also complained neural networks were too slow, and the massively parallel supercomputer Connection Machine he used in his student days was slower than the Pixel phone in his pocket. Advances in compute plus decades of approximation methods make 'old ideas' worth revisiting."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Bayesian updating",
+   "def": "Multiplying a prior probability by the likelihood of an observation to get a posterior probability, which then serves as the prior for the next update."
+  },
+  {
+   "term": "aleatoric uncertainty",
+   "def": "Uncertainty arising from inherent randomness in the world, such as coin flips and pedestrian turns."
+  },
+  {
+   "term": "semantic entropy",
+   "def": "The entropy of the probability distribution over semantic meanings in a model's output, used to gauge the certainty of an answer."
+  },
+  {
+   "term": "calibration",
+   "def": "When probabilistic predictions match long-run frequencies, e.g., a 70% chance of rain actually rains on 70% of such days."
+  },
+  {
+   "term": "catastrophic forgetting",
+   "def": "The phenomenon where a neural network, after learning new data, drastically forgets previously learned knowledge."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Number of processors in the Connection Machine",
+   "v": "65,000"
+  },
+  {
+   "k": "Human brain power consumption",
+   "v": "about 20 watts"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "We don't want systems that can be overconfidently wrong.",
+   "translated": false
+  },
+  {
+   "text": "It's not going to stand its ground.",
+   "translated": false
+  },
+  {
+   "text": "sometimes we want our models to hallucinate.",
+   "translated": false
+  },
+  {
+   "text": "You want a calculator that actually calculates.",
+   "translated": false
+  },
+  {
+   "text": "The curse here is that to do all of this is computationally very slow.",
+   "translated": false
+  },
+  {
+   "text": "I would rather have an AI system that knows when it doesn't know than an AI system that is arrogant and overconfident.",
+   "translated": false
+  }
+ ],
+ "model": "openai:deepseek-reasoner"
+}

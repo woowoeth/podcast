@@ -52,6 +52,7 @@ UI: dict[str, str] = {
     "找不到这一页": "Page not found",
     # —— 分类 ——
     "AI / 技术": "AI & Tech",
+    "AI 课程": "AI Courses",
     "投资 / 商业": "Investing & Business",
     "中国视角": "China",
     "人文 / 思想": "Ideas",

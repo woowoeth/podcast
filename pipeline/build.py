@@ -82,9 +82,10 @@ def _blurb() -> str:
 # CAT_ORDER 里，于是首页从来没有「科学 / 医学」这个 chip——以前有「全部」
 # 兜着，那 31 篇还够得到；「全部」一去掉，它们从首页就彻底摸不到了。
 # 守护 EveryCategoryHasAChip 按数据反查这两张表，加分类不可能再漏。
-CAT_ORDER = ["ai", "biz", "cn", "ideas", "hist", "sci", "parent"]
+CAT_ORDER = ["ai", "edu", "biz", "cn", "ideas", "hist", "sci", "parent"]
 CAT_LABEL = {
     "ai": "AI / 技术",
+    "edu": "AI 课程",
     "biz": "投资 / 商业",
     "cn": "中国视角",
     "ideas": "人文 / 思想",
