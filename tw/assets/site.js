@@ -58,6 +58,50 @@
     try { localStorage.setItem(KEY, next); } catch (err) {}
   });
 
+  /* ------------------------------------------------- back to where I was */
+  /* 從單集頁返回要停在原位。列表是靜態的，瀏覽器多半自己會恢復；但一旦
+     篩選或搜索改變了可見卡片，恢復到的那個像素位置對應的已經是別的內容。
+     所以連篩選和搜索一起記：回來先把狀態還原，再放位置。
+     只有「返回」才恢復，重新打開首頁不該跳到半截 —— 存完就清。 */
+  (function () {
+    var KEY = 'pod_feed_pos';
+    addEventListener('pagehide', function () {
+      try {
+        var input = document.querySelector('[data-search]');
+        var on = document.querySelector('[data-cat-chip][aria-pressed="true"]');
+        sessionStorage.setItem(KEY, JSON.stringify({
+          y: scrollY,
+          cat: on ? on.getAttribute('data-cat-chip') : '',
+          q: input ? input.value : ''
+        }));
+      } catch (e) {}
+    });
+    var raw = null;
+    try { raw = sessionStorage.getItem(KEY); sessionStorage.removeItem(KEY); } catch (e) {}
+    if (!raw) return;
+    var st = null;
+    try { st = JSON.parse(raw); } catch (e) {}
+    if (!st || !st.y) return;
+    var nav = (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]) || {};
+    var back = nav.type === 'back_forward'
+      || (document.referrer && document.referrer.indexOf(location.origin) === 0);
+    if (!back) return;
+    addEventListener('load', function () {
+      setTimeout(function () {
+        var input = document.querySelector('[data-search]');
+        if (st.q && input && input.value !== st.q) {
+          input.value = st.q;
+          input.dispatchEvent(new Event('input'));
+        }
+        if (st.cat) {
+          var b = document.querySelector('[data-cat-chip="' + st.cat + '"]');
+          if (b && b.getAttribute('aria-pressed') !== 'true') b.click();
+        }
+        scrollTo(0, st.y);
+      }, 60);
+    });
+  })();
+
   /* --------------------------------------------------------------- filters */
   var feed = document.querySelector('[data-feed]');
   if (feed) {
@@ -251,6 +295,16 @@
         cat = ch.getAttribute('data-cat-chip');
         chips.forEach(function (o) { o.setAttribute('aria-pressed', String(o === ch)); });
         run();
+        /* 換篩選要把列表帶回開頭。原來不動：讀者往下翻了幾屏，一換分類
+           內容整個換掉、位置卻留在原地，落在新一批卡片的中間，前面那些
+           永遠不會被看到。換分類這個動作的意思就是「給我看別的」。
+           回到篩選條本身，不是回頁首 —— 上面還有搜索框，剛翻過去了。
+           瞬時不平滑：內容已經換掉，平滑滾過去是滑過一堆不存在的東西。 */
+        var bar = ch.parentElement;
+        if (bar) {
+          var y = bar.getBoundingClientRect().top + scrollY - 8;
+          if (scrollY > y) scrollTo(0, y);
+        }
       });
     });
     if (input) {
