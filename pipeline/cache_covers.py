@@ -94,6 +94,38 @@ def _key(url):
     return hashlib.sha1(norm(url).encode("utf-8")).hexdigest()[:16] + ".jpg"
 
 
+# 卡片上那张按 16:9 显示（object-fit: cover 把方图的上下裁掉），所以方形
+# 素材里有 44% 的像素**本来就不会被看到，却要下载**。这里从已缓存的
+# 600×600 再切一份 16:9 出来，卡片用它，og:image 仍用方的那张。
+# 实测：600×600 q82 约 50KB → 600×338 q78 约 30KB，肉眼无差。
+CARD_W, CARD_H, CARD_Q = 600, 338, 78
+CARD_SUFFIX = "-c.jpg"
+
+
+def card_name(name: str) -> str:
+    return name[:-4] + CARD_SUFFIX if name.endswith(".jpg") else name + CARD_SUFFIX
+
+
+def write_card_variant(Image, path: str) -> bool:
+    """从 600×600 那张切 16:9。已存在且比源新就跳过。"""
+    out = path[:-4] + CARD_SUFFIX
+    try:
+        if (os.path.exists(out)
+                and os.path.getmtime(out) >= os.path.getmtime(path)):
+            return False
+        im = Image.open(path).convert("RGB")
+        w, h = im.size
+        want_h = int(round(w * CARD_H / CARD_W))
+        top = max(0, (h - want_h) // 2)
+        im = im.crop((0, top, w, top + min(want_h, h)))
+        im = im.resize((CARD_W, CARD_H), Image.LANCZOS)
+        im.save(out, "JPEG", quality=CARD_Q, optimize=True, progressive=True)
+        return True
+    except Exception as e:
+        print("  ✗ 卡片变体 %s: %s" % (os.path.basename(path), str(e)[:50]))
+        return False
+
+
 def main():
     from PIL import Image
 
@@ -110,6 +142,7 @@ def main():
         path = os.path.join(OUT, name)
         if not force and os.path.exists(path):
             man[norm(u)] = name
+            write_card_variant(Image, path)
             skip += 1
             continue
         src = u.replace("http://", "https://", 1)
@@ -122,6 +155,7 @@ def main():
                           (w - s) // 2 + s, (h - s) // 2 + s))
             im = im.resize((SIZE, SIZE), Image.LANCZOS)
             im.save(path, "JPEG", quality=82, optimize=True, progressive=True)
+            write_card_variant(Image, path)
             man[norm(u)] = name
             got += 1
         except Exception as e:
@@ -136,6 +170,9 @@ def main():
     # 哈希全变了），旧的 191 张就那么留在目录里 —— 目录翻倍到 20MB，
     # 而多出来的那一半没有任何页面引用。
     keep = {v for v in man.values() if v}
+    # 变体也要在 keep 里，否则下面那段清理每次都会把它们当孤儿删掉，
+    # 然后下一次又重新生成——目录反复变动，git 每次都有一堆改动。
+    keep |= {card_name(v) for v in man.values() if v}
     gone = 0
     for f in os.listdir(OUT):
         if f.endswith(".jpg") and f not in keep:

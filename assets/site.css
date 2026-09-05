@@ -24,6 +24,18 @@
   font-weight:400 700; font-style:normal; font-display:swap;
 }
 /* 只覆盖英文树。简体和繁体的输出必须一个字节都不变。 */
+/* 繁体读者优先拿到 TC 字形。三棵树共用同一份 CSS（tw 不再复制一份 assets），
+   所以这件事必须在 CSS 里按 lang 做，不能靠 tw.py 做字符串替换——
+   那条替换（Noto Serif SC → TC）其实早就是死代码：产物里 0 次命中，
+   这个站现在用的是系统 CJK 字体，不引 Google Fonts。
+   SC 字体也能显示繁体字，所以这只是"优先给对的那套"，不是修故障。 */
+html[lang="zh-Hant"]{
+  --serif:"Songti TC","Noto Serif CJK TC","Source Han Serif TC","Source Han Serif",
+          "Songti SC","Noto Serif CJK SC",Georgia,"Times New Roman",serif;
+  --sans:"PingFang TC","Noto Sans CJK TC","Heiti TC","PingFang SC",
+         -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+
 html[lang="en"]{
   /* 标题用 Playfair Display，正文用 Source Serif 4。
      **--sans 不动**：按钮、筛选条、搜索框这些控件仍然是系统无衬线——
@@ -613,3 +625,12 @@ h1.sec-title, h2.sec-title, .sec-title{font-family:var(--serif);
 .foot a{color:var(--muted)} .foot a:hover{color:var(--accent)}
 .foot .links{display:flex; gap:16px; flex-wrap:wrap}
 @media print{ .toolbar,.aside,.prevnext,.icon-btn{display:none} body{background:#fff} }
+
+/* 「最新」这一档到底了要有出口。默认档就是内联的那一批，往下没有更多——
+   静默 dead-end（一个不再动的加载提示）会让读者以为站坏了或还在转。 */
+.feed-end{
+  grid-column:1/-1; margin:28px 0 4px; text-align:center;
+  color:var(--faint); font-size:13px; line-height:1.6}
+.feed-end[hidden]{display:none}
+.more.at-end{padding-top:0}
+.more.at-end .more-count{color:var(--faint); font-size:12px}

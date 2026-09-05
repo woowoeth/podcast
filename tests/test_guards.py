@@ -1718,24 +1718,55 @@ class LatencyIsAFeatureNotAnAccident(unittest.TestCase):
         self.assertIn("4 小时", fast)
 
 
-class ShareSheetMustSendOneThingNotTwo(unittest.TestCase):
-    """事故：分享到微信时多出一个 151 字节的文件（名字是一串哈希）。
-    原因是 navigator.share 同时传了 text 和 url——微信把它当成两个条目：
-    文本正常发出，URL 另存成临时文件跟着发过去。
-    我们的文本末尾本来就带链接，少传一个字段反而干净。"""
+class ShareSheetMustCarryTheLinkExactlyOnce(unittest.TestCase):
+    """一次分享里链接只能出现一次——不能两次，也不能零次。
 
-    def test_share_passes_text_only(self):
+    这条判据是两次相反的修改共同得出的，两次的症状都真实发生过：
+
+    · **两次**：navigator.share 同时传 text（末尾带链接）和 url，微信把它
+      当成两个条目——文本正常发出，URL 另存成一个 151 字节的临时文件
+      跟着发过去。
+    · **零次**：为了修上面那个，把 url 也去掉、只传 text，结果微信收到的是
+      **纯文本**——没有链接可认，就不去建链接卡，分享出来是一块灰方块。
+      页面上的 og 标签从头到尾没被用到，所以改多少遍图都没变化。
+
+    所以判据不是"传不传 url"，而是**链接出现的次数**。现在的解法是分两份
+    文案：data-share-text 给粘贴用（带链接），data-share-desc 给系统分享
+    面板用（不带链接），面板那条配 url —— 加起来正好一次。
+
+    钉写法（assertIn 某个具体调用）挡不住这类回退：两次修改的写法都合法，
+    错的是链接出现了几次。
+    """
+
+    def test_the_share_sheet_gets_a_url_and_a_link_free_text(self):
         js = (ROOT / "assets" / "site.js").read_text()
-        self.assertIn("navigator.share({ text: text })", js)
-        self.assertNotIn("navigator.share({ title: title, text: text, url: url })", js)
+        i = js.index("navigator.share(")
+        call = js[i:js.index(")", i) + 1]
+        self.assertIn("url", call, f"分享面板没传 url，微信建不起链接卡：{call}")
+        self.assertNotIn("text: text", call,
+                         f"分享面板传的是带链接的粘贴文案，链接会出现两次："
+                         f"{call}")
 
-    def test_the_text_still_carries_the_link(self):
-        # 不传 url 的前提是文本里有链接，否则分享出去就没法点了
+    def test_paste_text_carries_the_link_and_the_sheet_text_does_not(self):
         sys.path.insert(0, str(ROOT / "pipeline"))
         import build
         for f in sorted((ROOT / "data" / "episodes").glob("*.json"))[:8]:
             ep = json.loads(f.read_text())
-            self.assertIn(build.ep_url(ep), build.episode_share_text(ep))
+            url = build.ep_url(ep)
+            self.assertIn(url, build.episode_share_text(ep),
+                          "粘贴用的文案里没有链接，粘出去点不了")
+
+    def test_rendered_markup_has_both_halves(self):
+        """产物上验一遍：两份文案都在，而且面板那份不带链接。"""
+        import re as _re
+        for f in sorted(ROOT.glob("p/*/index.html"))[:5]:
+            h = f.read_text()
+            m = _re.search(r'data-share-desc="([^"]*)"', h)
+            u = _re.search(r'data-share-url="([^"]*)"', h)
+            self.assertTrue(m, f"{f.parent.name} 没有 data-share-desc")
+            self.assertTrue(u, f"{f.parent.name} 没有 data-share-url")
+            self.assertNotIn("ourword.ai", m.group(1),
+                             "分享面板那句简介里带了链接，加上 url 就是两次")
 
 
 class ShareCardImageMustBeSmall(unittest.TestCase):
@@ -1829,13 +1860,47 @@ class HomepageMustNotShipEveryCard(unittest.TestCase):
     那比慢更糟。所以一开始搜或筛就先补齐，补齐失败也要让用户看得见。"""
 
     def test_first_page_is_bounded(self):
+        """内联的张数要有上限，而且**必须等于「最新」那一档**。
+
+        判据从「≤ FIRST_PAGE」改成「= 内联边界，且有硬上限」：
+        「最新」（近七天）现在就是默认视图，内联的那批等于它，所以默认视图
+        一个请求都不用发。但这个数是跟着发布速度浮动的，所以仍要有上限——
+        原来的故障是 257 张全内联、288 KB。
+        """
         sys.path.insert(0, str(ROOT / "pipeline"))
         import build
-        self.assertLessEqual(build.FIRST_PAGE, 40)
+        eps, _ = build.load()
+        want = build.inline_count(eps)
         html = (ROOT / "index.html").read_text()
         n = html.count('<a class="card')
-        self.assertLessEqual(n, build.FIRST_PAGE + 1,
-                             f"首页内联了 {n} 张卡片，分页没生效")
+        self.assertEqual(n, want,
+                         f"首页内联 {n} 张，而 inline_count 说该 {want} 张")
+        self.assertLessEqual(n, 72, f"首页内联了 {n} 张——上限是 72，"
+                                    f"再多就回到「全量内联」那个故障了")
+        self.assertLess(n, len(eps),
+                        "首页把整个存档都内联了，分页没生效")
+
+    def test_inline_and_pages_partition_the_archive(self):
+        """内联的那批 + 分页文件 = 整个存档，**不重不漏**。
+
+        实测过的洞：「最新」把内联从 24 放大到 41，而分页还按 FIRST_PAGE=24
+        切，于是第 24-40 篇同时出现在两处——首页 41 + 分页 250 = 291，
+        比总数多 17。表面症状远离真因：分类按钮上写 75 条、筛出来 79 条。
+        """
+        import re as _re
+        html = (ROOT / "index.html").read_text()
+        inline = _re.findall(r'href="/podcast/p/([^"]+)/"', html)
+        paged = []
+        for f in sorted(ROOT.glob("cards-*.json")):
+            paged += _re.findall(r'href=\\"/podcast/p/([^"\\]+)/\\"',
+                                 f.read_text())
+        dup = set(inline) & set(paged)
+        self.assertFalse(dup, f"{len(dup)} 篇同时出现在首页和分页文件里——"
+                              f"内联边界和分页边界用了两个数")
+        n_eps = len(list((ROOT / "data" / "episodes").glob("*.json")))
+        self.assertEqual(len(inline) + len(paged), n_eps,
+                         f"内联 {len(inline)} + 分页 {len(paged)} "
+                         f"≠ 存档 {n_eps}")
 
     def test_the_rest_is_available_as_json(self):
         pages = sorted(ROOT.glob("cards-*.json"))
@@ -1846,14 +1911,30 @@ class HomepageMustNotShipEveryCard(unittest.TestCase):
         self.assertIn("data-hay", first[0])
         n_eps = len(list((ROOT / "data" / "episodes").glob("*.json")))
         import build
+        eps, _ = build.load()
         total = sum(len(json.loads(f.read_text())) for f in pages)
-        self.assertEqual(total, max(0, n_eps - build.FIRST_PAGE))
+        # 边界是 inline_count（=「最新」那一档），不是 FIRST_PAGE
+        self.assertEqual(total, max(0, n_eps - build.inline_count(eps)))
 
     def test_search_and_filter_load_everything_first(self):
+        """搜索和**选分类**之前先补齐全部；「最新」是唯一的例外。
+
+        只筛前几张会让读者以为站上没有那篇文章，那比慢更糟。
+        「最新」例外是因为它就是内联的这一批——补齐反而把整个存档拉下来，
+        正是这次改动要避免的那件事。
+        """
         js = (ROOT / "assets" / "site.js").read_text()
         i = js.index("function run()")
-        body = js[i:i + 700]
+        body = js[i:i + 900]
         self.assertIn("pageState !== 'done'", body)
+        self.assertIn("cat !== 'new'", body,
+                      "run() 里没有把「最新」排除在「补齐全部」之外 —— "
+                      "默认视图会把整个存档拉下来")
+        # 反面：滚动加载也不许在「最新」档触发
+        j = js.index("function maybeLoad()")
+        self.assertIn("cat === 'new'", js[j:j + 400],
+                      "maybeLoad() 没有在「最新」档停手 —— 滚到底会静默"
+                      "把整个存档拉下来")
         self.assertIn("loadAll()", body)
         # 注释里要写清为什么：只筛前 24 张比慢更糟
         self.assertIn("以为站上没有", js)
@@ -1890,7 +1971,11 @@ class PaginationMustLoadOnePageAtATime(unittest.TestCase):
         sys.path.insert(0, str(ROOT / "pipeline"))
         import build
         n_eps = len(list((ROOT / "data" / "episodes").glob("*.json")))
-        expect = max(0, -(-(n_eps - build.FIRST_PAGE) // build.FIRST_PAGE))
+        # 起点是 inline_count（=「最新」那一档），不是 FIRST_PAGE：
+        # 两个数不一致就会让卡片重复出现（实测重了 17 篇）。
+        eps, _ = build.load()
+        head_n = build.inline_count(eps)
+        expect = max(0, -(-(n_eps - head_n) // build.FIRST_PAGE))
         pages = sorted(ROOT.glob("cards-*.json"))
         self.assertEqual(len(pages), expect, "分页文件数不对")
         # 单文件版必须删掉，否则前端会取到过期数据
@@ -3998,3 +4083,136 @@ class CiMustNotSwallowFailures(unittest.TestCase):
             if piped and "pipefail" not in s:
                 self.fail(f"{f.name} 把检查命令管进了 tail/head，"
                           f"却没有 set -o pipefail：{piped[:2]}")
+
+
+class EveryCategoryHasAChip(unittest.TestCase):
+    """数据里出现的每个分类，首页都必须有一个入口。
+
+    实测过的洞：CAT_ORDER 里一直没有 sci，所以首页从来没有「科学 / 医学」
+    这个 chip。以前有「全部」兜着，那 31 篇还够得到；**「全部」一去掉，
+    它们从首页就彻底摸不到了**——一个存在已久的小疏漏，被一次产品改动
+    放大成了"三十多篇内容消失"。
+
+    判据按数据反查两张表，不反过来：加一个分类不需要记得同时改三个地方。
+    """
+
+    def cats(self):
+        return {s.get("cat") for s in json.loads(
+            (ROOT / "data" / "sources.json").read_text())["sources"]} - {None}
+
+    def test_cat_order_and_labels_cover_the_data(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import build
+        data = self.cats()
+        self.assertFalse(data - set(build.CAT_ORDER),
+                         f"这些分类不在 CAT_ORDER 里，首页没有它们的入口："
+                         f"{sorted(data - set(build.CAT_ORDER))}")
+        self.assertFalse(data - set(build.CAT_LABEL),
+                         f"这些分类没有中文标签：{sorted(data - set(build.CAT_LABEL))}")
+        self.assertFalse(set(build.CAT_ORDER) - set(build.CAT_LABEL),
+                         "CAT_ORDER 里有 CAT_LABEL 没有的分类")
+
+    def test_every_category_label_is_translated(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import build
+        import i18n
+        for c in build.CAT_ORDER:
+            zh = build.CAT_LABEL[c]
+            self.assertIn(zh, i18n.UI,
+                          f"分类「{zh}」没有英文，英文站会显示中文")
+
+    def test_the_rendered_homepage_has_a_chip_for_each(self):
+        for tree in ("", "tw", "en"):
+            d = ROOT / tree if tree else ROOT
+            f = d / "index.html"
+            if not f.exists():
+                continue
+            html = f.read_text()
+            got = set(re.findall(r'data-cat-chip="([a-z]+)"', html))
+            missing = self.cats() - got
+            self.assertFalse(missing,
+                             f"{tree or 'zh'} 首页缺这些分类的 chip：{sorted(missing)}")
+            self.assertIn("new", got, f"{tree or 'zh'} 首页没有「最新」这一档")
+
+    def test_no_episode_is_unreachable_from_the_homepage(self):
+        """去掉「全部」之后的判据：每一集都要能被某个 chip 筛到。
+
+        「最新」+ 各分类必须覆盖全部。哪一集的 cat 是空的或不在清单里，
+        它在首页上就永远出不来——搜索和 sitemap 找得到，但读者浏览不到。
+        """
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import build
+        srcs = {s["id"]: s for s in json.loads(
+            (ROOT / "data" / "sources.json").read_text())["sources"]}
+        bad = []
+        for f in sorted((ROOT / "data" / "episodes").glob("*.json")):
+            ep = json.loads(f.read_text())
+            c = ep.get("cat") or (srcs.get(ep.get("source_id")) or {}).get("cat")
+            if c not in build.CAT_ORDER:
+                bad.append((ep.get("slug", "?")[:40], c))
+        self.assertFalse(bad, f"{len(bad)} 集的分类不在 CAT_ORDER 里，"
+                              f"首页上永远筛不到：{bad[:5]}")
+
+
+class AssetsAreSharedByAllTrees(unittest.TestCase):
+    """assets/ 只有一份，三棵树共用。
+
+    实测过的浪费：tw.py 把整个 assets/ 复制进繁体树——17 MB（字体、
+    192 张封面、192 张卡片变体），而两份的差别只有 236 行 CSS 注释被转成了
+    繁体。代价不止仓库体积：同一张图在两个 URL 下各缓存一次，读者从简体页
+    切到繁体页时全部重下。
+
+    共用是安全的，因为这些文件要么带内容指纹（site.css?v=…），要么文件名
+    本身就是内容哈希（封面）——共用不会拿到过期版本。
+    """
+
+    def test_no_copy_of_assets_in_the_other_trees(self):
+        for sub in ("tw", "en"):
+            d = ROOT / sub
+            if not d.is_dir():
+                continue
+            self.assertFalse((d / "assets").exists(),
+                             f"{sub}/assets/ 又被复制了一份 —— "
+                             f"三棵树该共用仓库根的那一份")
+
+    def test_every_tree_points_at_the_shared_assets(self):
+        for sub in ("", "tw", "en"):
+            f = (ROOT / sub / "index.html") if sub else (ROOT / "index.html")
+            if not f.exists():
+                continue
+            html = f.read_text()
+            for kind in ("site.css", "site.js"):
+                m = re.search(r'["\'](/podcast/[^"\']*' + kind + r'[^"\']*)', html)
+                self.assertIsNotNone(m, f"{sub or 'zh'} 首页找不到 {kind}")
+                self.assertTrue(m.group(1).startswith("/podcast/assets/"),
+                                f"{sub or 'zh'} 的 {kind} 指向 {m.group(1)}，"
+                                f"不是共用的 /podcast/assets/")
+
+    def test_covers_are_served_from_our_own_origin(self):
+        """封面必须走本站。
+
+        实测过的故障：首页 24 张封面来自 **12 个不同域名**，每个都要一次
+        DNS + TCP + TLS，最慢的单张 1607ms。换成本站缓存之后 12 个握手变成
+        0 个。没缓存到的可以退回原地址（新节目在下一次缓存之前仍要有图），
+        但比例要低——高了就说明 cache_covers.py 很久没跑了。
+        """
+        html = (ROOT / "index.html").read_text()
+        srcs = re.findall(r'<img[^>]+src="([^"]+)"', html)
+        self.assertTrue(srcs, "首页一张卡片封面都没有")
+        remote = [u for u in srcs if u.startswith("http")]
+        self.assertLessEqual(
+            len(remote), max(2, len(srcs) // 8),
+            f"{len(remote)}/{len(srcs)} 张封面还在直连第三方 —— "
+            f"跑 python3 pipeline/cache_covers.py：{[u[:48] for u in remote[:3]]}")
+
+    def test_the_hero_cover_is_not_lazy(self):
+        """首屏最大那张图是 LCP 元素，不能 lazy。
+
+        loading=lazy 会让浏览器先等布局再发请求，首屏最大那张因此白等一轮。
+        """
+        html = (ROOT / "index.html").read_text()
+        m = re.search(r'<a class="card hero".*?<img[^>]*>', html, re.S)
+        self.assertIsNotNone(m, "首页没有 hero 卡片")
+        tag = m.group(0)[m.group(0).index("<img"):]
+        self.assertNotIn('loading="lazy"', tag, "hero 那张封面还是 lazy 的")
+        self.assertIn('fetchpriority="high"', tag, "hero 那张没有提优先级")

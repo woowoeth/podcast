@@ -40,6 +40,10 @@ UI: dict[str, str] = {
     "信源": "Shows",
     "分享": "Share",
     "分类": "Topics",
+    # 「最新」取代了「全部」：默认只看最近七天。
+    "最新": "Latest",
+    "以上是最近七天。想看更早的，点上面的分类。":
+        "That's the last seven days. For anything older, pick a category above.",
     "全部": "All",
     "更新日志": "Changelog",
     "切换到简体": "简体",

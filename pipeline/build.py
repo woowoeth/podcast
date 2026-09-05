@@ -21,7 +21,7 @@ from xml.sax.saxutils import escape as xesc
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import i18n                                                    # noqa: E402
 from i18n import T                                             # noqa: E402
-from lib.util import hhmmss, log, squeeze                      # noqa: E402
+from lib.util import hhmmss, log, now, squeeze                # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
@@ -78,13 +78,18 @@ def _blurb() -> str:
     head = (T("BLURB_HEAD").replace("{n}", str(n)) if n else T("BLURB_HEAD_NONE"))
     return head + T("BLURB_TAIL")
 
-CAT_ORDER = ["ai", "biz", "cn", "ideas", "hist", "parent"]
+# **这两张表必须覆盖 data/sources.json 里的每一个分类。** sci 曾经不在
+# CAT_ORDER 里，于是首页从来没有「科学 / 医学」这个 chip——以前有「全部」
+# 兜着，那 31 篇还够得到；「全部」一去掉，它们从首页就彻底摸不到了。
+# 守护 EveryCategoryHasAChip 按数据反查这两张表，加分类不可能再漏。
+CAT_ORDER = ["ai", "biz", "cn", "ideas", "hist", "sci", "parent"]
 CAT_LABEL = {
     "ai": "AI / 技术",
     "biz": "投资 / 商业",
     "cn": "中国视角",
     "ideas": "人文 / 思想",
     "hist": "历史",
+    "sci": "科学 / 医学",
     "parent": "育儿",
 }
 
@@ -353,6 +358,11 @@ def load() -> tuple[list[dict], dict]:
 
 # 首屏渲染多少张卡片。剩下的进 cards.json，滚到底、点"加载更多"或一搜索就补齐。
 FIRST_PAGE = 24
+# 「最新」= 最近 NEW_DAYS 天，但**保底不少于 MIN_NEW 篇**：安静的一周
+# （节假日、信源都没更新）不该让首页空着。窗口在构建期算好，卡片上打
+# data-new，客户端只认这个标记，不自己算日期——两边算日期迟早会算出两个答案。
+NEW_DAYS = 7
+MIN_NEW = 12
 
 GA_ID = os.environ.get("GA_ID", "G-DHD3WEXQ8T")   # 与 ourword.ai 其他站同一个属性
 
@@ -485,13 +495,51 @@ def hreflangs(path: str) -> str:
     return "\n".join(rows)
 
 
+# 页面之间的切换：静态站每次点击都是一次整页加载。Speculation Rules 让浏览器
+# 在**读者把指针停在链接上时**就把目标页取回来，点下去就是本地渲染。
+#
+# 用 prefetch 而不是 prerender：prerender 会**执行目标页的脚本**，而统计脚本
+# 现在挂在 load 上，预渲染的页面在后台也会触发 load —— 那会把没看过的页面
+# 记成一次浏览。prefetch 只取文档不执行，拿到的是主要的那份收益。
+#
+# 只对本站 /podcast/ 下的文档生效；不支持这个 API 的浏览器（Safari、Firefox）
+# 会整段忽略，没有回退代价。
+_SPECRULES = '<script type="speculationrules">' + json.dumps({
+    "prefetch": [{
+        "where": {"and": [
+            {"href_matches": "/podcast/*"},
+            # 这些不是"下一页"，预取只是白花流量
+            {"not": {"href_matches": "/podcast/*.xml"}},
+            {"not": {"href_matches": "/podcast/*.json"}},
+            {"not": {"href_matches": "/podcast/*.txt"}},
+            {"not": {"href_matches": "/podcast/assets/*"}},
+        ]},
+        # moderate = 指针悬停约 200ms 才取，不是把满屏链接全取一遍
+        "eagerness": "moderate",
+    }],
+}, separators=(",", ":")) + "</script>"
+
+
 def head(title: str, desc: str, *, path: str = "/", image: str = "",
          extra: str = "", robots: str = ROBOTS, published: str = "",
          modified: str = "") -> str:
     url = SITE + path
-    ga = (f'<script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>\n'
-          f'<script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments)}}\n'
-          f"gtag('js',new Date());gtag('config','{GA_ID}');</script>") if GA_ID else ""
+    # **统计脚本不上关键路径。** 实测（本机 + 模拟慢网）它是首页最慢的一个
+    # 请求：259ms / 482ms，而站点自己的资源加起来 11ms / 315ms。`async` 只保证
+    # 不阻塞解析，不保证不抢带宽和连接——首屏那张 LCP 图和它在抢同一条队。
+    #
+    # 改成 load 之后（或空闲时）再插。代价是极早期就跳走的访客不计入，
+    # 换来的是首屏不等第三方。用 requestIdleCallback，没有它就退回 setTimeout。
+    ga = (f'''<script>window.dataLayer=window.dataLayer||[];
+function gtag(){{dataLayer.push(arguments)}}
+gtag('js',new Date());gtag('config','{GA_ID}');
+(function(){{function go(){{var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id={GA_ID}';
+document.head.appendChild(s)}}
+if(window.requestIdleCallback){{addEventListener('load',function(){{
+requestIdleCallback(go,{{timeout:3000}})}})}}
+else{{addEventListener('load',function(){{setTimeout(go,1200)}})}}}})();</script>''') \
+        if GA_ID else ""
     dates = ""
     if published:
         dates += f'<meta property="article:published_time" content="{e(published)}">\n'
@@ -526,6 +574,7 @@ def head(title: str, desc: str, *, path: str = "/", image: str = "",
 {LANG_JS}
 <link rel="stylesheet" href="{asset("assets/site.css")}">
 <script>try{{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}}catch(e){{}}</script>
+{_SPECRULES}
 {ga}
 {extra}
 </head>
@@ -794,7 +843,35 @@ def thumb(url: str, w: int = 400) -> str:
     return url.replace("http://", "https://", 1) if url.startswith("http://") else url
 
 
-def card(ep: dict, *, hero: bool) -> str:
+def cover_src(url: str) -> str:
+    """卡片封面的地址。**优先用本站缓存的那一张。**
+
+    为什么这是首页最大的一笔提速：封面原来直连各家播客 CDN，实测首页 24 张
+    图来自 **12 个不同域名**，每个都要一次 DNS + TCP + TLS，最慢的单张
+    1.6 秒；而 `assets/cover/` 里已经有 192 张缓存好的 600×600（此前只用在
+    og:image 上）。换成本站之后 12 个握手变成 0 个——那些图和 HTML 同源，
+    连接是热的。
+
+    查不到缓存就退回 thumb()（按 CDN 加尺寸参数），不因为缓存没跑而开天窗。
+    """
+    if not url:
+        return ""
+    key = url.split("?", 1)[0].replace("https://", "", 1).replace("http://", "", 1)
+    name = _covers().get(key)
+    if name:
+        # 优先用 16:9 那份变体（cache_covers.py 从 600×600 切出来的）：
+        # 卡片就是按 16:9 显示的，方图有 44% 的像素本来就被裁掉却要下载。
+        # 实测 54 KB → 31 KB，省 43%，肉眼无差。
+        # 变体缺失时退回方图——不因为它没生成而开天窗。
+        card_name = name[:-4] + "-c.jpg" if name.endswith(".jpg") else name
+        if (ROOT / "assets" / "cover" / card_name).exists():
+            name = card_name
+        # 内容寻址（文件名是内容哈希），所以不需要再挂 ?v=
+        return f"{BASE_ZH}/assets/cover/{name}"
+    return thumb(url)
+
+
+def card(ep: dict, *, hero: bool, is_new: bool = False) -> str:
     d = D(ep)
     q = d.get("quality") or {}
     date = (ep.get("published") or "")[5:10].replace("-", "")
@@ -803,14 +880,18 @@ def card(ep: dict, *, hero: bool) -> str:
                     " ".join(d.get("tags") or []),
                     " ".join(t.get("term", "") for t in d.get("terms") or [])])
     img = ep.get("image") or ""
-    cover = (f'<img src="{e(thumb(img))}" alt="" loading="lazy" decoding="async" '
+    # 头卡那张是 LCP 元素：它不能 lazy。loading="lazy" 会让浏览器先等布局
+    # 再发请求，首屏最大那张图因此白等一轮——首屏可见的图要 eager +
+    # fetchpriority=high，其余照旧 lazy。
+    eager = ' fetchpriority="high"' if hero else ' loading="lazy"'
+    cover = (f'<img src="{e(cover_src(img))}" alt="" decoding="async"{eager} '
              f'data-initial="{e((ep.get("source") or "?")[:1])}">' if img
              else f'<div class="fallback">{e((ep.get("source") or "?")[:1])}</div>')
     dur = (f'<span class="dur">{hhmmss(ep["duration"])}</span>' if ep.get("duration") else "")
     tags = "".join(f'<span class="tag">{e(t)}</span>' for t in (d.get("tags") or [])[:2])
     src_label = show_name(ep)
-    return f"""<a class="card{' hero' if hero else ''}" data-card data-cat="{e(ep.get('cat'))}"
- data-hay="{e(hay)}" href="{BASE}/p/{e(ep['slug'])}/">
+    return f"""<a class="card{' hero' if hero else ''}" data-card data-cat="{e(ep.get('cat'))}"\
+{' data-new="1"' if is_new else ''} data-hay="{e(hay)}" href="{BASE}/p/{e(ep['slug'])}/">
 <div class="cover">{cover}{dur}</div>
 <div class="card-body">
 <div class="kicker" data-cat="{e(ep.get('cat'))}"><span class="src"{zh_attr(src_label)}>{e(src_label)}</span>
@@ -878,7 +959,8 @@ def write_card_pages(eps: list[dict], out: pathlib.Path | None = None) -> int:
     # cards-*.json 覆盖成了带 /podcast/en/ 链接的版本，简体首页滚到第二页就
     # 全跳到英文站去了。凡是写文件的函数都不许再自己决定往哪写。
     out = out or ROOT
-    rest = eps[FIRST_PAGE:]
+    head_n = inline_count(eps)
+    rest = eps[head_n:]
     pages = 0
     for i in range(0, len(rest), FIRST_PAGE):
         pages += 1
@@ -896,17 +978,48 @@ def write_card_pages(eps: list[dict], out: pathlib.Path | None = None) -> int:
     return pages
 
 
+def inline_count(eps: list[dict]) -> int:
+    """内联到第几张。**首页和分页文件必须用同一个数。**
+
+    实测过的洞：「最新」把内联从 24 张放大到 41 张，而分页文件还按 24 切，
+    于是第 24-40 篇**同时出现在两处**——首页 41 + 分页 250 = 291，比总数
+    多 17。表面症状是分类按钮上写 75 条、筛出来 79 条。
+    """
+    return max(FIRST_PAGE, new_window(eps))
+
+
+def new_window(eps: list[dict]) -> int:
+    """「最新」这一档里放几篇。
+
+    eps 已按发布时间倒序。取最近 NEW_DAYS 天，不足 MIN_NEW 篇就往前放宽
+    到够——首页是这个站的门面，安静的一周不该让它只剩两张卡。
+    """
+    import datetime as _dt
+    cut = (now() - _dt.timedelta(days=NEW_DAYS)).date().isoformat()
+    n = sum(1 for x in eps if (x.get("published") or "")[:10] >= cut)
+    return max(MIN_NEW, min(n, len(eps)))
+
+
 def index_page(eps: list[dict], srcs: dict) -> str:
     counts = {c: sum(1 for x in eps if x.get("cat") == c) for c in CAT_ORDER}
-    chips = [f'<button class="chip" data-cat-chip="all" aria-pressed="true">{T("全部")}'
-             f'<span class="n">{len(eps)}</span></button>']
+    n_new = new_window(eps)
+    # 「最新」取代「全部」。他要的：默认只看最近七天，不然每次打开都要
+    # 载入整个存档。去掉「全部」不会让任何内容不可达——每一集都有分类
+    # （实测 0 例外），另有搜索、信源页和 sitemap。
+    chips = [f'<button class="chip" data-cat-chip="new" aria-pressed="true">'
+             f'{T("最新")}<span class="n">{n_new}</span></button>']
     for c in CAT_ORDER:
         chips.append(f'<button class="chip" data-cat-chip="{c}" aria-pressed="false">'
                      f'{T(CAT_LABEL[c])}<span class="n">{counts.get(c, 0)}</span></button>')
     # 首屏只渲染前 FIRST_PAGE 张。原来 257 张全内联，index.html 288 KB
     # （gzip 后 109 KB），手机上打开明显慢。其余的进 cards.json，滚到底或一搜索
     # 就补齐——**搜索和筛选必须覆盖全部**，所以补齐是前提不是可选项。
-    cards = "\n".join(card(x, hero=(i == 0)) for i, x in enumerate(eps[:FIRST_PAGE]))
+    # **内联的那批就等于「最新」那批**，所以默认视图一个请求都不用发。
+    # 原来内联固定 24 张、「最新」是 41 篇，读者一滚就要再拉 cards-1.json；
+    # 而那一档是默认视图，等于每次打开都多一次往返。
+    head_n = inline_count(eps)
+    cards = "\n".join(card(x, hero=(i == 0), is_new=(i < n_new))
+                      for i, x in enumerate(eps[:head_n]))
     # TAGLINE 里已经有"原声"，再前缀 NAME 会让标题出现两次品牌名
     # WebSite + CollectionPage + ItemList：让搜索与答案引擎知道这是一个持续更新的
     # 条目集合，而不是一张零散的落地页。SearchAction 指向 ?q=，那是站内搜索真实
@@ -941,18 +1054,19 @@ def index_page(eps: list[dict], srcs: dict) -> str:
 </div></div></div>
 
 <main class="wrap"><div class="feed" data-feed data-total="{len(eps)}"
-     data-page-size="{FIRST_PAGE}"
-     data-pages="{max(0, (len(eps) - FIRST_PAGE + FIRST_PAGE - 1) // FIRST_PAGE)}">
+     data-page-size="{FIRST_PAGE}" data-head="{head_n}"
+     data-pages="{max(0, (len(eps) - head_n + FIRST_PAGE - 1) // FIRST_PAGE)}">
 {cards}
 <div class="empty" data-empty hidden><b>{T("没有匹配的深读")}</b>
 <p>{T("换个词，或者清掉筛选再试。搜索会搜进每条要点的正文、金句的中英文原文、数字和术语表——不只是标题。")}</p>
 <p data-deep-note hidden style="color:var(--faint);font-size:13px"></p></div>
 </div>
+<p class="feed-end" data-feed-end>{T("以上是最近七天。想看更早的，点上面的分类。")}</p>
 {f'''<div class="more" data-sentinel>
-<span class="more-count" data-more-count>{FIRST_PAGE} / {len(eps)}</span>
+<span class="more-count" data-more-count>{n_new}</span>
 <button class="more-btn" data-more type="button" hidden>{T("继续加载")}</button>
 <noscript><p class="note">{T("没有 JavaScript 时只显示最新 N 篇，完整清单见 sitemap 或 llms.txt。").replace("N", str(FIRST_PAGE))}</p></noscript>
-</div>''' if len(eps) > FIRST_PAGE else ""}
+</div>''' if len(eps) > head_n else ""}
 </main>
 """ + foot())
 

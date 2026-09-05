@@ -110,7 +110,9 @@
     var cards = [].slice.call(feed.querySelectorAll('[data-card]'));
     var count = document.querySelector('[data-count]');
     var empty = feed.querySelector('[data-empty]');
-    var cat = 'all';
+    // 默认档是「最新」（近七天，构建期算好、卡上打 data-new）。
+    // 「全部」去掉了：每次打开都要载入整个存档，而读者要的是最近的。
+    var cat = 'new';
 
     // Pre-lowercase the inline haystack once; filtering then costs nothing.
     // The inline text is title + dek + source + tags only, so search works
@@ -151,9 +153,13 @@
 
     function showCount() {
       if (!moreCount) return;
-      var have = cards.length, total = feed.getAttribute('data-total');
-      moreCount.textContent = pageState === 'loading'
-        ? T('loading') : have + ' / ' + total;
+      if (pageState === 'loading') { moreCount.textContent = T('loading'); return; }
+      // 计数要跟着**当前档位**。默认档是「最新」，而它就是内联的这一批，
+      // 显示「41 / 274」会让人以为还有 233 篇没载入、催他往下滚。
+      var shown = cards.filter(function (c) { return c.style.display !== 'none'; }).length;
+      var total = feed.getAttribute('data-total');
+      // 「最新」档底下那句提示已经把话说完了，再挂一个孤零零的数字只是噪音。
+      moreCount.textContent = (cat === 'new') ? '' : shown + ' / ' + total;
     }
 
     function loadPage(then) {
@@ -200,6 +206,9 @@
 
     function maybeLoad() {
       if (pageState !== 'idle' || !sentinel) return;
+      // 「最新」这一档就是内联的这一批，往下没有更多了——滚到底不该悄悄把
+      // 整个存档拉下来。想看更多的读者点分类，那时才补齐（run() 里那条）。
+      if (cat === 'new') return;
       var r = sentinel.getBoundingClientRect();
       if (r.top - window.innerHeight < 800) loadPage();
     }
@@ -245,16 +254,23 @@
     function run() {
       var q = (input && input.value || '').trim().toLowerCase();
       var terms = q ? q.split(/\s+/) : [];
-      // 一旦开始搜或筛，先把全部页都补齐——只筛前 24 张会让用户以为站上没有
-      // 那篇文章，那比慢更糟
-      if ((terms.length || cat !== 'all') && pageState !== 'done') {
+      // 一旦开始搜或**选了某个分类**，先把全部页都补齐——只筛前 24 张会让
+      // 用户以为站上没有那篇文章，那比慢更糟。
+      // 但「最新」这一档例外：它就是内联的这一批（构建期保证 data-new 的
+      // 那些全部内联），补齐反而把整个存档拉下来，正是要避免的那件事。
+      if ((terms.length || (cat !== 'new' && cat !== 'all')) &&
+          pageState !== 'done') {
         loadAll();
         return;
       }
       if (terms.length) loadDeep();
       var shown = 0;
       cards.forEach(function (c) {
-        var okCat = cat === 'all' || c.getAttribute('data-cat') === cat;
+        // 「最新」认的是构建期打的 data-new，客户端不自己算日期——
+        // 两边各算一次，迟早算出两个答案。
+        var okCat = cat === 'all' ? true
+                  : cat === 'new' ? c.hasAttribute('data-new')
+                  : c.getAttribute('data-cat') === cat;
         var hay = c._hay;
         if (deep && deep[c._slug]) hay = c._hay + ' ' + deep[c._slug];
         var okQ = true;
@@ -277,17 +293,31 @@
         }
       }
       if (count) count.textContent = shown;
+      showCount();
+      tailNote();
       var hero = cards.filter(function (c) { return c.style.display !== 'none'; })[0];
-      cards.forEach(function (c) { c.classList.toggle('hero', c === hero && !q && cat === 'all'); });
+      cards.forEach(function (c) {
+        c.classList.toggle('hero', c === hero && !q && cat === 'new');
+      });
       sync(q);
     }
 
     function sync(q) {
       var p = new URLSearchParams();
-      if (cat !== 'all') p.set('c', cat);
+      if (cat !== 'new') p.set('c', cat);
       if (q) p.set('q', q);
       var s = p.toString();
       history.replaceState(null, '', s ? '?' + s : location.pathname);
+    }
+
+    // 「最新」档到底了要有出口，不能静默 dead-end：读者滚完 41 篇看到的
+    // 应该是「按分类看更多」，而不是一个不再动的加载提示。
+    function tailNote() {
+      var end = document.querySelector('[data-feed-end]');
+      if (!end) return;
+      end.hidden = cat !== 'new';
+      if (moreBtn) moreBtn.hidden = moreBtn.hidden || cat === 'new';
+      if (sentinel) sentinel.classList.toggle('at-end', cat === 'new');
     }
 
     chips.forEach(function (ch) {

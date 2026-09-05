@@ -52,7 +52,11 @@ except ImportError:                                    # pragma: no cover
 # 第一方和第三方必须分开算。混在一起量出来是 205 KB，其中 168 KB 是 Google
 # Analytics 一个脚本——那样这条检查会永远红，而我为了让它过只会去抬阈值，
 # 于是"首页别又变成一次下 288 KB"这个信号就彻底没了。
-MAX_HOME_KB = 45          # 实测 35 KB（文档 17 + CSS 9 + JS 9）
+# 内联从 24 张放大到 41 张（=「最新」那一档），首页自己的首屏从 41 KB 到
+# 48 KB；换来的是默认视图**一个请求都不用发**（原来滚一下就要拉 35 KB 的
+# cards-1.json）。上限抬到 56，不是抬到"够用就行"——再多就该问是不是又在
+# 往首屏堆东西了。
+MAX_HOME_KB = 56          # 实测 48 KB（文档 23 + CSS 11 + JS 10，均为 gzip 后）
 MAX_EP_KB = 60
 # 第三方给一个宽但有限的上限：不管现在挂着什么，再多挂一个重的嵌入要能被拦住。
 MAX_THIRD_PARTY_KB = 220
@@ -481,15 +485,18 @@ class Render(Harness):
             self.assertTrue(got, f"点了假门 {deadline}ms 内既没换成播放器也没给"
                                  f"出口（site.js 声明的兜底是 6 秒）：{state}")
 
+        # 「最新」档**故意不分页**：它就是内联的那一批，滚到底不该把整个
+        # 存档拉下来。所以这一条改在**分类档**上验——那才是"还有更多"的场景。
         p = self.page()
         p.goto(self.url("/"), wait_until="load")
         first = p.evaluate("() => document.querySelectorAll('[data-card]').length")
-        p.evaluate("() => window.scrollTo(0, document.body.scrollHeight)")
-        p.wait_for_timeout(1500)
+        p.click(".chip[aria-pressed='false']")
+        p.wait_for_timeout(2000)
         after = p.evaluate("() => document.querySelectorAll('[data-card]').length")
         p.context.close()
         self.assertGreater(after, first,
-                           f"滚到底没有加载更多（还是 {first} 张）")
+                           f"选了分类之后没有补齐全部（还是 {first} 张）——"
+                           f"只筛内联那批会让读者以为站上没有那篇")
 
     # ---------------------------------------------------- ⑥ 首屏别太重
     def test_first_paint_stays_light(self):

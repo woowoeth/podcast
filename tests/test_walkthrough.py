@@ -110,16 +110,41 @@ class Walkthrough(Harness):
                              f"筛出来 {vis} 条")
 
     # ------------------------------------------------------------ 加载更多
-    def test_scrolling_loads_more(self):
+    def test_the_default_view_does_not_fetch_the_whole_archive(self):
+        """默认档滚到底**不许**把整个存档拉下来，而且要给出口。
+
+        「最新」就是内联的那一批（近七天）。原来滚到底会一页页拉 cards-N.json
+        ——那正是"每次打开网站太慢"的来源。判据两面都要：不许多拉，
+        也不许静默 dead-end。
+        """
         p = self.page(width=390, height=844)
         p.goto(self.url("/"), wait_until="load")
         n0 = p.evaluate("() => document.querySelectorAll('[data-card]').length")
+        got = []
+        p.on("request", lambda r: got.append(r.url) if "cards-" in r.url else None)
         for _ in range(3):
             p.evaluate("() => window.scrollTo(0, document.body.scrollHeight)")
             p.wait_for_timeout(800)
         n1 = p.evaluate("() => document.querySelectorAll('[data-card]').length")
+        end = p.evaluate("""() => { const e=document.querySelector('[data-feed-end]');
+            if (!e) return null;
+            const cs=getComputedStyle(e);
+            return cs.display!=='none' ? e.textContent.trim() : null; }""")
         p.context.close()
-        self.assertGreater(n1, n0, f"滚到底没有加载更多（还是 {n0} 张）")
+        self.assertEqual(n1, n0, f"默认档滚到底又加载了卡片（{n0} → {n1}）")
+        self.assertFalse(got, f"默认档滚到底去拉了分页文件：{got[:2]}")
+        self.assertTrue(end, "默认档到底了没有出口提示——读者会以为站还在转")
+
+    def test_a_category_loads_the_whole_archive(self):
+        """选了分类必须补齐全部：只筛内联那批会让读者以为站上没有那篇。"""
+        p = self.page(width=390, height=844)
+        p.goto(self.url("/"), wait_until="load")
+        n0 = p.evaluate("() => document.querySelectorAll('[data-card]').length")
+        p.click(".chip[aria-pressed='false']")
+        p.wait_for_timeout(2500)
+        n1 = p.evaluate("() => document.querySelectorAll('[data-card]').length")
+        p.context.close()
+        self.assertGreater(n1, n0, f"选分类后没有补齐（还是 {n0} 张）")
 
     # -------------------------------------------------------------- 时间戳
     def test_clicking_a_timestamp_does_something(self):

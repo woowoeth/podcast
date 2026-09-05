@@ -88,7 +88,11 @@ NEVER = (
 # 用字风格：台湾教育部把「佈」并入「布」
 POST = [("佈", "布")]
 
-FONT = [("Noto+Serif+SC", "Noto+Serif+TC"), ("Noto Serif SC", "Noto Serif TC")]
+# 字体不在这里换了。这条替换（Noto Serif SC → TC）写于还在引 Google Fonts
+# 的时候，现在产物里 **0 次命中** —— 站点改用系统 CJK 字体之后它就成了死代码。
+# 繁体的字体栈现在写在 assets/site.css 的 html[lang="zh-Hant"] 里，
+# 三棵树共用同一份 CSS，不需要谁去替换谁。
+FONT = []
 
 # 语言标记：繁体页必须自报繁体，否则搜索引擎和分享卡片都按简体归类。
 # 这几处转换转不到（它们是标记不是正文），只能显式替换。
@@ -113,6 +117,11 @@ ATTR = re.compile(r'\b(href|src|action|srcset|content|url)\s*=\s*"([^"]*)"')
 SKIP_DIRS = {".git", ".github", "pipeline", "scripts", "tests", "data",
              "node_modules", "__pycache__", "tw", "en"}
 SKIP_FILES = {"robots.txt", "CNAME", "LICENSE"}
+# **assets 三棵树共用一份。** 原来整个目录被复制进 tw/（17 MB：字体、
+# 192 张封面、192 张卡片变体），而两份的差别只有 CSS 注释被转成了繁体——
+# 236 行注释，换来仓库里多背 17 MB，还让同一张图在两个 URL 下各缓存一次。
+# 配套：_retarget 不重写 /podcast/assets/ 开头的地址（见那里的说明）。
+SKIP_ASSET_DIR = "assets"
 TEXT_EXT = {".html", ".js", ".json", ".txt", ".xml", ".css", ".svg"}
 BIN_EXT = {".png", ".jpg", ".jpeg", ".ico", ".webp", ".gif", ".woff", ".woff2"}
 # 这些文件里的地址在元素文本和裸行里，不是属性，得整体替换
@@ -190,9 +199,16 @@ def _retarget(s, base):
             sis = _sister(bare)
             if sis is not None:
                 return '%s="%s"' % (name, val.replace(bare, sis, 1))
+        # /podcast/assets/ 是三棵树共用的一份，不重写。它们要么带内容指纹
+        # （site.css?v=…），要么文件名本身就是内容哈希（封面），所以共用不会
+        # 拿到过期版本；而各复制一份的代价是 17 MB 和"同一张图缓存两次"。
+        if val.startswith(base + "/assets/"):
+            return '%s="%s"' % (name, val)
         if val.startswith(base + "/") and not val.startswith(base + "/tw/"):
             val = base + "/tw" + val[len(base):]
-        elif val.startswith("https://ourword.ai" + base + "/") and "/tw/" not in val:
+        elif (val.startswith("https://ourword.ai" + base + "/")
+              and "/tw/" not in val
+              and not val.startswith("https://ourword.ai" + base + "/assets/")):
             val = val.replace("https://ourword.ai" + base + "/",
                               "https://ourword.ai" + base + "/tw/", 1)
         return '%s="%s"' % (name, val)
@@ -241,7 +257,8 @@ def build(base="/podcast"):
         # 绝不能进公开仓库），而它们是 .json，正好在拷贝白名单里。
         # 唯一拦住它们的是 .gitignore，那是一层，不是判据：繁体树是
         # **已发布站点**的字形转换，不是工作目录的镜像。
-        dn[:] = [d for d in dn if d not in SKIP_DIRS and not d.startswith(".")]
+        dn[:] = [d for d in dn if d not in SKIP_DIRS and not d.startswith(".")
+                 and not (rel == "." and d == SKIP_ASSET_DIR)]
         for f in fn:
             if f in SKIP_FILES or f.startswith("."):
                 continue
