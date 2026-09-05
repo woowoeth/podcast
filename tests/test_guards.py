@@ -920,11 +920,27 @@ class YoutubeOnlySourcesGoToTheLocalLine(unittest.TestCase):
         self.assertIn('"youtube" if "youtube.com/feeds/videos.xml"', body)
         self.assertNotIn('"kind": "rss",', body, "又写死成 rss 了")
 
-    def test_youtube_transcript_means_residential(self):
+    def test_anything_the_cloud_cannot_do_goes_to_the_local_line(self):
+        """判据从「youtube 要标」放宽到「云端做不了的都要标」。
+
+        原来只认 youtube 一种。但云端定时跑批的文稿层是 feed,notes,page
+        （不含 asr），所以**走 asr 的源同样云端做不了**；而本机 launchd 带
+        ONLY_RESIDENTIAL=1，没标的它也不挑。两条一夹 = 永远零产出。
+        实测一轮加进来的 17 档新源里 13 档是这个情况，全靠手工补。
+
+        钉的是行为不是字面：从 curate 真跑一次分支判断。
+        """
         src = (ROOT / "pipeline" / "curate.py").read_text()
         i = src.index("def discover(")
-        self.assertIn('c.get("transcript_source") == "youtube"', src[i:])
-        self.assertIn('entry["residential"] = True', src[i:])
+        body = src[i:]
+        m = re.search(r'if c\.get\("transcript_source"\) in \(([^)]*)\):', body)
+        self.assertIsNotNone(
+            m, "discover 里没有「按取稿路径决定 residential」这段判断")
+        allow = {x.strip().strip('"\'') for x in m.group(1).split(",") if x.strip()}
+        for need in ("youtube", "asr"):
+            self.assertIn(need, allow,
+                          f"取稿走 {need} 的源云端做不了，必须标 residential")
+        self.assertIn('entry["residential"] = True', body)
 
     def test_probe_lets_youtube_candidates_use_captions(self):
         # 不放行 youtube 层，YouTube 源的探测取不到任何内容，评分又退回凭标题猜
