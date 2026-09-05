@@ -2,10 +2,10 @@
  "slug": "2026-09-03-oxide-ai-检测不是查文风-是查信息有没有注水",
  "of": "oxide-c2c95b6055",
  "source_lang": "en",
- "title": "AI Detection Isn't About Style—It's About Whether the Information Is Watered Down",
- "dek": "The flaw in AI writing isn't style; it's the 'information inflation' where output exceeds input. A hedge fund titan's public admission about his AI-written op-ed became a turning point—Pangram's fourth generation has a false positive rate of about 1 in 24,000, and the more models converge, the easier they are to catch.",
- "why": "The CEO himself breaks down the classifier's principles, how training data is created, and the false positive rate metrics, while also debunking the astroturfing tactics behind online 'false accusation' complaints. For decision-makers judging the authenticity of AI writing, this is high-density information.",
- "who": "Product and tech leads in content moderation, recruitment screening, and educational anti-cheating, as well as content teams that heavily use LLMs to produce text and need to know where the boundaries lie.",
+ "title": "AI Detection Isn't About Style—It's About Information Inflation",
+ "dek": "The tell of AI writing isn't style but the 'information inflation' where output exceeds input. A hedge fund titan's public admission about his AI-written op-ed became a turning point—Pangram's fourth generation has a false positive rate of about 1 in 24,000, and the more models converge, the easier they are to catch.",
+ "why": "The CEO himself breaks down the classifier's principles, how training data is constructed, the false positive rate methodology, and even debunks a common type of 'false accusation' complaint as astroturfing. For decision-makers judging the authenticity of AI writing, the information density is high.",
+ "who": "Product and technology leads in content moderation, recruitment screening, and educational anti-cheating, as well as content teams that heavily use LLMs to produce text and need to know where the boundaries lie.",
  "skip": "The Shell Game podcast and philosophical digression from 53:00-57:00 can be skipped without missing the main thread.",
  "tags": [
   "AI detection",
@@ -16,42 +16,42 @@
  ],
  "points": [
   {
-   "h": "The real question isn't 'did you use AI' but where the ideas came from",
-   "body": "Event: Stanley Druckenmiller published an op-ed in WSJ that was clearly AI-written; someone ran it through Pangram and got a 100% AI score. The turning point: he didn't hide it, openly admitted 'I'm essentially not a good writer, I just used AI,' and WSJ refused to retract. Bryan pushed further: since he admitted it, show the prompt. 'Did you use AI' is a false dichotomy; the real question is where the ideas came from—whether it's 'help me write an op-ed against the Treasury's action' or 'here are my five pages of notes, help me polish them into an essay.'"
+   "h": "'Did you use AI?' is the wrong question—ask where the ideas came from",
+   "body": "Event: Stanley Druckenmiller published an op-ed in the WSJ that was clearly AI-written to any discerning eye; someone ran it through Pangram and got a 100% AI score. The turning point is that he didn't hide it—he openly admitted, 'I'm essentially not a good writer, I just used AI,' and the WSJ refused to retract it. Bryan pushed further: since he admitted it, show the prompt. 'Did you use AI?' is a false dichotomy; the real question is where the ideas came from—is it 'help me write an op-ed against the Treasury's action' or 'here are my five pages of notes, help me polish them into an essay'?"
   },
   {
    "h": "Detecting AI is theoretically impossible, but practically sufficient",
-   "body": "In 2023, Max asked research friends whether AI text could be detected; the unanimous answer was 'impossible, don't try, and models will only get stronger.' Pangram's response was to abandon theoretical counterexamples (like 'have ChatGPT paraphrase any text to disprove it') and focus only on practical scenarios: when the input information is less than the output, that's a trace of AI involvement, which Bryan calls 'word inflation.' This definition also explains why early Yelp/Amazon fake reviews didn't become a breakthrough—platforms felt AI reviews were only 3% and not worth worrying about."
+   "body": "In 2023, Max asked research friends whether AI text could be detected; the unanimous answer was 'impossible, don't try, and models will only get stronger.' Pangram's response was to abandon theoretical counterexamples (like 'have ChatGPT paraphrase any text to disprove it') and focus only on practical scenarios: when the information input is less than the output, that's a trace of AI involvement, which Bryan calls word inflation. This definition also explains why early Yelp/Amazon fake reviews didn't become a breakthrough—platforms felt AI reviews were only 3% and not worth worrying about."
   },
   {
-   "h": "Catching AI isn't about em dashes; it's about synthetic mirroring",
-   "body": "Pangram is a classifier model, not a surface-rule detector like em dash checkers. The approach: strip the 'predict next token' head from an open-source LLM and replace it with a classification head that outputs a 0-15 AI involvement score. Training data is created via 'synthetic mirroring': take human-written articles, have an LLM compress them into prompts (like 'write a 200-word piece covering these three points'), then feed those to random frontier models to get a human/AI pair on the same topic. The second layer uses editing prompts for clause-level annotation: unchanged parts are 'human,' modified parts are 'AI-assisted,' and entirely new sentences are 'AI-generated.'"
+   "h": "Catching AI isn't about em dashes—it's about synthetic mirroring",
+   "body": "Pangram is a classifier model, not a surface-rule detector like em dash checkers. The approach: take an open-source LLM, cut off the 'predict next token' head, and replace it with a classification head that outputs a 0-15 AI involvement score. Training data is generated via 'synthetic mirroring': take human-written articles, have an LLM compress them into prompts (like 'write a 200-word piece covering these three points'), then feed those to random frontier models to get a human/AI pair on the same topic. The second layer is editing prompts, with clause-level annotation: unchanged parts are human, modified parts are AI-assisted, and entirely new sentences are AI-generated."
   },
   {
    "h": "A detector's lifeline is false positive rate, not accuracy",
-   "body": "Pangram 4 has a false positive rate of about 1 in 24,000, measured by running millions of pre-2022 documents (when AI ghostwriting was nearly impossible); the false negative rate is about 1 in 300, measured by regenerating with frontier models from real user prompts in WildChat. Not perfect, but the direction is right. Bryan's experience is that false positives are extremely low, and that's the lifeline for whether the product can be seriously used. Pangram 4's step change came from switching from a 512-token window to token-level output: even a fully human-written document with two AI sentences in the middle can be pinpointed word by word."
+   "body": "Pangram 4 has a false positive rate of about 1 in 24,000, measured by running millions of pre-2022 documents (when AI ghostwriting was nearly impossible); the false negative rate is about 1 in 300, measured by regenerating with frontier models from real user prompts in WildChat. Not perfect, but the direction is right. Bryan's experience is that false positives are extremely low, and that's the lifeline for whether the product can be taken seriously. Pangram 4's step change came from switching from a 512-token window to token-level output: even a fully human-written document with two AI sentences in the middle can be pinpointed word by word."
   },
   {
-   "h": "Detectors don't need to be 100% accurate, just make cheating costly",
-   "body": "Max says education is a huge market, and this year is the first time people realize 'a truly usable AI detector exists.' The product logic isn't 100% precision but creating friction on the shortcut—making 'throwing homework at AI' go from zero cost to some cost, so students take the next easiest path, which is doing it themselves. This judgment applies equally to enterprise contexts: Oxide's hiring is a writing-intensive process, and LLM-generated boilerplate in 'why I want to join Oxide' is instantly recognizable; the detector just makes it explicit."
+   "h": "A detector needn't be 100% accurate—just make cheating costly",
+   "body": "Max says education is a huge market, and this year is the first time people realize 'a truly usable AI detector exists.' The product logic isn't 100% precision but creating friction on the shortcut—making 'throwing homework at AI' go from zero cost to some cost, so students take the next easiest path, which is doing it themselves. This judgment applies equally to enterprise: Oxide's hiring is a writing-intensive process, and LLM-generated boilerplate in 'why do you want to join Oxide' essays is instantly recognizable; the detector just makes it explicit."
   },
   {
-   "h": "Most 'false positive' sob stories are astroturfing ads",
-   "body": "Max distinguishes two types of opposition. One group genuinely wishes detectors didn't exist: it allows the AI text they produce professionally to be authoritatively identified. The other is the marketing ecosystem of 'humanizers': tools that claim to rewrite AI text to fool Turnitin or Pangram, sold to students facing plagiarism checks; they often come with their own 'AI detector' that first flags your text as AI, then sells you the rewriting service. Many Reddit posts about 'teacher falsely flagged my essay as 76% AI, gave me a zero' are astroturf for this lead generation—run them through Pangram and they're all AI-written."
+   "h": "Most 'I was falsely accused' sob stories are astroturf ads",
+   "body": "Max distinguishes two types of opposition. One group genuinely wishes detectors didn't exist: it allows the AI text they produce professionally to be authoritatively identified. The other is the marketing ecosystem of humanizers: these tools claim to rewrite AI text to fool Turnitin, Pangram, etc., and are sold to students facing plagiarism checks; they typically also come with an 'AI detector' that first flags your text as AI, then sells you the rewriting service. Many Reddit posts about 'teacher falsely flagged my essay as 76% AI, gave me a zero' are astroturf for this lead generation—run them through Pangram and they're all AI-written."
   },
   {
-   "h": "Stronger models haven't made detection harder; it's actually easier",
-   "body": "Asked if they're forever chasing frontier models, Max offers a counterintuitive take: two things happen simultaneously—models get smarter, but post-training that repeatedly teaches 'correctness' and preferences narrows the output distribution far more than in the GPT-2 era. GPT-2 tried to mimic the full distribution of human output; today's models only give 'correct' tokens, not what an ordinary person would say. His and Oxide's three hosts' shared intuition: new models speak with a 'strangely erudite' flavor, and detection hasn't gotten harder—it's actually easier to get started."
+   "h": "Stronger models haven't made detection harder—it's easier",
+   "body": "Asked if they're forever chasing frontier models, Max gives a counterintuitive take: two things happen simultaneously—models get smarter, but post-training that repeatedly teaches 'correctness' and preferences narrows the output distribution far more than in the GPT-2 era. GPT-2 tried to mimic the full distribution of human output; today's models only emit 'correct' tokens, not what an ordinary person would say. His and Oxide's three hosts' shared intuition: new models speak with a certain 'weirdly erudite' flavor, and detection hasn't gotten harder—it's actually easier to pick up."
   },
   {
-   "h": "The next battleground is how much the human actually input",
-   "body": "Pangram can already guess the model family internally: the probe's top-1 accuracy is 90%, but productization requires reaching 98%. A further direction is 'reverse Pangram'—inferring what prompt might have generated a text and how much context the model had: two key points or fifteen? The information in this dimension changes the characterization of Druckenmiller's op-ed completely—giving five pages of notes to polish is collaboration; giving five bullet points to expand is ghostwriting. The next debate in detection isn't 'did you use AI' but 'how much did the human actually input.'"
+   "h": "The next battleground: how much did the human actually input",
+   "body": "Pangram can already guess the model family internally: the probe's top-1 accuracy is 90%, but productization would require training it to 98%. Further out is 'reverse Pangram'—inferring what prompt might have generated a text and how much context the model had: two key points or fifteen? This dimension of information would change the characterization of Druckenmiller's op-ed entirely—giving five pages of notes to polish is collaboration; giving five bullet points to expand is ghostwriting. The next detection battleground isn't 'did they use AI' but 'how much did the human actually input.'"
   }
  ],
  "terms": [
   {
    "term": "synthetic mirroring",
-   "def": "A technique that reverses human articles into prompts and has models rewrite them to create paired human/AI samples."
+   "def": "A technique that reverse-engineers prompts from human articles and has models rewrite them to create human/AI sample pairs."
   },
   {
    "term": "humanizer",
@@ -63,13 +63,13 @@
   },
   {
    "term": "WildChat",
-   "def": "A dataset of real user-AI conversations that Pangram uses to estimate false negative rates."
+   "def": "A dataset of real user conversations with AI, used by Pangram to estimate false negative rates."
   }
  ],
  "facts": [
   {
    "k": "Pangram false negative rate",
-   "v": "about 1 in 300 (measured with WildChat real prompts + frontier model regeneration)"
+   "v": "about 1/300 (measured with WildChat real prompts + frontier model regeneration)"
   },
   {
    "k": "False positive rate measurement corpus size",
