@@ -648,12 +648,17 @@
     // 所以在微信裡一律走複製 + 提示右上角菜單——那才是分享到朋友圈的正路。
     var wx = inWeChat();
     if (!wx && navigator.share) {
-      // 只傳 text，不傳 url。同時傳兩個的話微信會當成兩個條目：文本正常發出，
-      // URL 另存成一個一百多字節的臨時文件跟著發過去（實測截圖裡那個
-      // "32058763b0241ae675c…" 就是它）。我們的文本末尾本來就帶鏈接，
-      // 少傳一個字段反而乾淨。title 也不傳：微信不用它，而某些客戶端會
-      // 把它當成另一個條目。
-      navigator.share({ text: text })
+      // **要傳 url。** 之前只傳 text（末尾自帶鏈接），微信收到的是一段
+      // 純文本 —— 它沒有鏈接可認，分享卡就是一塊灰色佔位，頁面上的
+      // og:image / og:title / og:description 從頭到尾沒被用到。用戶報了
+      // 好幾輪「分享圖沒顯示」，查到最後不是圖的問題，是壓根沒走鏈接卡。
+      //
+      // 當初不傳 url 的理由是「同時傳兩個微信會當成兩個條目，URL 另存成
+      // 一個臨時文件跟著發過去」—— 那是因為**文本里也帶著同一個鏈接**，
+      // 一次分享出現了兩個 URL。現在 desc 是不帶鏈接的一句簡介，
+      // 鏈接只由 url 字段出一次，重複沒有了，鏈接卡才建得起來。
+      var desc = b.getAttribute('data-share-desc') || '';
+      navigator.share({ title: title, text: desc, url: url })
         .then(function () { track('share_native'); })
         .catch(function (err) {
           // 用戶主動取消不算失敗，不該彈提示

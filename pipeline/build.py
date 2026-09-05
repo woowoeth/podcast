@@ -556,8 +556,15 @@ def share_button(text: str, *, url: str, title: str, label: str = "") -> str:
 
     文本放 data 属性里，换行写成 &#10;——这样不需要额外的 JSON 或内联脚本。
     """
+    # data-share-text 是**粘贴**用的：末尾带链接，粘到哪都成立。
+    # data-share-desc 是**系统分享面板**用的：一句简介，**不带链接** ——
+    # 链接由 navigator.share 的 url 字段单独传。两者必须分开，见 site.js
+    # 里那段说明：只传 text 的话微信收到的是一段纯文本，它没有链接可认，
+    # 于是分享卡是一块灰色占位，og:image 从头到尾用不上。
+    desc = _clip(squeeze(text.split("\n\n")[-2] if "\n\n" in text else text), 90)
     return (f'<button class="share-btn" type="button" data-share '
             f'data-share-title="{e(title)}" data-share-url="{e(url)}" '
+            f'data-share-desc="{e(desc)}" '
             f'data-share-text="{e(text).replace(chr(10), "&#10;")}" '
             f'aria-label="{T("复制分享文本")}">{ICON_SHARE}<span>{e(label or T("分享"))}</span></button>')
 
