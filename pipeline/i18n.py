@@ -20,7 +20,10 @@ import os
 LANG = os.environ.get("PODCAST_LANG", "zh")      # zh | en
 
 # 站名与口号
-NAMES = {"zh": "原声", "en": "OurWord"}
+# 英文名叫 Podcast，不叫 OurWord —— OurWord 是主站（ourword.ai）的名字。
+# 两个站都自称 OurWord 的话，页脚那行「OurWord · OurWord · 品味」读者
+# 分不出哪个是哪个，而这一行的整个作用就是分清楚。
+NAMES = {"zh": "原声", "en": "Podcast"}
 TAGLINES = {
     "zh": "世界太吵，来原声听播客",
     # 52 字符在 375px 上会折成两行。用户："移动端 slogn 换行了，简化下写法"。

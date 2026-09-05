@@ -105,15 +105,60 @@ _OG_RESIZE = (
 )
 
 
-def og_image(url: str) -> str:
-    """把封面图换成 600×600 的缩略版本，能换就换。
+def _covers() -> dict:
+    """原始封面地址 → 本站缓存文件名。由 pipeline/cache_covers.py 生成。"""
+    global _COVERS
+    if _COVERS is None:
+        f = os.path.join(ROOT, "data", "covers.json")
+        try:
+            _COVERS = json.load(open(f, encoding="utf-8"))
+        except Exception:
+            _COVERS = {}
+    return _COVERS
 
-    协议一律升到 https：数据源给的有 3 张是 http://（BBC ichef），而页面本身是 https——
-    抓图的一方（微信、各家社交）对 https 页面上的 http 图常常直接拒，分享卡就成了空白。
-    尺寸不动：og 要的是大图。
+
+_COVERS = None
+# 站点默认分享图，由 pipeline/gen_og_default.py 生成
+def _og_default():
+    """默认分享图按语言选。卡上写的是这个站自己的名字（原声 / Podcast），
+    不是主站的名字 —— 转发出去要让人认出点进来的是哪个站。"""
+    f = "og-default-en.jpg" if i18n.LANG == "en" else "og-default.jpg"
+    return "https://ourword.ai" + BASE_ZH + "/assets/" + f
+
+
+def og_image(url: str) -> str:
+    """分享卡的图。**优先用本站缓存的那一张。**
+
+    原来直接把各家播客 CDN 的地址交出去，分享到微信之后卡片上是一块灰色
+    占位图。两个原因叠在一起：抓图的一方在墙内，bbci / megaphone /
+    omnycontent 这些域名要么慢要么不通；就算通，给的也是 3000×3000、
+    1MB 以上的原图，而我们在 og 里声明的是 600×600 —— 尺寸对不上、体积又
+    大，抓取超时的概率很高。
+
+    _OG_RESIZE 那张表只覆盖两个 host，其余原样放行：用户截图里那一集正好
+    是 megaphone 的，加了参数仍然 950KB。
+
+    现在图从 ourword.ai 自己发出去（600×600 JPEG，约 40KB），尺寸和体积都
+    由我们说了算。查不到缓存的仍然退回原地址 —— 新节目在下一次缓存跑之前
+    照样有图，不会因为缓存没跑就变成没有图。
     """
+    # 没有封面、或者封面地址在源站已经 404（microbe.tv 那张），都退到站点
+    # 默认图。节目页（/s/<id>/）本来就没有 og:image —— 318 个页面分享出去
+    # 全是灰色占位，而这一步之前没有任何地方兜底。
     if not url:
-        return url
+        return _og_default()
+    # 查表要用归一化的键（去协议、去查询串）：同一张封面在不同集子里
+    # 带的查询串不一样（?aid=rss_feed / ?ixlib=…），http/https 也混着。
+    # 直接拿原地址查，一千多个页面查不中，继续指向外站。
+    key = url.split("?", 1)[0].replace("https://", "", 1).replace("http://", "", 1)
+    if key in _covers() and not _covers()[key]:
+        return _og_default()       # 记过一笔「抓不到」：源站已 404
+    name = _covers().get(key)
+    if name:
+        # og:image 必须是**绝对地址**，而且用简体的 BASE ——
+        # assets/ 只有一份在仓库根（见文件上方那条同样的说明），
+        # 用英文的 BASE 会指向 /podcast/en/assets/，那里什么都没有。
+        return f"https://ourword.ai{BASE_ZH}/assets/cover/{name}"
     if url.startswith("http://"):
         url = url.replace("http://", "https://", 1)
     if "?" in url:                     # 已经带参数的不动，免得叠加出错
@@ -122,6 +167,8 @@ def og_image(url: str) -> str:
         if host in url:
             return url + q
     return url
+
+
 
 
 _HAS_CJK = re.compile(r"[\u4e00-\u9fff]")
@@ -467,7 +514,7 @@ def head(title: str, desc: str, *, path: str = "/", image: str = "",
 <meta property="og:url" content="{e(url)}">
 {f'<meta property="og:image" content="{e(og_image(image))}">'
   f'<meta property="og:image:width" content="600">'
-  f'<meta property="og:image:height" content="600">' if image else ''}
+  f'<meta property="og:image:height" content="600">'}
 {dates}<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{e(title)}">
 <meta name="twitter:description" content="{e(desc)}">
@@ -521,23 +568,23 @@ def _clip(s: str, n: int) -> str:
 
 
 def episode_share_text(ep: dict) -> str:
-    """粘到微信里要立得住：标题、一句话、三条要点、一句金句、链接。
+    """完整标题 + 一句简介 + 链接。
 
-    控制在 500 字以内——朋友圈超长会折叠，群里刷屏也没人读。
+    第一行就是**完整的标题**，不截也不加书名号。原来写的是
+    「《标题截到 40 字》」—— 微信的分享卡拿第一行当标题显示，于是卡片上是
+    《全球最大电动…，挑战支线航空》：书名号是我们加的，中间那个省略号是
+    微信自己再折一次的。两层截断叠在一起，读者看到的标题既不完整也不好看。
+
+    正文也收短了：原来还带三条要点和一句金句，一张分享卡上放不下这些，
+    真正决定点不点的是标题和那一句简介。
     """
     d = D(ep)
     src = show_name(ep)
     mins = int((ep.get("duration") or 0) // 60)
     meta = " · ".join(x for x in (src, f"{mins} 分钟" if mins else "", f"{NAME}深读") if x)
-    lines = [f"《{_clip(d.get('title'), 40)}》", meta, ""]
+    lines = [squeeze(d.get("title") or ""), meta]
     if d.get("dek"):
-        lines += [_clip(d["dek"], 100), ""]
-    for pt in (d.get("points") or [])[:3]:
-        lines.append("· " + _clip(pt.get("h"), 34))
-    q = next((x for x in (d.get("quotes") or []) if x.get("zh") or x.get("raw")), None)
-    if q:
-        lines += ["", "「" + _clip(q.get("zh") or q.get("raw"), 76) + "」"
-                  + (f" — {spk_name(q['spk'])}" if q.get("spk") else "")]
+        lines += ["", _clip(d["dek"], 120)]
     lines += ["", ep_url(ep)]
     return "\n".join(lines)
 
@@ -607,7 +654,9 @@ def alias_page(ep: dict) -> str:
 
 def source_share_text(src: dict, rows: list[dict]) -> str:
     name = src_display(src)
-    lines = [f"《{_clip(name, 34)}》· {NAME}深读", ""]
+    # 同上：第一行是完整名字，不加书名号也不截。微信卡片拿它当标题，
+    # 我们截一次、它再折一次，读者看到的就是两头都不全的一串。
+    lines = [f"{squeeze(name)} · {NAME}深读", ""]
     if src.get("desc"):
         lines += [_clip(src_desc(src), 96), ""]
     for x in rows[:3]:
@@ -675,12 +724,21 @@ def masthead(n: int | None, *, home: bool, path: str = "/") -> str:
 
 
 def foot() -> str:
+    # 家族导航要跟着语言走。原来三项写死中文，英文页脚上挂着
+    # 「人类世界生存法则 · OurWord · 品味」—— 一个英文读者在英文页的页脚
+    # 看到两个中文站名，还有一个和本站重名。lang="zh" 只是告诉浏览器怎么
+    # 断行，不解决「这一行是给谁看的」。
+    FAM = ((("OurWord", "/en/", ""), None, ("Taste", "/skill/?lang=en", ""))
+           if i18n.LANG == "en" else
+           ((("\u4eba\u7c7b\u4e16\u754c\u751f\u5b58\u6cd5\u5219", "/", ' lang="zh"'),
+             None,
+             ("\u54c1\u5473", "/skill/", ' lang="zh"'))))
     return f"""<footer class="foot"><div class="wrap"><div class="foot-in">
 <div>{NAME} · <a href="https://ourword.ai">OurWord.ai</a>{T("的播客线。内容为原播客的中文深读，")}
 {T("版权归各节目所有；每篇都附原节目链接，请去支持原作者。")}</div>
 <div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72">\
-<a href="/" lang="zh">人类世界生存法则</a> · <a href="{BASE}/">{NAME}</a> · \
-<a href="/skill/" lang="zh">品味</a></div>
+<a href="{FAM[0][1]}"{FAM[0][2]}>{FAM[0][0]}</a> · <a href="{BASE}/">{NAME}</a> · \
+<a href="{FAM[2][1]}"{FAM[2][2]}>{FAM[2][0]}</a></div>
 <div class="links"><a href="{BASE}/">{T("首页")}</a><a href="{BASE}/sources/">{T("信源")}</a>
 <a href="{BASE}/log/">{T("更新日志")}</a><a href="{BASE}/feed.xml">RSS</a>
 <a href="{BASE}/llms.txt">llms.txt</a>
@@ -1725,6 +1783,16 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
             if d.is_dir() and d.name not in live:
                 shutil.rmtree(d)
                 log(f"  removed stale page /p/{d.name}/")
+        # /p/<slug>/e/ 从来不是合法路径。上面那次「out 在循环后指向最后一集
+        # 的目录」的遮蔽，把整套短链写进了某一集的 p/ 目录底下（271 个）。
+        # bug 修了，可写出去的目录留在仓库里 —— 不在 sitemap、没人生成、
+        # 也就没人更新：里面的 og:image 还是几个月前的外站地址。
+        # 清理放在这里，而不是手删：手删只清这一次，下次再遮蔽一遍还得再删。
+        for d in pdir.iterdir():
+            stray = d / "e"
+            if stray.is_dir():
+                shutil.rmtree(stray)
+                log(f"  removed stray /p/{d.name}/e/")
 
     # 分享短链：/e/<id>/ → /p/<中文 slug>/
     edir = out / "e"
