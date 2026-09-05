@@ -59,6 +59,37 @@ def resolve(handle: str) -> tuple[str | None, str]:
         m = CHANNEL_ID.search(html) or CHANNEL_ID2.search(html)
         if m:
             return m.group(1), url
+    # **按名字搜。** 上面三条路都要求你已经知道句柄；而人给的通常是显示名
+    # （「小Lin说」「硅谷徐老师」），中文频道尤其如此——实测一批 23 个里
+    # 18 个卡在这里。用 yt-dlp 搜一支该频道的视频，再从视频取 channel_id。
+    return _search_channel(h)
+
+
+def _search_channel(name: str) -> tuple[str | None, str]:
+    import subprocess
+    try:
+        r = subprocess.run(
+            ["yt-dlp", f"ytsearch3:{name}", "--flat-playlist", "--no-warnings",
+             "--socket-timeout", "30", "--print", "%(channel_id)s\t%(channel)s"],
+            capture_output=True, text=True, timeout=180)
+    except Exception:
+        return None, ""
+    import unicodedata
+
+    def norm(x: str) -> str:
+        return "".join(c for c in unicodedata.normalize("NFKC", x or "").lower()
+                       if c.isalnum())
+    want = norm(name)
+    for line in (r.stdout or "").strip().split("\n"):
+        parts = line.split("\t")
+        if len(parts) < 2 or not parts[0].startswith("UC"):
+            continue
+        cid, chan = parts[0], parts[1]
+        # **频道名要对得上**，否则搜「小Lin说」可能返回某个转载号。
+        # 宽松匹配：一方包含另一方即可（频道名常带后缀）。
+        c = norm(chan)
+        if want and c and (want in c or c in want):
+            return cid, f"搜索命中频道「{chan}」"
     return None, ""
 
 
@@ -75,7 +106,7 @@ def _known_channels() -> dict:
     return out
 
 
-def check(handle: str, cat: str = "ai") -> dict:
+def check(handle: str, cat: str = "ai", captions: bool = True) -> dict:
     row = {"handle": handle, "verdict": "找不到频道", "note": ""}
     cid, how = resolve(handle)
     if not cid:
@@ -114,6 +145,13 @@ def check(handle: str, cat: str = "ai") -> dict:
     if age > 60:
         row.update(verdict="太安静", note=f"{age} 天没更新")
         return row
+    if not captions:
+        # 云端机房 IP 取不到 YouTube 字幕（会被判成机器人索要 cookie），
+        # 在那里验字幕只会全部报「没有字幕」——那是噪音不是信号。
+        # 所以云端只查「频道还在不在、还更不更新」，字幕留给本机线。
+        row.update(verdict="频道健康", note=f"{len(eps)} 支 · 最新 {latest}"
+                                          f"（没验字幕）")
+        return row
     # **验字幕**：这才是走 YouTube 的全部理由
     got, words = 0, 0
     for ep in eps[:SAMPLE]:
@@ -140,7 +178,7 @@ def check(handle: str, cat: str = "ai") -> dict:
     return row
 
 
-ORDER = ["可收", "没有字幕", "太安静", "已在册",
+ORDER = ["可收", "频道健康", "没有字幕", "太安静", "已在册",
          "feed 拉不动", "feed 是空的", "找不到频道"]
 
 
@@ -150,6 +188,9 @@ def main() -> int:
     ap.add_argument("--json", help="从 JSON 读句柄列表")
     ap.add_argument("--cat", default="ai")
     ap.add_argument("--out", help="把「可收」的写成 curate --from-feeds 的输入")
+    ap.add_argument("--no-captions", action="store_true",
+                    help="只查频道在不在、更新健不健康，不验字幕（云端用："
+                         "机房 IP 取不到字幕，验了只会全报没有）")
     a = ap.parse_args()
     todo = list(a.handles)
     if a.json:
@@ -159,7 +200,7 @@ def main() -> int:
     rows = []
     for i, h in enumerate(todo, 1):
         log(f"[{i}/{len(todo)}] {h}")
-        r = check(h, a.cat)
+        r = check(h, a.cat, captions=not a.no_captions)
         rows.append(r)
         print(f"    {r['verdict']:10} {r.get('note', '')}")
     unknown = sorted({r["verdict"] for r in rows} - set(ORDER))

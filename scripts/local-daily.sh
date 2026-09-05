@@ -145,6 +145,24 @@ export LLM_MODEL
   # 新集要译成英文才会进 /en/。**每条发布线都要接**——原来只有云端日更接了，
   # 本机线（住宅 IP 那条，中文播客主要靠它）发的内容在英文站上一直缺。
   # 失败不阻塞：没译的不渲染，宁可少几篇也不要中英混排。
+  # ---- 每周一趟：YouTube 观察名单 ----
+  # 只有这条线取得到 YouTube 字幕（住宅 IP；云端机房 IP 会被判成机器人）。
+  # 而字幕是走 YouTube 的**全部理由**：全站 158 篇文稿走 ASR，每集都要花钱
+  # 转写，走字幕的一分钱不花。
+  # 每周一次而不是每天：观察名单变动慢，而每次要对几十个频道各取三支视频的
+  # 字幕，跑一趟不便宜。用 ISO 周数取模，保证一周只落一次。
+  if [ "$(date +%u)" = "1" ] && [ ! -f "$REPO/.cache/yt-week-$(date +%G%V)" ]; then
+    echo "===== YouTube 观察名单（每周一趟）====="
+    mkdir -p "$REPO/.cache"
+    if python3 pipeline/ytsource.py --json data/yt-watchlist.json \
+         --out "$REPO/.cache/yt-cand.json"; then
+      # 找得到、有字幕的送进统一评分（密度／补位／可核对），7 分以上才入库
+      python3 pipeline/curate.py --discover 7 \
+        --from-feeds "$REPO/.cache/yt-cand.json" || true
+    fi
+    touch "$REPO/.cache/yt-week-$(date +%G%V)"
+  fi
+
   python3 pipeline/transsources.py || true
   python3 pipeline/transspeakers.py || true
   # 译到没有待译为止：三棵树要同一次推送一起上线，

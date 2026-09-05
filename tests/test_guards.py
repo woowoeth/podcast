@@ -903,9 +903,16 @@ class CandidatePoolIsNotJustPopularity(unittest.TestCase):
         sig = inspect.signature(curate.probe_candidate)
         self.assertIn("feed", sig.parameters)
         src = (ROOT / "pipeline" / "curate.py").read_text()
-        # 两条入口共用同一份度量，否则迟早只改一份
-        self.assertIn("def _measure(", src)
-        self.assertEqual(src.count("_measure("), 3)
+        # **每条入口都走同一份度量**，否则迟早只改一份。
+        # 判据从「_measure( 出现 3 次」改成这个：数出现次数是脆的，
+        # 加第三条入口（YouTube 频道回落）就把它撞红了，而那是对的改动。
+        self.assertEqual(src.count("def _measure("), 1,
+                         "有第二份度量实现了")
+        for fn in ("probe_candidate", "_probe_youtube_channel"):
+            i = src.index(f"def {fn}(")
+            body = src[i:src.index("\ndef ", i + 1)]
+            self.assertIn("_measure(", body,
+                          f"{fn} 没走共用的 _measure —— 两份判据会长歪")
 
 
 class YoutubeOnlySourcesGoToTheLocalLine(unittest.TestCase):
@@ -4303,3 +4310,112 @@ class SourceEvaluatorMustKnowEveryTranscriptPath(unittest.TestCase):
         # 定时跑批不含 asr 这一层，也是前提之一
         self.assertIn('TIERS="feed,notes,page"', y,
                       "云端定时跑批的文稿层变了 —— 重看 asr 源的路由")
+
+
+class DiscoveryMustTryYoutubeWhenItunesFails(unittest.TestCase):
+    """iTunes 找不到的线索要去 YouTube 找频道。
+
+    为什么这条重要：线索多半来自我们自己文章里提到的节目和主讲人，而这类
+    名字在 iTunes 上经常搜不到——实测一批 51 个中文候选里 **24 个卡在这儿**，
+    一批 32 个英文频道里有 17 个 iTunes 上根本没有对应播客。
+    而 YouTube 上不但有，**字幕还是免费的**：全站 158 篇文稿走 ASR
+    （每集都花钱转写），走 YouTube 字幕的那些一分钱不花。
+
+    顺序不能反：先 iTunes 后 YouTube。播客 RSS 拿到的是节目本体，
+    YouTube 搜索可能命中剪辑号——dwarkesh 那次就把片花挂上去了，
+    页面上每个时间戳都跳错。
+    """
+
+    @staticmethod
+    def _func(src, name):
+        """只取这个函数自己的正文。
+
+        第一版切到「下一个 def _measure」，把紧随其后的
+        _probe_youtube_channel **定义**也包了进来，于是把调用换成
+        `return None` 之后检查照样通过——匹到的是定义不是调用。
+        """
+        i = src.index(f"def {name}(")
+        j = src.index("\ndef ", i + 1)
+        return src[i:j]
+
+    def test_probe_candidate_falls_back_to_youtube(self):
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        body = self._func(src, "probe_candidate")
+        if "_probe_youtube_channel(" not in body:
+            self.fail("probe_candidate 在 iTunes 落空后直接 return None —— "
+                      "iTunes 搜不到的名字就永远进不来了")
+        # 顺序：YouTube 那一路必须在 iTunes 循环之后
+        self.assertGreater(body.index("_probe_youtube_channel("),
+                           body.index("itunes.apple.com/search"),
+                           "YouTube 回落排在了 iTunes 之前 —— "
+                           "会把剪辑号当成节目本体")
+
+    def test_youtube_probe_allows_the_caption_tier(self):
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        body = self._func(src, "_probe_youtube_channel")
+        import re as _re
+        m = _re.search(r"allow=\(([^)]*)\)", body)
+        self.assertIsNotNone(m, "_probe_youtube_channel 没有显式给 allow")
+        tiers = {x.strip().strip('"\'') for x in m.group(1).split(",") if x.strip()}
+        self.assertIn("youtube", tiers,
+                      "YouTube 频道候选不放行字幕层，探测会取不到任何内容，"
+                      "评分退回凭标题猜")
+
+    def test_ytsource_verifies_captions_not_just_existence(self):
+        """ytsource 的判据必须是「有够密的字幕」，不是「频道存在」。
+
+        走 YouTube 的**全部理由**就是字幕。频道找得到但没字幕的，
+        收进来和收一个取不到文稿的源没有区别。
+        """
+        src = (ROOT / "pipeline" / "ytsource.py").read_text()
+        self.assertIn("MIN_WORDS", src, "没有字幕密度下限")
+        self.assertIn("没有字幕", src, "没有「频道在但没字幕」这一档结论")
+        i = src.index("def check(")
+        body = src[i:src.index("ORDER = ")]
+        self.assertIn("from_youtube", body, "check() 没有真去取字幕")
+
+
+class TheWeeklyYoutubePassRunsWhereItCanWork(unittest.TestCase):
+    """YouTube 这一路要跑在取得到字幕的那条线上。
+
+    云端机房 IP 取不到 YouTube 字幕（会被判成机器人索要 cookie），在那儿验
+    字幕只会全部报「没有字幕」——那是噪音不是信号，而噪音会让人不再看输出。
+    所以拆两半：
+      云端  只查频道还在不在、还更不更新（--no-captions，任何 IP 都做得了）
+      本机  验字幕 + 送评分 + 入库（住宅 IP，每周一趟）
+    """
+
+    def test_cloud_does_not_pretend_to_check_captions(self):
+        y = (ROOT / ".github" / "workflows" / "curate.yml").read_text()
+        if "ytsource.py" not in y:
+            self.fail("周期任务里没有 YouTube 这一路")
+        i = y.index("ytsource.py")
+        self.assertIn("--no-captions", y[i:i + 300],
+                      "云端在验 YouTube 字幕 —— 机房 IP 取不到，"
+                      "只会全部报「没有字幕」，那是噪音")
+
+    def test_the_local_line_does_the_real_pass(self):
+        sh = (ROOT / "scripts" / "local-daily.sh").read_text()
+        if "ytsource.py" not in sh:
+            self.fail("本机线没有跑 YouTube 观察名单 —— "
+                      "那就没有任何一条线真的在验字幕")
+        i = sh.index("ytsource.py")
+        seg = sh[max(0, i - 600):i + 600]
+        self.assertNotIn("--no-captions", seg,
+                         "本机线也跳过了字幕检查，那这一路就没有意义了")
+        self.assertIn("curate.py", seg,
+                      "找到候选却不送评分 —— 得有人判好不好")
+        # 每周一趟，不是每天：每次要给几十个频道各取三支视频的字幕
+        self.assertIn("date +%u", seg, "没有按周设门，会每天都跑一遍")
+
+    def test_the_watchlist_exists_and_is_a_list_of_handles(self):
+        f = ROOT / "data" / "yt-watchlist.json"
+        self.assertTrue(f.exists(), "观察名单不见了，那一路会空跑")
+        rows = json.loads(f.read_text())
+        self.assertIsInstance(rows, list)
+        self.assertGreaterEqual(len(rows), 5, "观察名单太短")
+        for r in rows:
+            self.assertIsInstance(r, str)
+            self.assertNotIn(" ", r.strip(),
+                             f"{r!r} 看起来是显示名不是句柄 —— "
+                             f"解析器会先试句柄再回落到搜索，写句柄更稳")

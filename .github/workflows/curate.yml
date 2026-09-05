@@ -1,6 +1,9 @@
 name: curate sources
 
 # 信源策展：每三天复查一次。淘汰劣化源、从近期内容里挖新源、记进更新日志。
+# 三条腿：① --demote 清掉停更和劣化的；② --discover 从 Apple 榜单和我们自己
+# 文章里的线索挖新源（iTunes 搜不到的会回落到 YouTube 频道搜索）；
+# ③ 单独跑一遍 YouTube 观察名单（data/yt-watchlist.json）。
 # 三天一次而不是每天：判据是通过率和评分中位，需要样本累积；每天跑只会在噪声上动刀。
 on:
   schedule:
@@ -54,6 +57,23 @@ jobs:
           [ -z "$MIN" ] && MIN="8"
           python pipeline/curate.py $ARGS --discover "$MIN" \
             2>&1 | tee "${RUNNER_TEMP}/curate.log"
+
+      # **YouTube 这一路单独跑一遍。** 上面那轮的候选来自 Apple 榜单和我们
+      # 自己文章里的线索；这一步盯的是 YouTube 频道——字幕免费，全站 158 篇
+      # 文稿走 ASR（每集都花钱转写），走 YouTube 的一分钱不花。
+      # 名单在 data/yt-watchlist.json，改它就能调整每周盯哪些频道。
+      # 判据仍是 curate 那一套（密度／补位／可核对），ytsource 只负责
+      # 「找得到、有够密的字幕」。
+      # 云端只查观察名单里的频道**还在不在、还更不更新**——机房 IP 取不到
+      # YouTube 字幕（会被判成机器人索要 cookie），在这儿验字幕只会全报
+      # 「没有字幕」，那是噪音。字幕和入库交给本机线（scripts/local-daily.sh
+      # 里的每周一趟）。
+      - name: YouTube 观察名单还健康吗
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          python pipeline/ytsource.py --json data/yt-watchlist.json \
+            --no-captions 2>&1 | tail -40
 
       - name: Commit and push
         run: |

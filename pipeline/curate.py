@@ -665,7 +665,40 @@ def probe_candidate(name: str, itunes_id: str | None = None,
         gaps = sorted((ds[i] - ds[i + 1]).total_seconds() / 86400
                       for i in range(len(ds) - 1)) if len(ds) > 1 else []
         return _measure(cn, feed, it.get("collectionId"), eps, s)
-    return None
+    # **iTunes 找不到就去 YouTube 找频道。**
+    #
+    # 为什么加这一路：线索多半来自我们自己文章里提到的节目和主讲人，而这类
+    # 名字在 iTunes 上经常搜不到——实测一批 51 个中文候选里 24 个卡在这儿。
+    # 而 YouTube 上不但有，字幕还是免费的：全站 158 篇文稿走 ASR（每集都花钱
+    # 转写），走 YouTube 的那些一分钱不花。
+    #
+    # 只在 iTunes 这条路走完之后才试，顺序不能反：播客 RSS 拿到的是节目本体，
+    # YouTube 搜索拿到的可能是剪辑号（dwarkesh 那次就把片花挂上去了，
+    # 页面上每个时间戳都跳错）。ytsource 的频道名核对挡的就是这个。
+    return _probe_youtube_channel(name)
+
+
+def _probe_youtube_channel(name: str) -> dict | None:
+    """按名字在 YouTube 上找频道，验字幕，走同一套 _measure。"""
+    try:
+        import ytsource
+    except Exception:
+        return None
+    cid, how = ytsource.resolve(name)
+    if not cid:
+        return None
+    feed = ytsource.FEED % cid
+    s = {"id": "cand", "name": name, "feed": feed, "cat": "ai",
+         "lang": "en", "kind": "youtube"}
+    try:
+        eps = feeds.fetch(s, cache_ttl=3600)
+    except Exception:
+        return None
+    if not eps:
+        return None
+    log(f"    {name[:26]:<28} iTunes 没有，YouTube 频道命中（{how}）")
+    return _measure(name, feed, None, eps, s,
+                    allow=("feed", "notes", "page", "youtube"))
 
 
 def _measure(name: str, feed: str, itunes, eps: list[dict], s: dict,
