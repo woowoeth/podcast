@@ -397,6 +397,42 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
     return "published"
 
 
+def _catchup_ids(min_eps: int = 6) -> list[str]:
+    """新加进来、还没建起档的信源 id。
+
+    **加一档源不等于它会有内容。** 三层叠加卡住了它：
+      · 回溯窗口——日更只看 4 天、快车道 2 天，存量几百集碰都不碰；
+      · 打分按 tier——新源一律 tier3（25 分）对 tier1（100 分），赢不了每日预算；
+      · backfill 那条线 --skip-residential，而新源多半靠 YouTube 字幕或转写，
+        全是 residential —— 三条线没有一条在补它们。
+    实测：一轮加了 30 档源，两周后合计产出 **2 篇**，而它们 feed 里有几百集
+    （忽左忽右 637、不合时宜 287、This Week in Microbiology 363）。
+
+    判据从账本推导，不另存状态：最后一条记录是 added、且已发布篇数不足
+    min_eps 的，就算"还没建起档"。建起来之后自动退出这个集合。
+    """
+    import collections
+    ledger = DATA / "curation.json"
+    last: dict[str, str] = {}
+    try:
+        for row in json.loads(ledger.read_text()):
+            sid, kind = row.get("id"), row.get("kind")
+            if sid and kind in ("added", "removed"):
+                last[sid] = kind
+    except Exception:
+        return []
+    have: collections.Counter = collections.Counter()
+    for f in (DATA / "episodes").glob("*.json"):
+        try:
+            have[json.loads(f.read_text()).get("source_id")] += 1
+        except Exception:
+            continue
+    known = {s["id"] for s in
+             json.loads((DATA / "sources.json").read_text())["sources"]}
+    return sorted(sid for sid, kind in last.items()
+                  if kind == "added" and sid in known and have[sid] < min_eps)
+
+
 def _cats() -> list[str]:
     """分类清单只有一份出处：build.CAT_ORDER。
 
@@ -448,6 +484,9 @@ def main() -> int:
     ap.add_argument("--reconcile", action="store_true",
                     help="只把 state.json 和磁盘上的 data/episodes 对齐后退出。"
                          "推送重试时用：状态是索引，不做三方合并，从数据重建")
+    ap.add_argument("--catchup", type=int, nargs="?", const=30, metavar="DAYS",
+                    help="只跑「新加进来、还没建起档」的信源，回溯 DAYS 天"
+                         "（默认 30）。加了源就该有内容，不该等人来问。")
     ap.add_argument("--dry-run", action="store_true", help="stop before any model call")
     ap.add_argument("--no-build", action="store_true")
     a = ap.parse_args()
@@ -493,6 +532,22 @@ def main() -> int:
             "         set LLM_BASE_URL and LLM_MODEL alongside it).\n"
             "  Locally: install the claude CLI and sign in — no key needed.")
         return 2
+
+    if a.catchup:
+        ids = _catchup_ids()
+        if not ids:
+            log("没有需要建档的新信源")
+            return 0
+        # 和 --only 叠加：调用方给了 --only 就取交集，没给就全用
+        want = {x.strip() for x in (a.only or "").split(",") if x.strip()}
+        ids = [i for i in ids if not want or i in want]
+        if not ids:
+            log("指定范围内没有需要建档的新信源")
+            return 0
+        a.only = ",".join(ids)
+        a.days = max(a.days, a.catchup)
+        log(f"建档模式：{len(ids)} 档新信源还没起量，回溯 {a.days} 天\n"
+            f"  {'、'.join(ids)}")
 
     srcs = json.loads((DATA / "sources.json").read_text())["sources"]
     state = load_state()

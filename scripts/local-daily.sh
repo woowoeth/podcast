@@ -145,6 +145,13 @@ export LLM_MODEL
   # 新集要译成英文才会进 /en/。**每条发布线都要接**——原来只有云端日更接了，
   # 本机线（住宅 IP 那条，中文播客主要靠它）发的内容在英文站上一直缺。
   # 失败不阻塞：没译的不渲染，宁可少几篇也不要中英混排。
+  # ---- 新源建档 ----
+  # 加了源就该有内容，不该等人来问。residential 的那批（YouTube 字幕 / 转写）
+  # 只有这条线做得了：云端定时跑批不含 asr 且 --skip-residential。
+  # --catchup 只跑「已发布不足 6 篇的新源」，建起来就自动退出这个集合。
+  python3 pipeline/run.py --catchup 30 --only-residential --no-build \
+      --per-source 3 --limit 8 --triage-min 7 --review-min 7 || true
+
   # ---- 每周一趟：YouTube 观察名单 ----
   # 只有这条线取得到 YouTube 字幕（住宅 IP；云端机房 IP 会被判成机器人）。
   # 而字幕是走 YouTube 的**全部理由**：全站 158 篇文稿走 ASR，每集都要花钱

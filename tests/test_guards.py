@@ -4501,3 +4501,99 @@ class RemovalsMustStick(unittest.TestCase):
         loop = {k: v for k, v in n.items() if v > 1}
         self.assertFalse(loop, f"修复之后这些源又被反复移除，说明有新的东西"
                                f"在把它们加回来：{loop}")
+
+
+class NewSourcesMustGetAnArchive(unittest.TestCase):
+    """加了源就该有内容，不该等人来问。
+
+    实测过的洞：一轮加了 30 档源，两周后合计产出 **2 篇**，而它们 feed 里有
+    几百集（忽左忽右 637、不合时宜 287、This Week in Microbiology 363）。
+    三层叠加卡住的：
+      · 回溯窗口——日更只看 4 天、快车道 2 天，存量碰都不碰；
+      · 打分按 tier——新源一律 tier3（25 分）对 tier1（100 分），
+        每天预算 6-8 集，赢不了；
+      · backfill 那条线 --skip-residential，而新源多半靠 YouTube 字幕或转写、
+        全是 residential —— 三条线没有一条在补它们。
+
+    所以「加源」这个动作必须自带建档，而不是等人发现「怎么没内容」。
+    """
+
+    LINES = {"daily.yml": ".github/workflows/daily.yml",
+             "local-daily.sh": "scripts/local-daily.sh"}
+
+    def test_both_capability_halves_run_catchup(self):
+        """两半都要跑：云端做得了非住宅的，本机做得了住宅的。
+
+        只接一半的后果是另一半永远建不起档——而那一半正好是新源的大多数。
+        """
+        for name, rel in self.LINES.items():
+            s = (ROOT / rel).read_text()
+            if not re.search(r"^[^#\n]*pipeline/run\.py[^\n]*--catchup", s, re.M):
+                self.fail(f"{name} 没有真的调用新源建档（注释里提到不算）—— "
+                          f"加了源它就一直是 0 篇")
+        # 取**真实调用行**，不是注释——注释里也会提到 --catchup，
+        # 第一版就匹到了说明文字，把「云端没加 --skip-residential」放了过去。
+        def call(text):
+            pat = re.compile(r"^[^#\n]*\bpython3?\s+\S*pipeline/run\.py[^\n]*"
+                             r"--catchup[^\n]*(?:\\\n[^\n]*)*", re.M)
+            m = pat.search(text)
+            return m.group(0) if m else ""
+        cloud = call((ROOT / self.LINES["daily.yml"]).read_text())
+        self.assertTrue(cloud, "daily.yml 里 --catchup 只出现在注释里")
+        self.assertIn("--skip-residential", cloud,
+                      f"云端的建档没排除 residential —— 那批它做不了，"
+                      f"白失败：{cloud[:110]}")
+        local = call((ROOT / self.LINES["local-daily.sh"]).read_text())
+        self.assertTrue(local, "local-daily.sh 里 --catchup 只出现在注释里")
+        self.assertIn("--only-residential", local,
+                      f"本机的建档没限定 residential —— 会和云端重复劳动："
+                      f"{local[:110]}")
+
+    def test_catchup_targets_only_under_covered_new_sources(self):
+        """判据从账本推导：最后一条是 added、且已发布不足 min_eps。
+
+        不能写成「所有 tier3」或一张手工名单——建起档之后要能自动退出，
+        否则这一步会永远在跑同一批源。
+        """
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index("def _catchup_ids(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        self.assertIn("curation.json", body, "没从账本取「新加的」")
+        # **测行为，不测字面**：min_eps 出现在函数签名里，只查它在不在，
+        # 把判断条件换成 True 也照样通过（反向注入时就这么漏过去了）。
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        run = importlib.import_module("run")
+        got = set(run._catchup_ids())
+        import collections
+        have = collections.Counter()
+        for f in (ROOT / "data" / "episodes").glob("*.json"):
+            try:
+                have[json.loads(f.read_text()).get("source_id")] += 1
+            except Exception:
+                continue
+        # 直接探这个参数**有没有在起作用**：门槛调到 0 应当筛掉所有已出稿的，
+        # 调到很大应当把它们全放进来。两者相等 = 门槛没被用上，
+        # 那这一步会永远在跑同一批源。
+        #
+        # 为什么不拿「出稿最多的那几档」来验：它们从来不在账本的 added 里
+        # （是原始硬编码源），所以门槛失效也照样不出现——反向注入时就这么
+        # 漏过去了。
+        loose = set(run._catchup_ids(min_eps=10 ** 6))
+        tight = set(run._catchup_ids(min_eps=0))
+        self.assertNotEqual(
+            loose, tight,
+            "min_eps 没有在起作用（门槛取 0 和取一百万结果一样）—— "
+            "建起档的源不会退出建档名单")
+        self.assertTrue(got <= loose)
+        produced = {sid for sid in loose if have[sid] >= 6}
+        self.assertFalse(got & produced,
+                         f"这些源已经建起档了，还在建档名单里："
+                         f"{sorted(got & produced)}")
+
+    def test_catchup_is_a_real_flag(self):
+        import subprocess
+        r = subprocess.run([sys.executable, "pipeline/run.py", "--help"],
+                           cwd=ROOT, capture_output=True, text=True)
+        self.assertIn("--catchup", r.stdout + r.stderr,
+                      "--catchup 不是真参数")
