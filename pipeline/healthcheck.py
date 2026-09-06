@@ -555,6 +555,97 @@ def check_language_parity(r: Report) -> None:
         r.note(line + " —— 还在一个发布周期内，下一班会补上")
 
 
+def check_source_status_is_fresh(r: Report) -> None:
+    """信源健康状态有没有在刷新。
+
+    `resolve_sources.py --check` 在本机线里是 `|| true`：它连着失败，
+    sources.json 的 status 就悄悄过期，而过期的状态和正常的长得一模一样。
+    今天那 8 档「从没体检过」（status 是空字典）就是这么积下来的——
+    它们的 feed 其实全好，zeroknowledge 有 421 集。
+
+    判据落在 generated 这个时间戳上：它不动就是没在刷新。
+    """
+    import datetime as _dt
+    try:
+        d = json.loads((DATA / "sources.json").read_text())
+    except Exception:
+        return
+    at = d.get("generated") or ""
+    try:
+        t = _dt.datetime.strptime(at[:19], "%Y-%m-%dT%H:%M:%S").replace(
+            tzinfo=_dt.timezone.utc)
+        days = (_dt.datetime.now(_dt.timezone.utc) - t).days
+    except Exception:
+        r.note("sources.json 没有 generated 时间戳，判断不了状态新不新")
+        return
+    n = len(d.get("sources") or [])
+    if days > 7:
+        r.fail(f"信源健康状态 {days} 天没刷新过（{n} 档）—— "
+               f"resolve_sources --check 在本机线里是 || true，"
+               f"连着失败不会有人知道，而过期的状态和正常的长得一样")
+    elif days > 3:
+        r.note(f"信源健康状态 {days} 天前刷新的（{n} 档）")
+    else:
+        r.good(f"信源健康状态 {days} 天内刷新过（{n} 档）")
+
+
+def check_catchup_is_working(r: Report) -> None:
+    """新源建档这条线**在产出吗**——不是"跑没跑"，是"有没有结果"。
+
+    为什么必须有这一条：建档在两条线上都是 continue-on-error / || true。
+    它失败、或者长期零产出，都不会有任何输出提到。而"加了 30 档源、两周
+    产出 2 篇"正是这么藏了两周的——sources.json 涨了、分类数涨了、
+    体检全绿，没有一个数字在说这件事。
+
+    判据落在**队列有没有在缩**：建档名单是「账本里 added、且出稿不足 6 篇」
+    推导出来的，建起来就自动退出。所以队列长期不变 = 机制没在工作，
+    不管它每天有没有"成功执行"。
+    """
+    import datetime as _dt
+    f = DATA / "catchup.json"
+    if not f.exists():
+        # 有待建档的源、却从没留过痕，说明这一步一次都没真的跑过
+        try:
+            import sys as _s
+            _s.path.insert(0, str(ROOT / "pipeline"))
+            import run as _run
+            n = len(_run._catchup_ids())
+        except Exception:
+            return
+        if n:
+            r.fail(f"{n} 档新源等着建档，而建档这一步**一次都没跑过**"
+                   f"（data/catchup.json 不存在）—— 加了源却没有内容，"
+                   f"正是这么藏住的")
+        return
+    try:
+        d = json.loads(f.read_text())
+    except Exception:
+        r.note("data/catchup.json 读不了")
+        return
+    pend, prev = d.get("pending"), d.get("prev_pending")
+    age = None
+    try:
+        t = _dt.datetime.strptime(d["at"][:19], "%Y-%m-%dT%H:%M:%S").replace(
+            tzinfo=_dt.timezone.utc)
+        age = (_dt.datetime.now(_dt.timezone.utc) - t).total_seconds() / 3600
+    except Exception:
+        pass
+    if not pend:
+        r.good("新源建档：队列空了，所有新源都起量了")
+        return
+    if age is not None and age > 48:
+        r.fail(f"新源建档 {age/24:.0f} 天没跑过了，队列里还有 {pend} 档 —— "
+               f"两条发布线里那一步是 continue-on-error，坏了不会有人知道")
+        return
+    line = f"新源建档：队列 {pend} 档，上一轮发了 {d.get('published', 0)} 篇"
+    # **队列不缩就是没在工作。** 这才是这条检查存在的理由。
+    if prev is not None and pend >= prev and not d.get("published"):
+        r.fail(line + f"（上一轮也是 {prev} 档，一篇没发）—— "
+                      f"建档没在产出，去看那一步的日志")
+    else:
+        r.note(line + (f"（上一轮 {prev} 档）" if prev is not None else ""))
+
+
 def check_asr_only_routing(r: Report) -> None:
     """只靠转写出稿、却没标 residential 的源，在定时线上两边都不做。
 
@@ -707,6 +798,8 @@ def main(argv: list[str] | None = None) -> int:
     check_source_coverage(r)
     check_language_parity(r)
     check_asr_only_routing(r)
+    check_catchup_is_working(r)
+    check_source_status_is_fresh(r)
     if a.online:
         check_online(r)
 

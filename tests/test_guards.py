@@ -4597,3 +4597,80 @@ class NewSourcesMustGetAnArchive(unittest.TestCase):
                            cwd=ROOT, capture_output=True, text=True)
         self.assertIn("--catchup", r.stdout + r.stderr,
                       "--catchup 不是真参数")
+
+
+class MechanismsMustLeaveEvidenceTheyWorked(unittest.TestCase):
+    """在两条线上被 `|| true` 包住的步骤，必须留下「有没有产出」的痕迹。
+
+    他说了四次同一件事：不要等他来问。前三次是运维故障、界面故障、
+    「加了源却没内容」。共同点不是我没做，是**我做完那一步就当完成了，
+    没有任何东西在盯它该产生的结果**。
+
+    这个仓库里所有 continue-on-error / || true 的步骤都有这个风险：
+    坏了不阻塞是对的（不该因为一步失败就停掉整条发布线），但
+    **坏了没人知道就不对**。判据：这类步骤要么自己留痕，要么有一条
+    体检读得到它的结果。
+    """
+
+    # 允许无痕的：它们的结果直接体现在别的检查里
+    #   translate    → check_language_parity 数「只有中文的篇数」
+    #   transsources → check_translation_side_tables 数缺几条
+    #   transspeakers→ 同上
+    #   indexnow     → 通知类，没有可观测的站内结果
+    #   video --audit→ check_videos 数「没核对过的篇数」
+    #   coverage     → check_source_coverage 直接读它写的文件
+    #   resolve_sources → check_source_status_is_fresh 盯 generated 时间戳
+    COVERED = {"translate.py", "transsources.py", "transspeakers.py",
+               "indexnow.py", "video.py", "coverage.py", "tw.py",
+               "build.py", "heartbeat.py", "gen_tw_allow.py",
+               "mergestate.py", "cache_covers.py", "ytsource.py",
+               "resolve_sources.py"}
+
+    def test_every_swallowed_step_is_watched(self):
+        lines = {"daily.yml": ".github/workflows/daily.yml",
+                 "fast.yml": ".github/workflows/fast.yml",
+                 "backfill.yml": ".github/workflows/backfill.yml",
+                 "local-daily.sh": "scripts/local-daily.sh"}
+        hc = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        unwatched = []
+        for name, rel in lines.items():
+            text = (ROOT / rel).read_text()
+            for m in re.finditer(
+                    r"^[^#\n]*python3?\s+\S*pipeline/(\w+\.py)[^\n]*\|\|\s*true",
+                    text, re.M):
+                tool = m.group(1)
+                if tool in self.COVERED:
+                    continue
+                # run.py --catchup 单独算：它的结果由 catchup.json + 体检盯
+                if tool == "run.py" and "--catchup" in m.group(0):
+                    if "catchup.json" in hc:
+                        continue
+                    unwatched.append(f"{name}: 建档没人盯")
+                    continue
+                if tool == "run.py":
+                    continue          # 主跑批的结果体现在「内容 N 小时前更新过」
+                unwatched.append(f"{name}: {tool}")
+        self.assertFalse(
+            unwatched,
+            "这些步骤失败或长期零产出都不会有人知道（|| true 包着、"
+            "又没有体检盯它的结果）：" + "、".join(unwatched))
+
+    def test_catchup_writes_a_trace(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        self.assertIn("_write_catchup_note", src, "建档不留痕")
+        i = src.index("def _write_catchup_note(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        for field in ("pending", "published", "prev_pending"):
+            self.assertIn(field, body,
+                          f"痕迹里没有 {field} —— 判断不了队列有没有在缩")
+        # 必须在跑完之后写，不是开头写
+        self.assertLess(src.index("_write_catchup_note(published)"),
+                        src.index('log("\\n" + " · ".join'),
+                        "留痕不在 save_state 之后")
+
+    def test_healthcheck_fails_when_the_queue_stops_shrinking(self):
+        hc = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        i = hc.index("def check_catchup_is_working(")
+        body = hc[i:hc.index("\ndef ", i + 1)]
+        self.assertIn("prev_pending", body, "没有和上一轮比")
+        self.assertIn("r.fail", body, "队列不缩只报 note，不报硬伤")

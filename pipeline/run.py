@@ -397,6 +397,32 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
     return "published"
 
 
+# 建档这一步跑完要**留痕**。它在两条线上都是 continue-on-error / || true，
+# 失败或长期零产出都不会有人知道——而"加了源却没内容"正是这么藏了两周的。
+# 痕迹里记：队列多长、这一轮发了几篇。体检读它，队列不缩就报出来。
+_catchup_note: dict = {}
+
+
+def _write_catchup_note(published: int) -> None:
+    ids = _catchup_note.get("pending")
+    if ids is None:
+        return
+    f = DATA / "catchup.json"
+    try:
+        old = json.loads(f.read_text())
+    except Exception:
+        old = {}
+    f.write_text(json.dumps({
+        "at": iso(now()),
+        "pending": len(ids),
+        "ids": ids,
+        "published": published,
+        # 上一次队列多长：体检拿它判断"这一周有没有在缩"
+        "prev_pending": old.get("pending"),
+        "prev_at": old.get("at"),
+    }, ensure_ascii=False, indent=1) + "\n")
+
+
 def _catchup_ids(min_eps: int = 6) -> list[str]:
     """新加进来、还没建起档的信源 id。
 
@@ -548,6 +574,7 @@ def main() -> int:
         a.days = max(a.days, a.catchup)
         log(f"建档模式：{len(ids)} 档新信源还没起量，回溯 {a.days} 天\n"
             f"  {'、'.join(ids)}")
+        _catchup_note["pending"] = ids
 
     srcs = json.loads((DATA / "sources.json").read_text())["sources"]
     state = load_state()
@@ -623,6 +650,7 @@ def main() -> int:
                 published += 1
             save_state(state)
     save_state(state)
+    _write_catchup_note(published)
 
     log("\n" + " · ".join(f"{k}={v}" for k, v in sorted(tally.items())) or "nothing to do")
 
