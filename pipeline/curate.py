@@ -998,6 +998,12 @@ def discover(minimum: float, dry: bool = False,
         if not c:
             log(f"    {ld['name'][:26]:<28} 找不到 feed")
             continue
+        # YouTube 源：没有字幕就不收。走 YouTube 的理由就是免费字幕，
+        # 没有字只能 ASR，贵且云端做不了。
+        if "youtube.com/feeds/videos.xml" in (c.get("feed") or "") \
+                and c.get("transcript_source") != "youtube":
+            log(f"    {c.get('name', ld['name'])[:26]:<28} 无字幕，不收")
+            continue
         if c["feed"] in known_feeds:
             log(f"    {ld['name'][:26]:<28} 已在册")
             continue

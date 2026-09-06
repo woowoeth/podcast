@@ -163,8 +163,12 @@ export LLM_MODEL
     mkdir -p "$REPO/.cache"
     if python3 pipeline/ytsource.py --json data/yt-watchlist.json \
          --out "$REPO/.cache/yt-cand.json"; then
-      python3 pipeline/curate.py --discover 7 \
-        --from-feeds "$REPO/.cache/yt-cand.json" || true
+      if grep -q '"feed"' "$REPO/.cache/yt-cand.json" 2>/dev/null; then
+        python3 pipeline/curate.py --discover 7 \
+          --from-feeds "$REPO/.cache/yt-cand.json" || true
+      else
+        echo "没有验到字幕的新频道，本轮不入库"
+      fi
     fi
     touch "$REPO/.cache/yt-day-$(date +%F)"
   fi

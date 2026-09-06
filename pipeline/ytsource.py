@@ -166,10 +166,14 @@ def check(handle: str, cat: str = "ai", captions: bool = True) -> dict:
         if not vid:
             continue
         tried += 1
-        try:
-            tr = T.from_youtube(vid, "en")
-        except Exception:
-            tr = None
+        tr = None
+        for lang in ("en", "zh-Hans", "zh-Hant", "zh", "en-US"):
+            try:
+                tr = T.from_youtube(vid, lang)
+            except Exception:
+                tr = None
+            if tr and tr.get("segments"):
+                break
         if tr and tr.get("segments"):
             n = sum(len((s.get("text") or "").split()) for s in tr["segments"])
             if n >= MIN_WORDS:
