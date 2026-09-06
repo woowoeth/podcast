@@ -1,0 +1,40 @@
+name: daily youtube source scan
+
+# 云端每天扫观察名单：频道还在不在、feed 还能不能拉。
+# 不在这里验字幕、不在这里入库——GitHub IP 会被 YouTube 挡。
+# 真正「有字幕 + 7 分以上才进 sources」在本机 local-daily.sh 每天跑。
+on:
+  schedule:
+    - cron: "10 3 * * *"      # 北京约 11:10，避开早班 digest
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: podcast-write
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python -m pip install --quiet certifi truststore
+      - name: YouTube watchlist health
+        continue-on-error: true
+        run: |
+          python pipeline/ytsource.py --json data/yt-watchlist.json \
+            --no-captions 2>&1 | tee "${RUNNER_TEMP}/yt-scan.log" | tail -50
+      - name: Commit scan log if anything changed
+        run: |
+          git config user.name podcast-bot
+          git config user.email podcast-bot@users.noreply.github.com
+          git add data/yt-watchlist.json
+          if git diff --cached --quiet; then echo "watchlist unchanged"; exit 0; fi
+          git commit -m "yt-scan: watchlist"
+          git pull --rebase --autostash origin main || true
+          git push || true

@@ -156,18 +156,17 @@ export LLM_MODEL
   # 只有这条线取得到 YouTube 字幕（住宅 IP；云端机房 IP 会被判成机器人）。
   # 而字幕是走 YouTube 的**全部理由**：全站 158 篇文稿走 ASR，每集都要花钱
   # 转写，走字幕的一分钱不花。
-  # 每周一次而不是每天：观察名单变动慢，而每次要对几十个频道各取三支视频的
-  # 字幕，跑一趟不便宜。用 ISO 周数取模，保证一周只落一次。
-  if [ "$(date +%u)" = "1" ] && [ ! -f "$REPO/.cache/yt-week-$(date +%G%V)" ]; then
-    echo "===== YouTube 观察名单（每周一趟）====="
+  # 每天扫观察名单：云端 IP 吃不到字幕，真正验字幕+入库只在本机这条线。
+  # 一天只落一次（用日期戳），避免 launchd 重试把同一批频道打两遍。
+  if [ ! -f "$REPO/.cache/yt-day-$(date +%F)" ]; then
+    echo "===== YouTube 观察名单（每日）====="
     mkdir -p "$REPO/.cache"
     if python3 pipeline/ytsource.py --json data/yt-watchlist.json \
          --out "$REPO/.cache/yt-cand.json"; then
-      # 找得到、有字幕的送进统一评分（密度／补位／可核对），7 分以上才入库
       python3 pipeline/curate.py --discover 7 \
         --from-feeds "$REPO/.cache/yt-cand.json" || true
     fi
-    touch "$REPO/.cache/yt-week-$(date +%G%V)"
+    touch "$REPO/.cache/yt-day-$(date +%F)"
   fi
 
   python3 pipeline/transsources.py || true
