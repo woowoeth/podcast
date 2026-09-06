@@ -18,7 +18,14 @@
   闸门没过        试过，选题或评审判不合格。按设计不发。
   源自己安静了    feed 好的，源自己很久没更新。不是我们的事。
 
-单独跑：python3 pipeline/coverage.py（加 --json 给别的脚本用）
+单独跑：python3 pipeline/srccoverage.py（加 --json 给别的脚本用）
+
+**为什么不叫 coverage.py**：run.py 会把 pipeline/ 插到 sys.path 最前面，
+一个叫 coverage.py 的模块就会遮住第三方的 coverage 包。而 numba
+（mlx-whisper 的依赖）里有 `import coverage` —— 它容忍这个包缺失，
+**不容忍它存在但不是那个包**。实测后果：本机转写整条死掉，而
+local_available() 把 ImportError 吞了、只在输出里写 asr=off，
+看起来像配置选择。19 档 residential 源全靠转写，一天都没产出。
 """
 from __future__ import annotations
 

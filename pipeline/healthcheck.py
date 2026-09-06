@@ -404,7 +404,7 @@ def check_source_coverage(r: Report) -> None:
     try:
         import sys as _s
         _s.path.insert(0, str(ROOT / "pipeline"))
-        import coverage as _cov
+        import srccoverage as _cov
     except Exception as ex:
         r.fail(f"覆盖率诊断跑不起来（{type(ex).__name__}）——"
                f"信源有没有被抓到就没人报了")
@@ -416,14 +416,14 @@ def check_source_coverage(r: Report) -> None:
     if broke:
         r.fail(f"{len(broke)} 档信源抓取坏了（我们的问题）："
                f"{'、'.join(x['id'] for x in broke[:6])}"
-               f" —— 跑 python3 pipeline/coverage.py 看详情")
+               f" —— 跑 python3 pipeline/srccoverage.py 看详情")
     nocheck = c.get("从没体检过") or []
     if nocheck:
         r.note(f"{len(nocheck)} 档从没体检过（status.ok 是 None，不是坏）："
                f"{'、'.join(x['id'] for x in nocheck[:6])}"
                f" —— 跑 python3 pipeline/resolve_sources.py --check")
     untried = c.get("从没被尝试过") or []
-    # 实探结果（coverage.py --probe --write 写的）：**原因是算出来的，
+    # 实探结果（srccoverage.py --probe --write 写的）：**原因是算出来的，
     # 不是一张"已知不可达"的名单**。名单会过期，而且下一个人看不出它当初
     # 为什么在名单上。Sharp Tech 就是例子：tier1、每周更新、feed 好的，
     # 却一集没出过——实探一句话说清，它公开 feed 里每一集标题都是
@@ -451,7 +451,7 @@ def check_source_coverage(r: Report) -> None:
     if t1_bad:
         r.fail(f"tier1 信源 {'、'.join(t1_bad)} feed 是新鲜的、却从没被尝试过，"
                f"而且实探也说不出原因 —— tier1 的意思是「必收」。"
-               f"跑 python3 pipeline/coverage.py --probe")
+               f"跑 python3 pipeline/srccoverage.py --probe")
     for sid, why in t1_ok:
         r.note(f"tier1 信源 {sid} 一集都出不来，原因已实探：{why}"
                f"（不是故障；要么它不该是 tier1，要么这档只能放弃）")
@@ -484,16 +484,16 @@ def check_source_coverage(r: Report) -> None:
     elif should:
         r.note(f"{len(should)} 档信源有能进候选的集但还没出过稿（分类都在轮转"
                f"清单里，是排序和每日预算的结果，不是漏）—— "
-               f"python3 pipeline/coverage.py --probe 看每一档")
+               f"python3 pipeline/srccoverage.py --probe 看每一档")
     if untried:
         r.note(f"{len(untried)} 档 feed 新鲜却从没被尝试过 —— "
-               f"python3 pipeline/coverage.py --probe 看每一档的原因")
+               f"python3 pipeline/srccoverage.py --probe 看每一档的原因")
     if probe_age is None:
         r.note("信源实探还没跑过（data/coverage.json 不存在）—— "
-               "跑 python3 pipeline/coverage.py --probe --write")
+               "跑 python3 pipeline/srccoverage.py --probe --write")
     elif probe_age > 7:
         r.note(f"信源实探是 {probe_age} 天前的，可能过期了 —— "
-               f"跑 python3 pipeline/coverage.py --probe --write")
+               f"跑 python3 pipeline/srccoverage.py --probe --write")
     r.good(f"信源覆盖：{ok}/{n} 档有产出 · "
            f"拿不到文稿 {len(c.get('拿不到文稿') or [])} 档 · "
            f"源自己安静了 {len(c.get('源自己安静了') or [])} 档")
@@ -589,6 +589,58 @@ def check_source_status_is_fresh(r: Report) -> None:
         r.good(f"信源健康状态 {days} 天内刷新过（{n} 档）")
 
 
+def check_local_asr(r: Report) -> None:
+    """本机转写能不能用——**坏了要说出来，不能只显示 asr=off**。
+
+    `transcript.local_available()` 捕获一切异常返回 False，所以
+    「没装 mlx-whisper」和「装了但 import 炸」长得完全一样，
+    而跑批输出只写 `asr=off`，看起来像配置选择。
+
+    实测过的事故（我自己一天之内造成的）：加了 `pipeline/srccoverage.py`，
+    它遮住了第三方 coverage 包；numba 容忍这个包缺失、不容忍它存在但不对，
+    于是 mlx_whisper 一 import 就炸 → 本机转写整条死掉。而它是 19 档
+    residential 源（多为中文）的**唯一**取稿路径——云端定时跑批不含 asr。
+    后果是建档队列一天也不缩，而没有一行输出提到转写坏了。
+
+    这条把「没装」和「坏了」分开：坏了报硬伤，并带上真实的报错。
+    """
+    import importlib
+    import shutil
+    try:
+        _s = __import__("sys")
+        _s.path.insert(0, str(ROOT / "pipeline"))
+        T = importlib.import_module("lib.transcript")
+    except Exception as ex:
+        r.fail(f"transcript 模块都导不进来（{type(ex).__name__}）")
+        return
+    if T.ASR_KEY:
+        r.good("转写：配了 TRANSCRIBE_API_KEY，走云端接口")
+        return
+    if not shutil.which("ffmpeg"):
+        r.note("转写：本机没有 ffmpeg，本地转写用不了"
+               "（residential 源只能靠 YouTube 字幕）")
+        return
+    try:
+        importlib.import_module("mlx_whisper")
+    except ImportError:
+        r.note("转写：没装 mlx-whisper，本地转写用不了。"
+               "residential 源里靠转写取稿的那批不会有产出")
+        return
+    except Exception as ex:
+        # **这才是要抓的那一类**：装了却坏了
+        r.fail(f"转写：mlx-whisper 装着但 import 就炸"
+               f"（{type(ex).__name__}: {str(ex)[:90]}）—— "
+               f"本机转写整条死掉，而它是 residential 源的唯一取稿路径。"
+               f"常见原因是 pipeline/ 里有模块遮住了第三方包"
+               f"（run.py 把它插在 sys.path 最前面）")
+        return
+    if not T.local_available():
+        r.fail("转写：mlx-whisper 导得进来，local_available() 却是 False —— "
+               "去看 LOCAL_ON 开关和 ffmpeg")
+        return
+    r.good("转写：本机 mlx-whisper 可用")
+
+
 def check_catchup_is_working(r: Report) -> None:
     """新源建档这条线**在产出吗**——不是"跑没跑"，是"有没有结果"。
 
@@ -623,7 +675,7 @@ def check_catchup_is_working(r: Report) -> None:
         r.note("data/catchup.json 读不了")
         return
     pend, prev = d.get("pending"), d.get("prev_pending")
-    age = None
+    age, t = None, None
     try:
         t = _dt.datetime.strptime(d["at"][:19], "%Y-%m-%dT%H:%M:%S").replace(
             tzinfo=_dt.timezone.utc)
@@ -638,9 +690,25 @@ def check_catchup_is_working(r: Report) -> None:
                f"两条发布线里那一步是 continue-on-error，坏了不会有人知道")
         return
     line = f"新源建档：队列 {pend} 档，上一轮发了 {d.get('published', 0)} 篇"
-    # **队列不缩就是没在工作。** 这才是这条检查存在的理由。
-    if prev is not None and pend >= prev and not d.get("published"):
-        r.fail(line + f"（上一轮也是 {prev} 档，一篇没发）—— "
+    # **判据要看时间跨度，不是看单轮。** 单轮零产出是正常的——闸门本来
+    # 就会拒掉大半（实测一轮 16 个候选 15 个取不到文稿）。第一版写成
+    # 「上一轮零产出就报硬伤」，刚建好就自己响了：前一轮发了 2 篇、
+    # 这一轮 0 篇，而那完全正常。一条会喊狼来了的检查比没有更糟。
+    #
+    # 真正的失效是「队列长期不缩」。所以和 prev_at 那个时间点比：
+    # 隔了 3 天以上、队列一点没缩，才是机制没在工作。
+    shrunk = prev is None or pend < prev
+    span_days = None
+    if d.get("prev_at"):
+        try:
+            t0 = _dt.datetime.strptime(d["prev_at"][:19],
+                                       "%Y-%m-%dT%H:%M:%S").replace(
+                tzinfo=_dt.timezone.utc)
+            span_days = ((t - t0).total_seconds() / 86400) if t else None
+        except Exception:
+            span_days = None
+    if not shrunk and span_days is not None and span_days >= 3:
+        r.fail(line + f"（{span_days:.0f} 天前也是 {prev} 档，一点没缩）—— "
                       f"建档没在产出，去看那一步的日志")
     else:
         r.note(line + (f"（上一轮 {prev} 档）" if prev is not None else ""))
@@ -798,6 +866,7 @@ def main(argv: list[str] | None = None) -> int:
     check_source_coverage(r)
     check_language_parity(r)
     check_asr_only_routing(r)
+    check_local_asr(r)
     check_catchup_is_working(r)
     check_source_status_is_fresh(r)
     if a.online:

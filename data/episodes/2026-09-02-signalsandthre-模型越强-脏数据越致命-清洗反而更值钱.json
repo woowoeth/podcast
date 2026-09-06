@@ -1,0 +1,204 @@
+{
+ "id": "signalsandthre-e536ad01e0",
+ "slug": "2026-09-02-signalsandthre-模型越强-脏数据越致命-清洗反而更值钱",
+ "fingerprint": "244962287f0502f3",
+ "source_id": "signalsandthre",
+ "source": "Signals and Threads",
+ "source_zh": "Signals and Threads",
+ "cat": "ai",
+ "tier": 3,
+ "lang": "en",
+ "title_original": "Wrestling the world into rows with Eric Mannes",
+ "published": "2026-09-02T17:07:00Z",
+ "duration": 5100,
+ "audio": "https://cdn.simplecast.com/media/audio/transcoded/60c74513-f6b4-4cd9-b731-9362bc93aac5/173026e7-14f0-44e7-8362-8c1923903f77/episodes/audio/group/a906f789-8787-4186-a58e-20eeb371c95a/group-item/3cf82ac6-9889-48e6-92c8-43db80866664/128_default_tc.mp3?aid=rss_feed&feed=L9810DOa",
+ "link": "https://signals-threads.simplecast.com/episodes/wrestling-the-world-into-rows-with-eric-mannes-1XzMRmb8",
+ "image": "https://image.simplecastcdn.com/images/d8aba2bf-5388-42b5-a07c-479b767dfa4a/01c9b0c4-650e-4a32-bbcc-0d90437c9183/3000x3000/afd00d08-0bba-45b9-bf55-1b5afa3d2b9b.jpg?aid=rss_feed",
+ "youtube_id": "a5eirWk7xic",
+ "video_len": 0,
+ "transcript_url": "https://www.youtube.com/watch?v=a5eirWk7xic",
+ "digest": {
+  "title": "模型越强，脏数据越致命：清洗反而更值钱",
+  "dek": "Jane Street 另类数据团队发现：数据一旦把未来信息漏进过去，越强的模型越危险；把「当时知道什么」钉死，比调模型更值钱。",
+  "why": "这集高密度讲数据工程怎么真正产生价值，后半段关于修正数据、时间戳和成本模型的机制，是多数 AI 讨论里听不到的判断。",
+  "points": [
+   {
+    "t": 126,
+    "h": "规律被发现后就会被竞争掉",
+    "body": "这是 Eric 定义的 anti-inductive environment：在交易里，你发现的模式往往很快被其他人和市场消化，然后不再有效；能当成物理定律长期积累的知识很少。也因为如此，交易数据的信噪比天然很难看——整个市场的机制就是不断把可提取的信号榨干，剩下的越来越接近随机游走。想持续赢，就要不断找新事实，而不是守着旧规律。",
+    "spk": "Eric"
+   },
+   {
+    "t": 1161,
+    "h": "价格可以为负，别把假设写死在系统里",
+    "body": "2020年4月20日，CME 上临近到期的原油期货结算价收在负值——就这么一天，最终结算价后来恢复为正。原因不是油没价值，而是交割地 Cushing 的储存空间几乎满了，没人愿意接实物。长期假设价格必为正的下单和风控系统会当场失灵：有人无法下单，有人不知怎么处理负数回报。Eric 的结论是，交易的一大部分是理解现实的笨细节：库容、合约乘数、报价单位，系统把这些细节弄对，风险上限才画得住。",
+    "spk": "Eric"
+   },
+   {
+    "t": 1953,
+    "h": "领域专家不知道好工具能多好",
+    "body": "数据与系统要真正好用，瓶颈常不在写代码，而在翻译。Eric 观察，交易员对难用流程的忍受力很高，已经被 Excel 和手工流程磨到不知道自己值得更好的工具；反过来，软件工程师若不理解交易领域，也只能按一份窄 spec 做东西。所以他的工作是把领域的真实机制讲给工程师，把「能好到什么程度」讲给交易员。Jane Street 现在每个 desk 都配了这样的 embedded developer，这个角色最初就是这么长出来的。",
+    "spk": "Eric"
+   },
+   {
+    "t": 3544,
+    "h": "停车位数量不等于销售额",
+    "body": "另类数据的经典例子是数 Walmart 停车场里的车，车上人越多代表生意越好。Eric 说这个例子其实很糟：你要推断的是消费额，车位只告诉你客流量，间接得很；Walmart 约 20% 的购物发生在线上，纽约这种城市也没停车场可数。更直接的信号在交易侧：发卡银行、Visa/Mastercard 网络、信用合作社的处理系统知道人们实际花了多少钱，可以把匿名的聚合统计卖给买方。",
+    "spk": "Eric"
+   },
+   {
+    "t": 3848,
+    "h": "修正后的数据会让回测变成时间机器",
+    "body": "做「要不要订阅这份数据」的决策时，供应商可能已经把过去的错误修正了；拿修正后的漂亮数据回测，测的不是你当年真实会收到的数据，而是后来才知道的正确答案。Eric 说这就等于在模拟自己有一台时间机器。Jane Street 的解法是保存每一份原始数据和收到的本地时间戳，之后无论做多少转换，都能重建「那一刻我们到底知道什么」。这跟怀疑交易所时间戳、只信自己数据抵达时间是一样的逻辑。",
+    "spk": "Eric"
+   },
+   {
+    "t": 4090,
+    "h": "LLM 知道未来，碰不得历史数据",
+    "body": "AI 对另类数据有两层冲击：更强的预测模型提高了好数据的价值，LLM 也让从文本里提特征变得容易。但要小心一个因果陷阱——拿最新的 LLM 去给旧文档做 featurize，它会把后来发生的事带进去：它知道 Enron 最后的下场，也可能在训练数据里见过这份财务报告的后续修订版。这等于制造了新的未来信息泄露，处理历史数据时尤其要钉死「用哪个时点的模型」。",
+    "spk": "Eric"
+   },
+   {
+    "t": 4286,
+    "h": "模型越强，数据清洗越值钱",
+    "body": "一个常见的期待是：神经网络越来越强，特征工程和人工清洗会被取代。Eric 的看法相反：模型自己能做更多事后，手工特征可以少做，但送进去的数据必须更对。如果数据没有做到 point-in-time，把未来的信息悄悄漏进过去，更强的模型会把这种问题学进去；不同模型对离群点和脏数据斑块的承受力也不一样。算下来，清洗数据的价值更高而不是更低。",
+    "spk": "Eric"
+   },
+   {
+    "t": 4594,
+    "h": "按量计费会诱导团队反复省钱",
+    "body": "Jane Street 把数据仓库做在自己机房，不纯是控制欲。Eric 的观察是：把同样的查询搬到云厂商按读取量或计算时长计价，价格高到你会觉得「这些钱够买一堆硬件了」。更重要的是成本模型的扭曲作用——按量计费会让团队不停优化账单、把工作负载改造成迁就计费的样子；自建之后，成本变成一次性硬件投入，团队把时间花在研究和查询本身，而不是省钱。",
+    "spk": "Eric"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 126,
+    "spk": "Eric",
+    "raw": "the patterns that you find often get discovered and competed away over time",
+    "zh": "你找到的那些规律，往往会在被发现之后，随竞争逐渐消失。"
+   },
+   {
+    "t": 1953,
+    "spk": "Eric",
+    "raw": "the domain experts like who are not themselves software engineers like don't understand how good things can be if we build the right software for it.",
+    "zh": "那些不是软件工程师的领域专家，真的不知道——只要我们把软件做对了，事情能好到什么程度。"
+   },
+   {
+    "t": 3544,
+    "spk": "Eric",
+    "raw": "Like the thing you're getting at is like how many people showed up which is different from how much they're spending.",
+    "zh": "你真正想衡量的是来了多少人，而这和人们花了多少钱是两回事。"
+   },
+   {
+    "t": 3848,
+    "spk": "Eric",
+    "raw": "you're not actually studying like what trades you would have done if you'd been subscribing to the data set. You're uh simulating what you would have done if you had a time machine, right?",
+    "zh": "你实际上不是在研究订阅了这个数据之后你能做的交易，而是在模拟你有一台时间机器时会做的事。"
+   },
+   {
+    "t": 4090,
+    "spk": "Eric",
+    "raw": "if you use like a really up-to-date LLM to like that knows stuff about old data and trying to, you know, use it to featurize some old data, like you're going to get very confusing things happen because the LLM is smart. It knows things about the future.",
+    "zh": "如果你用一个非常新的、还认识这些旧数据的 LLM，去给旧数据做特征提取，你会得到非常混乱的结果，因为这个 LLM 很聪明——它知道未来发生的事。"
+   },
+   {
+    "t": 4347,
+    "spk": "Eric",
+    "raw": "It seems like an enormous amount of like human judgment is incredibly important.",
+    "zh": "看起来，极其大量的判断力仍然无比重要。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "Jane Street 数据工程师数量",
+    "v": "2023 年才有第一位，如今约 20 多位",
+    "t": 2622
+   },
+   {
+    "k": "Walmart 线上购物占比",
+    "v": "约 20%",
+    "t": 3544
+   },
+   {
+    "k": "原油期货负结算事件",
+    "v": "2020 年 4 月 20 日一天收在负值，最终结算价转正",
+    "t": 1161
+   },
+   {
+    "k": "数据工程师实习生培养周期",
+    "v": "2026 面试、2027 暑期、2028 入职、2029 完整出活",
+    "t": 4960
+   },
+   {
+    "k": "desk dev 覆盖率",
+    "v": "Jane Street 每个 desk 都有嵌入式开发",
+    "t": 1405
+   }
+  ],
+  "terms": [
+   {
+    "term": "alt data",
+    "zh": "另类数据",
+    "def": "用于投资判断、但并非交易所行情等传统数据的外部数据，如卫星图和消费聚合。"
+   },
+   {
+    "term": "anti-inductive environment",
+    "zh": "反归纳环境",
+    "def": "规律被发现后会被竞争磨掉，知识难以长期积累的环境。"
+   },
+   {
+    "term": "point-in-time data",
+    "zh": "时点数据",
+    "def": "只记录「当时已经知道什么」、不含未来信息的数据。"
+   },
+   {
+    "term": "desk dev",
+    "zh": "交易台嵌入式开发",
+    "def": "嵌入交易台、兼顾领域理解与系统开发的工程师。"
+   }
+  ],
+  "who": "想建数据团队的 CTO、在评估数据供应商的量化从业者，以及相信大模型会自动清洗数据的工程师。",
+  "skip": "纯技术背景可跳至 33 分钟后的数据工程，但 19 分钟负油价别错过。",
+  "tags": [
+   "另类数据",
+   "数据工程",
+   "量化交易",
+   "Jane Street",
+   "数据质量",
+   "成本模型"
+  ],
+  "quality": {
+   "transcript_source": "youtube",
+   "transcript_detail": "en",
+   "words": 13499,
+   "wpm": 158.8,
+   "timed": true,
+   "verified_quotes": 6,
+   "grounded_facts": 5,
+   "points": 8,
+   "pruned": 0,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-09-06T08:26:13Z",
+ "triage": {
+  "score": 8.0,
+  "why": "一手访谈，拆解另类数据清洗与交易系统机制，含负油价等具体案例，可核对。",
+  "kind": "一手访谈"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 8,
+   "faithful": 9,
+   "selection": 8,
+   "concrete": 9,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点均为可核判断与机制，忠实度高，负油价与时间机器等细节具体，仅个别要点略偏转述。",
+  "worst": ""
+ },
+ "model": "openai:deepseek-reasoner"
+}

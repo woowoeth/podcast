@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>模型越强，脏数据越致命：清洗反而更值钱 — Signals and Threads · 原声</title>
+<meta name="description" content="Jane Street 另类数据团队发现：数据一旦把未来信息漏进过去，越强的模型越危险；把「当时知道什么」钉死，比调模型更值钱。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/p/2026-09-02-signalsandthre-模型越强-脏数据越致命-清洗反而更值钱/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原声">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="模型越强，脏数据越致命：清洗反而更值钱 — Signals and Threads · 原声">
+<meta property="og:description" content="Jane Street 另类数据团队发现：数据一旦把未来信息漏进过去，越强的模型越危险；把「当时知道什么」钉死，比调模型更值钱。">
+<meta property="og:url" content="https://ourword.ai/podcast/p/2026-09-02-signalsandthre-模型越强-脏数据越致命-清洗反而更值钱/">
+<meta property="og:image" content="https://image.simplecastcdn.com/images/d8aba2bf-5388-42b5-a07c-479b767dfa4a/01c9b0c4-650e-4a32-bbcc-0d90437c9183/3000x3000/afd00d08-0bba-45b9-bf55-1b5afa3d2b9b.jpg?aid=rss_feed"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-09-02T17:07:00Z">
+<meta property="article:modified_time" content="2026-09-06T08:26:13Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="模型越强，脏数据越致命：清洗反而更值钱 — Signals and Threads · 原声">
+<meta name="twitter:description" content="Jane Street 另类数据团队发现：数据一旦把未来信息漏进过去，越强的模型越危险；把「当时知道什么」钉死，比调模型更值钱。">
+<meta name="twitter:image" content="https://image.simplecastcdn.com/images/d8aba2bf-5388-42b5-a07c-479b767dfa4a/01c9b0c4-650e-4a32-bbcc-0d90437c9183/3000x3000/afd00d08-0bba-45b9-bf55-1b5afa3d2b9b.jpg?aid=rss_feed">
+<link rel="icon" type="image/svg+xml" href="/podcast/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原声" href="/podcast/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-09-02-signalsandthre-模型越强-脏数据越致命-清洗反而更值钱/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-09-02-signalsandthre-模型越强-脏数据越致命-清洗反而更值钱/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-09-02-signalsandthre-模型越强-脏数据越致命-清洗反而更值钱/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=0f99578cc9">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-09-02-signalsandthre-模型越强-脏数据越致命-清洗反而更值钱/#episode", "name": "模型越强，脏数据越致命：清洗反而更值钱", "headline": "模型越强，脏数据越致命：清洗反而更值钱", "description": "Jane Street 另类数据团队发现：数据一旦把未来信息漏进过去，越强的模型越危险；把「当时知道什么」钉死，比调模型更值钱。", "abstract": "Jane Street 另类数据团队发现：数据一旦把未来信息漏进过去，越强的模型越危险；把「当时知道什么」钉死，比调模型更值钱。", "datePublished": "2026-09-02T17:07:00Z", "dateModified": "2026-09-06T08:26:13Z", "url": "https://ourword.ai/podcast/p/2026-09-02-signalsandthre-模型越强-脏数据越致命-清洗反而更值钱/", "timeRequired": "PT85M", "partOfSeries": {"@type": "PodcastSeries", "name": "Signals and Threads", "url": "https://ourword.ai/podcast/s/signalsandthre/"}, "inLanguage": "zh-CN", "isBasedOn": "https://signals-threads.simplecast.com/episodes/wrestling-the-world-into-rows-with-eric-mannes-1XzMRmb8", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "另类数据, 数据工程, 量化交易, Jane Street, 数据质量, 成本模型, alt data, anti-inductive environment, point-in-time data, desk dev, Jane Street 数据工程师数量, Walmart 线上购物占比, 原油期货负结算事件, 数据工程师实习生培养周期, desk dev 覆盖率", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}, "associatedMedia": {"@type": "AudioObject", "contentUrl": "https://cdn.simplecast.com/media/audio/transcoded/60c74513-f6b4-4cd9-b731-9362bc93aac5/173026e7-14f0-44e7-8362-8c1923903f77/episodes/audio/group/a906f789-8787-4186-a58e-20eeb371c95a/group-item/3cf82ac6-9889-48e6-92c8-43db80866664/128_default_tc.mp3?aid=rss_feed&feed=L9810DOa"}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首页", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "Signals and Threads", "item": "https://ourword.ai/podcast/s/signalsandthre/"}, {"@type": "ListItem", "position": 3, "name": "模型越强，脏数据越致命：清洗反而更值钱"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/"><span class="wordmark">原声<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<button class="pill ghost" id="lang-toggle" type="button" data-en="" data-sc="繁體" data-tw="简体"></button>
+<button class="icon-btn" data-theme-toggle aria-label="切换深浅色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，来原声听播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/">首页</a><span class="sep">/</span>
+<a href="/podcast/s/signalsandthre/">Signals and Threads</a>
+<span class="sep">/</span><span>2026-09-02</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">Signals and Threads</span>
+<time class="date" datetime="2026-09-02T17:07:00Z">2026-09-02</time>
+<button class="share-btn" type="button" data-share data-share-title="模型越强，脏数据越致命：清洗反而更值钱" data-share-url="https://ourword.ai/podcast/e/signalsandthre-e536ad01e0/" data-share-desc="Jane Street 另类数据团队发现：数据一旦把未来信息漏进过去，越强的模型越危险；把「当时知道什么」钉死，比调模型更值钱。" data-share-text="模型越强，脏数据越致命：清洗反而更值钱&#10;Signals and Threads · 85 分钟 · 原声深读&#10;&#10;Jane Street 另类数据团队发现：数据一旦把未来信息漏进过去，越强的模型越危险；把「当时知道什么」钉死，比调模型更值钱。&#10;&#10;https://ourword.ai/podcast/e/signalsandthre-e536ad01e0/" aria-label="复制分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>模型越强，脏数据越致命：清洗反而更值钱</h1>
+<p class="dek-lead">Jane Street 另类数据团队发现：数据一旦把未来信息漏进过去，越强的模型越危险；把「当时知道什么」钉死，比调模型更值钱。</p>
+<div class="ep-meta"><span class="tag">另类数据</span><span class="tag">数据工程</span><span class="tag">量化交易</span><span class="tag">Jane Street</span><span class="tag">数据质量</span><span class="tag">成本模型</span></div>
+</div>
+<div class="player" data-player-box>
+  <button class="video-facade" data-yt="a5eirWk7xic" type="button"
+          aria-label="播放原节目视频">
+    <span class="frame">
+      <img src="https://i.ytimg.com/vi/a5eirWk7xic/hq720.jpg" alt="" loading="lazy" width="1280"
+           onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/a5eirWk7xic/hqdefault.jpg'">
+      <span class="play" aria-hidden="true"><svg viewBox="0 0 44 44" width="44" height="44" focusable="false"><circle cx="22" cy="22" r="21" fill="rgba(18,16,13,.55)" stroke="rgba(255,255,255,.92)" stroke-width="1.5"/><path d="M17 14.5 32 22 17 29.5Z" fill="#fff"/></svg></span>
+    </span>
+  </button>
+  <div class="strip" data-audio-strip hidden>
+    <p class="afallback">原视频在 YouTube 上放不出来，用音频听：</p>
+    <audio data-player controls preload="none" src="https://cdn.simplecast.com/media/audio/transcoded/60c74513-f6b4-4cd9-b731-9362bc93aac5/173026e7-14f0-44e7-8362-8c1923903f77/episodes/audio/group/a906f789-8787-4186-a58e-20eeb371c95a/group-item/3cf82ac6-9889-48e6-92c8-43db80866664/128_default_tc.mp3?aid=rss_feed&amp;feed=L9810DOa"></audio>
+    <div class="aui" data-audio-ui data-dur="5100" hidden>
+      <button class="aplay" type="button" aria-label="播放"></button>
+      <div class="abar" role="slider" tabindex="0" aria-label="播放进度"
+           aria-valuemin="0" aria-valuemax="100"><div class="afill"></div></div>
+      <span class="atime"><span class="acur">0:00</span><span class="asep">/</span><span class="atot">--:--</span></span>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="why">这集高密度讲数据工程怎么真正产生价值，后半段关于修正数据、时间戳和成本模型的机制，是多数 AI 讨论里听不到的判断。</div></section>
+
+<section class="section"><h2>核心论点 · 点时间戳可跳到原声</h2><div class="point" id="p0"><a class="ts" data-t="126" href="https://www.youtube.com/watch?v=a5eirWk7xic&amp;t=126s" target="_blank" rel="noopener">2:06</a><div><h4>规律被发现后就会被竞争掉</h4>
+<p class="body">这是 Eric 定义的 anti-inductive environment：在交易里，你发现的模式往往很快被其他人和市场消化，然后不再有效；能当成物理定律长期积累的知识很少。也因为如此，交易数据的信噪比天然很难看——整个市场的机制就是不断把可提取的信号榨干，剩下的越来越接近随机游走。想持续赢，就要不断找新事实，而不是守着旧规律。</p>
+<span class="spk">— Eric</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="1161" href="https://www.youtube.com/watch?v=a5eirWk7xic&amp;t=1161s" target="_blank" rel="noopener">19:21</a><div><h4>价格可以为负，别把假设写死在系统里</h4>
+<p class="body">2020年4月20日，CME 上临近到期的原油期货结算价收在负值——就这么一天，最终结算价后来恢复为正。原因不是油没价值，而是交割地 Cushing 的储存空间几乎满了，没人愿意接实物。长期假设价格必为正的下单和风控系统会当场失灵：有人无法下单，有人不知怎么处理负数回报。Eric 的结论是，交易的一大部分是理解现实的笨细节：库容、合约乘数、报价单位，系统把这些细节弄对，风险上限才画得住。</p>
+<span class="spk">— Eric</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="1953" href="https://www.youtube.com/watch?v=a5eirWk7xic&amp;t=1953s" target="_blank" rel="noopener">32:33</a><div><h4>领域专家不知道好工具能多好</h4>
+<p class="body">数据与系统要真正好用，瓶颈常不在写代码，而在翻译。Eric 观察，交易员对难用流程的忍受力很高，已经被 Excel 和手工流程磨到不知道自己值得更好的工具；反过来，软件工程师若不理解交易领域，也只能按一份窄 spec 做东西。所以他的工作是把领域的真实机制讲给工程师，把「能好到什么程度」讲给交易员。Jane Street 现在每个 desk 都配了这样的 embedded developer，这个角色最初就是这么长出来的。</p>
+<span class="spk">— Eric</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="3544" href="https://www.youtube.com/watch?v=a5eirWk7xic&amp;t=3544s" target="_blank" rel="noopener">59:04</a><div><h4>停车位数量不等于销售额</h4>
+<p class="body">另类数据的经典例子是数 Walmart 停车场里的车，车上人越多代表生意越好。Eric 说这个例子其实很糟：你要推断的是消费额，车位只告诉你客流量，间接得很；Walmart 约 20% 的购物发生在线上，纽约这种城市也没停车场可数。更直接的信号在交易侧：发卡银行、Visa/Mastercard 网络、信用合作社的处理系统知道人们实际花了多少钱，可以把匿名的聚合统计卖给买方。</p>
+<span class="spk">— Eric</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="3848" href="https://www.youtube.com/watch?v=a5eirWk7xic&amp;t=3848s" target="_blank" rel="noopener">1:04:08</a><div><h4>修正后的数据会让回测变成时间机器</h4>
+<p class="body">做「要不要订阅这份数据」的决策时，供应商可能已经把过去的错误修正了；拿修正后的漂亮数据回测，测的不是你当年真实会收到的数据，而是后来才知道的正确答案。Eric 说这就等于在模拟自己有一台时间机器。Jane Street 的解法是保存每一份原始数据和收到的本地时间戳，之后无论做多少转换，都能重建「那一刻我们到底知道什么」。这跟怀疑交易所时间戳、只信自己数据抵达时间是一样的逻辑。</p>
+<span class="spk">— Eric</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="4090" href="https://www.youtube.com/watch?v=a5eirWk7xic&amp;t=4090s" target="_blank" rel="noopener">1:08:10</a><div><h4>LLM 知道未来，碰不得历史数据</h4>
+<p class="body">AI 对另类数据有两层冲击：更强的预测模型提高了好数据的价值，LLM 也让从文本里提特征变得容易。但要小心一个因果陷阱——拿最新的 LLM 去给旧文档做 featurize，它会把后来发生的事带进去：它知道 Enron 最后的下场，也可能在训练数据里见过这份财务报告的后续修订版。这等于制造了新的未来信息泄露，处理历史数据时尤其要钉死「用哪个时点的模型」。</p>
+<span class="spk">— Eric</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="4286" href="https://www.youtube.com/watch?v=a5eirWk7xic&amp;t=4286s" target="_blank" rel="noopener">1:11:26</a><div><h4>模型越强，数据清洗越值钱</h4>
+<p class="body">一个常见的期待是：神经网络越来越强，特征工程和人工清洗会被取代。Eric 的看法相反：模型自己能做更多事后，手工特征可以少做，但送进去的数据必须更对。如果数据没有做到 point-in-time，把未来的信息悄悄漏进过去，更强的模型会把这种问题学进去；不同模型对离群点和脏数据斑块的承受力也不一样。算下来，清洗数据的价值更高而不是更低。</p>
+<span class="spk">— Eric</span></div></div>
+<div class="point" id="p7"><a class="ts" data-t="4594" href="https://www.youtube.com/watch?v=a5eirWk7xic&amp;t=4594s" target="_blank" rel="noopener">1:16:34</a><div><h4>按量计费会诱导团队反复省钱</h4>
+<p class="body">Jane Street 把数据仓库做在自己机房，不纯是控制欲。Eric 的观察是：把同样的查询搬到云厂商按读取量或计算时长计价，价格高到你会觉得「这些钱够买一堆硬件了」。更重要的是成本模型的扭曲作用——按量计费会让团队不停优化账单、把工作负载改造成迁就计费的样子；自建之后，成本变成一次性硬件投入，团队把时间花在研究和查询本身，而不是省钱。</p>
+<span class="spk">— Eric</span></div></div></section>
+<section class="section"><h2>原话 · 已逐字校验</h2><blockquote class="quote"><p class="raw">the patterns that you find often get discovered and competed away over time</p>
+<p class="zh">你找到的那些规律，往往会在被发现之后，随竞争逐渐消失。</p>
+<div class="attrib"><b>Eric</b><a class="ts" data-t="126" href="https://www.youtube.com/watch?v=a5eirWk7xic&amp;t=126s" target="_blank" rel="noopener">2:06</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">the domain experts like who are not themselves software engineers like don&#x27;t understand how good things can be if we build the right software for it.</p>
+<p class="zh">那些不是软件工程师的领域专家，真的不知道——只要我们把软件做对了，事情能好到什么程度。</p>
+<div class="attrib"><b>Eric</b><a class="ts" data-t="1953" href="https://www.youtube.com/watch?v=a5eirWk7xic&amp;t=1953s" target="_blank" rel="noopener">32:33</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">Like the thing you&#x27;re getting at is like how many people showed up which is different from how much they&#x27;re spending.</p>
+<p class="zh">你真正想衡量的是来了多少人，而这和人们花了多少钱是两回事。</p>
+<div class="attrib"><b>Eric</b><a class="ts" data-t="3544" href="https://www.youtube.com/watch?v=a5eirWk7xic&amp;t=3544s" target="_blank" rel="noopener">59:04</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">you&#x27;re not actually studying like what trades you would have done if you&#x27;d been subscribing to the data set. You&#x27;re uh simulating what you would have done if you had a time machine, right?</p>
+<p class="zh">你实际上不是在研究订阅了这个数据之后你能做的交易，而是在模拟你有一台时间机器时会做的事。</p>
+<div class="attrib"><b>Eric</b><a class="ts" data-t="3848" href="https://www.youtube.com/watch?v=a5eirWk7xic&amp;t=3848s" target="_blank" rel="noopener">1:04:08</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">if you use like a really up-to-date LLM to like that knows stuff about old data and trying to, you know, use it to featurize some old data, like you&#x27;re going to get very confusing things happen because the LLM is smart. It knows things about the future.</p>
+<p class="zh">如果你用一个非常新的、还认识这些旧数据的 LLM，去给旧数据做特征提取，你会得到非常混乱的结果，因为这个 LLM 很聪明——它知道未来发生的事。</p>
+<div class="attrib"><b>Eric</b><a class="ts" data-t="4090" href="https://www.youtube.com/watch?v=a5eirWk7xic&amp;t=4090s" target="_blank" rel="noopener">1:08:10</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">It seems like an enormous amount of like human judgment is incredibly important.</p>
+<p class="zh">看起来，极其大量的判断力仍然无比重要。</p>
+<div class="attrib"><b>Eric</b><a class="ts" data-t="4347" href="https://www.youtube.com/watch?v=a5eirWk7xic&amp;t=4347s" target="_blank" rel="noopener">1:12:27</a></div>
+</blockquote></section>
+<section class="section"><h2>数字与实体</h2><table class="facts"><tr><td class="k">Jane Street 数据工程师数量</td><td class="v">2023 年才有第一位，如今约 20 多位</td><td class="t"><a class="ts" data-t="2622" href="https://www.youtube.com/watch?v=a5eirWk7xic&amp;t=2622s" target="_blank" rel="noopener">43:42</a></td></tr>
+<tr><td class="k">Walmart 线上购物占比</td><td class="v">约 20%</td><td class="t"><a class="ts" data-t="3544" href="https://www.youtube.com/watch?v=a5eirWk7xic&amp;t=3544s" target="_blank" rel="noopener">59:04</a></td></tr>
+<tr><td class="k">原油期货负结算事件</td><td class="v">2020 年 4 月 20 日一天收在负值，最终结算价转正</td><td class="t"><a class="ts" data-t="1161" href="https://www.youtube.com/watch?v=a5eirWk7xic&amp;t=1161s" target="_blank" rel="noopener">19:21</a></td></tr>
+<tr><td class="k">数据工程师实习生培养周期</td><td class="v">2026 面试、2027 暑期、2028 入职、2029 完整出活</td><td class="t"><a class="ts" data-t="4960" href="https://www.youtube.com/watch?v=a5eirWk7xic&amp;t=4960s" target="_blank" rel="noopener">1:22:40</a></td></tr>
+<tr><td class="k">desk dev 覆盖率</td><td class="v">Jane Street 每个 desk 都有嵌入式开发</td><td class="t"><a class="ts" data-t="1405" href="https://www.youtube.com/watch?v=a5eirWk7xic&amp;t=1405s" target="_blank" rel="noopener">23:25</a></td></tr></table></section>
+<section class="section"><h2>术语</h2><dl class="terms"><div><dt>alt data<span>另类数据</span></dt><dd>用于投资判断、但并非交易所行情等传统数据的外部数据，如卫星图和消费聚合。</dd></div>
+<div><dt>anti-inductive environment<span>反归纳环境</span></dt><dd>规律被发现后会被竞争磨掉，知识难以长期积累的环境。</dd></div>
+<div><dt>point-in-time data<span>时点数据</span></dt><dd>只记录「当时已经知道什么」、不含未来信息的数据。</dd></div>
+<div><dt>desk dev<span>交易台嵌入式开发</span></dt><dd>嵌入交易台、兼顾领域理解与系统开发的工程师。</dd></div></dl></section>
+<section class="section"><h2>收听指南</h2>
+<div class="panel guide">
+<div><span class="k">谁该听</span><p>想建数据团队的 CTO、在评估数据供应商的量化从业者，以及相信大模型会自动清洗数据的工程师。</p></div>
+<div><span class="k">可跳过</span><p>纯技术背景可跳至 33 分钟后的数据工程，但 19 分钟负油价别错过。</p></div>
+</div></section>
+<nav class="prevnext"><a href="/podcast/p/2026-09-02-aiandi-ai-写作的护城河不是模型-而是你喂进去的独家数据/"><span class="lbl">← 更新</span><strong>AI 写作的护城河不是模型，而是你喂进去的独家数据</strong></a><a class="r" href="/podcast/p/2026-09-02-every-用-ai-写作最值钱的一步不是提示词-而是把改稿反馈沉淀成复利/"><span class="lbl">更早 →</span><strong>用 AI 写作最值钱的一步不是提示词，而是把改稿反馈沉淀成复利</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原节目</h4>
+<div class="row"><span>节目</span><span>Signals and Threads</span></div>
+<div class="row"><span>原标题</span><span>Wrestling the world into rows with Eric Mannes</span></div>
+<div class="row"><span>发布</span><span>2026-09-02</span></div>
+<div class="row"><span>时长</span><span>1:25:00</span></div>
+<a class="row" href="https://signals-threads.simplecast.com/episodes/wrestling-the-world-into-rows-with-eric-mannes-1XzMRmb8" target="_blank" rel="noopener"><span>原页面</span><span>打开 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇结构</h4><nav class="toc"><a href="#p0"><span class="t">2:06</span><span>规律被发现后就会被竞争掉</span></a>
+<a href="#p1"><span class="t">19:21</span><span>价格可以为负，别把假设写死在系统里</span></a>
+<a href="#p2"><span class="t">32:33</span><span>领域专家不知道好工具能多好</span></a>
+<a href="#p3"><span class="t">59:04</span><span>停车位数量不等于销售额</span></a>
+<a href="#p4"><span class="t">1:04:08</span><span>修正后的数据会让回测变成时间机器</span></a>
+<a href="#p5"><span class="t">1:08:10</span><span>LLM 知道未来，碰不得历史数据</span></a>
+<a href="#p6"><span class="t">1:11:26</span><span>模型越强，数据清洗越值钱</span></a>
+<a href="#p7"><span class="t">1:16:34</span><span>按量计费会诱导团队反复省钱</span></a></nav></div>
+
+<div class="panel"><h4>这篇是怎么来的</h4>
+<div class="row"><span>成稿评分</span><span>8 / 10</span></div>
+<div class="row"><span>文稿来源</span><span>YouTube 字幕</span></div>
+<div class="row"><span>文稿字数</span><span>13499</span></div>
+<div class="row"><span>语速核验</span><span>158.8 wpm</span></div>
+<div class="row"><span>逐字校验金句</span><span>6 条</span></div>
+<div class="row"><span>回溯校验数字</span><span>5 条</span></div>
+
+<p class="note">金句在逐字稿里逐字比对过，数字回原文核对过；对不上的当场删掉，不上站。
+成稿另经一道独立评审（信息密度／忠实度／选择力／具体性／中文），低于 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原声 · <a href="https://ourword.ai">OurWord.ai</a>的播客线。内容为原播客的中文深读，
+版权归各节目所有；每篇都附原节目链接，请去支持原作者。</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/" lang="zh">人类世界生存法则</a> · <a href="/podcast/">原声</a> · <a href="/skill/" lang="zh">品味</a></div>
+<div class="links"><a href="/podcast/">首页</a><a href="/podcast/sources/">信源</a>
+<a href="/podcast/log/">更新日志</a><a href="/podcast/feed.xml">RSS</a>
+<a href="/podcast/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源码</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=969b510620" defer></script>
+</body></html>

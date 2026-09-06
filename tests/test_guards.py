@@ -4621,7 +4621,7 @@ class MechanismsMustLeaveEvidenceTheyWorked(unittest.TestCase):
     #   coverage     → check_source_coverage 直接读它写的文件
     #   resolve_sources → check_source_status_is_fresh 盯 generated 时间戳
     COVERED = {"translate.py", "transsources.py", "transspeakers.py",
-               "indexnow.py", "video.py", "coverage.py", "tw.py",
+               "indexnow.py", "video.py", "srccoverage.py", "tw.py",
                "build.py", "heartbeat.py", "gen_tw_allow.py",
                "mergestate.py", "cache_covers.py", "ytsource.py",
                "resolve_sources.py"}
@@ -4674,3 +4674,127 @@ class MechanismsMustLeaveEvidenceTheyWorked(unittest.TestCase):
         body = hc[i:hc.index("\ndef ", i + 1)]
         self.assertIn("prev_pending", body, "没有和上一轮比")
         self.assertIn("r.fail", body, "队列不缩只报 note，不报硬伤")
+
+
+class PipelineModulesMustNotShadowInstalledPackages(unittest.TestCase):
+    """pipeline/ 里的模块名不许遮住装着的第三方包。
+
+    实测过的事故，而且是我自己一天之内造成的：加了 `pipeline/coverage.py`
+    （信源覆盖率诊断），而 run.py 会把 pipeline/ 插到 sys.path **最前面**。
+    numba（mlx-whisper 的依赖）里有 `import coverage` —— 它**容忍这个包
+    缺失，不容忍它存在但不是那个包**，于是 mlx_whisper 一 import 就炸。
+
+    后果链是全静默的：
+      local_available() 把 ImportError 吞了 → 返回 False
+      → 跑批输出只写 `asr=off`，看起来像配置选择
+      → 本机转写整条死掉，而它是 19 档 residential 源（多为中文）的**唯一**
+        取稿路径，云端定时跑批不含 asr
+      → 建档队列一天也不会缩，而没有任何一行输出提到转写坏了。
+
+    判据落在「会不会遮」上，不落在具体名字上：pipeline/ 下的每个模块名，
+    拿到一个干净的 sys.path 里去 import 一次，能 import 成功且不是我们
+    自己的文件，就是遮挡。
+    """
+
+    # 这些是我们自己的、且确实没有同名第三方包的（白名单只为跑得快，
+    # 不是豁免——下面那条检查对它们同样生效）
+    SKIP = {"__init__", "lib"}
+
+    def test_no_module_name_collides_with_an_installed_package(self):
+        import importlib.util
+        d = ROOT / "pipeline"
+        ours = {f.stem for f in d.glob("*.py")} - self.SKIP
+        bad = []
+        for name in sorted(ours):
+            # 在**不含 pipeline/** 的 path 下找同名模块
+            saved = list(sys.path)
+            try:
+                sys.path[:] = [p for p in sys.path
+                               if pathlib.Path(p or ".").resolve() != d.resolve()]
+                spec = importlib.util.find_spec(name)
+            except Exception:
+                spec = None
+            finally:
+                sys.path[:] = saved
+            if spec is None or not spec.origin:
+                continue
+            origin = pathlib.Path(spec.origin).resolve()
+            if d.resolve() in origin.parents or origin.parent == d.resolve():
+                continue          # 找到的还是我们自己
+            if "site-packages" in str(origin) or "dist-packages" in str(origin):
+                bad.append(f"{name}.py 遮住了 {origin}")
+        self.assertFalse(
+            bad, "pipeline/ 里这些模块名会遮住装着的第三方包 —— "
+                 "run.py 把 pipeline/ 插在 sys.path 最前面，遮挡是静默的：\n  "
+                 + "\n  ".join(bad))
+
+    def test_local_asr_availability_is_reported_not_swallowed(self):
+        """本机转写坏了要说出来，不能只显示 asr=off。
+
+        `local_available()` 捕获一切异常返回 False，所以
+        「没装 mlx-whisper」和「装了但 import 炸」长得一模一样。
+        这条要求有一个地方能把两者分开。
+        """
+        hc = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        self.assertIn("local_available", hc,
+                      "体检里没有任何地方查本机转写能不能用 —— "
+                      "它坏了只会表现成「建档队列不缩」，隔一层")
+
+    def test_optional_deps_still_import_with_pipeline_on_the_path(self):
+        """把 pipeline/ 插到最前面之后，可选依赖必须还导得进来。
+
+        上面那条按「同名第三方包装没装」查，抓不到出事的那一种：
+        真的 coverage **没装**，是 numba 可选地 `import coverage`——
+        它容忍缺失、不容忍存在但不对。所以再加一条**行为**判据：
+        跑批真实的 path 顺序下，逐个 import，除 ImportError（没装）之外
+        的任何异常都算遮挡。
+        """
+        import subprocess
+        code = (
+            "import sys, pathlib\n"
+            "sys.path.insert(0, str(pathlib.Path('pipeline').resolve()))\n"
+            "bad = []\n"
+            "for m in ('mlx_whisper', 'playwright', 'opencc', 'yt_dlp',\n"
+            "          'certifi', 'truststore', 'PIL', 'yaml'):\n"
+            "    try:\n"
+            "        __import__(m)\n"
+            "    except ImportError:\n"
+            "        pass\n"
+            "    except Exception as ex:\n"
+            "        bad.append(f'{m}: {type(ex).__name__}: {str(ex)[:70]}')\n"
+            "print('|'.join(bad))\n")
+        r = subprocess.run([sys.executable, "-c", code], cwd=ROOT,
+                           capture_output=True, text=True)
+        out = (r.stdout or "").strip()
+        self.assertFalse(
+            out, "pipeline/ 在 sys.path 最前面时，这些可选依赖 import 就炸 —— "
+                 "大概率是 pipeline/ 里有模块遮住了它们的依赖：\n  "
+                 + "\n  ".join(out.split("|")))
+
+
+class EveryReferencedScriptMustExist(unittest.TestCase):
+    """报错信息里让人跑的脚本、workflow 里调的脚本，都得真的在。
+
+    实测过的事故：我把 pipeline/coverage.py 改名成 srccoverage.py（它遮住了
+    第三方 coverage 包，害得本机转写整条死掉），改名脚本重复替换出了
+    `srcsrccoverage.py`，而**体检的提示语里还留着旧名字**。
+    提示语指向一个不存在的脚本，比没有提示更糟——照着跑的人会以为环境坏了。
+    """
+
+    PAT = re.compile(r"pipeline/[a-z_]+\.py|scripts/[a-z-]+\.(?:sh|py)")
+
+    def sources(self):
+        yield "healthcheck.py", (ROOT / "pipeline" / "healthcheck.py").read_text()
+        d = ROOT / ".github" / "workflows"
+        for f in sorted(d.glob("*.yml")):
+            yield f.name, f.read_text()
+        for f in sorted((ROOT / "scripts").glob("*.sh")):
+            yield f.name, f.read_text()
+
+    def test_no_reference_points_at_a_missing_file(self):
+        bad = []
+        for name, text in self.sources():
+            for rel in sorted(set(self.PAT.findall(text))):
+                if not (ROOT / rel).exists():
+                    bad.append(f"{name} → {rel}")
+        self.assertFalse(bad, "这些引用指向不存在的文件：\n  " + "\n  ".join(bad))
