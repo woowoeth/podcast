@@ -30,6 +30,9 @@ from lib import llm                                              # noqa: E402
 from lib.util import log, squeeze                                # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+# 不合格最多重试几次。偶发（模型只换了标点、整段没译）第二次通常就好；
+# 真不合格的（内容本身译不出来）试三次也一样，别烧钱。
+MAX_TRIES = 3
 EPS = ROOT / "data" / "episodes"
 OUT = ROOT / "data" / "en"
 DONE = ROOT / "data" / "translate-done.json"
@@ -271,23 +274,32 @@ def main() -> int:
     lock = threading.Lock()
     tally = {"done": 0, "failed": 0}
 
-    def one(ep):
+    def one(ep, attempt: int = 1):
+        """**不合格要就地重试。**
+
+        实测：有一篇模型只把标点换成半角就交回来了，一个字没译，
+        闸门拒得对——但拒完就没有下文了，那篇在站上卡了 4.7 小时只有中文，
+        直到有人手工再跑一次（第二次就成了）。偶发失败 + 不重试 = 永久缺口。
+
+        温度也跟着抬一点：同样的输入同样的温度，重试很可能复现同一个答案。
+        """
         slug = ep.get("slug") or ""
         en_src = is_english_source(ep)
         ask = ASK % ("" if en_src else QUOTE_ASK)
         body = brief(ep) + ("" if en_src else quote_brief(ep))
         need = max(4000, int(len(body) * 1.6))
+        temp = 0.2 + 0.2 * (attempt - 1)
         try:
             try:
                 r = llm.call_json(SYSTEM, body + "\n\n" + ask,
-                                  max_tokens=need, temperature=0.2, role="review")
+                                  max_tokens=need, temperature=temp, role="review")
             except Exception as ex:
                 if "内容为空" not in str(ex):
                     raise
                 with lock:
                     log(f"      额度不够（{need}），加倍重试 {slug[:34]}")
                 r = llm.call_json(SYSTEM, body + "\n\n" + ask,
-                                  max_tokens=need * 2, temperature=0.2, role="review")
+                                  max_tokens=need * 2, temperature=temp, role="review")
         except Exception as ex:
             with lock:
                 log(f"  {slug[:44]} 译失败：{type(ex).__name__}: {str(ex)[:160]}")
@@ -305,8 +317,13 @@ def main() -> int:
         r = clean(r)
         problems = check(ep, r, en_src)
         if problems:
+            if attempt < MAX_TRIES:
+                with lock:
+                    log(f"  {slug[:44]} 不合格（第 {attempt} 次），"
+                        f"换个温度重试：{problems[0][:60]}")
+                return one(ep, attempt + 1)
             with lock:
-                log(f"  {slug[:44]} 不合格，不写：")
+                log(f"  {slug[:44]} 试了 {MAX_TRIES} 次仍不合格，不写：")
                 for x in problems[:4]:
                     log(f"      {x}")
                 tally["failed"] += 1

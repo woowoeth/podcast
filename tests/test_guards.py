@@ -4798,3 +4798,43 @@ class EveryReferencedScriptMustExist(unittest.TestCase):
                 if not (ROOT / rel).exists():
                     bad.append(f"{name} → {rel}")
         self.assertFalse(bad, "这些引用指向不存在的文件：\n  " + "\n  ".join(bad))
+
+
+class TransientTranslationFailuresMustRetry(unittest.TestCase):
+    """译文不合格要就地重试，不能拒完就没下文。
+
+    实测：有一篇模型只把标点换成半角就交回来了，一个字没译。
+    质量闸门拒得对——但**拒完没有下文**，那篇在站上卡了 4.7 小时只有中文，
+    直到我手工再跑一次，第二次就成了。
+
+    偶发失败 + 不重试 = 永久缺口。而这个缺口只会表现成
+    「三语齐平」那条检查报 N 篇只有中文，看不出是偶发还是真译不出来。
+    """
+
+    def test_quality_rejection_retries(self):
+        src = (ROOT / "pipeline" / "translate.py").read_text()
+        self.assertIn("MAX_TRIES", src, "不合格没有重试上限，说明根本没重试")
+        i = src.index("problems = check(")
+        body = src[i:i + 900]
+        # 判据要落在**真的再跑一次**上。第一版查 "MAX_TRIES" 在不在，
+        # 而放弃分支的日志里也写着「试了 MAX_TRIES 次仍不合格」——
+        # 把重试条件换成 if False 照样通过。
+        self.assertRegex(body, r"return\s+one\(ep,\s*attempt\s*\+\s*1\)",
+                         "不合格分支里没有真的再跑一次")
+
+    def test_retry_changes_something(self):
+        """同样输入同样温度，重试很可能复现同一个答案 —— 那不叫重试。"""
+        src = (ROOT / "pipeline" / "translate.py").read_text()
+        i = src.index("def one(ep")
+        body = src[i:i + 1200]
+        self.assertIn("temp", body, "重试没有改变任何条件")
+        self.assertRegex(body, r"temperature=temp",
+                         "温度没有跟着重试次数变")
+
+    def test_it_still_gives_up(self):
+        """真译不出来的要停手，不能无限烧钱。"""
+        src = (ROOT / "pipeline" / "translate.py").read_text()
+        i = src.index("problems = check(")
+        body = src[i:i + 900]
+        self.assertIn('tally["failed"] += 1', body, "没有放弃分支")
+        self.assertIn("仍不合格", body)
