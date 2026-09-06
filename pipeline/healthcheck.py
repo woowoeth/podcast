@@ -589,6 +589,42 @@ def check_source_status_is_fresh(r: Report) -> None:
         r.good(f"信源健康状态 {days} 天内刷新过（{n} 档）")
 
 
+def check_token_usage(r: Report) -> None:
+    """模型用量：这几天花了多少，哪一步在涨。
+
+    原来用量只在跑批的输出里印一次、跑完就没了，所以"这周花了多少""哪一步
+    在涨"都答不上来，只能等账单。现在累计在 data/usage.json 里。
+
+    只报数不设阈值：多少算多是产品判断，不该由这里替人定。
+    但**思考 token 的占比要单独说**——实测每篇深读约 16.7k 输出 token，
+    其中 87% 是思考。那是这个站最大的一笔，也是唯一可以靠换模型直接压的。
+    """
+    f = DATA / "usage.json"
+    if not f.exists():
+        return
+    try:
+        blob = json.loads(f.read_text())
+    except Exception:
+        return
+    days = sorted(blob)[-7:]
+    if not days:
+        return
+    tin = tout = tthink = calls = 0
+    byrole = {}
+    for d in days:
+        for k, v in (blob[d] or {}).items():
+            tin += v.get("in", 0); tout += v.get("out", 0)
+            tthink += v.get("think", 0); calls += v.get("calls", 0)
+            role = k.split("/")[0]
+            byrole[role] = byrole.get(role, 0) + v.get("in", 0) + v.get("out", 0)
+    top = sorted(byrole.items(), key=lambda x: -x[1])[:3]
+    share = tthink * 100 // max(tout, 1)
+    r.good(f"模型用量（近 {len(days)} 天）：{calls} 次 · "
+           f"{(tin + tout) / 1000:.0f}k tokens · "
+           f"大头 {'、'.join(f'{k} {v//1000}k' for k, v in top)}"
+           + (f" · 思考占输出 {share}%" if tthink else ""))
+
+
 def check_local_asr(r: Report) -> None:
     """本机转写能不能用——**坏了要说出来，不能只显示 asr=off**。
 
@@ -866,6 +902,7 @@ def main(argv: list[str] | None = None) -> int:
     check_source_coverage(r)
     check_language_parity(r)
     check_asr_only_routing(r)
+    check_token_usage(r)
     check_local_asr(r)
     check_catchup_is_working(r)
     check_source_status_is_fresh(r)

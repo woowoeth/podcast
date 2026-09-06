@@ -114,6 +114,42 @@ def note_usage(role: str, model: str, u: dict | None) -> None:
     row["think"] += int(d.get("reasoning_tokens") or 0)
 
 
+def persist_usage(tag: str = "") -> None:
+    """把这一趟的用量追加到 data/usage.json。
+
+    **原来用量只活在进程里**，跑完就没了：每次跑批各印各的，没有任何地方
+    汇总，所以"这周花了多少""哪一步在涨"都答不上来——只能等账单。
+    这里按天累计，体检读它报数。
+
+    只记 token 数，不记内容。文件会一直长，所以只留最近 60 天。
+    """
+    import datetime as _dt
+    import pathlib as _p
+    if not _USE:
+        return
+    root = _p.Path(__file__).resolve().parent.parent.parent
+    f = root / "data" / "usage.json"
+    day = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%d")
+    try:
+        blob = json.loads(f.read_text())
+    except Exception:
+        blob = {}
+    d = blob.setdefault(day, {})
+    for (role, model), r in _USE.items():
+        k = f"{role}/{model}"
+        row = d.setdefault(k, {"calls": 0, "in": 0, "out": 0, "think": 0})
+        for x in ("calls", "in", "out", "think"):
+            row[x] += r[x]
+    # 只留最近 60 天，否则这个文件会一直长
+    for old_day in sorted(blob)[:-60]:
+        blob.pop(old_day, None)
+    try:
+        f.write_text(json.dumps(blob, ensure_ascii=False, indent=1,
+                                sort_keys=True) + "\n")
+    except Exception:
+        pass
+
+
 def usage_report() -> list[str]:
     if not _USE:
         return []

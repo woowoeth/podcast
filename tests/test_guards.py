@@ -4838,3 +4838,51 @@ class TransientTranslationFailuresMustRetry(unittest.TestCase):
         body = src[i:i + 900]
         self.assertIn('tally["failed"] += 1', body, "没有放弃分支")
         self.assertIn("仍不合格", body)
+
+
+class TokenUsageMustBeVisible(unittest.TestCase):
+    """模型用量要能被回看，不能只在跑批输出里闪一次。
+
+    他说「注意控制模型用量」。控制的前提是看得见——而原来用量只活在进程里，
+    每次跑批各印各的，跑完就没了：「这周花了多少」「哪一步在涨」都答不上来，
+    只能等账单。
+
+    实测一天 865k tokens，其中 digest 574k、思考占输出 82%——
+    每篇深读约 31k（思考 24k）。这个结构只有累计起来才看得出来。
+    """
+
+    def test_usage_is_persisted_after_a_run(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        self.assertIn("persist_usage", src,
+                      "跑批结束不落盘用量 —— 跑完就没了")
+        llm = (ROOT / "pipeline" / "lib" / "llm.py").read_text()
+        i = llm.index("def persist_usage(")
+        body = llm[i:llm.index("\ndef ", i + 1)]
+        for field in ("calls", "in", "out", "think"):
+            self.assertIn(f'"{field}"', body, f"台账里没有 {field}")
+        # 思考 token 必须单独记：它是最大的一笔，也是唯一能靠换模型压的
+        self.assertIn("think", body)
+        # 不能无限长
+        self.assertIn("-60", body, "台账没有保留期，文件会一直长")
+
+    def test_healthcheck_reports_usage(self):
+        hc = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        self.assertIn("def check_token_usage(", hc, "体检不报用量")
+        i = hc.index("def check_token_usage(")
+        body = hc[i:hc.index("\ndef ", i + 1)]
+        self.assertIn("思考", body, "没报思考占比 —— 那是最大的一笔")
+        # 只报数不设阈值：多少算多是产品判断
+        self.assertNotIn("r.fail", body,
+                         "用量不该由这里判定超标 —— 多少算多是产品判断")
+
+    def test_the_ledger_records_only_counts(self):
+        """台账只记数字，不记内容——它会进 git。"""
+        f = ROOT / "data" / "usage.json"
+        if not f.exists():
+            self.skipTest("还没有台账")
+        blob = json.loads(f.read_text())
+        for day, rows in blob.items():
+            self.assertRegex(day, r"^\d{4}-\d{2}-\d{2}$")
+            for k, v in rows.items():
+                self.assertLessEqual(set(v), {"calls", "in", "out", "think"},
+                                     f"{day}/{k} 里记了 token 计数之外的东西")

@@ -656,6 +656,7 @@ def main() -> int:
 
     # 用量按角色和模型分开报。"推理预算省着用"必须能核对：分段那行是不是便宜模型、
     # 思考占了出的多少，都在这里一眼看得出来。
+    llm.persist_usage()          # 用量累计到 data/usage.json，体检读它报数
     rep = llm.usage_report()
     if rep:
         log("token 用量")
