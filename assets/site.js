@@ -168,7 +168,7 @@
       pageState = 'loading';
       if (moreBtn) moreBtn.hidden = true;
       showCount();
-      fetch(pageUrl(nextPage)).then(function (r) { return r.ok ? r.json() : null; })
+      pageJson(nextPage)
         .then(function (html) {
           if (!html) throw new Error('bad payload');
           var box = document.createElement('div');
@@ -199,9 +199,30 @@
         });
     }
 
+    /* 分页 JSON 只取一次，取了就留着。串行取的代价在本机看不出来，
+       在真实网络上是每页一个来回。 */
+    var pending = Object.create(null);
+    function pageJson(n) {
+      if (!pending[n]) {
+        pending[n] = fetch(pageUrl(n))
+          .then(function (r) { return r.ok ? r.json() : null; });
+        // 失败要能重试：留着一个 rejected 的 promise 会让后续每次取都立刻失败。
+        pending[n].catch(function () { delete pending[n]; });
+      }
+      return pending[n];
+    }
+
     function loadAll(then) {
       if (pageState === 'done') { then && then(); return; }
+      // 补齐整个存档是 11 个来回；串行的话真实网络上一次搜索要等一秒多。
+      // 剩下的页**一次全发出去**，装进 DOM 仍按页号，日期序不会乱。
+      for (var n = nextPage; n <= totalPages; n++) pageJson(n);
       loadPage(function () { loadAll(then); });
+    }
+
+    /* 还有页没装完时，"筛出 0 条"不等于"站上没有" */
+    function stillArriving() {
+      return pageState === 'loading' || wantsEverything() && pageState !== 'done';
     }
 
     function maybeLoad() {
@@ -251,24 +272,32 @@
         .catch(function () { deepState = 'failed'; });
     }
 
+    /* 一旦开始搜或**选了某个分类**，就得看全站，不能只筛内联的那一批——
+       只筛前几张会让读者以为站上没有那篇文章，那比慢更糟。
+       「最新」这一档例外：它就是内联的这一批（构建期保证 data-new 全部内联）。 */
+    function wantsEverything() {
+      var q = (input && input.value || '').trim();
+      return !!q || (cat !== 'new' && cat !== 'all');
+    }
+
     function run() {
       var q = (input && input.value || '').trim().toLowerCase();
       var terms = q ? q.split(/\s+/) : [];
-      // 一旦开始搜或**选了某个分类**，先把全部页都补齐——只筛前 24 张会让
-      // 用户以为站上没有那篇文章，那比慢更糟。
-      // 但「最新」这一档例外：它就是内联的这一批（构建期保证 data-new 的
-      // 那些全部内联），补齐反而把整个存档拉下来，正是要避免的那件事。
-      if ((terms.length || (cat !== 'new' && cat !== 'all')) &&
-          pageState !== 'done') {
-        loadAll();
-        return;
-      }
+      // 补齐存档是异步的，**这里不能 return**：return 掉的话每装一页都会把
+      // 一批未筛选的卡片留在屏幕上，读者搜一个词会看到不匹配的卡片涌进来。
+      // 发起补齐之后照常筛已经装好的那些，每页装完 loadPage 会再调一次 run。
+      if (wantsEverything() && pageState !== 'done') loadAll();
       if (terms.length) loadDeep();
       var shown = 0;
       cards.forEach(function (c) {
         // 「最新」认的是构建期打的 data-new，客户端不自己算日期——
         // 两边各算一次，迟早算出两个答案。
-        var okCat = cat === 'all' ? true
+        // 「最新」是个**时间视图**，不是筛子：一旦读者开始搜，他要的是全站。
+        // 原来搜索也吃这条限制，于是**搜索只搜最近七天** —— 搜「供应链」
+        // 17 篇里只出 4 篇（全是最近几天的），而空状态还写着"搜索会搜进
+        // 每条要点的正文"。这是加「最新」那次改动带进来的：在那之前
+        // 默认档是「全部」，这条分支永远不会限制搜索。
+        var okCat = (cat === 'all' || (cat === 'new' && terms.length)) ? true
                   : cat === 'new' ? c.hasAttribute('data-new')
                   : c.getAttribute('data-cat') === cat;
         var hay = c._hay;
@@ -283,7 +312,7 @@
         if (on) shown++;
       });
       if (empty) {
-        empty.hidden = shown !== 0;
+        empty.hidden = shown !== 0 || stillArriving();
         var note = empty.querySelector('[data-deep-note]');
         if (note) {
           note.hidden = deepState === 'ready' || deepState === 'idle';

@@ -1947,19 +1947,30 @@ class HomepageMustNotShipEveryCard(unittest.TestCase):
         正是这次改动要避免的那件事。
         """
         js = (ROOT / "assets" / "site.js").read_text()
-        i = js.index("function run()")
-        body = js[i:i + 900]
-        self.assertIn("pageState !== 'done'", body)
-        self.assertIn("cat !== 'new'", body,
-                      "run() 里没有把「最新」排除在「补齐全部」之外 —— "
-                      "默认视图会把整个存档拉下来")
+        # 判据不能绑在"这个条件写在 run() 的头 900 字里"。它搬进
+        # wantsEverything() 之后这条守护就红了，而行为完全没变 ——
+        # 那不是抓到 bug，那是尺子过期。跟着**机制**走：谁决定要不要补齐。
+        trig = re.search(r"function wantsEverything\(\)\s*\{(.*?)\n    \}",
+                         js, re.S)
+        self.assertTrue(trig, "找不到「要不要补齐全部」的判断")
+        cond = trig.group(1)
+        self.assertIn("cat !== 'new'", cond,
+                      "「最新」没被排除在「补齐全部」之外 —— 默认视图会把"
+                      "整个存档拉下来")
+        run_i = js.index("function run()")
+        run_body = js[run_i:js.index("\n    function ", run_i + 20)]
+        self.assertIn("wantsEverything()", run_body,
+                      "run() 不问要不要补齐 —— 搜索只会筛内联的那一批")
+        self.assertIn("pageState !== 'done'", run_body,
+                      "已经装完了还会再触发补齐")
         # 反面：滚动加载也不许在「最新」档触发
         j = js.index("function maybeLoad()")
         self.assertIn("cat === 'new'", js[j:j + 400],
                       "maybeLoad() 没有在「最新」档停手 —— 滚到底会静默"
                       "把整个存档拉下来")
-        self.assertIn("loadAll()", body)
-        # 注释里要写清为什么：只筛前 24 张比慢更糟
+        self.assertIn("loadAll()", run_body,
+                      "run() 里没有真的去补齐")
+        # 注释里要写清为什么：只筛前几张比慢更糟
         self.assertIn("以为站上没有", js)
 
     def test_load_failure_is_visible(self):
@@ -2450,9 +2461,12 @@ class AssetVersioning(unittest.TestCase):
     """
 
     def test_html_references_hashed_assets(self):
-        for page in ("index.html",
+        # 路径一律从 ROOT 起算：写成裸 "index.html" 的话，这道闸门就只在
+        # 仓库根目录下跑才有效，从 tests/ 跑是 FileNotFoundError——
+        # 而"报错"和"没查到东西"在 discover 的输出里长得不一样，但都不是"过了"。
+        for page in (ROOT / "index.html",
                      next(iter(sorted((ROOT / "p").iterdir())))/"index.html"):
-            html = pathlib.Path(page).read_text()
+            html = page.read_text()
             for m in re.findall(r'(?:href|src)="[^"]*site\.(?:css|js)[^"]*"', html):
                 self.assertRegex(m, r"\?v=[0-9a-f]{6,}",
                                  f"{page} 里的资源引用没带指纹：{m}")
@@ -5058,3 +5072,473 @@ class NoConflictMarkersAnywhere(unittest.TestCase):
                 bad.append(f"{p.relative_to(ROOT)}: {type(ex).__name__}")
         self.assertFalse(bad, "data 下这些 JSON 解析不了：\n  "
                               + "\n  ".join(bad[:8]))
+
+
+class TriageMustJudgeYoutubeOnCaptionsNotDescriptions(unittest.TestCase):
+    """kind=youtube 的源，选题闸门要看字幕，不能看视频简介。
+
+    实测过的洞：YouTube 的"节目介绍"就是视频简介，而那基本是赞助和订阅链接。
+    Isaac Arthur 那一集被判 **2/10**「介绍全是订阅链接，无实质内容」，
+    而它的字幕几千词、内容扎实——同一集换成字幕样本之后是 **7/10**
+    「机制拆解：比冲与推力取舍、火箭方程约束、失效边界清楚」。
+
+    这解释了一件之前想不通的事：一批 32 个 YouTube 频道评分普遍很低
+    （Kings and Generals 4.0、Sabine Hossenfelder 4.0、RealLifeLore 4.0），
+    判词都是"二手转述、无一手"。**闸门看的不是内容，是广告文案。**
+
+    闸门跑在取稿之前，那是它省钱的理由；但字幕本身是**免费**的（yt-dlp，
+    不花模型钱），所以这一步不违反那个理由。
+    """
+
+    def test_brief_uses_captions_for_youtube_sources(self):
+        src = (ROOT / "pipeline" / "lib" / "triage.py").read_text()
+        self.assertIn("def _caption_sample(", src, "闸门不取字幕样本")
+        i = src.index("def _brief(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        self.assertIn("_caption_sample(", body,
+                      "_brief 没有用上字幕样本 —— 闸门还在看广告文案")
+        # 有字幕时要**以它为准**，而不是附在简介后面凑数
+        self.assertIn("以它为准", body,
+                      "没告诉模型以字幕为准 —— 简介里的赞助语会继续拉低判分")
+
+    def test_it_only_applies_to_youtube_kind(self):
+        """播客源不该白跑一次 yt-dlp。"""
+        src = (ROOT / "pipeline" / "lib" / "triage.py").read_text()
+        i = src.index("def _caption_sample(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        self.assertIn('"youtube"', body)
+        self.assertRegex(body, r'kind.*!=.*"youtube"[\s\S]{0,40}return ""',
+                         "非 youtube 源也会去取字幕 —— 白跑一次 yt-dlp")
+
+    def test_the_sample_is_spread_not_just_the_opening(self):
+        """只取开头会系统性低估访谈和圆桌 —— 它们的开场是寒暄。
+
+        实测同一条 22 分钟圆桌：只取开头 2400 字判 4.0（"缺乏可复现机制"），
+        同样长度三段铺开判 6.0（"有具体工作流细节与判断"）。而访谈类正是
+        YouTube 这条线的主力。
+        """
+        src = (ROOT / "pipeline" / "lib" / "triage.py").read_text()
+        i = src.index("def _caption_sample(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        self.assertNotRegex(
+            body.replace("if len(text) <= CAPTION_SAMPLE", ""),
+            r"return\s+\w*text\w*\[:\s*CAPTION_SAMPLE\s*\]",
+            "样本只截了开头 —— 访谈类会被开场寒暄拉低")
+        self.assertIn("CAPTION_WINDOWS", body, "取样没有铺开的位置表")
+        wins = re.search(r"CAPTION_WINDOWS\s*=\s*\(([^)]*)\)", src)
+        self.assertTrue(wins, "找不到 CAPTION_WINDOWS")
+        vals = [float(x) for x in wins.group(1).split(",") if x.strip()]
+        self.assertGreaterEqual(len(vals), 2, f"只有一个取样点：{vals}")
+        self.assertTrue(max(vals) >= 0.5,
+                        f"取样点全挤在前半段，等于还是只看开头：{vals}")
+
+    def test_caption_sample_is_bounded(self):
+        src = (ROOT / "pipeline" / "lib" / "triage.py").read_text()
+        self.assertIn("CAPTION_SAMPLE", src, "字幕样本没有长度上限")
+        i = src.index("def _caption_sample(")
+        self.assertIn("CAPTION_SAMPLE", src[i:i + 1400],
+                      "样本没被截断 —— 整篇字幕塞进闸门等于放弃了省钱的理由")
+
+
+class RunBannerMustNotConflateNoKeyWithBroken(unittest.TestCase):
+    """跑批横幅里的 asr= 必须同时看云端 key 和本机模型。
+
+    原来这一行只读 `T.ASR_KEY`。本机转写被一个同名模块遮死了整整一天，
+    而它是 19 档源**唯一**的取稿路径——那一天的输出里只有 `asr=off`，
+    和"我本来就没配云端 key"这个完全正常的状态一模一样。
+    我自己就是从那一行读出了错误结论。
+
+    一行分不清「没配」和「坏了」的状态，等于没有状态。
+    """
+
+    def test_banner_consults_local_availability(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index('f"asr=')
+        line = src[i:src.index("\n", i)]
+        self.assertNotIn("ASR_KEY", line,
+                         "横幅只看云端 key —— 本机模型坏了会打成 off，看不出区别")
+        # 状态得真去问本机那条线
+        self.assertIn("local_available()", src,
+                      "run.py 从来不问本机转写可不可用")
+        j = src.index("def _asr_status(")
+        body = src[j:src.index("\n    rl = llm.roles()", j)]
+        self.assertIn("local_available()", body, "asr 状态没问本机那条线")
+        self.assertIn("ASR_KEY", body, "asr 状态没问云端那条线")
+
+    def test_the_two_paths_are_distinguishable_in_output(self):
+        """「云端有 / 本机有 / 都没有」在输出上必须长得不一样。"""
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        j = src.index("def _asr_status(")
+        body = src[j:src.index("\n    rl = llm.roles()", j)]
+        rets = re.findall(r'return\s+f?"([^"]*)"', body)
+        self.assertGreaterEqual(len(set(rets)), 3,
+                                f"三种状态没有三种说法：{rets}")
+        self.assertTrue(any("off" in r for r in rets), "没有 off 这一档")
+
+
+# 简体独有字。test_tw.py 里同一张表用来判"繁体页里漏了简体"。
+# 判"这半是哪种字形"必须靠它，不能靠"convert 一遍会不会变"——
+# convert() 不幂等，对繁体再转一次会转坏。
+_SIMP_ONLY = ("们这时说过还没个来对开关问题实现样种应认识电话书长门闻见"
+              "丽乐乡习买卖头条声词语读观导体渗监风险资产为")
+
+
+def _simp_chars(s: str) -> str:
+    return "".join(sorted({c for c in s if c in _SIMP_ONLY}))
+
+
+def _has_han(s: str) -> bool:
+    return any("\u4e00" <= c <= "\u9fff" for c in s)
+
+
+class SearchMustWorkAcrossBothScripts(unittest.TestCase):
+    """搜索要同时认简体和繁体，两棵树都要 —— 而且不能压在首屏上。
+
+    实测出来的洞：在 /tw/ 搜「半导体」命中 0，而页面正正经经地说
+    「沒有匹配的深讀」。读者不会知道这是字形问题；中文读者混着打简繁是
+    常态，尤其是从别处复制来的词。
+
+    两种字形放在**懒加载的 search.json** 里，不放卡片的 data-hay：
+    都塞进 data-hay 的话首屏 gzip 从 26.0 涨到 31.9 KB（+23%），
+    另一种字形是真正不同的文本，压不掉。索引只有真去搜的读者才付这份钱。
+    """
+
+    def _rows(self, rel: str):
+        f = ROOT / rel
+        if not f.exists():
+            self.skipTest(f"还没构建 {rel}")
+        return json.loads(f.read_text())
+
+    def _sep(self) -> str:
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return importlib.import_module("build").HAY_SEP
+
+    def _tw(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return importlib.import_module("tw")
+
+    def test_simplified_index_carries_a_traditional_half(self):
+        rows, sep, tw = self._rows("search.json"), self._sep(), self._tw()
+        han = [r for r in rows if _has_han(r["h"])]
+        self.assertTrue(han, "索引里没有中文，判据失效")
+        missing = [r["s"] for r in han if sep not in r["h"]]
+        self.assertFalse(missing, f"{len(missing)}/{len(han)} 行没有另一种字形，"
+                                  f"例如 {missing[:1]}")
+        wrong = [r["s"] for r in han if _simp_chars(r["h"].split(sep, 1)[1])]
+        self.assertFalse(wrong, f"{len(wrong)} 行的后半段里还有简体字 —— "
+                                f"那半没转成繁体：{wrong[:1]}")
+
+    def test_traditional_index_carries_a_simplified_half(self):
+        rows, sep, tw = self._rows("tw/search.json"), self._sep(), self._tw()
+        han = [r for r in rows if _has_han(r["h"])]
+        self.assertTrue(han, "繁体索引里没有中文，判据失效")
+        missing = [r["s"] for r in han if sep not in r["h"]]
+        self.assertFalse(missing, f"{len(missing)}/{len(han)} 行没有简体那半，"
+                                  f"繁体站搜简体词会 0 命中：{missing[:1]}")
+        # 后半段必须**还是简体**。判据用简体独有字，不用"转一遍会不会变"
+        # —— convert() 不是幂等的：对已经是繁体的文本再转一次会转坏
+        # （干預→幹預、佛羅里達→佛羅裡達），所以那条判据本身无效。
+        with_simp = sum(1 for r in han if _simp_chars(r["h"].split(sep, 1)[1]))
+        self.assertGreater(
+            with_simp, len(han) // 3,
+            f"只有 {with_simp}/{len(han)} 行的后半段还带简体字 —— "
+            f"简体那半被转掉了，繁体站搜简体词会 0 命中")
+        # 正文半必须是繁体，否则繁体站搜自己看到的字反而搜不到
+        raw = [r["s"] for r in han if _simp_chars(r["h"].split(sep, 1)[0])]
+        self.assertFalse(raw, f"{len(raw)} 行的正文半里有简体字：{raw[:1]}")
+
+    def test_card_haystacks_stay_single_script_and_follow_their_tree(self):
+        """卡片上的干草堆只放本树字形 —— 首屏一个字节都不为跨字形买单。
+
+        这里栽过一次：给 data-hay 打洞不让它跟着转，于是**繁体站的卡片
+        带着简体干草堆**，搜繁体词 0 命中。只有真在浏览器里搜才看得见。
+        """
+        import html as _html
+        sep, tw = self._sep(), self._tw()
+        for rel, want_trad in (("index.html", False), ("tw/index.html", True)):
+            f = ROOT / rel
+            if not f.exists():
+                continue
+            hays = [_html.unescape(m) for m in
+                    re.findall(r'data-hay="([^"]*)"', f.read_text())]
+            self.assertTrue(hays, f"{rel} 一个 data-hay 都没有")
+            self.assertFalse([h for h in hays if sep in h],
+                             f"{rel} 把两种字形塞进了卡片 —— 首屏为此涨 23%")
+            han = [h for h in hays if _has_han(h)]
+            if want_trad:
+                bad = [h[:40] for h in han if _simp_chars(h)]
+                self.assertFalse(bad, f"繁体站的卡片干草堆里有简体字：{bad[:1]}")
+
+    def test_the_helper_does_not_duplicate_pure_ascii(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        build = importlib.import_module("build")
+        self.assertEqual(build.both_scripts("Ion Drives NASA"), "Ion Drives NASA",
+                         "纯英文被复制了一遍，索引白涨一倍")
+
+    def test_the_separator_is_the_same_on_both_sides(self):
+        """build.py 和 tw.py 各有一份分隔符常量（build 要能在 opencc 缺席时
+        跑，不能反过来 import tw）。两份不一致的话索引就切不开。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.assertEqual(importlib.import_module("build").HAY_SEP,
+                         importlib.import_module("tw").HAY_SEP,
+                         "两份分隔符常量不一样")
+
+class LocalTranscriptionMustBeSerialAndResumable(unittest.TestCase):
+    """本机转写：整体串行 + 按片落盘。两条都是实测出来的。
+
+    **① MLX 不是线程安全的。** 跑批开 3 个 worker，第二个线程进模型就炸
+    `RuntimeError: There is no Stream(gpu, 1) in current thread`——连续两天
+    各吃掉一集（三次重试全废，报的是"no usable transcript"，看起来像取不到稿）。
+    而且线程互抢 GPU 还把速度拖垮：3 线程 1.4 倍速，串行 9 倍速。
+    **串行在这里既是正确性也是性能。**
+
+    **② 长音频中途被杀就全部白跑。** 计划任务那轮在一集 3 小时 19 分的音频上
+    转到 59%（2 小时 4 分）被杀，盘上什么都没留下，下一轮从零开始——队列
+    因此永远不动。按 5 分钟一片落盘之后，被杀最多损失一片（实测 2/11 片复用）。
+    """
+
+    def _asr_src(self) -> str:
+        return (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
+
+    def test_local_asr_is_called_under_a_lock(self):
+        src = self._asr_src()
+        self.assertIn("_ASR_LOCK", src, "本机转写没有串行锁")
+        # 每一处调用 _local_asr 的地方都必须在锁里
+        for m in re.finditer(r"^(?P<ind>[ \t]*)(?:\w+\s*=\s*)?_local_asr\(",
+                             src, re.M):
+            before = src[:m.start()]
+            # 往上找最近的 with 语句
+            recent = before.rsplit("\n", 6)[-6:]
+            self.assertTrue(
+                any("_ASR_LOCK" in l for l in recent),
+                f"这一处 _local_asr 调用不在 _ASR_LOCK 里：第 "
+                f"{before.count(chr(10)) + 1} 行")
+
+    def test_the_lock_is_a_real_lock(self):
+        """把 LOCK 换成一个假的上下文管理器，代码长得一模一样。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        T = importlib.import_module("lib.transcript")
+        import threading
+        self.assertIsInstance(T._ASR_LOCK, type(threading.Lock()),
+                              "_ASR_LOCK 不是真锁")
+
+    def test_chunks_are_written_to_disk_as_they_finish(self):
+        src = self._asr_src()
+        self.assertIn("def _local_chunked(", src, "本机转写没有分片路径")
+        i = src.index("def _local_chunked(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        # 缓存要在**每片转完之后立刻**写，不能等整集跑完
+        self.assertIn("write_text", body, "片转完了不落盘 —— 被杀就白跑")
+        # 判据必须是"**在逐片循环体内**落盘"。先前写的是"write_text 出现在
+        # return 之前"，那把落盘挪到循环外面照样满足 —— 反向注入当场抓到它是空的。
+        lines = body.split("\n")
+        loop = next(k for k, l in enumerate(lines) if "for i, (offset" in l)
+        indent = len(lines[loop]) - len(lines[loop].lstrip())
+        in_loop = []
+        for l in lines[loop + 1:]:
+            if l.strip() and (len(l) - len(l.lstrip())) <= indent:
+                break
+            in_loop.append(l)
+        self.assertTrue(any("write_text" in l for l in in_loop),
+                        "落盘不在逐片循环里 —— 整集跑完才写，中途被杀等于没缓存")
+        self.assertTrue(any("cp.exists()" in l for l in in_loop),
+                        "不在循环里读缓存 —— 下一轮还是从零开始")
+
+    def test_a_failed_chunk_keeps_the_earlier_ones(self):
+        """某一片失败时不能把前面转好的删掉或丢掉。"""
+        src = self._asr_src()
+        i = src.index("def _local_chunked(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        self.assertNotIn("unlink", body, "失败路径把已转好的片删了")
+        self.assertNotIn("rmtree", body, "失败路径把缓存目录删了")
+
+    def test_chunk_cache_key_covers_model_and_chunk_length(self):
+        """换模型或换片长之后，旧片不能被当成新片的结果。"""
+        src = self._asr_src()
+        i = src.index("def _chunk_cache(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        self.assertIn("LOCAL_MODEL", body, "缓存键没带模型 —— 换模型会复用旧结果")
+        self.assertIn("CHUNK_SEC", body, "缓存键没带片长 —— 改片长会错位")
+
+
+class TraditionalMapsMustPointAtPagesThatExist(unittest.TestCase):
+    """繁体树的 sitemap / feed / llms / 搜索索引，指向的东西必须真的存在。
+
+    真出过事，而且一直在线上：`<loc>`、`<link>`、llms.txt 里的地址是**元素
+    文本**不是属性，而 tw.py 的打洞机制（_protect）只管属性 —— 于是地址里
+    的中文 slug 跟着转成了繁体，而 tw/ 下的页面目录名是简体的（tw.py 不改
+    目录名）。结果：**繁体 sitemap 418 条里 301 条指向不存在的目录**、
+    feed 59 条坏链。搜索引擎爬 /tw/sitemap.xml 拿到的是 301 个 404。
+
+    守护 NoBrokenInternalLinks 从没报过，因为它只查 HTML 里的 href ——
+    而 href 是属性、被挡住了，恰好是唯一没坏的那一类。
+    """
+
+    def _slugs_on_disk(self) -> set[str]:
+        d = ROOT / "tw" / "p"
+        return {x.name for x in d.iterdir() if x.is_dir()} if d.is_dir() else set()
+
+    def _episode_slugs(self, text: str, pat: str) -> list[str]:
+        import urllib.parse
+        out = []
+        for u in re.findall(pat, text):
+            path = urllib.parse.urlparse(u).path
+            if "/tw/p/" not in path:
+                continue
+            slug = urllib.parse.unquote(path.split("/tw/p/")[1]).strip("/")
+            # llms.txt 里有 URL 模板（`…/p/<slug>/`），那是给答案引擎看的
+            # 说明，不是链接。占位符不参与"页面存不存在"的判断。
+            if any(ch in slug for ch in "<>{}"):
+                continue
+            out.append(slug)
+        return out
+
+    def test_sitemap_and_feed_and_llms(self):
+        on_disk = self._slugs_on_disk()
+        if not on_disk:
+            self.skipTest("还没构建 tw/")
+        for name, pat in (("sitemap.xml", r"<loc>([^<]+)</loc>"),
+                          ("feed.xml", r"<link>([^<]+)</link>"),
+                          ("llms.txt", r"https?://[^\s)\]]+"),
+                          ("llms-full.txt", r"https?://[^\s)\]]+")):
+            f = ROOT / "tw" / name
+            if not f.exists():
+                continue
+            slugs = self._episode_slugs(f.read_text(), pat)
+            bad = [s for s in slugs if s not in on_disk]
+            self.assertFalse(bad, f"tw/{name} 里 {len(bad)}/{len(slugs)} 条"
+                                  f"指向不存在的页面，例如 {bad[:1]}")
+
+    def test_search_index_keys_match_the_pages(self):
+        on_disk = self._slugs_on_disk()
+        f = ROOT / "tw" / "search.json"
+        if not on_disk or not f.exists():
+            self.skipTest("还没构建 tw/")
+        rows = json.loads(f.read_text())
+        bad = [r["s"] for r in rows if r["s"] not in on_disk]
+        self.assertFalse(
+            bad,
+            f"繁体搜索索引里 {len(bad)}/{len(rows)} 个键对不上页面目录 —— "
+            f"deep[slug] 查不到，繁体站的深层全文搜索整个是死的。例如 {bad[:1]}")
+
+    def test_url_text_is_protected_not_just_attributes(self):
+        """机制层：文本里的地址要有自己的打洞，不能只靠属性那张表。"""
+        src = (ROOT / "pipeline" / "tw.py").read_text()
+        self.assertIn("URLTEXT", src, "文本里的地址没有打洞")
+        i = src.index("def _protect(")
+        body = src[i:src.index("\n\n\n", i)]
+        self.assertIn("URLTEXT", body,
+                      "_protect 没有挡文本里的地址 —— sitemap 的 <loc> 会被转字形")
+
+
+class OneEpisodePerShareId(unittest.TestCase):
+    """一个 id 只许有一份稿子。
+
+    短链目录是 /e/<id>/，两份同 id 的稿子会互相覆盖 —— 症状是"页面数比
+    短链数多 1"，离真因（同一集被深读了两遍）很远。真出过两次：
+    一次是本机并行跑了两个跑批（后来加了 flock），
+    一次是**两条发布线都认领了同一档源** —— betteroffline 不是 residential、
+    本该只归云端，本机那条线却也出了一份，两份标题还不一样
+    （「英伟达财报背后…」和「nvidia财报靠循环…」）。
+
+    跨进程锁挡得住同机并发，挡不住另一台机器。所以判据落在**磁盘上有没有
+    同 id**，不落在"锁拿到了没有"。
+    """
+
+    def test_no_two_episodes_share_an_id(self):
+        d = ROOT / "data" / "episodes"
+        if not d.is_dir():
+            self.skipTest("还没有稿子")
+        seen: dict[str, list[str]] = {}
+        for f in d.glob("*.json"):
+            try:
+                k = json.loads(f.read_text()).get("id")
+            except Exception:
+                continue
+            seen.setdefault(k, []).append(f.stem)
+        dupes = {k: v for k, v in seen.items() if len(v) > 1}
+        self.assertFalse(dupes, f"这些 id 有多份稿子（短链会互相覆盖）：{dupes}")
+
+    def test_the_writer_checks_disk_before_writing(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        self.assertIn("_same_id_on_disk", src, "写入前不查磁盘上有没有同 id")
+        i = src.index('(EPS / f"{slug}.json").write_text')
+        # 检查必须在写之前，而且写不成时要**不覆盖**
+        before = src[max(0, i - 1200):i]
+        self.assertIn("_same_id_on_disk", before,
+                      "同 id 检查不在写入之前 —— 覆盖已经发生了")
+        self.assertRegex(before, r"if dup:[\s\S]{0,400}return",
+                         "查到同 id 之后没有提前返回，还是会写下去")
+
+    def test_the_check_scans_disk_not_just_state(self):
+        """state.json 是本机索引，另一台机器写的稿子不在里面。"""
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index("def _same_id_on_disk(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        self.assertIn("EPS.glob", body,
+                      "只查了内存/state —— 另一台机器写的稿子查不到")
+
+
+class WorkflowsMustNotPinSourceFilesToOldCommits(unittest.TestCase):
+    """任何工作流都不许把源码文件从某个写死的提交里签出来。
+
+    真出过事，而且是**用户先看见的**：`fix-site.yml` 里有一句
+
+        git checkout 388f8e54 -- pipeline/build.py
+
+    然后打个小补丁、重建全站、提交推送。它本来是一次性的救火脚本，
+    留在仓库里就是一把上了膛的枪 —— 谁手动触发一次，build.py 就被抹回
+    那个古老提交：**删掉 1211 行**（i18n 层、资源指纹 asset()、封面缓存、
+    og_image、说话人译名、hreflang、语言切换），CAT_ORDER 退回到同时缺
+    edu 和 sci 的那一版。线上因此退回旧版：首页少了「AI 课程」和「科学」
+    两档、「最新」没了、hreflang 0 条（不再声明繁体和英文版）、
+    CSS/JS 不带指纹（读者会拿旧缓存配新 HTML）。
+
+    这是这个仓库反复犯的同一类错：**某个机制悄悄把改动revert 掉**
+    （见 RemovalsMustStick、ScheduledRunsMustNotHardcodeSources）。
+    判据落在"工作流有没有从固定提交签出源码"，不落在具体是哪个文件。
+    """
+
+    def test_no_workflow_checks_out_a_source_file_from_a_fixed_commit(self):
+        wf = ROOT / ".github" / "workflows"
+        if not wf.is_dir():
+            self.skipTest("没有工作流")
+        # git checkout <40 位或 7+ 位 sha> -- <路径>
+        pat = re.compile(r"git\s+checkout\s+(?!-)([0-9a-f]{7,40})\s+--\s+(\S+)")
+        bad = []
+        for f in sorted(wf.iterdir()):
+            if f.suffix not in (".yml", ".yaml"):
+                continue
+            for m in pat.finditer(f.read_text()):
+                sha, path = m.group(1), m.group(2)
+                # 签出**产物**是重建的一部分，可以；签出源码不行。
+                if path.startswith(("pipeline/", "assets/", "tests/",
+                                    "scripts/", ".github/")):
+                    bad.append(f"{f.name}: git checkout {sha[:8]} -- {path}")
+        self.assertFalse(
+            bad, "工作流把源码钉在了写死的提交上，跑一次就把改动抹掉：\n  "
+                 + "\n  ".join(bad))
+
+    def test_no_workflow_restores_source_from_another_ref(self):
+        """`git checkout origin/xxx -- pipeline/…`、`git show <ref>:file >` 同理。"""
+        wf = ROOT / ".github" / "workflows"
+        if not wf.is_dir():
+            self.skipTest("没有工作流")
+        pats = (re.compile(r"git\s+checkout\s+\S*(?:origin/|tags?/)\S*\s+--\s+"
+                           r"(pipeline|assets|tests|scripts)/\S+"),
+                re.compile(r"git\s+show\s+\S+:(pipeline|assets|tests|scripts)/\S+"))
+        bad = []
+        for f in sorted(wf.iterdir()):
+            if f.suffix not in (".yml", ".yaml"):
+                continue
+            t = f.read_text()
+            for pat in pats:
+                for m in pat.finditer(t):
+                    bad.append(f"{f.name}: {m.group(0)[:70]}")
+        self.assertFalse(bad, "工作流从别的 ref 恢复源码 —— 同样会抹掉改动：\n  "
+                              + "\n  ".join(bad))

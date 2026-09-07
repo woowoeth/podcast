@@ -426,6 +426,18 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
         "model": f"{llm.provider()}:{llm.model_name()}",
     }
     EPS.mkdir(parents=True, exist_ok=True)
+    # **同一个 id 只许有一份。** 短链目录是 /e/<id>/，两份同 id 的稿子会
+    # 互相覆盖：页面数比短链数多 1，而症状（少一个短链）离真因（同一集被
+    # 深读了两遍）很远。真出过两次：一次是本机并行跑了两个跑批，
+    # 一次是两条发布线都认领了同一档源（betteroffline 不是 residential，
+    # 本该只归云端）。跨进程锁挡得住同机并发，挡不住另一台机器 ——
+    # 所以判据落在**磁盘上有没有同 id**，不落在"锁拿到了没有"。
+    dup = _same_id_on_disk(key, slug)
+    if dup:
+        log(f"    已经有一份同 id 的稿子了（{dup}）→ 不写，不覆盖短链")
+        state["done"].setdefault(key, {"slug": dup, "at": iso(now())})
+        _release(state, fp, key)
+        return "duplicate"
     (EPS / f"{slug}.json").write_text(json.dumps(rec, ensure_ascii=False, indent=1) + "\n")
     state["done"][key] = {"slug": slug, "at": iso(now())}
     state["fail"].pop(key, None)
@@ -457,6 +469,19 @@ def _write_catchup_note(published: int) -> None:
         "prev_pending": old.get("pending"),
         "prev_at": old.get("at"),
     }, ensure_ascii=False, indent=1) + "\n")
+
+
+def _same_id_on_disk(key: str, slug: str) -> str | None:
+    """磁盘上有没有别的稿子占着同一个 id。返回它的 slug。"""
+    for f in EPS.glob("*.json"):
+        if f.stem == slug:
+            continue
+        try:
+            if json.loads(f.read_text()).get("id") == key:
+                return f.stem
+        except Exception:
+            continue
+    return None
 
 
 def _catchup_ids(min_eps: int = 6) -> list[str]:
@@ -625,6 +650,22 @@ def main() -> int:
     if a.jobs > cap:
         log(f"--jobs {a.jobs} clamped to {cap} for the {llm.provider()} backend")
         a.jobs = cap
+    def _asr_status() -> str:
+        """转写有两条路：云端 key 和本机模型。**必须分开报。**
+
+        原来这里只看 T.ASR_KEY，于是本机模型好着也照样打 `asr=off`——
+        真出过事：本机转写被一个同名模块遮死了一整天，而它是 19 档源的唯一
+        取稿路径，输出只有 `asr=off` 这一句，看起来像"我没配云端 key"这个
+        正常状态。一行分不清"没配"和"坏了"的状态，等于没有状态。
+        """
+        cloud = "云端" if T.ASR_KEY else ""
+        local = "本机" if T.local_available() else ""
+        if cloud and local:
+            return "on（云端+本机）"
+        if cloud or local:
+            return f"on（{cloud or local}）"
+        return "off（云端没 key、本机模型不可用）"
+
     rl = llm.roles()
     # map 单列出来：长集的分段抽取次数最多，它走的是哪个模型直接决定这一轮花多少。
     # 不打出来的话，"推理预算省着用"就是一句无法核对的话。
@@ -632,7 +673,7 @@ def main() -> int:
     log(f"run · {iso(now())} · {llm.provider()} · 深读 {rl['digest']} / "
         f"分段 {rl['map']}{'（同上，长集会烧推理预算）' if same else ''} / "
         f"选题 {rl['triage']} / 评审 {rl['review']} · "
-        f"asr={'on' if T.ASR_KEY else 'off'} · budget={a.limit}")
+        f"asr={_asr_status()} · budget={a.limit}")
     log(f"  endpoint: {llm.endpoint()}")
     log(f"  文稿层: {', '.join(_tiers['allow'])}")
     log(f"  选题闸门: {'及格线 ' + str(_triage['min']) if _triage['on'] else '关闭'}"

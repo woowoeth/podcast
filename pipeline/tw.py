@@ -46,6 +46,8 @@ FIX = [
     # 「发」被当成「髮」（头发）。理髮/頭髮/美髮/假髮/毫髮/長髮 不动。
     ("人髮指", "人發指"),      # 令人发指
     ("被髮明", "被發明"), ("被髮配", "被發配"),
+    # 「发射」。髮 后面永远不会跟 射 —— 整词替换比逐个前缀安全。
+    ("髮射", "發射"),
     ("斷髮新", "斷發新"), ("換髮新", "換發新"),   # 不断发新券 / 换发新券
     ("秋髮起", "秋發起"),
     # 「用水冲」是冲洗，繁体作 沖；衝 是碰撞、冲突。OpenCC 认得「沖洗」
@@ -93,7 +95,8 @@ NEVER = (
 ).split()
 
 # 用字风格：台湾教育部把「佈」并入「布」
-POST = [("佈", "布")]
+# 「和面向高功率…」被切成了「和麵」（揉面）+「向」。麵向 从来不对。
+POST = [("佈", "布"), ("麵向", "面向")]
 
 # 字体不在这里换了。这条替换（Noto Serif SC → TC）写于还在引 Google Fonts
 # 的时候，现在产物里 **0 次命中** —— 站点改用系统 CJK 字体之后它就成了死代码。
@@ -113,6 +116,19 @@ LOCALE = [
 
 URLISH = re.compile(r"^(https?:|//|/|#|\.\.?/|mailto:|data:)")
 ATTR = re.compile(r'\b(href|src|action|srcset|content|url)\s*=\s*"([^"]*)"')
+# 出现在**文本**里的地址（sitemap 的 <loc>、feed 的 <link>、llms.txt 的裸地址）。
+# 只认 http(s) 和本站绝对路径，不碰正文里的普通斜杠。
+URLTEXT = re.compile(r'https?://[^\s<>"\']+|/podcast/[^\s<>"\',)\]]+')
+# data-hay **要跟着转**：卡片里的干草堆是单字形（本树的），跨字形交给懒加载
+# 的 search.json（见 _retw_index）。这里曾经给它打洞不转 —— 于是繁体站的
+# 卡片带着简体干草堆，搜**繁体**词 0 命中。静态断言看不见这个，
+# 是在浏览器里搜「半導體」拿到 0 才发现的。
+
+# 干草堆里两种字形之间的分隔符。build.py 有一份同样的常量（它在 opencc
+# 缺席时也要能跑，不能反过来 import 这里），守护 `HaystackSeparatorIsShared`
+# 盯着两份必须相等。
+HAY_SEP = " \u2016 "
+_HAN_RUN = re.compile(r"[\u3400-\u9fff\uf900-\ufaff]+")
 
 # 注意 sources/ **不在**这里：它虽然名字像数据目录，但 build.py 往
 # sources/index.html 写的是一个真页面。第一版跳过了它，繁体站少一页 ——
@@ -176,6 +192,13 @@ def _protect(s):
             return '%s="%s"' % (name, stash(val))
         return m.group(0)
 
+    # **元素文本里的地址也要挡。** ATTR 那张表只管属性，而 sitemap 的 <loc>、
+    # feed 的 <link>、llms.txt 里的地址都是**文本** —— 它们跟着转了字形，
+    # 而 tw/ 下的页面目录是简体的（tw.py 不改目录名）。后果是繁体 sitemap
+    # 里 418 条有 301 条指向不存在的目录、feed 59 条坏链，一直在线上：
+    # 守护 NoBrokenInternalLinks 只查 HTML 的 href，而 href 是属性、被挡住了，
+    # 所以从没报过。
+    s = URLTEXT.sub(lambda m: stash(m.group(0)), s)
     return ATTR.sub(attr, s), keep
 
 
@@ -250,6 +273,37 @@ def _restore_cross_edition(s, holes):
     return s
 
 
+def _retw_index(s):
+    """繁体树的搜索索引：从**简体那份**重建 —— 正文转繁，简体原文接在后面。
+
+    这份索引只用来匹配，从不显示，所以两种字形都装着最省事。
+
+    **slug 必须保持简体。** tw/ 下的页面目录名和卡片 href 都是简体的
+    （tw.py 不改目录名，href 又被 _protect 挡住），而 JSON 里的 s 是裸文本、
+    会跟着 convert 转成繁体 —— 于是 deep[slug] 一条都对不上，
+    **繁体站的深层全文搜索一直是死的**，不只是跨字形搜不到。
+    在浏览器里搜「供应链」拿到 0（而索引里有 17 行含它）才发现的。
+
+    所以这里不用转过的那份，直接拿简体那份重建。
+    """
+    import json as _json
+    try:
+        src = _json.loads(open(os.path.join(ROOT, "search.json"),
+                               encoding="utf-8").read())
+    except Exception:
+        return s                     # 读不到就原样放过，别把索引搞坏
+    rows = []
+    for r in src:
+        simp_full = r["h"].split(HAY_SEP, 1)[0]
+        # 追加的那半和简体树那半**同样构造**：只取汉字段、取同样长度。
+        # 整段简体正文接上的话 /tw/ 的索引会从 2.4 MB 涨到 4.4 MB。
+        budget = len(r["h"].split(HAY_SEP, 1)[1]) if HAY_SEP in r["h"] else 0
+        h = convert(simp_full)
+        if budget:
+            h += HAY_SEP + " ".join(_HAN_RUN.findall(simp_full))[:budget]
+        rows.append({"s": r["s"], "h": h})
+    return _json.dumps(rows, ensure_ascii=False, separators=(",", ":"))
+
 def build(base="/podcast"):
     if os.path.isdir(OUT):
         shutil.rmtree(OUT)
@@ -281,6 +335,8 @@ def build(base="/podcast"):
                 kept, keep = _protect(s)
                 kept = convert(kept)
                 s = re.sub("(\\d+)", lambda m: keep[int(m.group(1))], kept)
+                if f == "search.json":
+                    s = _retw_index(s)
                 s = _retarget(s, base)
                 if f in URLFILE:
                     # **跨版本链接不许被改。** 这里是一记无条件全局替换，

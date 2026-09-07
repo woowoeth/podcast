@@ -692,9 +692,8 @@ def from_audio(ep: dict, lang: str) -> dict | None:
         mb = src.stat().st_size / 1e6
         log(f"    audio {mb:.1f}MB ({'YouTube' if raw is None else 'RSS'}) -> {ASR_MODEL}")
         if use_local:
-            # 本地模型直接给逐句时间戳，不用切片，也不用按字数插值
             log(f"    本地转写 {LOCAL_MODEL.split('/')[-1]}")
-            segs = _local_asr(src, lang)
+            segs = _local_chunked(ep, src, mb, td, lang)
             if segs:
                 return {"segments": segs, "source": "asr",
                         "detail": "local:" + LOCAL_MODEL.split("/")[-1], "url": src_url}
@@ -715,8 +714,67 @@ def from_audio(ep: dict, lang: str) -> dict | None:
     return None
 
 
-def _split(src: pathlib.Path, mb: float, td: str) -> list[tuple[int, pathlib.Path]] | None:
-    if mb <= ASR_MAX_MB:
+# ── 本机转写：串行 + 按片落盘 ────────────────────────────────────
+# 两件实测出来的事，都让队列不动：
+#
+# ① **MLX 不是线程安全的。** 跑批用 3 个 worker 线程，第二个线程进到模型里
+#    就炸 `RuntimeError: There is no Stream(gpu, 1) in current thread`，
+#    连续两天各吃掉一集（三次重试全废）。所以本机转写必须整体串行。
+#
+# ② **一集三小时的音频转两小时，中途被杀就全部白跑。** 计划任务那一轮在
+#    《摇滚》那集上跑到 59%（2 小时 4 分）被杀，什么都没留下，下一轮从零开始。
+#    改成按 5 分钟一片、每片转完立刻落盘：被杀最多损失一片。
+#
+# 片的粒度对质量没有影响 —— whisper 自己的注意力窗口是 30 秒，云端那条路
+# 本来也是切片的。
+_ASR_LOCK = threading.Lock()
+
+
+def _chunk_cache(ep: dict, i: int) -> pathlib.Path:
+    import hashlib
+    key = hashlib.sha1(
+        ((ep.get("guid") or ep.get("link") or ep["title"]) + "|" + LOCAL_MODEL
+         + "|" + str(CHUNK_SEC)).encode()).hexdigest()[:20]
+    return (pathlib.Path(os.environ.get("PODCAST_CACHE", ".cache"))
+            / "tr" / "asrchunk" / f"{key}-{i:03d}.json")
+
+
+def _local_chunked(ep: dict, src: pathlib.Path, mb: float, td: str,
+                   lang: str) -> list[dict] | None:
+    chunks = _split(src, mb, td, force=True)
+    if not chunks:
+        return None
+    segs: list[dict] = []
+    reused = 0
+    for i, (offset, path) in enumerate(chunks):
+        cp = _chunk_cache(ep, i)
+        if cp.exists():
+            try:
+                got = json.loads(cp.read_text())
+                segs.extend({"t": int(x["t"] + offset), "text": x["text"]}
+                            for x in got)
+                reused += 1
+                continue
+            except Exception:
+                pass                      # 缓存坏了就当没有，重转这一片
+        with _ASR_LOCK:                   # MLX 只能一个线程进
+            got = _local_asr(path, lang)
+        if got is None:
+            # 前面的片留在盘上，下一轮接着来；这一轮这集算没成。
+            log(f"    第 {i + 1}/{len(chunks)} 片转写失败，"
+                f"已转好的 {i} 片留在缓存里，下一轮接着转")
+            return None
+        cp.parent.mkdir(parents=True, exist_ok=True)
+        cp.write_text(json.dumps(got, ensure_ascii=False))
+        segs.extend({"t": int(x["t"] + offset), "text": x["text"]} for x in got)
+    if reused:
+        log(f"    {reused}/{len(chunks)} 片来自上一轮的缓存")
+    return segs or None
+
+
+def _split(src: pathlib.Path, mb: float, td: str, *,
+           force: bool = False) -> list[tuple[int, pathlib.Path]] | None:
+    if mb <= ASR_MAX_MB and not force:
         return [(0, src)]
     ff = _ffmpeg()
     if not ff:

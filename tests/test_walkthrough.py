@@ -64,6 +64,38 @@ class Walkthrough(Harness):
             self.assertGreaterEqual(after, before,
                                     f"{w}px 清空搜索后没恢复（{narrowed} → {after}）")
 
+    def test_search_covers_the_whole_archive_not_just_the_new_window(self):
+        """搜索必须搜全站。
+
+        真出过事：默认档从「全部」换成「最新」之后，okCat 那条分支把搜索
+        也一起限制住了 —— **搜索只搜最近七天**。搜「供应链」全站 30 篇，
+        页面只出 4 篇（全是最近几天的），而空状态还写着"搜索会搜进每条
+        要点的正文"。静态断言看不见这个：JS 没报错，卡片也都在 DOM 里。
+
+        判据不写死篇数（内容天天在变），而是拿**搜索结果里最老的一篇**
+        和站上最老的内容比：只要搜索能翻出七天窗口之外的东西，
+        那条限制就没生效。
+        """
+        p = self.page(width=1280, height=900)
+        p.goto(self.url("/"), wait_until="load")
+        newest = p.evaluate(
+            "() => [...document.querySelectorAll('[data-card][data-new]')].length")
+        total = p.evaluate("() => +document.querySelector('[data-feed]')"
+                           ".getAttribute('data-total')")
+        p.fill(".search input", "的")          # 中文里最常见的字，必然横跨全站
+        p.wait_for_timeout(9000)
+        shown = p.evaluate("() => [...document.querySelectorAll('[data-card]')]"
+                           ".filter(e => e.style.display !== 'none').length")
+        loaded = p.evaluate("() => document.querySelectorAll('[data-card]').length")
+        p.context.close()
+        self.assertGreater(total, newest,
+                           "站上全部内容都在七天窗口里，这条判据此刻无效")
+        self.assertEqual(loaded, total, f"搜索没有把全站装进来（{loaded}/{total}）")
+        self.assertGreater(
+            shown, newest,
+            f"搜索只搜到 {shown} 篇，而「最新」窗口就有 {newest} 篇 —— "
+            f"搜索被限制在最新那一档里了（全站 {total} 篇）")
+
     def test_a_search_with_no_hits_says_so(self):
         p = self.page(width=1280, height=900)
         p.goto(self.url("/"), wait_until="load")

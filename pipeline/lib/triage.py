@@ -58,6 +58,48 @@ SCHEMA = """输出 JSON：{"score": 0-10 的数字, "why": "不超过 40 字的�
 "kind": "一手访谈|机制拆解|新闻综述|宣传|闲聊|其他"}"""
 
 
+# YouTube 频道的"节目介绍"就是视频简介，而那基本是赞助和订阅链接。
+# 实测：Isaac Arthur 那一集被判 2/10「介绍全是订阅链接，无实质内容」，
+# 而它的字幕有几千词、内容扎实。**闸门跑在取稿之前**（那是它省钱的理由），
+# 所以它只看得到广告文案，YouTube 原生频道因此普遍判低——
+# 一批 32 个频道里 Kings and Generals、Sabine Hossenfelder、RealLifeLore
+# 全是 4.0，判词都是"二手转述、无一手"。
+#
+# 字幕是**免费**的（yt-dlp，不花模型钱），所以对 kind=youtube 的源先取一段
+# 字幕样本喂给闸门。判据不变，只是把输入从广告换成真内容。
+# 取样必须**铺开取**，不能只取开头。实测：Anthropic 官方那条 22 分钟圆桌
+# 《How the Claude Code team uses Claude Code》，只取开头 2400 字判 4.0
+# （开场全是"你明年打算干什么"这种寒暄），同样长度改成三段铺开就判 6.0
+# ——判词从"缺乏可复现机制"变成"有具体工作流细节与判断"。
+# 访谈和圆桌的开场是寒暄，只看开头会**系统性低估**这一类，而这一类正是
+# YouTube 这条线的主力。
+CAPTION_SAMPLE = 2400
+CAPTION_WINDOWS = (0.10, 0.45, 0.75)
+
+
+def _caption_sample(ep: dict, src: dict) -> str:
+    if (src.get("kind") or "") != "youtube":
+        return ""
+    vid = ep.get("youtube_id") or (ep.get("guid") or "").split(":")[-1]
+    if not vid or not vid.startswith(("UC", "-", "_")) and len(vid) != 11:
+        # YouTube 的 videoId 是 11 位；guid 形如 yt:video:<id>
+        if len(vid) != 11:
+            return ""
+    try:
+        from lib import transcript as T
+        tr = T.from_youtube(vid, src.get("lang") or "en")
+    except Exception:
+        return ""
+    if not tr or not tr.get("segments"):
+        return ""
+    text = squeeze(" ".join((x.get("text") or "") for x in tr["segments"]))
+    if len(text) <= CAPTION_SAMPLE:
+        return text
+    w = CAPTION_SAMPLE // len(CAPTION_WINDOWS)
+    n = len(text)
+    return " …… ".join(text[int(n * f):int(n * f) + w] for f in CAPTION_WINDOWS)
+
+
 def _brief(ep: dict, src: dict) -> str:
     notes = strip_html(ep.get("notes"))
     # 章节表比宣传语更能说明这一集讲了什么
@@ -67,7 +109,14 @@ def _brief(ep: dict, src: dict) -> str:
              f"这一集标题：{ep['title']}"]
     if ep.get("duration"):
         parts.append(f"时长：{hhmmss(ep['duration'])}")
-    parts.append(f"节目介绍：\n{notes or '（没有介绍）'}")
+    cap = _caption_sample(ep, src)
+    if cap:
+        # 有字幕样本时**以它为准**：视频简介是广告，字幕是内容本身。
+        parts.append(f"这一集的开头（字幕原文，判断请以它为准）：\n{cap}")
+        if notes:
+            parts.append(f"视频简介（多为赞助与订阅链接，仅作参考）：\n{notes[:400]}")
+    else:
+        parts.append(f"节目介绍：\n{notes or '（没有介绍）'}")
     return "\n".join(parts)
 
 
