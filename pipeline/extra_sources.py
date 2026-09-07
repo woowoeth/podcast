@@ -310,7 +310,7 @@ EXTRA: list[dict] = [
   # 连续失败，再一次就被自动移除。本机线负责这档。
   dict(id="twiv", name="This Week in Virology", zh="This Week in Virology",
        cat="sci", tier=2, lang="en", residential=True,
-       feed="https://www.microbe.tv/twiv/feed/",
+       feed="http://feeds.feedburner.com/twivmp3",
        desc="病毒学期刊俱乐部，论文与实验可核对"),
   dict(id="tal", name="This American Life", zh="This American Life",
        cat="ideas", tier=2, lang="en",

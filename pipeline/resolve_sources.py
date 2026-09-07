@@ -47,7 +47,7 @@ CURATED: list[dict] = [
   dict(id="cogrev", name="The Cognitive Revolution", zh="Cognitive Revolution", cat="ai", tier=1, lang="en",
        itunes=1669813431, feed="https://feeds.megaphone.fm/RINTP3108857801", desc="对 AI 应用层与 agent 工程细节挖得最深的一档"),
   dict(id="interconnects", name="Interconnects", zh="Interconnects", cat="ai", tier=1, lang="en",
-       itunes=1719789201, feed="https://api.substack.com/feed/podcast/48206.rss", residential=True, desc="Nathan Lambert 的后训练与开源模型分析，技术判断少有水分"),
+       itunes=1719789201, feed="https://feeds.transistor.fm/how-do-you-use-chatgpt", residential=True, desc="Nathan Lambert 的后训练与开源模型分析，技术判断少有水分"),
   dict(id="trainingdata", name="Training Data", zh="Training Data", cat="ai", tier=2, lang="en",
        itunes=1750736528, feed="https://feeds.megaphone.fm/trainingdata", desc="Sequoia 的 AI 研究与创业访谈"),
   dict(id="unsupervised", name="Unsupervised Learning", zh="Unsupervised Learning", cat="ai", tier=2, lang="en",
