@@ -4886,3 +4886,118 @@ class TokenUsageMustBeVisible(unittest.TestCase):
             for k, v in rows.items():
                 self.assertLessEqual(set(v), {"calls", "in", "out", "think"},
                                      f"{day}/{k} 里记了 token 计数之外的东西")
+
+
+class RejectedCandidatesMustNotBeRescoredEveryRun(unittest.TestCase):
+    """评过又没收的候选，冷却期内不许再评一次。
+
+    他说「注意控制模型用量」。这里有一处实打实的重复付费：
+    curate 只对**已在册**的信源去重，**评过但没收的不留痕**——于是
+    观察名单里那近百个频道，每跑一趟就重付一次评分的钱。
+    而观察名单本来就是"盯着看"的，多数轮次结论不会变。
+
+    冷却而不是永久拉黑：节目会变好（信源池里已经有几档是第二次评上的）。
+    """
+
+    def test_rejections_are_recorded(self):
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        self.assertIn("passed_over", src, "评过没收的不记账")
+        i = src.index('if v["score"] < minimum:')
+        body = src[i:i + 700]
+        # 认**真正的语句**，不认注释——第一版查 "passed_over" 在不在，
+        # 而上面的注释里就写着它，把 append 换成 pass 照样通过。
+        self.assertIn("_passed_over.append(", body,
+                      "不合格分支里没有真的记一笔 —— 下一轮还会重评")
+
+    def test_the_skip_happens_before_the_expensive_step(self):
+        """跳过必须在探测和评分**之前**。评分那一步才花钱。"""
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("for ld in cands:")
+        body = src[i:src.index("probe_candidate(ld[", i)]
+        self.assertIn("skip_feeds", body,
+                      "跳过排在 probe_candidate 之后 —— 钱已经花了")
+
+    def test_cooldown_has_an_expiry(self):
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        self.assertIn("COOLDOWN_DAYS", src)
+        i = src.index("def _recently_passed_over(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        # 同上：COOLDOWN_DAYS 出现在算 cut 那一行，光查它在不在，
+        # 把日期比较删掉照样通过。判据要落在**那个比较真的存在**上。
+        self.assertRegex(body, r'\[:10\]\s*<\s*cut',
+                         "冷却期算出来了却没用上 —— "
+                         "一次不合格就永久拉黑，而节目会变好")
+        self.assertIn("feed", body, "冷却应当按 feed 认，名字会变")
+
+
+class OneRunAtATimeAcrossProcesses(unittest.TestCase):
+    """同一时刻只许一个 run.py 在写 data/。
+
+    实测过的事故（我自己造成的）：并行跑了两个 --catchup，两个进程各自读了
+    state.json、各自认为那一集没人做，于是**同一集被深读了两遍** ——
+    写出两个不同标题的文件、同一个 ep["id"]。短链目录按 id 建，后写的把前一个
+    覆盖掉，299 篇正文页只剩 297 个短链，其中一篇的分享链接指向另一篇。
+    **表面症状（短链数不对）离真因（没有跨进程锁）很远。**
+
+    原来只有 `_STATE_LOCK = Lock()`，那是同进程的线程锁；跨进程靠云端
+    workflow 的 `concurrency: podcast-write`，而本机和手工跑什么都没有。
+    """
+
+    def test_run_takes_a_file_lock(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        self.assertIn("def acquire_run_lock(", src, "run.py 没有跨进程锁")
+        i = src.index("def acquire_run_lock(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        self.assertIn("flock", body, "锁不是文件锁 —— 别的实现挡不住另一个进程")
+        self.assertIn("LOCK_NB", body,
+                      "锁在排队等 —— launchd 重试会叠成一串进程都等同一把锁")
+
+    def test_main_takes_the_lock_before_writing(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index("acquire_run_lock()", src.index("def main("))
+        head = src[src.index("def main("):i]
+        # 拿锁必须在真正干活之前
+        for later in ("candidates(", "process(", "save_state("):
+            self.assertNotIn(later, head,
+                             f"拿锁排在 {later} 之后 —— 那时已经在写了")
+
+    def test_the_lock_actually_excludes_a_second_process(self):
+        """行为判据：一个进程持锁时，另一个必须拿不到。
+
+        只查代码里有 flock 不够——参数写错（用了 LOCK_SH、或忘了 flock
+        的返回值）看起来一样，实际不互斥。
+        """
+        import subprocess
+        import time
+        holder = subprocess.Popen(
+            [sys.executable, "-c",
+             'import sys,time; sys.path.insert(0,"pipeline"); import run;'
+             'print(run.acquire_run_lock(), flush=True); time.sleep(6)'],
+            cwd=ROOT, stdout=subprocess.PIPE, text=True)
+        try:
+            time.sleep(2.5)
+            r = subprocess.run(
+                [sys.executable, "-c",
+                 'import sys; sys.path.insert(0,"pipeline"); import run;'
+                 'print(run.acquire_run_lock())'],
+                cwd=ROOT, capture_output=True, text=True, timeout=30)
+            second = (r.stdout or "").strip().splitlines()[-1:]
+            self.assertEqual(second, ["False"],
+                             f"第二个进程也拿到了锁 —— 锁没有互斥："
+                             f"{r.stdout!r} {r.stderr[-200:]!r}")
+        finally:
+            holder.terminate()
+            holder.wait(timeout=10)
+
+    def test_no_two_episodes_share_an_id(self):
+        """判据落在后果上：ep["id"] 撞了，短链就会互相覆盖。"""
+        import collections
+        c = collections.Counter()
+        for f in (ROOT / "data" / "episodes").glob("*.json"):
+            try:
+                c[json.loads(f.read_text()).get("id")] += 1
+            except Exception:
+                continue
+        dup = {k: v for k, v in c.items() if k and v > 1}
+        self.assertFalse(dup, f"这些 id 撞了，短链会互相覆盖（同一集被深读了"
+                              f"两遍？）：{dup}")

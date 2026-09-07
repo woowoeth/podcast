@@ -948,6 +948,31 @@ def name_pool(path: str) -> list[dict]:
     return out
 
 
+# 评过没收的冷却期。节目会变好，所以不是永久拉黑；但也不该每天重付一次评分。
+COOLDOWN_DAYS = 30
+_passed_over: list = []
+
+
+def _recently_passed_over() -> tuple[set, set]:
+    """最近评过又没收的 feed 和名字。"""
+    import datetime as _dt
+    cut = (now() - _dt.timedelta(days=COOLDOWN_DAYS)).strftime("%Y-%m-%d")
+    feeds_, names_ = set(), set()
+    try:
+        for row in json.loads(LEDGER.read_text()):
+            if row.get("kind") != "passed_over":
+                continue
+            if (row.get("at") or "")[:10] < cut:
+                continue
+            if row.get("feed"):
+                feeds_.add(row["feed"])
+            if row.get("name"):
+                names_.add(row["name"].lower())
+    except Exception:
+        pass
+    return feeds_, names_
+
+
 def discover(minimum: float, dry: bool = False,
              from_feeds: str | None = None,
              from_names: str | None = None) -> list[dict]:
@@ -967,6 +992,13 @@ def discover(minimum: float, dry: bool = False,
             if _name_match(name, kn):
                 return kn
         return None
+
+    # 最近评过又没收的，这一轮不必再评。判据用 feed 地址（名字会变、feed 不会），
+    # 冷却 COOLDOWN_DAYS 天——留个期限是因为节目会变好，不该一次不合格就永久拉黑。
+    skip_feeds, skip_names = _recently_passed_over()
+    if skip_feeds or skip_names:
+        log(f"  {len(skip_feeds) + len(skip_names)} 档最近评过没收，"
+            f"{COOLDOWN_DAYS} 天内不重复评")
 
     pool = []
     for c in shortlist(apple_charts()):
@@ -993,7 +1025,14 @@ def discover(minimum: float, dry: bool = False,
         + (f" + 外部清单 {len(ext)}" if ext else "") + "），逐个实测：")
     taken = {s["id"] for s in blob["sources"]}
     added = []
+    n_skip = 0
     for ld in cands:
+        # 最近评过没收的直接跳过。**跳在探测和评分之前**——评分那一步才是
+        # 花钱的地方，跳到后面就白付了。
+        if (ld.get("feed") in skip_feeds
+                or (ld.get("name") or "").lower() in skip_names):
+            n_skip += 1
+            continue
         c = probe_candidate(ld["name"], ld.get("itunes"), ld.get("feed"))
         if not c:
             log(f"    {ld['name'][:26]:<28} 找不到 feed")
@@ -1022,6 +1061,12 @@ def discover(minimum: float, dry: bool = False,
             f"[密度{v['density']:.0f}/5 补位{v['gap']:.0f}/3 可核对{v['checkable']:.0f}/2] "
             f"{verdict} · {v['why']}")
         if v["score"] < minimum:
+            # **评过没收的也要记账。** 否则同一个候选每轮都会被重新评一次——
+            # curate 只对**已在册**的去重，被拒的不留痕，于是观察名单里那
+            # 近百个频道每跑一趟就重付一次评分的钱。
+            _passed_over.append({"at": iso(now()), "kind": "passed_over",
+                                 "name": c["name"], "feed": c.get("feed"),
+                                 "score": v["score"], "why": v["why"][:80]})
             continue
         sid = slug_for(c["name"], taken)
         taken.add(sid)
@@ -1052,6 +1097,15 @@ def discover(minimum: float, dry: bool = False,
                       "probation": True,
                       "cat": v["cat"], "score": v["score"], "why": v["why"],
                       "desc": v["desc"], "lead": ld.get("chart") or ld.get("why")})
+    if n_skip:
+        log(f"  跳过 {n_skip} 档（{COOLDOWN_DAYS} 天内评过没收）")
+    if _passed_over and not dry:
+        # 记账。冷却期靠它，不然下一轮又要重付一次评分的钱。
+        rows = load_ledger()
+        rows += _passed_over
+        save_ledger(rows)
+        log(f"  记下 {len(_passed_over)} 档「评过没收」→ "
+            f"{COOLDOWN_DAYS} 天内不再评")
     if added and not dry:
         blob["generated"] = iso(now())
         (DATA / "sources.json").write_text(

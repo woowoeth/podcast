@@ -67,6 +67,42 @@ def load_state() -> dict:
 
 _STATE_LOCK = Lock()
 
+# ---------------------------------------------------------------- 跨进程锁
+# `_STATE_LOCK` 只管同一个进程里的线程。**跨进程什么都没有** —— 云端靠
+# workflow 的 `concurrency: podcast-write` 串行，本机（和我手工跑的时候）
+# 没有任何东西挡着。
+#
+# 实测后果：我并行跑了两个 --catchup（13:27 和 14:02），两个进程各自读了
+# state.json、各自认为那一集没人做，于是**同一集被深读了两遍**，写出两个
+# 不同标题的文件、同一个 ep["id"]。短链目录按 id 建，后写的把前一个覆盖掉，
+# 于是 299 篇正文页只有 297 个短链，其中一篇的分享链接指向另一篇。
+# 表面症状（短链数不对）离真因（没有跨进程锁）很远。
+_LOCK_FILE = DATA / ".run.lock"
+_lock_fh = None
+
+
+def acquire_run_lock(wait: bool = False) -> bool:
+    """同一时刻只允许一个 run.py 在写 data/。
+
+    拿不到就退出而不是排队：跑批是幂等的，下一班会接着做；而排队会让
+    launchd 的重试叠成一串进程，全都在等同一把锁。
+    """
+    global _lock_fh
+    import fcntl
+    _LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _lock_fh = open(_LOCK_FILE, "w")
+    flags = fcntl.LOCK_EX if wait else (fcntl.LOCK_EX | fcntl.LOCK_NB)
+    try:
+        fcntl.flock(_lock_fh.fileno(), flags)
+    except OSError:
+        _lock_fh.close()
+        _lock_fh = None
+        return False
+    _lock_fh.write(f"{os.getpid()}\n")
+    _lock_fh.flush()
+    return True
+
+
 
 def save_state(s: dict) -> None:
     with _STATE_LOCK:
@@ -516,6 +552,12 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true", help="stop before any model call")
     ap.add_argument("--no-build", action="store_true")
     a = ap.parse_args()
+
+    if not a.dry_run and not acquire_run_lock():
+        log("已经有一个 run.py 在写 data/，这一轮跳过。\n"
+            "  跑批是幂等的，下一班会接着做；两个进程同时跑会让同一集被"
+            "深读两遍（实测过：写出两个标题、同一个 id，短链互相覆盖）。")
+        return 0
 
     # 只对齐状态就退出：推送重试时用。放在最前面，不需要 LLM、不碰网络。
     if a.reconcile:
