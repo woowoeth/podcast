@@ -24,6 +24,7 @@ import pathlib
 import re
 import sys
 import threading
+import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from lib import llm                                              # noqa: E402
@@ -32,6 +33,36 @@ from lib.util import log, squeeze                                # noqa: E402
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 # 不合格最多重试几次。偶发（模型只换了标点、整段没译）第二次通常就好；
 # 真不合格的（内容本身译不出来）试三次也一样，别烧钱。
+# 连着几轮译不合格就搁置。不记失败的话同一篇每轮都重试 MAX_TRIES 次、
+# 每轮都失败 —— 钱一直烧，而"英文站少了这一篇"在输出上看不出来。
+# 实测撞上过：cn1b5ef7 那篇的 why/who 三次升温都还是中文。
+GIVE_UP_AFTER = 3
+FAILED = pathlib.Path(__file__).resolve().parent.parent / "data" / "translate-failed.json"
+
+
+def load_failed() -> dict:
+    try:
+        return json.loads(FAILED.read_text())
+    except Exception:
+        return {}
+
+
+def _record_failure(slug: str, why: str) -> None:
+    d = load_failed()
+    e = d.get(slug) or {}
+    e["n"] = e.get("n", 0) + 1
+    e["why"] = why
+    e["at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    d[slug] = e
+    FAILED.write_text(json.dumps(d, ensure_ascii=False, indent=1) + "\n")
+
+
+def _clear_failure(slug: str) -> None:
+    d = load_failed()
+    if d.pop(slug, None) is not None:
+        FAILED.write_text(json.dumps(d, ensure_ascii=False, indent=1) + "\n")
+
+
 MAX_TRIES = 3
 EPS = ROOT / "data" / "episodes"
 OUT = ROOT / "data" / "en"
@@ -229,12 +260,16 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--only", default="", help="只处理这些 slug 片段，逗号分隔")
     ap.add_argument("--redo", action="store_true")
+    ap.add_argument("--retry-failed", action="store_true",
+                    help="连译不合格被搁置的也再试一遍")
     ap.add_argument("--workers", type=int, default=4,
                     help="并发数。串行一篇约 25-30 秒，269 篇要两小时")
     a = ap.parse_args()
 
     OUT.mkdir(parents=True, exist_ok=True)
     seen = set() if a.redo else load_done()
+    parked = load_failed()
+    parked_now: list[str] = []
     want = [x.strip() for x in a.only.split(",") if x.strip()]
     files = sorted(EPS.glob("*.json"), reverse=True)
     if seen:
@@ -254,8 +289,22 @@ def main() -> int:
             continue
         if slug in seen:
             continue
+        if not a.redo and not a.retry_failed:
+            n = (parked.get(slug) or {}).get("n", 0)
+            if n >= GIVE_UP_AFTER:
+                parked_now.append(slug)
+                continue
         todo.append(ep)
     pending = len(todo)
+    if parked_now:
+        # **说出来。** 原来失败一次都不记：同一篇每轮重试 MAX_TRIES 次、
+        # 每轮都失败，钱一直烧，而"英文站少一篇"在输出上看不出来
+        # （它只报自己建了多少篇，不报少了谁）。
+        log(f"搁置 {len(parked_now)} 篇：连着 {GIVE_UP_AFTER} 轮译不合格，"
+            f"不再每轮重试（要重试加 --retry-failed）")
+        for x in parked_now[:5]:
+            why = (parked.get(x) or {}).get("why", "")
+            log(f"      {x[:44]} —— {why[:70]}")
     if a.pending:
         print(pending)
         return 0
@@ -327,6 +376,7 @@ def main() -> int:
                 for x in problems[:4]:
                     log(f"      {x}")
                 tally["failed"] += 1
+                _record_failure(slug, problems[0][:120])
             return
 
         quotes = []
@@ -366,6 +416,8 @@ def main() -> int:
                     json.dumps(rec, ensure_ascii=False, indent=1) + "\n")
                 seen.add(slug)
                 save_done(seen)
+                # 译成了就把失败记录清掉，否则搁置计数会一直挂着
+                _clear_failure(slug)
 
     with cf.ThreadPoolExecutor(max_workers=max(1, a.workers)) as pool:
         list(pool.map(one, todo))

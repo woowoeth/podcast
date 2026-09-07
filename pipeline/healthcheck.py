@@ -332,6 +332,37 @@ def check_english_edition(r: Report) -> None:
         r.note(line + " · 还没建过，跑 python3 pipeline/build.py")
 
 
+def check_parked_translations(r: Report) -> None:
+    """有没有篇目因为连着译不合格被搁置了。
+
+    搁置本身是对的（译不好就不上，别烧钱），但**它必须被看见**：
+    简体和繁体有这一篇、英文没有，而构建输出只报"英文站 N 篇，零漏译"
+    —— 它说的是"我建的这 N 篇都译全了"，不是"一篇都没少"。
+    两个数差 1 的时候，输出上完全看不出来。
+    """
+    f = DATA / "translate-failed.json"
+    if not f.exists():
+        r.good("没有译不合格被搁置的篇目")
+        return
+    try:
+        d = json.loads(f.read_text())
+    except Exception as ex:
+        r.fail(f"data/translate-failed.json 读不出来（{type(ex).__name__}）")
+        return
+    parked = {k: v for k, v in d.items() if (v or {}).get("n", 0) >= 3}
+    trying = {k: v for k, v in d.items() if 0 < (v or {}).get("n", 0) < 3}
+    if parked:
+        r.fail(f"{len(parked)} 篇连着译不合格已搁置，英文站少这几篇："
+               + "；".join(f"{k[:40]}（{(v or {}).get('why', '')[:50]}）"
+                           for k, v in list(parked.items())[:3]))
+    if trying:
+        r.note(f"{len(trying)} 篇译不合格、还在重试："
+               + "；".join(f"{k[:40]} 第 {(v or {}).get('n')} 轮"
+                           for k, v in list(trying.items())[:3]))
+    if not parked and not trying:
+        r.good("没有译不合格被搁置的篇目")
+
+
 def check_translation_side_tables(r: Report) -> None:
     """说话人和信源简介的译名表跟得上吗。
 
@@ -898,6 +929,7 @@ def main(argv: list[str] | None = None) -> int:
     check_render_layer(r)
     check_english_edition(r)
     check_translation_side_tables(r)
+    check_parked_translations(r)
     check_discovery(r)
     check_source_coverage(r)
     check_language_parity(r)

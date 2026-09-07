@@ -5595,3 +5595,67 @@ class LocalLineMustNotDigestWithAStaleLedger(unittest.TestCase):
         self.assertIn('hb.get("exit")', hc, "体检不看退出码，留痕也没人读")
         self.assertRegex(between, r'"exit"\]?\s*=\s*1',
                          "心跳里没写非零退出码 —— 体检不会报警")
+
+
+class FailedTranslationsMustBeRememberedAndVisible(unittest.TestCase):
+    """译不合格要落盘、要有重试上限、要能被体检看见。
+
+    原来失败一个字都不记（translate-done.json 只记成功）：同一篇每轮都被
+    重新排上、每轮 MAX_TRIES 次全失败，钱一直烧，而"英文站少了这一篇"
+    在输出上看不出来 —— 构建只报「英文站 N 篇，零漏译」，
+    那说的是"我建的这 N 篇都译全了"，不是"一篇都没少"。
+    实测撞上过：cn1b5ef7 那篇的 title/why/who 三次升温都还是中文。
+
+    这是「失败时放行」的同一形状：失败不留痕 = 永远不会有人去看。
+    """
+
+    def _src(self) -> str:
+        return (ROOT / "pipeline" / "translate.py").read_text()
+
+    def test_failures_are_written_to_disk(self):
+        src = self._src()
+        self.assertIn("translate-failed.json", src, "失败不落盘")
+        i = src.index("试了 {MAX_TRIES} 次仍不合格")
+        after = src[i:i + 500]
+        self.assertIn("_record_failure(", after,
+                      "放弃那一刻没有记下来 —— 下一轮还会从头再试一遍")
+
+    def test_there_is_a_retry_ceiling_and_a_way_past_it(self):
+        src = self._src()
+        self.assertIn("GIVE_UP_AFTER", src, "重试没有上限")
+        i = src.index("def main(")
+        body = src[i:]
+        # 判据必须是**真的在比**，不是"这个名字出现过"。
+        # 第一版只查名字，而日志文案里就写着「连着 {GIVE_UP_AFTER} 轮」——
+        # 把 `if n >= GIVE_UP_AFTER:` 换成 `if False:` 照样通过。
+        m = re.search(r">=\s*GIVE_UP_AFTER\s*:\s*\n\s*(\w+)", body)
+        self.assertTrue(m, "上限没有用在排单上 —— 记了也照样每轮重试")
+        self.assertIn("continue", body[body.index(m.group(0)):
+                                       body.index(m.group(0)) + 200],
+                      "超过上限之后没有跳过这一篇")
+        self.assertIn("retry-failed", src, "没有强制重试的出口，搁置就永久了")
+
+    def test_success_clears_the_record(self):
+        src = self._src()
+        self.assertIn("_clear_failure(", src, "译成了不清记录，计数会一直挂着")
+        i = src.index("save_done(seen)")
+        self.assertIn("_clear_failure(", src[i:i + 300],
+                      "清记录不在写成功的路径上")
+
+    def test_parking_is_announced_not_silent(self):
+        src = self._src()
+        i = src.index("def main(")
+        # 去掉注释行再看，而且要落在 log( 调用上：
+        # 第一版只查「搁置」这两个字，而 --retry-failed 的帮助文字里就有 ——
+        # 把整段 log 换成 pass 照样通过。
+        body = "\n".join(l for l in src[i:].split("\n")
+                          if not l.lstrip().startswith("#"))
+        self.assertRegex(body, r"log\(f?\"[^\"]*搁置",
+                         "搁置了不出声 —— 和「没有待译」看起来一样")
+
+    def test_the_healthcheck_reads_it(self):
+        hc = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        self.assertIn("translate-failed.json", hc,
+                      "体检不看搁置清单 —— 留痕了也没人读")
+        self.assertIn("check_parked_translations(r)", hc,
+                      "这条检查没被挂进主流程")
