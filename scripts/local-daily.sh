@@ -219,6 +219,10 @@ PYEOF
     echo "待译 $n 篇（第 $i 轮）"
     python3 pipeline/translate.py --limit 20 --workers 4 || break
   done
+  # 封面先缓存到本站再构建 —— 不缓存的话每张封面都直连第三方域名，
+  # 首页曾经因此要跟 12 个域名各握一次手，最慢的单张 1607ms。
+  # 这一步原来不在任何发布线里，只在手动跑的时候才生效。
+  python3 pipeline/cache_covers.py || true
   python3 pipeline/build.py
   # 这张清单每次加新产物都必须跟着改，漏了就是"本机线永远不提交它"——
   # e（分享短链）和 log（更新日志）就漏过：日志里躺着一堆未跟踪的 e/ 目录，

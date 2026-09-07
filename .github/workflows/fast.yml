@@ -118,6 +118,11 @@ jobs:
       - name: Rebuild and push
         run: |
           git pull --rebase --autostash origin main || true
+          # 封面必须先缓存到本站再构建：不缓存的话每张封面都直连第三方域名，
+          # 首页曾经因此要跟 12 个域名各握一次手，最慢的单张 1607ms。
+          # 这一步原来不在任何发布线里，只在我手动跑的时候才生效 ——
+          # 而守护只在比例超过 1/8 才响，中间一路静默劣化。
+          python pipeline/cache_covers.py || true
           python pipeline/build.py
           git add -A
           if git diff --cached --quiet; then echo "site unchanged"; exit 0; fi

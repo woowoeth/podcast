@@ -352,9 +352,15 @@ def check_parked_translations(r: Report) -> None:
     parked = {k: v for k, v in d.items() if (v or {}).get("n", 0) >= 3}
     trying = {k: v for k, v in d.items() if 0 < (v or {}).get("n", 0) < 3}
     if parked:
-        r.fail(f"{len(parked)} 篇连着译不合格已搁置，英文站少这几篇："
-               + "；".join(f"{k[:40]}（{(v or {}).get('why', '')[:50]}）"
-                           for k, v in list(parked.items())[:3]))
+        # **个别篇目搁置是提醒，不是硬伤。** 搁置本身是对的（译不好不上，
+        # 别烧钱），报成硬伤就等于把一篇顽固的稿子变成永久的推送闸门 ——
+        # 这个仓库栽过一次：给新机制加的「上一轮零产出就报硬伤」刚建好就
+        # 自己响了。判据的时间／数量尺度要和被测事物的波动尺度对齐。
+        # 到 3 篇就是硬伤：那说明质量闸门和模型不匹配，不是个别篇目的事。
+        line = (f"{len(parked)} 篇连着译不合格已搁置，英文站少这几篇："
+                + "；".join(f"{k[:40]}（{(v or {}).get('why', '')[:50]}）"
+                            for k, v in list(parked.items())[:3]))
+        (r.fail if len(parked) >= 3 else r.note)(line)
     if trying:
         r.note(f"{len(trying)} 篇译不合格、还在重试："
                + "；".join(f"{k[:40]} 第 {(v or {}).get('n')} 轮"
@@ -551,6 +557,15 @@ def check_language_parity(r: Report) -> None:
     if not d.exists():
         return
     have = {f.stem for f in d.glob("*.json") if not f.name.startswith("_")}
+    # **搁置的不算「漏了」。** 译不合格连着三轮就搁置（那是对的：译不好
+    # 不上，别烧钱），由 check_parked_translations 单独报。这里不排除的话，
+    # 一篇永久译不出的稿会让这道检查永远红 —— 会喊狼来了的检查比没有更糟。
+    parked = set()
+    try:
+        pf = json.loads((DATA / "translate-failed.json").read_text())
+        parked = {k for k, v in pf.items() if (v or {}).get("n", 0) >= 3}
+    except Exception:
+        pass
     lag = []
     for f in sorted((DATA / "episodes").glob("*.json")):
         try:
@@ -558,7 +573,7 @@ def check_language_parity(r: Report) -> None:
         except Exception:
             continue
         slug = ep.get("slug") or ""
-        if not slug or slug in have:
+        if not slug or slug in have or slug in parked:
             continue
         at = ep.get("generated") or ep.get("at") or ""
         hours = None

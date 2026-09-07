@@ -328,6 +328,10 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
                     return "triage-unreliable"
                 state["done"][key] = {"skip": "off-brief", "score": v["score"],
                                       "why": v["why"], "kind": v["kind"],
+                                      # basis 必须落账：不记的话下次没法分辨
+                                      # 这条"不做"是按字幕判的还是按广告文案判的，
+                                      # 而那正是要不要重来的唯一依据。
+                                      "basis": v.get("basis"),
                                       "title": ep["title"][:120], "src": s["id"],
                                       "at": iso(now())}
                 _release(state, fp, key)

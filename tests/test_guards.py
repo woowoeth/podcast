@@ -5746,6 +5746,102 @@ class YoutubeRateLimitMustBeSeen(unittest.TestCase):
                          "又在截断后的消息里匹配「没字幕」 —— 同一个形状的 bug")
 
 
+class ChecksMustNotCryWolfOverOneParkedEpisode(unittest.TestCase):
+    """一篇顽固的稿子不许变成永久的推送闸门。
+
+    这个仓库栽过一次：给新机制加的「上一轮零产出就报硬伤」**刚建好就自己
+    响了** —— 单轮零产出完全正常。判据的时间／数量尺度要和被测事物的波动
+    尺度对齐，会喊狼来了的检查比没有更糟。
+
+    今天又差点重演：译不合格连着三轮就搁置（那是对的：译不好不上，
+    别烧钱），而我把搁置报成硬伤 —— preflight 因此拦住了推送，
+    而拦的是一篇模型就是译不好的稿子。同时旁边那道「有篇只有中文」的老检查
+    也不知道搁置这件事，会永远红。
+
+    两条判据：
+    - 搁置 1-2 篇是提醒，到 3 篇才是硬伤（3 篇说明质量闸门和模型不匹配，
+      不是个别篇目的事）
+    - 三语齐平检查要排除搁置的篇目，否则它永远红
+    """
+
+    def _hc(self) -> str:
+        return (ROOT / "pipeline" / "healthcheck.py").read_text()
+
+    def test_one_parked_episode_is_a_note_not_a_failure(self):
+        src = self._hc()
+        i = src.index("def check_parked_translations(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        body_code = "\n".join(l for l in body.split("\n")
+                              if not l.lstrip().startswith("#"))
+        self.assertNotRegex(
+            body_code, r"if parked:\s*\n\s*r\.fail\(",
+            "搁置一篇就报硬伤 —— 一篇模型译不好的稿子会永久拦住推送")
+        self.assertRegex(body_code, r"len\(parked\)\s*>=\s*[2-9]",
+                         "没有数量阈值：要么永远报硬伤，要么永远不报")
+
+    def test_the_parity_check_excludes_parked_episodes(self):
+        src = self._hc()
+        i = src.index("def check_language_parity(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        self.assertIn("translate-failed.json", body,
+                      "齐平检查不知道「搁置」这件事 —— 一篇永久译不出的稿"
+                      "会让它永远红")
+        self.assertRegex(body, r"slug in parked",
+                         "读了搁置清单但没用它排除")
+
+    def test_the_healthcheck_currently_has_no_hard_failures(self):
+        """这条是拿真实仓库状态量的：跑一遍体检，不许有硬伤。
+
+        它同时兜住上面两条 —— 判据落在"体检现在是什么结果"上，
+        不落在"代码长什么样"。
+        """
+        import subprocess
+        r = subprocess.run([sys.executable, str(ROOT / "pipeline" / "healthcheck.py")],
+                           capture_output=True, text=True, cwd=str(ROOT), timeout=900)
+        out = (r.stdout or "") + (r.stderr or "")
+        m = re.search(r"(\d+) 项硬伤", out)
+        self.assertTrue(m, f"体检输出里找不到硬伤计数：{out[-300:]}")
+        self.assertEqual(m.group(1), "0",
+                         f"体检有 {m.group(1)} 项硬伤：\n"
+                         + "\n".join(l for l in out.split("\n")
+                                     if "坏了" in l)[:600])
+
+
+class CoverCachingMustBeWiredIntoEveryPublishLine(unittest.TestCase):
+    """封面缓存必须接在每条发布线里，而且要在构建之前。
+
+    实测过的故障：首页 24 张封面来自 **12 个不同域名**，每个都要一次
+    DNS + TCP + TLS，最慢的单张 1607ms。换成本站缓存之后 12 个握手变成 0 个。
+
+    但 cache_covers.py **一度只出现在测试文件里**，两条发布线都没接 ——
+    每篇新集的封面都直连第三方，直到有人手动跑一次；
+    而那道守护只在远程封面比例超过 1/8 才响，中间一路静默劣化。
+    「有一道检查」不等于「有一个机制」。
+    """
+
+    LINES = ("scripts/local-daily.sh", ".github/workflows/daily.yml",
+             ".github/workflows/fast.yml", ".github/workflows/backfill.yml")
+
+    def test_every_publish_line_caches_covers_before_building(self):
+        missing, late = [], []
+        for rel in self.LINES:
+            f = ROOT / rel
+            if not f.exists():
+                continue
+            # 去掉注释行：注释里提到脚本名不算接上了
+            body = "\n".join(
+                l for l in f.read_text().split("\n")
+                if not l.lstrip().startswith("#"))
+            if "cache_covers.py" not in body:
+                missing.append(rel)
+                continue
+            if body.index("cache_covers.py") > body.index("build.py"):
+                late.append(rel)
+        self.assertFalse(missing, f"这些发布线没有缓存封面：{missing}")
+        self.assertFalse(late, f"这些发布线在构建**之后**才缓存封面，"
+                               f"这一轮上线的还是第三方地址：{late}")
+
+
 class TriageRubricMustMatchWhatItIsActuallyFed(unittest.TestCase):
     """尺子对「我看到的是什么」的说明，必须和 _brief 真喂进去的东西一致。
 
