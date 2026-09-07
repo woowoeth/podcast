@@ -121,6 +121,42 @@ else
   bad "体检不通过"
 fi
 
+step "没有冲突标记、data 里的 JSON 都能解析"
+# 单独一步，且排在提交检查之前：带冲突标记的文件**已经推上线过两次**，
+# 两次都是变基之后 `git add -A` 把它们照收进来的。
+# git checkout --ours/--theirs 对某些冲突路径不生效，而症状离真因很远
+# （_speakers.json 一坏，表现成「英文站有漏译」）。
+if $PY - <<'EOF'
+import json, pathlib, re, subprocess, sys
+root = pathlib.Path(".")
+MARK = re.compile(r"^(<{7} |={7}$|>{7} )", re.M)
+bad = []
+out = subprocess.run(["git", "ls-files", "-z"], capture_output=True, text=True).stdout
+for rel in out.split("\0"):
+    if not rel or pathlib.Path(rel).suffix not in {
+            ".json", ".py", ".txt", ".yml", ".yaml", ".sh", ".js",
+            ".css", ".md", ".html", ".xml"}:
+        continue
+    try:
+        if MARK.search((root / rel).read_text(errors="strict")):
+            bad.append(f"冲突标记 {rel}")
+    except Exception:
+        pass
+for p in sorted((root / "data").rglob("*.json")):
+    try:
+        json.loads(p.read_text())
+    except Exception as ex:
+        bad.append(f"JSON 坏了 {p}: {type(ex).__name__}")
+for b in bad[:8]:
+    print("  " + b)
+sys.exit(1 if bad else 0)
+EOF
+then
+  good "没有冲突标记，data 里的 JSON 都能解析"
+else
+  bad "有冲突标记或坏掉的 JSON（见上）"
+fi
+
 step "工作区里没有本该提交的东西"
 untracked=$(git status --porcelain | grep -c '^??' || true)
 [ "$untracked" = "0" ] && good "没有未跟踪文件" \

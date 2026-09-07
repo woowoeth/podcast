@@ -5001,3 +5001,60 @@ class OneRunAtATimeAcrossProcesses(unittest.TestCase):
         dup = {k: v for k, v in c.items() if k and v > 1}
         self.assertFalse(dup, f"这些 id 撞了，短链会互相覆盖（同一集被深读了"
                               f"两遍？）：{dup}")
+
+
+class NoConflictMarkersAnywhere(unittest.TestCase):
+    """入库的文件里不许有 git 冲突标记。
+
+    发生过两次，都是变基之后：
+      · `data/en/_speakers.json` 被留下 `<<<<<<< HEAD`，JSON 解析炸掉，
+        英文页上的说话人全退回中文 —— 而症状表现成「英文站有漏译」，
+        离真因一层；
+      · 三个译文文件带着标记被**提交**了，是我事后想起来查才发现的。
+
+    根因是 `git checkout --ours/--theirs` 对某些冲突路径不生效（尤其是
+    双方都改了同一个新增文件时），而 `git add -A` 会把带标记的文件照收。
+    产物一律删掉重建，data 里的要逐个解——但**不能靠人记得验**。
+    """
+
+    SUSPECT = ("*.json", "*.py", "*.txt", "*.yml", "*.yaml", "*.sh",
+               "*.js", "*.css", "*.md")
+    MARK = re.compile(r"^(<{7} |={7}$|>{7} )", re.M)
+
+    def test_no_tracked_file_has_conflict_markers(self):
+        import subprocess
+        r = subprocess.run(["git", "ls-files", "-z"], cwd=ROOT,
+                           capture_output=True, text=True)
+        bad = []
+        for rel in r.stdout.split("\0"):
+            if not rel:
+                continue
+            p = ROOT / rel
+            if p.suffix not in {".json", ".py", ".txt", ".yml", ".yaml",
+                                ".sh", ".js", ".css", ".md", ".html", ".xml"}:
+                continue
+            try:
+                text = p.read_text(errors="strict")
+            except Exception:
+                continue
+            if self.MARK.search(text):
+                bad.append(rel)
+                if len(bad) >= 8:
+                    break
+        self.assertFalse(bad, "这些入库的文件里有 git 冲突标记：\n  "
+                              + "\n  ".join(bad))
+
+    def test_every_data_json_parses(self):
+        """data/ 下的 JSON 必须都能解析。
+
+        单独一条，因为坏掉的 JSON 表现出来的症状离真因很远：
+        _speakers.json 一坏，症状是「英文站有漏译」。
+        """
+        bad = []
+        for p in sorted((ROOT / "data").rglob("*.json")):
+            try:
+                json.loads(p.read_text())
+            except Exception as ex:
+                bad.append(f"{p.relative_to(ROOT)}: {type(ex).__name__}")
+        self.assertFalse(bad, "data 下这些 JSON 解析不了：\n  "
+                              + "\n  ".join(bad[:8]))
