@@ -94,8 +94,40 @@ export LLM_MODEL
     fi
   fi
 
-  # 先同步：state.json 在 git 里，云端刚发过的不能重复发
-  git pull --rebase --autostash -q origin main || true
+  # 先同步：state.json 在 git 里，云端刚发过的不能重复发。
+  #
+  # **这一步失败就不许深读。** 原来是 `|| true`：拉不下来照跑，而 state.json
+  # 是旧的 —— 于是把远端已经发过的集又深读一遍，标题还不一样（模型不确定），
+  # slug 因此不同，没有任何东西认得出来。真烧掉过好几篇的钱：这份副本
+  # 落后 29 个提交时，本机重复深读了 thisweekinmicr、brainsandmachi、
+  # cn27f438、cn2aa250 —— 每一篇都在远端已经有了。
+  #
+  # 拉不下来的正确反应是**停手**，不是带着旧账本继续花钱。
+  if ! git pull --rebase --autostash -q origin main; then
+    echo "同步失败：拉不下 origin/main，本轮不深读（账本是旧的，会重复发）" >&2
+    git rebase --abort 2>/dev/null || git merge --abort 2>/dev/null || true
+    behind=$(git rev-list --count HEAD..origin/main 2>/dev/null || echo "?")
+    echo "  本机落后远端 $behind 个提交。先看 git status，" >&2
+    echo "  确认本机未推送的稿子都安全之后再手工同步。" >&2
+    # 心跳仍然要写，否则体检看到的是"这条线没跑"，而真相是"跑了但拒绝深读"
+    # 心跳要写成体检读得懂的样子：文件名 heartbeat-local.json，
+    # 时间键是 at，退出码键是 exit —— check_heartbeats 看到 exit 非零就报硬伤。
+    # 不写的话体检看到的是"这条线没跑"，而真相是"跑了，但拒绝深读"。
+    python3 - "$behind" <<'PYEOF' || true
+import json, pathlib, sys, datetime
+p = pathlib.Path("data/heartbeat-local.json")
+try:
+    d = json.loads(p.read_text())
+except Exception:
+    d = {}
+d["at"] = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+d["exit"] = 1
+d["published"] = 0
+d["why"] = f"同步失败，落后 origin/main {sys.argv[1]} 个提交；本轮拒绝深读"
+p.write_text(json.dumps(d, ensure_ascii=False, indent=1) + "\n")
+PYEOF
+    exit 1
+  fi
 
   ONLY_ARG=""
   [ -n "$ONLY" ] && ONLY_ARG="--only $ONLY"

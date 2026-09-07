@@ -5542,3 +5542,56 @@ class WorkflowsMustNotPinSourceFilesToOldCommits(unittest.TestCase):
                     bad.append(f"{f.name}: {m.group(0)[:70]}")
         self.assertFalse(bad, "工作流从别的 ref 恢复源码 —— 同样会抹掉改动：\n  "
                               + "\n  ".join(bad))
+
+
+class LocalLineMustNotDigestWithAStaleLedger(unittest.TestCase):
+    """本机线拉不下 origin/main 时必须停手，不许带着旧账本深读。
+
+    state.json（发过哪些集的账本）在 git 里。原来同步那一步是
+    `git pull --rebase --autostash -q origin main || true` —— 拉不下来照跑，
+    账本是旧的，于是把远端**已经发过**的集又深读一遍。
+    模型不确定，第二遍的标题不一样，slug 因此不同，没有任何东西认得出来。
+
+    真烧掉过钱：计划任务那份副本落后 29 个提交时，重复深读了
+    thisweekinmicr、brainsandmachi、cn27f438、cn2aa250 四篇 ——
+    每一篇在远端都已经有了。而且它们还卡在那份副本里没推上去，
+    一次 reset --hard 就会全没（这是「push 重试吞掉失败丢了 11 篇」的同一形状）。
+
+    拉不下来的正确反应是停手，不是继续花钱。
+    """
+
+    def _sh(self) -> str:
+        return (ROOT / "scripts" / "local-daily.sh").read_text()
+
+    def test_the_sync_is_not_fail_open(self):
+        sh = self._sh()
+        i = sh.index("git pull --rebase --autostash")
+        line = sh[sh.rindex("\n", 0, i) + 1:sh.index("\n", i)]
+        self.assertNotIn("|| true", line,
+                         "同步失败被 || true 吞掉 —— 会带着旧账本重复深读")
+
+    def test_it_stops_before_digesting(self):
+        sh = self._sh()
+        i = sh.index("git pull --rebase --autostash")
+        j = sh.index("python3 pipeline/run.py", i)
+        between = sh[i:j]
+        self.assertRegex(between, r"\bexit\s+[1-9]",
+                         "同步失败之后没有提前退出 —— run.py 还是会跑")
+
+    def test_the_refusal_leaves_a_trace_the_healthcheck_reads(self):
+        """静默停手和"这条线死了"在体检眼里一样 —— 必须留痕。"""
+        sh = self._sh()
+        i = sh.index("git pull --rebase --autostash")
+        j = sh.index("python3 pipeline/run.py", i)
+        # **先去掉注释行。** 第一版直接在原文里找 heartbeat-local.json，
+        # 而我自己的注释里就写着这个文件名 —— 把真正写心跳的那段删掉，
+        # 检查照样通过。反向注入当场抓到它是空的。
+        between = "\n".join(l for l in sh[i:j].split("\n")
+                            if not l.lstrip().startswith("#"))
+        self.assertIn("heartbeat-local.json", between,
+                      "拒绝深读时不写心跳 —— 体检会报成"
+                      "「这条线从没跑过」，方向完全错")
+        hc = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        self.assertIn('hb.get("exit")', hc, "体检不看退出码，留痕也没人读")
+        self.assertRegex(between, r'"exit"\]?\s*=\s*1',
+                         "心跳里没写非零退出码 —— 体检不会报警")
