@@ -91,7 +91,10 @@ SCHEMA = """输出 JSON：{"score": 0-10 的数字, "why": "不超过 40 字的�
 # 访谈和圆桌的开场是寒暄，只看开头会**系统性低估**这一类，而这一类正是
 # YouTube 这条线的主力。
 CAPTION_SAMPLE = 2400
-CAPTION_WINDOWS = (0.10, 0.45, 0.75)
+# 铺开取 12 段，不是 3 段。curate.py 的 _excerpt 早就是这么做的
+# （`step = len(segs) // 20`，铺开取 20 段）—— 同样的总长度，段越多越有
+# 代表性：3 段容易整段落在某个跑题的地方，12 段不会。
+CAPTION_WINDOWS = tuple(round(0.04 + i * 0.08, 2) for i in range(12))
 
 
 # 一集只取一次字幕。score() 要判 basis、_brief() 要拿样本，各调一次就等于

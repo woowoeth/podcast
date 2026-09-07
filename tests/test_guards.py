@@ -5133,12 +5133,19 @@ class TriageMustJudgeYoutubeOnCaptionsNotDescriptions(unittest.TestCase):
             r"return\s+\w*text\w*\[:\s*CAPTION_SAMPLE\s*\]",
             "样本只截了开头 —— 访谈类会被开场寒暄拉低")
         self.assertIn("CAPTION_WINDOWS", body, "取样没有铺开的位置表")
-        wins = re.search(r"CAPTION_WINDOWS\s*=\s*\(([^)]*)\)", src)
-        self.assertTrue(wins, "找不到 CAPTION_WINDOWS")
-        vals = [float(x) for x in wins.group(1).split(",") if x.strip()]
-        self.assertGreaterEqual(len(vals), 2, f"只有一个取样点：{vals}")
-        self.assertTrue(max(vals) >= 0.5,
-                        f"取样点全挤在前半段，等于还是只看开头：{vals}")
+        # 判据读**真实的值**，不读源码里的字面量 —— 位置表从三个手写小数
+        # 改成 tuple(...) 表达式之后，原来那条正则就找不到了，
+        # 而取样其实变得更好（3 段 → 12 段）。尺子不该绑在写法上。
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        vals = list(importlib.import_module("lib.triage").CAPTION_WINDOWS)
+        self.assertGreaterEqual(len(vals), 3, f"取样点太少：{vals}")
+        self.assertGreater(max(vals), 0.5,
+                           f"取样点全挤在前半段，等于还是只看开头：{vals}")
+        self.assertLess(min(vals), 0.2, f"取样点没覆盖开头：{vals}")
+        # 段与段之间不能挤在一起（挤在一起等于只取了一段）
+        spread = max(vals) - min(vals)
+        self.assertGreater(spread, 0.6, f"取样范围太窄：{vals}")
 
     def test_caption_sample_is_bounded(self):
         src = (ROOT / "pipeline" / "lib" / "triage.py").read_text()
