@@ -518,6 +518,39 @@ def from_youtube(vid: str, lang: str) -> dict | None:
         return _from_youtube(vid, lang)
 
 
+# yt-dlp 为什么没拿到字幕。**判据必须看全文**，不能看拼接后的尾巴：
+# 原来是 `((stderr) + " " + (stdout))[-260:]` 再在里面找 429 —— stdout
+# 拼在后面且很长（一堆 `[youtube] …` 信息行），取尾 260 字符只剩 stdout，
+# 而 `ERROR: … HTTP Error 429` 在 stderr 里，被挤出了窗口。
+# 于是限流永远被当成"其他失败"：不等待、不退避，三次尝试瞬间烧完，
+# 然后掉到 ASR 或直接算"拿不到文稿"。
+# 实测：sFWEZ4B-uWU 有英文自动字幕，真因是 429。
+_YT_RATELIMIT = re.compile(r"429|too many requests|rate.?limit|sign in|cookies|"
+                           r"bot|captcha|confirm you", re.I)
+_YT_UPCOMING = re.compile(r"live event will begin|premieres in|"
+                          r"this live stream recording is not available", re.I)
+_YT_NOSUBS = re.compile(r"no automatic captions|no subtitles", re.I)
+
+
+def yt_failure_kind(stderr: str, stdout: str) -> str:
+    """返回 ratelimit / upcoming / nocaptions / other。"""
+    full = (stderr or "") + "\n" + (stdout or "")
+    if _YT_RATELIMIT.search(full):
+        return "ratelimit"
+    if _YT_UPCOMING.search(full):
+        return "upcoming"
+    if _YT_NOSUBS.search(full):
+        return "nocaptions"
+    return "other"
+
+
+def yt_failure_message(stderr: str, stdout: str) -> str:
+    """给人看的那一行。取 stderr 的尾巴 —— 真因在那儿，不在 stdout 的信息行里。"""
+    full = (stderr or "") + "\n" + (stdout or "")
+    return squeeze(((stderr or "").strip() or full)[-400:])
+
+
+
 def _from_youtube(vid: str, lang: str) -> dict | None:
     langs = "zh-Hans,zh,en" if lang == "zh" else "en,en-US,en-GB"
     with tempfile.TemporaryDirectory() as td:
@@ -531,6 +564,7 @@ def _from_youtube(vid: str, lang: str) -> dict | None:
         # an absent track.
         files: list[pathlib.Path] = []
         err = ""
+        kind = ""
         for attempt in range(3):
             try:
                 r = subprocess.run(cmd, capture_output=True, timeout=300, text=True)
@@ -541,23 +575,29 @@ def _from_youtube(vid: str, lang: str) -> dict | None:
                            key=lambda p: p.stat().st_size, reverse=True)
             if files:
                 break
-            err = squeeze(((r.stderr or "") + " " + (r.stdout or ""))[-260:])
-            if re.search(r"429|too many requests|rate.?limit|sign in|cookies|"
-                         r"bot|captcha|confirm you", err, re.I):
+            kind = yt_failure_kind(r.stderr or "", r.stdout or "")
+            err = yt_failure_message(r.stderr or "", r.stdout or "")
+            if kind == "ratelimit":
                 _transient["hit"] = True
                 wait = 30 * (2 ** attempt)
                 log(f"    YouTube 限流或要求登录，等 {wait}s 再试（{attempt + 1}/3）")
                 time.sleep(wait)
                 continue
+            if kind == "upcoming":
+                # 还没开播的直播：不是限流也不是没字幕，重试三次也一样。
+                log("    这是还没开播的直播，跳过（不重试）")
+                _transient["hit"] = False
+                return None
             break
         if not files:
-            if err:
-                low = err.lower()
-                if "no automatic captions" in low or "no subtitles" in low:
-                    log("    这个视频没有字幕轨")
-                    _transient["hit"] = False
-                else:
-                    log(f"    yt-dlp: 拿不到字幕（{err[:120]}）")
+            # 用**分类结果**判，不要在截断后的消息里再匹配一次 ——
+            # 「没字幕」那句 yt-dlp 写在 stderr 还是 stdout 不一定，
+            # 而消息只取了一头的尾巴。这正是上面那个 429 bug 的同一形状。
+            if kind == "nocaptions":
+                log("    这个视频没有字幕轨")
+                _transient["hit"] = False
+            elif err:
+                log(f"    yt-dlp: 拿不到字幕（{err[:160]}）")
             return None
         segs = _vtt_srt(files[0].read_text("utf-8", "replace"))
         if segs:

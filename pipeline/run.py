@@ -314,6 +314,18 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
             mark = "通过" if v["score"] >= _triage["min"] else "不做"
             log(f"    选题 {v['score']:.0f}/10 · {v['kind']} · {v['why']} → {mark}")
             if v["score"] < _triage["min"]:
+                # **按简介判出来的低分不落成永久结论。**
+                # YouTube 简介基本是赞助和订阅链接，闸门读它判出的低分不可信。
+                # 实测：斯坦福那条扩散式 LLM 正课，取到字幕时 7/10
+                #「正课拆解扩散LLM机制，可核对讲义」，撞上 429 取不到字幕时
+                # 2/10「课程宣传片，仅概述概念无推导细节」——同一条视频。
+                # 原来这里无条件写 state["done"]，于是**限流那一刻的坏运气
+                # 会永久判死一集好内容**，而且没有任何东西会再看它一眼。
+                if (s.get("kind") or "") == "youtube" and v.get("basis") != "captions":
+                    log("      （这一分是按视频简介判的，字幕没取到 → "
+                        "不记结论，下一轮重来）")
+                    _release(state, fp, key)
+                    return "triage-unreliable"
                 state["done"][key] = {"skip": "off-brief", "score": v["score"],
                                       "why": v["why"], "kind": v["kind"],
                                       "title": ep["title"][:120], "src": s["id"],

@@ -1,0 +1,219 @@
+{
+ "id": "statquest-d4504a013f",
+ "slug": "2026-07-13-statquest-线性规划最优解不在内部-单纯形法只沿边界顶点爬",
+ "fingerprint": "585cc68fbc333b63",
+ "source_id": "statquest",
+ "source": "StatQuest",
+ "source_zh": "StatQuest",
+ "cat": "edu",
+ "tier": 3,
+ "lang": "en",
+ "title_original": "The Simplex Algorithm, Mathematical Details!!!",
+ "published": "2026-07-13T04:00:15Z",
+ "duration": 1626,
+ "audio": "",
+ "link": "https://www.youtube.com/watch?v=lgD9lNB9Ums",
+ "image": "https://i1.ytimg.com/vi/lgD9lNB9Ums/hqdefault.jpg",
+ "youtube_id": "lgD9lNB9Ums",
+ "video_len": 0,
+ "transcript_url": "https://www.youtube.com/watch?v=lgD9lNB9Ums",
+ "digest": {
+  "title": "线性规划最优解不在内部：单纯形法只沿边界顶点爬",
+  "dek": "线性规划的最优解总在某个边界顶点上，所以单纯形法不搜索区域内部：从原点出发，用最大负数列选方向、最小比率定步长，不断换到收益更高的相邻顶点。",
+  "why": "这集把「沿边界顶点爬」的几何直觉落实成每一步矩阵操作，讲清方向、步长和停止条件。手算一遍后，再看优化器文档体感完全不同。",
+  "points": [
+   {
+    "t": 66,
+    "h": "在相邻顶点间爬坡",
+    "body": "线性规划要在一组直线约束围成的可行域里找目标函数的最值。单纯形法并不搜索区域内部，而是从原点出发，沿着边移动到能提高收入的相邻顶点；到达新顶点后再看下一个相邻顶点，直到移动不再增加收入为止。因为算法「看不见」图形，后面所有看似复杂的矩阵操作，本质都是在用数字回答方向与距离这两个问题。",
+    "spk": "Josh Starmer"
+   },
+   {
+    "t": 246,
+    "h": "先把约束统一成小于等于",
+    "body": "正式进入迭代之前要先做标准化：带大于等于号的约束必须两边同乘 -1 翻转成小于等于；带等号的约束则拆成小于等于与大于等于两个不等式，再把大于等于那个乘 -1 翻转，两个不等式形成一种「不等式三明治」，等价于原来的等式。节目解释这样做的目的是让算法每一步只需要处理同一种符号，不需要在迭代中为不同约束形态分叉检查。",
+    "spk": "Josh Starmer"
+   },
+   {
+    "t": 308,
+    "h": "松弛变量把不等式补成等式",
+    "body": "即使表达式变成小于等于，左侧和右侧仍可能不相等。办法是给每个方程追加一个非负的松弛变量，欠多少就补多少。节目举的例子是生产 10 kg 饼干混合料和 8 kg 甜甜圈混合料时，面粉实际只用了 8 kg，而可用量是 10 kg，于是面粉对应的松弛变量设为 2 kg；其余约束的松弛变量因系数为 0 而在计算中消失。补完松弛变量后所有方程格式一致，才能统一放进矩阵。",
+    "spk": "Josh Starmer"
+   },
+   {
+    "t": 430,
+    "h": "装进矩阵再把首行取负",
+    "body": "格式化的最后一步是把所有系数与总量填进矩阵，并把第一行乘以 -1。取负只是为符合单纯形法的通常定义，让「下一步往哪走」可以直接读成第一行里的最负系数；此时收益初始值为 0，因为搜索从原点开始。矩阵整理完成后，每一轮迭代都围绕同一个动作展开：先选方向，再定距离，最后用行变换把新顶点的坐标显式读出来。",
+    "spk": "Josh Starmer"
+   },
+   {
+    "t": 551,
+    "h": "最小比率才落在边界上",
+    "body": "算法本身看不见可行域，所以它用比率检验来定步长：拿每一行约束右侧的总量，除以当前列中对应的正系数，商就是沿这根轴可能到达的坐标。节目用 cookie mix 轴上的三个候选点说明：比值 25、16.7 分别对应黄线、蓝线与轴的交点，都在可行域外；最低的 10 落在棕线交点，也就是边界上。因此总是选最小比率，比值更大的点必然越界；若最小比率并列，惯例选行号最小的一行。",
+    "spk": "Josh Starmer"
+   },
+   {
+    "t": 977,
+    "h": "高斯消元让坐标自己浮现",
+    "body": "选好主元列与主元行之后，用高斯消元把主元位置变成 1，再通过行的倍加把同一列其余位置全部清成 0。消元完成后，读数规则很简单：如果某一列只有一个 1、其余全是 0，就把这一列对应行上的总量值读成当前顶点在该轴上的坐标；多个变量列同时满足时，坐标会一起出现，右上角数值直接给出该顶点的收入。节目用这个方式读出第二个顶点 (10,10) 与收入 50。",
+    "spk": "Josh Starmer"
+   },
+   {
+    "t": 1099,
+    "h": "第一行没有负数时就停",
+    "body": "何时停止与如何移动同样重要。只要第一行里还有可作为候选的最负系数，算法就会继续检验是否能提高收入；一旦第一行不再有负数，单纯形法就宣布当前顶点是最优。第一个例子的第二站 (10,10) 就满足这一条件，收入 50 是在面粉、糖、巧克力三项约束下能取得的最好值。这个停止条件正是「相邻顶点无法再提高收入」的几何直觉在矩阵语言里的等价表述。",
+    "spk": "Josh Starmer"
+   },
+   {
+    "t": 1533,
+    "h": "三维算例没有新增机制",
+    "body": "把算例从两个产品扩展到三个，单纯形法依旧成立。节目把甜甜圈、饼干、布朗尼混合料记成 x、y、z，五条约束各配一个松弛变量，从原点出发后每一步仍是同一套流程：用第一行的最负系数选列，用最小比率选主元行，再做高斯消元。遇到多个最负系数并列时，取最靠左的一列先走。经过几次移动后第一行不再有负数，算法停在 (9,9,4)，对应最大收入 22。",
+    "spk": "Josh Starmer"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 66,
+    "spk": "Josh Starmer",
+    "raw": "The simplex algorithm starts at the origin and then moves to neighboring vertices that increase revenue until moving to the next vertex does not increase the revenue. Bam.",
+    "zh": "单纯形法从原点出发，移动到能使收入增加的相邻顶点，直到移动到下一个顶点不再增加收入为止。Bam。"
+   },
+   {
+    "t": 246,
+    "spk": "Josh Starmer",
+    "raw": "Now the two inequalities give us a sort of inequality sandwich that is the equivalent of the original equality.",
+    "zh": "这两个不等式构成一种「不等式三明治」，它等价于原来的等式。"
+   },
+   {
+    "t": 308,
+    "spk": "Josh Starmer",
+    "raw": "The idea is that when the total amount of something like flour used by the cookie and doughnut mixes on the left is less than the amount available on the right, the slack variables make up the difference.",
+    "zh": "思路是：当左侧饼干和甜甜圈混合料使用的面粉总量小于右侧可用量时，松弛变量把差额补上。"
+   },
+   {
+    "t": 490,
+    "spk": "Josh Starmer",
+    "raw": "In this example, the largest negative number in the first row, -3, is in the first column, the column for cookie mix. So, we could decide to go along the cookie mix axis.",
+    "zh": "在这个例子中，第一行最负的数是 -3，位于第一列 cookie mix，于是我们决定先沿 cookie mix 轴移动。"
+   },
+   {
+    "t": 916,
+    "spk": "Josh Starmer",
+    "raw": "Again, in general, the simplex algorithm selects the lowest value because larger values are always outside of the feasible region.",
+    "zh": "还是一样，单纯形法通常选最小的比值，因为更大的比值一定落在可行域外面。"
+   },
+   {
+    "t": 1099,
+    "spk": "Josh Starmer",
+    "raw": "In other words, the point 10, 10, which represents a revenue of 50, is the best we can do given the constraints on the amount of flour, sugar, and chocolate that we can use.",
+    "zh": "也就是说，点 10,10 对应收入 50，是在面粉、糖、巧克力用量约束下我们能达到的最好结果。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "第一个例子的第一步移动终点",
+    "v": "cookie mix = 10，doughnut mix = 0",
+    "t": 796
+   },
+   {
+    "k": "该顶点的收入",
+    "v": "30",
+    "t": 796
+   },
+   {
+    "k": "第一个例子的第二步移动终点",
+    "v": "cookie mix = 10，doughnut mix = 10",
+    "t": 1037
+   },
+   {
+    "k": "该顶点的收入提升",
+    "v": "从 30 提升到 50",
+    "t": 1099
+   },
+   {
+    "k": "三维算例的最优顶点",
+    "v": "x = 9，y = 9，z = 4",
+    "t": 1533
+   },
+   {
+    "k": "三维算例的最大收入",
+    "v": "22",
+    "t": 1533
+   }
+  ],
+  "terms": [
+   {
+    "term": "simplex algorithm",
+    "zh": "单纯形法",
+    "def": "从原点出发、沿相邻边界顶点逐步寻找线性规划最优解的算法。"
+   },
+   {
+    "term": "feasible region",
+    "zh": "可行域",
+    "def": "由全部约束围成的所有可行解所在区域。"
+   },
+   {
+    "term": "objective function",
+    "zh": "目标函数",
+    "def": "要最大化或最小化的线性方程，例中是收入方程。"
+   },
+   {
+    "term": "slack variable",
+    "zh": "松弛变量",
+    "def": "为把不等式补成等式而加入的非负变量。"
+   },
+   {
+    "term": "Gaussian elimination",
+    "zh": "高斯消元",
+    "def": "用行变换化矩阵为阶梯形，从而读出交点坐标。"
+   },
+   {
+    "term": "ratio test",
+    "zh": "最小比率检验",
+    "def": "用约束总量除以当前列正系数，取最小比值定步长。"
+   }
+  ],
+  "who": "适合会调优化库却没手推过单纯形法的工程师、运筹学学生，以及准备讲线性规划的老师。",
+  "skip": "片头 Gurobi 广告、开头线性规划回顾与片尾书籍周边推销可跳过，其余都是手算细节。",
+  "tags": [
+   "线性规划",
+   "单纯形法",
+   "松弛变量",
+   "高斯消元",
+   "运筹学",
+   "算法细节"
+  ],
+  "quality": {
+   "transcript_source": "youtube",
+   "transcript_detail": "en",
+   "words": 3812,
+   "wpm": 140.7,
+   "timed": true,
+   "verified_quotes": 6,
+   "grounded_facts": 6,
+   "points": 8,
+   "pruned": 0,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-09-07T10:13:17Z",
+ "triage": {
+  "score": 8.0,
+  "why": "逐行推导单纯形算法数学细节，可复现，属高密度教学。",
+  "kind": "机制拆解"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 8,
+   "faithful": 9,
+   "selection": 8,
+   "concrete": 9,
+   "chinese": 9
+  },
+  "verdict": "上站",
+  "why": "要点均为机制与判断，忠实原文，数字具体，无空话。唯一不足是部分要点偏转述，但整体达到上站标准。",
+  "worst": "要点[4:06]与[5:08]偏重描述标准化步骤，可更突出其算法意义，但非严重缺陷。"
+ },
+ "model": "openai:deepseek-reasoner"
+}

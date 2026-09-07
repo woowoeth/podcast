@@ -10,6 +10,7 @@
 """
 from __future__ import annotations
 
+import threading
 import json
 import os
 import re
@@ -29,7 +30,16 @@ SYSTEM = """你在给一个中文播客深读站做选题。站点有多分类�
 **所有分类共用的高分条件（必须满足其一）：**
 - 事实与机制：数字、时间线、成本、实验、制度如何运作
 - 判断与框架：有立场、能被反驳的论断，讲清取舍与边界
-分界线不是「有没有数字」，而是**能不能被反驳**。套话（「要有耐心」「保持学习」）低分。
+- 一手经历：亲历者讲自己做过的事——具体到步骤、代价、失败在哪、当时怎么
+  取舍、后来怎么改。这一条**不要求可复现的推导链**，要求具体、可追问、
+  不是二手转述。「我们团队原来这样干、现在这样干、为什么换」是高分；
+  「要拥抱 AI」是低分。**失败与踩坑是加分，不是「不够系统」。**
+- 一手事实：别处拿不到的事实——文件、数据、当事人访谈、现场。
+  调查报道属于这一条：判断可以少，事实要具体、可核、有出处。
+
+分界线不是「有没有数字」，也不是「有没有推导链」，而是
+**读完手里是不是多出了别处拿不到的东西**。
+套话（「要有耐心」「保持学习」）低分。
 
 **按分类加分轴（分类对了就用这条，不要再拿商业框架苛责）：**
 - ai / biz / cn：产业机制、监管、供应链、投资决策、一手创业经验、中美对照
@@ -46,13 +56,20 @@ SYSTEM = """你在给一个中文播客深读站做选题。站点有多分类�
 
 **所有分类都给低分（0-4），这条不放宽：**
 - 新闻综述、一周回顾、榜单
-- 纯宣传、广告口播、课程推销
+- 纯宣传、广告口播、课程推销、课程预告片、报名页口播、产品演示
 - 趣味闲聊、景点打卡、纯鸡汤、无法证伪的正确话
+
+**低分的理由只能是「空泛」，不能是「体裁」。** 下面这些都**不是**减分理由：
+「偏经验分享」「属调查报道」「多为即兴讨论」「缺乏完整推导链」
+「不够系统」——只要它给了具体的一手经历或一手事实，就按上面那两条给分。
+真正要压的是：讲了半小时而读者手里什么都没多出来。
 
 不要因为「与科技商业无关」就否掉 hist / parent / sci / ideas 的合格集。
 中间分（5-6）：有内容但密度不高。7 分及以上才做深读。
 
-只看标题和节目介绍——介绍空洞本身就是信号。"""
+判断依据：**给了字幕原文就以字幕为准**，节目介绍只作参考——YouTube 的
+简介基本是赞助与订阅链接，**简介空洞在这种情况下不构成任何减分理由**。
+只有节目介绍、没有字幕时，介绍空洞本身才是信号。"""
 
 SCHEMA = """输出 JSON：{"score": 0-10 的数字, "why": "不超过 40 字的中文理由",
 "kind": "一手访谈|机制拆解|新闻综述|宣传|闲聊|其他"}"""
@@ -77,7 +94,26 @@ CAPTION_SAMPLE = 2400
 CAPTION_WINDOWS = (0.10, 0.45, 0.75)
 
 
+# 一集只取一次字幕。score() 要判 basis、_brief() 要拿样本，各调一次就等于
+# 把 yt-dlp 的请求翻倍 —— 而 429 正是请求太多造成的，那是在给自己制造限流。
+_SAMPLE_CACHE: dict[str, str] = {}
+_SAMPLE_LOCK = threading.Lock()
+
+
 def _caption_sample(ep: dict, src: dict) -> str:
+    vid0 = ep.get("youtube_id") or (ep.get("guid") or "").split(":")[-1]
+    if vid0:
+        with _SAMPLE_LOCK:
+            if vid0 in _SAMPLE_CACHE:
+                return _SAMPLE_CACHE[vid0]
+        out = _caption_sample_uncached(ep, src)
+        with _SAMPLE_LOCK:
+            _SAMPLE_CACHE[vid0] = out
+        return out
+    return _caption_sample_uncached(ep, src)
+
+
+def _caption_sample_uncached(ep: dict, src: dict) -> str:
     if (src.get("kind") or "") != "youtube":
         return ""
     vid = ep.get("youtube_id") or (ep.get("guid") or "").split(":")[-1]
@@ -121,9 +157,21 @@ def _brief(ep: dict, src: dict) -> str:
 
 
 def score(ep: dict, src: dict) -> dict | None:
-    """返回 {"score": float, "why": str, "kind": str}；模型不可用时返回 None。"""
+    """返回 {"score", "why", "kind", "basis"}；模型不可用时返回 None。
+
+    **basis 是给调用方看的：这一分是按什么判出来的。**
+    kind=youtube 的源，取到字幕就是 "captions"，取不到就只剩视频简介
+    （"notes"）—— 而 YouTube 简介基本是赞助和订阅链接，按它判出来的低分
+    不可信。实测：斯坦福那条扩散式 LLM 正课，取到字幕时 7/10
+    「正课拆解扩散LLM机制，可核对讲义」，撞上 429 取不到时 2/10
+    「课程宣传片，仅概述概念无推导细节」。**同一条视频，同一把尺子。**
+    调用方必须据此决定这个"不做"要不要落成永久结论。
+    """
     if not llm.available():
         return None
+    basis = "notes"
+    if (src.get("kind") or "") == "youtube":
+        basis = "captions" if _caption_sample(ep, src) else "notes"
     try:
         r = llm.call_json(SYSTEM, _brief(ep, src) + "\n\n" + SCHEMA,
                           max_tokens=300, temperature=0.1, retries=1, role="triage")
@@ -136,7 +184,8 @@ def score(ep: dict, src: dict) -> dict | None:
         return None
     return {"score": max(0.0, min(10.0, s)),
             "why": squeeze(str(r.get("why") or ""))[:60],
-            "kind": squeeze(str(r.get("kind") or ""))[:12]}
+            "kind": squeeze(str(r.get("kind") or ""))[:12],
+            "basis": basis}
 
 
 def passes(v: dict | None, minimum: float = MIN_SCORE) -> bool:

@@ -1,0 +1,125 @@
+{
+ "slug": "2026-08-17-huggingface-agent-的记忆不是聊天记录-而是一套信息检索系统",
+ "of": "huggingface-24b90df90f",
+ "source_lang": "en",
+ "title": "Agent Memory Isn't Chat History—It's an Information Retrieval System",
+ "dek": "LLMs are stateless; remembering can't rely on stretching chat history. Long-term memory must live outside the session: MEM0 uses three stores, extracts every turn, and on retrieval weights vectors, keywords, and entities, returning only the most relevant dozens.",
+ "why": "Dissect MEM0's storage, ingestion, and retrieval layers: how the three stores divide work, what extraction and recall each do, and how the 2.5-point formula is computed. All directly actionable architecture details, not a conceptual lesson.",
+ "who": "Engineers building product agents with user long-term memory or multi-agent shared memory; architects deciding between MEM0 and a custom build.",
+ "skip": "If you don't plan to deploy models yourself, you can skip the model recommendations and wrap-up after 26:22.",
+ "tags": [
+  "Agent Architecture",
+  "Long-Term Memory",
+  "Vector Retrieval",
+  "MEM0"
+ ],
+ "points": [
+  {
+   "h": "Long-term memory isn't stretched chat history",
+   "body": "An LLM is inherently stateless—no residue persists between two consecutive prompts. A typical agent's 'memory' is just resending the entire conversation history with each new request; that's conversational memory. Once a new session starts, all context resets. True long-term memory must therefore be a separate service that persists user preferences, knowledge, and procedures learned by the agent across sessions, and allows the same user to share one memory across multiple agents. The test is simple: it can't live in the same store as the session. This sets the premise of an external memory system for the rest of the piece."
+  },
+  {
+   "h": "Entities get their own store for retrieval shortcuts",
+   "body": "MEM0's information architecture is a three-part set. The primary store is a vector database holding each 'memory' (a sentence or short passage) plus its metadata: creation/update dates, whether it belongs to a user or agent, content hash, lemmatized version, etc. The second is an entity store, also a vector database, but each point is an entity like a person or place; entity metadata links to one or more primary memories—mentioning Paris pulls up all memories related to Paris. The third is SQLite, which stores no recollections, only two logs: a full history of changes and the last 10 messages. The first two stores handle semantic association; SQLite supports short-term context and auditing."
+  },
+  {
+   "h": "Memory is extracted by an LLM, not stored wholesale",
+   "body": "Ingestion runs after each agent turn. MEM0's default is infer=true: it feeds the turn's messages to a dedicated 'memory extraction' LLM, with a prompt that includes the user summary, relevant old memories, and recent messages, asking the model to output structured JSON containing standalone memories to archive. There are also procedural mode and infer=false: the former restates the entire operation process (the author says it's rarely used now); the latter vectorizes the message and stores it directly—too crude. Extraction is the dividing line between 'remembering key information' and 'retaining the full text.'"
+  },
+  {
+   "h": "Without recent messages, extraction loses pronouns",
+   "body": "The extraction prompt's context isn't just the current message. The pipeline first embeds the entire turn as a whole, searches the primary vector store for relevant old memories, and pulls the last 10 messages from SQLite. That way, when the user says 'it's great' or 'he's very good at this,' the LLM can find the antecedent from the previous sentence or two. Without this module, the extraction model loses coreference, and the extracted memory becomes useless garbage like 'it is great.' The prompt also lists the conversation date and current date. Key point: a single message isn't enough to form a memory; memory only makes sense within the recent conversational flow."
+  },
+  {
+   "h": "Retrieval first over-fetches, then re-ranks to trim",
+   "body": "Retrieval, whether via explicit agent tool calls or automatic injection each turn, follows the same pipeline. The query is embedded and searched in the vector store, but here's a counterintuitive design: the first pass doesn't directly return top K. MEM0 first pulls max(top_k×4, 60) candidates, then re-ranks within this coarse pool. The author's example: if you want top K=10, the vector search actually returns 60. The reason is that two more scoring dimensions follow; if only 10 were fetched initially, the re-ranker wouldn't have enough pool to choose from. Per the author, MEM0 has no query rewriting by default; for better results you should add rewriting at the harness level."
+  },
+  {
+   "h": "Fewer entity links mean higher retrieval boost",
+   "body": "One of the three scores is entity boost. The system first extracts entities from the query and searches the entity store; each hit entity links to several primary memories. If only 2 memories are tied to that entity, it's likely exactly what you're looking for, and the boost approaches 0.5; if 1000 are tied, the entity has almost no discriminative power, and the boost approaches 0. In other words, the entity boost rewards 'niche but precise' clues and punishes broad, generic topics. This explains why searching 'Paris' doesn't return encyclopedic Paris trivia but surfaces your stored memory 'loves Le Marais in Paris' to the top."
+  },
+  {
+   "h": "Ranking can't rely on embeddings alone",
+   "body": "The final score sums three pieces of evidence for each candidate: vector similarity normalized to 0–1, BM25 keyword overlap normalized to 0–1, and entity boost capped at 0–0.5, giving a theoretical maximum of exactly 2.5. For each memory in the coarse pool, compute this sum, divide by 2.5 to get a final score between 0 and 1, and cut the true top K by that score to return to the agent. The keyword version for BM25 is computed at write time and stored as the lemmatized result, so no on-the-fly NLP is needed during re-ranking. The three-way weighting shows MEM0 trusts semantic, keyword, and entity signals combined, not just embeddings alone."
+  },
+  {
+   "h": "Running the full stack doesn't need a large model",
+   "body": "The most underestimated aspect: the most expensive step, 'memory extraction,' is actually simple—models with 1B to 12B parameters suffice; anything smaller would need fine-tuning. The author's example recommends Qwen 3 8B. For embedding models, you can filter Hugging Face by the feature extraction task, then check dedicated embedding benchmarks for multilingual or medical sub-leaderboards. For long-term use, fine-tune the extraction model for your own scenario. MEM0's default embeddings use a closed-source model, but every component can be swapped for local open-source ones—which is why it suits a personal memory foundation."
+  }
+ ],
+ "terms": [
+  {
+   "term": "BM25",
+   "def": "A sparse keyword retrieval scoring algorithm that ranks by term overlap; used alongside vector retrieval for re-ranking."
+  },
+  {
+   "term": "query rewriting",
+   "def": "Rewriting the user's original query before retrieval to improve recall; MEM0 doesn't do this by default."
+  },
+  {
+   "term": "lemmatized version",
+   "def": "A word reduced to its dictionary base form before storage, enabling exact keyword matching for BM25."
+  },
+  {
+   "term": "entity store",
+   "def": "A vector database holding person/place names extracted from memories; each entity links to related memories."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Initial candidate pool size",
+   "v": "max(top_k×4, 60)"
+  },
+  {
+   "k": "Actual recall when top_k=10",
+   "v": "60 candidates"
+  },
+  {
+   "k": "Recent messages kept in SQLite",
+   "v": "10"
+  },
+  {
+   "k": "Recommended model size for memory extraction",
+   "v": "1B–12B parameters"
+  },
+  {
+   "k": "Maximum total retrieval score (before normalization)",
+   "v": "2.5"
+  },
+  {
+   "k": "Entity boost range",
+   "v": "0–0.5"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "So remember that LLMs are stateless machines. In other words, when you send the prompt to your LLM, your LLM is going to process it and give you a completion. If you send another prompt to it after that, it will not remember anything about the previous prompt or the previous completion.",
+   "translated": false
+  },
+  {
+   "text": "And before I forget, just remember that for long form memory to work, you're going to have to make it external to your conversation.",
+   "translated": false
+  },
+  {
+   "text": "So um the ingestion part is going to be executed or it's going to be run after every agent turn.",
+   "translated": false
+  },
+  {
+   "text": "And this one right here is very useful to identify and to figure out what pronouns mean for example in that particular new message.",
+   "translated": false
+  },
+  {
+   "text": "So if you set a top k of 10, you're going to actually get 60 messages from this vector search.",
+   "translated": false
+  },
+  {
+   "text": "the score is going to be higher if there are less memories associated to that particular entity.",
+   "translated": false
+  },
+  {
+   "text": "I would recommend that you add a query rewriting system right here on the side of your harness.",
+   "translated": false
+  }
+ ],
+ "model": "openai:deepseek-reasoner"
+}

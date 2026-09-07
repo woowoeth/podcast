@@ -238,7 +238,14 @@ class ValueIsNotOnlyNumbers(unittest.TestCase):
     def test_triage_accepts_argument_driven_value(self):
         from lib import triage
         self.assertIn("判断与框架", triage.SYSTEM)
-        self.assertIn("能不能被反驳", triage.SYSTEM)
+        self.assertIn("能被反驳", triage.SYSTEM, "可反驳性这条轴没了")
+        # 判据落在**意图**上，不落在某一句原话：
+        # 原来查的是「能不能被反驳」这七个字，而那句话被改写成
+        # 「分界线不是有没有数字，也不是有没有推导链，而是读完手里是不是
+        # 多出了别处拿不到的东西」——护的东西反而更全了，守护却红了。
+        self.assertRegex(triage.SYSTEM, r"分界线不是「有没有数字」",
+                         "尺子没有明说「有没有数字」不是分界线 —— "
+                         "这正是当年拒掉那集投资哲学访谈的理由")
 
     def test_review_specificity_accepts_theses(self):
         from lib import review
@@ -5104,7 +5111,7 @@ class TriageMustJudgeYoutubeOnCaptionsNotDescriptions(unittest.TestCase):
     def test_it_only_applies_to_youtube_kind(self):
         """播客源不该白跑一次 yt-dlp。"""
         src = (ROOT / "pipeline" / "lib" / "triage.py").read_text()
-        i = src.index("def _caption_sample(")
+        i = src.index("def _caption_sample_uncached(")
         body = src[i:src.index("\ndef ", i + 1)]
         self.assertIn('"youtube"', body)
         self.assertRegex(body, r'kind.*!=.*"youtube"[\s\S]{0,40}return ""',
@@ -5118,7 +5125,8 @@ class TriageMustJudgeYoutubeOnCaptionsNotDescriptions(unittest.TestCase):
         YouTube 这条线的主力。
         """
         src = (ROOT / "pipeline" / "lib" / "triage.py").read_text()
-        i = src.index("def _caption_sample(")
+        # 取样逻辑在 _caption_sample_uncached 里，_caption_sample 是带缓存的壳
+        i = src.index("def _caption_sample_uncached(")
         body = src[i:src.index("\ndef ", i + 1)]
         self.assertNotRegex(
             body.replace("if len(text) <= CAPTION_SAMPLE", ""),
@@ -5135,7 +5143,7 @@ class TriageMustJudgeYoutubeOnCaptionsNotDescriptions(unittest.TestCase):
     def test_caption_sample_is_bounded(self):
         src = (ROOT / "pipeline" / "lib" / "triage.py").read_text()
         self.assertIn("CAPTION_SAMPLE", src, "字幕样本没有长度上限")
-        i = src.index("def _caption_sample(")
+        i = src.index("def _caption_sample_uncached(")
         self.assertIn("CAPTION_SAMPLE", src[i:i + 1400],
                       "样本没被截断 —— 整篇字幕塞进闸门等于放弃了省钱的理由")
 
@@ -5659,3 +5667,233 @@ class FailedTranslationsMustBeRememberedAndVisible(unittest.TestCase):
                       "体检不看搁置清单 —— 留痕了也没人读")
         self.assertIn("check_parked_translations(r)", hc,
                       "这条检查没被挂进主流程")
+
+
+class YoutubeRateLimitMustBeSeen(unittest.TestCase):
+    """yt-dlp 为什么没拿到字幕，判据必须看**全文**，不能看拼接后的尾巴。
+
+    原来是：
+
+        err = squeeze(((stderr) + " " + (stdout))[-260:])
+        if re.search(r"429|...", err): 退避重试
+
+    stdout 拼在后面且很长（一堆 `[youtube] …` 信息行），取尾 260 字符
+    **只剩 stdout**，而 `ERROR: … HTTP Error 429` 在 stderr 里，被挤出了窗口。
+    于是限流永远被当成"其他失败"：不等待、不退避，三次尝试瞬间烧完，
+    然后掉到（要花钱的）ASR 或直接算"拿不到文稿"。
+
+    实测：sFWEZ4B-uWU 和 _nZ27w6s9hw 都有英文自动字幕，真因是 429。
+    YouTube 免费字幕这条路因此一直在被静默削弱 —— 而它正是这个站
+    做 YouTube 源的全部理由。
+
+    这一条拿**真实的 yt-dlp 输出**去测分类函数，不去匹配源码字符串。
+    """
+
+    def _fns(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        T = importlib.import_module("lib.transcript")
+        return T.yt_failure_kind, T.yt_failure_message
+
+    # 真实抓下来的 stdout：信息行很多、很长，尾巴会被它占满
+    NOISE = ("[youtube] Extracting URL: https://www.youtube.com/watch?v=sFWEZ4B-uWU\n"
+             "[youtube] sFWEZ4B-uWU: Downloading webpage\n"
+             "[youtube] sFWEZ4B-uWU: Downloading visionos player API JSON\n"
+             "[youtube] sFWEZ4B-uWU: Downloading m3u8 information\n"
+             "[info] sFWEZ4B-uWU: Downloading subtitles: en\n"
+             "[info] sFWEZ4B-uWU: Downloading 1 format(s): 399+251-20\n"
+             "[info] Writing video subtitles to: c.en.vtt\n") * 3
+
+    def test_a_429_buried_behind_a_long_stdout_is_still_seen(self):
+        kind, msg = self._fns()
+        err = ("ERROR: Unable to download video subtitles for 'en': "
+               "HTTP Error 429: Too Many Requests\n")
+        self.assertEqual(kind(err, self.NOISE), "ratelimit",
+                         "429 在 stderr、stdout 很长时没被认出来 —— "
+                         "退避重试整段都成了死代码")
+        self.assertIn("429", msg(err, self.NOISE),
+                      "给人看的那行没带上真因")
+
+    def test_the_tail_of_the_concatenation_would_have_missed_it(self):
+        """把当年那条判据重演一遍，证明这个洞是真的存在过。"""
+        err = ("ERROR: Unable to download video subtitles for 'en': "
+               "HTTP Error 429: Too Many Requests\n")
+        old = (err + " " + self.NOISE)[-260:]
+        self.assertNotIn("429", old,
+                         "这条对照失效了：尾巴里恰好有 429，说明噪声不够长，"
+                         "换一段真实 stdout")
+
+    def test_an_upcoming_livestream_is_its_own_case(self):
+        kind, _ = self._fns()
+        err = "ERROR: [youtube] nJV3yUuz6DU: This live event will begin in 3 days.\n"
+        self.assertEqual(kind(err, self.NOISE), "upcoming",
+                         "还没开播的直播被当成普通失败 —— 会白重试三次")
+
+    def test_no_captions_is_distinguished_from_a_failure(self):
+        kind, _ = self._fns()
+        self.assertEqual(
+            kind("WARNING: [youtube] X: There are no automatic captions\n", self.NOISE),
+            "nocaptions", "「这个视频没有字幕」和「取字幕失败」必须分开")
+        self.assertEqual(kind("ERROR: something else entirely\n", self.NOISE),
+                         "other")
+
+    def test_the_caller_branches_on_the_kind_not_on_the_truncated_message(self):
+        src = (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
+        i = src.index("def _from_youtube(")
+        body = src[i:src.index("\n# ", i + 1)]
+        self.assertIn("yt_failure_kind(", body, "取字幕失败时不做分类")
+        self.assertRegex(body, r'kind == "nocaptions"',
+                         "又在截断后的消息里匹配「没字幕」 —— 同一个形状的 bug")
+
+
+class TriageRubricMustMatchWhatItIsActuallyFed(unittest.TestCase):
+    """尺子对「我看到的是什么」的说明，必须和 _brief 真喂进去的东西一致。
+
+    原来 SYSTEM 的最后一行是：
+
+        只看标题和节目介绍——**介绍空洞本身就是信号**。
+
+    而 kind=youtube 的源现在喂的是**字幕原文**。这一行等于在教模型
+    「简介空 → 减分」，而 YouTube 简介本来就是赞助和订阅链接 ——
+    那批 32 个频道普遍 4.0、判词全是「介绍全是订阅链接」，直接来源就是它。
+
+    说明和输入不一致，比说明写得含糊危险得多：模型会照着错的说明去扣分。
+    """
+
+    def _rubric(self) -> str:
+        src = (ROOT / "pipeline" / "lib" / "triage.py").read_text()
+        i = src.index("SYSTEM = ")
+        return src[i:src.index("SCHEMA", i)]
+
+    def test_it_does_not_claim_to_see_only_the_description(self):
+        r = self._rubric()
+        self.assertNotRegex(
+            r, r"只看标题和节目介绍",
+            "尺子说自己只看标题和简介，而 youtube 源喂的是字幕 —— "
+            "模型会照着错的说明扣分")
+
+    def test_it_tells_the_model_captions_win(self):
+        r = self._rubric()
+        self.assertIn("字幕", r, "尺子里根本没提字幕")
+        self.assertRegex(r, r"字幕[^。]*为准",
+                         "没说清有字幕时以字幕为准")
+
+    def test_an_empty_description_is_not_a_penalty_when_captions_exist(self):
+        r = self._rubric()
+        self.assertRegex(
+            r, r"简介空洞[^。]*不构成[^。]*减分",
+            "没写明「有字幕时简介空洞不减分」—— 这正是那批 4.0 的来源")
+
+    def test_genre_is_not_a_reason_to_dock(self):
+        """「偏经验分享」「属调查报道」不是减分理由 —— 它们是体裁，不是空泛。"""
+        r = self._rubric()
+        for phrase in ("一手经历", "一手事实"):
+            self.assertIn(phrase, r, f"高分条件里没有「{phrase}」这一轴")
+        self.assertRegex(r, r"不能是「体裁」|不是减分理由",
+                         "没有明确禁止拿体裁扣分")
+
+
+class TriageVerdictsMustRecordWhatTheyJudged(unittest.TestCase):
+    """选题判分要记下它是**按什么判的**；按视频简介判出的低分不许落成永久结论。
+
+    实测出来的洞，代价很具体：**斯坦福那条扩散式 LLM 正课**
+    （LLMs Don't Have to Write One Word at a Time）——
+    取到字幕那一轮 **7/10**「正课拆解扩散LLM机制，可核对讲义」，
+    撞上 YouTube 429 取不到字幕那一轮 **2/10**「课程宣传片，仅概述概念
+    无推导细节」。同一条视频，同一把尺子，差别只在闸门看到的是字幕还是
+    广告文案（YouTube 简介基本是赞助和订阅链接）。
+
+    而 run.py 原来把"不做"无条件写进 state["done"] —— **限流那一刻的坏运气
+    会永久判死一集好内容**，之后没有任何东西会再看它一眼。
+    清点时发现这样躺着 97 条（openai 38、anthropic 11、stanfordonline 9…），
+    整个 YouTube 方向就是这么被闷住的。
+    """
+
+    def test_score_reports_its_basis(self):
+        """判据落在**真调一次 score() 拿到的字典**上。
+
+        第一版查的是源码里有没有 '"basis"' 这个串 —— 而它出现在
+        **文档字符串**里（`返回 {"score", "why", "kind", "basis"}`），
+        把返回值里的那一项删掉照样通过。今天第三次栽在"匹配到了说明文字"。
+        """
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        tri = importlib.import_module("lib.triage")
+        llm = importlib.import_module("lib.llm")
+        real_avail, real_call = llm.available, llm.call_json
+        real_sample = tri._caption_sample
+        try:
+            llm.available = lambda: True
+            llm.call_json = lambda *a, **k: {"score": 3, "why": "w", "kind": "宣传"}
+            tri.llm.available = llm.available
+            tri.llm.call_json = llm.call_json
+            src = {"kind": "youtube", "lang": "en", "name": "x", "desc": ""}
+            ep = {"youtube_id": "aaa11111111", "title": "t", "notes": ""}
+            tri._caption_sample = lambda e, s: "一段真字幕"
+            got = tri.score(ep, src)
+            self.assertEqual(got.get("basis"), "captions",
+                             f"取到字幕时 basis 不对：{got}")
+            tri._caption_sample = lambda e, s: ""
+            got = tri.score(ep, src)
+            self.assertEqual(got.get("basis"), "notes",
+                             f"取不到字幕时 basis 不对：{got}")
+            # 非 youtube 源不该白跑一次取样
+            got = tri.score(ep, {"kind": "rss", "lang": "en", "name": "x"})
+            self.assertEqual(got.get("basis"), "notes")
+        finally:
+            llm.available, llm.call_json = real_avail, real_call
+            tri.llm.available, tri.llm.call_json = real_avail, real_call
+            tri._caption_sample = real_sample
+
+    def test_a_notes_based_rejection_is_not_persisted(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index('if v["score"] < _triage["min"]:')
+        j = src.index('return "off-brief"', i)
+        body = src[i:j]
+        self.assertIn('basis', body,
+                      "判掉的时候不看 basis —— 按广告文案判的低分会被永久记下")
+        # 提前返回必须在写 state 之前
+        early = body.index("return")
+        write = body.index('state["done"][key]')
+        self.assertLess(early, write,
+                        "先写了 state 再判断 —— 永久结论已经落下去了")
+
+    def test_the_caption_sample_is_fetched_once_per_video(self):
+        """score() 判 basis、_brief() 取样本，各调一次就把 yt-dlp 请求翻倍
+        —— 而 429 正是请求太多造成的，那是在给自己制造限流。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        tri = importlib.import_module("lib.triage")
+        calls = {"n": 0}
+        orig = tri._caption_sample_uncached
+        tri._caption_sample_uncached = lambda ep, s: (
+            calls.__setitem__("n", calls["n"] + 1) or "样本")
+        try:
+            tri._SAMPLE_CACHE.clear()
+            ep = {"youtube_id": "zzz99999999", "title": "t"}
+            s = {"kind": "youtube", "lang": "en"}
+            for _ in range(5):
+                tri._caption_sample(ep, s)
+        finally:
+            tri._caption_sample_uncached = orig
+            tri._SAMPLE_CACHE.clear()
+        self.assertEqual(calls["n"], 1,
+                         f"同一条视频取了 {calls['n']} 次字幕 —— 自己制造 429")
+
+    def test_no_stale_notes_based_rejections_are_left_lying_around(self):
+        """按简介判死的 YouTube 集不许留在账本里 —— 它们再也不会被看一眼。"""
+        st = ROOT / "data" / "state.json"
+        srcs = ROOT / "data" / "sources.json"
+        if not st.exists() or not srcs.exists():
+            self.skipTest("没有账本")
+        d = json.loads(srcs.read_text())
+        rows = d["sources"] if isinstance(d, dict) else d
+        yt = {s["id"] for s in rows if (s.get("kind") or "") == "youtube"}
+        done = (json.loads(st.read_text()).get("done") or {})
+        bad = [k for k, v in done.items()
+               if isinstance(v, dict) and v.get("skip") == "off-brief"
+               and v.get("src") in yt and v.get("basis") != "captions"]
+        self.assertFalse(
+            bad, f"{len(bad)} 条 YouTube 集按视频简介被永久判死 —— "
+                 f"闸门读的是赞助和订阅链接，例如 {done[bad[0]].get('title', '')[:40]}"
+                 if bad else "")

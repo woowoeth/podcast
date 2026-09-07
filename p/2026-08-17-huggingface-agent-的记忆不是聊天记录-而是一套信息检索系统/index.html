@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent 的记忆不是聊天记录，而是一套信息检索系统 — Hugging Face · 原声</title>
+<meta name="description" content="LLM 无状态，记住你不能靠拉长聊天历史。长期记忆要外置于会话：MEM0 用三个存储、每轮抽取，检索时把向量、关键词、实体分加权，只取最相关的几十条。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/p/2026-08-17-huggingface-agent-的记忆不是聊天记录-而是一套信息检索系统/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原声">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="Agent 的记忆不是聊天记录，而是一套信息检索系统 — Hugging Face · 原声">
+<meta property="og:description" content="LLM 无状态，记住你不能靠拉长聊天历史。长期记忆要外置于会话：MEM0 用三个存储、每轮抽取，检索时把向量、关键词、实体分加权，只取最相关的几十条。">
+<meta property="og:url" content="https://ourword.ai/podcast/p/2026-08-17-huggingface-agent-的记忆不是聊天记录-而是一套信息检索系统/">
+<meta property="og:image" content="https://i2.ytimg.com/vi/aYfZN8t6AQs/hqdefault.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-08-17T03:15:35Z">
+<meta property="article:modified_time" content="2026-09-07T10:18:09Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Agent 的记忆不是聊天记录，而是一套信息检索系统 — Hugging Face · 原声">
+<meta name="twitter:description" content="LLM 无状态，记住你不能靠拉长聊天历史。长期记忆要外置于会话：MEM0 用三个存储、每轮抽取，检索时把向量、关键词、实体分加权，只取最相关的几十条。">
+<meta name="twitter:image" content="https://i2.ytimg.com/vi/aYfZN8t6AQs/hqdefault.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原声" href="/podcast/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-08-17-huggingface-agent-的记忆不是聊天记录-而是一套信息检索系统/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-08-17-huggingface-agent-的记忆不是聊天记录-而是一套信息检索系统/">
+<link rel="alternate" hreflang="en" href="https://ourword.ai/podcast/en/p/2026-08-17-huggingface-agent-的记忆不是聊天记录-而是一套信息检索系统/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-08-17-huggingface-agent-的记忆不是聊天记录-而是一套信息检索系统/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=0f99578cc9">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-08-17-huggingface-agent-的记忆不是聊天记录-而是一套信息检索系统/#episode", "name": "Agent 的记忆不是聊天记录，而是一套信息检索系统", "headline": "Agent 的记忆不是聊天记录，而是一套信息检索系统", "description": "LLM 无状态，记住你不能靠拉长聊天历史。长期记忆要外置于会话：MEM0 用三个存储、每轮抽取，检索时把向量、关键词、实体分加权，只取最相关的几十条。", "abstract": "LLM 无状态，记住你不能靠拉长聊天历史。长期记忆要外置于会话：MEM0 用三个存储、每轮抽取，检索时把向量、关键词、实体分加权，只取最相关的几十条。", "datePublished": "2026-08-17T03:15:35Z", "dateModified": "2026-09-07T10:18:09Z", "url": "https://ourword.ai/podcast/p/2026-08-17-huggingface-agent-的记忆不是聊天记录-而是一套信息检索系统/", "timeRequired": "PT29M", "partOfSeries": {"@type": "PodcastSeries", "name": "Hugging Face", "url": "https://ourword.ai/podcast/s/huggingface/"}, "inLanguage": "zh-CN", "isBasedOn": "https://www.youtube.com/watch?v=aYfZN8t6AQs", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "Agent 架构, 长期记忆, 向量检索, MEM0, BM25, query rewriting, lemmatized version, entity store, 初步候选池大小, top_k=10 时的实际召回, SQLite 保留的最近消息数, 记忆提取推荐模型规模, 检索最高总分（归一化前）, 实体 boost 的加分范围", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首页", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "Hugging Face", "item": "https://ourword.ai/podcast/s/huggingface/"}, {"@type": "ListItem", "position": 3, "name": "Agent 的记忆不是聊天记录，而是一套信息检索系统"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/"><span class="wordmark">原声<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<button class="pill ghost" id="lang-toggle" type="button" data-en="1" data-sc="繁體" data-tw="简体"></button>
+<button class="icon-btn" data-theme-toggle aria-label="切换深浅色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，来原声听播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/">首页</a><span class="sep">/</span>
+<a href="/podcast/s/huggingface/">Hugging Face</a>
+<span class="sep">/</span><span>2026-08-17</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="edu"><span class="src">Hugging Face</span>
+<time class="date" datetime="2026-08-17T03:15:35Z">2026-08-17</time>
+<button class="share-btn" type="button" data-share data-share-title="Agent 的记忆不是聊天记录，而是一套信息检索系统" data-share-url="https://ourword.ai/podcast/e/huggingface-24b90df90f/" data-share-desc="LLM 无状态，记住你不能靠拉长聊天历史。长期记忆要外置于会话：MEM0 用三个存储、每轮抽取，检索时把向量、关键词、实体分加权，只取最相关的几十条。" data-share-text="Agent 的记忆不是聊天记录，而是一套信息检索系统&#10;Hugging Face · 29 分钟 · 原声深读&#10;&#10;LLM 无状态，记住你不能靠拉长聊天历史。长期记忆要外置于会话：MEM0 用三个存储、每轮抽取，检索时把向量、关键词、实体分加权，只取最相关的几十条。&#10;&#10;https://ourword.ai/podcast/e/huggingface-24b90df90f/" aria-label="复制分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>Agent 的记忆不是聊天记录，而是一套信息检索系统</h1>
+<p class="dek-lead">LLM 无状态，记住你不能靠拉长聊天历史。长期记忆要外置于会话：MEM0 用三个存储、每轮抽取，检索时把向量、关键词、实体分加权，只取最相关的几十条。</p>
+<div class="ep-meta"><span class="tag">Agent 架构</span><span class="tag">长期记忆</span><span class="tag">向量检索</span><span class="tag">MEM0</span></div>
+</div>
+<div class="player" data-player-box>
+  <button class="video-facade" data-yt="aYfZN8t6AQs" type="button"
+          aria-label="播放原节目视频">
+    <span class="frame">
+      <img src="https://i.ytimg.com/vi/aYfZN8t6AQs/hq720.jpg" alt="" loading="lazy" width="1280"
+           onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/aYfZN8t6AQs/hqdefault.jpg'">
+      <span class="play" aria-hidden="true"><svg viewBox="0 0 44 44" width="44" height="44" focusable="false"><circle cx="22" cy="22" r="21" fill="rgba(18,16,13,.55)" stroke="rgba(255,255,255,.92)" stroke-width="1.5"/><path d="M17 14.5 32 22 17 29.5Z" fill="#fff"/></svg></span>
+    </span>
+  </button>
+</div>
+
+<section class="section"><div class="why">拆开 MEM0 的存储、摄取、检索三层：三个库怎么分工、抽取和召回各做什么、2.5 分公式怎么算。全是可直接照做的架构细节，不是概念课。</div></section>
+
+<section class="section"><h2>核心论点 · 点时间戳可跳到原声</h2><div class="point" id="p0"><a class="ts" data-t="64" href="https://www.youtube.com/watch?v=aYfZN8t6AQs&amp;t=64s" target="_blank" rel="noopener">1:04</a><div><h4>长期记忆不是聊天记录拉长</h4>
+<p class="body">LLM 本身是无状态机器，两个连续 prompt 之间没有任何残留。普通 agent 的「记性」只是把整段对话历史随每个新请求重发给模型，这叫 conversational memory；一旦开新会话，所有上下文清零。因此真正的长期记忆必须另建一个独立服务，跨会话保存用户偏好、agent 学到的知识和流程，并允许同一个用户在多 agent 间共享同一份记忆。判断标准很简单：它不能和 session 存在同一个存储里。这段给后文定下「外置记忆系统」的前提。</p>
+</div></div>
+<div class="point" id="p1"><a class="ts" data-t="247" href="https://www.youtube.com/watch?v=aYfZN8t6AQs&amp;t=247s" target="_blank" rel="noopener">4:07</a><div><h4>实体单独成库，检索才有捷径</h4>
+<p class="body">MEM0 的信息架构是三件套。主存储是一个向量库，容纳每条「记忆」本体（一句话或一小段）及其元数据：创建/更新日期、归属用户还是 agent、内容 hash、词形还原版本等。第二个是实体库，也是向量库，但每个点是一个人/地名等实体，实体元数据里链接一到多条主记忆——提到巴黎就会牵出所有跟巴黎有关的记忆。第三个是 SQLite，不存回忆，只记两条流水：所有变更历史的日志，以及最近 10 条消息。前两个库负责语义关联，SQLite 负责支撑短期上下文和审计。</p>
+</div></div>
+<div class="point" id="p2"><a class="ts" data-t="612" href="https://www.youtube.com/watch?v=aYfZN8t6AQs&amp;t=612s" target="_blank" rel="noopener">10:12</a><div><h4>记忆靠 LLM 抽取，不全量照存</h4>
+<p class="body">Ingestion 在 agent 每回合结束后跑，MEM0 的默认方式是 infer=true：把本回合消息喂给一个专门做「记忆提取」的 LLM，prompt 里带上 user summary、相关旧记忆和最近消息，让模型输出结构化 JSON，里面是要存档的独立记忆。另有 procedural 模式和 infer=false 两种：前者复述整段操作过程，作者认为已不常用；后者把消息向量化后直接入库，太粗糙。抽取式才是区分「记住关键信息」和「留存全文」的分水岭。</p>
+</div></div>
+<div class="point" id="p3"><a class="ts" data-t="732" href="https://www.youtube.com/watch?v=aYfZN8t6AQs&amp;t=732s" target="_blank" rel="noopener">12:12</a><div><h4>没最近消息，抽取会丢代词</h4>
+<p class="body">抽取 prompt 的上下文不是只有当前消息。管线先把本轮消息拼成一个整体嵌入，去主向量库里找相关旧记忆；同时从 SQLite 调出最近 10 条消息。这样当用户说「它很棒」「他这方面很擅长」时，上一两句中的先行词才能被 LLM 找到。没有这个模块，抽取模型会丢失指代，抽出来的记忆就是「it is great」这样没法用的废记录。此外 prompt 还会列出对话日期和当前日期。要点：单条消息不足以成为记忆，记忆要放在最近的对话流里才成立。</p>
+</div></div>
+<div class="point" id="p4"><a class="ts" data-t="1218" href="https://www.youtube.com/watch?v=aYfZN8t6AQs&amp;t=1218s" target="_blank" rel="noopener">20:18</a><div><h4>检索先捞多，再重排裁少</h4>
+<p class="body">Retrieval 无论走 agent 显式工具调用还是每回合自动注入，管线相同。query 先嵌入向量库做相似度搜索，但这里有个反直觉设计：第一轮不直接返回 top K。MEM0 会先取 max(top_k×4, 60) 条候选，再在这个粗池上做重排。作者举例：你要 top K=10，向量搜索实际会拉回 60 条。原因是后续还有两轮不同维度的打分，如果一开始只找回 10 条，重排模型没有足够的池子可挑。据作者判断，MEM0 默认没有 query rewriting，想要更好效果应在 harness 端自己加改写。</p>
+</div></div>
+<div class="point" id="p5"><a class="ts" data-t="1400" href="https://www.youtube.com/watch?v=aYfZN8t6AQs&amp;t=1400s" target="_blank" rel="noopener">23:20</a><div><h4>实体关联越少，检索加分越高</h4>
+<p class="body">三道评分之一是 entity boost。系统先从 query 里抽实体，去实体库检索；命中的实体各自链接到若干主记忆。如果当初只有 2 条记忆绑在这实体上，很可能正是当前要找的，加分靠近 0.5；如果绑了 1000 条，这个实体几乎没有区分度，加分趋近 0。换句话说，实体加分奖励的是「冷门但精确」的线索，惩罚大而全的泛主题。这解释了为什么用「巴黎」搜索时，系统不会返回百科式的巴黎常识，而是把你存在库里的那条「最爱巴黎玛黑区」顶到前面。</p>
+</div></div>
+<div class="point" id="p6"><a class="ts" data-t="1460" href="https://www.youtube.com/watch?v=aYfZN8t6AQs&amp;t=1460s" target="_blank" rel="noopener">24:20</a><div><h4>检索排序不能只信 embedding</h4>
+<p class="body">最终分数是把每条候选的三项证据相加：向量相似度归一到 0-1，BM25 关键词词形重叠归一到 0-1，实体加分只有 0-0.5，理论上限正好 2.5。对粗池里每条记忆都算这个总和，再除以 2.5，得到 0 到 1 的最终分数，按它切出真正的 top K 返回给 agent。BM25 输入的关键词版本在写入时就算好存了词形还原结果，所以重排时不用现场做 NLP。三分加权说明 MEM0 默认信任语义、关键词、实体三种信号叠加，而不是只靠 embedding 一把梭。</p>
+</div></div>
+<div class="point" id="p7"><a class="ts" data-t="1582" href="https://www.youtube.com/watch?v=aYfZN8t6AQs&amp;t=1582s" target="_blank" rel="noopener">26:22</a><div><h4>跑通全套用不到大模型</h4>
+<p class="body">这套架构最容易被低估的一点：开销最大的「记忆提取」反而简单，1B 到 12B 参数的模型就足够，再小除非自己微调；作者示例推荐 Qwen 3 8B。Embedding 模型可以在 Hugging Face 按 feature extraction 任务筛选，再对照专门的 embedding benchmark 看多语或医学等细分榜单。如果长期做，建议针对自己的场景微调抽取模型。MEM0 的嵌入默认用闭源模型，但每个环节都能换成本地开源组件——这也是它适合做个人记忆底座的原因。</p>
+</div></div></section>
+<section class="section"><h2>原话 · 已逐字校验</h2><blockquote class="quote"><p class="raw">So remember that LLMs are stateless machines. In other words, when you send the prompt to your LLM, your LLM is going to process it and give you a completion. If you send another prompt to it after that, it will not remember anything about the previous prompt or the previous completion.</p>
+<p class="zh">记住：LLM 是无状态机器。换句话说，你发一个 prompt，LLM 处理完就给出结果；之后你发另一个 prompt，它对之前的 prompt 和刚才的输出没有任何记忆。</p>
+<div class="attrib"><a class="ts" data-t="64" href="https://www.youtube.com/watch?v=aYfZN8t6AQs&amp;t=64s" target="_blank" rel="noopener">1:04</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">And before I forget, just remember that for long form memory to work, you&#x27;re going to have to make it external to your conversation.</p>
+<p class="zh">趁我还没忘：长期记忆要能工作，你必须让它外置于对话。</p>
+<div class="attrib"><a class="ts" data-t="186" href="https://www.youtube.com/watch?v=aYfZN8t6AQs&amp;t=186s" target="_blank" rel="noopener">3:06</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">So um the ingestion part is going to be executed or it&#x27;s going to be run after every agent turn.</p>
+<p class="zh">摄取这一步在 agent 每一回合结束后执行。</p>
+<div class="attrib"><a class="ts" data-t="491" href="https://www.youtube.com/watch?v=aYfZN8t6AQs&amp;t=491s" target="_blank" rel="noopener">8:11</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">And this one right here is very useful to identify and to figure out what pronouns mean for example in that particular new message.</p>
+<p class="zh">这个机制非常有用：它能识别并弄清代词在新消息里指什么。</p>
+<div class="attrib"><a class="ts" data-t="732" href="https://www.youtube.com/watch?v=aYfZN8t6AQs&amp;t=732s" target="_blank" rel="noopener">12:12</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">So if you set a top k of 10, you&#x27;re going to actually get 60 messages from this vector search.</p>
+<p class="zh">如果你把 top k 设为 10，向量搜索实际上会拉回 60 条消息。</p>
+<div class="attrib"><a class="ts" data-t="1218" href="https://www.youtube.com/watch?v=aYfZN8t6AQs&amp;t=1218s" target="_blank" rel="noopener">20:18</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">the score is going to be higher if there are less memories associated to that particular entity.</p>
+<p class="zh">实体关联的记忆越少，这项加分就越高。</p>
+<div class="attrib"><a class="ts" data-t="1400" href="https://www.youtube.com/watch?v=aYfZN8t6AQs&amp;t=1400s" target="_blank" rel="noopener">23:20</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">I would recommend that you add a query rewriting system right here on the side of your harness.</p>
+<p class="zh">我会建议你在 harness 这一侧加一个查询改写系统。</p>
+<div class="attrib"><a class="ts" data-t="1522" href="https://www.youtube.com/watch?v=aYfZN8t6AQs&amp;t=1522s" target="_blank" rel="noopener">25:22</a></div>
+</blockquote></section>
+<section class="section"><h2>数字与实体</h2><table class="facts"><tr><td class="k">初步候选池大小</td><td class="v">max(top_k×4, 60) 条</td><td class="t"><a class="ts" data-t="1218" href="https://www.youtube.com/watch?v=aYfZN8t6AQs&amp;t=1218s" target="_blank" rel="noopener">20:18</a></td></tr>
+<tr><td class="k">top_k=10 时的实际召回</td><td class="v">60 条候选</td><td class="t"><a class="ts" data-t="1218" href="https://www.youtube.com/watch?v=aYfZN8t6AQs&amp;t=1218s" target="_blank" rel="noopener">20:18</a></td></tr>
+<tr><td class="k">SQLite 保留的最近消息数</td><td class="v">10 条</td><td class="t"><a class="ts" data-t="732" href="https://www.youtube.com/watch?v=aYfZN8t6AQs&amp;t=732s" target="_blank" rel="noopener">12:12</a></td></tr>
+<tr><td class="k">记忆提取推荐模型规模</td><td class="v">1B-12B 参数</td><td class="t"><a class="ts" data-t="1582" href="https://www.youtube.com/watch?v=aYfZN8t6AQs&amp;t=1582s" target="_blank" rel="noopener">26:22</a></td></tr>
+<tr><td class="k">检索最高总分（归一化前）</td><td class="v">2.5 分</td><td class="t"><a class="ts" data-t="1460" href="https://www.youtube.com/watch?v=aYfZN8t6AQs&amp;t=1460s" target="_blank" rel="noopener">24:20</a></td></tr>
+<tr><td class="k">实体 boost 的加分范围</td><td class="v">0-0.5 分</td><td class="t"><a class="ts" data-t="1460" href="https://www.youtube.com/watch?v=aYfZN8t6AQs&amp;t=1460s" target="_blank" rel="noopener">24:20</a></td></tr></table></section>
+<section class="section"><h2>术语</h2><dl class="terms"><div><dt>BM25<span>BM25 算法</span></dt><dd>稀疏关键词检索打分，按词项重叠给出相关分；配合向量检索做重排。</dd></div>
+<div><dt>query rewriting<span>查询改写</span></dt><dd>检索前把用户原始问题改写得更利于召回；MEM0 默认没有这一步。</dd></div>
+<div><dt>lemmatized version<span>词形还原版本</span></dt><dd>把单词转成词典原形后再入库，供 BM25 做关键词精确匹配。</dd></div>
+<div><dt>entity store<span>实体存储</span></dt><dd>存放从记忆中抽出的人名/地名的向量库；每个实体挂载关联记忆。</dd></div></dl></section>
+<section class="section"><h2>收听指南</h2>
+<div class="panel guide">
+<div><span class="k">谁该听</span><p>正在为产品 Agent 做用户长期记忆或多 agent 共享记忆的工程师；想评估用 MEM0 还是自建的架构决策者。</p></div>
+<div><span class="k">可跳过</span><p>不打算自己部署模型的话，26:22 之后的模型推荐与收尾可跳过。</p></div>
+</div></section>
+<nav class="prevnext"><a href="/podcast/p/2026-08-17-oddlots-模型越狱不是叛逆-是奖励机制逼出来的作弊/"><span class="lbl">← 更新</span><strong>模型越狱不是叛逆，是奖励机制逼出来的作弊</strong></a><a class="r" href="/podcast/p/2026-08-17-pel-戴维森-理由就是原因-但心理事件无律可循/"><span class="lbl">更早 →</span><strong>心理事件无律可循，自由意志与决定论才能并存</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原节目</h4>
+<div class="row"><span>节目</span><span>Hugging Face</span></div>
+<div class="row"><span>原标题</span><span>Agent Memory EXPLAINED - Complete Architecture</span></div>
+<div class="row"><span>发布</span><span>2026-08-17</span></div>
+<div class="row"><span>时长</span><span>29:00</span></div>
+<a class="row" href="https://www.youtube.com/watch?v=aYfZN8t6AQs" target="_blank" rel="noopener"><span>原页面</span><span>打开 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇结构</h4><nav class="toc"><a href="#p0"><span class="t">1:04</span><span>长期记忆不是聊天记录拉长</span></a>
+<a href="#p1"><span class="t">4:07</span><span>实体单独成库，检索才有捷径</span></a>
+<a href="#p2"><span class="t">10:12</span><span>记忆靠 LLM 抽取，不全量照存</span></a>
+<a href="#p3"><span class="t">12:12</span><span>没最近消息，抽取会丢代词</span></a>
+<a href="#p4"><span class="t">20:18</span><span>检索先捞多，再重排裁少</span></a>
+<a href="#p5"><span class="t">23:20</span><span>实体关联越少，检索加分越高</span></a>
+<a href="#p6"><span class="t">24:20</span><span>检索排序不能只信 embedding</span></a>
+<a href="#p7"><span class="t">26:22</span><span>跑通全套用不到大模型</span></a></nav></div>
+
+<div class="panel"><h4>这篇是怎么来的</h4>
+<div class="row"><span>成稿评分</span><span>8 / 10</span></div>
+<div class="row"><span>文稿来源</span><span>YouTube 字幕</span></div>
+<div class="row"><span>文稿字数</span><span>4951</span></div>
+<div class="row"><span>语速核验</span><span>170.7 wpm</span></div>
+<div class="row"><span>逐字校验金句</span><span>7 条</span></div>
+<div class="row"><span>回溯校验数字</span><span>6 条</span></div>
+
+<p class="note">金句在逐字稿里逐字比对过，数字回原文核对过；对不上的当场删掉，不上站。
+成稿另经一道独立评审（信息密度／忠实度／选择力／具体性／中文），低于 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原声 · <a href="https://ourword.ai">OurWord.ai</a>的播客线。内容为原播客的中文深读，
+版权归各节目所有；每篇都附原节目链接，请去支持原作者。</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/" lang="zh">人类世界生存法则</a> · <a href="/podcast/">原声</a> · <a href="/skill/" lang="zh">品味</a></div>
+<div class="links"><a href="/podcast/">首页</a><a href="/podcast/sources/">信源</a>
+<a href="/podcast/log/">更新日志</a><a href="/podcast/feed.xml">RSS</a>
+<a href="/podcast/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源码</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=ae529543cc" defer></script>
+</body></html>

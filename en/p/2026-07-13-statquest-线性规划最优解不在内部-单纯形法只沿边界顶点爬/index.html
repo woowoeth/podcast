@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Optimal Solution Never Lives Inside: The Simplex Algorithm Only Climbs Boundary Vertices — StatQuest · Podcast</title>
+<meta name="description" content="The optimal solution to a linear program always lies on a boundary vertex, so the simplex algorithm never searches the interior: starting from the origin, it picks a direction by the most negative column, sets the step size by the minimum ratio, and keeps swapping to adjacent vertices with higher payoff.">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/en/p/2026-07-13-statquest-线性规划最优解不在内部-单纯形法只沿边界顶点爬/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Podcast">
+<meta property="og:locale" content="en_US">
+<meta property="og:title" content="The Optimal Solution Never Lives Inside: The Simplex Algorithm Only Climbs Boundary Vertices — StatQuest · Podcast">
+<meta property="og:description" content="The optimal solution to a linear program always lies on a boundary vertex, so the simplex algorithm never searches the interior: starting from the origin, it picks a direction by the most negative column, sets the step size by the minimum ratio, and keeps swapping to adjacent vertices with higher payoff.">
+<meta property="og:url" content="https://ourword.ai/podcast/en/p/2026-07-13-statquest-线性规划最优解不在内部-单纯形法只沿边界顶点爬/">
+<meta property="og:image" content="https://i1.ytimg.com/vi/lgD9lNB9Ums/hqdefault.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-07-13T04:00:15Z">
+<meta property="article:modified_time" content="2026-09-07T10:13:17Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The Optimal Solution Never Lives Inside: The Simplex Algorithm Only Climbs Boundary Vertices — StatQuest · Podcast">
+<meta name="twitter:description" content="The optimal solution to a linear program always lies on a boundary vertex, so the simplex algorithm never searches the interior: starting from the origin, it picks a direction by the most negative column, sets the step size by the minimum ratio, and keeps swapping to adjacent vertices with higher payoff.">
+<meta name="twitter:image" content="https://i1.ytimg.com/vi/lgD9lNB9Ums/hqdefault.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="Podcast" href="/podcast/en/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-07-13-statquest-线性规划最优解不在内部-单纯形法只沿边界顶点爬/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-07-13-statquest-线性规划最优解不在内部-单纯形法只沿边界顶点爬/">
+<link rel="alternate" hreflang="en" href="https://ourword.ai/podcast/en/p/2026-07-13-statquest-线性规划最优解不在内部-单纯形法只沿边界顶点爬/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-07-13-statquest-线性规划最优解不在内部-单纯形法只沿边界顶点爬/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=0f99578cc9">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/en/p/2026-07-13-statquest-线性规划最优解不在内部-单纯形法只沿边界顶点爬/#episode", "name": "The Optimal Solution Never Lives Inside: The Simplex Algorithm Only Climbs Boundary Vertices", "headline": "The Optimal Solution Never Lives Inside: The Simplex Algorithm Only Climbs Boundary Vertices", "description": "The optimal solution to a linear program always lies on a boundary vertex, so the simplex algorithm never searches the interior: starting from the origin, it picks a direction by the most negative column, sets the step size by the minimum ratio, and keeps swapping to adjacent vertices with higher payoff.", "abstract": "The optimal solution to a linear program always lies on a boundary vertex, so the simplex algorithm never searches the interior: starting from the origin, it picks a direction by the most negative column, sets the step size by the minimum ratio, and keeps swapping to adjacent vertices with higher payoff.", "datePublished": "2026-07-13T04:00:15Z", "dateModified": "2026-09-07T10:13:17Z", "url": "https://ourword.ai/podcast/en/p/2026-07-13-statquest-线性规划最优解不在内部-单纯形法只沿边界顶点爬/", "timeRequired": "PT27M", "partOfSeries": {"@type": "PodcastSeries", "name": "StatQuest", "url": "https://ourword.ai/podcast/en/s/statquest/"}, "inLanguage": "en", "isBasedOn": "https://www.youtube.com/watch?v=lgD9lNB9Ums", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "linear programming, simplex method, slack variables, Gaussian elimination, operations research, algorithm details, simplex algorithm, feasible region, objective function, slack variable, Gaussian elimination, ratio test, First move endpoint in the first example, Revenue at that vertex, Second move endpoint in the first example, Revenue improvement at that vertex, Optimal vertex in the 3D example, Maximum revenue in the 3D example", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://ourword.ai/podcast/en/"}, {"@type": "ListItem", "position": 2, "name": "StatQuest", "item": "https://ourword.ai/podcast/en/s/statquest/"}, {"@type": "ListItem", "position": 3, "name": "The Optimal Solution Never Lives Inside: The Simplex Algorithm Only Climbs Boundary Vertices"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/en/"><span class="wordmark">Podcast<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<a class="pill ghost" id="lang-toggle" lang="zh" data-cur="en" data-en="1" href="/podcast/">中文</a>
+<button class="icon-btn" data-theme-toggle aria-label="Toggle light/dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">The world is too loud. Read what matters.</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/en/">Home</a><span class="sep">/</span>
+<a href="/podcast/en/s/statquest/">StatQuest</a>
+<span class="sep">/</span><span>2026-07-13</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="edu"><span class="src">StatQuest</span>
+<time class="date" datetime="2026-07-13T04:00:15Z">2026-07-13</time>
+<button class="share-btn" type="button" data-share data-share-title="The Optimal Solution Never Lives Inside: The Simplex Algorithm Only Climbs Boundary Vertices" data-share-url="https://ourword.ai/podcast/en/e/statquest-d4504a013f/" data-share-desc="The optimal solution to a linear program always lies on a boundary vertex, so the simplex…" data-share-text="The Optimal Solution Never Lives Inside: The Simplex Algorithm Only Climbs Boundary Vertices&#10;StatQuest · 27 分钟 · Podcast深读&#10;&#10;The optimal solution to a linear program always lies on a boundary vertex, so the simplex algorithm never searches the…&#10;&#10;https://ourword.ai/podcast/en/e/statquest-d4504a013f/" aria-label="Copy share text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>Share</span></button></div>
+<h1>The Optimal Solution Never Lives Inside: The Simplex Algorithm Only Climbs Boundary Vertices</h1>
+<p class="dek-lead">The optimal solution to a linear program always lies on a boundary vertex, so the simplex algorithm never searches the interior: starting from the origin, it picks a direction by the most negative column, sets the step size by the minimum ratio, and keeps swapping to adjacent vertices with higher payoff.</p>
+<div class="ep-meta"><span class="tag">linear programming</span><span class="tag">simplex method</span><span class="tag">slack variables</span><span class="tag">Gaussian elimination</span><span class="tag">operations research</span><span class="tag">algorithm details</span></div>
+</div>
+<div class="player" data-player-box>
+  <button class="video-facade" data-yt="lgD9lNB9Ums" type="button"
+          aria-label="Play the original video">
+    <span class="frame">
+      <img src="https://i.ytimg.com/vi/lgD9lNB9Ums/hq720.jpg" alt="" loading="lazy" width="1280"
+           onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/lgD9lNB9Ums/hqdefault.jpg'">
+      <span class="play" aria-hidden="true"><svg viewBox="0 0 44 44" width="44" height="44" focusable="false"><circle cx="22" cy="22" r="21" fill="rgba(18,16,13,.55)" stroke="rgba(255,255,255,.92)" stroke-width="1.5"/><path d="M17 14.5 32 22 17 29.5Z" fill="#fff"/></svg></span>
+    </span>
+  </button>
+</div>
+
+<section class="section"><div class="why">This episode turns the geometric intuition of &#x27;climbing boundary vertices&#x27; into concrete matrix operations at every step, clarifying direction, step size, and stopping conditions. After working through a hand calculation, reading an optimizer&#x27;s documentation feels completely different.</div></section>
+
+<section class="section"><h2>The argument · tap a timestamp to hear it</h2><div class="point" id="p0"><a class="ts" data-t="66" href="https://www.youtube.com/watch?v=lgD9lNB9Ums&amp;t=66s" target="_blank" rel="noopener">1:06</a><div><h4>Climbing between adjacent vertices</h4>
+<p class="body">Linear programming seeks the maximum or minimum of an objective function over a feasible region bounded by straight-line constraints. The simplex method does not search the interior; it starts at the origin and moves along edges to adjacent vertices that increase revenue. At each new vertex, it looks at the next adjacent vertex until no move increases revenue. Because the algorithm &#x27;cannot see&#x27; the graph, all the seemingly complex matrix operations are essentially answering two questions with numbers: direction and distance.</p>
+<span class="spk">— Josh Starmer</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="246" href="https://www.youtube.com/watch?v=lgD9lNB9Ums&amp;t=246s" target="_blank" rel="noopener">4:06</a><div><h4>First, normalize all constraints to less-than-or-equal</h4>
+<p class="body">Before iterating, standardize: constraints with a greater-than-or-equal sign must be multiplied by -1 on both sides to flip to less-than-or-equal; equality constraints are split into a less-than-or-equal and a greater-than-or-equal inequality, then the latter is flipped by multiplying by -1, forming an &#x27;inequality sandwich&#x27; equivalent to the original equality. The show explains that this lets the algorithm handle only one sign at each step, avoiding branching checks for different constraint forms during iteration.</p>
+<span class="spk">— Josh Starmer</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="308" href="https://www.youtube.com/watch?v=lgD9lNB9Ums&amp;t=308s" target="_blank" rel="noopener">5:08</a><div><h4>Slack variables turn inequalities into equalities</h4>
+<p class="body">Even after converting to less-than-or-equal, the left and right sides may still not be equal. The fix is to add a nonnegative slack variable to each equation, making up the shortfall. The show&#x27;s example: producing 10 kg of cookie mix and 8 kg of doughnut mix uses only 8 kg of flour, while 10 kg is available, so the flour slack variable is set to 2 kg; other constraints&#x27; slack variables vanish in calculations because their coefficients are 0. After adding slack variables, all equations have the same format and can be placed uniformly into a matrix.</p>
+<span class="spk">— Josh Starmer</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="430" href="https://www.youtube.com/watch?v=lgD9lNB9Ums&amp;t=430s" target="_blank" rel="noopener">7:10</a><div><h4>Pack into a matrix, then negate the first row</h4>
+<p class="body">The final formatting step is to fill the matrix with all coefficients and totals, then multiply the first row by -1. Negating is just to match the usual definition of the simplex method, letting &#x27;where to go next&#x27; be read directly as the most negative coefficient in the first row; at this point the initial revenue is 0 because the search starts at the origin. Once the matrix is assembled, each iteration revolves around the same action: pick a direction, set the distance, then use row operations to explicitly read off the coordinates of the new vertex.</p>
+<span class="spk">— Josh Starmer</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="551" href="https://www.youtube.com/watch?v=lgD9lNB9Ums&amp;t=551s" target="_blank" rel="noopener">9:11</a><div><h4>The minimum ratio lands on the boundary</h4>
+<p class="body">The algorithm cannot see the feasible region, so it uses a ratio test to set the step size: for each constraint row, divide the right-hand side total by the corresponding positive coefficient in the current column; the quotient is the coordinate reachable along that axis. The show uses three candidate points on the cookie mix axis: ratios 25 and 16.7 correspond to intersections with the yellow and blue lines, both outside the feasible region; the lowest, 10, falls on the intersection with the brown line, which is on the boundary. Therefore, always choose the minimum ratio; any larger ratio would overshoot. If the minimum ratio ties, the convention is to pick the row with the smallest index.</p>
+<span class="spk">— Josh Starmer</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="977" href="https://www.youtube.com/watch?v=lgD9lNB9Ums&amp;t=977s" target="_blank" rel="noopener">16:17</a><div><h4>Gaussian elimination makes coordinates emerge</h4>
+<p class="body">After selecting the pivot column and pivot row, use Gaussian elimination to turn the pivot position into 1, then clear all other entries in that column to 0 via row addition. After elimination, the reading rule is simple: if a column has exactly one 1 and the rest are 0, read the total value in that column&#x27;s corresponding row as the coordinate of the current vertex on that axis; when multiple variable columns satisfy this simultaneously, coordinates appear together, and the top-right value directly gives the revenue at that vertex. The show uses this to read the second vertex (10,10) and revenue 50.</p>
+<span class="spk">— Josh Starmer</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="1099" href="https://www.youtube.com/watch?v=lgD9lNB9Ums&amp;t=1099s" target="_blank" rel="noopener">18:19</a><div><h4>Stop when the first row has no negatives</h4>
+<p class="body">When to stop is as important as how to move. As long as there is a most negative coefficient in the first row that can be a candidate, the algorithm continues to test whether revenue can improve; once the first row has no negatives, the simplex method declares the current vertex optimal. The first example&#x27;s second stop (10,10) satisfies this condition, and revenue 50 is the best achievable under the flour, sugar, and chocolate constraints. This stopping condition is the matrix-language equivalent of the geometric intuition that &#x27;no adjacent vertex can improve revenue&#x27;.</p>
+<span class="spk">— Josh Starmer</span></div></div>
+<div class="point" id="p7"><a class="ts" data-t="1533" href="https://www.youtube.com/watch?v=lgD9lNB9Ums&amp;t=1533s" target="_blank" rel="noopener">25:33</a><div><h4>The 3D example adds no new mechanics</h4>
+<p class="body">Extending the example from two products to three, the simplex method still holds. The show labels doughnut, cookie, and brownie mixes as x, y, z, each of the five constraints gets a slack variable, and from the origin each step follows the same procedure: pick the column by the most negative coefficient in the first row, pick the pivot row by the minimum ratio, then do Gaussian elimination. When multiple most negative coefficients tie, take the leftmost column first. After several moves, the first row has no negatives, and the algorithm stops at (9,9,4), corresponding to a maximum revenue of 22.</p>
+<span class="spk">— Josh Starmer</span></div></div></section>
+<section class="section"><h2>In their own words · checked verbatim</h2><blockquote class="quote"><p class="raw">The simplex algorithm starts at the origin and then moves to neighboring vertices that increase revenue until moving to the next vertex does not increase the revenue. Bam.</p>
+
+<div class="attrib"><b>Josh Starmer</b><a class="ts" data-t="66" href="https://www.youtube.com/watch?v=lgD9lNB9Ums&amp;t=66s" target="_blank" rel="noopener">1:06</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">Now the two inequalities give us a sort of inequality sandwich that is the equivalent of the original equality.</p>
+
+<div class="attrib"><b>Josh Starmer</b><a class="ts" data-t="246" href="https://www.youtube.com/watch?v=lgD9lNB9Ums&amp;t=246s" target="_blank" rel="noopener">4:06</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">The idea is that when the total amount of something like flour used by the cookie and doughnut mixes on the left is less than the amount available on the right, the slack variables make up the difference.</p>
+
+<div class="attrib"><b>Josh Starmer</b><a class="ts" data-t="308" href="https://www.youtube.com/watch?v=lgD9lNB9Ums&amp;t=308s" target="_blank" rel="noopener">5:08</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">In this example, the largest negative number in the first row, -3, is in the first column, the column for cookie mix. So, we could decide to go along the cookie mix axis.</p>
+
+<div class="attrib"><b>Josh Starmer</b><a class="ts" data-t="490" href="https://www.youtube.com/watch?v=lgD9lNB9Ums&amp;t=490s" target="_blank" rel="noopener">8:10</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">Again, in general, the simplex algorithm selects the lowest value because larger values are always outside of the feasible region.</p>
+
+<div class="attrib"><b>Josh Starmer</b><a class="ts" data-t="916" href="https://www.youtube.com/watch?v=lgD9lNB9Ums&amp;t=916s" target="_blank" rel="noopener">15:16</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">In other words, the point 10, 10, which represents a revenue of 50, is the best we can do given the constraints on the amount of flour, sugar, and chocolate that we can use.</p>
+
+<div class="attrib"><b>Josh Starmer</b><a class="ts" data-t="1099" href="https://www.youtube.com/watch?v=lgD9lNB9Ums&amp;t=1099s" target="_blank" rel="noopener">18:19</a></div>
+</blockquote></section>
+<section class="section"><h2>Figures</h2><table class="facts"><tr><td class="k">First move endpoint in the first example</td><td class="v">cookie mix = 10, doughnut mix = 0</td><td class="t"><a class="ts" data-t="796" href="https://www.youtube.com/watch?v=lgD9lNB9Ums&amp;t=796s" target="_blank" rel="noopener">13:16</a></td></tr>
+<tr><td class="k">Revenue at that vertex</td><td class="v">30</td><td class="t"><a class="ts" data-t="796" href="https://www.youtube.com/watch?v=lgD9lNB9Ums&amp;t=796s" target="_blank" rel="noopener">13:16</a></td></tr>
+<tr><td class="k">Second move endpoint in the first example</td><td class="v">cookie mix = 10, doughnut mix = 10</td><td class="t"><a class="ts" data-t="1037" href="https://www.youtube.com/watch?v=lgD9lNB9Ums&amp;t=1037s" target="_blank" rel="noopener">17:17</a></td></tr>
+<tr><td class="k">Revenue improvement at that vertex</td><td class="v">from 30 to 50</td><td class="t"><a class="ts" data-t="1099" href="https://www.youtube.com/watch?v=lgD9lNB9Ums&amp;t=1099s" target="_blank" rel="noopener">18:19</a></td></tr>
+<tr><td class="k">Optimal vertex in the 3D example</td><td class="v">x = 9, y = 9, z = 4</td><td class="t"><a class="ts" data-t="1533" href="https://www.youtube.com/watch?v=lgD9lNB9Ums&amp;t=1533s" target="_blank" rel="noopener">25:33</a></td></tr>
+<tr><td class="k">Maximum revenue in the 3D example</td><td class="v">22</td><td class="t"><a class="ts" data-t="1533" href="https://www.youtube.com/watch?v=lgD9lNB9Ums&amp;t=1533s" target="_blank" rel="noopener">25:33</a></td></tr></table></section>
+<section class="section"><h2>Glossary</h2><dl class="terms"><div><dt>simplex algorithm<span></span></dt><dd>An algorithm that starts at the origin and moves along adjacent boundary vertices to find the optimal solution to a linear program.</dd></div>
+<div><dt>feasible region<span></span></dt><dd>The region of all feasible solutions bounded by all constraints.</dd></div>
+<div><dt>objective function<span></span></dt><dd>The linear equation to be maximized or minimized; in the example, the revenue equation.</dd></div>
+<div><dt>slack variable<span></span></dt><dd>A nonnegative variable added to turn an inequality into an equality.</dd></div>
+<div><dt>Gaussian elimination<span></span></dt><dd>Using row operations to reduce a matrix to row echelon form, thereby reading intersection coordinates.</dd></div>
+<div><dt>ratio test<span></span></dt><dd>Dividing each constraint&#x27;s total by the positive coefficient in the current column and taking the smallest ratio to set the step size.</dd></div></dl></section>
+<section class="section"><h2>How to listen</h2>
+<div class="panel guide">
+<div><span class="k">Who it's for</span><p>Suitable for engineers who call optimization libraries but have never hand-derived the simplex method, operations research students, and teachers preparing to explain linear programming.</p></div>
+<div><span class="k">Skip</span><p>The opening Gurobi ad, the linear programming recap at the start, and the book/merchandise pitch at the end can be skipped; everything else is hand-calculation detail.</p></div>
+</div></section>
+<nav class="prevnext"><a href="/podcast/en/p/2026-07-15-latetalk-智驾好和更好的行业-只容得下两三家/"><span class="lbl">← Newer</span><strong>Two or three assisted-driving suppliers will be left, and the window shuts by year-end</strong></a><a class="r" href="/podcast/en/p/2026-07-10-dwarkesh-黑洞是效率-100-的发电厂-聚变只到百分之一/"><span class="lbl">Older →</span><strong>A black hole is a 100%-efficient power plant; fusion only reaches one percent</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>The episode</h4>
+<div class="row"><span>Show</span><span>StatQuest</span></div>
+<div class="row"><span>Original title</span><span>The Simplex Algorithm, Mathematical Details!!!</span></div>
+<div class="row"><span>Published</span><span>2026-07-13</span></div>
+<div class="row"><span>Length</span><span>27:06</span></div>
+<a class="row" href="https://www.youtube.com/watch?v=lgD9lNB9Ums" target="_blank" rel="noopener"><span>Episode page</span><span>Open ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>On this page</h4><nav class="toc"><a href="#p0"><span class="t">1:06</span><span>Climbing between adjacent vertices</span></a>
+<a href="#p1"><span class="t">4:06</span><span>First, normalize all constraints to less-than-or-equal</span></a>
+<a href="#p2"><span class="t">5:08</span><span>Slack variables turn inequalities into equalities</span></a>
+<a href="#p3"><span class="t">7:10</span><span>Pack into a matrix, then negate the first row</span></a>
+<a href="#p4"><span class="t">9:11</span><span>The minimum ratio lands on the boundary</span></a>
+<a href="#p5"><span class="t">16:17</span><span>Gaussian elimination makes coordinates emerge</span></a>
+<a href="#p6"><span class="t">18:19</span><span>Stop when the first row has no negatives</span></a>
+<a href="#p7"><span class="t">25:33</span><span>The 3D example adds no new mechanics</span></a></nav></div>
+
+<div class="panel"><h4>How this was made</h4>
+<div class="row"><span>Editorial score</span><span>8 / 10</span></div>
+<div class="row"><span>Transcript</span><span>YouTube captions</span></div>
+<div class="row"><span>Transcript words</span><span>3812</span></div>
+<div class="row"><span>Words per minute</span><span>140.7 wpm</span></div>
+<div class="row"><span>Quotes checked verbatim</span><span>6 quotes</span></div>
+<div class="row"><span>Figures checked against source</span><span>6 figures</span></div>
+
+<p class="note">Every quote is matched word for word against the transcript and every figure is checked back to the source. Anything that cannot be found is cut, not published.
+A separate model then scores the finished piece on density, fidelity, selection and specificity. Below 7 out of 10 it is not shown.
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>Podcast · <a href="https://ourword.ai">OurWord.ai</a> — the podcast desk. Deep reads of other people's podcasts;
+copyright stays with each show. Every piece links to the original — please go support them.</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/en/">OurWord</a> · <a href="/podcast/en/">Podcast</a> · <a href="/skill/?lang=en">Taste</a></div>
+<div class="links"><a href="/podcast/en/">Home</a><a href="/podcast/en/sources/">Shows</a>
+<a href="/podcast/en/log/">Changelog</a><a href="/podcast/en/feed.xml">RSS</a>
+<a href="/podcast/en/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">Source</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=ae529543cc" defer></script>
+</body></html>
