@@ -2,11 +2,11 @@
  "slug": "2026-09-02-signalsandthre-模型越强-脏数据越致命-清洗反而更值钱",
  "of": "signalsandthre-e536ad01e0",
  "source_lang": "en",
- "title": "Stronger Models Make Dirty Data More Lethal: Cleaning Is Worth More",
- "dek": "Jane Street's alt data team finds that once data leaks future information into the past, stronger models become more dangerous; nailing down 'what was known at the time' is worth more than tuning the model.",
- "why": "This episode is dense with how data engineering actually creates value; the latter half on corrections, timestamps, and cost models offers judgments you won't hear in most AI discussions.",
+ "title": "The stronger the model, the more lethal dirty data: cleaning is worth more",
+ "dek": "Jane Street's alt data team finds that once data leaks future information into the past, stronger models become more dangerous; nailing down 'what was known at the time' is worth more than tuning models.",
+ "why": "This episode is a dense look at how data engineering actually creates value; the latter half on correcting data, timestamps, and cost models offers judgments you won't hear in most AI discussions.",
  "who": "CTOs building data teams, quant practitioners evaluating data vendors, and engineers who believe LLMs will automatically clean data.",
- "skip": "Pure tech backgrounds can skip to the data engineering segment at 33 minutes, but don't miss the negative oil price discussion at 19 minutes.",
+ "skip": "Pure tech backgrounds can skip to the data engineering part after 33 minutes, but don't miss the negative oil price story at 19 minutes.",
  "tags": [
   "alt data",
   "data engineering",
@@ -18,35 +18,35 @@
  "points": [
   {
    "h": "Patterns get competed away once discovered",
-   "body": "Eric defines this as an anti-inductive environment: in trading, patterns you find are often quickly digested by others and the market, then stop working; there is little knowledge that accumulates like physical laws. Because of this, the signal-to-noise ratio in trading data is naturally poor—the whole market mechanism constantly squeezes out extractable signals, leaving what approaches a random walk. To keep winning, you must keep finding new facts, not cling to old patterns."
+   "body": "Eric defines this as an anti-inductive environment: in trading, patterns you find are often quickly digested by others and the market, then stop working; there's little knowledge you can accumulate as physical laws. Because of this, the signal-to-noise ratio in trading data is naturally poor—the whole market mechanism is to squeeze out extractable signals, leaving the rest closer to a random walk. To keep winning, you must constantly find new facts, not cling to old patterns."
   },
   {
-   "h": "Prices can go negative; don't hardcode assumptions",
-   "body": "On April 20, 2020, CME crude futures near expiry settled at a negative price—just that one day, and the final settlement later turned positive. The reason wasn't that oil had no value, but that storage at Cushing, the delivery point, was nearly full and no one wanted to take physical delivery. Order entry and risk systems that long assumed prices must be positive failed on the spot: some couldn't place orders, others didn't know how to handle negative returns. Eric's conclusion: a large part of trading is understanding the messy details of reality—storage capacity, contract multipliers, quote units—and getting those details right in systems is what caps risk."
+   "h": "Prices can go negative; don't hardcode assumptions into systems",
+   "body": "On April 20, 2020, CME crude oil futures near expiry settled at a negative price—just for that one day; the final settlement later turned positive. The reason wasn't that oil had no value, but that storage at the delivery point, Cushing, was nearly full and no one wanted to take physical delivery. Systems for order entry and risk management that long assumed prices must be positive would fail on the spot: some couldn't place orders, others didn't know how to handle negative returns. Eric's conclusion: a large part of trading is understanding the messy details of reality—storage capacity, contract multipliers, quote units. Get these details right in systems, and you can draw the risk limits properly."
   },
   {
    "h": "Domain experts don't know how good tools can be",
-   "body": "For data and systems to be truly usable, the bottleneck is often not writing code but translation. Eric observes that traders have high tolerance for clunky processes, worn down by Excel and manual workflows to the point they don't know they deserve better tools; conversely, software engineers who don't understand the trading domain can only build to a narrow spec. So his job is to explain the real mechanics of the domain to engineers and 'how good it could be' to traders. At Jane Street, every desk now has such an embedded developer, a role that grew out of this need."
+   "body": "For data and systems to be truly usable, the bottleneck is often not writing code but translation. Eric observes that traders have high tolerance for clunky processes, worn down by Excel and manual workflows to the point they don't know they deserve better tools; conversely, software engineers who don't understand the trading domain can only build to a narrow spec. So his job is to explain the real mechanics of the domain to engineers, and 'how good it can get' to traders. At Jane Street, every desk now has an embedded developer; this role grew out of that initial need."
   },
   {
    "h": "Parking spots don't equal sales",
-   "body": "A classic alt data example is counting cars in Walmart parking lots, assuming more people means better business. Eric says this example is actually poor: what you want to infer is spend, and spots only tell you foot traffic, quite indirect; about 20% of Walmart purchases happen online, and cities like New York have no lots to count. More direct signals sit on the transaction side: issuing banks, Visa/Mastercard networks, and credit union processing systems know what people actually spend, and can sell anonymized aggregates to buy-side firms."
+   "body": "A classic alt data example is counting cars in Walmart parking lots—more people in cars means better business. Eric says this example is actually bad: what you want to infer is spending, but parking spots only tell you foot traffic, quite indirect; about 20% of Walmart's shopping happens online, and cities like New York have no lots to count. More direct signals are on the transaction side: issuing banks, Visa/Mastercard networks, and credit union processing systems know how much people actually spend, and can sell anonymized aggregate statistics to buy-side firms."
   },
   {
    "h": "Corrected data turns backtests into time machines",
-   "body": "When deciding whether to subscribe to a dataset, the vendor may have already corrected past errors; backtesting on that clean data tests not what you would have received in real time, but the correct answers known only later. Eric says that's like simulating having a time machine. Jane Street's solution: save every raw file and the local timestamp of receipt, so no matter how many transformations you do later, you can reconstruct 'what we knew at that moment.' This mirrors the logic of distrusting exchange timestamps and trusting only your own data arrival time."
+   "body": "When deciding whether to subscribe to a data feed, the vendor may have already corrected past errors; backtesting on the corrected pretty data tests not what you would have actually received at the time, but the correct answer known only later. Eric says that's like simulating having a time machine. Jane Street's solution is to save every raw piece of data and the local timestamp of receipt, so no matter how many transformations are done later, you can reconstruct 'what we knew at that moment.' This is the same logic as distrusting exchange timestamps and trusting only your own data arrival time."
   },
   {
    "h": "LLMs know the future; keep them away from historical data",
-   "body": "AI hits alt data in two ways: stronger predictive models raise the value of good data, and LLMs make feature extraction from text easier. But there's a causal trap—using the latest LLM to featurize old documents brings in later knowledge: it knows Enron's eventual fate, and may have seen subsequent revisions of a financial report in its training data. That creates new future leakage, especially when processing historical data; you must pin down 'which model version at which point in time.'"
+   "body": "AI has a two-fold impact on alt data: stronger predictive models raise the value of good data, and LLMs make it easier to extract features from text. But there's a causal trap—using the latest LLM to featurize old documents brings in later events: it knows Enron's eventual fate, and may have seen subsequent revisions of a financial report in its training data. That creates new future information leakage; when handling historical data, you must nail down 'which model version was used at which point in time.'"
   },
   {
    "h": "Stronger models make data cleaning more valuable",
-   "body": "A common expectation is that as neural nets get stronger, feature engineering and manual cleaning will be replaced. Eric thinks the opposite: once models can do more themselves, you need less manual feature work, but the data fed in must be more correct. If data isn't point-in-time and leaks future information into the past, stronger models will learn that problem; different models also have varying tolerance for outliers and dirty patches. Net, cleaning data becomes more valuable, not less."
+   "body": "A common expectation is that as neural networks get stronger, feature engineering and manual cleaning will be replaced. Eric thinks the opposite: once models can do more themselves, you need less manual feature work, but the data fed in must be more correct. If data isn't point-in-time and leaks future information into the past, stronger models will learn that problem; different models also have varying tolerance for outliers and dirty patches. All told, cleaning data becomes more valuable, not less."
   },
   {
    "h": "Usage-based pricing tempts teams to nickel-and-dime",
-   "body": "Jane Street runs its data warehouse in-house, not purely out of control issues. Eric's observation: moving the same queries to a cloud vendor priced by read volume or compute time gets expensive enough that you think 'that money could buy a pile of hardware.' More importantly, the cost model distorts behavior—usage-based pricing makes teams constantly optimize bills and reshape workloads to fit billing; self-hosting turns cost into a one-time hardware investment, so teams spend time on research and queries, not saving money."
+   "body": "Jane Street hosts its data warehouse in its own data center, not purely out of control issues. Eric's observation: moving the same queries to a cloud vendor priced by read volume or compute time gets so expensive you'd think 'this money could buy a bunch of hardware.' More importantly, the cost model distorts behavior—usage-based pricing makes teams constantly optimize bills and reshape workloads to fit the billing scheme; with self-hosting, cost becomes a one-time hardware investment, and teams spend time on research and queries, not saving money."
   }
  ],
  "terms": [
@@ -56,7 +56,7 @@
   },
   {
    "term": "anti-inductive environment",
-   "def": "An environment where patterns get competed away once discovered, so knowledge is hard to accumulate over time."
+   "def": "An environment where patterns get competed away once discovered, making knowledge hard to accumulate."
   },
   {
    "term": "point-in-time data",
@@ -73,16 +73,16 @@
    "v": "First in 2023, now about 20+"
   },
   {
-   "k": "Walmart online purchase share",
-   "v": "about 20%"
+   "k": "Walmart online shopping share",
+   "v": "About 20%"
   },
   {
-   "k": "Crude futures negative settlement event",
+   "k": "Negative crude oil settlement event",
    "v": "April 20, 2020, one day closed negative, final settlement turned positive"
   },
   {
    "k": "Data engineer intern training cycle",
-   "v": "2026 interview, 2027 summer, 2028 hire, 2029 fully productive"
+   "v": "2026 interview, 2027 summer, 2028 start, 2029 fully productive"
   },
   {
    "k": "Desk dev coverage",
