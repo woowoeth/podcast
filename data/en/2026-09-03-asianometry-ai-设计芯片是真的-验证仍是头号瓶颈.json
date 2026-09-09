@@ -3,9 +3,9 @@
  "of": "asianometry-483be66de8",
  "source_lang": "en",
  "title": "AI Chip Design Is Real, but Verification Remains the Top Bottleneck",
- "dek": "AI can already write RTL autonomously, but the real bottleneck in the entire chip pipeline is verification: it eats up more than half of development time, and AI still can't answer 'what to test.' OpenAI's twenty-person team can shorten the front end, but the back end still has to be left to humans.",
- "why": "The author uses firsthand observations and the words of frontline engineers to rescue 'AI making chips' from clickbait: which are prototypes, which can go into production, and where the real barriers lie.",
- "who": "Semiconductor investors, chip company decision-makers, and engineers focused on AI adoption who want to judge whether 'AI chip design' is a real inflection point or just fundraising talk.",
+ "dek": "AI can already write RTL autonomously, but the real bottleneck in the entire chip pipeline is verification: it eats up more than half of development time, and AI still can't answer \"what to test.\" OpenAI's twenty-person team can shorten the front end, but the back end still has to be left to humans.",
+ "why": "The author uses firsthand observations and the words of frontline engineers to rescue \"AI making chips\" from clickbait: what is a prototype, what can go into production, and where the real barriers lie.",
+ "who": "Semiconductor investors, chip company decision-makers, and engineers focused on AI adoption who want to judge whether \"AI chip design\" is a real inflection point or just fundraising talk.",
  "skip": "The opening EDA terminology primer (first minute) — those who understand the chip design flow can skip it.",
  "tags": [
   "AI chip design",
@@ -18,49 +18,49 @@
  "points": [
   {
    "h": "K3 has only a front end, no back end",
-   "body": "The raw material for the 'AI 48-hour tapeout' claim is a small inference accelerator called Nano KPU that Kimi unveiled: 238,000 parameters, about 1.46 million standard cells, 0.277MB SRAM, claiming to close timing at 100 MHz within a 4 square millimeter area and decode at 8,700 tokens/s. But the host looked closely: this RTL only went through functional verification — no cell placement, routing, physical verification, or sign-off. The so-called 'timing closure' relies on estimates, and 100 MHz is not impressive even in an open-source 45nm library; humans using the same library can reach 20-450 MHz, and commercial processes can go to 1-3 GHz. K3's goal is not to make a good chip but to prove that an agent can autonomously reach functional completeness."
+   "body": "The raw material for the \"AI 48-hour tapeout\" claim is a small inference accelerator called Nano KPU that Kimi unveiled: 238,000 parameters, about 1.46 million standard cells, and 0.277MB SRAM, claimed to close timing at 100 MHz within 4 square millimeters and decode at 8,700 tokens/s. But the host looked closely: this RTL went through functional verification only — no cell placement, routing, physical verification, or sign-off. The so-called \"timing closure\" relies on estimates, and 100 MHz is not impressive even in an open-source 45nm library; human designers using the same library can reach 20–450 MHz, and commercial processes can go to 1–3 GHz. K3's goal is not to make a good chip but to prove that an agent can autonomously reach functional completeness."
   },
   {
    "h": "AI writing RTL is not news at all",
-   "body": "Many people think AI writing chips started with K3, but back in 2020, NYU researchers used GPT-2 to generate beginner-level RTL, reporting 94.8% accuracy. The now-defunct eFabless ran AI design competitions, and Will Salcedo's GPT-4-generated design actually went to tapeout — one of the earliest known LLM-designed tapeouts the host is aware of. 'AI writing RTL' itself is not the innovation; what changed is that an agent can run unattended from scratch to functional completeness — the autonomy of the process has been refined."
+   "body": "Many people think AI writing chips started with K3, but as far back as 2020, NYU researchers used GPT-2 to generate beginner-level RTL, reporting 94.8% accuracy. The now-defunct eFabless ran AI design contests, and Will Salcedo's GPT-4-generated design actually went to tapeout — one of the earliest known LLM-designed tapeouts the host is aware of. \"AI writing RTL\" itself is not the innovation; what has changed is that an agent can run unattended from scratch to functional completeness — the autonomy of the process has been refined."
   },
   {
    "h": "The agent's future lies in wrapping toolchains",
-   "body": "When fully autonomous design is still out of reach, the real product form is wrapping LLMs around EDA toolchains: the LLM directs deterministic EDA tools through interfaces like MCP or APIs, much like Claude Code lets models call computer tools. Synopsys, Cadence, and Siemens all have long-term goals of opening up their stacks and handing data feedback and control to agents that can run for hours or overnight. Siemens demonstrated at Semicon Taiwan: an agent dropping hundreds of standard cells one by one into a simulator, measuring load, speed, and power for later design lookup tables. Switching process nodes means redoing this tedious work — perfect to hand to AI before leaving work."
+   "body": "When fully autonomous design is still out of reach, the real product form is to wrap LLMs around EDA toolchains: the LLM directs deterministic EDA tools through interfaces like MCP or APIs, much as Claude Code lets models call computer tools. Synopsys, Cadence, and Siemens all have long-term goals of opening up their stacks and handing data feedback and control to agents that can run for hours or overnight. Siemens demonstrated at Semicon Taiwan: an agent dropped hundreds of standard cells one by one into a simulator, measuring load, speed, and power for later design lookup tables. Switching process nodes means redoing this tedious work — perfect to hand to AI before leaving for the day."
   },
   {
    "h": "Even the best results keep a human in the loop",
-   "body": "Former xAI engineer Christina Lee's post is the most convincing breakdown the host has seen. Her meta-harness has two layers: the inner layer lets the model call EDA tools to write RTL, synthesize, place and route, and verify; the outer layer lets the model review what went right and wrong in the previous round, propose improvements, and run again. The first phase only did a MAC multiply-accumulate array, iterating from 900 MHz to 1 GHz over multiple rounds; the second phase connected the MAC to SRAM and other modules, and complexity immediately rose. Note that humans have kept their hands on the wheel the whole time: the so-called goal strings are likely provided by the outer model as reference, but the selection and final sign-off authority rests with humans. AI is not the boss; it's the co-pilot."
+   "body": "Former xAI engineer Christina Lee's post is the most convincing breakdown the host has seen. Her meta-harness has two layers: the inner layer lets the model call EDA tools to write RTL, synthesize, place and route, and verify; the outer layer lets the model review where the previous round went right or wrong, propose improvements, and run again. The first phase only did a MAC multiply-accumulate array, iterating from 900 MHz to 1 GHz; the second phase connected the MAC to SRAM and other modules, and complexity immediately rose. Note that a human has been holding the steering wheel all along: the so-called goal strings are likely provided by the outer model as a reference, but the selection and final sign-off remain with the human. AI is not the boss; it's the co-pilot."
   },
   {
    "h": "What's truly scary about Jalapeno is the 20-person team",
-   "body": "OpenAI's Jalapeno demo made many people focus on 'RTL to tapeout in just 9 months.' The host reminds us: Synopsys has said elsewhere, in an unrelated context, that using their tools without AI also takes about 9 to 12 months; the chip is not complex, and the starting point is unclear — the architecture concept only began in October 2024. What really stands out is the team size: only 20 to 30 people stood up at the end of the talk. And this group's token consumption consistently ranks near the top of OpenAI's internal leaderboards, with RTL still being changed the day before the freeze. If such a small team can do it, the number of people needed for chip roles in the future could drop by an order of magnitude — perhaps that's why they don't emphasize it in the slides."
+   "body": "OpenAI's Jalapeno demo made many people focus on \"RTL to tapeout in just 9 months.\" The host reminds us: Synopsys has said elsewhere, in an unrelated context, that using their tools without AI also takes about 9 to 12 months; the chip is not complex, and the starting point is unclear — the architecture concept only began in October 2024. What really stands out is the team size: only 20 to 30 people stood up at the end of the talk. And this group's token consumption consistently ranks near the top of OpenAI's internal leaderboards, with RTL still being changed the day before the freeze. If such a small team can do this, the number of people needed for chip roles in the future could drop by an order of magnitude — perhaps that's why they didn't emphasize it in the slides."
   },
   {
-   "h": "Verification is the bottleneck for AI chip design",
-   "body": "The whole industry talks up front-end RTL but glosses over the back end: OpenAI's presentation slides spent a lot on spec and RTL, but the host guesses the back end was handled by partner Broadcom, thanked only on slide 34; Lee also handed the back end to Yosys/OpenLane. The mechanistic asymmetry: PPA (power/performance/area) optimization is a closed loop — generate, verify, measure PPA — AI has a clear reward signal. Verification is not: passing or failing a test doesn't tell AI how far it is from full coverage, and 'what to test' still relies on humans. Chip bugs can't be changed once taped out, so seeing a defect on the first look at TSMC's silicon is the most crushing moment. This explains why verification can consume 50 to 70% of development time, and echoes Shibo Chen's point that 'AI designs, humans verify' is what makes people comfortable."
+   "h": "Verification is the real bottleneck in AI chip design",
+   "body": "The whole industry talks up the front-end RTL but glosses over the back end: OpenAI's presentation slides spent a lot of time on spec and RTL, while the host guesses the back end was handled by partner Broadcom, thanked only on slide 34; Lee also handed the back end to Yosys/OpenLane. The mechanistic asymmetry is that PPA (power/performance/area) optimization is a closed loop — generate, verify, measure PPA — and AI has a clear reward signal. Verification is not: passing or failing a test doesn't tell AI how far it is from full coverage, and \"what to test\" still has to come from humans. Chip bugs can't be changed once taped out, so seeing a defect on the first look at TSMC's silicon is the most crushing moment. This explains why verification can eat 50 to 70% of development time, and echoes Shibo Chen's line that \"AI designs, humans verify\" is what makes people comfortable."
   },
   {
    "h": "The biggest enemy of front-end wrappers is OpenAI",
-   "body": "Silicon Valley is spawning a wave of startups that wrap frontier models with proprietary knowledge to write RTL. The risk the host sees: Anthropic and OpenAI both own the models and are making chips themselves; if they decide to open up their chip-specific models, the differentiation of front-end wrappers disappears. So he prefers to look at teams moving toward the back end and verification, where end-to-end moats exist. How fast is this field moving? While he was writing, Architect Labs announced that its Redwood chip was fully produced and verified by AI, with specs written only by two architects; even TSMC's 3D IC talk used 'agentic AI.' The host worries that his judgment could be overturned by new news within a week or two."
+   "body": "Silicon Valley is seeing a flood of startups that wrap proprietary knowledge around frontier models to write RTL. The risk the host sees: Anthropic and OpenAI both own the models and are making chips themselves; if they decide to open up their chip-specific models, the differentiation of front-end wrappers disappears. So he prefers to look at teams moving toward the back end and verification, where end-to-end moats exist. How fast is this field moving? While he was writing, Architect Labs announced that its Redwood chip was fully produced and verified by AI, with specs written only by two architects; even TSMC's 3D IC talk used \"agentic AI.\" The host worries that his judgment could be overturned by new news within a week or two."
   }
  ],
  "terms": [
   {
    "term": "EDA",
-   "def": "Electronic design automation: the software tools needed to design chips, dominated by a few vendors like Synopsys and Cadence."
+   "def": "Electronic design automation — the software tools needed to design chips, dominated by a few vendors like Synopsys and Cadence."
   },
   {
    "term": "RTL",
-   "def": "Register-transfer level: the hardware language layer (Verilog/VHDL) that describes data flow and logic — the 'code' of a chip."
+   "def": "Register-transfer level — the hardware description layer (Verilog/VHDL) that describes data flow and logic; the \"code\" of a chip."
   },
   {
    "term": "PDK",
-   "def": "Process design kit: the confidential process parameter package maintained jointly by foundries and EDA vendors, tightly protected by NDA."
+   "def": "Process design kit — the confidential process parameter package maintained jointly by foundries and EDA vendors, tightly protected by NDA."
   },
   {
    "term": "PPA",
-   "def": "Power, performance, area: the three key metrics for evaluating chip design quality, directly usable for closed-loop optimization."
+   "def": "Power, performance, area — the three key metrics for evaluating chip design quality, suitable for closed-loop optimization."
   },
   {
    "term": "tapeout",
@@ -73,7 +73,7 @@
    "v": "94.8%"
   },
   {
-   "k": "Christina Lee Phase 1 MAC array clock",
+   "k": "Christina Lee phase 1 MAC array clock",
    "v": "900 MHz to 1 GHz"
   },
   {
@@ -85,7 +85,7 @@
    "v": "20 to 30 people"
   },
   {
-   "k": "Share of development time taken by verification",
+   "k": "Verification share of chip development time",
    "v": "50% to 70%"
   }
  ],
