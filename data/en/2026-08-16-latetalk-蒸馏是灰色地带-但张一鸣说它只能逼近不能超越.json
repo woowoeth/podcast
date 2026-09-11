@@ -1,0 +1,122 @@
+{
+ "slug": "2026-08-16-latetalk-蒸馏是灰色地带-但张一鸣说它只能逼近不能超越",
+ "of": "latetalk-aa26e5e6bb",
+ "source_lang": "zh",
+ "title": "Distillation Is a Gray Area, but Zhang Yiming Says It Can Only Approach, Never Surpass",
+ "dek": "Distillation violates user agreements but may not constitute infringement — a gray area nobody discusses publicly. Zhang Yiming refused to let ByteDance distill, on the grounds that it can only approach a competitor, never surpass it, and the cost is that people inside the organization taking uncertain paths get neither resources nor recognition.",
+ "why": "Two reporters lay out distillation in full, the thing nobody wants to discuss publicly: the technical mechanism, the know-how, the red-line disputes, and how it hits the business logic of frontier models.",
+ "who": "Founders, investors and engineers watching the large-model competitive landscape, especially anyone trying to judge whether distillation can become a long-term moat and how the business logic of frontier models will change.",
+ "skip": "The last two minutes of host wrap-up and audience prompts can be skipped.",
+ "tags": [
+  "Distillation",
+  "Large Models",
+  "ByteDance",
+  "Anthropic",
+  "Post-training"
+ ],
+ "points": [
+  {
+   "h": "Distillation isn't copying homework, it's copying homework with a barrier to entry",
+   "body": "A typical distillation pipeline: you start with a pile of questions, ask a very strong model (Fable, say), get a lot of answers, the questions and answers form data pairs, and you train your own student model on that data so its output behavior approaches the teacher's. But this is not \"they write A so you write A\" — it's used in post-training and mid-training, it takes compute, it takes data, it has to go into the model and be trained, and there are methods and tricks in between. Once reasoning models exist, the teacher no longer hands over just questions and answers but also the reasoning process; once agents are developed, it extends further to the full trajectory of an entire agent completing a task in an environment."
+  },
+  {
+   "h": "Two moments turned distillation from compression into getting stronger",
+   "body": "The first moment was OpenAI releasing O1 in September 2024. It brought two changes: first, it revealed that large-scale reinforcement learning in post-training can teach a model reasoning strategies, and distillation was mainly used in post-training anyway, so the return on investment went up; second, giving more compute at test time and letting the model generate longer chains of thought also keeps improving performance, and the chain of thought is produced during model use, so in theory users can see it, which makes it better distillation material. The second moment was DeepSeek releasing R1 in January 2025, along with six small distilled models, four based on Qwen 2.5 and two based on Meta Llama 3, all using R1 as the teacher — that was distillation's original mainstream purpose: compression."
+  },
+  {
+   "h": "Zhang Yiming's objection is half technology, half human nature",
+   "body": "At an internal Seed meeting, Zhang Yiming said ByteDance would not be allowed to do distillation, for three reasons: distillation improves performance in the short term, but in essence it copies capabilities Claude already has, so at best you approach your opponent and cannot surpass it; he wants Seed to build AGI moats from a lower level, and doesn't think distillation is a long-term moat; and even if not distilling means falling briefly behind domestic competitors technically, he won't take the shortcut. Practitioners generally hold that a student model surpassing its teacher is not technically impossible — multi-teacher distillation, surpassing on specific tasks — but distillation has organizational and incentive costs: it's cheap and highly certain, so if you put your weight there, the people in the organization doing long-term exploration and taking uncertain paths don't get enough resources or recognition."
+  },
+  {
+   "h": "Distillation's know-how is in account operations and the data pipeline",
+   "body": "What's actually hard is not getting a few million answers, it's the whole systems engineering. First, stably accessing leading models at high frequency, plus the user operations that go with it: build lots of relay stations and get the users who can genuinely ask high-quality questions and have real needs — STEM students at universities, researchers, senior programmers — to use them. Here you have to guard against getting burned: one model company used a relay station and found it had distilled itself. Second, the data pipeline: filtering and sifting from real questions, augmenting and rewriting with models, correcting errors along the way, and deciding the form and mix of the data. Whether the whole system is cheap and stable directly affects the results and efficiency of large-scale operations."
+  },
+  {
+   "h": "Distillation can't hide, because what gets detected is the process, not the result",
+   "body": "Trying to hide distillation from Anthropic and OpenAI by skipping the API and downloading open weights to generate data in your own data center is actually hard: deploying something like K3, which is close to 3T, takes a lot of compute on its own, and the electricity for continuously running data is expensive, so it's easy to detect. More to the point, they don't find it from the result, they find it from the process — as long as you use its API at large scale and high frequency once, anomalous behavior may be seen. Anthropic says it has built classifiers and behavior fingerprinting systems to identify distillation traffic, able to spot cross-account coordination, repeated questioning and extraction of chains of thought, and it has tightened identity verification for education, research and startup accounts — which dovetails exactly with the \"find university students to use it\" operational approach."
+  },
+  {
+   "h": "Distillation is a gray area, but the double-standard dispute is real",
+   "body": "The word original sin is a bit heavy; distillation does violate Anthropic's and OpenAI's user agreements, but violating a user agreement doesn't necessarily constitute legal infringement. The clearer red line is hacking: breaking into other companies' systems, cracking chains of thought — that kind of thing clearly violates common law and can't be accepted. As for the double-standard dispute, Anthropic recently had a $1.5 billion class-action settlement, over having downloaded many books from a pirated book site back in the day and not paying for them, which drew a class action from American authors. The two behaviors aren't exactly the same: getting the books directly is definitely infringement, but whether buying the books and then using them to train a model is infringement — a California court has a precedent holding that as long as you paid, it isn't — which leaves an interesting boomerang: if that isn't infringement, then is it infringement for other companies to use Anthropic's outputs to improve their own models?"
+  },
+  {
+   "h": "Cheaper intelligence hits the business logic",
+   "body": "Will distillation hit the business model of spending tens of billions of dollars to train frontier models? The short-term market expectation is that Anthropic's and OpenAI's valuations will be affected, and some even think it will hit the IPO race, but that premise only looks at this very moment — if Anthropic's next model is strong again, expectations will change again, and closed-source companies may have moves they haven't shown. What's fairly clear is that it hits the business logic: V4 and Grok are both very cost-effective models, and in that famous kill-line chart, the models in the region below and to the right of V4 and Grok 4.6 are all killed. A founder of an application company said that eight out of ten user tasks can be solved by DeepSeek V4 Flash, and Flash is very cheap and fast. Behind this is a bigger question: how the supply and demand of intelligence match in scale and rhythm — for a lot of white-collar work, today's models are already good enough."
+  }
+ ],
+ "terms": [
+  {
+   "term": "distillation",
+   "def": "Training your own model on a strong model's outputs or trajectories so the two behave more and more alike."
+  },
+  {
+   "term": "reasoning model",
+   "def": "A model that generates a long chain of thought before answering; O1 is the model that opened this paradigm."
+  },
+  {
+   "term": "agent trajectory",
+   "def": "The full-process data of an agent completing a task from start to finish in an environment."
+  },
+  {
+   "term": "multi-teacher distillation",
+   "def": "Learning from several teacher models at once, taking the best of each — and possibly training badly."
+  },
+  {
+   "term": "behavior fingerprint",
+   "def": "A means of identifying distillation traffic through behavioral patterns such as cross-account coordination and repeated questioning."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Anthropic class-action settlement amount",
+   "v": "$1.5 billion"
+  },
+  {
+   "k": "K3 model parameter count",
+   "v": "close to 3T (about 2.8T)"
+  },
+  {
+   "k": "V4 model parameter count",
+   "v": "1.6T"
+  },
+  {
+   "k": "Number of small distilled models released with DeepSeek R1",
+   "v": "6 (4 on a Qwen 2.5 base, 2 on a Meta Llama 3 base)"
+  },
+  {
+   "k": "Number of models in the identity-confusion research test",
+   "v": "27 models, 77 questions"
+  },
+  {
+   "k": "Share of user tasks solved by DeepSeek V4 Flash",
+   "v": "eight out of ten tasks"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "It's definitely not, for us, what we understand in the most original sense as a super-answer — that you can just have an answer and copy it over — because it's still a training process.",
+   "translated": true
+  },
+  {
+   "text": "He thinks distillation can improve model performance in the short term, but in essence it's copying Claude's future capabilities, so if you keep going like this, at best you approach your opponent; you cannot achieve a surpass.",
+   "translated": true
+  },
+  {
+   "text": "Zhang Yiming may not be the one who understands technology best, but he is most likely the one who understands human nature best.",
+   "translated": true
+  },
+  {
+   "text": "An athlete can in theory both dope and train hard — maybe someone really does it that way, right? It's just that, generally speaking, once you've doped, you'll definitely have some sense of getting away with it and some laziness.",
+   "translated": true
+  },
+  {
+   "text": "It definitely violates the user agreements of those original model companies, OpenAI and the rest, but violating a user agreement doesn't necessarily constitute legal infringement.",
+   "translated": true
+  },
+  {
+   "text": "We used to say coding is bigger than video generation — what if that's wrong? And the possibility that it's wrong also lies in the fact that, for a lot of white-collar work, the current models really are already good enough.",
+   "translated": true
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}

@@ -389,7 +389,11 @@ def check_core_sources(r: Report) -> None:
     except Exception:
         return
     d = raw["sources"] if isinstance(raw, dict) else raw
-    core = [s for s in d if s.get("tier") == 1]
+    # 范围是**优质源**（tier 1+2），不只核心源 —— 用户：「除了 yc 和张小珺，
+    # 其他优质源也要检查是否全推」。实测扩到 tier 2 之后又抓出 32 档
+    # 同样路由错的（ancients、throughline、ezra、restishistory…），
+    # 全站有 98 集因此撞满 3 次上限、永久失败。
+    core = [s for s in d if s.get("tier") in (1, 2)]
     if not core:
         return
     # ① 路由
@@ -408,7 +412,7 @@ def check_core_sources(r: Report) -> None:
             e = json.loads(f.read_text())
         except Exception:
             continue
-        if e.get("tier") == 1 and e.get("source_id"):
+        if e.get("tier") in (1, 2) and e.get("source_id"):
             k = e["source_id"]
             n, loc = by.get(k, (0, 0))
             by[k] = (n + 1, loc + (1 if _local_only(e.get("transcript_url") or "") else 0))
@@ -416,21 +420,31 @@ def check_core_sources(r: Report) -> None:
            if not s.get("residential") and by.get(s["id"], (0, 0))[0] > 0
            and by[s["id"]][1] == by[s["id"]][0]]
     if bad:
-        r.fail(f"{len(bad)} 档核心源只能走本机线（已发布的全靠 ASR／字幕）却没标 "
+        r.fail(f"{len(bad)} 档优质源只能走本机线（已发布的全靠 ASR／字幕）却没标 "
                f"residential —— 云端会反复挑走、转不了、撞满上限永久失败："
                + "、".join(bad[:6]))
     else:
-        r.good(f"核心源路由正确（{sum(1 for s in core if s.get('residential'))}/"
+        r.good(f"优质源路由正确（{sum(1 for s in core if s.get('residential'))}/"
                f"{len(core)} 档走本机线）")
     # ② 核心源不该被分数判掉
     try:
         done = json.loads((DATA / "state.json").read_text()).get("done") or {}
     except Exception:
         return
-    ids = {s["id"] for s in core}
+    # 「只拦广告」这条只对 **tier 1**。用户是针对「类似 yc 和张小珺这种」说的；
+    # 扩到 tier 2（83 档）会一次放行 122 集，那是产品判断，不是工程判断 ——
+    # 把它当成事实报出来，别替人做主。
+    ids = {s["id"] for s in core if s.get("tier") == 1}
     wrong = [v for v in done.values()
              if isinstance(v, dict) and v.get("skip") == "off-brief"
              and v.get("src") in ids and "宣传" not in str(v.get("kind") or "")]
+    t2 = {s["id"] for s in core if s.get("tier") == 2}
+    t2_wrong = [v for v in done.values()
+                if isinstance(v, dict) and v.get("skip") == "off-brief"
+                and v.get("src") in t2 and "宣传" not in str(v.get("kind") or "")]
+    if t2_wrong:
+        r.note(f"{len(t2_wrong)} 集 tier2 优质源的稿被分数判掉（不是广告）——"
+               f"要不要也对它们只拦广告，是产品判断，这里只报数")
     if wrong:
         r.fail(f"{len(wrong)} 集核心源的稿被**分数**判掉了（判词不是「宣传」）——"
                f"核心源只该拦广告：" + "；".join(

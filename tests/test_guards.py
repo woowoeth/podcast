@@ -6337,3 +6337,33 @@ class NoTwoSourcesShareAFeed(unittest.TestCase):
         self.assertFalse(
             dup, f"这些 iTunes id 被两档源共用，--check 会把其中一档解析成"
                  f"另一档的 feed：{dup}")
+
+
+class AChunkThatFailsToDecodeIsNotTheEpisodesFault(unittest.TestCase):
+    """转写中途一片解码失败要算**软**失败，不能占重试预算。
+
+    实测：chinatalk 那集转到第 17/41 片时 ffmpeg 报
+    `Failed to load audio`，已经转好的 16 片好端端躺在缓存里、下一轮接着转
+    本来就能成 —— 但它被记成硬失败（n=1），三次就把这集**永久拉黑**。
+
+    「这一集没有文稿」和「这台机器这次没转成」是两件事。
+    失败要分类：这一类是可重试的。
+    """
+
+    def test_a_failed_chunk_marks_the_run_transient(self):
+        src = (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
+        i = src.index("def _local_chunked(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        j = body.index("if got is None:")
+        blk = body[j:j + 700]
+        self.assertIn('_transient["hit"] = True', blk,
+                      "一片转写失败被当成硬失败 —— 三次就把这集永久拉黑，"
+                      "而缓存里已经有转好的片，下一轮本来就能接着转")
+
+    def test_the_caller_treats_transient_as_a_soft_failure(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index("transient = T.last_was_transient()")
+        blk = src[i:i + 600]
+        self.assertIn('"soft"', blk, "软失败没有单独的预算")
+        self.assertRegex(blk, r'"n": prev\.get\("n", 0\)(?!\s*\+)',
+                         "软失败也在累加硬失败计数 —— 等于没分类")

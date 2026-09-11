@@ -3,10 +3,10 @@
  "of": "laoshi-8e28e5b747",
  "source_lang": "zh",
  "title": "Xiaomi's Three Chips at Once: Trading Resources for Time, Betting on a Paradigm Shift in On-Device AI",
- "dek": "Xiaomi released three Xuanjie chips in one go, aggressively betting on memory interconnect, 3D stacking and an all-AI architecture — trading resources for time, wagering on a paradigm shift in on-device AI and vertical integration capability, though a clear gap remains to the top chip companies.",
- "why": "This deep-dive breaks down the technical choices and strategic logic behind Xiaomi's three chips with high information density, especially the clear analogies for key technologies like memory interconnect and 3D stacking. Worth a listen for chip industry professionals and investors watching Xiaomi.",
- "who": "Investors following Xiaomi's chip efforts, chip industry engineers, product managers, and tech professionals who want to understand the on-device AI trend.",
- "skip": "The first 3 minutes of discussion about the definition of in-house development can be skipped; go straight to the technical analysis.",
+ "dek": "Xiaomi released three Xuanjie chips in one go, aggressively betting on memory interconnect, 3D stacking and an all-AI architecture, trading resources for time, wagering on a paradigm shift in on-device AI and vertical integration capabilities, but still with a clear gap to top-tier chip companies.",
+ "why": "This deep dive analyzes the technical choices and strategic logic behind Xiaomi's three chips, with high information density, especially clear metaphors for key technologies like memory interconnect and 3D stacking. Worth a listen for chip industry professionals and investors watching Xiaomi.",
+ "who": "Investors watching Xiaomi's chip efforts, chip industry engineers, product managers, and tech professionals wanting to understand on-device AI trends.",
+ "skip": "The first 3 minutes on the definition of self-development can be skipped; go straight to the technical analysis.",
  "tags": [
   "Chips",
   "Xiaomi",
@@ -17,66 +17,66 @@
  ],
  "points": [
   {
-   "h": "Whether a company can make chips depends on system definition rights, not IP self-sufficiency rate",
-   "body": "Judging whether a company can make chips isn't about how many IPs it hand-built, but how much system definition rights it holds. Although Xiaomi's Xuanjie O1 uses ARM IP for CPU and GPU, system integration and physical implementation are its own. Apple and Qualcomm are strong because they can iterate every year and keep taping out — exactly what latecomers lack most. Xiaomi doesn't have ten years to learn slowly, so it chose an aggressive route, pushing multiple high-risk technology lines at once."
+   "h": "Whether a company can make chips depends on system definition power, not IP self-development rate",
+   "body": "Judging whether a company can make chips cannot just look at how many IPs it hand-crafted, but at how much system definition power it holds. Although Xiaomi's Xuanjie O1 uses ARM IP for CPU and GPU, system integration and physical implementation are all done in-house. Apple and Qualcomm are strong because they can iterate annually and tape out continuously, which is what latecomers lack most. Xiaomi doesn't have ten years to learn slowly, so it chose an aggressive route, advancing multiple high-risk technology lines simultaneously."
   },
   {
-   "h": "The culprit behind O1's poor efficiency is the lack of a shared water tank",
-   "body": "Xuanjie O1 has no system-level cache (SLC), so GPU power draw can't be contained under high load and efficiency suffers. SLC is like a shared water tank for a residential complex: the closer data is to the compute unit, the faster the access and the lower the power. O1's GPU has many cores but limited DDR bandwidth, so many cores sit waiting for data and utilization stays low — this is the bandwidth wall. O3 adds 16MB of SLC, split into multiple cache blocks distributed across the chip, plus an on-chip network scheduling system to resolve data consistency and access conflicts."
+   "h": "The culprit for O1's poor energy efficiency is the lack of a shared water tank",
+   "body": "Xuanjie O1 lacks a system-level cache (SLC), causing GPU power consumption to be uncontrollable under high load and energy efficiency to be unsatisfactory. SLC is like a shared large water tank in a community; the closer data is to the compute unit, the faster the access and the lower the power consumption. O1's GPU has many cores but limited DDR bandwidth, so many cores are waiting for data, and utilization cannot go up—this is the bandwidth wall. O3 adds 16MB SLC, split into multiple cache blocks distributed across the chip, and designs an on-chip network scheduling system to solve data consistency and access conflicts."
   },
   {
-   "h": "ARM's public bus is too generic, so Xuanjie had to build its own",
-   "body": "ARM's public CHI+CMN solution is too generic, requiring compatibility and redundancy designs that are hard to customize for Xuanjie. O3 simply developed its own X-Ring unified fusion bus, compatible with CHI but defining its own interconnect protocol, along with a self-developed high-speed road network scheduling center and memory controller. This means fewer protocol conversions, and data can decide cache location and path based on need. Xiaomi's data claims protocol conversion overhead is reduced by 75%, static access latency of 82 nanoseconds, 32% lower than O1, even lower than Apple's A19 Pro."
+   "h": "ARM's public bus is too generic; Xuanjie had to build its own",
+   "body": "ARM's public CHI+CMN solution is too generic, requiring compatibility and redundancy designs, making it hard to customize for Xuanjie. O3 simply developed its own X-Ring unified fusion bus, compatible with CHI but defining its own interconnect protocol, and self-developed high-speed road network scheduling center and memory controller. This reduces protocol conversions, and data can decide cache location and path based on demand. Xiaomi data claims protocol conversion overhead reduced by 75%, static access latency 82 nanoseconds, 32% lower than O1, even lower than Apple A19 Pro."
   },
   {
    "h": "The compute bottleneck is shifting from matrix multiplication to vector operations",
-   "body": "O3 adds an AI unit to every subsystem — CPU, GPU, ISP and more — so computation happens where the data lives, reducing data movement. The NPU core count drops from 6 to 4, but Tensor compute rises to 200Tops, because Xiaomi judges that the large-model bottleneck is expanding from matrix multiplication to vector operations like Softmax, quantization and KVCache. The vector unit's area is about the same as Tensor's, its multiply-accumulate units are 6.8x those of O1, and it introduces an SMT-like architecture, similar to CUDA, to handle irregular parallel tasks."
+   "body": "O3 adds AI units to each subsystem like CPU, GPU, ISP, letting computation happen where the data is, reducing data movement. NPU core count reduced from 6 to 4, but Tensor compute power increased to 200Tops, because Xiaomi judges that the large model bottleneck is expanding from matrix multiplication to vector operations, such as Softmax, quantization, KVCache, etc. The vector unit area is about the same as Tensor, with 6.8 times the number of multiply-accumulate units as O1, and introduces an SMT-like architecture, similar to CUDA, handling irregular parallel tasks."
   },
   {
    "h": "Chips and models should be defined together by the same company",
-   "body": "Xiaomi worked with MEMO to compress INT4 weights to 5 bits using a 5-value quantization method, with almost no precision loss and a 30% reduction in memory bandwidth and capacity requirements. The 3-billion-parameter MEMO model deployed on O3 improves prefill performance by 40% and decode by 45%. This ability to co-define chips and models is the closed-loop advantage of vertical integration — no need to wait for someone else to define a model and then adapt a generic chip to it."
+   "body": "Xiaomi collaborates with MEMO, using a 5-value quantization method to compress INT4 weights to 5 bits, with almost no precision loss, reducing memory bandwidth and capacity requirements by 30%. The 3-billion-parameter MEMO model deployed on O3 improves prefill performance by 40% and decode by 45%. This ability to jointly define chips and models is a closed-loop advantage of vertical integration, without waiting for others to define models before adapting."
   },
   {
    "h": "3nm performance is squeezed out bit by bit from standard cells",
-   "body": "O3 uses the more mature N3P process, gaining 5% performance at equal power and 5%-10% lower power at equal frequency. Xiaomi also did extensive process optimization: self-developed standard cells increased from 480 on O1 to over 2,400, covering every unit of the chip; compressing the power supply buffer channel so power and signals run through the middle of the module, raising transistor density by 5%. The CPU moved from 4 clusters to 3 clusters of 10 all-big cores, with single-core performance up 31% and multi-core up 60%, surpassing the A19 Pro."
+   "body": "O3 uses the more mature N3P process, improving performance by 5% at the same power, and reducing power by 5%-10% at the same frequency. Xiaomi also did a lot of process optimization: self-developed standard cells increased from 480 in O1 to over 2400, covering all chip units; compressing the power supply buffer channel, allowing power and signals to go through the middle of the module, increasing transistor density by 5%. CPU changed from 4 clusters to 3 clusters of 10 all-big cores, single-core performance improved by 31%, multi-core by 60%, surpassing A19 Pro."
   },
   {
    "h": "Near-memory computing pushes phone memory bandwidth to 1.22TB/s",
-   "body": "Xuanjie O100 uses wafer-level 3D stacking: one compute wafer plus two memory wafers stacked vertically, interconnected via Hybrid Bonding to form a near-memory computing architecture. It uses thousands of shorter, denser vertical connections to achieve high bandwidth, with lower energy per bit shifted — like HBM for phones. The data: 28,762 data connections, 1.22TB/s bandwidth, far exceeding the tens-of-bits-wide connections of traditional SoC and LPDDR. The compute layer has 14 independent cores, each paired with a RISC-V processor for control."
+   "body": "Xuanjie O100 uses wafer-level 3D stacking, with one compute wafer and two memory wafers vertically stacked, interconnected via Hybrid Bonding, forming a near-memory computing architecture. It uses thousands of shorter and denser vertical connections to achieve high bandwidth, with lower energy per bit shift, similar to mobile HBM. Data: 28762 data connections, bandwidth 1.22TB/s, far exceeding traditional SoC and LPDDR connections with dozens of bits width. The compute layer has 14 independent cores, each with a RISC-V processor for control."
   },
   {
-   "h": "ChangXin's value isn't in the speed grade, it's in joint definition",
-   "body": "Xiaomi partnered with ChangXin for the first launch of LPDDR6, reducing dependence on Samsung and SK Hynix. Even if ChangXin provides a starting grade of 10.667Gbps, Xiaomi can compensate for the peak rate gap through wider channels, larger SLC and a self-developed memory controller. More importantly, the two sides jointly verify and tune from the design stage, co-defining China's mobile memory subsystem solution. For ChangXin, it proves its high-speed IO and physical layer capabilities and earns a seat at the table for the new generation of mobile memory."
+   "h": "ChangXin's value is not in speed grades, but in joint definition",
+   "body": "Xiaomi partners with ChangXin to debut LPDDR6, reducing dependence on Samsung and SK Hynix. Even if ChangXin provides a starting grade of 10.667Gbps, Xiaomi can compensate for peak speed gaps through wider channels, larger SLC, and self-developed memory controllers. More importantly, the two sides jointly verify and tune from the design stage, jointly defining China's mobile memory subsystem solution. For ChangXin, it proves its high-speed IO and physical layer capabilities, sitting at the table for the new generation of mobile memory."
   },
   {
-   "h": "What Xiaomi is betting on isn't chips, it's the time window",
-   "body": "First, it bets on a paradigm shift in on-device computing: AI's weight in the SoC keeps rising, the phone becomes the AI interaction entry point, and Xiaomi wants to be the definer. Second, it bets that vertical integration becomes the core competitiveness of terminal companies: generic chips can hardly meet the fragmented needs of the full human-car-home scenario, so you must control your own compute architecture. Third, it bets on an uncertain time window, trading resources for time, compressing the technology catch-up cycle — willing to bear engineering risk rather than wait for the window to close."
+   "h": "Xiaomi is not betting on chips, but on a time window",
+   "body": "First, betting on a paradigm shift in on-device computing, with AI weighing more and more in SoCs, phones becoming AI interaction entry points, and Xiaomi wanting to be in the definer's position. Second, betting that vertical integration becomes the core competitiveness of terminal companies, as general-purpose chips cannot meet the fragmented needs of all scenarios of people, cars, and homes, and must master their own computing architecture. Third, betting on an uncertain time window, trading resources for time, compressing the technology catch-up cycle, preferring to bear engineering risks rather than wait for the window to close."
   },
   {
-   "h": "Xuanjie is catching up faster, but it hasn't cleared any of the three thresholds",
-   "body": "A top-tier SoC company needs three capabilities: self-developed CPU/GPU microarchitecture, self-developed 5G baseband, and continuous multi-generation stable tape-outs with tens-of-millions shipments. Xuanjie currently satisfies none of them, and a clear gap remains to the first tier — it's just catching up faster. What truly changes the industry landscape isn't one stunning chip, but a group of companies building sustained iteration capability. Xuanjie's greater significance is proving Xiaomi's chip effort hasn't stopped, and that it's starting to move forward together with Chinese chip industry partners."
+   "h": "Xuanjie catches up faster, but none of the three thresholds are passed",
+   "body": "Top SoC companies need three capabilities: self-developed CPU/GPU microarchitecture, self-developed 5G baseband, and continuous stable tape-outs across multiple generations with tens of millions of shipments. Xuanjie currently satisfies none, still with a clear gap to the first tier, just catching up faster. What truly changes the industry landscape is not a single stunning chip, but a group of companies building continuous iteration capabilities. Xuanjie's greater significance is proving Xiaomi's chip efforts haven't stopped, and starting to move forward with Chinese chip industry partners."
   }
  ],
  "terms": [
   {
    "term": "SLC / System-Level Cache",
-   "def": "A cache shared by multiple compute units within a chip, like a shared water tank for a residential complex."
+   "def": "A cache shared by multiple compute units within a chip, like a shared large water tank in a community."
   },
   {
    "term": "Hybrid Bonding",
-   "def": "A wafer-level 3D stacking interconnect technology that connects directly through copper pillars, offering high bandwidth and low power."
+   "def": "A wafer-level 3D stacking interconnect technology that connects directly through copper pillars, offering high bandwidth and low power consumption."
   },
   {
    "term": "Near-Memory Computing",
-   "def": "Placing memory close to compute units to reduce data movement distance and improve bandwidth and energy efficiency."
+   "def": "Placing storage and compute units close together to reduce data movement distance, improving bandwidth and energy efficiency."
   },
   {
    "term": "Bandwidth Wall",
-   "def": "When data movement capability becomes the performance bottleneck, so no matter how many compute cores there are, they can't be fully utilized."
+   "def": "Data movement capability becomes the performance bottleneck, and no matter how many compute cores there are, they cannot be fully utilized."
   },
   {
    "term": "SMT / Simultaneous Multithreading",
-   "def": "A parallel processing architecture that can manage multiple groups of tasks at once, improving compute unit utilization."
+   "def": "A parallel processing architecture that can manage multiple sets of tasks simultaneously, improving compute unit utilization."
   }
  ],
  "facts": [
@@ -93,12 +93,12 @@
    "v": "177 nanoseconds"
   },
   {
-   "k": "Xuanjie O3 Tensor compute",
+   "k": "Xuanjie O3 Tensor compute power",
    "v": "200Tops"
   },
   {
-   "k": "Xuanjie O3 vector compute improvement",
-   "v": "6.8x (3.13 TFLOP)"
+   "k": "Xuanjie O3 vector compute power improvement",
+   "v": "6.8 times (3.13 TFLOP)"
   },
   {
    "k": "Xuanjie O3 single-core performance improvement",
@@ -109,29 +109,29 @@
    "v": "60%"
   },
   {
-   "k": "Xuanjie O100 data connection count",
-   "v": "28,762"
+   "k": "Xuanjie O100 data connections",
+   "v": "28762"
   }
  ],
  "quotes": [
   {
-   "text": "To judge whether a company can really make chips, don't just stare at how many IPs it hand-built — look more at how much system definition rights it holds.",
+   "text": "Judging whether a company can really make chips, don't just stare at how many IPs it hand-crafted, but look more at how much system definition power it holds.",
    "translated": true
   },
   {
-   "text": "Xiaomi isn't slowly learning to make chips; it's trading resources for time, building out the complete capability station a mature chip company needs as fast as possible within a limited time window.",
+   "text": "Xiaomi is not slowly learning to make chips, but trading resources for time, in a limited time window, building up the complete capability station a mature chip company needs as quickly as possible.",
    "translated": true
   },
   {
-   "text": "As long as data is stored reasonably and granted efficiently, the entire chip benefits from it.",
+   "text": "As long as data is stored reasonably and issued efficiently, the entire chip can benefit from it.",
    "translated": true
   },
   {
-   "text": "Once it's done, there's no need to wait for someone else's defined model, then adapt a generic chip to it, and then figure out how to cram it into a phone.",
+   "text": "Once done, there's no need to wait for others to define a model, then use general-purpose chips to adapt, and then consider how to stuff it into a phone.",
    "translated": true
   },
   {
-   "text": "I'd rather bear more engineering and R&D uncertainty than wait until the window truly closes and regret not having moved a few steps faster.",
+   "text": "I'd rather bear more engineering and R&D uncertainty than wait until the window really closes and then regret not having walked a few steps faster.",
    "translated": true
   }
  ],

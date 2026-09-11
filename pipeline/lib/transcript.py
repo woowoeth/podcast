@@ -801,8 +801,13 @@ def _local_chunked(ep: dict, src: pathlib.Path, mb: float, td: str,
             got = _local_asr(path, lang)
         if got is None:
             # 前面的片留在盘上，下一轮接着来；这一轮这集算没成。
+            # **算软失败**：一片解码不了是基础设施的事（实测撞到过
+            # `Failed to load audio: ffmpeg ...`），不是「这一集没有文稿」。
+            # 记成硬失败的话三次就把这集永久拉黑了 —— 而缓存里已经躺着
+            # 16/41 片，下一轮接着转本来就能成。失败要分类。
+            _transient["hit"] = True
             log(f"    第 {i + 1}/{len(chunks)} 片转写失败，"
-                f"已转好的 {i} 片留在缓存里，下一轮接着转")
+                f"已转好的 {i} 片留在缓存里，下一轮接着转（算软失败，不占重试预算）")
             return None
         cp.parent.mkdir(parents=True, exist_ok=True)
         cp.write_text(json.dumps(got, ensure_ascii=False))
