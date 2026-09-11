@@ -369,6 +369,32 @@ def check_parked_translations(r: Report) -> None:
         r.good("没有译不合格被搁置的篇目")
 
 
+def check_indexnow(r: Report) -> None:
+    """搜索引擎有没有真的收到更新通知。
+
+    这一条是补「静默失败」的：indexnow.py 里写着 `return 0  # never fail`，
+    发布线里又是 `|| echo` —— 两层加起来，连着几天每轮都 403
+    （`UserForbiddedToAccessSite`）而没有任何人知道。
+    不让它拦住发布是对的，但必须有人读得到。
+    """
+    f = DATA / "indexnow.json"
+    if not f.exists():
+        r.note("还没有 indexnow 的记录（跑一次 pipeline/indexnow.py）")
+        return
+    try:
+        d = json.loads(f.read_text())
+    except Exception as ex:
+        r.fail(f"data/indexnow.json 读不出来（{type(ex).__name__}）")
+        return
+    streak = int(d.get("fail_streak") or 0)
+    if d.get("ok"):
+        r.good(f"搜索引擎通知正常（{d.get('at')}）")
+    elif streak >= 3:
+        r.fail(f"搜索引擎通知连着失败 {streak} 轮：{str(d.get('detail'))[:120]}")
+    else:
+        r.note(f"搜索引擎通知失败（第 {streak} 轮）：{str(d.get('detail'))[:120]}")
+
+
 def check_core_sources(r: Report) -> None:
     """核心源（tier 1）有没有被结构性地挡住。只查文件，不连线上。
 
@@ -1032,6 +1058,7 @@ def main(argv: list[str] | None = None) -> int:
     check_english_edition(r)
     check_translation_side_tables(r)
     check_core_sources(r)
+    check_indexnow(r)
     check_parked_translations(r)
     check_discovery(r)
     check_source_coverage(r)

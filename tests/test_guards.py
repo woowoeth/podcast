@@ -6491,3 +6491,50 @@ class EpisodeCategoryComesFromTheEpisodeNotTheSource(unittest.TestCase):
                 if missing:
                     stale.append(f"{rel}: CATS 少了 {sorted(missing)}")
         self.assertFalse(stale, "分类删了但这些地方还留着：" + "；".join(stale))
+
+
+class IndexNowFailuresMustNotBeSilent(unittest.TestCase):
+    """搜索引擎通知失败要留痕、要有人读得到。
+
+    实测：indexnow.py 里 `return 0  # never fail the digest over a ping`，
+    发布线里又是 `python3 pipeline/indexnow.py || echo "..."` ——
+    两层加起来，它连着几天每轮都 403 而没有任何人知道。
+    而 403 的**正文**一句话就写着原因
+    （`UserForbiddedToAccessSite: Please verify the site using the key`），
+    原来的代码只打印异常类型，把那一行丢了。
+
+    不让它拦住发布是对的 —— 但「不拦住」不等于「不留痕」。
+    """
+
+    def test_the_error_body_is_logged_not_just_the_exception_type(self):
+        src = (ROOT / "pipeline" / "indexnow.py").read_text()
+        self.assertIn("HTTPError", src, "没有单独处理 HTTP 错误")
+        i = src.index("except urllib.error.HTTPError")
+        blk = src[i:i + 400]
+        self.assertIn(".read()", blk,
+                      "没读错误正文 —— 真正的原因就在那一行里")
+
+    def test_the_result_is_written_where_the_healthcheck_can_read_it(self):
+        src = (ROOT / "pipeline" / "indexnow.py").read_text()
+        self.assertIn("indexnow.json", src, "结果不落盘，没人读得到")
+        self.assertIn("fail_streak", src, "不记连续失败次数，偶发和长期坏分不开")
+        # **判据要落在调用上，不是定义上。** 第一版只查文件里有没有
+        # "indexnow.json" 这串 —— 而它在 _note 的定义里，
+        # 把所有调用删光照样通过。
+        i = src.index("def ping(")
+        body = src[i:]
+        calls = body.count("_note(")
+        self.assertGreaterEqual(
+            calls, 3, f"ping 里只调了 {calls} 次 _note —— 成功、失败、"
+                      f"重试后失败三条路径都要留痕")
+        hc = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        self.assertIn("check_indexnow(r)", hc, "体检没挂上这一条")
+        self.assertIn("indexnow.json", hc, "体检不读那份记录")
+
+    def test_one_bad_ping_is_a_note_and_a_streak_is_a_failure(self):
+        """偶发一次网络不好不该拦住推送；连着坏才是硬伤。"""
+        hc = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        i = hc.index("def check_indexnow(")
+        body = hc[i:hc.index("\ndef ", i + 1)]
+        self.assertRegex(body, r"streak\s*>=\s*[2-9]", "没有连续次数的阈值")
+        self.assertIn("r.note(", body, "偶发一次也报硬伤 —— 会喊狼来了")
