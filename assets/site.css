@@ -534,6 +534,17 @@ h1.sec-title, h2.sec-title, .sec-title{font-family:var(--serif);
 }
 .player .strip audio{width:100%; height:36px}   /* 脚本没跑时的原生兜底 */
 
+/* 视频放不出来、掉到音频时：音频条**盖在封面下沿**，不撑在封面下面。
+   撑在下面的话面板会长高 93px，后面的正文整体下移 —— 那还是「点播放
+   页面跳一下」，只是方向反了。盖上去则面板高度一点不变。
+   （更早的一版是把封面整个藏掉，面板从 438px 塌成 95px，往上跳 342px。） */
+.player{position:relative}
+.player .video-facade.withaudio + .strip{
+  position:absolute; left:0; right:0; bottom:0; border-top:0;
+  background:color-mix(in srgb, var(--surface-2) 88%, transparent);
+  backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+}
+
 /* 自己画的音频控件：圆形播放键 + 进度轨 + mono 时码。
    原生 controls 在每个平台长得都不一样，放在这张卡里像贴上去的。 */
 .aui{display:flex; align-items:center; gap:13px}

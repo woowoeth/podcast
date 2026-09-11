@@ -9,6 +9,7 @@ with a key also run on a laptop against an already-authenticated Claude Code.
 """
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
@@ -31,6 +32,9 @@ MODEL_REVIEW = (os.environ.get("LLM_MODEL_REVIEW") or "").strip()
 # 让推理模型干这个，一集能烧掉十几次 32000 token 的思考预算，而产出和便宜模型
 # 没有区别。默认回落到选题用的那个便宜模型。
 MODEL_MAP = (os.environ.get("LLM_MODEL_MAP") or "").strip()
+# 深读这一步单独可配。它占全部 token 的 63%，其中 83% 的输出是推理 token ——
+# 没有单独的开关就没法在不动其他角色的前提下做 A/B。
+MODEL_DIGEST = (os.environ.get("LLM_MODEL_DIGEST") or "").strip()
 FORCE = (os.environ.get("LLM_PROVIDER") or "").strip().lower()
 # Anthropic accepts two credential shapes on different headers. An API key goes
 # on x-api-key; an OAuth token (from `ant auth login` / Claude Code) goes on
@@ -171,7 +175,14 @@ def model_name(role: str = "digest") -> str:
     map 没有单独配置时先借用 triage 的便宜模型，而不是直接掉到 LLM_MODEL——
     LLM_MODEL 通常是推理模型，那正是我们想在这一步避开的。
     """
+    # digest 和 map 一样：没单独配置时先借用 triage 的便宜模型。
+    # 实测 13 集（同一批文稿、同一套机械闸门和成稿评分）：
+    #   便宜模型 11 集与推理模型持平或更好，2 集更差（1 集 6 分会被拦下）
+    #   每集 14,241 token vs 27,467 —— 省 48%，而深读占全站 63% 的开销
+    # 写坏的那几集由成稿评分兜住，再用贵模型重做一次（见 strong_digest）。
+    # 只配了 LLM_MODEL 的人不受影响：那时 MODEL_TRIAGE 为空，照样走 MODEL。
     override = {"triage": MODEL_TRIAGE, "review": MODEL_REVIEW,
+                "digest": MODEL_DIGEST or MODEL_TRIAGE,
                 "map": MODEL_MAP or MODEL_TRIAGE}.get(role, "")
     if override:
         return override
@@ -179,6 +190,31 @@ def model_name(role: str = "digest") -> str:
         return MODEL
     return {"anthropic": DEFAULT_ANTHROPIC, "openai": DEFAULT_OPENAI,
             "claude-cli": DEFAULT_CLI}.get(provider(), "none")
+
+
+def strong_digest_model() -> str:
+    """深读的「贵模型」：LLM_MODEL（通常是推理模型）。"""
+    return MODEL or model_name("digest")
+
+
+def can_upgrade_digest() -> bool:
+    """现在用的是便宜模型、且有个不同的贵模型可换吗。"""
+    cur = model_name("digest")
+    strong = strong_digest_model()
+    return bool(strong) and strong != cur and strong != "none"
+
+
+@contextlib.contextmanager
+def strong_digest():
+    """临时把深读换成贵模型。用完一定换回去 —— 忘了换回去的话，
+    「省钱」会变成「每集都用贵的还多跑一遍」，比不改还糟。"""
+    global MODEL_DIGEST
+    was = MODEL_DIGEST
+    MODEL_DIGEST = strong_digest_model()
+    try:
+        yield
+    finally:
+        MODEL_DIGEST = was
 
 
 def roles() -> dict:

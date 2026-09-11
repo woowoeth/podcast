@@ -489,13 +489,18 @@
     if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap);
     ytPlayer = null;
     ytReady = false;
-    if (revealAudio()) return;
+    var hadAudio = revealAudio();
     if (!facadeNode) return;
+    // **封面一律放回来，有没有音频都一样。**
+    // 原来有音频时就直接 return，把封面留在 hidden —— 面板从 438px 塌成
+    // 95px 的音频条，整页往上跳 342px。那正是这条路当初要修的那个抱怨
+    // （「点播放按钮整个界面会跳一下」），只是换了条触发路径。
     facadeNode.hidden = false;
     facadeNode.classList.add('offsite');
     // 说清是谁的问题：101/150 就是作者关掉了站外嵌入，不是我们的页面坏了
     if (code === 101 || code === 150) facadeNode.classList.add('noembed');
     facadeNode.setAttribute('aria-label', T('openOnYT'));
+    if (hadAudio) facadeNode.classList.add('withaudio');
     facadeNode.onclick = function (ev) {
       ev.preventDefault();
       window.open('https://www.youtube.com/watch?v=' + facadeNode.getAttribute('data-yt'),

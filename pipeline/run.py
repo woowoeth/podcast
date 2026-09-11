@@ -249,8 +249,17 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
             if not ep["published"] or ep["published"] < cutoff:
                 continue
             key = eid(s["id"], ep["guid"])
-            if key in state["done"]:
-                continue
+            prior = state["done"].get(key)
+            if prior is not None:
+                # **用已经不存在的那把尺子判出来的「不做」不算数。**
+                # 判决和判它的尺子要绑在一起，否则改尺子只对以后的集生效，
+                # 而账本里那几百条旧判决永远没人再看一眼。
+                stale = (isinstance(prior, dict)
+                         and prior.get("skip") == "off-brief"
+                         and prior.get("rubric") != triage.rubric_id())
+                if not stale:
+                    continue
+                state["done"].pop(key, None)
             f = state["fail"].get(key)
             if f and (f.get("n", 0) >= MAX_FAILS or f.get("soft", 0) >= MAX_SOFT_FAILS):
                 continue
@@ -322,16 +331,26 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
                 # 原来这里无条件写 state["done"]，于是**限流那一刻的坏运气
                 # 会永久判死一集好内容**，而且没有任何东西会再看它一眼。
                 if (s.get("kind") or "") == "youtube" and v.get("basis") != "captions":
-                    log("      （这一分是按视频简介判的，字幕没取到 → "
-                        "不记结论，下一轮重来）")
-                    _release(state, fp, key)
-                    return "triage-unreliable"
+                    return _soft_skip(state, fp, key, "triage-unreliable",
+                                      "这一分是按视频简介判的，字幕没取到，下一轮重来")
+                # **这一轮的线比站点的线严时，判掉不算数。**
+                # backfill 那条线默认 --triage-min 8，而站点的线是 7 ——
+                # 于是它把打 7 分的集写成永久「不做」，日更线再也不会看它一眼。
+                # 实测账本里这样躺着 12 集。判掉要不要落账，
+                # 依据只能是**站点的线**，不是某一轮临时收紧的线。
+                if v["score"] >= triage.MIN_SCORE:
+                    return _soft_skip(
+                        state, fp, key, "below-this-run-bar",
+                        f"这一轮的线是 {_triage['min']:.0f}，站点的线是 "
+                        f"{triage.MIN_SCORE:.0f}，日更线还会再看")
                 state["done"][key] = {"skip": "off-brief", "score": v["score"],
                                       "why": v["why"], "kind": v["kind"],
                                       # basis 必须落账：不记的话下次没法分辨
                                       # 这条"不做"是按字幕判的还是按广告文案判的，
                                       # 而那正是要不要重来的唯一依据。
                                       "basis": v.get("basis"),
+                                      # 尺子的指纹：尺子一改，这条判决自动不算数
+                                      "rubric": v.get("rubric"),
                                       "title": ep["title"][:120], "src": s["id"],
                                       "at": iso(now())}
                 _release(state, fp, key)
@@ -407,7 +426,32 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
             log(f"    成稿评分 {rv['score']:.0f}/10 [{dims}] {rv['why']}")
             if rv["worst"]:
                 log(f"      最该改：{rv['worst']}")
-            if rv["score"] < _review["min"]:
+            if rv["score"] < _review["min"] and llm.can_upgrade_digest():
+                # **便宜模型没写好，就用贵的重做一次。**
+                # 实测 13 集：非推理模型 11 集与推理模型持平或更好，
+                # 2 集更差（其中 1 集 6 分，判词「严重歪曲」）。
+                # 便宜模型每集 14,241 token，推理 27,467 —— 省 48%，
+                # 而深读占全站 63% 的开销。
+                # 少数写坏的那几集由成稿评分兜住，**重做一次**比全程用贵的划算，
+                # 也比直接丢掉划算（丢掉的代价是这一集永远不见天日）。
+                log(f"    成稿 {rv['score']:.0f} 分 < {_review['min']} —— "
+                    f"换 {llm.strong_digest_model()} 重做一次")
+                with llm.strong_digest():
+                    try:
+                        d2 = D.build(ep, s, tr, ch)
+                    except Exception as ex:
+                        log(f"    重做失败：{type(ex).__name__}")
+                        d2 = None
+                if d2 is not None:
+                    ok2, problems2, d2 = gate.check(d2, tr, ep)
+                    gate.report(problems2, ok2)
+                    if ok2:
+                        rv2 = review.check(d2, tr, ep, s)
+                        if rv2 is not None:
+                            log(f"    重做后成稿 {rv2['score']:.0f}/10 {rv2['why']}")
+                            if rv2["score"] >= _review["min"]:
+                                d, rv = d2, rv2
+            if rv is not None and rv["score"] < _review["min"]:
                 prev = state["fail"].get(key, {})
                 state["fail"][key] = {
                     "n": prev.get("n", 0) + 1, "soft": prev.get("soft", 0),
@@ -485,6 +529,23 @@ def _write_catchup_note(published: int) -> None:
         "prev_pending": old.get("pending"),
         "prev_at": old.get("at"),
     }, ensure_ascii=False, indent=1) + "\n")
+
+
+def _soft_skip(state: dict, fp, key: str, why: str, note: str) -> str:
+    """这一轮不下结论，但**要记次数**。
+
+    「不记结论、下一轮重来」听起来无害，其实是个无上限的开销：这一集会被
+    每一轮重新 triage 一次，而 triage 在低产日能吃掉全天 77% 的输入 token。
+    复用已有的软失败预算（MAX_SOFT_FAILS），撞满就当普通失败处理 ——
+    否则一集取不到字幕的视频会永远按每轮一次的节奏烧钱。
+    """
+    prev = state["fail"].get(key, {})
+    rec = {"n": prev.get("n", 0), "soft": prev.get("soft", 0) + 1, "why": why}
+    rec.update(at=iso(now()), title=(prev.get("title") or "")[:120])
+    state["fail"][key] = rec
+    log(f"      （{note} · soft {rec['soft']}/{MAX_SOFT_FAILS}）")
+    _release(state, fp, key)
+    return why
 
 
 def _same_id_on_disk(key: str, slug: str) -> str | None:

@@ -198,10 +198,19 @@ def quote_brief(ep: dict) -> str:
 
 
 def load_done() -> set[str]:
+    """已经译过的 slug。**以磁盘为准，账本只是索引。**
+
+    只信账本的后果实测过：5 集记在「已译」里却没有对应的
+    data/en/*.json —— 英文站永远少这几篇，而且永远不会重试，
+    因为账本说它们译过了。账本和磁盘一旦分叉（文件被清掉、
+    合并时丢了、写到一半挂了），只有磁盘是真的。
+    """
     try:
-        return set(json.loads(DONE.read_text()).get("slugs") or [])
+        slugs = set(json.loads(DONE.read_text()).get("slugs") or [])
     except Exception:
-        return set()
+        slugs = set()
+    have = {f.stem for f in OUT.glob("*.json") if not f.name.startswith("_")}
+    return slugs & have
 
 
 def save_done(s: set[str]) -> None:

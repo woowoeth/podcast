@@ -610,7 +610,14 @@ class ReasoningBudgetIsSpentOnlyWhereItMatters(unittest.TestCase):
             importlib.reload(llm)
             self.assertEqual(llm.model_name("map"), "deepseek-chat",
                              "map 没单独配置时该借用便宜模型，而不是掉到推理模型")
-            self.assertEqual(llm.model_name("digest"), "deepseek-reasoner")
+            # 本意是「map 不许烧推理预算」。原来这里顺手写了
+            # assertEqual(digest, 'deepseek-reasoner') —— 那是当时的巧合，
+            # 不是这条守护要护的东西：深读现在也默认走便宜模型，
+            # 写坏了再用贵的重做一次。
+            self.assertNotEqual(llm.model_name("map"), "deepseek-reasoner",
+                                "map 在烧推理预算")
+            self.assertEqual(llm.strong_digest_model(), "deepseek-reasoner",
+                             "贵模型丢了 —— 深读写坏了就没得重做")
             # 显式配置优先
             os.environ["LLM_MODEL_MAP"] = "some-other"
             importlib.reload(llm)
@@ -6000,3 +6007,206 @@ class TriageVerdictsMustRecordWhatTheyJudged(unittest.TestCase):
             bad, f"{len(bad)} 条 YouTube 集按视频简介被永久判死 —— "
                  f"闸门读的是赞助和订阅链接，例如 {done[bad[0]].get('title', '')[:40]}"
                  if bad else "")
+
+
+class SyncFailureMustBeRepairedNotJustRefused(unittest.TestCase):
+    """本机线同步失败要**先修再停**，不能只写「停」。
+
+    只写「停」的代价实测过：一个未跟踪的 data/en/*.json 和远端新增的同名
+    文件撞上（`--autostash` 不管未跟踪文件，merge 直接中止），
+    于是每天两次、连着 **4 天**撞同一块石头，本机线一篇没发 ——
+    而本机线是 ASR 和 YouTube 的唯一通路。发布量从 30 篇/天掉到 1-5 篇/天。
+
+    失败要分类：这一类是**可修补**，不是**直接停**。
+    """
+
+    def _sh(self) -> str:
+        return (ROOT / "scripts" / "local-daily.sh").read_text()
+
+    def test_it_tries_to_clear_the_blockage_first(self):
+        sh = self._sh()
+        i = sh.index("git pull --rebase --autostash")
+        j = sh.index("python3 pipeline/run.py", i)
+        blk = "\n".join(l for l in sh[i:j].split("\n")
+                        if not l.lstrip().startswith("#"))
+        # 判据落在「有没有去列未跟踪文件」上。第一版找的是字面的 "?? "，
+        # 而脚本里那是 awk 正则里的 \?\? —— 尺子读的和代码写的不是一回事。
+        self.assertIn("-uall", blk,
+                      "没有去列未跟踪文件 —— 挡路的那个永远挡着")
+        self.assertRegex(blk, r"git\s+pull[^\n]*\n?[^\n]*then",
+                         "挪开之后没有重试同步")
+
+    def test_it_never_touches_files_the_remote_does_not_have(self):
+        """本机独有的稿子一个字都不能碰 —— 那是还没推上去的成果。"""
+        sh = self._sh()
+        i = sh.index("git pull --rebase --autostash")
+        j = sh.index("python3 pipeline/run.py", i)
+        blk = sh[i:j]
+        self.assertIn("cat-file -e", blk,
+                      "挪文件之前不查远端有没有 —— 会挪走本机独有的稿子")
+        self.assertNotIn("rm -rf", blk, "用删的，不是挪的")
+        self.assertIn("mv ", blk, "没有保留被挪走的文件")
+
+    def test_it_still_refuses_when_the_repair_does_not_work(self):
+        sh = self._sh()
+        i = sh.index("git pull --rebase --autostash")
+        j = sh.index("python3 pipeline/run.py", i)
+        self.assertRegex(sh[i:j], r"\bexit\s+[1-9]",
+                         "修不好也不停手 —— 又会带着旧账本重复深读")
+
+
+class TranslationLedgerMustAgreeWithDisk(unittest.TestCase):
+    """「已经译过」以**磁盘**为准，账本只是索引。
+
+    只信账本的后果实测过：5 集记在 translate-done.json 的「已译」里，
+    却没有对应的 data/en/*.json —— 英文站永远少这几篇，而且**永远不会
+    重试**，因为账本说它们译过了。账本和磁盘一旦分叉（文件被清掉、
+    合并时丢了、写到一半挂了），只有磁盘是真的。
+    """
+
+    def test_load_done_intersects_with_what_is_on_disk(self):
+        src = (ROOT / "pipeline" / "translate.py").read_text()
+        i = src.index("def load_done(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        self.assertIn("OUT.glob", body,
+                      "load_done 不看磁盘 —— 账本说译过就再也不会重试")
+        self.assertRegex(body, r"slugs\s*&\s*have|have\s*&\s*slugs",
+                         "没有取交集：账本里有而磁盘上没有的会被当成已完成")
+
+    def test_no_live_episode_is_marked_done_without_its_file(self):
+        d, o = ROOT / "data" / "translate-done.json", ROOT / "data" / "en"
+        if not d.exists() or not o.is_dir():
+            self.skipTest("还没有译文")
+        done = set(json.loads(d.read_text()).get("slugs") or [])
+        have = {p.stem for p in o.glob("*.json") if not p.name.startswith("_")}
+        live = {json.loads(p.read_text()).get("slug")
+                for p in (ROOT / "data" / "episodes").glob("*.json")}
+        ghost = sorted((done - have) & live)
+        self.assertFalse(
+            ghost, f"{len(ghost)} 集记为已译却没有英文文件，英文站永远少这几篇："
+                   f"{ghost[:2]}")
+
+
+class DigestUsesTheCheapModelFirstAndUpgradesOnFailure(unittest.TestCase):
+    """深读默认用便宜模型，写坏了再用贵的重做一次。
+
+    实测 13 集（同一批缓存文稿、同一套机械闸门和成稿评分做裁判）：
+    便宜模型 11 集与推理模型**持平或更好**，2 集更差 —— 其中 1 集 6 分，
+    判词「严重歪曲」（把原文「我毫不怀疑 Warsh 会站出来」写成了押注）。
+    每集 14,241 token vs 27,467，省 48%；而深读占全站 token 的 63%。
+
+    写坏的那几集由成稿评分兜住（它们本来也不会上线），重做一次比
+    **全程用贵的**划算，也比**直接丢掉**划算 —— 丢掉的代价是这一集
+    永远不见天日。
+    """
+
+    def _llm(self, **env):
+        import importlib, os
+        old = {k: os.environ.get(k) for k in list(os.environ) if k.startswith("LLM_MODEL")}
+        for k in old:
+            del os.environ[k]
+        os.environ.update(env)
+        for m in [m for m in sys.modules if m.endswith("lib.llm")]:
+            del sys.modules[m]
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        return importlib.import_module("lib.llm"), old
+
+    def _restore(self, old):
+        import os
+        for k in [k for k in os.environ if k.startswith("LLM_MODEL")]:
+            del os.environ[k]
+        os.environ.update({k: v for k, v in old.items() if v is not None})
+
+    def test_digest_borrows_the_cheap_model_when_one_is_configured(self):
+        llm, old = self._llm(LLM_MODEL="reasoner-x", LLM_MODEL_TRIAGE="chat-x")
+        try:
+            self.assertEqual(llm.model_name("digest"), "chat-x",
+                             "深读还在用贵模型 —— 省不下那 63%")
+            self.assertTrue(llm.can_upgrade_digest(), "没有可换的贵模型")
+            self.assertEqual(llm.strong_digest_model(), "reasoner-x")
+        finally:
+            self._restore(old)
+
+    def test_only_llm_model_configured_is_unchanged(self):
+        llm, old = self._llm(LLM_MODEL="reasoner-x")
+        try:
+            self.assertEqual(llm.model_name("digest"), "reasoner-x")
+            self.assertFalse(llm.can_upgrade_digest(),
+                             "没有别的模型可换，却说可以升级 —— 会白跑一遍")
+        finally:
+            self._restore(old)
+
+    def test_the_upgrade_is_temporary(self):
+        """忘了换回去的话，「省钱」会变成「每集都用贵的还多跑一遍」。"""
+        llm, old = self._llm(LLM_MODEL="reasoner-x", LLM_MODEL_TRIAGE="chat-x")
+        try:
+            with llm.strong_digest():
+                self.assertEqual(llm.model_name("digest"), "reasoner-x")
+            self.assertEqual(llm.model_name("digest"), "chat-x", "退出后没换回")
+            try:
+                with llm.strong_digest():
+                    raise RuntimeError("boom")
+            except RuntimeError:
+                pass
+            self.assertEqual(llm.model_name("digest"), "chat-x",
+                             "异常路径上没换回便宜模型")
+        finally:
+            self._restore(old)
+
+    def test_below_bar_retries_with_the_strong_model_before_giving_up(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index('rv["score"] < _review["min"]')
+        j = src.index('return "below-bar"', i)
+        body = src[i:j]
+        self.assertIn("strong_digest()", body,
+                      "成稿不过就直接放弃 —— 便宜模型写坏的那几集全丢了")
+        self.assertIn("gate.check(", body, "重做之后没再过机械闸门")
+        self.assertIn("review.check(", body, "重做之后没再评分就上站")
+        self.assertLess(body.index("strong_digest()"), body.index('state["fail"]'),
+                        "先记了失败再重做 —— 账本上留着一条假的失败")
+
+
+class VerdictsAreBoundToTheRubricThatMadeThem(unittest.TestCase):
+    """每条「不做」要连着**判它的那把尺子的指纹**一起存；指纹不一致就不算数。
+
+    同一形状的第**三**次事故：
+      ① 按视频简介判的低分落成永久结论（97 条）
+      ② 按更严的那一轮的线判的低分落成永久结论（21 条，backfill 线是 8，
+         站点是 7）
+      ③ 按**已经不存在的那把尺子**判的低分落成永久结论 —— 224 条「不做」
+         里 **182 条**是旧尺子判的，其中 66 条 6 分、69 条 4 分，判词还在用
+         新尺子明令禁止的体裁理由（「属调查报道，判断与框架不足」），
+         而同一集在新尺子下实测是 7.0。
+
+    前两次都是**手工清账本**，只解决那一次。这次做成机制。
+    """
+
+    def test_score_carries_the_rubric_fingerprint(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        tri = importlib.import_module("lib.triage")
+        self.assertTrue(callable(getattr(tri, "rubric_id", None)), "没有尺子指纹")
+        a = tri.rubric_id()
+        self.assertTrue(a and len(a) >= 6, f"指纹不像指纹：{a!r}")
+        was = tri.SYSTEM
+        try:
+            tri.SYSTEM = was + "\n多加一行。"
+            self.assertNotEqual(tri.rubric_id(), a,
+                                "改了尺子指纹却没变 —— 旧判决不会失效")
+        finally:
+            tri.SYSTEM = was
+        self.assertEqual(tri.rubric_id(), a, "指纹不稳定")
+
+    def test_the_verdict_is_persisted_with_its_fingerprint(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index('"skip": "off-brief"')
+        self.assertIn('"rubric"', src[i:i + 700], "判决落账时没带尺子指纹")
+
+    def test_a_stale_verdict_does_not_block_the_episode(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index('prior = state["done"].get(key)')
+        blk = src[i:i + 900]
+        self.assertIn("rubric_id()", blk,
+                      "排单时不比指纹 —— 改尺子只对以后的集生效")
+        self.assertRegex(blk, r'pop\(key',
+                         "指纹对不上却不把旧判决清掉 —— 它还会一直挡着")

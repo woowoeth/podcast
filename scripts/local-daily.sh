@@ -104,8 +104,27 @@ export LLM_MODEL
   #
   # 拉不下来的正确反应是**停手**，不是带着旧账本继续花钱。
   if ! git pull --rebase --autostash -q origin main; then
-    echo "同步失败：拉不下 origin/main，本轮不深读（账本是旧的，会重复发）" >&2
+    # **先修，修不好再停。** 只写「停」的代价实测过：一个未跟踪的
+    # data/en/*.json 和远端新增的同名文件撞上（autostash 不管未跟踪文件，
+    # merge 直接中止），于是每天两次、连着 4 天撞同一块石头，
+    # 本机线一篇没发 —— 而本机线是 ASR 和 YouTube 的唯一通路。
+    # 失败要分类：这一类是**可修补**，不是**直接停**。
     git rebase --abort 2>/dev/null || git merge --abort 2>/dev/null || true
+    # 挡路的未跟踪产物挪走（不是删）。只挪远端确实有的那些 ——
+    # 本机独有的稿子一个字都不能碰。
+    moved=0
+    keep="$REPO/.cache/collided/$(date +%Y%m%d-%H%M%S)"
+    while IFS= read -r f; do
+      [ -z "$f" ] && continue
+      git cat-file -e "origin/main:$f" 2>/dev/null || continue
+      mkdir -p "$keep/$(dirname "$f")" && mv "$f" "$keep/$f" && moved=$((moved+1))
+    done < <(git -c core.quotepath=false status --porcelain -uall |
+             awk '/^\?\? /{sub(/^\?\? /,""); print}')
+    [ "$moved" -gt 0 ] && echo "挪开 $moved 个挡路的未跟踪产物 → $keep，重试同步"
+    if [ "$moved" -gt 0 ] && git pull --rebase --autostash -q origin main; then
+      echo "同步成功（第二次）"
+    else
+    echo "同步失败：拉不下 origin/main，本轮不深读（账本是旧的，会重复发）" >&2
     behind=$(git rev-list --count HEAD..origin/main 2>/dev/null || echo "?")
     echo "  本机落后远端 $behind 个提交。先看 git status，" >&2
     echo "  确认本机未推送的稿子都安全之后再手工同步。" >&2
@@ -127,6 +146,7 @@ d["why"] = f"同步失败，落后 origin/main {sys.argv[1]} 个提交；本轮�
 p.write_text(json.dumps(d, ensure_ascii=False, indent=1) + "\n")
 PYEOF
     exit 1
+    fi
   fi
 
   ONLY_ARG=""

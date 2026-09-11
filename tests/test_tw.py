@@ -217,9 +217,18 @@ class TraditionalSite(unittest.TestCase):
             with open(p, encoding="utf-8") as fh:
                 t = body(fh.read())
             for w in TW.NEVER:
-                if w in t:
-                    i = t.index(w)
+                i = t.find(w)
+                while i >= 0:
+                    around = t[max(0, i - 6):i + 7]
+                    # 成语例外：「牽一髮動全身」的 髮 就是头发，是对的。
+                    # 没有例外表的话，这条规则只能整条删掉 ——
+                    # 而删掉就把「發動機→髮動機」那类真错也放过了。
+                    if any(ok in around for ok in getattr(TW, "NEVER_OK", ())):
+                        i = t.find(w, i + 1)
+                        continue
                     bad.append((k, w, t[max(0, i - 10):i + 11]))
+                    break
+                if bad and bad[-1][0] == k:
                     break
         self.assertEqual([], bad[:3], "繁体页里有分词切错的组合")
 

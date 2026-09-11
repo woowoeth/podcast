@@ -159,6 +159,20 @@ def _brief(ep: dict, src: dict) -> str:
     return "\n".join(parts)
 
 
+def rubric_id() -> str:
+    """当前这把尺子的指纹。
+
+    判决要连着**判它的那把尺子**一起存。不存的话，尺子一改，账本里就躺着
+    一堆用已经不存在的标准判出来的**永久**结论，而没有任何东西会发现 ——
+    实测清点：224 条「不做」里 182 条是旧尺子判的，其中 66 条 6 分、
+    69 条 4 分，判词还在用新尺子明令禁止的体裁理由（「属调查报道」）。
+    这已经是第三次同形状的事故（按简介判、按更严的线判、按旧尺子判），
+    所以这次做成机制：指纹不一致 = 这条判决不算数。
+    """
+    import hashlib
+    return hashlib.sha1(SYSTEM.encode("utf-8")).hexdigest()[:10]
+
+
 def score(ep: dict, src: dict) -> dict | None:
     """返回 {"score", "why", "kind", "basis"}；模型不可用时返回 None。
 
@@ -188,7 +202,8 @@ def score(ep: dict, src: dict) -> dict | None:
     return {"score": max(0.0, min(10.0, s)),
             "why": squeeze(str(r.get("why") or ""))[:60],
             "kind": squeeze(str(r.get("kind") or ""))[:12],
-            "basis": basis}
+            "basis": basis,
+            "rubric": rubric_id()}
 
 
 def passes(v: dict | None, minimum: float = MIN_SCORE) -> bool:
