@@ -168,6 +168,22 @@ def spread(ranked: list[dict], limit: int, per_source: int) -> list[dict]:
         out.append(ep)
         return True
 
+    # **核心源先拿。** 核心源（tier 1）是「已经决定要长期追」的那一批，
+    # 它们的集不该和别人在同一个排序里抢名额 —— 实测近 30 天核心源 108 集里
+    # 有 14 集**从没被碰过**（sharptech 5、anthropic 4、rationalreminder 4、
+    # lennys 1），不是判掉的，是排到预算外面了。
+    # 每源仍受 per_source 限制，所以一档源刷屏也吃不掉整轮预算。
+    core = [ep for ep in ranked if ep["_src"].get("tier", 3) == CORE_TIER]
+    if core:
+        n0 = len(out)
+        for ep in core:
+            if len(out) >= limit:
+                break
+            try_add(ep)
+        if len(out) > n0:
+            log(f"  核心源先取 {len(out) - n0} 集"
+                f"（{len(core)} 集候选，per-source 上限 {per_source}）")
+
     if use_floor:
         by_cat = defaultdict(list)
         for ep in ranked:
@@ -320,9 +336,13 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
         v = triage.score(ep, s)
         if v is not None:
             _last_triage[key] = v
-            mark = "通过" if v["score"] >= _triage["min"] else "不做"
+            core = s.get("tier", 3) == CORE_TIER
+            blocked = _core_blocks(v) if core else v["score"] < _triage["min"]
+            mark = "不做" if blocked else "通过"
+            if core and not blocked and v["score"] < _triage["min"]:
+                mark = "通过（核心源，不看分只看是不是广告）"
             log(f"    选题 {v['score']:.0f}/10 · {v['kind']} · {v['why']} → {mark}")
-            if v["score"] < _triage["min"]:
+            if blocked:
                 # **按简介判出来的低分不落成永久结论。**
                 # YouTube 简介基本是赞助和订阅链接，闸门读它判出的低分不可信。
                 # 实测：斯坦福那条扩散式 LLM 正课，取到字幕时 7/10
@@ -529,6 +549,31 @@ def _write_catchup_note(published: int) -> None:
         "prev_pending": old.get("pending"),
         "prev_at": old.get("at"),
     }, ensure_ascii=False, indent=1) + "\n")
+
+
+# 核心源（tier 1）**不过选题闸门，只拦广告**。
+#
+# 用户原话：「类似 yc 和张小珺这种就不该过滤，除非他们发广告。」
+# 道理是：选题闸门在判「这一集值不值得做」，而核心源这个问题在**收源那一刻
+# 已经回答过了** —— 再判一次等于用同一把尺子量两遍，还是在集这一层量，
+# 而集与集之间的波动本来就大。
+#
+# 实测代价：近 30 天核心源 108 集，闸门判掉 7 集（dwarkesh、cogrev、chinatalk、
+# zhangxiaojun、rationalreminder 各有）。这 7 集里没有一集的判词是「宣传」，
+# 全是「密度中等」「偏综述」这种 —— 正是不该用来拦核心源的理由。
+#
+# 广告仍然拦：判词说它是宣传，或者分低到 3 分以下（尺子里 0-4 那一档就是
+# 纯宣传、广告口播、课程推销）。
+CORE_TIER = 1
+AD_KINDS = ("宣传", "廣告", "广告")
+
+
+def _core_blocks(v: dict) -> bool:
+    """核心源的那一集要不要拦：只拦广告。"""
+    kind = str(v.get("kind") or "")
+    if any(a in kind for a in AD_KINDS):
+        return True
+    return float(v.get("score") or 0) <= 3.0
 
 
 def _soft_skip(state: dict, fp, key: str, why: str, note: str) -> str:

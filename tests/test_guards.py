@@ -5957,7 +5957,10 @@ class TriageVerdictsMustRecordWhatTheyJudged(unittest.TestCase):
 
     def test_a_notes_based_rejection_is_not_persisted(self):
         src = (ROOT / "pipeline" / "run.py").read_text()
-        i = src.index('if v["score"] < _triage["min"]:')
+        # 判据跟着机制走，不钉在某一行的写法上：那个条件已经从
+        # `if v["score"] < _triage["min"]:` 变成 `if blocked:`
+        # （核心源改成只拦广告之后）。
+        i = src.index("if blocked:")
         j = src.index('return "off-brief"', i)
         body = src[i:j]
         self.assertIn('basis', body,
@@ -6210,3 +6213,127 @@ class VerdictsAreBoundToTheRubricThatMadeThem(unittest.TestCase):
                       "排单时不比指纹 —— 改尺子只对以后的集生效")
         self.assertRegex(blk, r'pop\(key',
                          "指纹对不上却不把旧判决清掉 —— 它还会一直挡着")
+
+
+class CoreSourcesAreNotFilteredExceptForAds(unittest.TestCase):
+    """核心源（tier 1）不过选题闸门，只拦广告。
+
+    用户原话：「类似 yc 和张小珺这种就不该过滤，除非他们发广告。」
+
+    道理：选题闸门判的是「这一集值不值得做」，而核心源这个问题在**收源
+    那一刻已经回答过了**。再判一次等于同一把尺子量两遍，还是在集这一层量 ——
+    而集与集之间的波动本来就大。
+
+    实测代价：近 30 天核心源 108 集，闸门判掉 7 集（dwarkesh、cogrev、
+    chinatalk、zhangxiaojun、rationalreminder 各有），**没有一集的判词是
+    「宣传」** —— 全是「密度中等」「偏综述」这种，正是不该用来拦核心源的理由。
+
+    另外 14 集**从没被碰过**：不是判掉的，是排到 --limit 外面了
+    （sharptech 5、anthropic 4、rationalreminder 4、lennys 1）。
+    所以核心源还要在挑选时先拿名额。
+    """
+
+    def _run(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return importlib.import_module("run")
+
+    def test_a_merely_mediocre_episode_from_a_core_source_goes_out(self):
+        run = self._run()
+        for v in ({"score": 6.0, "kind": "一手访谈", "why": "密度中等"},
+                  {"score": 5.0, "kind": "机制拆解", "why": "偏综述"},
+                  {"score": 4.0, "kind": "新闻综述", "why": "一周回顾"}):
+            self.assertFalse(run._core_blocks(v),
+                             f"核心源被分数拦住了：{v} —— 用户说这种不该过滤")
+
+    def test_an_ad_from_a_core_source_is_still_blocked(self):
+        run = self._run()
+        for v in ({"score": 2.0, "kind": "宣传", "why": "产品发布口播"},
+                  {"score": 7.0, "kind": "宣传", "why": "判词说是宣传"},
+                  {"score": 3.0, "kind": "其他", "why": "空泛"}):
+            self.assertTrue(run._core_blocks(v), f"广告没拦住：{v}")
+
+    def test_the_run_uses_the_core_rule_only_for_core_sources(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index('mark = "不做" if blocked else "通过"')
+        blk = src[max(0, i - 400):i + 200]
+        self.assertIn("CORE_TIER", blk, "没有区分核心源")
+        self.assertIn("_core_blocks(v) if core else", blk,
+                      "非核心源也走了「只拦广告」—— 那是把闸门整个关掉了")
+
+    def test_core_episodes_get_the_budget_first(self):
+        """核心源排在最后也要被取到 —— 否则又是「从没碰过」。"""
+        run = self._run()
+        mk = lambda sid, tier, cat: {"_src": {"id": sid, "tier": tier, "cat": cat}}
+        ranked = ([mk(f"x{i}", 3, "ai") for i in range(10)]
+                  + [mk("ycsp", 1, "biz"), mk("zhangxiaojun", 1, "cn")])
+        ids = [e["_src"]["id"] for e in run.spread(ranked, limit=6, per_source=2)]
+        for c in ("ycsp", "zhangxiaojun"):
+            self.assertIn(c, ids, f"核心源 {c} 被挤出预算了：{ids}")
+
+    def test_one_loud_core_source_cannot_eat_the_whole_run(self):
+        run = self._run()
+        mk = lambda sid, tier, cat: {"_src": {"id": sid, "tier": tier, "cat": cat}}
+        ranked = ([mk("oddlots", 1, "biz") for _ in range(20)]
+                  + [mk("y1", 3, "ai"), mk("y2", 3, "hist")])
+        got = [e["_src"]["id"] for e in run.spread(ranked, limit=6, per_source=2)]
+        self.assertLessEqual(got.count("oddlots"), 2,
+                             f"一档核心源吃掉了整轮预算：{got}")
+
+
+class NoTwoSourcesShareAFeed(unittest.TestCase):
+    """两档源不许指向同一个 feed。
+
+    实测抓到两组：
+      · tier1 `interconnects` 和 tier2 `aiandi` 都指向
+        feeds.transistor.fm/how-do-you-use-chatgpt（那是 AI & I）——
+        **核心源槽位里装的是别人的节目**，Nathan Lambert 的 Interconnects
+        从来没进过库；而近 30 天它「4 集里 3 集判成重复、0 篇发布」，
+        去重逻辑没错，错的是 feed 地址。
+      · tier2 `zhangjing` 和 tier3 `cn7f5eeb` 都是 42章经（重复登记）。
+
+    一个 feed 两个槽位，后果是安静的：去重会把其中一个的集全判成 duplicate，
+    看起来像「这档源不产出」，而真因是它根本没在抓自己的内容。
+    """
+
+    def test_every_registered_feed_is_unique(self):
+        import collections
+        f = ROOT / "data" / "sources.json"
+        if not f.exists():
+            self.skipTest("没有信源表")
+        d = json.loads(f.read_text())
+        rows = d["sources"] if isinstance(d, dict) else d
+        by = collections.defaultdict(list)
+        for s in rows:
+            u = (s.get("feed") or "").strip().rstrip("/")
+            if u:
+                by[u].append(f"tier{s.get('tier')} {s['id']}")
+        dup = {u: v for u, v in by.items() if len(v) > 1}
+        self.assertFalse(
+            dup, "这些 feed 被两档源共用 —— 其中一档的集会全被判成 duplicate："
+                 + "; ".join(f"{u[-40:]} → {v}" for u, v in list(dup.items())[:3]))
+
+    def test_no_two_sources_share_an_itunes_id(self):
+        """共用 iTunes id 是同一个病的**入口** —— 这次就是它引起的。
+
+        `interconnects` 写着 AI & I 的 itunes id 1719789201，于是
+        `resolve_sources.py --check` 每一轮都按它重新解析，把正确的
+        Substack 地址覆盖成 AI & I 的 feed。只改 data/sources.json 没用，
+        下一轮又被改回去 —— 要改在硬编码那张表里。
+        """
+        import collections, re
+        src = (ROOT / "pipeline" / "resolve_sources.py").read_text()
+        by = collections.defaultdict(list)
+        # 一条 dict(...) 可能跨两行，所以按「下一个 dict(id=」切块再找 itunes
+        for blk in re.split(r"(?=dict\(id=)", src):
+            mid = re.match(r'dict\(id="([^"]+)"', blk)
+            mit = re.search(r"itunes=(\d+)", blk)
+            if mid and mit:
+                by[mit.group(1)].append(mid.group(1))
+        self.assertGreater(len(by), 20,
+                           f"只扫到 {len(by)} 个 itunes id —— 正则没匹配上，"
+                           f"这条检查等于没跑")
+        dup = {k: v for k, v in by.items() if len(v) > 1}
+        self.assertFalse(
+            dup, f"这些 iTunes id 被两档源共用，--check 会把其中一档解析成"
+                 f"另一档的 feed：{dup}")

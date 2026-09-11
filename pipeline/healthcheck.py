@@ -369,6 +369,77 @@ def check_parked_translations(r: Report) -> None:
         r.good("没有译不合格被搁置的篇目")
 
 
+def check_core_sources(r: Report) -> None:
+    """核心源（tier 1）有没有被结构性地挡住。只查文件，不连线上。
+
+    两条判据，都来自实测过的故障：
+
+    **① 只能走本机线的核心源必须标 residential。** ASR 只有本机线有
+    （云端没有 ASR key），而本机线只跑 residential=True 的源。没标的话
+    云端会反复挑走、转不了、撞满 3 次上限**永久失败**。
+    实测：ycsp（YC）已发布的 5 篇全靠 ASR／字幕、zhangxiaojun 6 篇全靠 ASR，
+    两档都没标 —— 用户点名的正是这两档「发不全」。一共 9 档核心源如此，
+    近 30 天核心源 108 集里 17 集因此卡在「取不到文稿」。
+
+    **② 核心源的「不做」只能是广告。** 核心源值不值得做，在收源那一刻
+    已经答过了；再用集级的分数拦一次，拦掉的都是「密度中等」这类理由。
+    """
+    try:
+        raw = json.loads((DATA / "sources.json").read_text())
+    except Exception:
+        return
+    d = raw["sources"] if isinstance(raw, dict) else raw
+    core = [s for s in d if s.get("tier") == 1]
+    if not core:
+        return
+    # ① 路由
+    import re as _re
+    def _local_only(u: str) -> bool:
+        if not u:
+            return False
+        if "youtube.com/watch" in u:
+            return True
+        if _re.search(r"transcript|\.vtt|\.srt|/captions", u, _re.I):
+            return False
+        return bool(_re.search(r"\.mp3|\.m4a|\.aac|audio|traffic\.", u, _re.I))
+    by = {}
+    for f in (DATA / "episodes").glob("*.json"):
+        try:
+            e = json.loads(f.read_text())
+        except Exception:
+            continue
+        if e.get("tier") == 1 and e.get("source_id"):
+            k = e["source_id"]
+            n, loc = by.get(k, (0, 0))
+            by[k] = (n + 1, loc + (1 if _local_only(e.get("transcript_url") or "") else 0))
+    bad = [s["id"] for s in core
+           if not s.get("residential") and by.get(s["id"], (0, 0))[0] > 0
+           and by[s["id"]][1] == by[s["id"]][0]]
+    if bad:
+        r.fail(f"{len(bad)} 档核心源只能走本机线（已发布的全靠 ASR／字幕）却没标 "
+               f"residential —— 云端会反复挑走、转不了、撞满上限永久失败："
+               + "、".join(bad[:6]))
+    else:
+        r.good(f"核心源路由正确（{sum(1 for s in core if s.get('residential'))}/"
+               f"{len(core)} 档走本机线）")
+    # ② 核心源不该被分数判掉
+    try:
+        done = json.loads((DATA / "state.json").read_text()).get("done") or {}
+    except Exception:
+        return
+    ids = {s["id"] for s in core}
+    wrong = [v for v in done.values()
+             if isinstance(v, dict) and v.get("skip") == "off-brief"
+             and v.get("src") in ids and "宣传" not in str(v.get("kind") or "")]
+    if wrong:
+        r.fail(f"{len(wrong)} 集核心源的稿被**分数**判掉了（判词不是「宣传」）——"
+               f"核心源只该拦广告：" + "；".join(
+                   f"{(v.get('src') or '')}:{v.get('score')} {(v.get('why') or '')[:24]}"
+                   for v in wrong[:3]))
+    else:
+        r.good("核心源没有被分数判掉的集（只拦广告）")
+
+
 def check_translation_side_tables(r: Report) -> None:
     """说话人和信源简介的译名表跟得上吗。
 
@@ -944,6 +1015,7 @@ def main(argv: list[str] | None = None) -> int:
     check_render_layer(r)
     check_english_edition(r)
     check_translation_side_tables(r)
+    check_core_sources(r)
     check_parked_translations(r)
     check_discovery(r)
     check_source_coverage(r)
