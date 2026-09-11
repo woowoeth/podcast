@@ -431,27 +431,29 @@ def check_core_sources(r: Report) -> None:
         done = json.loads((DATA / "state.json").read_text()).get("done") or {}
     except Exception:
         return
-    # 「只拦广告」这条只对 **tier 1**。用户是针对「类似 yc 和张小珺这种」说的；
-    # 扩到 tier 2（83 档）会一次放行 122 集，那是产品判断，不是工程判断 ——
-    # 把它当成事实报出来，别替人做主。
-    ids = {s["id"] for s in core if s.get("tier") == 1}
+    # 「只拦广告」现在覆盖 tier 1+2（用户先认可了 tier1，随后说「放吧」）。
+    # 放开的是**选题**这一道，不是上站门槛 —— 稿子仍要过机械闸门和成稿评分。
+    ids = {s["id"] for s in core if s.get("tier") in (1, 2)}
+    # **用代码的同一把尺子判。** 原来这里写的是「判词不是宣传就算错拦」，
+    # 而代码里的规则是 `_core_blocks`（广告 **或 ≤3 分**）——
+    # 两把尺子一不一样，体检就会对着 2 分的「趣味测验」喊冤。
+    # 检查和被检查的东西必须共用同一个判断函数，不能各写一遍。
+    try:
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        _blocks = importlib.import_module("run")._core_blocks
+    except Exception:
+        _blocks = lambda v: "宣传" in str(v.get("kind") or "")
     wrong = [v for v in done.values()
              if isinstance(v, dict) and v.get("skip") == "off-brief"
-             and v.get("src") in ids and "宣传" not in str(v.get("kind") or "")]
-    t2 = {s["id"] for s in core if s.get("tier") == 2}
-    t2_wrong = [v for v in done.values()
-                if isinstance(v, dict) and v.get("skip") == "off-brief"
-                and v.get("src") in t2 and "宣传" not in str(v.get("kind") or "")]
-    if t2_wrong:
-        r.note(f"{len(t2_wrong)} 集 tier2 优质源的稿被分数判掉（不是广告）——"
-               f"要不要也对它们只拦广告，是产品判断，这里只报数")
+             and v.get("src") in ids and not _blocks(v)]
     if wrong:
-        r.fail(f"{len(wrong)} 集核心源的稿被**分数**判掉了（判词不是「宣传」）——"
+        r.fail(f"{len(wrong)} 集优质源的稿被**分数**判掉了（判词不是「宣传」）——"
                f"核心源只该拦广告：" + "；".join(
                    f"{(v.get('src') or '')}:{v.get('score')} {(v.get('why') or '')[:24]}"
                    for v in wrong[:3]))
     else:
-        r.good("核心源没有被分数判掉的集（只拦广告）")
+        r.good("优质源没有被分数判掉的集（只拦广告）")
 
 
 def check_translation_side_tables(r: Report) -> None:

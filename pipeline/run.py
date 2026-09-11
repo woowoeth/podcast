@@ -336,11 +336,11 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
         v = triage.score(ep, s)
         if v is not None:
             _last_triage[key] = v
-            core = s.get("tier", 3) == CORE_TIER
+            core = s.get("tier", 3) in NO_FILTER_TIERS
             blocked = _core_blocks(v) if core else v["score"] < _triage["min"]
             mark = "不做" if blocked else "通过"
             if core and not blocked and v["score"] < _triage["min"]:
-                mark = "通过（核心源，不看分只看是不是广告）"
+                mark = "通过（优质源，不看分只看是不是广告）"
             log(f"    选题 {v['score']:.0f}/10 · {v['kind']} · {v['why']} → {mark}")
             if blocked:
                 # **按简介判出来的低分不落成永久结论。**
@@ -564,7 +564,17 @@ def _write_catchup_note(published: int) -> None:
 #
 # 广告仍然拦：判词说它是宣传，或者分低到 3 分以下（尺子里 0-4 那一档就是
 # 纯宣传、广告口播、课程推销）。
-CORE_TIER = 1
+# 不过选题闸门、只拦广告的档位。
+# tier 1 先放（用户：「类似 yc 和张小珺这种就不该过滤，除非他们发广告」），
+# 随后 tier 2 也放（用户：「我只是举个例子，除了 yc 和张小珺，
+# 其他优质源也要检查是否全推」→「放吧」）。
+#
+# **放开的不是上站门槛，是选题这一道。** 稿子仍要过机械闸门（逐字引用、
+# 数字可回溯）和成稿评分 7 分线 —— 新闻综述那类做出来的稿子密度低，
+# 通常在成稿评分那关就下去了。代价是多花选题+深读的钱，收益是不再
+# 因为「一集听起来一般」就永远不看它一眼。
+NO_FILTER_TIERS = (1, 2)
+CORE_TIER = 1          # 「核心源」仍只指 tier 1（体检、挑选优先都用它）
 AD_KINDS = ("宣传", "廣告", "广告")
 
 

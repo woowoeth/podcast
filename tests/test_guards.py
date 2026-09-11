@@ -6253,11 +6253,19 @@ class CoreSourcesAreNotFilteredExceptForAds(unittest.TestCase):
                   {"score": 3.0, "kind": "其他", "why": "空泛"}):
             self.assertTrue(run._core_blocks(v), f"广告没拦住：{v}")
 
+    def test_the_exemption_covers_tier2_but_not_everything(self):
+        """放开的范围是 tier 1+2，不是全站 —— tier 3 仍走分数线。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        run = importlib.import_module("run")
+        self.assertEqual(tuple(run.NO_FILTER_TIERS), (1, 2),
+                         f"免过滤的档位不对：{run.NO_FILTER_TIERS}")
+
     def test_the_run_uses_the_core_rule_only_for_core_sources(self):
         src = (ROOT / "pipeline" / "run.py").read_text()
         i = src.index('mark = "不做" if blocked else "通过"')
         blk = src[max(0, i - 400):i + 200]
-        self.assertIn("CORE_TIER", blk, "没有区分核心源")
+        self.assertIn("NO_FILTER_TIERS", blk, "没有区分优质源")
         self.assertIn("_core_blocks(v) if core else", blk,
                       "非核心源也走了「只拦广告」—— 那是把闸门整个关掉了")
 
@@ -6367,3 +6375,46 @@ class AChunkThatFailsToDecodeIsNotTheEpisodesFault(unittest.TestCase):
         self.assertIn('"soft"', blk, "软失败没有单独的预算")
         self.assertRegex(blk, r'"n": prev\.get\("n", 0\)(?!\s*\+)',
                          "软失败也在累加硬失败计数 —— 等于没分类")
+
+
+class TheCheckMustUseTheSameRulerAsTheCode(unittest.TestCase):
+    """体检判「这条判决对不对」，必须调用**代码里那个判断函数**，不能另写一遍。
+
+    实测撞到：放开 tier2 之后，体检里写的是「判词不是宣传就算错拦」，
+    而代码里的规则是 `_core_blocks`（广告 **或 ≤3 分**）。
+    两把尺子一不一样，体检就对着 2 分的「每日历史趣味测验」喊冤 ——
+    报了 19 集硬伤，其中没有一集是真的错拦。
+
+    这是这个仓库反复出现的形状的另一面：以前是**尺子过期**（判据钉在旧写法上），
+    这次是**尺子分叉**（同一条规则写了两遍，改了一处）。
+    共用一个函数就不会分叉。
+    """
+
+    def test_healthcheck_imports_the_rule_instead_of_restating_it(self):
+        hc = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        i = hc.index("def check_core_sources(")
+        body = hc[i:hc.index("\ndef ", i + 1)]
+        self.assertIn("_core_blocks", body,
+                      "体检自己写了一遍规则 —— 两把尺子迟早分叉")
+        # 而且要真的用它，不能只 import 不用
+        self.assertRegex(body, r"_blocks\(v\)|_core_blocks\(v\)",
+                         "import 了规则却没拿它判")
+
+    def test_the_two_agree_on_the_current_ledger(self):
+        """拿真实账本对一遍：体检说「该拦」的，代码也必须说「该拦」。"""
+        f = ROOT / "data" / "state.json"
+        if not f.exists():
+            self.skipTest("没有账本")
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        run = importlib.import_module("run")
+        d = json.loads((ROOT / "data" / "sources.json").read_text())
+        rows = d["sources"] if isinstance(d, dict) else d
+        ids = {s["id"] for s in rows if s.get("tier") in run.NO_FILTER_TIERS}
+        done = json.loads(f.read_text()).get("done") or {}
+        bad = [v for v in done.values()
+               if isinstance(v, dict) and v.get("skip") == "off-brief"
+               and v.get("src") in ids and not run._core_blocks(v)]
+        self.assertFalse(
+            bad, f"{len(bad)} 集优质源被判掉，但按当前规则不该拦："
+                 f"{[(v.get('src'), v.get('score')) for v in bad[:3]]}")
