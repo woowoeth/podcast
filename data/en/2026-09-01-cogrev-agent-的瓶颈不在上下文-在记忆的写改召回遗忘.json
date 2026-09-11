@@ -6,7 +6,7 @@
  "dek": "Uber burning through its token budget in 13 weeks proves stuffing context is the wrong move; MongoDB points the Agent performance bottleneck at memory — write, change, recall, forget — and suggests starting with employee use cases and humans in the loop.",
  "why": "This episode clears obstacles for people doing Agent engineering: how to set chunk size, the 100,000-vector threshold, who writes and who deletes memory; of limited value to those who only want to hear about model progress.",
  "who": "Engineers building Agent/RAG applications, technical leads choosing data stacks for enterprises, investors watching the embedding model and vector database space.",
- "skip": "The first 30 minutes lean toward product promotion; you can start at 16:38; around 31:51 is a feature launch and can be fast-forwarded.",
+ "skip": "The first 30 minutes lean toward product promotion; you can start at 16:38; around 31:51 is the launch feature, which you can fast-forward.",
  "tags": [
   "Agent memory",
   "vector retrieval",
@@ -18,23 +18,23 @@
  "points": [
   {
    "h": "Database schemas follow whatever resource is scarcest",
-   "body": "Pete takes E.F. Codd's 1970 relational model paper as the starting point: storage was the most expensive thing then, so normalized tables were the rational choice. When MongoDB was born in 2007, the scarce resource had become time, so the document model deliberately denormalizes, using JSON/BSON to cut disk reads. He also corrects a positioning that gets misread over and over: MongoDB is not ‘schemaless’ but ‘schema-flexible’ — the same collection can hold documents of different shapes, letting schema evolve along with the product. The design logic says: a database schema should follow whatever resource is scarcest at the time."
+   "body": "Pete takes E.F. Codd's 1970 relational model paper as his starting point: storage was the most expensive thing back then, so normalized tables were the rational choice. When MongoDB was born in 2007, the scarce resource had become time, so the document model deliberately denormalizes, using JSON/BSON to cut down on disk reads. He also corrects a positioning that gets misread again and again: MongoDB is not ‘schemaless’ but ‘schema-flexible’ — the same collection can hold documents of different shapes, letting the schema evolve along with the product. This design logic says one thing: a database schema should follow whatever resource is scarcest at the time."
   },
   {
-   "h": "Filling context with data actually lowers quality",
-   "body": "The news that Uber burned through its 2026 token budget in 13 weeks is treated as a sample of token maxing strategy failing. Cost is only half the problem with stuffing large amounts of data into context; quality also drops: research shows the first and last few thousand tokens of a window matter most, and the middle is basically noise. This path pushes the industry toward ‘categorical memory’ — each turn selects only the few terms relevant to the current agent loop, rather than dumping all history back in. The key here isn't saving money, it's that attention decay inside the context makes selective retrieval a performance problem."
+   "h": "Stuffing data into context actually lowers quality",
+   "body": "The news that Uber burned through its 2026 token budget in 13 weeks is treated as a sample of token maxing strategy failing. Cost is only half the problem when you stuff large amounts of data into context; quality drops too: research shows the first and last few thousand tokens of the window matter most, while the middle is basically noise. This path pushes the industry toward ‘categorical memory’ — each turn selects only the few terms relevant to the current agent loop, rather than dumping all history back in. The key here isn't saving money; it's that attention decay inside the context makes selective retrieval a performance problem."
   },
   {
-   "h": "AI features should grow from where customers already hurt",
-   "body": "MongoDB's search capabilities grew layer by layer around customer pain points: lexical search first in 2020, because many customers were building their own Lucene; then vector search, because a vector is essentially a float array and can naturally be a document field; then lexical, vector and metadata pre-filtering into the same hybrid search. In 2025 it simply acquired Voyage AI, bringing the embedding model in-house to form a ‘better together’ offering. The order itself says something: when infrastructure companies touch AI features, they usually start from where customers already hurt, not by buying a model first and then inventing a scenario."
+   "h": "AI features should grow out of where customers already hurt",
+   "body": "MongoDB's search capabilities grew layer by layer from customer pain points: lexical search first in 2020, because many customers were building their own Lucene; then vector search, because a vector is essentially a float array and can naturally be a document field; then lexical, vector and metadata pre-filtering into the same hybrid search. In 2025 it simply acquired Voyage AI, pulling the embedding model in too, forming a ‘better together’ solution. The order itself says something: when infrastructure companies touch AI features, they usually start from where customers already hurt, rather than buying a model first and then inventing a scenario."
   },
   {
    "h": "Chunk size should be left to the model, not human trial and error",
-   "body": "The first grinding problem in RAG is chunk size: too small and there isn't enough context, so retrieval quality suffers; too large and storage grows while precision actually drops, leaving only manual trial and error. Voyage's ‘contextual chunking’ sends the sentence and extra context into the model as two separate strings, lets the model automatically determine the optimal chunk size, and returns just one vector. This gets retrieval quality close to full context using very small chunks, with lower storage cost, and is now on its fourth version. It's a concrete example of moving the engineer's repeated parameter tuning into model weights."
+   "body": "The first grinding problem in RAG is chunk size: chunks too small, not enough context, poor retrieval quality; chunks too large, storage grows and precision actually drops, leaving only manual trial and error. Voyage's ‘contextual chunking’ sends the sentence and extra context into the model as two separate strings, lets the model automatically determine the optimal chunk size, and returns only a single vector. This gets retrieval quality close to full context with very small chunks, and storage costs are lower too; it's now on its fourth version. It's a concrete example of moving the process of engineers repeatedly tuning parameters into the model's weights."
   },
   {
-   "h": "Embedding models aren't commoditized; the choice decides hallucination",
-   "body": "Pete gives two selection thresholds: on scale, vector volume only really starts to hurt around 100,000; on quality, Voyage leads on the Hugging Face RTEB benchmark, improving up to 14% over other embedding models, a gap that may show up directly as whether there are hallucinations. He also warns that embedding models have not been commoditized — Anthropic doesn't build an embedding model itself, so his advice is to just use Voyage. For many teams, embedding model selection has long been underrated; this segment puts it back at the center of performance and hallucination."
+   "h": "Embedding models aren't commoditized; the choice decides hallucinations",
+   "body": "Pete gives two selection thresholds: on scale, vector volume only really starts to hurt around 100,000; on quality, Voyage leads on the Hugging Face RTEB benchmark, improving up to 14% over other embedding models, and that gap may show up directly as whether there are hallucinations. He also warns that embedding models have not been commoditized — Anthropic doesn't build an embedding model itself, so his advice is to just use Voyage. For many teams, embedding model selection has long been underrated; this segment puts it back at the center of performance and hallucinations."
   },
   {
    "h": "Memory has a half-life and must be actively retired",
@@ -42,11 +42,11 @@
   },
   {
    "h": "The first wave of enterprise AI lands on employees, not customers",
-   "body": "Most Fortune 500 companies Pete deals with are doing employee-facing use cases, and keeping humans in the loop. There are two layers to why: ROI is easier to calculate, since these roles already have KPIs; and the consequences of a data security breach are lighter, since employee data leaks are easier to handle than customer data leaks. Conversely, fully autonomous customer-facing Agents are the bet with the worse risk-reward ratio right now. This segment gives a coordinate for enterprise AI budget judgment: the first wave is more likely to land in internal efficiency tools, not robots making final decisions for customers."
+   "body": "Most Fortune 500 companies Pete deals with are doing employee-facing use cases, and keeping humans in the loop. There are two layers to why: ROI is easier to calculate, since these roles already have KPIs; and the data security consequences are lighter, since an employee data leak is easier to handle than a customer data leak. Conversely, fully autonomous customer-facing Agents are the bet with the worse risk-reward ratio right now. This segment gives a coordinate for enterprise AI budget judgment: the first wave of deployment is more likely to happen in internal efficiency tools, not in robots making final decisions for customers."
   },
   {
    "h": "The most complex customers aren't in the US, they're in Mexico City and São Paulo",
-   "body": "Pete met his most complex customers this year in Mexico City and São Paulo, and these customers usually assume US competitors are more advanced. He says what he saw was the opposite. The reason is attributed to the spread of hyperscale data centers and AI services: geographic barriers matter less than in the cloud era, and the ability of global enterprises to access technology has been leveled. This observation suggests that judging whether a company can use frontier AI makes country labels less and less reliable."
+   "body": "Pete met this year's most complex customers in Mexico City and São Paulo, and these customers usually assume US competitors are more advanced. He says what he saw was the opposite. The reason comes down to the spread of hyperscale data centers and AI services: geographic barriers matter less than in the cloud era, and the ability of global enterprises to access technology has been leveled. This observation says that judging whether a company can use frontier AI makes the country label less and less reliable."
   }
  ],
  "terms": [
