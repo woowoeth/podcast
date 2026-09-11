@@ -788,17 +788,15 @@ def foot() -> str:
     # 「人类世界生存法则 · OurWord · 品味」—— 一个英文读者在英文页的页脚
     # 看到两个中文站名，还有一个和本站重名。lang="zh" 只是告诉浏览器怎么
     # 断行，不解决「这一行是给谁看的」。
-    FAM = ((("OurWord", "/en/", ""), None, ("Taste", "/skill/?lang=en", ""))
+    # 2026-09-11 店主关停「品味」（/skill/），页脚家族导航去掉它，只剩主站和本站。
+    FAM = ((("OurWord", "/en/", ""),)
            if i18n.LANG == "en" else
-           ((("\u4eba\u7c7b\u4e16\u754c\u751f\u5b58\u6cd5\u5219", "/", ' lang="zh"'),
-             None,
-             ("\u54c1\u5473", "/skill/", ' lang="zh"'))))
+           (("\u4eba\u7c7b\u4e16\u754c\u751f\u5b58\u6cd5\u5219", "/", ' lang="zh"'),))
     return f"""<footer class="foot"><div class="wrap"><div class="foot-in">
 <div>{NAME} · <a href="https://ourword.ai">OurWord.ai</a>{T("的播客线。内容为原播客的中文深读，")}
 {T("版权归各节目所有；每篇都附原节目链接，请去支持原作者。")}</div>
 <div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72">\
-<a href="{FAM[0][1]}"{FAM[0][2]}>{FAM[0][0]}</a> · <a href="{BASE}/">{NAME}</a> · \
-<a href="{FAM[2][1]}"{FAM[2][2]}>{FAM[2][0]}</a></div>
+<a href="{FAM[0][1]}"{FAM[0][2]}>{FAM[0][0]}</a> · <a href="{BASE}/">{NAME}</a></div>
 <div class="links"><a href="{BASE}/">{T("首页")}</a><a href="{BASE}/sources/">{T("信源")}</a>
 <a href="{BASE}/log/">{T("更新日志")}</a><a href="{BASE}/feed.xml">RSS</a>
 <a href="{BASE}/llms.txt">llms.txt</a>
