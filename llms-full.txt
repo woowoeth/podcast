@@ -1,6 +1,86 @@
 # 原声 — 世界太吵，来原声听播客
 
-356 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
+357 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
+
+==============================================================================
+
+## 仿真到能跑原厂固件，才算跨过谎言的边界
+
+- URL: https://ourword.ai/podcast/p/2026-09-11-oxide-仿真到能跑原厂固件-才算跨过谎言的边界/
+- 节目 / show: Oxide and Friends (https://ourword.ai/podcast/s/oxide/)
+- 原集标题 / original episode: Emulating Oxide: How Faux Can You Go?
+- 发布 / published: 2026-09-11 · 时长 / duration: 1:24:48
+- 文稿来源 / transcript: 官方逐字稿 · 15114 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 8 numbers traced to the transcript, review score 7/10
+
+**Voxel 用十二周把整个 Oxide 机架塞进一台迷你主机，但真正的门槛不是跑起来，而是不改一行主软件、用原厂固件跑通——那才是仿真和自欺的分界线。**
+
+为什么听 / why: 做硬件软件交界、仿真环境或内部工具的人值得听：它讲的是保真度怎么定义、什么时候算够，以及 LLM 在系统建模里到底能帮到哪一步。
+
+### 核心论点 / points
+
+[10:30] (Steve Karam) **测试环境永远排第二十七位** — Steve Karam 说，任何做过软件开发或 IT 的人都知道，测试环境通常不是第二小提琴，而是第二十七小提琴，只排在教育和赋能环境、文档前面。而当你的产品是一整个机架时，这个问题尤其难：机架本身、fabric、sled、switch zone、SP、root of trust，每一层都要有。Oxide 因此有多个保真度层级：dog food 机架、racklet 迷你机架、单实例 Omicron（模拟版或跑在 Helios 上的物理版），但缺一个比 racklet 更容易、比单机箱保真度更高的中间层。
+
+[17:00] (Steve Karam) **四乘二把一切压到启动那一刻** — Voxel 的前身叫 four by two，靠一堆 shell 脚本定义机架该长什么样，启动时用 cargo bay、共享盘、网络和模拟网络把虚拟机架拉起来。它确实能用，IPv6 和 unnumbered BGP 就是先在 four by two 上测的。但 Steve 指出致命问题：把所有事情都放在启动时做是灾难配方——启动要四十分钟，很难自愈，而且「你知道它一定会在第四十分钟的最后两分钟崩」。Ryan Goodfellow 因此提出重做，并起了 Voxel 这个名字：Virtual Oxide Emulation Labs。
+
+[20:30] (Steve Karam) **Voxel 把构建和部署拆成两步** — Voxel 与 four by two 最大的区别是构建和部署分离：给一个 Omicron commit，它 clone、编译，产出一个完美成形的 sled 镜像并做快照，再复用这个快照去扮演所有 sled 和 gimlet。另一个大变化是全部用 Rust 重写，尽量摆脱 shell 脚本。因为一个快照要扮演六种角色，就需要有人告诉它做什么——Voxel 里内置了一个 Rust 写的 agent，随每个 sled 启动下发，告诉它「你是 switch」「你是 sled 1」「你是 sled 2」。
+
+[24:05] (Steve Karam) **LLM 擅长枚举寄存器，不擅长判断线程** — Steve 说 LLM 在枚举寄存器、找出组成完整系统的零碎部件上非常强，因为没人能把整机架的东西都装在脑子里；配上 RFD 和设计文档做上下文，结果会清晰得多。但它在别处会自信地给出错误结论：他曾让 root of trust 和 SP 共用一个线程通信，LLM 说这绝对不是问题，拆开后性能提升 500 倍，机架才能同时启动两者。
+
+[26:00] (Steve Karam) **别改主软件，这是 Voxel 的底线** — Steve 说 Voxel 有一条尽量守住的信条：不要修改主软件。他做 multi rack 时曾往 Voxel 里塞各种 hack，让 Voxel 和 Omicron 假装已经支持多机架，比如造一个 Omicron 里根本不存在、却在 Voxel 里神奇存在的端口。Robert 在公司频道里说，不应该创造 Omicron 里实际没有的东西。Steve 承认这是对的：这是本末倒置，也是做仿真时容易掉进去的陷阱——你开始重写地基，然后觉得「为什么不呢」。
+
+[30:00] (Steve Karam) **仿真返回期望值，模拟才暴露真相** — Steve 区分 simulation 和 emulation：SP SIM 是一组轻量 stub，对 sled 的响应像真的 SP，能完成虚拟机架初始化和上线，但它不是微控制器。这是典型的 simulation——返回的是期望中的响应，多数时候走 happy path，从测试角度看恰恰是问题。他给 Claude 一个周末任务，让它写 STM32 H753 微控制器模拟器，因为找不到现成的 Rust 方案。第一次跑起来但几乎做不了任何事，又花了两三个小时调整后，成功刷进一个最小 hubris archive，机器起来了。
+
+[38:00] (Steve Karam) **轮询式初始化会杀死模拟性能** — Oxide 的初始化非常 pull heavy：服务以近乎恒定的频率轮询更新。对模拟的服务处理器来说这很糟，因为要保持等待状态就得让线程一直空转，会彻底毁掉模拟本来就不高的性能。而且真 SP 需要 QSPI host boot flash、SP rot 与 root of trust 通信、ignition 寄存器等一大堆指令。Steve 的做法是反复起 Voxel lab，看 RSS 为什么起不来，发现它卡在记录温度测量之类的地方，然后一条一条补上最小指令集和最小传感器集。
+
+[44:00] (Steve Karam) **能跑原厂固件才算跨过谎言的边界** — Steve 给出「什么时候算够了」的标准：Voxel 加 SP EMU 能在单台 Helios 机箱里跑完整的多节点或多机架 lab，用的是未经修改的 stock Omicron（无论从源码还是从 tough repo），跑的是 stock hubris 镜像——sidecar 和 Gimlet 镜像就是随产品出货的那些，不做任何修改。他说，当仿真能和你的发布产品一起工作时，这就是谎言的边界。Ben Stoltz 还加了 Boodleby（root of trust 安全启动）和 Glasgow Bridge，让它能用 humility 做 trace，甚至能跑 Oxide 原生系统更新去刷固件。
+
+### 原话 / verbatim quotes
+
+[0:00] Andrew Stone: "you are building like a production quality product used by Oxide to build more production quality software. It's not a step down from everything else we're doing, right?"
+    译 / zh: 你是在做一个生产级产品，Oxide 用它来构建更多生产级软件。它不是我们其他工作的降级版，对吧？
+
+[5:12] Andrew Stone: "Like, without testing, without like actually using the real dendrite software and like passing through the right stuff, like, you don't have a demo, right? You're just kinda lying."
+    译 / zh: 如果不测试、不真正跑真实的 Dendrite 软件、不把正确的数据传下去，你就没有 demo，你只是在骗人。
+
+[15:20] Rain Paharia: "this other tooling had become existentially important to the company because this is how we were able to deliver as many racks as we were"
+    译 / zh: 这套工具已经变成公司生死攸关的东西，因为正是靠它我们才能交付那么多机架。
+
+[17:00] Steve Karam: "It's hard to self heal. If something breaks, you know know damn well it's gonna break in the last, like, two minutes of the forty minute process."
+    译 / zh: 它很难自愈。如果哪里坏了，你心里清楚得很，它一定会在四十分钟流程的最后两分钟崩掉。
+
+[24:05] Steve Karam: "an LLM will confidently tell you that, no. This absolutely is not a problem. You can have the root of trust and SP sharing a thread and communicating that way"
+    译 / zh: LLM 会自信地告诉你：不，这绝对不是问题。你可以让 root of trust 和 SP 共用一个线程、用那种方式通信。
+
+[26:00] Steve Karam: "I don't feel like we should be creating things that aren't actually in Omicron."
+    译 / zh: 我觉得我们不应该创造 Omicron 里实际并不存在的东西。
+
+[44:00] Steve Karam: "And to me, that is kind of the barrier of lies when they when the emulation can work with your release product."
+    译 / zh: 对我来说，当仿真能和你的发布产品一起工作时，这就是谎言的边界。
+
+### 数字 / figures
+
+- four by two 启动耗时: 40 分钟 [17:00]
+- Claude 写 STM32 H753 模拟器后的调试时间: 2-3 小时 [30:00]
+- Voxel 开发时长: 约 12 周（五月底/六月开始） [8:44]
+- Voxel Proto 分支 commit 数: 70 多个 [8:44]
+- 拆开 SP 与 root of trust 线程后的性能提升: 500 倍 [24:05]
+- commissioning API 工期: 两周 [15:20]
+- Steve Karam 的 minisforum 迷你 PC 线程数: 32 线程 [0:00]
+- 该机器上可跑的节点 rack 规模: 六到八个节点 [0:00]
+
+### 术语 / glossary
+
+- Voxel (Virtual Oxide Emulation Labs): Oxide 的机架级仿真环境，用快照扮演所有 sled 和 gimlet。
+- four by two (四乘二): Voxel 的前身，用 shell 脚本在启动时拉起虚拟机架。
+- simulation vs emulation (仿真与模拟): 前者返回期望响应走 happy path，后者建模真实硬件行为暴露真相。
+- SP EMU (服务处理器模拟器): 建模 STM32 微控制器，让 stock hubris 固件能真实运行。
+- hubris (hubris): Oxide 的嵌入式操作系统，跑在 SP 和 root of trust 上。
+- commissioning API (上架 API): Wicket 的版本化正式 API，用于机架初始化和恢复式更新。
+
+谁该听 / who: 做硬件软件交界、仿真环境或内部工具链的工程师和 CTO，尤其是那些在纠结「仿真到什么程度才算够」的团队。
+可跳过 / skip: 对机架硬件细节无感的人，可跳过 38:00 前后关于轮询和寄存器建模的技术段落。
+标签 / tags: 仿真, 硬件, 内部工具, LLM, 开源
 
 ==============================================================================
 
