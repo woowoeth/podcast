@@ -1,6 +1,90 @@
 # 原聲 — 世界太吵，來原聲聽播客
 
-363 entries. Source: https://ourword.ai/podcast/tw/ · Generated from the sources listed in https://ourword.ai/podcast/tw/llms.txt
+364 entries. Source: https://ourword.ai/podcast/tw/ · Generated from the sources listed in https://ourword.ai/podcast/tw/llms.txt
+
+==============================================================================
+
+## AI 研究員兩年提速 10 倍，但 RSI 可能比當律師助理更容易
+
+- URL: https://ourword.ai/podcast/tw/p/2026-09-11-dwarkesh-ai-研究员两年提速-10-倍-但-rsi-可能比当律师助理更容易/
+- 節目 / show: Dwarkesh (https://ourword.ai/podcast/tw/s/dwarkesh/)
+- 原集標題 / original episode: AI researchers debate how close we are to recursive self-improvement
+- 發布 / published: 2026-09-11 · 時長 / duration: 1:37:01
+- 文稿來源 / transcript: 官方文稿頁 · 18790 words · timestamps are estimated from position in the transcript
+- 校驗 / verification: 8 quotes matched verbatim, 10 numbers traced to the transcript, review score 7/10
+
+**RSI 是累積型任務，理論上一個不到百萬 token 的 Python 文件就能從零訓出可遞歸自我改進的模型；而律所法務助理要記住不斷變化的人際關係和隱性做事方式，是非平穩分布。**
+
+為什麼聽 / why: 三位研究者對 RSI、持續學習、RL 泛化的分歧很具體，後半段關於 mid-training 和信噪比的機制解釋是這集最值錢的部分。
+
+### 核心論點 / points
+
+[0:00] (John Schulman / Beren Millidge) **模型變聰明一個月後又覺得它蠢** — John Schulman 描述了一個反覆出現的循環：新模型出來，人們被震撼，說「這就是 AGI」，但用上一個月左右，它又開始顯得蠢。這個循環可能會一直重複下去，很難預測還要重複多少次。他給出的機制是：現在能力不會爆炸式增長，因為做研究和工程時你仍然會被瓶頸卡住——即便模型能寫比人多得多的代碼，也不會讓你生產力提升 100 倍。Dwarkesh 開場問的是：如果 2036 年沒有出現瘋狂的外星超級智能，最可能的技術原因是什麼？Beren Millidge 的默認答案是 Moravec 悖論式的延續——AI 把人類放進 benchmark 或環境裡的東西都做到極好，但始終存在一個頑固的 sim-to-real gap 擋住一切。
+
+[18:39] (John Schulman / Charlie O'Neill) **蒸餾是唯一對抗中心化的力量** — John Schulman 認為蒸餾是主要對抗中心化趨勢的力量：任何能通過 RL 學到的東西都能被輕易蒸餾，因為 bit 數很少，少量數據就能學會。但他強調蒸餾並不平凡——用監督學習蒸餾時 prompt 分布極其重要，你需要真實、寬廣的 prompt 分布。他提到近期浮現的一件事：一些中國公司可能在用 router 服務，讓中國用戶能用上本來被封鎖的美國前沿模型，這些服務在收集並出售數據，對蒸餾來說是極有用的數據集，因為它給出了完美的 prompt 分布。Charlie O'Neill 由此推出一個具體預測：前沿實驗室在 RL 環境上未必還有多少優勢。
+
+[44:38] (Charlie O'Neill / Dwarkesh Patel) **RSI 是累積任務，當律師不是** — Charlie O'Neill 把任務分成兩類：累積型和非平穩型。RSI 是累積型——理論上一個不到百萬 token 的 Python 文件就能從零訓出可遞歸自我改進的模型，發現 attention、mixture of experts、GRPO 之後直接加進訓練棧，不用回頭重來。真實世界不是累積型：律所裡的法務助理要記住公司裡所有重要人物之間不斷變化的關係、各種隱性做事方式，這是非平穩分布。Dwarkesh 的總結是「RSI 恰好比當 paralegal 更容易，太不幸了」。如果實驗室認定 RSI 是累積型，算力會更多往這邊傾斜。
+
+[52:00] (Charlie O'Neill / Beren Millidge) **持續學習卡在災難性遺忘** — Charlie O'Neill 說大規模、大 batch 下把數據灌進 mid-training 的外循環確實能工作，但微觀層面——一個模型為某家律所連續做幾百次微更新——所有方法都會崩：SFT 成功軌跡會災難性遺忘，通用能力退化；on-policy distillation 能把這個邊界推遠一點，最終仍會屈服。RL 擅長灌能力、不擅長灌知識。Beren Millidge 認為這主要是技術問題不是容量問題：同樣大小的模型用全部數據從零預訓練就是更好，瓶頸是可塑性和災難性遺忘，沒有好辦法阻止舊數據被忘掉。
+
+[59:46] (Dwarkesh Patel / Charlie O'Neill) **數據解釋 12 倍，架構只解釋 3.7 倍** — Dwarkesh 和 Princeton 的 Jerry Han 做了網格實驗：把 2019 年至今的訓練配方和數據集兩兩配對，GPT-2 配最新的 Ultra-FineWeb，Delphi 配 Pile 這種老數據集，跑滿整個網格。結論是數據帶來約 12.0x 的算力效率提升，架構改進只帶來約 3.7x，且是在很小的規模上。Charlie O'Neill 說互聯網這塊大塊頭已經被吃掉了，有用的東西不會以同樣速度增長，大概還剩一堆 0.1% 的 loss 下降空間。他提到 Epoch 有人估計 2019 年以來每年 3x，累計超過 2000x，那缺的 100x 大概來自 post-training。
+
+[1:03:00] (Beren Millidge / Charlie O'Neill) **RL 需要課程，預訓練不需要** — Beren Millidge 說這回到 RL 信號問題：RL 現在不擅長探索，如果模型 128 次 rollout 裡拿不到，就基本不會有進步信號，所以 RL 需要 curricula，而預訓練完全不需要。Charlie O'Neill 補充：預訓練信號本來就在 Common Crawl 裡，問題只是過濾噪聲，這是可自動化的；但進入 mid-training 和 post-training，信號根本不在原始數據裡，再怎麼過濾也過濾不出來——Common Crawl 裡沒有藏著一個千禧年大獎難題的證明等著被篩出來。只能從別處拿 bit：讓人寫出推理過程、構造環境、或者用部署中的人類數據。
+
+[1:18:03] (Beren Millidge) **RL 的成功大半來自中訓練** — Beren Millidge 說，被低估的是 mid-training：用合成推理數據和環境做預訓練，把模型「warm-start」到幾乎走完 80% 到最終 RL checkpoint 的路，RL 只是在上面微調策略。所以它不需要從零學會這些行為，每個 episode 只要幾個 bit 就夠。他還強調這些 bit 的信噪比遠高於普通預訓練——SFT 裡你必須逐 token 匹配另一個模型的推理過程，等於灌進太多關於「它怎麼想」的 bit，把信號淹掉；RL 的目標函數忽略其他所有 bit，只留「答對沒有」這一個。
+
+[1:28:32] (Charlie O'Neill / Beren Millidge / John Schulman) **一年還是三年，差在長尾雜活** — 被問到「什麼時候能僱一個 drop-in 遠程白領」時，Charlie O'Neill 說如果必須用瀏覽器操作，大概幾年；如果能發 Slack、程序化訪問，大概一年。Beren Millidge 說完整通用性也許三年，但組織會主動把自己改得對 AI 更友好，所以在那之前就能拿到 80-90%。分歧的實質是長尾：有些人類能做的雜事模型要很久。Charlie 舉例，模型不會去「吼人」推進工作，它太nice了。John Schulman 則指出人類遠程工作者質量方差本來就極大，Upwork 上找人做軟件項目常常很難讓他認真對待反饋，某些情況下 pre-AI 版本還不如現在的 AI。
+
+### 原話 / verbatim quotes
+
+[0:00] John Schulman: "There’s this cycle that keeps repeating where a new model comes out and people are blown away and they’re like, “This is it. This is AGI.” But then they use it a bit, and it starts to feel dumb after a month or so."
+    譯 / zh: 有一個不斷重複的循環：新模型出來，人們被震撼，說「就是它，這就是 AGI」。但用上一陣子，一個月左右它就開始顯得蠢了。
+
+[0:00] Charlie O'Neill: "We had this very nice straight line and that held for a really, really long time. But there were so many discrete discontinuities and innovations that had to happen to keep that scaling law going."
+    譯 / zh: 我們有一條非常漂亮的直線，它維持了非常非常久。但為了讓那個 scaling law 繼續下去，必須發生大量離散的斷裂和創新。
+
+[18:39] John Schulman: "Basically anything that can be learned through RL can be distilled very easily, because it’s a small number of bits."
+    譯 / zh: 基本上任何能通過 RL 學到的東西都能被非常容易地蒸餾，因為它只有很少的 bit。
+
+[44:38] Dwarkesh Patel: "It’s so unfortunate that RSI happened to be easier than being a paralegal."
+    譯 / zh: 太不幸了，RSI 恰好比當律師助理更容易。
+
+[52:00] Charlie O'Neill: "RL is good at getting capabilities in, but it’s not as good at getting knowledge in"
+    譯 / zh: RL 擅長把能力灌進去，但不那麼擅長把知識灌進去。
+
+[59:46] Beren Millidge: "There’s no hidden proof of a Millennium Prize problem sitting in Common Crawl that we can just filter until we see it."
+    譯 / zh: Common Crawl 裡沒有藏著一個千禧年大獎難題的證明，等著我們一直過濾到看見它。
+
+[1:18:03] Beren Millidge: "An awful lot of what we see as successes of RL actually comes from very, very good mid-training data, which is where we’re essentially doing pre-training but on synthetic reasoning data and the kind of environments that get the model warm-started for RL."
+    譯 / zh: 我們看到的 RL 的成功，很大一部分其實來自非常好的 mid-training 數據——本質上是在合成推理數據和那些讓模型為 RL 預熱的環境上做預訓練。
+
+[1:28:32] Charlie O'Neill: "An example of something that it wouldn’t be good at is if I have to yell at someone to get something at work, or really push someone to get something done. The model just isn’t going to do that. It’s going to be too nice."
+    譯 / zh: 一個它做不好的例子是：如果我在工作中必須衝某個人吼才能拿到東西，或者真的去推著某人把事做完。模型就是不會這麼做。它太nice了。
+
+### 數字 / figures
+
+- Charlie O'Neill 估計的「最大化當前目標」加速倍數: 10x [0:00]
+- Dwarkesh 假設的「沒有超級智能」年份: 2036 [0:00]
+- 數據帶來的算力效率提升: 約 12.0x [59:46]
+- 架構改進帶來的算力效率提升: 約 3.7x [59:46]
+- Epoch 估計的年均算力效率提升: 3x [59:46]
+- RL 探索的 rollout 次數閾值: 128 [1:03:00]
+- 模型可持續工作時長的翻倍週期: 每三個月翻一倍（EdgeBench） [1:18:03]
+- mid-training 把模型帶到最終 RL checkpoint 的進度: 約 80% [1:18:03]
+- AI 研究員生產力 10x 的時間預測: John Schulman 與 Beren Millidge：兩年；Charlie O'Neill：5-10 年 [1:28:32]
+- 全面超越人類專家的 AI 的時間預測: John Schulman：3-4 年；Charlie O'Neill：5-10 年；Beren Millidge：約 5 年 [1:28:32]
+
+### 術語 / glossary
+
+- RSI (遞歸自我改進): 模型能改進自身訓練或研究流程，從而加速下一代模型出現。
+- sim-to-real gap (仿真到現實的差距): 在 benchmark 或模擬環境裡表現好，遷移到真實世界就失效。
+- mid-training (中訓練): 預訓練之後、RL 之前，用合成推理數據和環境做的一輪訓練。
+- entropy collapse (熵坍縮): RL 訓練後模型輸出多樣性大幅下降，反覆產出同一種風格。
+- logit distillation (logit 蒸餾): 讓學生模型匹配老師模型輸出的完整概率分布，而不只是最終答案。
+
+誰該聽 / who: 關注 AI 能力邊界與訓練機制的工程師和研究者，尤其是想理解 RL 泛化、持續學習瓶頸和 mid-training 作用的人。
+可跳過 / skip: 開頭關於 2036 年場景的假設性討論可以快進，機制部分從 44:38 開始。
+標籤 / tags: RSI, 持續學習, RL, mid-training, 蒸餾
 
 ==============================================================================
 
