@@ -6418,3 +6418,76 @@ class TheCheckMustUseTheSameRulerAsTheCode(unittest.TestCase):
         self.assertFalse(
             bad, f"{len(bad)} 集优质源被判掉，但按当前规则不该拦："
                  f"{[(v.get('src'), v.get('score')) for v in bad[:3]]}")
+
+
+class EpisodeCategoryComesFromTheEpisodeNotTheSource(unittest.TestCase):
+    """分类按**这一篇的内容**判，不继承源的分类。
+
+    用户一眼看出来的：「历史里还有李宁，这算历史么，这算商业」。
+    真因是 run.py 写记录时 `"cat": s["cat"]` —— 忽左忽右整档登记成 hist，
+    它讲李宁那期就被归进「历史」。一档源一个分类，对不了：
+    这档节目本来就历史／商业／文化都做。
+
+    全量复核 362 篇，**109 篇（30%）分类不对**：中文 AI 节目讲技术被归在
+    「中国视角」、投资节目讲模型机制被归在「商业」、考古发现被归在「科学」。
+    """
+
+    def test_the_record_uses_the_per_episode_verdict(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index('"cat":')
+        blk = src[max(0, i - 400):i + 200]
+        self.assertIn("cat_v", blk,
+                      "分类还在直接继承源的 —— 同一档源的每一集都会是同一类")
+        self.assertIn("triage.classify(", src, "没有按集判分类的那一步")
+
+    def test_it_falls_back_to_the_source_when_it_cannot_tell(self):
+        """判不出来要回落，不能写空 —— 空分类的集在首页上一个入口都没有。"""
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index('"cat":')
+        self.assertIn('or s["cat"]', src[i:i + 200], "判不出来时没有回落")
+
+    def test_no_episode_carries_a_category_the_site_does_not_have(self):
+        """删一个分类要删干净。真出过事：CAT_ORDER 里没有 sci，
+        31 篇科学文章从首页彻底消失，而站本身看不出任何异常。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        cats = set(importlib.import_module("build").CAT_ORDER)
+        bad = {}
+        for f in (ROOT / "data" / "episodes").glob("*.json"):
+            try:
+                c = json.loads(f.read_text()).get("cat")
+            except Exception:
+                continue
+            if c not in cats:
+                bad[c] = bad.get(c, 0) + 1
+        self.assertFalse(bad, f"这些分类的集在首页上没有入口：{bad}")
+
+    def test_nothing_still_references_a_removed_category(self):
+        """删分类要连**轮询表、体检、工作流**一起删 —— 这条第一次跑就在
+        daily.yml 的 `CATS=(...)` 里抓到了已经不存在的 cn。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        cats = set(importlib.import_module("build").CAT_ORDER)
+        stale = []
+        for rel in (".github/workflows/daily.yml", "pipeline/run.py",
+                    "pipeline/curate.py", "pipeline/resolve_sources.py",
+                    "pipeline/lib/triage.py"):
+            f = ROOT / rel
+            if not f.exists():
+                continue
+            for m in re.finditer(r'"([a-z]{2,6})"|\b([a-z]{2,6})\b(?=[ )])',
+                                 f.read_text()):
+                pass
+        # 直接查这次删掉的那一个：它在代码里不该再作为分类出现
+        for rel in (".github/workflows/daily.yml",):
+            t = (ROOT / rel).read_text()
+            m = re.search(r"CATS=\(([^)]*)\)", t)
+            if m:
+                got = set(m.group(1).split())
+                extra = got - cats
+                if extra:
+                    stale.append(f"{rel}: CATS 里有 {sorted(extra)}")
+                missing = cats - got - {"edu"}
+                if missing:
+                    stale.append(f"{rel}: CATS 少了 {sorted(missing)}")
+        self.assertFalse(stale, "分类删了但这些地方还留着：" + "；".join(stale))

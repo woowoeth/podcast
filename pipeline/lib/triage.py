@@ -42,7 +42,7 @@ SYSTEM = """你在给一个中文播客深读站做选题。站点有多分类�
 套话（「要有耐心」「保持学习」）低分。
 
 **按分类加分轴（分类对了就用这条，不要再拿商业框架苛责）：**
-- ai / biz / cn：产业机制、监管、供应链、投资决策、一手创业经验、中美对照
+- ai / biz：产业机制、监管、供应链、投资决策、一手创业经验、中美对照
 - ideas：论证链、可争辩哲学/社科结论、思想史中的明确命题
 - hist：因果与时间线、制度/文明机制、可回史料或一手记述的判断
 - parent：可检验的教养原则、发展心理学证据、边界条件（何种孩子/年龄有效）
@@ -157,6 +157,62 @@ def _brief(ep: dict, src: dict) -> str:
     else:
         parts.append(f"节目介绍：\n{notes or '（没有介绍）'}")
     return "\n".join(parts)
+
+
+# ── 单篇的分类 ────────────────────────────────────────────────
+# **分类要按这一篇的内容判，不能继承源的分类。**
+# 实测：忽左忽右整档登记成 hist，于是它讲李宁的那期也被归进「历史」——
+# 用户一眼就看出来了。全量复核 362 篇，**109 篇（30%）分类不对**：
+# 中文 AI 节目讲技术被归在「中国视角」、投资节目讲模型机制被归在「商业」、
+# 考古发现被归在「科学」。一档源一个分类，对不了。
+CAT_SYSTEM = """你在给一个中文播客深读站的单篇文章判分类。**只判这一篇的内容**，
+不要看它来自哪档节目——节目名只是参考。
+
+八个分类，按站点自己的定义：
+- ai    AI / 技术：模型、算力、芯片、AI 产业与技术机制
+- edu   AI 课程：成体系的讲课，听完能自己复现某一步
+- biz   投资 / 商业：公司战略、投资、宏观与市场、商业机制
+- ideas 人文 / 思想：哲学、社科论证、思想史、文化评论
+- hist  历史：过去的事件、制度与文明，因果与时间线。
+        **公司史要看重心**：重心在「这家公司怎么做生意/为什么赢输」算 biz 或 cn，
+        重心在「那个时代发生了什么」才算 hist。
+- sci   科学 / 医学：科研机制、实验、临床、自然科学
+- parent 育儿：教养、儿童发展
+
+**没有「中国视角」这一档**：中国相关内容按题材分——讲中国 AI 芯片就是 ai，
+讲中国公司经营就是 biz，讲中国近代史就是 hist，讲中美政策博弈看重心
+（产业管制→biz 或 ai，政治思想→ideas）。
+
+只返回 JSON：{"cat": "xx", "why": "不超过20字", "sure": 1到5}
+sure=5 是毫无疑问，sure<=2 是两个分类都说得通。"""
+
+# **没有「中国视角」这一档。** 中国相关内容按题材分：讲中国 AI 芯片就是 ai，
+# 讲中国公司经营就是 biz，讲中国近代史就是 hist。
+# 原来那一档混着中文 AI 技术访谈、中国公司商业史、中美政策对照三类，
+# 同一条定义对不同的集给出矛盾的答案（李宁判 cn，28 纳米芯片判 ai）。
+CATS = ("ai", "edu", "biz", "ideas", "hist", "sci", "parent")
+
+
+def classify(ep: dict, d: dict, src: dict) -> dict | None:
+    """按成稿内容判分类。判不出来就返回 None，由调用方回落到源的分类。"""
+    if not llm.available():
+        return None
+    pts = " / ".join((p.get("h") or "")[:40] for p in (d.get("points") or [])[:4])
+    body = (f"节目：{src.get('name') or src.get('id')}\n"
+            f"标题：{d.get('title')}\n"
+            f"一句话：{(d.get('dek') or '')[:120]}\n"
+            f"要点：{pts[:300]}\n"
+            f"标签：{' '.join((d.get('tags') or [])[:5])}")
+    try:
+        r = llm.call_json(CAT_SYSTEM, body, max_tokens=120, temperature=0,
+                          retries=1, role="triage")
+    except Exception:
+        return None
+    c = str((r or {}).get("cat") or "").strip()
+    if c not in CATS:
+        return None
+    return {"cat": c, "why": squeeze(str(r.get("why") or ""))[:30],
+            "sure": r.get("sure")}
 
 
 def rubric_id() -> str:

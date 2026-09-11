@@ -269,7 +269,7 @@ LEADS_SCHEMA = """输出 JSON：{"leads":[{"name":"播客节目的完整名字",
 SPEAKER_SYSTEM = """给你一批人名，他们都在本站已收录的播客里作为主讲或嘉宾出现过。
 问题只有一个：这些人里，谁自己主持（或联合主持）一档播客？
 
-站点覆盖 AI/技术、投资/商业、中国视角、人文/思想、文明/历史、育儿/教育、健康/科学，
+站点覆盖 AI/技术、投资/商业、人文/思想、文明/历史、育儿/教育、健康/科学（中国相关内容按题材归入对应分类，没有单独的「中国视角」档），
 只报范围内的。
 
 规则：
@@ -363,7 +363,7 @@ def find_leads(existing: list[str], sample: list[dict]) -> list[dict]:
 
 
 CHARTS = [(1318, "us", "Technology"), (1321, "us", "Business"),
-          (1318, "cn", "中国区 Technology")]
+          (1318, "ai", "中国区 Technology")]
 
 
 # 按题材搜，而不是看榜。榜单只有 top-N 且按流行度排，长尾里的硬节目永远上不了榜
@@ -376,7 +376,7 @@ SEARCH_TERMS = [
     # 投资 / 商业
     "monetary policy", "credit markets", "value investing", "supply chain",
     "industrial history", "commodities", "corporate strategy",
-    # 中国视角
+    # 中文一手信源
     "China economy", "Chinese technology", "China policy",
     # 人文 / 思想
     "philosophy of mind", "intellectual history", "political theory",
@@ -435,7 +435,7 @@ def apple_charts(limit: int = 30) -> list[dict]:
 
 
 SHORTLIST_SYSTEM = """你在给一个中文播客深读站从榜单里挑候选。站点覆盖
-AI/技术、投资/商业、中国视角、人文/思想、文明/历史、育儿/教育、健康/科学。
+AI/技术、投资/商业、人文/思想、文明/历史、育儿/教育、健康/科学（中国相关内容按题材归类）。
 读者要可核对的判断、机制和证据，不限科技商业。
 
 只凭节目名做粗筛，把明显不值得的剔掉即可，不确定的留下。
@@ -444,7 +444,7 @@ AI/技术、投资/商业、中国视角、人文/思想、文明/历史、育�
 泛泛访谈秀、宗教布道、语言学习、纯娱乐闲聊。
 
 值得留的：各领域深访或机制拆解——产业与投资、思想与哲学、历史与制度、
-循证育儿、可回论文的科学，以及中国视角的一手观察。"""
+循证育儿、可回论文的科学，以及中国产业与社会的一手观察。"""
 
 SHORTLIST_SCHEMA = """输出 JSON：{"keep":["节目名", ...]}
 只回你决定留下的名字，原样照抄。可以一个都不留。"""
@@ -884,7 +884,7 @@ def score_candidate(c: dict, existing_desc: str) -> dict | None:
             "reject": None, "hedged": hedged if inconsistent else [],
             "inconsistent": inconsistent,
             "desc": squeeze(str(r.get("desc") or ""))[:80],
-            "cat": r.get("cat") if r.get("cat") in ("ai", "biz", "cn", "ideas", "hist", "parent", "sci") else "ai",
+            "cat": r.get("cat") if r.get("cat") in ("ai", "biz", "ideas", "hist", "parent", "sci") else "ai",
             "tier": r.get("tier") if r.get("tier") in (1, 2, 3) else 2,
             "why": squeeze(str(r.get("why") or ""))[:60]}
 
@@ -1078,7 +1078,7 @@ def discover(minimum: float, dry: bool = False,
                          else "rss",
                  "feed": c["feed"], "desc": v["desc"],
                  "cat_label": {"ai": "AI / 技术", "edu": "AI 课程", "biz": "投资 / 商业",
-                               "cn": "中国视角", "ideas": "人文 / 思想",
+                               "ideas": "人文 / 思想",
                                "hist": "文明 / 历史", "parent": "育儿 / 教育", "sci": "健康 / 科学"}.get(v["cat"], v["cat"])}
         if c.get("itunes"):
             entry["itunes"] = c["itunes"]

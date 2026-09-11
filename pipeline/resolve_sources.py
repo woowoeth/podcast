@@ -129,19 +129,19 @@ CURATED: list[dict] = [
   dict(id="ycsp", name="Y Combinator", zh="Y Combinator", cat="biz", tier=1, lang="en",
        itunes=1236907421, feed="https://anchor.fm/s/8c1524bc/podcast/rss", residential=True, desc="YC 合伙人与创始人对早期公司的直给建议"),
   # ---------- 中国视角 / 中文播客（Onepod 一个都没有）----------
-  dict(id="chinatalk", name="ChinaTalk", zh="ChinaTalk", cat="cn", tier=1, lang="en",
+  dict(id="chinatalk", name="ChinaTalk", zh="ChinaTalk", cat="ai", tier=1, lang="en",
        itunes=1289062927, feed="https://feeds.megaphone.fm/CHTAL4990341033", residential=True, desc="中美科技与产业政策，英文世界里对中国讨论最细的一档"),
-  dict(id="zhangxiaojun", name="张小珺·商业访谈录", zh="张小珺·商业访谈录", cat="cn", tier=1, lang="zh",
+  dict(id="zhangxiaojun", name="张小珺·商业访谈录", zh="张小珺·商业访谈录", cat="ai", tier=1, lang="zh",
        itunes=1673203694, feed="https://feed.xyzfm.space/dk4yh3pkpjp3", residential=True, desc="中文世界最扎实的 AI 与商业长访谈"),
-  dict(id="sv101", name="硅谷101", zh="硅谷101", cat="cn", tier=1, lang="zh",
+  dict(id="sv101", name="硅谷101", zh="硅谷101", cat="ai", tier=1, lang="zh",
        itunes=1494229400, feed="https://feeds.fireside.fm/sv101/rss", residential=True, desc="硅谷一线从业者中文解读，技术细节不含糊"),
-  dict(id="latetalk", name="晚点聊 LateTalk", zh="晚点聊", cat="cn", tier=1, lang="zh",
+  dict(id="latetalk", name="晚点聊 LateTalk", zh="晚点聊", cat="biz", tier=1, lang="zh",
        itunes=1662130580, feed="https://feeds.fireside.fm/latetalk/rss", residential=True, desc="《晚点》的公司与人物访谈"),
-  dict(id="whatsnext", name="What's Next｜科技早知道", zh="科技早知道", cat="cn", tier=2, lang="zh",
+  dict(id="whatsnext", name="What's Next｜科技早知道", zh="科技早知道", cat="ai", tier=2, lang="zh",
        itunes=1450909630, feed="https://feeds.fireside.fm/guiguzaozhidao/rss", residential=True, desc="面向中文听众的海外科技与资本解读"),
-  dict(id="luanfanshu", name="乱翻书", zh="乱翻书", cat="cn", tier=2, lang="zh",
+  dict(id="luanfanshu", name="乱翻书", zh="乱翻书", cat="biz", tier=2, lang="zh",
        itunes=1631554542, feed="https://feed.xyzfm.space/yxuruh3f9mc4", residential=True, desc="中国互联网公司与行业史，视角独立"),
-  dict(id="mianji", name="面基", zh="面基", cat="cn", tier=3, lang="zh",
+  dict(id="mianji", name="面基", zh="面基", cat="biz", tier=3, lang="zh",
        itunes=1610952415, feed="https://feed.xyzfm.space/6hpdgggtxpxb", desc="投资与个人财务，讲人话"),
   # ---------- 只在 YouTube 更新、没有播客 RSS 的一手信源 ----------
   dict(id="anthropic", name="Anthropic", zh="Anthropic", cat="edu", tier=1, lang="en", kind="youtube", feed="https://www.youtube.com/feeds/videos.xml?channel_id=UCrDwWp7EBBv4NwvScIpBDOA",
@@ -192,7 +192,7 @@ CURATED: list[dict] = [
   dict(id="patrickboyle", name="Patrick Boyle", zh="Patrick Boyle", cat="biz", tier=2,
        lang="en", feed="https://anchor.fm/s/fc0914e0/podcast/rss",
        residential=True, desc="把金融事件拆回机制：谁承担风险、钱怎么流、监管在哪失灵"),
-  dict(id="laoshi", name="老石谈芯", zh="老石谈芯", cat="cn", tier=1, lang="zh",
+  dict(id="laoshi", name="老石谈芯", zh="老石谈芯", cat="ai", tier=1, lang="zh",
        kind="youtube", residential=True, feed="https://www.youtube.com/feeds/videos.xml?channel_id=UC5mVFJf71Ax6TJZcbmTnilw",
        desc="芯片工程师视角讲半导体，中文里极稀缺的技术深度"),
   dict(id="twist", name="This Week in Startups", zh="This Week in Startups", cat="biz",
@@ -203,7 +203,7 @@ CURATED: list[dict] = [
        desc="公司为什么失败的案例拆解，财务与商业模式讲得干净"),
 ]
 
-CATS = {"ai": "AI / 技术", "edu": "AI 课程", "biz": "投资 / 商业", "cn": "中国视角",
+CATS = {"ai": "AI / 技术", "edu": "AI 课程", "biz": "投资 / 商业",
         "ideas": "人文 / 思想", "hist": "文明 / 历史", "parent": "育儿 / 教育",
         "sci": "健康 / 科学"}
 ALL_SOURCES = CURATED + EXTRA

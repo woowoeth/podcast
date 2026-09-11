@@ -82,12 +82,14 @@ def _blurb() -> str:
 # CAT_ORDER 里，于是首页从来没有「科学 / 医学」这个 chip——以前有「全部」
 # 兜着，那 31 篇还够得到；「全部」一去掉，它们从首页就彻底摸不到了。
 # 守护 EveryCategoryHasAChip 按数据反查这两张表，加分类不可能再漏。
-CAT_ORDER = ["ai", "edu", "biz", "cn", "ideas", "hist", "sci", "parent"]
+# 「中国视角」这一档去掉了：中国相关内容按题材分（讲中国 AI 芯片就是 ai，
+# 讲中国公司经营就是 biz）。原来那一档混着中文 AI 技术访谈、中国公司商业史、
+# 中美政策对照三类，同一条定义对不同的集给出矛盾的答案。
+CAT_ORDER = ["ai", "edu", "biz", "ideas", "hist", "sci", "parent"]
 CAT_LABEL = {
     "ai": "AI / 技术",
     "edu": "AI 课程",
     "biz": "投资 / 商业",
-    "cn": "中国视角",
     "ideas": "人文 / 思想",
     "hist": "历史",
     "sci": "科学 / 医学",

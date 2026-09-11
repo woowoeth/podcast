@@ -189,7 +189,7 @@ def spread(ranked: list[dict], limit: int, per_source: int) -> list[dict]:
         for ep in ranked:
             by_cat[ep["_src"].get("cat", "ai")].append(ep)
         # stable priority: under-served content cats first, then core
-        order = ["hist", "parent", "sci", "ideas", "cn", "biz", "ai"]
+        order = ["hist", "parent", "sci", "ideas", "biz", "ai"]
         for c in order:
             if c not in by_cat:
                 continue
@@ -490,11 +490,21 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
             _release(state, fp, key)
             return "review-unavailable"
 
+    cat_v = triage.classify(ep, d, s)
+    if cat_v and cat_v["cat"] != s["cat"]:
+        log(f"    分类：源是 {s['cat']}，这一篇判为 {cat_v['cat']}"
+            f"（{cat_v.get('why')}）")
     slug = f"{iso(ep['published'])[:10]}-{s['id']}-{slugify(d['title'], 40)}"
     rec = {
         "id": key, "slug": slug, "fingerprint": fp,
         "source_id": s["id"], "source": s["name"], "source_zh": s.get("zh") or s["name"],
-        "cat": s["cat"], "tier": s.get("tier", 3), "lang": s.get("lang", "en"),
+        # **分类按这一篇的内容判，不继承源的分类。**
+        # 源级分类对不了：忽左忽右整档是 hist，它讲李宁那期就被归进「历史」。
+        # 全量复核 362 篇有 109 篇（30%）不对。判不出来才回落到源的分类。
+        "cat": (cat_v or {}).get("cat") or s["cat"],
+        "cat_by": "episode" if cat_v else "source",
+        "cat_why": (cat_v or {}).get("why"),
+        "tier": s.get("tier", 3), "lang": s.get("lang", "en"),
         "title_original": ep["title"], "published": iso(ep["published"]),
         "duration": ep.get("duration"), "audio": ep.get("audio") or "",
         "link": ep.get("link") or "", "image": ep.get("image") or "",
