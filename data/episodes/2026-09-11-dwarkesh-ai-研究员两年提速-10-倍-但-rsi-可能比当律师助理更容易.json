@@ -1,0 +1,249 @@
+{
+ "id": "dwarkesh-405130a542",
+ "slug": "2026-09-11-dwarkesh-ai-研究员两年提速-10-倍-但-rsi-可能比当律师助理更容易",
+ "fingerprint": "23954cedc3c9fb1a",
+ "source_id": "dwarkesh",
+ "source": "Dwarkesh Podcast",
+ "source_zh": "Dwarkesh",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "讨论AI递归自我改进与技术机制",
+ "tier": 1,
+ "lang": "en",
+ "title_original": "AI researchers debate how close we are to recursive self-improvement",
+ "published": "2026-09-11T16:28:11Z",
+ "duration": 5821,
+ "audio": "https://api.substack.com/feed/podcast/215199144/a0f47ff12d3d6420b3180f18adb9bfa3.mp3",
+ "link": "https://www.dwarkesh.com/p/john-beren-charlie",
+ "image": "https://apple.dwarkesh-podcast.workers.dev/art/v1/c3Vic3RhY2s6cG9zdDoyMTUxOTkxNDQ.jpg",
+ "youtube_id": "PrSf7IOYu-I",
+ "video_len": 0,
+ "transcript_url": "https://www.dwarkesh.com/p/john-beren-charlie",
+ "digest": {
+  "title": "AI 研究员两年提速 10 倍，但 RSI 可能比当律师助理更容易",
+  "dek": "RSI 是累积型任务，理论上一个不到百万 token 的 Python 文件就能从零训出可递归自我改进的模型；而律所法务助理要记住不断变化的人际关系和隐性做事方式，是非平稳分布。",
+  "why": "三位研究者对 RSI、持续学习、RL 泛化的分歧很具体，后半段关于 mid-training 和信噪比的机制解释是这集最值钱的部分。",
+  "points": [
+   {
+    "t": 0,
+    "h": "模型变聪明一个月后又觉得它蠢",
+    "body": "John Schulman 描述了一个反复出现的循环：新模型出来，人们被震撼，说「这就是 AGI」，但用上一个月左右，它又开始显得蠢。这个循环可能会一直重复下去，很难预测还要重复多少次。他给出的机制是：现在能力不会爆炸式增长，因为做研究和工程时你仍然会被瓶颈卡住——即便模型能写比人多得多的代码，也不会让你生产力提升 100 倍。Dwarkesh 开场问的是：如果 2036 年没有出现疯狂的外星超级智能，最可能的技术原因是什么？Beren Millidge 的默认答案是 Moravec 悖论式的延续——AI 把人类放进 benchmark 或环境里的东西都做到极好，但始终存在一个顽固的 sim-to-real gap 挡住一切。",
+    "spk": "John Schulman / Beren Millidge"
+   },
+   {
+    "t": 1119,
+    "h": "蒸馏是唯一对抗中心化的力量",
+    "body": "John Schulman 认为蒸馏是主要对抗中心化趋势的力量：任何能通过 RL 学到的东西都能被轻易蒸馏，因为 bit 数很少，少量数据就能学会。但他强调蒸馏并不平凡——用监督学习蒸馏时 prompt 分布极其重要，你需要真实、宽广的 prompt 分布。他提到近期浮现的一件事：一些中国公司可能在用 router 服务，让中国用户能用上本来被封锁的美国前沿模型，这些服务在收集并出售数据，对蒸馏来说是极有用的数据集，因为它给出了完美的 prompt 分布。Charlie O'Neill 由此推出一个具体预测：前沿实验室在 RL 环境上未必还有多少优势。",
+    "spk": "John Schulman / Charlie O'Neill"
+   },
+   {
+    "t": 2678,
+    "h": "RSI 是累积任务，当律师不是",
+    "body": "Charlie O'Neill 把任务分成两类：累积型和非平稳型。RSI 是累积型——理论上一个不到百万 token 的 Python 文件就能从零训出可递归自我改进的模型，发现 attention、mixture of experts、GRPO 之后直接加进训练栈，不用回头重来。真实世界不是累积型：律所里的法务助理要记住公司里所有重要人物之间不断变化的关系、各种隐性做事方式，这是非平稳分布。Dwarkesh 的总结是「RSI 恰好比当 paralegal 更容易，太不幸了」。如果实验室认定 RSI 是累积型，算力会更多往这边倾斜。",
+    "spk": "Charlie O'Neill / Dwarkesh Patel"
+   },
+   {
+    "t": 3120,
+    "h": "持续学习卡在灾难性遗忘",
+    "body": "Charlie O'Neill 说大规模、大 batch 下把数据灌进 mid-training 的外循环确实能工作，但微观层面——一个模型为某家律所连续做几百次微更新——所有方法都会崩：SFT 成功轨迹会灾难性遗忘，通用能力退化；on-policy distillation 能把这个边界推远一点，最终仍会屈服。RL 擅长灌能力、不擅长灌知识。Beren Millidge 认为这主要是技术问题不是容量问题：同样大小的模型用全部数据从零预训练就是更好，瓶颈是可塑性和灾难性遗忘，没有好办法阻止旧数据被忘掉。",
+    "spk": "Charlie O'Neill / Beren Millidge"
+   },
+   {
+    "t": 3586,
+    "h": "数据解释 12 倍，架构只解释 3.7 倍",
+    "body": "Dwarkesh 和 Princeton 的 Jerry Han 做了网格实验：把 2019 年至今的训练配方和数据集两两配对，GPT-2 配最新的 Ultra-FineWeb，Delphi 配 Pile 这种老数据集，跑满整个网格。结论是数据带来约 12.0x 的算力效率提升，架构改进只带来约 3.7x，且是在很小的规模上。Charlie O'Neill 说互联网这块大块头已经被吃掉了，有用的东西不会以同样速度增长，大概还剩一堆 0.1% 的 loss 下降空间。他提到 Epoch 有人估计 2019 年以来每年 3x，累计超过 2000x，那缺的 100x 大概来自 post-training。",
+    "spk": "Dwarkesh Patel / Charlie O'Neill"
+   },
+   {
+    "t": 3780,
+    "h": "RL 需要课程，预训练不需要",
+    "body": "Beren Millidge 说这回到 RL 信号问题：RL 现在不擅长探索，如果模型 128 次 rollout 里拿不到，就基本不会有进步信号，所以 RL 需要 curricula，而预训练完全不需要。Charlie O'Neill 补充：预训练信号本来就在 Common Crawl 里，问题只是过滤噪声，这是可自动化的；但进入 mid-training 和 post-training，信号根本不在原始数据里，再怎么过滤也过滤不出来——Common Crawl 里没有藏着一个千禧年大奖难题的证明等着被筛出来。只能从别处拿 bit：让人写出推理过程、构造环境、或者用部署中的人类数据。",
+    "spk": "Beren Millidge / Charlie O'Neill"
+   },
+   {
+    "t": 4683,
+    "h": "RL 的成功大半来自中训练",
+    "body": "Beren Millidge 说，被低估的是 mid-training：用合成推理数据和环境做预训练，把模型「warm-start」到几乎走完 80% 到最终 RL checkpoint 的路，RL 只是在上面微调策略。所以它不需要从零学会这些行为，每个 episode 只要几个 bit 就够。他还强调这些 bit 的信噪比远高于普通预训练——SFT 里你必须逐 token 匹配另一个模型的推理过程，等于灌进太多关于「它怎么想」的 bit，把信号淹掉；RL 的目标函数忽略其他所有 bit，只留「答对没有」这一个。",
+    "spk": "Beren Millidge"
+   },
+   {
+    "t": 5312,
+    "h": "一年还是三年，差在长尾杂活",
+    "body": "被问到「什么时候能雇一个 drop-in 远程白领」时，Charlie O'Neill 说如果必须用浏览器操作，大概几年；如果能发 Slack、程序化访问，大概一年。Beren Millidge 说完整通用性也许三年，但组织会主动把自己改得对 AI 更友好，所以在那之前就能拿到 80-90%。分歧的实质是长尾：有些人类能做的杂事模型要很久。Charlie 举例，模型不会去「吼人」推进工作，它太nice了。John Schulman 则指出人类远程工作者质量方差本来就极大，Upwork 上找人做软件项目常常很难让他认真对待反馈，某些情况下 pre-AI 版本还不如现在的 AI。",
+    "spk": "Charlie O'Neill / Beren Millidge / John Schulman"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 0,
+    "spk": "John Schulman",
+    "raw": "There’s this cycle that keeps repeating where a new model comes out and people are blown away and they’re like, “This is it. This is AGI.” But then they use it a bit, and it starts to feel dumb after a month or so.",
+    "zh": "有一个不断重复的循环：新模型出来，人们被震撼，说「就是它，这就是 AGI」。但用上一阵子，一个月左右它就开始显得蠢了。"
+   },
+   {
+    "t": 0,
+    "spk": "Charlie O'Neill",
+    "raw": "We had this very nice straight line and that held for a really, really long time. But there were so many discrete discontinuities and innovations that had to happen to keep that scaling law going.",
+    "zh": "我们有一条非常漂亮的直线，它维持了非常非常久。但为了让那个 scaling law 继续下去，必须发生大量离散的断裂和创新。"
+   },
+   {
+    "t": 1119,
+    "spk": "John Schulman",
+    "raw": "Basically anything that can be learned through RL can be distilled very easily, because it’s a small number of bits.",
+    "zh": "基本上任何能通过 RL 学到的东西都能被非常容易地蒸馏，因为它只有很少的 bit。"
+   },
+   {
+    "t": 2678,
+    "spk": "Dwarkesh Patel",
+    "raw": "It’s so unfortunate that RSI happened to be easier than being a paralegal.",
+    "zh": "太不幸了，RSI 恰好比当律师助理更容易。"
+   },
+   {
+    "t": 3120,
+    "spk": "Charlie O'Neill",
+    "raw": "RL is good at getting capabilities in, but it’s not as good at getting knowledge in",
+    "zh": "RL 擅长把能力灌进去，但不那么擅长把知识灌进去。"
+   },
+   {
+    "t": 3586,
+    "spk": "Beren Millidge",
+    "raw": "There’s no hidden proof of a Millennium Prize problem sitting in Common Crawl that we can just filter until we see it.",
+    "zh": "Common Crawl 里没有藏着一个千禧年大奖难题的证明，等着我们一直过滤到看见它。"
+   },
+   {
+    "t": 4683,
+    "spk": "Beren Millidge",
+    "raw": "An awful lot of what we see as successes of RL actually comes from very, very good mid-training data, which is where we’re essentially doing pre-training but on synthetic reasoning data and the kind of environments that get the model warm-started for RL.",
+    "zh": "我们看到的 RL 的成功，很大一部分其实来自非常好的 mid-training 数据——本质上是在合成推理数据和那些让模型为 RL 预热的环境上做预训练。"
+   },
+   {
+    "t": 5312,
+    "spk": "Charlie O'Neill",
+    "raw": "An example of something that it wouldn’t be good at is if I have to yell at someone to get something at work, or really push someone to get something done. The model just isn’t going to do that. It’s going to be too nice.",
+    "zh": "一个它做不好的例子是：如果我在工作中必须冲某个人吼才能拿到东西，或者真的去推着某人把事做完。模型就是不会这么做。它太nice了。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "Charlie O'Neill 估计的「最大化当前目标」加速倍数",
+    "v": "10x",
+    "t": 0
+   },
+   {
+    "k": "Dwarkesh 假设的「没有超级智能」年份",
+    "v": "2036",
+    "t": 0
+   },
+   {
+    "k": "数据带来的算力效率提升",
+    "v": "约 12.0x",
+    "t": 3586
+   },
+   {
+    "k": "架构改进带来的算力效率提升",
+    "v": "约 3.7x",
+    "t": 3586
+   },
+   {
+    "k": "Epoch 估计的年均算力效率提升",
+    "v": "3x",
+    "t": 3586
+   },
+   {
+    "k": "RL 探索的 rollout 次数阈值",
+    "v": "128",
+    "t": 3780
+   },
+   {
+    "k": "模型可持续工作时长的翻倍周期",
+    "v": "每三个月翻一倍（EdgeBench）",
+    "t": 4683
+   },
+   {
+    "k": "mid-training 把模型带到最终 RL checkpoint 的进度",
+    "v": "约 80%",
+    "t": 4683
+   },
+   {
+    "k": "AI 研究员生产力 10x 的时间预测",
+    "v": "John Schulman 与 Beren Millidge：两年；Charlie O'Neill：5-10 年",
+    "t": 5312
+   },
+   {
+    "k": "全面超越人类专家的 AI 的时间预测",
+    "v": "John Schulman：3-4 年；Charlie O'Neill：5-10 年；Beren Millidge：约 5 年",
+    "t": 5312
+   }
+  ],
+  "terms": [
+   {
+    "term": "RSI",
+    "zh": "递归自我改进",
+    "def": "模型能改进自身训练或研究流程，从而加速下一代模型出现。"
+   },
+   {
+    "term": "sim-to-real gap",
+    "zh": "仿真到现实的差距",
+    "def": "在 benchmark 或模拟环境里表现好，迁移到真实世界就失效。"
+   },
+   {
+    "term": "mid-training",
+    "zh": "中训练",
+    "def": "预训练之后、RL 之前，用合成推理数据和环境做的一轮训练。"
+   },
+   {
+    "term": "entropy collapse",
+    "zh": "熵坍缩",
+    "def": "RL 训练后模型输出多样性大幅下降，反复产出同一种风格。"
+   },
+   {
+    "term": "logit distillation",
+    "zh": "logit 蒸馏",
+    "def": "让学生模型匹配老师模型输出的完整概率分布，而不只是最终答案。"
+   }
+  ],
+  "who": "关注 AI 能力边界与训练机制的工程师和研究者，尤其是想理解 RL 泛化、持续学习瓶颈和 mid-training 作用的人。",
+  "skip": "开头关于 2036 年场景的假设性讨论可以快进，机制部分从 44:38 开始。",
+  "tags": [
+   "RSI",
+   "持续学习",
+   "RL",
+   "mid-training",
+   "蒸馏"
+  ],
+  "quality": {
+   "transcript_source": "page",
+   "transcript_detail": "show page",
+   "words": 18790,
+   "wpm": 193.7,
+   "timed": false,
+   "verified_quotes": 8,
+   "grounded_facts": 10,
+   "points": 8,
+   "pruned": 0,
+   "approx_timestamps": true
+  }
+ },
+ "generated": "2026-09-11T20:54:04Z",
+ "triage": {
+  "score": 7.0,
+  "why": "前沿研究者对递归自我改进给出可反驳的具体判断与机制细节，密度高",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "340d4dad65"
+ },
+ "review": {
+  "score": 7.0,
+  "dims": {
+   "density": 8,
+   "faithful": 8,
+   "selection": 7,
+   "concrete": 8,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点多为判断与机制，数字具体，忠实度无硬伤；但抽样里 33:57 的 RLVR 规模化赌注与 1:24:42 的熵坍缩讨论被整段丢掉，选择力扣一分。",
+  "worst": "抽样中 [33:57] 关于「把 RLVR 训练扩展到百万级任务」的赌注、[1:24:42] 关于熵坍缩与策略更新稀疏的讨论，都比成稿里 [0:00] 那条「模型一个月后又显得蠢」的循环描述更值钱，却完全没进稿。"
+ },
+ "model": "openai:deepseek-chat"
+}
