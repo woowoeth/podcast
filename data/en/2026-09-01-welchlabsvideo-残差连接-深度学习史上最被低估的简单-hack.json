@@ -5,7 +5,7 @@
  "title": "Residual Connections: Deep Learning's Most Underrated Simple Hack",
  "dek": "ResNet is the most cited paper of the 21st century, but its real contribution isn't making networks deeper — it's inventing the residual stream, a kind of working memory that lets a model store and edit information, and that fundamentally changed how we understand neural networks.",
  "why": "With clear animations and experiments, this episode explains why residual connections work, how they gave rise to the Transformer, and the evidence that the residual stream acts as working memory. Suited to anyone who wants to understand the essence of modern AI architecture.",
- "who": "Deep learning researchers, AI engineers, and technically curious people who want to know how neural networks work under the hood.",
+ "who": "Deep learning researchers, AI engineers, and technically curious people who want to understand the low-level mechanics of neural networks.",
  "skip": "The sponsor segment interviewing Jane Street (21:20-23:21) can be skipped without losing the main thread.",
  "tags": [
   "ResNet",
@@ -22,23 +22,23 @@
   },
   {
    "h": "Shattered gradients are the root disease of deep networks",
-   "body": "By visualizing the loss landscape, they found that as depth increases, the loss surface of early layers becomes extremely rugged and gradient directions turn as random as white noise — the ‘shattered gradients problem’. Gradients are the core signal of learning; once they fail, deep networks can't be trained effectively."
+   "body": "Visualizing the loss landscape revealed that as layers increase, the loss surface of early layers becomes extremely rugged, and gradient directions turn as random as white noise — the ‘shattered gradients problem’. Gradients are the core signal of learning; once they fail, deep networks cannot be trained effectively."
   },
   {
    "h": "Residual connections: an almost absurdly simple fix",
    "body": "Sun Jian's team's solution was laughably simple: between every two layers, add the input tensor directly to the output, forming a skip connection. This gives activations and gradients a direct path, effectively eliminating the shattered gradients problem. A 74-layer network with skip connections jumped from 38.9% to 72.6% accuracy, sweeping the major 2015 vision competitions."
   },
   {
-   "h": "ResNet overturns the theory of hierarchical representations",
-   "body": "A Cornell team found that deleting or even shuffling ResNet's layers has little effect on performance. This contradicted the then-mainstream hierarchical representation theory — which held that each layer builds on the previous one, so deleting any layer should be catastrophic. It forced the field to rethink: ResNet may not be learning hierarchical features but iteratively refining a ‘residual stream’ that runs through the whole network."
+   "h": "ResNet upended hierarchical representation theory",
+   "body": "A Cornell team found that deleting or even shuffling ResNet's layers had little effect on performance. This contradicted the then-mainstream hierarchical representation theory — which held that each layer builds on the previous one, so deleting any layer should be catastrophic. It forced the field to rethink: ResNet may not be learning hierarchical features but iteratively refining a ‘residual stream’ that runs through the whole network."
   },
   {
    "h": "The residual stream: modern AI's hidden backbone",
-   "body": "Straighten out the skip connections and you see an uninterrupted stream from input to output, with each layer merely making incremental edits on top. This ‘residual stream’ later became the core design of the Transformer and the cornerstone of modern AI. But note: follow-up work shows ResNet both learns hierarchical representations and refines the residual stream — the two can coexist."
+   "body": "Straighten out the skip connections and you see an uninterrupted stream from input to output, with each layer merely making incremental edits on top. This ‘residual stream’ later became the core design of the Transformer and the cornerstone of modern AI. But note: later research showed ResNet both learns hierarchical representations and refines the residual stream — the two can coexist."
   },
   {
    "h": "The residual stream is the model's working memory",
-   "body": "A Meta team found that in a vision Transformer's residual stream, activations at certain positions are unusually large and concentrated in unimportant regions of the image. They hypothesized the model treats these positions as ‘registers’ for aggregating global information. Experiments confirmed it: the embeddings at these high-activation positions perform astonishingly well on image classification (85.2% vs 10.8%), and once extra ‘register tokens’ are added, the model no longer occupies image positions."
+   "body": "Meta's team found that in a vision Transformer's residual stream, activations at certain positions are unusually large, and concentrated in unimportant regions of the image. They hypothesized the model treats these positions as ‘registers’ to aggregate global information. Experiments confirmed it: the embeddings at these high-activation positions performed astonishingly well on image classification (85.2% vs 10.8%), and after adding extra ‘register tokens’, the model no longer occupied image positions."
   }
  ],
  "terms": [
@@ -52,11 +52,11 @@
   },
   {
    "term": "Register tokens",
-   "def": "Extra embedding vectors added to store global information, avoiding the need to occupy image positions."
+   "def": "Extra embedding vectors added to store global information, avoiding occupation of image positions."
   },
   {
    "term": "Shattered gradients problem",
-   "def": "Increasing depth makes gradients as random as white noise, rendering training ineffective."
+   "def": "As depth increases, gradients become as random as white noise, rendering training ineffective."
   }
  ],
  "facts": [

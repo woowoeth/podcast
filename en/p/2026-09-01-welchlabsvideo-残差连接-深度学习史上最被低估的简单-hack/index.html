@@ -85,19 +85,19 @@ else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
 <p class="body">In early 2015, Sun Jian&#x27;s team used careful initialization to push a network to 30 layers, but performance got worse than 14 layers (error rate 16.59% vs 13.34%). In theory, a 30-layer model could match a 14-layer one at minimum via identity mappings, but the optimizer couldn&#x27;t find such a solution. This suggests the problem isn&#x27;t network capacity but the training process itself.</p>
 </div></div>
 <div class="point" id="p1"><a class="ts" data-t="918" href="https://www.youtube.com/watch?v=QgH9sr7G13Q&amp;t=918s" target="_blank" rel="noopener">15:18</a><div><h4>Shattered gradients are the root disease of deep networks</h4>
-<p class="body">By visualizing the loss landscape, they found that as depth increases, the loss surface of early layers becomes extremely rugged and gradient directions turn as random as white noise — the ‘shattered gradients problem’. Gradients are the core signal of learning; once they fail, deep networks can&#x27;t be trained effectively.</p>
+<p class="body">Visualizing the loss landscape revealed that as layers increase, the loss surface of early layers becomes extremely rugged, and gradient directions turn as random as white noise — the ‘shattered gradients problem’. Gradients are the core signal of learning; once they fail, deep networks cannot be trained effectively.</p>
 </div></div>
 <div class="point" id="p2"><a class="ts" data-t="1038" href="https://www.youtube.com/watch?v=QgH9sr7G13Q&amp;t=1038s" target="_blank" rel="noopener">17:18</a><div><h4>Residual connections: an almost absurdly simple fix</h4>
 <p class="body">Sun Jian&#x27;s team&#x27;s solution was laughably simple: between every two layers, add the input tensor directly to the output, forming a skip connection. This gives activations and gradients a direct path, effectively eliminating the shattered gradients problem. A 74-layer network with skip connections jumped from 38.9% to 72.6% accuracy, sweeping the major 2015 vision competitions.</p>
 </div></div>
-<div class="point" id="p3"><a class="ts" data-t="1219" href="https://www.youtube.com/watch?v=QgH9sr7G13Q&amp;t=1219s" target="_blank" rel="noopener">20:19</a><div><h4>ResNet overturns the theory of hierarchical representations</h4>
-<p class="body">A Cornell team found that deleting or even shuffling ResNet&#x27;s layers has little effect on performance. This contradicted the then-mainstream hierarchical representation theory — which held that each layer builds on the previous one, so deleting any layer should be catastrophic. It forced the field to rethink: ResNet may not be learning hierarchical features but iteratively refining a ‘residual stream’ that runs through the whole network.</p>
+<div class="point" id="p3"><a class="ts" data-t="1219" href="https://www.youtube.com/watch?v=QgH9sr7G13Q&amp;t=1219s" target="_blank" rel="noopener">20:19</a><div><h4>ResNet upended hierarchical representation theory</h4>
+<p class="body">A Cornell team found that deleting or even shuffling ResNet&#x27;s layers had little effect on performance. This contradicted the then-mainstream hierarchical representation theory — which held that each layer builds on the previous one, so deleting any layer should be catastrophic. It forced the field to rethink: ResNet may not be learning hierarchical features but iteratively refining a ‘residual stream’ that runs through the whole network.</p>
 </div></div>
 <div class="point" id="p4"><a class="ts" data-t="1586" href="https://www.youtube.com/watch?v=QgH9sr7G13Q&amp;t=1586s" target="_blank" rel="noopener">26:26</a><div><h4>The residual stream: modern AI&#x27;s hidden backbone</h4>
-<p class="body">Straighten out the skip connections and you see an uninterrupted stream from input to output, with each layer merely making incremental edits on top. This ‘residual stream’ later became the core design of the Transformer and the cornerstone of modern AI. But note: follow-up work shows ResNet both learns hierarchical representations and refines the residual stream — the two can coexist.</p>
+<p class="body">Straighten out the skip connections and you see an uninterrupted stream from input to output, with each layer merely making incremental edits on top. This ‘residual stream’ later became the core design of the Transformer and the cornerstone of modern AI. But note: later research showed ResNet both learns hierarchical representations and refines the residual stream — the two can coexist.</p>
 </div></div>
 <div class="point" id="p5"><a class="ts" data-t="1768" href="https://www.youtube.com/watch?v=QgH9sr7G13Q&amp;t=1768s" target="_blank" rel="noopener">29:28</a><div><h4>The residual stream is the model&#x27;s working memory</h4>
-<p class="body">A Meta team found that in a vision Transformer&#x27;s residual stream, activations at certain positions are unusually large and concentrated in unimportant regions of the image. They hypothesized the model treats these positions as ‘registers’ for aggregating global information. Experiments confirmed it: the embeddings at these high-activation positions perform astonishingly well on image classification (85.2% vs 10.8%), and once extra ‘register tokens’ are added, the model no longer occupies image positions.</p>
+<p class="body">Meta&#x27;s team found that in a vision Transformer&#x27;s residual stream, activations at certain positions are unusually large, and concentrated in unimportant regions of the image. They hypothesized the model treats these positions as ‘registers’ to aggregate global information. Experiments confirmed it: the embeddings at these high-activation positions performed astonishingly well on image classification (85.2% vs 10.8%), and after adding extra ‘register tokens’, the model no longer occupied image positions.</p>
 </div></div></section>
 <section class="section"><h2>In their own words · checked verbatim</h2><blockquote class="quote"><p class="raw">So if the 30 layer model was capable of achieving at least the same performance as the 14 layer model, then why couldn&#x27;t the team&#x27;s optimizers find these solutions?</p>
 
@@ -130,11 +130,11 @@ else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
 <tr><td class="k">Accuracy of non-high-activation embeddings on the Cars dataset</td><td class="v">10.8%</td><td class="t"><a class="ts" data-t="1768" href="https://www.youtube.com/watch?v=QgH9sr7G13Q&amp;t=1768s" target="_blank" rel="noopener">29:28</a></td></tr></table></section>
 <section class="section"><h2>Glossary</h2><dl class="terms"><div><dt>Residual stream<span></span></dt><dd>The continuous path of data flowing through the network from input to output, with each layer making only incremental edits.</dd></div>
 <div><dt>Skip connection<span></span></dt><dd>The operation of adding the input tensor directly to a layer&#x27;s output, providing a shortcut for gradients.</dd></div>
-<div><dt>Register tokens<span></span></dt><dd>Extra embedding vectors added to store global information, avoiding the need to occupy image positions.</dd></div>
-<div><dt>Shattered gradients problem<span></span></dt><dd>Increasing depth makes gradients as random as white noise, rendering training ineffective.</dd></div></dl></section>
+<div><dt>Register tokens<span></span></dt><dd>Extra embedding vectors added to store global information, avoiding occupation of image positions.</dd></div>
+<div><dt>Shattered gradients problem<span></span></dt><dd>As depth increases, gradients become as random as white noise, rendering training ineffective.</dd></div></dl></section>
 <section class="section"><h2>How to listen</h2>
 <div class="panel guide">
-<div><span class="k">Who it's for</span><p>Deep learning researchers, AI engineers, and technically curious people who want to know how neural networks work under the hood.</p></div>
+<div><span class="k">Who it's for</span><p>Deep learning researchers, AI engineers, and technically curious people who want to understand the low-level mechanics of neural networks.</p></div>
 <div><span class="k">Skip</span><p>The sponsor segment interviewing Jane Street (21:20-23:21) can be skipped without losing the main thread.</p></div>
 </div></section>
 <nav class="prevnext"><a href="/podcast/en/p/2026-09-01-darknetdiaries-持州法院授权测安防-警长却说合同无效/"><span class="lbl">← Newer</span><strong>A State Court Authorized the Security Test. The Sheriff Said the Contract Was Void.</strong></a><a class="r" href="/podcast/en/p/2026-08-31-excessreturns-美联储信誉崩塌-期权市场却当无事发生/"><span class="lbl">Older →</span><strong>The Fed&#x27;s Credibility Breaks, and the Options Market Shrugs</strong></a></nav>
@@ -153,7 +153,7 @@ else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
 <div class="panel"><h4>On this page</h4><nav class="toc"><a href="#p0"><span class="t">2:07</span><span>Deeper networks perform worse, not better</span></a>
 <a href="#p1"><span class="t">15:18</span><span>Shattered gradients are the root disease of deep networks</span></a>
 <a href="#p2"><span class="t">17:18</span><span>Residual connections: an almost absurdly simple fix</span></a>
-<a href="#p3"><span class="t">20:19</span><span>ResNet overturns the theory of hierarchical representations</span></a>
+<a href="#p3"><span class="t">20:19</span><span>ResNet upended hierarchical representation theory</span></a>
 <a href="#p4"><span class="t">26:26</span><span>The residual stream: modern AI&#x27;s hidden backbone</span></a>
 <a href="#p5"><span class="t">29:28</span><span>The residual stream is the model&#x27;s working memory</span></a></nav></div>
 

@@ -3,9 +3,9 @@
  "of": "oxide-97e5cbd113",
  "source_lang": "en",
  "title": "Emulating to the point of running stock firmware is where you cross the line into lying",
- "dek": "Voxel squeezed an entire Oxide rack into one mini PC in twelve weeks, but the real bar isn't getting it to boot — it's running unmodified main software on stock firmware. That's the line between emulation and self-deception.",
- "why": "Worth hearing for anyone working the hardware-software boundary, on emulation environments or internal tooling: it's about how fidelity gets defined, when it's good enough, and how far LLMs actually help in system modeling.",
- "who": "Engineers and CTOs working the hardware-software boundary, on emulation environments or internal toolchains — especially teams stuck on the question of how much fidelity is enough.",
+ "dek": "Voxel squeezed an entire Oxide rack into a mini PC in twelve weeks, but the real bar isn't getting it to boot — it's running unmodified main software on stock firmware. That's the line between emulation and self-deception.",
+ "why": "Worth hearing for anyone working at the hardware-software boundary, on emulation environments, or on internal tooling: it's about how fidelity gets defined, when it's good enough, and how far LLMs actually help in system modeling.",
+ "who": "Engineers and CTOs working at the hardware-software boundary, on emulation environments, or on internal toolchains — especially teams stuck on the question of how much fidelity is enough.",
  "skip": "If rack hardware details don't move you, skip the technical stretch around 38:00 on polling and register modeling.",
  "tags": [
   "Emulation",
@@ -17,35 +17,35 @@
  "points": [
   {
    "h": "The test environment is always twenty-seventh in line",
-   "body": "Steve Karam says anyone who's done software development or IT knows the test environment usually isn't second fiddle — it's twenty-seventh fiddle, ahead only of education and enablement environments and docs. And when your product is an entire rack, the problem gets especially hard: the rack itself, the fabric, the sleds, the switch zone, the SP, the root of trust — every layer needs one. So Oxide has multiple fidelity tiers: dog food racks, the racklet mini rack, single-instance Omicron (simulated or physical on Helios) — but it was missing a middle tier that's easier than a racklet yet higher fidelity than a single chassis."
+   "body": "Steve Karam says anyone who's done software development or IT knows the test environment usually isn't second fiddle — it's twenty-seventh fiddle, ahead only of education and enablement environments and documentation. And when your product is an entire rack, the problem is especially hard: the rack itself, the fabric, the sleds, the switch zone, the SP, the root of trust — every layer needs one. So Oxide has multiple fidelity tiers: dog food racks, the racklet mini rack, single-instance Omicron (simulated or physical running on Helios) — but it was missing a middle tier that's easier than the racklet and higher fidelity than a single chassis."
   },
   {
-   "h": "Four by two compressed everything into boot time",
-   "body": "Voxel's predecessor was called four by two, and it defined what a rack should look like through a pile of shell scripts, bringing up a virtual rack at boot with cargo bay, shared disks, networking and emulated networking. It did work — IPv6 and unnumbered BGP were first tested on four by two. But Steve points out the fatal flaw: doing everything at boot time is a recipe for disaster — boot took forty minutes, it was hard to self-heal, and \"you know it's going to crash in the last two minutes of that fortieth minute.\" So Ryan Goodfellow proposed a rewrite and named it Voxel: Virtual Oxide Emulation Labs."
+   "h": "Four by two crammed everything into boot time",
+   "body": "Voxel's predecessor was called four by two, and it used a pile of shell scripts to define what the rack should look like, bringing up a virtual rack at boot with cargo bay, shared disks, networking and emulated networking. It did work — IPv6 and unnumbered BGP were first tested on four by two. But Steve points out the fatal flaw: doing everything at boot time is a recipe for disaster — boot took forty minutes, it was hard to self-heal, and \"you know it's going to crash in the last two minutes of that fortieth minute.\" So Ryan Goodfellow proposed a rewrite and came up with the name Voxel: Virtual Oxide Emulation Labs."
   },
   {
    "h": "Voxel splits build and deploy into two steps",
-   "body": "The biggest difference from four by two is that Voxel separates build from deploy: give it an Omicron commit and it clones, compiles, produces a perfectly formed sled image and snapshots it, then reuses that snapshot to play every sled and gimlet. The other big change is a full rewrite in Rust, shedding shell scripts as much as possible. Because one snapshot has to play six roles, something has to tell it what to be — Voxel has a built-in agent written in Rust, shipped down as each sled boots, telling it \"you're the switch,\" \"you're sled 1,\" \"you're sled 2.\""
+   "body": "The biggest difference from four by two is that Voxel separates build from deploy: given an Omicron commit, it clones, compiles, produces a perfectly formed sled image and snapshots it, then reuses that snapshot to play every sled and gimlet. The other big change is that it's all rewritten in Rust, shedding shell scripts as much as possible. Because one snapshot has to play six roles, something has to tell it what to be — Voxel has a built-in agent written in Rust, shipped down as each sled boots, telling it \"you're the switch,\" \"you're sled 1,\" \"you're sled 2.\""
   },
   {
    "h": "LLMs are great at enumerating registers, bad at judging threads",
-   "body": "Steve says LLMs are very strong at enumerating registers and finding the bits and pieces that make up a complete system, because nobody can hold an entire rack in their head; with RFDs and design docs as context, the results get much clearer. But elsewhere it confidently reaches wrong conclusions: he once had the root of trust and the SP share a single thread for communication, and the LLM said that was absolutely not a problem — after splitting them, performance improved 500x, and only then could the rack bring both up at once."
+   "body": "Steve says LLMs are very strong at enumerating registers and finding the bits and pieces that make up a complete system, because nobody can hold an entire rack in their head; with RFDs and design docs as context, the results get much clearer. But elsewhere it confidently reaches wrong conclusions: he once had the root of trust and the SP share a single thread for communication, and the LLM said that was absolutely not a problem — after splitting them, performance improved 500x, and only then could the rack bring up both at once."
   },
   {
-   "h": "Don't touch the main software — that's Voxel's line",
-   "body": "Steve says Voxel has a creed it tries hard to hold: don't modify the main software. While doing multi rack he stuffed all kinds of hacks into Voxel to make Voxel and Omicron pretend multi-rack was already supported — for instance, creating a port that doesn't exist in Omicron at all but magically exists in Voxel. Robert said on the company channel that you shouldn't create things that don't actually exist in Omicron. Steve admits he was right: it's putting the cart before the horse, and it's the trap you fall into when doing emulation — you start rewriting the foundation, and then you think \"why not.\""
+   "h": "Don't touch the main software — that's Voxel's bottom line",
+   "body": "Steve says Voxel has a creed it tries hard to hold: don't modify the main software. When he was working on multi rack, he stuffed all kinds of hacks into Voxel to make Voxel and Omicron pretend multi-rack was already supported — for instance, creating a port that doesn't exist in Omicron at all but magically exists in Voxel. Robert said on the company channel that you shouldn't create things that don't actually exist in Omicron. Steve admits he was right: it's putting the cart before the horse, and it's the trap you easily fall into when doing emulation — you start rewriting the foundation, and then you think \"why not.\""
   },
   {
    "h": "Simulation returns expected values; emulation exposes the truth",
-   "body": "Steve distinguishes simulation from emulation: SP SIM is a set of lightweight stubs that respond to the sled like a real SP, enough to complete virtual rack initialization and come online, but it isn't a microcontroller. That's classic simulation — it returns expected responses, mostly walks the happy path, and from a testing standpoint that's exactly the problem. He gave Claude a weekend task to write an STM32 H753 microcontroller emulator, since he couldn't find an existing Rust option. The first run booted but could barely do anything; after another two or three hours of tuning, it successfully flashed a minimal hubris archive and the machine came up."
+   "body": "Steve distinguishes simulation from emulation: SP SIM is a set of lightweight stubs that respond to the sled like a real SP and can complete virtual rack initialization and come online, but it isn't a microcontroller. That's classic simulation — it returns the expected response, mostly walks the happy path, which from a testing standpoint is exactly the problem. He gave Claude a weekend task to write an STM32 H753 microcontroller emulator, because he couldn't find an existing Rust option. The first run booted but could barely do anything; after another two or three hours of tuning, it successfully flashed a minimal hubris archive and the machine came up."
   },
   {
    "h": "Polling-style initialization kills emulation performance",
-   "body": "Oxide's initialization is very pull heavy: services poll for updates at a near-constant rate. That's terrible for an emulated service processor, because staying in a wait state means spinning the thread, which utterly destroys emulation's already-modest performance. And a real SP needs a whole pile of instructions — QSPI host boot flash, SP rot talking to the root of trust, ignition registers. Steve's approach was to repeatedly bring up the Voxel lab, watch why RSS wouldn't come up, find it stuck somewhere like recording temperature measurements, then add the minimal instruction set and minimal sensor set one at a time."
+   "body": "Oxide's initialization is very pull heavy: services poll for updates at a nearly constant frequency. That's terrible for an emulated service processor, because staying in a wait state means spinning the thread, which utterly destroys emulation's already-modest performance. And a real SP needs a whole pile of instructions — QSPI host boot flash, SP rot talking to the root of trust, ignition registers. Steve's approach was to repeatedly bring up the Voxel lab, watch why RSS wouldn't come up, find it stuck somewhere like recording temperature measurements, and then add the minimal instruction set and minimal sensor set one at a time."
   },
   {
    "h": "Running stock firmware is where you cross the line into lying",
-   "body": "Steve gives his standard for \"when is it enough\": Voxel plus SP EMU can run a full multi-node or multi-rack lab inside a single Helios chassis, using unmodified stock Omicron (whether from source or from the tough repo), running stock hubris images — the sidecar and Gimlet images are the ones that ship with the product, with no modifications. He says when the emulation works with your shipping product, that's the boundary of the lie. Ben Stoltz also added Boodleby (root of trust secure boot) and Glasgow Bridge, so it can do traces with humility and even run Oxide's native system update to flash firmware."
+   "body": "Steve gives his standard for \"when is it enough\": Voxel plus SP EMU can run a complete multi-node or multi-rack lab inside a single Helios chassis, using unmodified stock Omicron (whether from source or from the tough repo), running stock hubris images — the sidecar and Gimlet images are the ones that ship with the product, with no modifications. He says that when emulation works with your shipping product, that's the boundary of the lie. Ben Stoltz also added Boodleby (root of trust secure boot) and Glasgow Bridge, so it can do tracing with humility and even run Oxide's native system update to flash firmware."
   }
  ],
  "terms": [
@@ -55,7 +55,7 @@
   },
   {
    "term": "four by two",
-   "def": "Voxel's predecessor, which brought up a virtual rack at boot using shell scripts."
+   "def": "Voxel's predecessor, which used shell scripts to bring up a virtual rack at boot time."
   },
   {
    "term": "simulation vs emulation",
@@ -71,7 +71,7 @@
   },
   {
    "term": "commissioning API",
-   "def": "Wicket's versioned, official API for rack initialization and recovery-style updates."
+   "def": "Wicket's versioned, official API, used for rack initialization and recovery-style updates."
   }
  ],
  "facts": [
