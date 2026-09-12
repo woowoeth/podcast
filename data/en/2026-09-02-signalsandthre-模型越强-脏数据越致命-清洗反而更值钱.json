@@ -3,12 +3,12 @@
  "of": "signalsandthre-e536ad01e0",
  "source_lang": "en",
  "title": "Stronger Models Make Dirty Data Deadlier: Cleaning Is Worth More, Not Less",
- "dek": "Jane Street's alternative data team found that once data leaks future information into the past, the stronger the model, the more dangerous it gets; pinning down what was known at the time is worth more than tuning the model.",
- "why": "This episode is a dense account of how data engineering actually creates value, and the second half — on corrected data, timestamps and cost models — carries judgments you won't hear in most AI discussions.",
+ "dek": "Jane Street's alternative data team found that once data leaks future information into the past, the stronger the model, the more dangerous it gets; pinning down \"what was known at the time\" is worth more than tuning the model.",
+ "why": "This episode is a dense account of how data engineering actually creates value; the second half, on corrected data, timestamps and cost models, contains judgments you won't hear in most AI discussions.",
  "who": "CTOs who want to build a data team, quants evaluating data vendors, and engineers who believe large models will clean data automatically.",
- "skip": "Purely technical listeners can jump to the data engineering after 33 minutes, but don't miss the negative oil price at 19 minutes.",
+ "skip": "Purely technical listeners can skip to the data engineering after 33 minutes, but don't miss the negative oil price at 19 minutes.",
  "tags": [
-  "Alt Data",
+  "Alternative Data",
   "Data Engineering",
   "Quant Trading",
   "Jane Street",
@@ -18,27 +18,27 @@
  "points": [
   {
    "h": "Once a pattern is found, competition eats it",
-   "body": "This is what Eric defines as an anti-inductive environment: in trading, the patterns you find are often quickly absorbed by other people and the market, and then stop working; knowledge that accumulates over the long run like a law of physics is rare. Because of this, the signal-to-noise ratio of trading data is naturally ugly — the whole mechanism of the market is to keep squeezing out extractable signal, leaving what remains closer and closer to a random walk. To keep winning, you have to keep finding new facts rather than guarding old patterns."
+   "body": "This is what Eric defines as an anti-inductive environment: in trading, the patterns you find are often quickly absorbed by other people and the market, and then stop working; very little knowledge can be accumulated over the long run the way physical laws can. For the same reason, the signal-to-noise ratio of trading data is inherently ugly — the whole mechanism of the market is to keep squeezing out extractable signal, leaving what remains ever closer to a random walk. To keep winning, you have to keep finding new facts rather than guarding old regularities."
   },
   {
-   "h": "Prices can go negative, so don't hard-code assumptions",
+   "h": "Prices can go negative, so don't hard-code assumptions into the system",
    "body": "On April 20, 2020, the settlement price of near-expiry crude oil futures on the CME closed negative — just for that one day, and the final settlement price later returned to positive. The reason wasn't that oil had no value, but that storage space at the delivery point, Cushing, was nearly full and nobody wanted to take physical delivery. Order and risk systems that had long assumed prices must be positive failed on the spot: some people couldn't place orders, others didn't know how to handle negative returns. Eric's conclusion is that a large part of trading is understanding the boring details of reality: tank capacity, contract multipliers, quote units. Only when the system gets these details right can you draw a ceiling on risk."
   },
   {
-   "h": "Domain experts don't know how good tools could be",
-   "body": "For data and systems to be genuinely usable, the bottleneck is often not writing code but translation. Eric observes that traders have a high tolerance for painful workflows, ground down by Excel and manual processes to the point where they don't know they deserve better tools; conversely, software engineers who don't understand the trading domain can only build to a narrow spec. So his job is to explain the domain's real mechanics to engineers, and to explain \"how good it could get\" to traders. Jane Street now has such an embedded developer on every desk, and that role grew out of exactly this."
+   "h": "Domain experts don't know how good good tools can be",
+   "body": "For data and systems to be genuinely usable, the bottleneck is often not writing code but translation. Eric observes that traders have a high tolerance for painful workflows, ground down by Excel and manual processes to the point where they don't know they deserve better tools; conversely, software engineers who don't understand the trading domain can only build to a narrow spec. So his job is to explain the domain's real mechanics to engineers, and to explain \"how good it could be\" to traders. Jane Street now has such an embedded developer on every desk, and that role grew out of exactly this."
   },
   {
-   "h": "The number of parking spaces is not sales",
-   "body": "The classic example of alternative data is counting cars in Walmart parking lots — the fuller the cars, the better the business. Eric says this example is actually terrible: what you want to infer is spending, and parking spaces only tell you foot traffic, very indirectly; about 20% of Walmart shopping happens online, and a city like New York has no parking lots to count. The more direct signal is on the transaction side: card-issuing banks, the Visa/Mastercard networks, and credit union processing systems know how much people actually spent, and can sell anonymised aggregate statistics to buyers."
+   "h": "The number of parking spaces is not the sales figure",
+   "body": "The classic example of alternative data is counting cars in Walmart parking lots, where more people per car means better business. Eric says this example is actually terrible: what you want to infer is consumer spending, but parking spaces only tell you foot traffic, very indirectly; about 20% of Walmart's shopping happens online, and a city like New York has no parking lots to count. The more direct signal is on the transaction side: card-issuing banks, the Visa/Mastercard networks, and credit unions' processing systems know how much people actually spent, and can sell anonymised aggregate statistics to buyers."
   },
   {
    "h": "Corrected data turns a backtest into a time machine",
-   "body": "When deciding whether to subscribe to a dataset, the vendor may already have corrected past errors; backtesting on the pretty corrected data doesn't test what you would actually have received at the time, but the right answer you only learned later. Eric says this is equivalent to simulating that you own a time machine. Jane Street's solution is to keep every raw piece of data and the local timestamp at which it arrived, so that no matter how many transformations you do later, you can reconstruct \"what exactly did we know at that moment\". This is the same logic as distrusting exchange timestamps and trusting only your own data's arrival time."
+   "body": "When deciding whether to subscribe to a dataset, the vendor may already have corrected past errors; backtesting on the pretty corrected data doesn't test the data you would actually have received at the time, but the right answers you only learned later. Eric says this is equivalent to simulating that you own a time machine. Jane Street's solution is to keep every raw piece of data and the local timestamp at which it was received, so that no matter how many transformations you do later, you can reconstruct \"what exactly we knew at that moment\". This is the same logic as distrusting exchange timestamps and trusting only your own data's arrival time."
   },
   {
    "h": "LLMs know the future, so keep them off historical data",
-   "body": "AI hits alternative data on two levels: stronger predictive models raise the value of good data, and LLMs make it easy to extract features from text. But watch out for a causal trap — using the latest LLM to featurize old documents drags in what happened later: it knows how Enron ended, and it may have seen later revisions of that financial report in its training data. This amounts to creating a new future-information leak, and when handling historical data you especially need to pin down which point-in-time model you're using."
+   "body": "AI hits alternative data on two levels: stronger predictive models raise the value of good data, and LLMs make it easy to extract features from text. But watch out for a causal trap — using the latest LLM to featurize old documents drags in what happened later: it knows how Enron ended, and it may have seen later revisions of that financial report in its training data. This amounts to creating a new future-information leak, and when handling historical data you especially need to pin down \"which point-in-time model was used\"."
   },
   {
    "h": "The stronger the model, the more data cleaning is worth",
@@ -46,13 +46,13 @@
   },
   {
    "h": "Usage-based billing pushes teams to keep saving money",
-   "body": "Jane Street runs its data warehouse in its own machine room, and it isn't purely about control. Eric's observation is that moving the same queries to a cloud vendor billed by reads or compute time gets expensive enough that you feel \"this money could buy a pile of hardware\". More important is the distorting effect of the cost model — usage-based billing makes teams constantly optimise the bill and reshape workloads to accommodate the billing; once you self-host, cost becomes a one-time hardware investment, and the team spends its time on research and queries themselves rather than on saving money."
+   "body": "Jane Street runs its data warehouse in its own machine room, and it isn't purely about control. Eric's observation: move the same queries to a cloud vendor billed by bytes read or compute time, and the price is high enough that you think \"this money would buy a pile of hardware\". More important is the distorting effect of the cost model — usage-based billing makes teams constantly optimise the bill and reshape workloads to accommodate the billing; once you build your own, cost becomes a one-off hardware investment, and the team spends its time on research and queries themselves rather than on saving money."
   }
  ],
  "terms": [
   {
    "term": "alt data",
-   "def": "External data used for investment decisions but not traditional data such as exchange quotes, e.g. satellite imagery and consumer aggregates."
+   "def": "External data used for investment judgments but not traditional data such as exchange quotes, e.g. satellite imagery and consumer aggregates."
   },
   {
    "term": "anti-inductive environment",
@@ -60,25 +60,25 @@
   },
   {
    "term": "point-in-time data",
-   "def": "Data that records only what was already known at the time, with no future information."
+   "def": "Data that records only what was already known at the time and contains no future information."
   },
   {
    "term": "desk dev",
-   "def": "An engineer embedded in a trading desk, combining domain understanding with systems development."
+   "def": "An engineer embedded in a trading desk who combines domain understanding with systems development."
   }
  ],
  "facts": [
   {
    "k": "Number of data engineers at Jane Street",
-   "v": "The first one only arrived in 2023; today about 20-plus"
+   "v": "The first one only arrived in 2023; today there are about 20-plus"
   },
   {
-   "k": "Walmart online shopping share",
+   "k": "Walmart's share of online shopping",
    "v": "About 20%"
   },
   {
    "k": "Negative crude oil futures settlement event",
-   "v": "Closed negative for one day on April 20, 2020, and the final settlement price turned positive"
+   "v": "Closed negative for one day on April 20, 2020; the final settlement price turned positive"
   },
   {
    "k": "Data engineer intern development timeline",
