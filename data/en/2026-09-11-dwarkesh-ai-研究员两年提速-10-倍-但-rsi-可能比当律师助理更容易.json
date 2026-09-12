@@ -3,9 +3,9 @@
  "of": "dwarkesh-405130a542",
  "source_lang": "en",
  "title": "AI researchers sped up 10x in two years, but RSI may be easier than being a paralegal",
- "dek": "RSI is a cumulative task: in theory a Python file under a million tokens could train a recursively self-improving model from scratch. A law-firm paralegal, by contrast, has to remember shifting interpersonal relationships and tacit ways of doing things — a non-stationary distribution.",
+ "dek": "RSI is a cumulative task: in theory a Python file under a million tokens could train a recursively self-improving model from scratch. A law firm's paralegal, by contrast, has to remember shifting interpersonal relationships and tacit ways of doing things — a non-stationary distribution.",
  "why": "The three researchers' disagreements about RSI, continual learning and RL generalisation are very concrete, and the second half's mechanistic explanation of mid-training and signal-to-noise is the most valuable part of the episode.",
- "who": "Engineers and researchers tracking the boundaries of AI capability and training mechanics, especially anyone wanting to understand RL generalisation, the continual-learning bottleneck and what mid-training does.",
+ "who": "Engineers and researchers tracking the boundaries of AI capability and training mechanics, especially anyone wanting to understand RL generalisation, the continual-learning bottleneck and what mid-training actually does.",
  "skip": "The opening hypothetical about the 2036 scenario can be fast-forwarded; the mechanics section starts at 44:38.",
  "tags": [
   "RSI",
@@ -16,42 +16,42 @@
  ],
  "points": [
   {
-   "h": "A model looks smart, then a month later looks dumb again",
-   "body": "John Schulman describes a recurring loop: a new model comes out, people are blown away and say ‘this is AGI’, but after about a month of use it starts to look dumb again. This loop may keep repeating, and it's hard to predict how many more times. His mechanism: capability won't explode right now, because doing research and engineering you still get stuck at bottlenecks — even if a model can write far more code than a human, it won't give you a 100x productivity gain. Dwarkesh opens by asking: if there's no crazy alien superintelligence by 2036, what's the most likely technical reason? Beren Millidge's default answer is a Moravec-paradox-style continuation — AI does superbly at whatever humans put into a benchmark or environment, but a stubborn sim-to-real gap always stands in the way."
+   "h": "A model looks smart, then a month later it looks dumb again",
+   "body": "John Schulman describes a recurring loop: a new model comes out, people are blown away and say \"this is AGI,\" but after about a month of use it starts to look dumb again. This loop may keep repeating, and it's hard to predict how many more times. His mechanism: capability doesn't explode right now because you still get stuck on bottlenecks doing research and engineering — even if a model can write far more code than a human, that doesn't give you a 100x productivity gain. Dwarkesh opens by asking: if 2036 arrives with no crazy alien superintelligence, what's the most likely technical reason? Beren Millidge's default answer is a Moravec-paradox-style continuation — AI does superbly at whatever humans put into a benchmark or environment, but a stubborn sim-to-real gap always stands in the way."
   },
   {
    "h": "Distillation is the only force against centralisation",
-   "body": "John Schulman sees distillation as the main force countering the centralisation trend: anything learnable through RL can be distilled easily, because the number of bits is small and a little data suffices. But he stresses distillation isn't trivial — when distilling with supervised learning the prompt distribution matters enormously, and you need a real, broad prompt distribution. He mentions something that surfaced recently: some Chinese companies may be running router services that let Chinese users access otherwise-blocked US frontier models, and these services collect and sell data, which is an extremely useful dataset for distillation because it gives a perfect prompt distribution. Charlie O'Neill draws a concrete prediction from this: frontier labs may not have much of an edge left on RL environments."
+   "body": "John Schulman sees distillation as the main force countering the centralisation trend: anything learnable through RL can be distilled easily, because the number of bits is small and a little data suffices. But he stresses distillation is not trivial — when you distil with supervised learning, the prompt distribution matters enormously; you need a real, broad prompt distribution. He mentions something that surfaced recently: some Chinese companies may be running router services that let Chinese users access otherwise-blocked US frontier models, and these services collect and sell data, which is an extremely useful dataset for distillation because it gives you a perfect prompt distribution. Charlie O'Neill draws a concrete prediction from this: frontier labs may not have much of an edge left on RL environments."
   },
   {
    "h": "RSI is a cumulative task; being a lawyer is not",
-   "body": "Charlie O'Neill splits tasks into two kinds: cumulative and non-stationary. RSI is cumulative — in theory a Python file under a million tokens could train a recursively self-improving model from scratch, and once you discover attention, mixture of experts or GRPO you just add it to the training stack without going back to the start. The real world is not cumulative: a law-firm paralegal has to remember the shifting relationships among all the important people in the company and all the tacit ways of doing things, which is a non-stationary distribution. Dwarkesh's summary: ‘RSI just happens to be easier than being a paralegal, which is very unfortunate.’ If labs conclude RSI is cumulative, more compute will tilt that way."
+   "body": "Charlie O'Neill splits tasks into two kinds: cumulative and non-stationary. RSI is cumulative — in theory a Python file under a million tokens could train a recursively self-improving model from scratch, and once you discover attention, mixture of experts or GRPO you just add it to the training stack without going back to the start. The real world is not cumulative: a law firm's paralegal has to remember the shifting relationships among everyone important at the company and all the tacit ways of doing things — a non-stationary distribution. Dwarkesh's summary: \"RSI just happens to be easier than being a paralegal, which is too bad.\" If labs conclude RSI is cumulative, more compute will tilt that way."
   },
   {
    "h": "Continual learning is stuck on catastrophic forgetting",
-   "body": "Charlie O'Neill says the outer loop of pouring data into mid-training at large scale and large batch does work, but at the micro level — a model doing several hundred consecutive small updates for one law firm — every method collapses: SFT on successful trajectories catastrophically forgets and general capabilities degrade; on-policy distillation pushes that boundary out a bit further but eventually yields too. RL is good at instilling capabilities and bad at instilling knowledge. Beren Millidge thinks this is mainly a technical problem, not a capacity problem: a model of the same size pretrained from scratch on all the data is simply better, and the bottleneck is plasticity and catastrophic forgetting, with no good way to stop old data being forgotten."
+   "body": "Charlie O'Neill says the outer loop of pouring data into mid-training at large scale and large batch does work, but at the micro level — a model doing several hundred consecutive small updates for one law firm — every method collapses: SFT on successful trajectories catastrophically forgets, and general capability degrades; on-policy distillation pushes that boundary out a bit further but eventually yields too. RL is good at injecting capability, bad at injecting knowledge. Beren Millidge thinks this is mainly a technical problem, not a capacity problem: a model of the same size pretrained from scratch on all the data is simply better, and the bottleneck is plasticity and catastrophic forgetting, with no good way to stop old data being forgotten."
   },
   {
-   "h": "Data explains 12x, architecture only 3.7x",
-   "body": "Dwarkesh and Princeton's Jerry Han ran a grid experiment: pairing training recipes and datasets from 2019 to now in every combination, GPT-2 with the latest Ultra-FineWeb, Delphi with an old dataset like Pile, running the whole grid. The conclusion is that data gives roughly a 12.0x compute-efficiency gain, while architectural improvements give only about 3.7x, and at very small scale. Charlie O'Neill says the big chunk that is the internet has already been eaten, useful things won't keep growing at the same rate, and there's probably only a pile of 0.1% loss reductions left. He notes someone at Epoch estimated 3x per year since 2019, over 2000x cumulative, and the missing 100x probably comes from post-training."
+   "h": "Data explains 12x; architecture explains only 3.7x",
+   "body": "Dwarkesh and Princeton's Jerry Han ran a grid experiment: pairing training recipes and datasets from 2019 to now, GPT-2 with the latest Ultra-FineWeb, Delphi with an old dataset like Pile, running the whole grid. The conclusion is that data gives roughly a 12.0x compute-efficiency gain, while architecture improvements give only about 3.7x, and at very small scale. Charlie O'Neill says the big chunk that is the internet has already been eaten, useful material won't grow at the same rate, and there's probably only a pile of 0.1% loss reductions left. He notes someone at Epoch estimated 3x per year since 2019, over 2000x cumulative, and the missing 100x probably comes from post-training."
   },
   {
    "h": "RL needs a curriculum; pretraining doesn't",
-   "body": "Beren Millidge says this comes back to the RL signal problem: RL is currently bad at exploration, and if the model can't get it in 128 rollouts it basically gets no learning signal, so RL needs curricula while pretraining needs none at all. Charlie O'Neill adds: the pretraining signal is already in Common Crawl, the problem is just filtering out noise, which can be automated; but once you get to mid-training and post-training, the signal simply isn't in the raw data and no amount of filtering will pull it out — there isn't a proof of a Millennium Prize problem hiding in Common Crawl waiting to be filtered out. You have to get the bits elsewhere: have people write out reasoning traces, construct environments, or use human data from deployment."
+   "body": "Beren Millidge says this comes back to the RL signal problem: RL is currently bad at exploration, and if the model can't get it in 128 rollouts there's basically no learning signal, so RL needs curricula while pretraining needs none at all. Charlie O'Neill adds: the pretraining signal is already in Common Crawl, the problem is just filtering noise, which can be automated; but once you get to mid-training and post-training, the signal simply isn't in the raw data and no amount of filtering will pull it out — there isn't a Millennium Prize proof hidden in Common Crawl waiting to be sifted out. You have to get the bits elsewhere: have people write out reasoning traces, construct environments, or use human data from deployment."
   },
   {
    "h": "Most of RL's success comes from mid-training",
-   "body": "Beren Millidge says what's underrated is mid-training: pretraining on synthetic reasoning data and environments, warm-starting the model to where it has almost completed 80% of the path to the final RL checkpoint, with RL only fine-tuning the policy on top. So it doesn't need to learn these behaviours from scratch, and a few bits per episode are enough. He also stresses that the signal-to-noise ratio of those bits is far higher than ordinary pretraining — in SFT you have to match another model's reasoning process token by token, which pours in too many bits about ‘how it thinks’ and drowns the signal; RL's objective ignores all the other bits and keeps only the one bit of ‘did it get the answer right’."
+   "body": "Beren Millidge says what's underrated is mid-training: pretraining on synthetic reasoning data and environments that \"warm-starts\" the model to roughly 80% of the way to the final RL checkpoint, with RL only fine-tuning the policy on top. So it doesn't need to learn these behaviours from scratch; a few bits per episode are enough. He also stresses that the signal-to-noise ratio of those bits is far higher than ordinary pretraining — in SFT you have to match another model's reasoning process token by token, which injects too many bits about \"how it thinks\" and drowns the signal; RL's objective ignores all the other bits and keeps only \"did it get the answer right.\""
   },
   {
    "h": "One year or three, the difference is long-tail chores",
-   "body": "Asked when you could hire a drop-in remote white-collar worker, Charlie O'Neill says if it has to operate a browser, probably a few years; if it can be given Slack and programmatic access, probably a year. Beren Millidge says full generality might be three years, but organisations will actively reshape themselves to be more AI-friendly, so 80-90% is reachable before then. The substance of the disagreement is the long tail: some chores humans can do will take the model a very long time. Charlie gives the example that a model won't ‘yell at people’ to push work forward — it's too nice. John Schulman points out that human remote workers already vary enormously in quality, and on Upwork it's often hard to get someone doing a software project to take feedback seriously; in some cases the pre-AI version is worse than today's AI."
+   "body": "Asked when you could hire a drop-in remote white-collar worker, Charlie O'Neill says if it has to operate a browser, probably a few years; if it can be given Slack and programmatic access, probably a year. Beren Millidge says full generality might take three years, but organisations will actively reshape themselves to be more AI-friendly, so you get 80-90% before then. The substance of the disagreement is the long tail: some chores humans can do will take the model a long time. Charlie gives the example that a model won't \"yell at people\" to push work forward — it's too nice. John Schulman points out that human remote workers already vary enormously in quality, and on Upwork it's often hard to get someone doing a software project to take feedback seriously; in some cases the pre-AI version is worse than today's AI."
   }
  ],
  "terms": [
   {
    "term": "RSI / recursive self-improvement",
-   "def": "A model can improve its own training or research process, thereby accelerating the arrival of the next generation of models."
+   "def": "A model improving its own training or research process, thereby accelerating the arrival of the next generation of models."
   },
   {
    "term": "sim-to-real gap",
@@ -63,20 +63,20 @@
   },
   {
    "term": "entropy collapse",
-   "def": "After RL training the model's output diversity drops sharply, repeatedly producing the same style."
+   "def": "A large drop in output diversity after RL training, with the model repeatedly producing the same style."
   },
   {
    "term": "logit distillation",
-   "def": "Making the student model match the teacher's full output probability distribution, not just the final answer."
+   "def": "Making a student model match the teacher's full output probability distribution, not just the final answer."
   }
  ],
  "facts": [
   {
-   "k": "Charlie O'Neill's estimated speedup multiple for ‘maximising the current objective’",
+   "k": "Charlie O'Neill's estimated speedup from \"maximising the current objective\"",
    "v": "10x"
   },
   {
-   "k": "Dwarkesh's hypothetical ‘no superintelligence’ year",
+   "k": "Dwarkesh's hypothetical \"no superintelligence\" year",
    "v": "2036"
   },
   {
@@ -84,7 +84,7 @@
    "v": "about 12.0x"
   },
   {
-   "k": "Compute-efficiency gain from architectural improvements",
+   "k": "Compute-efficiency gain from architecture improvements",
    "v": "about 3.7x"
   },
   {
@@ -100,15 +100,15 @@
    "v": "doubles every three months (EdgeBench)"
   },
   {
-   "k": "Progress toward the final RL checkpoint that mid-training brings the model",
+   "k": "Progress toward the final RL checkpoint that mid-training brings a model",
    "v": "about 80%"
   },
   {
-   "k": "Time prediction for 10x AI-researcher productivity",
+   "k": "Time predictions for a 10x AI researcher",
    "v": "John Schulman and Beren Millidge: two years; Charlie O'Neill: 5-10 years"
   },
   {
-   "k": "Time prediction for AI fully surpassing human experts",
+   "k": "Time predictions for AI that fully surpasses human experts",
    "v": "John Schulman: 3-4 years; Charlie O'Neill: 5-10 years; Beren Millidge: about 5 years"
   }
  ],
