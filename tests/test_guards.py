@@ -6580,3 +6580,88 @@ class TooLongMustLeaveATrace(unittest.TestCase):
             int(m.group(1)), 35000,
             f"本机线上限 {m.group(1)} —— 装不下两三小时的长访谈"
             f"（AXRP 每集 31,755 词），那类源收了也永远发不出来")
+
+
+class CatchUpMustReachSourcesWithNoLedgerRow(unittest.TestCase):
+    """「还没建起档」按**出稿够不够**判，不按账本里有没有 added 那一行。
+
+    实测的洞：原来只收「账本最后一条是 added」的源 —— 而一开始就写在
+    硬编码表里的源**根本没有账本记录**，永远进不了这个集合；
+    日更预算又按 tier 打分抢不过 tier1，两头落空。
+
+    清点：208 档里 85 档一篇没出过，其中 43 档在账本里连痕迹都没有
+    （从没进过候选），而它们里只有 12 档在建档队列里 ——
+    **剩下 31 档不在任何机制的射程内**，包括 tier1 的 bg2、sharptech，
+    以及 samharris、hardcore、invisibilia 这些正经节目。
+
+    这是这个仓库反复出现的同一形状：判据落在**记账**上而不是**结果**上。
+    """
+
+    def _ids(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return importlib.import_module("run")._catchup_ids(6)
+
+    def test_a_source_with_no_ledger_row_is_still_reachable(self):
+        ids = set(self._ids())
+        led = ROOT / "data" / "curation.json"
+        rows = json.loads(led.read_text()) if led.exists() else []
+        if isinstance(rows, dict):
+            rows = rows.get("entries") or []
+        seen = {r.get("id") for r in rows if isinstance(r, dict)}
+        srcs = json.loads((ROOT / "data" / "sources.json").read_text())
+        srcs = srcs["sources"] if isinstance(srcs, dict) else srcs
+        import collections
+        have = collections.Counter()
+        for f in (ROOT / "data" / "episodes").glob("*.json"):
+            try:
+                have[json.loads(f.read_text()).get("source_id")] += 1
+            except Exception:
+                pass
+        starving_no_row = [s["id"] for s in srcs
+                           if have[s["id"]] == 0 and s["id"] not in seen]
+        missed = [i for i in starving_no_row if i not in ids]
+        self.assertFalse(
+            missed, f"{len(missed)} 档源一篇没出过、账本里也没记录，却不在建档"
+                    f"队列里 —— 它们不在任何机制的射程内：{missed[:5]}")
+
+    def test_retired_sources_stay_out(self):
+        """**这条现在抓不到代码里那个过滤被删。**
+
+        退役的源本来就不在 sources.json 里（resolve_sources 生成时
+        retired_ids() 就挡掉了），所以 _catchup_ids 里那句 `sid not in gone`
+        是第二道保险 —— 反向注入把它拿掉，队列也不会变。
+        留着它是因为这个仓库的退役曾经反复失效（Every 被移除过 5 次），
+        多一道不亏；但**不假装这条测试能测出它**。
+        这里测的是数据层的不变量：队列里不许出现退役源。
+        """
+        ids = set(self._ids())
+        led = ROOT / "data" / "curation.json"
+        rows = json.loads(led.read_text()) if led.exists() else []
+        if isinstance(rows, dict):
+            rows = rows.get("entries") or []
+        last = {}
+        for r in rows:
+            if isinstance(r, dict) and r.get("id") and r.get("kind") in ("added", "removed"):
+                last[r["id"]] = r["kind"]
+        gone = [k for k, v in last.items() if v == "removed"]
+        back = [g for g in gone if g in ids]
+        self.assertFalse(back, f"退役的源又被排进建档队列：{back}")
+
+    def test_the_hungriest_go_first(self):
+        """一轮只有几个名额；不排序的话按 id 字母序发，
+        s 开头的源（samharris、sharptech）永远排不上。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib, collections
+        ids = importlib.import_module("run")._catchup_ids(6)
+        if len(ids) < 5:
+            self.skipTest("队列太短")
+        have = collections.Counter()
+        for f in (ROOT / "data" / "episodes").glob("*.json"):
+            try:
+                have[json.loads(f.read_text()).get("source_id")] += 1
+            except Exception:
+                pass
+        counts = [have[i] for i in ids]
+        self.assertEqual(counts, sorted(counts),
+                         "建档队列没有按出稿数从少到多排 —— 饿得最狠的排在后面")

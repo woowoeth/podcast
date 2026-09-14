@@ -667,8 +667,23 @@ def _catchup_ids(min_eps: int = 6) -> list[str]:
             continue
     known = {s["id"] for s in
              json.loads((DATA / "sources.json").read_text())["sources"]}
-    return sorted(sid for sid, kind in last.items()
-                  if kind == "added" and sid in known and have[sid] < min_eps)
+    # **判据是「出稿够不够」，不是「账本里有没有 added 这一行」。**
+    #
+    # 原来只收「最后一条记录是 added」的源。后果：一开始就写在硬编码表里的
+    # 源**根本没有账本记录**，于是永远进不了这个集合；日更预算又按 tier
+    # 打分抢不过 tier1 —— 两头落空。
+    # 实测：208 档里 85 档一篇没出过，其中 43 档在账本里连痕迹都没有
+    # （从没进过候选），而它们里只有 12 档在建档队列里。
+    # 剩下 31 档不在任何机制的射程内 —— 包括 tier1 的 bg2、sharptech，
+    # 以及 samharris、hardcore、invisibilia 这种正经节目。
+    #
+    # 退役的仍然排除（账本最后一条是 removed）。
+    gone = {sid for sid, kind in last.items() if kind == "removed"}
+    todo = [sid for sid in known if sid not in gone and have[sid] < min_eps]
+    # **一篇都没有的排前面。** 189 档都算"没建起档"时，一轮只有 8 个名额 ——
+    # 不排序的话按 id 字母序发，`a` 开头的源永远先拿，`s` 开头的
+    # （samharris、sharptech）永远排不上。饿得最狠的先喂。
+    return sorted(todo, key=lambda sid: (have[sid], sid))
 
 
 def _cats() -> list[str]:
