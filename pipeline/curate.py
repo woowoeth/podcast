@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import argparse
+import collections
 import json
 import pathlib
 import re
@@ -69,7 +70,7 @@ def performance() -> dict[str, dict]:
         else {"done": {}, "fail": {}}
     per: dict[str, dict] = {sid: {"published": 0, "review": [], "triage": [],
                                   "no_transcript": 0, "review_rejected": [],
-                                  "gate_rejected": 0}
+                                  "gate_rejected": 0, "tr": collections.Counter()}
                             for sid in srcs}
     for f in (DATA / "episodes").glob("*.json"):
         try:
@@ -80,6 +81,8 @@ def performance() -> dict[str, dict]:
         if p is None:
             continue
         p["published"] += 1
+        p["tr"][((r.get("digest") or {}).get("quality") or {})
+                .get("transcript_source") or "?"] += 1
         sc = (r.get("review") or {}).get("score")
         if isinstance(sc, (int, float)):
             p["review"].append(float(sc))
@@ -129,6 +132,8 @@ def performance() -> dict[str, dict]:
             "feed_ok": st.get("ok", True), "fail_streak": st.get("fail_streak", 0),
             # judge 要用它决定"删掉"还是"改派本机线"
             "residential": bool(s.get("residential")),
+            # 出过稿的，稿子是从哪一层来的。只靠 asr 的必须走本机线。
+            "asr_only": bool(p["tr"]) and set(p["tr"]) == {"asr"},
             "age_days": st.get("age_days"),
             "max_gap_days": st.get("max_gap_days"),
             "official_transcripts": st.get("official_transcripts", 0),
@@ -150,6 +155,17 @@ def judge(sid: str, m: dict) -> tuple[str, str] | None:
             return "residential", (f"feed 连续 {streak} 次体检失败，但可能只是机房 IP "
                                    f"被拒——先交给本机线跑，确认真失效再移除")
         return "drop", f"feed 连续 {streak} 次体检失败（本机线也取不到），已失效"
+    if m.get("asr_only") and not m.get("residential"):
+        # **只靠转写出过稿、却没标 residential = 两条定时线都不做它。**
+        # 云端定时跑批 --tiers feed,notes,page（不含 asr），本机 launchd 带
+        # ONLY_RESIDENTIAL=1（只挑标了的）。夹在中间的源只有手动 dispatch
+        # 才出得来，而每次云端跑还白失败一次、攒 DEAD_ATTEMPTS（满 10 次
+        # 自动移除）—— 它出过合格的稿，最后却因为**我们没派活**被删掉。
+        #
+        # 收录时 curate 已经按"预测的取稿层"标了，但预测会错：以为有 feed
+        # 文稿、实际全靠转写的，就漏在这里。**实测才是判据，不是预测。**
+        return "residential", ("发出来的稿全靠转写，而没标 residential——"
+                               "云端不做 asr、本机只挑标了的，两边都不碰它")
     if m["published"] == 0 and m["no_transcript"] >= DEAD_ATTEMPTS:
         # 不删。"我们取不到文稿"是**我们的能力限制**，不是这档节目不好——
         # 把它当成内容问题处理，就是又一次把工程约束写成了产品判断。

@@ -49,6 +49,18 @@ def _date(s: str) -> dt.datetime | None:
     return d.astimezone(dt.timezone.utc)
 
 
+def is_short(url: str) -> bool:
+    """这条链接是不是一条 YouTube Shorts。
+
+    **Shorts 不是一集，是宣传片。** 实测 rationalreminder 这个频道源，
+    最近 15 条里 7 条是 Shorts（45–90 秒）—— 每一条都要走一遍选题闸
+    （付一次模型钱），再往下走到取稿层，最后报「取不到文稿」。
+    挡在质量判断之前：它不是「不够好的一集」，它根本不是一集，
+    而优质源的放行规则「不看分只看是不是广告」正好会把它全放过去。
+    """
+    return "/shorts/" in (url or "")
+
+
 def _yt_id(url: str) -> str | None:
     """从链接里取 YouTube 视频 id。**Shorts 不算。**
 
@@ -117,6 +129,8 @@ def _rss(root, source: dict) -> list[dict]:
             if u:
                 tr.append({"url": u, "type": ty, "lang": t.get("language") or ""})
         link = _txt(it, "link")
+        if is_short(link):
+            continue
         out.append({
             "source_id": source["id"], "source": source["name"],
             "guid": guid, "title": strip_html(title), "link": link,
@@ -142,6 +156,8 @@ def _atom(root, source: dict) -> list[dict]:
             continue
         link_el = e.find("atom:link", NS)
         link = (link_el.get("href") if link_el is not None else "") or (YT_WATCH + vid)
+        if is_short(link):
+            continue
         grp = e.find("media:group", NS)
         thumb = ""
         desc = ""

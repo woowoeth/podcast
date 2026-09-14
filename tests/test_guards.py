@@ -6839,3 +6839,109 @@ class APromoShortIsNeverTheEpisode(unittest.TestCase):
         floor = eval(m.group(1))
         self.assertGreater(floor, 83, "下限低到放得过一条 83 秒的 Shorts")
         self.assertLessEqual(floor, 10 * 60, "下限高到会误挡真正的短集")
+
+
+class ShortsAreDroppedBeforeAnyoneJudgesThem(unittest.TestCase):
+    """Shorts 要在**判质量之前**就出局 —— 它不是一集。
+
+    实测 rationalreminder（YouTube 频道源）最近 15 条里 **7 条是 Shorts**
+    （45–90 秒）。每一条都走了一遍选题闸（付一次模型钱），拿到
+    「通过（优质源，不看分只看是不是广告）」—— 因为优质源的放行规则
+    正好不看分。然后一路走到取稿层，报「取不到文稿」。
+
+    **不能靠分数挡**：它不是「不够好的一集」，它根本不是一集。
+    挡在 feeds 里，让它连候选都进不去。
+    """
+
+    def _feeds(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return importlib.import_module("lib.feeds")
+
+    def test_an_rss_item_linking_to_a_short_is_not_an_episode(self):
+        f = self._feeds()
+        import xml.etree.ElementTree as ET
+        xml = """<rss xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+                      xmlns:content="http://purl.org/rss/1.0/modules/content/"
+                      xmlns:dc="http://purl.org/dc/elements/1.1/"
+                      xmlns:podcast="https://podcastindex.org/namespace/1.0">
+          <channel>
+            <item><title>正片</title><link>https://www.youtube.com/watch?v=aaaaaaaaaaa</link>
+                  <guid>a</guid><pubDate>Mon, 01 Sep 2026 00:00:00 GMT</pubDate></item>
+            <item><title>预告短片</title><link>https://www.youtube.com/shorts/bbbbbbbbbbb</link>
+                  <guid>b</guid><pubDate>Mon, 01 Sep 2026 00:00:00 GMT</pubDate></item>
+          </channel></rss>"""
+        eps = f._rss(ET.fromstring(xml), {"id": "x", "name": "X"})
+        titles = [e["title"] for e in eps]
+        self.assertIn("正片", titles, "把正片也挡掉了")
+        self.assertNotIn("预告短片", titles, "Shorts 进了候选 —— 会白付一次选题闸的钱")
+
+    def test_a_youtube_channel_short_is_not_an_episode(self):
+        """频道源那条路也要挡 —— rationalreminder 正是走这条。"""
+        f = self._feeds()
+        import xml.etree.ElementTree as ET
+        xml = """<feed xmlns="http://www.w3.org/2005/Atom"
+                       xmlns:yt="http://www.youtube.com/xml/schemas/2015"
+                       xmlns:media="http://search.yahoo.com/mrss/">
+          <entry><yt:videoId>aaaaaaaaaaa</yt:videoId><title>正片</title>
+            <link href="https://www.youtube.com/watch?v=aaaaaaaaaaa"/>
+            <published>2026-09-01T00:00:00+00:00</published></entry>
+          <entry><yt:videoId>bbbbbbbbbbb</yt:videoId><title>预告短片</title>
+            <link href="https://www.youtube.com/shorts/bbbbbbbbbbb"/>
+            <published>2026-09-01T00:00:00+00:00</published></entry>
+        </feed>"""
+        eps = f._atom(ET.fromstring(xml), {"id": "x", "name": "X"})
+        titles = [e["title"] for e in eps]
+        self.assertIn("正片", titles, "把正片也挡掉了")
+        self.assertNotIn("预告短片", titles, "频道源的 Shorts 进了候选")
+
+
+class AsrOnlySourcesMustBeRoutedToTheLocalLine(unittest.TestCase):
+    """只靠转写出过稿、却没标 residential 的源，两条定时线都不做它。
+
+    云端定时跑批 --tiers feed,notes,page（不含 asr），本机 launchd 带
+    ONLY_RESIDENTIAL=1（只挑标了的）。夹在中间的源只有手动 dispatch 才出得来，
+    而每次云端跑还白失败一次、攒 DEAD_ATTEMPTS —— 它出过合格的稿，
+    最后却因为**我们没派活**被删掉。
+
+    收录时 curate 已按「预测的取稿层」标过，但预测会错：以为有 feed 文稿、
+    实际全靠转写的就漏在这里。**实测才是判据，不是预测。**
+    """
+
+    def _curate(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return importlib.import_module("curate")
+
+    def test_judge_reroutes_an_asr_only_source(self):
+        c = self._curate()
+        m = {"feed_ok": True, "fail_streak": 0, "published": 3, "no_transcript": 0,
+             "age_days": 1.0, "max_gap_days": 7.0, "triage_n": 0, "triage_pass": None,
+             "review_median": None, "review_rejected": 0, "gate_rejected": 0,
+             "draft_pass": 1.0, "official_transcripts": 0, "tier": 3,
+             "asr_only": True, "residential": False}
+        got = c.judge("x", m)
+        self.assertIsNotNone(got, "只靠转写又没标 residential，judge 什么都没说")
+        self.assertEqual(got[0], "residential")
+
+    def test_it_leaves_everyone_else_alone(self):
+        """标过的、以及有别的取稿层的，不要动。"""
+        c = self._curate()
+        base = {"feed_ok": True, "fail_streak": 0, "published": 3, "no_transcript": 0,
+                "age_days": 1.0, "max_gap_days": 7.0, "triage_n": 0, "triage_pass": None,
+                "review_median": None, "review_rejected": 0, "gate_rejected": 0,
+                "draft_pass": 1.0, "official_transcripts": 0, "tier": 3}
+        self.assertIsNone(c.judge("x", {**base, "asr_only": True, "residential": True}),
+                          "已经标过还要再改派一次")
+        self.assertIsNone(c.judge("x", {**base, "asr_only": False, "residential": False}),
+                          "有别的取稿层的源被误改派到本机线")
+
+    def test_the_metric_comes_from_published_episodes(self):
+        """判据要来自**实际发出来的稿**，不是源上写的预测字段。"""
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index("def performance(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        self.assertRegex(body, r'transcript_source',
+                         "asr_only 没有从已发布稿的 transcript_source 统计")
+        self.assertRegex(body, r'"asr_only":\s*bool\(p\["tr"\]\)',
+                         "一篇没发过的源也会被判成 asr_only")
