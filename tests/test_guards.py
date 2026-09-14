@@ -6773,3 +6773,69 @@ class CatchUpRankingMustFavourStarvingSources(unittest.TestCase):
         blk = src[i:i + 700]
         self.assertIn("_starve.update(on=True", blk,
                       "建档模式没有打开饥饿加权 —— 改了也不生效")
+
+
+class APromoShortIsNeverTheEpisode(unittest.TestCase):
+    """预告短片不是一集播客 —— 两头都要堵。
+
+    实测：lennys、ilt 这些节目把 **Shorts 预告片**当集页链接放进 feed。
+    `_yt_id` 原来**专门匹配 `/shorts/`**，于是一条 83 秒短片的 id
+    成了这一集的「视频」；取稿时把它下下来转写，最后报「取不到文稿」。
+    ASR 白跑，而真正的问题是**拿错了视频**。
+
+    上一版我只在取音频那头加了时长核对，以为够了。跑一轮下来
+    `audio 1.9MB / 2.1MB / 1.1MB` 照旧 —— 因为那道检查写的是
+    `if want_dur:`，而**这些 feed 项根本没有时长字段**，
+    `want_dur=0` 就整个跳过。「拿不到判据」被我写成了「可以不判」。
+    """
+
+    def _feeds(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return importlib.import_module("lib.feeds")
+
+    def test_a_shorts_url_yields_no_video_id(self):
+        """根子上：Shorts 链接不该产出 id。"""
+        f = self._feeds()
+        for u in ("https://www.youtube.com/shorts/rYyJm1tD3d0",
+                  "http://youtube.com/shorts/x4FlaD7dbvg?feature=share"):
+            self.assertIsNone(f._yt_id(u),
+                              f"把预告短片当成了这一集的视频：{u}")
+
+    def test_normal_youtube_urls_still_work(self):
+        """别把正常链接一起挡了 —— 只验「坏的被挡」等于没验。"""
+        f = self._feeds()
+        for u, want in (("https://www.youtube.com/watch?v=x4FlaD7dbvg", "x4FlaD7dbvg"),
+                        ("https://youtu.be/rYyJm1tD3d0", "rYyJm1tD3d0"),
+                        ("https://www.youtube.com/embed/x4FlaD7dbvg", "x4FlaD7dbvg")):
+            self.assertEqual(f._yt_id(u), want, f"正常的集页链接被挡掉了：{u}")
+
+    def test_the_duration_check_is_not_skipped_when_duration_is_unknown(self):
+        """兜底那头：时长未知时也要判，不能整段跳过。
+
+        判据落在**真正的比较**上，不落在我自己写的注释上 ——
+        今天已经栽过好几次匹配说明文字。
+        """
+        src = (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
+        i = src.index("def _yt_audio(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        code = "\n".join(l for l in body.splitlines()
+                         if not l.lstrip().startswith("#"))
+        self.assertNotRegex(
+            code, r"\n    if want_dur:\s*\n\s+try:",
+            "时长未知就整段跳过检查 —— 没有时长字段的 feed 项照样会下 Shorts")
+        self.assertRegex(
+            code, r"not want_dur and vdur and vdur <",
+            "时长未知时没有下限兜底")
+        self.assertRegex(
+            code, r"abs\(\s*vdur\s*-\s*want_dur\s*\)\s*>\s*seek_tolerance",
+            "知道时长时的核对被我改没了")
+
+    def test_the_floor_is_shorter_than_any_real_episode(self):
+        """下限要低于站上最短的一集，否则会误伤正片。"""
+        src = (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
+        m = re.search(r"MIN_EPISODE_SEC\s*=\s*([0-9 *]+)", src)
+        self.assertTrue(m, "没有写下限常量")
+        floor = eval(m.group(1))
+        self.assertGreater(floor, 83, "下限低到放得过一条 83 秒的 Shorts")
+        self.assertLessEqual(floor, 10 * 60, "下限高到会误挡真正的短集")

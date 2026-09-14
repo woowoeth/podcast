@@ -686,7 +686,12 @@ def _yt_audio(vid: str, td: str, want_dur: int = 0) -> pathlib.Path | None:
     """
     if not shutil.which("yt-dlp"):
         return None
-    if want_dur:
+    # 时长未知时也要有下限：这个站的最短集是 8 分钟，比它还短的视频
+    # 不可能是正片。原来写的是 `if want_dur:`，而**这些 feed 项恰恰没有
+    # 时长字段** —— 于是检查整个跳过，1-2MB 的短片照样被下下来转写。
+    # 「拿不到判据」不等于「可以不判」。
+    MIN_EPISODE_SEC = 8 * 60
+    if True:
         try:
             r = subprocess.run(
                 ["yt-dlp", "--skip-download", "--no-warnings", "--print", "duration",
@@ -695,9 +700,14 @@ def _yt_audio(vid: str, td: str, want_dur: int = 0) -> pathlib.Path | None:
             vdur = int(float((r.stdout or "0").strip().split("\n")[0] or 0))
         except Exception:
             vdur = 0
-        if vdur and abs(vdur - want_dur) > seek_tolerance(want_dur):
+        if want_dur and vdur and abs(vdur - want_dur) > seek_tolerance(want_dur):
             log(f"    这个视频只有 {vdur}s，而这一集是 {want_dur}s "
                 f"—— 拿错了视频（多半是 Shorts 或片花），不转写")
+            _transient["hit"] = False
+            return None
+        if not want_dur and vdur and vdur < MIN_EPISODE_SEC:
+            log(f"    这个视频只有 {vdur}s，而这一集没给时长 —— "
+                f"比最短的一集（{MIN_EPISODE_SEC}s）还短，不可能是正片，不转写")
             _transient["hit"] = False
             return None
     out = pathlib.Path(td) / "yt.m4a"

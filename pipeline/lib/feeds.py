@@ -50,7 +50,18 @@ def _date(s: str) -> dt.datetime | None:
 
 
 def _yt_id(url: str) -> str | None:
-    m = re.search(r"(?:youtu\.be/|[?&]v=|/embed/|/shorts/)([\w-]{11})", url or "")
+    """从链接里取 YouTube 视频 id。**Shorts 不算。**
+
+    实测：Lenny's、Invest Like the Best 这些节目会把**预告短片**（Shorts）
+    当成集页链接放进 feed。原来这里专门匹配 /shorts/ 并取出 id，于是
+    一条 83 秒的短片成了这一集的「视频」—— 取稿时把它下下来转写，
+    得到一段没用的文稿，最后报「取不到文稿」。
+    ASR 白跑，而真正的问题是**拿错了视频**。
+    一条 Shorts 永远不是一集播客，这里直接不认。
+    """
+    if re.search(r"/shorts/", url or ""):
+        return None
+    m = re.search(r"(?:youtu\.be/|[?&]v=|/embed/)([\w-]{11})", url or "")
     return m.group(1) if m else None
 
 
