@@ -802,6 +802,34 @@ def from_audio(ep: dict, lang: str) -> dict | None:
 _ASR_LOCK = threading.Lock()
 
 
+
+# Whisper 对**静音**会吐固定几句幻觉，各语言都有自己的一套。
+# 实测缓存里躺着：「Thank you.」「Why?」「请不吝点赞 订阅 转发 打赏支持明镜与点点栏目」——
+# 都是一整片 300 秒音频转出来的**唯一**一行。
+# 这些不是内容，是「这段没声音」的另一种写法。
+ASR_HALLUCINATIONS = (
+    "thank you", "thanks for watching", "you", "why", "bye", "so",
+    "请不吝点赞", "订阅 转发", "打赏支持明镜", "字幕由", "字幕组",
+    "感谢观看", "谢谢观看", "以上内容", "amara.org", "多谢收看",
+)
+
+
+def _drop_asr_hallucinations(segs: list[dict]) -> list[dict]:
+    """去掉静音幻觉。只在**整片就这么几段**时才敢删。
+
+    「Thank you.」在真实访谈里当然会出现，所以不能见到就删。
+    判据是这一片**总共**只有几段 —— 那才是「整片没声音」的形状。
+    """
+    if len(segs) > 5:
+        return segs
+    out = []
+    for x in segs:
+        t = (x.get("text") or "").strip().strip(".,!?。，！？ ").lower()
+        if t and not any(h in t for h in ASR_HALLUCINATIONS):
+            out.append(x)
+    return out
+
+
 def _chunk_cache(ep: dict, i: int) -> pathlib.Path:
     import hashlib
     key = hashlib.sha1(
@@ -823,6 +851,14 @@ def _local_chunked(ep: dict, src: pathlib.Path, mb: float, td: str,
         if cp.exists():
             try:
                 got = json.loads(cp.read_text())
+                # **读缓存也要验。** 光在写的时候挡住空片不够：盘上已经躺着
+                # 15 片这样的（「Thank you.」「请不吝点赞…」），
+                # 不在读的时候也验一遍，它们会被一直复用下去。
+                w = sum(len((x.get("text") or "").split()) for x in got)
+                if w < max(5, int(CHUNK_SEC * 0.1)):
+                    cp.unlink(missing_ok=True)
+                    log(f"    第 {i + 1} 片的缓存只有 {w} 个词，是坏的，删掉重转")
+                    raise ValueError("empty cached chunk")
                 segs.extend({"t": int(x["t"] + offset), "text": x["text"]}
                             for x in got)
                 reused += 1
@@ -841,6 +877,25 @@ def _local_chunked(ep: dict, src: pathlib.Path, mb: float, td: str,
             log(f"    第 {i + 1}/{len(chunks)} 片转写失败，"
                 f"已转好的 {i} 片留在缓存里，下一轮接着转（算软失败，不占重试预算）")
             return None
+        got = _drop_asr_hallucinations(got)
+        # **空片不能当成功缓存下来。**
+        # 实测：一片 300 秒的音频转出「Thank you.」一行，被写进缓存当成
+        # 转好了；之后每一轮重试都直接读这份缓存，一个词都不会变，
+        # 这一集**永远卡死**——日志上只看得到「取不到文稿」，
+        # 看不到「上一轮把空结果存下来了」。
+        # 说话哪怕再慢也有每秒 1 个词以上，这里按每秒 0.1 词兜底。
+        words = sum(len((x.get("text") or "").split()) for x in got)
+        if words < max(5, int(CHUNK_SEC * 0.1)):
+            # **不缓存，但也不中止这一集。**
+            # 不缓存：一片 300 秒转出几个词，多半是静音或解码没成，
+            # 存下来的话之后每一轮都读它，一个词都不会变，这一集永远卡死。
+            # 也不中止：片尾常常是纯音乐，一片安静不等于整集没文稿 ——
+            # 第一版写的是 return None，那会让任何一集只要有个安静的尾巴
+            # 就整集判失败。够不够长交给后面的总字数闸去判。
+            log(f"    第 {i + 1}/{len(chunks)} 片只转出 {words} 个词"
+                f"（{CHUNK_SEC}s 音频）——静音或没解开，不写缓存，跳过这一片")
+            segs.extend({"t": int(x["t"] + offset), "text": x["text"]} for x in got)
+            continue
         cp.parent.mkdir(parents=True, exist_ok=True)
         cp.write_text(json.dumps(got, ensure_ascii=False))
         segs.extend({"t": int(x["t"] + offset), "text": x["text"]} for x in got)
@@ -861,7 +916,15 @@ def _split(src: pathlib.Path, mb: float, td: str, *,
     i = 0
     while True:
         dst = pathlib.Path(td) / f"c{i}.mp3"
-        r = subprocess.run([ff, "-nostdin", "-v", "error", "-ss", str(i * CHUNK_SEC),
+        # **-vn：丢掉内嵌封面图。**
+        # 播客 mp3 里常带一张 attached picture（封面），它是 stream #0:0，
+        # 音频反而是 #0:1。不加 -vn 的话每一片装进去的是那张 JPEG，
+        # 音频只剩 0.3 秒 —— 实测 ChinaTalk 一集 2 小时、57MB 的音频，
+        # 切出来是**一片 98KB**，里面几乎全是封面图。
+        # 然后 whisper 对着静音吐一句「Thank you.」，被当成转写结果缓存下来，
+        # 最后报的却是「取不到文稿」。整条链上没有一处说得出真正的原因。
+        r = subprocess.run([ff, "-nostdin", "-v", "error", "-vn",
+                           "-ss", str(i * CHUNK_SEC),
                            "-t", str(CHUNK_SEC), "-i", str(src),
                            "-ac", "1", "-ar", "16000", "-b:a", "48k", str(dst)],
                           capture_output=True)

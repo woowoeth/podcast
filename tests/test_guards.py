@@ -5372,12 +5372,30 @@ class LocalTranscriptionMustBeSerialAndResumable(unittest.TestCase):
                         "不在循环里读缓存 —— 下一轮还是从零开始")
 
     def test_a_failed_chunk_keeps_the_earlier_ones(self):
-        """某一片失败时不能把前面转好的删掉或丢掉。"""
+        """某一片失败时不能把前面转好的删掉或丢掉。
+
+        判据落在**失败那一段**上，不是整个函数体。
+        原来写的是「函数体里不许出现 unlink」—— 按字面特征写的检查，
+        后来为了删掉**坏缓存**（一片 300 秒只转出「Thank you.」）加了一处
+        cp.unlink，它就红了；而那处删的恰恰是该删的东西。
+        照表面特征写的检查只能靠 allowlist 苟活，要编码的是失败机制本身：
+        **「转写失败 → 丢掉已转好的」** 才是要拦的那件事。
+        """
         src = self._asr_src()
         i = src.index("def _local_chunked(")
         body = src[i:src.index("\ndef ", i + 1)]
-        self.assertNotIn("unlink", body, "失败路径把已转好的片删了")
+        j = body.index("if got is None:")
+        fail_branch = body[j:body.index("return None", j)]
+        self.assertNotIn("unlink", fail_branch, "失败路径把已转好的片删了")
         self.assertNotIn("rmtree", body, "失败路径把缓存目录删了")
+        # 删缓存只许发生在「这份缓存本身是坏的」那条路上
+        lines = body.splitlines()
+        for k, line in enumerate(lines):
+            if "unlink" in line:
+                # 只看代码行，注释不算 —— 注释长短不该决定这道闸红不红
+                ctx = [x for x in lines[:k] if not x.lstrip().startswith("#")][-6:]
+                self.assertIn("cp.exists()", "\n".join(ctx),
+                              f"有一处 unlink 不在「缓存是坏的」那条路上：{line.strip()}")
 
     def test_chunk_cache_key_covers_model_and_chunk_length(self):
         """换模型或换片长之后，旧片不能被当成新片的结果。"""
@@ -7013,3 +7031,172 @@ class CatchUpMustReserveSlotsForSourcesWithNothing(unittest.TestCase):
         core = [e for e in out if e["_src"]["id"].startswith("t1")]
         self.assertGreaterEqual(len(core), 4,
                                 "保底把核心源全挤出去了 —— 核心源每篇都要发得出去")
+
+
+class NoShowIsRegisteredTwice(unittest.TestCase):
+    """同一档节目不该注册成两档源。
+
+    实测：Fall of Civilizations 同时有 fallciv（RSS，22 集，带真实时长）
+    和 fallofciviliza（YouTube 频道，13 条，无时长，自身还有重复条目）。
+    两档都零产出 —— 而建档保底名额优先给零产出的源，
+    于是**同一集有机会被发两遍**。
+
+    跨源去重本来有（fingerprint = 标题 + 时长分 2 分钟一桶），注释里写的
+    正是「同一集同时出现在 RSS 和 YouTube」。但**它在这个场景下不触发**：
+    频道源的 Atom 条目不带时长，桶是空串，RSS 那边是真时长，
+    两边落进不同的桶，指纹不同。
+    靠去重兜不住，所以从名册上就不该有两份。
+    """
+
+    def test_no_two_sources_share_a_name(self):
+        import re as _re
+        srcs = json.loads((ROOT / "data" / "sources.json").read_text())["sources"]
+        norm = lambda n: _re.sub(r"[^a-z0-9一-鿿]+", "", (n or "").lower())
+        seen: dict[str, list[str]] = {}
+        for s in srcs:
+            seen.setdefault(norm(s["name"]), []).append(s["id"])
+        dupes = {k: v for k, v in seen.items() if len(v) > 1}
+        self.assertEqual({}, dupes,
+                         "同一档节目注册了两次 —— 同一集可能被发两遍，"
+                         "退掉其中一档（留取得到时长、集数更全的那个）")
+
+    def test_the_dedupe_really_does_miss_this_case(self):
+        """把「去重兜不住」本身钉住 —— 别把没验过的假设写进注释。
+
+        哪天指纹改成能跨「有时长／没时长」了，这条会红，
+        提醒把上面那段解释一起改掉。
+        """
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        u = importlib.import_module("lib.util")
+        self.assertNotEqual(u.fingerprint("The Maya", 3600),
+                            u.fingerprint("The Maya", None),
+                            "指纹现在能跨时长缺失去重了 —— 把这个类的说明改掉")
+
+
+class AudioChunksMustContainAudioNotCoverArt(unittest.TestCase):
+    """切音频要丢掉内嵌封面图，否则每一片装的是那张 JPEG。
+
+    实测 ChinaTalk 一集 2 小时、57MB 的 mp3：切出来是**一片 98KB**，
+    里面几乎全是封面。播客 mp3 常带一张 attached picture；
+    ffmpeg 默认把它映射成输出的第一条流，而这一帧一旦落在 -ss 窗口里，
+    写完它输出就结束了 —— `frame= 1 time=00:00:00.28`，音频只剩 0.3 秒。
+    加 -vn 之后同一条命令出 1,803,289 字节 / 300.0 秒。
+
+    然后 whisper 对着静音吐一句「Thank you.」，被当成转写结果**缓存下来**，
+    之后每一轮重试都读这份缓存，一个词都不会变 —— 而日志上报的是
+    「取不到文稿」。整条链上没有一处说得出真正的原因。
+
+    **这道闸拦的是 _split 真正发出的那条命令，不是注释。**
+    本来想用「合成一个带封面的 mp3」来行为化地验，试了三种造法都复现不了：
+    真文件封面帧的 pts 正好是 0，合成的总是 0.025（编码器延迟），
+    差这一点就取不到那一帧。去掉 -vn 之后闸照样绿 —— 我自己验过一次，
+    绿的，然后才发现样本是假的。样本造不出来就别假装验过。
+    """
+
+    def test_split_passes_vn_to_ffmpeg(self):
+        import importlib, tempfile, types
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        T = importlib.import_module("lib.transcript")
+        seen = []
+        real = T.subprocess.run
+
+        def spy(cmd, *a, **kw):
+            if isinstance(cmd, list) and any("ffmpeg" in str(x) for x in cmd[:1]):
+                seen.append(list(cmd))
+                return types.SimpleNamespace(returncode=1, stdout=b"", stderr=b"")
+            return real(cmd, *a, **kw)
+
+        T.subprocess.run = spy
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                src = pathlib.Path(td) / "a.mp3"
+                src.write_bytes(b"\0" * 1024)
+                T._split(src, 99.0, td, force=True)
+        finally:
+            T.subprocess.run = real
+        self.assertTrue(seen, "_split 根本没调 ffmpeg —— 这道闸没测到东西")
+        self.assertIn("-vn", seen[0],
+                      "切片命令没有 -vn —— 内嵌封面图会把音频挤成 0.3 秒")
+
+    def test_chunks_of_a_plain_file_are_full_length(self):
+        """普通文件（没有封面）要正常切 —— 别把 -vn 加成了误伤。"""
+        import importlib, shutil, subprocess, tempfile
+        ff = shutil.which("ffmpeg") or "/opt/homebrew/bin/ffmpeg"
+        if not pathlib.Path(ff).exists():
+            self.skipTest("没有 ffmpeg")
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        T = importlib.import_module("lib.transcript")
+        with tempfile.TemporaryDirectory() as td:
+            src = pathlib.Path(td) / "s.mp3"
+            subprocess.run([ff, "-nostdin", "-v", "error", "-f", "lavfi",
+                            "-i", "sine=frequency=440:duration=900",
+                            "-b:a", "64k", str(src), "-y"], check=True)
+            chunks = T._split(src, src.stat().st_size / 1e6, td, force=True)
+            self.assertIsNotNone(chunks, "一片都没切出来")
+            self.assertGreaterEqual(len(chunks), 900 // T.CHUNK_SEC,
+                                    f"900 秒只切出 {len(chunks)} 片")
+            self.assertGreater(chunks[0][1].stat().st_size,
+                               48000 // 8 * T.CHUNK_SEC * 0.6,
+                               "切出来的片太小，装的不像是音频")
+
+
+class EmptyAsrChunksMustNotBeCachedAsSuccess(unittest.TestCase):
+    """转出来几乎是空的那一片，不能当成功存进缓存。
+
+    实测：一片 300 秒的音频转出「Thank you.」一行被写进缓存，
+    之后每一轮重试都直接读它，一个词都不会变 ——
+    这一集**永远卡死**，而日志只说「取不到文稿」。
+    盘上当时躺着 14 片这样的。
+    """
+
+    def _T(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return importlib.import_module("lib.transcript")
+
+    def test_silence_hallucinations_are_dropped(self):
+        T = self._T()
+        for one in ("Thank you.", "Why?", "请不吝点赞 订阅 转发 打赏支持明镜与点点栏目"):
+            self.assertEqual([], T._drop_asr_hallucinations([{"t": 0, "text": one}]),
+                             f"静音幻觉被当成了内容：{one}")
+
+    def test_a_real_thank_you_survives(self):
+        """真访谈里的 Thank you 不能删 —— 只验「坏的被挡」等于没验。"""
+        T = self._T()
+        segs = [{"t": i, "text": "so the model was trained on"} for i in range(20)]
+        segs.append({"t": 99, "text": "Thank you."})
+        self.assertEqual(len(segs), len(T._drop_asr_hallucinations(segs)),
+                         "把真内容里的 Thank you 一起删了")
+
+    def test_the_write_path_refuses_to_cache_an_empty_chunk(self):
+        src = (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
+        i = src.index("def _local_chunked(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        code = "\n".join(l for l in body.splitlines()
+                         if not l.lstrip().startswith("#"))
+        w = code.index("cp.write_text(")
+        before = code[:w]
+        self.assertRegex(before, r"words\s*<\s*max\(",
+                         "写缓存之前没有验这一片有多少词")
+        self.assertRegex(before, r"_drop_asr_hallucinations\(",
+                         "写缓存之前没有去掉静音幻觉")
+        # **空片不缓存，但不能因此把整集判死。**
+        # 片尾常常是纯音乐；第一版写的是 return None，
+        # 那会让任何一集只要有个安静的尾巴就整集失败。
+        gap = before[before.index("words < max("):]
+        self.assertNotIn("return None", gap,
+                         "一片安静就把整集判失败了 —— 片尾音乐会误伤")
+        self.assertIn("continue", gap, "空片没有跳过，会接着往下写缓存")
+
+    def test_the_read_path_refuses_a_poisoned_cache(self):
+        """光在写的时候挡不够 —— 盘上已经存着的也要在读的时候验。"""
+        src = (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
+        i = src.index("def _local_chunked(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        code = "\n".join(l for l in body.splitlines()
+                         if not l.lstrip().startswith("#"))
+        r = code.index("if cp.exists():")
+        blk = code[r:code.index("with _ASR_LOCK", r)]
+        self.assertRegex(blk, r"cp\.unlink\(",
+                         "读到坏缓存不删掉 —— 会被一直复用")
