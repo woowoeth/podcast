@@ -6945,3 +6945,71 @@ class AsrOnlySourcesMustBeRoutedToTheLocalLine(unittest.TestCase):
                          "asr_only 没有从已发布稿的 transcript_source 统计")
         self.assertRegex(body, r'"asr_only":\s*bool\(p\["tr"\]\)',
                          "一篇没发过的源也会被判成 asr_only")
+
+
+class CatchUpMustReserveSlotsForSourcesWithNothing(unittest.TestCase):
+    """建档模式要给「一篇都没有」的源**留名额**，不是给它加分。
+
+    加权试了两轮都没换来结果。算一下就知道为什么：tier1 存量 5 篇得
+    100 + max(0, 60-60) = 100 分；tier3 存量 0 篇得 25 + 60 = 85 分。
+    饥饿加分最多 +60，跨不过 tier1↔tier3 那 75 分的差 ——
+    **零产出的源永远排在有存量的 tier1 后面**。
+    实测两轮建档：出稿 1 篇、5 篇，破零 1 档、0 档，
+    发出来的全是已经有 2–5 篇的源。
+
+    「机制改了」不等于「结果变了」。所以判据也不看分数，只看**名额**。
+    """
+
+    def _run(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return importlib.import_module("run")
+
+    @staticmethod
+    def _ep(sid, tier, cat="ai"):
+        return {"_src": {"id": sid, "tier": tier, "cat": cat}, "title": sid}
+
+    def test_starving_sources_get_slots_even_against_fed_core_sources(self):
+        run = self._run()
+        ranked = ([self._ep(f"t1{i}", 1) for i in range(6)]
+                  + [self._ep(f"z{i}", 3, "hist") for i in range(6)])
+        was = dict(run._starve)
+        try:
+            run._starve.update(on=True, have={f"t1{i}": 5 for i in range(6)})
+            out = run.spread(ranked, 8, 3)
+        finally:
+            run._starve.clear(); run._starve.update(was)
+        zero = [e for e in out if e["_src"]["id"].startswith("z")]
+        self.assertGreaterEqual(
+            len(zero), 4,
+            "8 个名额里零产出的源一个都没拿到 —— 加权跨不过 tier 的差")
+
+    def test_the_daily_run_is_untouched(self):
+        """日更不开建档模式，核心源优先那条路一点都不能动。"""
+        run = self._run()
+        ranked = ([self._ep(f"t1{i}", 1) for i in range(6)]
+                  + [self._ep(f"z{i}", 3, "hist") for i in range(6)])
+        was = dict(run._starve)
+        try:
+            run._starve.update(on=False, have={})
+            out = run.spread(ranked, 8, 3)
+        finally:
+            run._starve.clear(); run._starve.update(was)
+        head = [e["_src"]["id"] for e in out[:6]]
+        self.assertTrue(all(x.startswith("t1") for x in head),
+                        f"日更的核心源优先被建档的保底挤掉了：{head}")
+
+    def test_the_reservation_is_bounded(self):
+        """保底不能吃掉整轮预算 —— 核心源还得有位置。"""
+        run = self._run()
+        ranked = ([self._ep(f"z{i}", 3, "hist") for i in range(20)]
+                  + [self._ep(f"t1{i}", 1) for i in range(6)])
+        was = dict(run._starve)
+        try:
+            run._starve.update(on=True, have={f"t1{i}": 5 for i in range(6)})
+            out = run.spread(ranked, 8, 3)
+        finally:
+            run._starve.clear(); run._starve.update(was)
+        core = [e for e in out if e["_src"]["id"].startswith("t1")]
+        self.assertGreaterEqual(len(core), 4,
+                                "保底把核心源全挤出去了 —— 核心源每篇都要发得出去")

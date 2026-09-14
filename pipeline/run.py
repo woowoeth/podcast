@@ -168,6 +168,28 @@ def spread(ranked: list[dict], limit: int, per_source: int) -> list[dict]:
         out.append(ep)
         return True
 
+    # **建档模式：先给一篇都没有的源留名额。**
+    #
+    # 加权试了两轮都没换来结果 —— 算一下就知道为什么：tier1 存量 5 篇得
+    # 100 + max(0, 60-60) = 100 分，tier3 存量 0 篇得 25 + 60 = 85 分。
+    # 饥饿加分最多 +60，跨不过 tier1↔tier3 那 75 分的差，**零产出的源
+    # 永远排在有存量的 tier1 后面**。实测两轮建档：出稿 1 篇、5 篇，
+    # 破零 1 档、0 档 —— 发出来的全是已经有 2–5 篇的源。
+    #
+    # 「机制改了」不等于「结果变了」。这一次不再调分数，直接留名额：
+    # 一半预算只给存量为 0 的源，剩下一半照旧走核心源优先那条路。
+    # 只在建档模式（--catchup）下生效，日更不受影响。
+    if _starve["on"]:
+        keep = max(1, limit // 2)
+        n0 = len(out)
+        for ep in ranked:
+            if len(out) - n0 >= keep or len(out) >= limit:
+                break
+            if _starve["have"].get(ep["_src"]["id"], 0) == 0:
+                try_add(ep)
+        if len(out) > n0:
+            log(f"  零产出源保底 {len(out) - n0} 集（上限 {keep}）")
+
     # **核心源先拿。** 核心源（tier 1）是「已经决定要长期追」的那一批，
     # 它们的集不该和别人在同一个排序里抢名额 —— 实测近 30 天核心源 108 集里
     # 有 14 集**从没被碰过**（sharptech 5、anthropic 4、rationalreminder 4、
