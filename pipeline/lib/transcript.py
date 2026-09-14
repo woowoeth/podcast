@@ -26,9 +26,10 @@ import subprocess
 import tempfile
 import threading
 import time
+import urllib.parse
 
 from . import net
-from .util import hhmmss, log, parse_ts, squeeze, strip_html
+from .util import hhmmss, log, parse_ts, slugify, squeeze, strip_html
 
 # Below this words-per-minute a "transcript" is really show notes or a partial
 # capture. English conversation runs 130-170 wpm; Chinese ~220 chars/min.
@@ -343,6 +344,31 @@ def _is_listing(body: str, others: list[str]) -> str | None:
     return None
 
 
+def _root_link_guess(ep: dict) -> list[str]:
+    """feed 里每一集的 link 都指向站点根时，用标题猜出集页。
+
+    有些 feed 的 <link> 是同一个首页，而不是这一集的页面。
+    照着它取稿，page 层抓到的是首页：Literature and History 的首页只有
+    378 词，够不密，于是整集掉到 ASR ——一集 2 小时的讲座要转两小时，
+    而**带脚注的官方全文逐字稿就在一个链接之外**（同一集 15,755 词）。
+
+    标题 slug 是大多数站点的集页地址。实测这一档 8/8 命中
+    （「Episode 128: Early Sufism」→ /episode-128-early-sufism，17,836 词）。
+
+    猜错不会出事：from_page 后面还要过字数、语速上下界、
+    `_is_this_episode`（标题必须出现在正文里）和列表页判据 ——
+    抓到不相干的页面会被这几道挡掉，只是白取一次。
+    """
+    link = ep.get("link") or ""
+    try:
+        u = urllib.parse.urlsplit(link)
+    except ValueError:
+        return []
+    if u.path not in ("", "/") or not u.netloc or not ep.get("title"):
+        return []
+    return [f"{u.scheme}://{u.netloc}/{slugify(ep['title'], maxlen=120)}"]
+
+
 def from_page(ep: dict, lang: str, others: list[str] | None = None) -> dict | None:
     urls = []
     m = _TR_LINK.search(ep.get("notes") or "")
@@ -350,6 +376,7 @@ def from_page(ep: dict, lang: str, others: list[str] | None = None) -> dict | No
         urls.append(m.group(1))
     if ep.get("link"):
         urls += _alt_urls(ep["link"]) + [ep["link"]]
+        urls += _root_link_guess(ep)
     dur_min = max((ep.get("duration") or 0) / 60, 1)
     lo, hi = MIN_WPM.get(lang, 70), MAX_WPM.get(lang, 300)
     for u in dict.fromkeys(urls):

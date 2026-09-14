@@ -20,7 +20,8 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
-def write(line: str, exit_code: int, published: int | None = None) -> pathlib.Path:
+def write(line: str, exit_code: int, published: int | None = None,
+          why: str | None = None) -> pathlib.Path:
     eps = len(list((ROOT / "data" / "episodes").glob("*.json")))
     rec = {
         "at": dt.datetime.now(dt.timezone.utc)
@@ -31,6 +32,10 @@ def write(line: str, exit_code: int, published: int | None = None) -> pathlib.Pa
     }
     if published is not None:
         rec["published"] = int(published)
+    if why:
+        # 非零退出时写清楚**为什么**。只有退出码的话，体检只能说"这条线坏了"，
+        # 说不出"坏在哪"，而排查要从头看一遍日志。
+        rec["why"] = why
     p = ROOT / "data" / f"heartbeat-{line}.json"
     p.write_text(json.dumps(rec, ensure_ascii=False, indent=1) + "\n")
     return p
@@ -41,12 +46,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("line", choices=("local", "cloud"))
     ap.add_argument("exit_code", nargs="?", default="0")
     ap.add_argument("--published", type=int, default=None)
+    ap.add_argument("--why", default=None, help="非零退出时，一句话说明原因")
     a = ap.parse_args(argv)
     try:
         code = int(a.exit_code)
     except ValueError:
         code = 1
-    p = write(a.line, code, a.published)
+    p = write(a.line, code, a.published, a.why)
     # 打出来：心跳失效过一次就是因为它一声不响
     print(f"心跳已写 {p.relative_to(ROOT)}（退出码 {code}）")
     return 0

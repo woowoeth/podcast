@@ -152,6 +152,24 @@ PYEOF
     fi
   fi
 
+  # **同步「成功」不等于工作区是好的。**
+  # autostash 恢复时冲突，git pull 的退出码仍是 0：只警告一句，把冲突标记
+  # 留在工作区，stash 也留着（实测那台机器堆了 5 个）。于是那一轮照跑，
+  # 深读发了 6 篇，最后在建站读 data/en/_sources.json 时撞上
+  # `<<<<<<< Updated upstream` 崩掉 —— 6 篇稿子既没提交也没推，
+  # 只躺在工作区里，而体检看到的是「这条线没跑」。
+  # 坏账本要在**花钱之前**发现。判据不看 git 的退出码，直接读 data 下的 JSON。
+  if ! python3 pipeline/checkdata.py; then
+    echo "同步之后 data 下仍有坏掉的 JSON，本轮不深读" >&2
+    python3 pipeline/heartbeat.py local 1 --published 0 \
+      --why "同步后 data 下有坏掉的 JSON（多半是 autostash 冲突留下的标记），本轮拒绝深读" || true
+    exit 1
+  fi
+  n_stash=$(git stash list 2>/dev/null | grep -c autostash || true)
+  if [ "${n_stash:-0}" -ge 3 ]; then
+    echo "注意：git stash 里堆了 $n_stash 个 autostash，多半是历次同步冲突留下的" >&2
+  fi
+
   ONLY_ARG=""
   [ -n "$ONLY" ] && ONLY_ARG="--only $ONLY"
   # 默认只跑云端抓不到的那批，避免和云端重复劳动

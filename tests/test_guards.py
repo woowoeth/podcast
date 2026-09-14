@@ -7261,3 +7261,139 @@ class ANoTranscriptVerdictMustCarryTheCodeThatMadeIt(unittest.TestCase):
         head = body[max(0, j - 200):j]
         self.assertIn("no-transcript", head,
                       "作废条件没限定在「取不到文稿」上 —— 会把质量判决也一起作废")
+
+
+class AFeedWhoseLinksAllPointAtTheHomepageStillFindsItsTranscript(unittest.TestCase):
+    """feed 里每一集的 link 都指向站点根时，要用标题猜出集页。
+
+    有些 feed 的 <link> 是同一个首页，不是这一集的页面。
+    照着它取稿，page 层抓到的是首页：Literature and History 的首页只有
+    378 词，够不密，于是整集掉到 ASR —— **一集 2 小时的讲座要转两小时**，
+    而带脚注的官方全文逐字稿就在一个链接之外（同一集 15,755 词）。
+
+    实测这一档 8/8 命中：
+    「Episode 128: Early Sufism」→ /episode-128-early-sufism。
+    """
+
+    def _T(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return importlib.import_module("lib.transcript")
+
+    def test_it_guesses_when_the_link_is_bare(self):
+        T = self._T()
+        got = T._root_link_guess({"link": "https://literatureandhistory.com/",
+                                  "title": "Episode 128: Early Sufism"})
+        self.assertEqual(["https://literatureandhistory.com/episode-128-early-sufism"], got)
+        # 没有结尾斜杠也一样
+        self.assertEqual(got, T._root_link_guess(
+            {"link": "https://literatureandhistory.com",
+             "title": "Episode 128: Early Sufism"}))
+
+    def test_it_leaves_a_real_episode_link_alone(self):
+        """link 已经指向集页的，不要瞎猜 —— 只验「坏的被救」等于没验。"""
+        T = self._T()
+        for link in ("https://shows.acast.com/dansnow/episodes/the-kgb-double-agent",
+                     "https://example.com/p/123"):
+            self.assertEqual([], T._root_link_guess({"link": link, "title": "X"}),
+                             f"对已有路径的链接也去猜：{link}")
+        self.assertEqual([], T._root_link_guess(
+            {"link": "https://example.com/", "title": ""}), "没有标题也去猜")
+
+    def test_from_page_actually_tries_the_guess(self):
+        """光有这个函数没用，from_page 不调就还是老样子。"""
+        src = (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
+        i = src.index("def from_page(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        code = "\n".join(l for l in body.splitlines()
+                         if not l.lstrip().startswith("#"))
+        self.assertIn("_root_link_guess(ep)", code,
+                      "from_page 没有把猜出来的地址放进候选 —— 这一集还是掉 ASR")
+
+    def test_the_wrong_page_is_still_rejected(self):
+        """猜错要挡得住。from_page 靠标题核对那道闸，不能被去掉。"""
+        src = (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
+        i = src.index("def from_page(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        code = "\n".join(l for l in body.splitlines()
+                         if not l.lstrip().startswith("#"))
+        self.assertIn("_is_this_episode(", code,
+                      "没有核对标题 —— 猜错了会把别的页面当成这一集的稿")
+        self.assertIn("_is_listing(", code, "没有挡列表页")
+
+
+class ABrokenLedgerMustStopTheRunBeforeItSpends(unittest.TestCase):
+    """坏账本要在**花钱之前**发现，不是在花完之后。
+
+    实测事故：`git pull --rebase --autostash` 恢复 autostash 时冲突了，
+    **退出码仍是 0** —— git 只警告一句，把 `<<<<<<< Updated upstream`
+    留在 data/en/_sources.json 里，stash 也留着（那台机器堆了 5 个）。
+    同步「成功」，于是那一轮照跑：深读发了 6 篇（花了钱、跑了 ASR），
+    最后在建站读那个文件时崩掉。**6 篇稿子既没提交也没推**，
+    只躺在那台机器的工作区里，而体检看到的是「这条线没跑」。
+
+    判据不能看 git 的退出码 —— 它说的是「拉取成功」，不是「工作区是好的」。
+    直接量真东西：data 下每个 JSON 还能不能解析。
+    """
+
+    def _mod(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return importlib.import_module("checkdata")
+
+    def test_it_finds_a_file_with_conflict_markers(self):
+        import tempfile
+        c = self._mod()
+        with tempfile.TemporaryDirectory() as td:
+            d = pathlib.Path(td)
+            (d / "fine.json").write_text('{"a": 1}')
+            # 真实形状：autostash 冲突留下的标记
+            (d / "broken.json").write_text(
+                '{\n "x": {"desc": "ok"},\n'
+                '<<<<<<< Updated upstream\n'
+                ' "y": {"desc": "a"}\n'
+                '=======\n'
+                ' "y": {"desc": "b"}\n'
+                '>>>>>>> Stashed changes\n}\n')
+            bad = [p.name for p in c.broken_json(d)]
+        self.assertEqual(["broken.json"], bad,
+                         "带冲突标记的账本没被发现 —— 会先花钱再崩")
+
+    def test_the_daily_script_checks_before_the_expensive_work(self):
+        """位置就是判据：检查必须在 run.py 之前。"""
+        src = (ROOT / "scripts" / "local-daily.sh").read_text()
+        code = "\n".join(l for l in src.splitlines()
+                         if not l.lstrip().startswith("#"))
+        self.assertIn("checkdata.py", code, "日更脚本没有在跑之前检查账本")
+        i = code.index("checkdata.py")
+        # **判据落在真正的「调用」上。** 第一版比的是 `pipeline/run.py`，
+        # 而脚本开头有一句 `if [ ! -f "$REPO/pipeline/run.py" ]` —— 那是
+        # 「文件在不在」的存在性检查，不是调用；比到它身上，这道闸永远红。
+        j = code.index("python3 pipeline/run.py")
+        self.assertLess(i, j,
+                        "账本检查排在真正开跑之后 —— 还是先花钱再发现")
+
+    def test_it_stops_instead_of_continuing(self):
+        src = (ROOT / "scripts" / "local-daily.sh").read_text()
+        i = src.index("checkdata.py")
+        blk = src[i:i + 500]
+        self.assertIn("exit 1", blk, "检查不过却不停手")
+        self.assertIn("heartbeat.py", blk,
+                      "停手了却不写心跳 —— 体检会说「这条线没跑」，"
+                      "而真相是「跑了，拒绝深读」")
+
+    def test_the_heartbeat_records_why(self):
+        """只有退出码的话，体检只能说「坏了」，说不出「坏在哪」。"""
+        import importlib, json as _json, tempfile, os
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        hb = importlib.import_module("heartbeat")
+        p = ROOT / "data" / "heartbeat-local.json"
+        keep = p.read_text() if p.exists() else None
+        try:
+            hb.write("local", 1, published=0, why="账本坏了")
+            got = _json.loads(p.read_text())
+            self.assertEqual(1, got["exit"])
+            self.assertEqual("账本坏了", got.get("why"), "心跳没记下原因")
+        finally:
+            if keep is not None:
+                p.write_text(keep)
