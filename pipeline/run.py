@@ -292,10 +292,21 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
     return out
 
 
+_starve: dict = {"on": False, "have": {}}
+
+
 def score(ep: dict) -> float:
     """Rank candidates so a limited daily budget spends on the best episodes."""
     s = ep["_src"]
     v = {1: 100.0, 2: 55.0, 3: 25.0}.get(s.get("tier", 3), 25.0)
+    # **建档模式下，越饿的源越靠前。**
+    # 只把饿着的源放进候选清单是不够的：真正决定谁被取的是这里的打分，
+    # 而它按 tier 打 —— 实测一轮建档跑下来，0 篇的源**一档都没破零**，
+    # 发出来的 4 篇全来自已经有 4-7 篇的源（lennys、nopriors、a16z、ilt）。
+    # 清单顺序不进打分，就等于没改。
+    if _starve["on"]:
+        n = _starve["have"].get(s["id"], 0)
+        v += max(0, 60 - n * 12)        # 0 篇 +60，5 篇以上不再加
     age_h = (now() - ep["published"]).total_seconds() / 3600
     v -= min(age_h / 24, 10) * 4                    # freshness
     if ep.get("transcripts"):
@@ -793,6 +804,14 @@ def main() -> int:
         return 2
 
     if a.catchup:
+        import collections as _c
+        _have: _c.Counter = _c.Counter()
+        for _f in (DATA / "episodes").glob("*.json"):
+            try:
+                _have[json.loads(_f.read_text()).get("source_id")] += 1
+            except Exception:
+                continue
+        _starve.update(on=True, have=dict(_have))
         ids = _catchup_ids()
         if not ids:
             log("没有需要建档的新信源")

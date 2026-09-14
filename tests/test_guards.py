@@ -6665,3 +6665,111 @@ class CatchUpMustReachSourcesWithNoLedgerRow(unittest.TestCase):
         counts = [have[i] for i in ids]
         self.assertEqual(counts, sorted(counts),
                          "建档队列没有按出稿数从少到多排 —— 饿得最狠的排在后面")
+
+
+class YoutubeAudioMustMatchTheEpisodeLength(unittest.TestCase):
+    """从 YouTube 抓音频之前要核对时长，和字幕那条路用同一个容差。
+
+    实测：lennys 有一集在 feed 里没有音频附件，链接指向一条
+    **83 秒的 YouTube Shorts**。取音频那条路什么都不查，把短片下下来转写，
+    得到一段没用的文稿，最后报「取不到文稿」——
+    ASR 白跑，而真正的问题是**拿错了视频**。
+
+    字幕那条路早就有这道检查（`abs(vdur - dur) > seek_tolerance(dur)`），
+    注释里还写着「两处必须是同一个数」—— 而另一处根本没写。
+    """
+
+    def test_the_audio_path_checks_duration(self):
+        src = (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
+        i = src.index("def _yt_audio(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        # **判据落在真正的比较上。** 第一版查的是 body 里有没有 "want_dur"
+        # 和 "seek_tolerance" —— 而这两个词在我自己写的**文档字符串**里，
+        # 把整段检查删掉照样通过。今天第 N 次栽在匹配说明文字上。
+        self.assertRegex(
+            body, r"abs\(\s*vdur\s*-\s*want_dur\s*\)\s*>\s*seek_tolerance",
+            "抓音频前没有真的比时长 —— 83 秒的 Shorts 会被当成正片转写")
+        self.assertRegex(body, r"return None",
+                         "对不上也不返回 —— 还是会去下那条错的视频")
+
+    def test_the_call_site_passes_the_episode_duration(self):
+        """光加参数没用，调用处不传就还是老样子。"""
+        src = (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
+        i = src.index("_yt_audio(ep[")
+        self.assertIn("want_dur", src[i:i + 160],
+                      "调用处没把这一集的时长传进去")
+
+    def test_a_short_is_rejected_for_a_long_episode(self):
+        """算术层面验一遍：83 秒的短片配 60 分钟的集，必须被挡。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        T = importlib.import_module("lib.transcript")
+        self.assertGreater(abs(3600 - 83), T.seek_tolerance(3600),
+                           "容差宽到能放过一条 83 秒的 Shorts")
+        # 同一集的正常编码差异不该被误挡
+        self.assertLessEqual(abs(3600 - 3585), T.seek_tolerance(3600),
+                             "容差窄到会把同一集的正常编码差异挡掉")
+
+
+class CatchUpRankingMustFavourStarvingSources(unittest.TestCase):
+    """建档模式下，越饿的源越靠前 —— 而且要作用在**打分**上。
+
+    实测的教训：我先只改了「哪些源进候选清单」，以为够了。
+    跑一轮下来 **0 篇的源一档都没破零**，发出来的 4 篇全来自已经有
+    4–7 篇的源（lennys 7、nopriors 7、a16z 4、ilt 4）——
+    因为真正决定谁被取的是 score()，它按 tier 打分，清单顺序根本不进打分。
+
+    「改了机制」和「结果变了」是两件事。这条守护盯的是后者。
+    """
+
+    def _run(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return importlib.import_module("run")
+
+    def test_starvation_outranks_tier_in_catchup_mode(self):
+        import datetime as _dt
+        run = self._run()
+        mk = lambda sid, tier: {
+            "_src": {"id": sid, "tier": tier, "cat": "ai"},
+            "published": _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(hours=5),
+            "duration": 3600, "notes": ""}
+        rich_t1, poor_t2 = mk("rich", 1), mk("poor", 2)
+        was = dict(run._starve)
+        try:
+            run._starve.update(on=False, have={})
+            self.assertGreater(run.score(rich_t1), run.score(poor_t2),
+                               "普通模式下 tier1 该排在 tier2 前面")
+            run._starve.update(on=True, have={"rich": 7, "poor": 0})
+            self.assertGreater(
+                run.score(poor_t2), run.score(rich_t1),
+                "建档模式下，一篇没有的 tier2 仍然排在有 7 篇的 tier1 后面 —— "
+                "那 85 档 0 篇的源永远破不了零")
+        finally:
+            run._starve.clear(); run._starve.update(was)
+
+    def test_the_boost_fades_once_a_source_is_established(self):
+        """建起档之后就不该再插队，否则新源会一直压着所有人。"""
+        import datetime as _dt
+        run = self._run()
+        mk = lambda sid: {"_src": {"id": sid, "tier": 2, "cat": "ai"},
+                          "published": _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(hours=5),
+                          "duration": 3600, "notes": ""}
+        was = dict(run._starve)
+        try:
+            run._starve.update(on=True, have={"a": 0, "b": 6})
+            self.assertGreater(run.score(mk("a")), run.score(mk("b")))
+            run._starve.update(on=True, have={"a": 6, "b": 6})
+            # 用 delta：两次 score() 之间时间会走一点点，新鲜度项因此差
+            # 5e-11 —— 那是我的判据太死，不是行为错。
+            self.assertAlmostEqual(run.score(mk("a")), run.score(mk("b")), delta=0.01,
+                                   msg="建起档之后仍在加分 —— 会一直插队")
+        finally:
+            run._starve.clear(); run._starve.update(was)
+
+    def test_catchup_mode_actually_turns_it_on(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index("if a.catchup:")
+        blk = src[i:i + 700]
+        self.assertIn("_starve.update(on=True", blk,
+                      "建档模式没有打开饥饿加权 —— 改了也不生效")

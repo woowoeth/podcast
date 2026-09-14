@@ -674,11 +674,32 @@ def _ffmpeg() -> str | None:
         return None
 
 
-def _yt_audio(vid: str, td: str) -> pathlib.Path | None:
+def _yt_audio(vid: str, td: str, want_dur: int = 0) -> pathlib.Path | None:
     """从 YouTube 抓音频。纯 YouTube 频道没有 RSS enclosure，没有这一步，
-    没开字幕的频道就完全取不到文稿——而"频道有没有开字幕"不该决定选题。"""
+    没开字幕的频道就完全取不到文稿——而"频道有没有开字幕"不该决定选题。
+
+    **下载之前先核对时长。** 字幕那条路用 seek_tolerance 挡掉对不上的视频，
+    这条路原来什么都不查：实测 lennys 有一集的链接指向一条 **2 分钟的
+    YouTube Shorts**，于是我们把那条短片下下来转写，得到一段没用的文稿，
+    报成「取不到文稿」—— ASR 白跑，而真正的问题是拿错了视频。
+    两处的容差必须是同一个数。
+    """
     if not shutil.which("yt-dlp"):
         return None
+    if want_dur:
+        try:
+            r = subprocess.run(
+                ["yt-dlp", "--skip-download", "--no-warnings", "--print", "duration",
+                 "--socket-timeout", "20", f"https://www.youtube.com/watch?v={vid}"],
+                capture_output=True, text=True, timeout=90)
+            vdur = int(float((r.stdout or "0").strip().split("\n")[0] or 0))
+        except Exception:
+            vdur = 0
+        if vdur and abs(vdur - want_dur) > seek_tolerance(want_dur):
+            log(f"    这个视频只有 {vdur}s，而这一集是 {want_dur}s "
+                f"—— 拿错了视频（多半是 Shorts 或片花），不转写")
+            _transient["hit"] = False
+            return None
     out = pathlib.Path(td) / "yt.m4a"
     cmd = ["yt-dlp", "-f", "bestaudio[abr<=96]/bestaudio/best",
            "-x", "--audio-format", "m4a", "--audio-quality", "5",
@@ -721,7 +742,8 @@ def from_audio(ep: dict, lang: str) -> dict | None:
         raw = None      # 走 YouTube 抓音频，见下
     with tempfile.TemporaryDirectory() as td:
         if raw is None:
-            got = _yt_audio(ep["youtube_id"], td)
+            got = _yt_audio(ep["youtube_id"], td,
+                            want_dur=int(ep.get("duration") or 0))
             if not got:
                 return None
             src = got
