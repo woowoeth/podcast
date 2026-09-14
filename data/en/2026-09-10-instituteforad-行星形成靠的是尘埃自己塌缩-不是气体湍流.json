@@ -1,0 +1,134 @@
+{
+ "slug": "2026-09-10-instituteforad-行星形成靠的是尘埃自己塌缩-不是气体湍流",
+ "of": "instituteforad-4d9ac4d3e5",
+ "source_lang": "en",
+ "title": "Planet Formation Comes from Dust Collapsing on Its Own, Not Gas Turbulence",
+ "dek": "Purely hydrodynamic instabilities like VSI and COS stir dust back into the atmosphere and cannot make planetesimals; only when dust actively feeds back, or even when gas accretes, can dust be compressed to collapse density.",
+ "why": "This is a technical group meeting talk of moderate information density; the first half is a review, while the second half on accretion flows and Hall MHD promoting collapse is more worth hearing.",
+ "who": "Graduate students and postdocs doing numerical simulations of protoplanetary disks, planet formation, or dust dynamics, as well as astrophysics researchers interested in how accretion flows and MHD affect planetesimal formation.",
+ "skip": "The conference introduction and planet formation review from 0:18 to 6:21 at the beginning can be skipped; go directly to the hydrodynamic instability part after 6:21.",
+ "tags": [
+  "Planet Formation",
+  "Protoplanetary Disks",
+  "Hydrodynamic Instabilities",
+  "MHD",
+  "Dust Dynamics"
+ ],
+ "points": [
+  {
+   "h": "1% dust gets stirred back into the atmosphere by VSI",
+   "body": "With a standard interstellar medium dust-to-gas ratio of 1%, dust particles settle to the midplane and are quickly remixed back into the atmosphere by VSI, with no hope of forming planets. But if metallicity is increased several times, dust feedback on the gas brings extra inertia, producing dust-induced buoyancy that allows a dust layer to form. The key is that you do not need to reach a dust-to-gas ratio of 1, because the vertical shear itself is weak, and only a small increase in metallicity makes feedback important."
+  },
+  {
+   "h": "Vortices can trap dust, but not hard enough",
+   "body": "Vortices commonly appear in 3D VSI simulations, and they do collect dust, but the concentration is far below what is needed for direct gravitational collapse. In 2D axisymmetric simulations, as dust content increases from 1% to 10%, the morphology shifts from non-axisymmetric vortices to a more axisymmetric ring-like disk. The author thinks this is worth exploring: linking the large-scale morphology seen in the sky to underlying properties like the disk's dust-to-gas mass ratio."
+  },
+  {
+   "h": "The dust layer itself generates new vertical shear",
+   "body": "If dust successfully settles to the midplane, the story is not over: the dense dust layer orbits at Keplerian speed, while the pure gas above and below orbits at sub-Keplerian speed, creating strong vertical shear between the dust layer and gas layers. Using Dedalus for global eigenvalue analysis, a family of extremely unstable modes is found, with growth rates on the orbital timescale, but scales of only 10 to the minus 3 H, requiring very high resolution to capture. The author notes that a decade ago spectral simulations already found that this dust version of the vertical shear instability would disrupt the dust layer, but that was an early simulation and deserves revisiting with modern codes."
+  },
+  {
+   "h": "Too much dust collected, and the zonal flow disappears",
+   "body": "Simulations coupling Boussinesq gas with pressureless dust show that after the instability saturates, a pressure ring slowly forms, and dust gathers in the ring. But interestingly, when dust particles become quite concentrated, the pressure ring disappears instead. Raising the background dust-to-gas ratio from 1% to 10%, nothing happens, and no zonal flow forms. The author does not strictly explain this, but the best guess is: the dust fluid's angular momentum flux is always more positive than the gas's, making the total angular momentum flux less negative than in the pure gas case, thus weakening the toy model of zonal flow formation."
+  },
+  {
+   "h": "Vortices formed, but pressure bumps did not appear",
+   "body": "In the \"local global\" approach, the author stuffs a global disk into a box, precisely controls the N² profile, and only makes N² negative near X=0. For a 2×6 cube, 3D simulations are run for about 2000 orbits each, finding that the disk must be unstable over a sufficiently large region to form vortices; below an empirical line, it only saturates to an axisymmetric state, and doing 3D is meaningless. But the most critical finding is: even when vortices form, no vortex signature can be identified in the pressure field at all, and there is no pressure bump as a dust trap. More worryingly, merely changing the vertical boundary condition from periodic to fixed top and bottom lids makes the vortices disappear."
+  },
+  {
+   "h": "Gas accretion flows can push weak clumps into strong clumps",
+   "body": "Protoplanetary disks are essentially accretion disks, so accretion should be in the model. In Fargo simulations, a torque is applied to the gas to make it accrete toward the star, without applying a pressure gradient; the system itself is unstable, forming dense filamentary structures with dust-to-gas ratios approaching or even exceeding 100, enough to expect gravitational collapse. At a parameter point with Stokes number 0.1 and extremely low metallicity, strong clumping was not expected, but adding the accretion flow lifts the system into the strong clumping regime. The author thinks the reason is that the accretion flow reduces the turbulence level, allowing dust to settle. And this effect is not monotonic: if the accretion parameter is tuned too high, it returns to the non-strong-clumping state."
+  },
+  {
+   "h": "Ideal MHD directly wipes out the traditional SI",
+   "body": "Extending the standard linear theory of magnetohydrodynamic flow instabilities from pure hydrodynamics to ideal MHD, adding the Lorentz force and induction equation, the picture completely changes. The appearance of MRI is not surprising, nor is a new branch where Alfvén waves resonate with dust-gas drift, but what is truly surprising is that the original flow instability completely disappears. If SI existed independently, even if not dominant, it should remain, but it is actively suppressed by the Lorentz force (very likely magnetic tension). However, protoplanetary disks are far from ideal MHD, so the author turns to non-ideal MHD with kinetic dust."
+  },
+  {
+   "h": "Hall MHD lets even dust-poor disks strongly clump",
+   "body": "In the anti-parallel Hall effect case, linear calculations reveal, besides the conventional flow instability and MHD waves, a new mode that can be reproduced with the standard Hall MHD equations plus an extra term representing the B field drifting through the dust-gas mixture. New postdoc Remis Actor is running simulations with thermal diffusion: without MHD almost nothing happens; under fully developed MRI turbulence, highly concentrated dust is obtained even without feedback; under Hall MHD, quite strong dust concentration is also obtained. The key is that the starting dust-to-gas ratio is only 0.2, very poor, but dust feedback plus Hall MHD can still produce strong clumping."
+  }
+ ],
+ "terms": [
+  {
+   "term": "VSI (vertical shear instability)",
+   "def": "A hydrodynamic instability driven by vertical shear from radial temperature gradients, essentially inertial waves becoming unstable."
+  },
+  {
+   "term": "COS (convective overstability)",
+   "def": "A hydrodynamic instability where fluid elements exchange heat with their surroundings during radial oscillations, amplifying the oscillations through buoyancy."
+  },
+  {
+   "term": "streaming instability",
+   "def": "An instability from two-way coupling between dust and gas, the leading theory for planetesimal formation."
+  },
+  {
+   "term": "zonal flow",
+   "def": "Alternating super-Keplerian and sub-Keplerian angular velocity bands in the disk, corresponding to pressure variations, which can act as dust traps."
+  },
+  {
+   "term": "Stokes number",
+   "def": "A dimensionless number describing the degree of coupling between dust particles and gas, characterizing particle size."
+  },
+  {
+   "term": "resonant drag instability",
+   "def": "A modern framework interpreting dust instabilities as resonance between wave speeds and dust drift speeds."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Standard interstellar medium dust-to-gas ratio",
+   "v": "1%"
+  },
+  {
+   "k": "Scale of the dust version of the vertical shear instability",
+   "v": "10 to the minus 3 H"
+  },
+  {
+   "k": "Dust-to-gas ratio in simulations",
+   "v": "from 1% to 10%"
+  },
+  {
+   "k": "Dust-to-gas ratio in accretion flow simulations",
+   "v": "approaching or even exceeding 100"
+  },
+  {
+   "k": "Plasma beta in ideal MHD calculations",
+   "v": "about 10 to the 5"
+  },
+  {
+   "k": "Starting dust-to-gas ratio in Hall MHD simulations",
+   "v": "0.2"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "in the standard case, particles get remixed into the atmosphere and there's no hope for planet formation.",
+   "translated": false
+  },
+  {
+   "text": "Do they trap particles? They do, but not very impressively.",
+   "translated": false
+  },
+  {
+   "text": "you create these zonal flows that collect dust particles, but if you collect too much dust particles, the zonal flows disappear.",
+   "translated": false
+  },
+  {
+   "text": "you cannot actually identify any vortex in the bottom plot. So there's there's no signature of a pressure extreme or a pressure bump in the pressure field.",
+   "translated": false
+  },
+  {
+   "text": "the presence of an accretion flow through the disk appears to promote clumping. That's the basic message.",
+   "translated": false
+  },
+  {
+   "text": "What is a little bit surprising is the complete lack of the original streaming instability as it goes from hydro to ideal MHD.",
+   "translated": false
+  },
+  {
+   "text": "even starting with such a dust poor condition, combination of dust feedback and Hall MHD appears to be able to give you very strong clumping.",
+   "translated": false
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}

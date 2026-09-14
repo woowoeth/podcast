@@ -275,7 +275,16 @@ PYEOF
               assets tw en"
   # 分页文件是动态数量（cards-1.json … cards-N.json），不能写死一个。
   SITE_FILES="$SITE_FILES $(ls cards-*.json 2>/dev/null | tr '\n' ' ')"
-  git add $SITE_FILES 2>/dev/null || true
+  # **数据也要一起加。**
+  # 上面那趟 `git add data/episodes` 发生在日更之后，而**建档（--catchup）
+  # 和 YouTube 观察名单是在它之后才发集的** —— 那些集的数据文件永远赶不上
+  # 那一趟，只有页面进了仓库。
+  # 实测：本机线推上去 418 个正文页、却只有 414 个数据文件
+  # （instituteforad ×2、youdead、tal 四篇建档出的集）。
+  # 后果不是少了四个文件：下一次谁跑 build.py 都是**从数据重建**，
+  # 这四页会被当成孤儿删掉，钱白花、内容消失，而账本里查不到它们发过。
+  git add data/episodes data/en data/state.json data/sources.json \
+          data/heartbeat-local.json $SITE_FILES 2>/dev/null || true
   git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
       commit -q -m "build: regenerate site" || true
 

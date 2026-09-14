@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>世界模型不是視頻生成：Atlas 把 3D 控制做成了輸入 — a16z · 原聲</title>
+<meta name="description" content="語言模型處理 token，世界模型處理物理空間。Atlas 的關鍵不是生成更長的視頻，而是把相機和參考圖放進 3D 座標裡當輸入，讓生成從老虎機變成導演。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/tw/p/2026-09-13-a16z-世界模型不是视频生成-atlas-把-3d-控制做成了输入/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原聲">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:title" content="世界模型不是視頻生成：Atlas 把 3D 控制做成了輸入 — a16z · 原聲">
+<meta property="og:description" content="語言模型處理 token，世界模型處理物理空間。Atlas 的關鍵不是生成更長的視頻，而是把相機和參考圖放進 3D 座標裡當輸入，讓生成從老虎機變成導演。">
+<meta property="og:url" content="https://ourword.ai/podcast/tw/p/2026-09-13-a16z-世界模型不是视频生成-atlas-把-3d-控制做成了输入/">
+<meta property="og:image" content="https://ourword.ai/podcast/assets/cover/7b2f032532c3a865.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-09-13T10:00:00Z">
+<meta property="article:modified_time" content="2026-09-14T17:40:36Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="世界模型不是視頻生成：Atlas 把 3D 控制做成了輸入 — a16z · 原聲">
+<meta name="twitter:description" content="語言模型處理 token，世界模型處理物理空間。Atlas 的關鍵不是生成更長的視頻，而是把相機和參考圖放進 3D 座標裡當輸入，讓生成從老虎機變成導演。">
+<meta name="twitter:image" content="https://image.simplecastcdn.com/images/0d97354a-306b-45f5-bf26-a8d81eef47ec/ed2664df-9371-438e-8baf-dd2ee0fdde87/3000x3000/thea16zshow-podcastcoverart-3000x3000.jpg?aid=rss_feed">
+<link rel="icon" type="image/svg+xml" href="/podcast/tw/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/tw/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原聲" href="/podcast/tw/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-09-13-a16z-世界模型不是视频生成-atlas-把-3d-控制做成了输入/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-09-13-a16z-世界模型不是视频生成-atlas-把-3d-控制做成了输入/">
+<link rel="alternate" hreflang="en" href="https://ourword.ai/podcast/en/p/2026-09-13-a16z-世界模型不是视频生成-atlas-把-3d-控制做成了输入/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-09-13-a16z-世界模型不是视频生成-atlas-把-3d-控制做成了输入/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=e27ecd7fee">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-09-13-a16z-世界模型不是视频生成-atlas-把-3d-控制做成了输入/#episode", "name": "世界模型不是視頻生成：Atlas 把 3D 控制做成了輸入", "headline": "世界模型不是視頻生成：Atlas 把 3D 控制做成了輸入", "description": "語言模型處理 token，世界模型處理物理空間。Atlas 的關鍵不是生成更長的視頻，而是把相機和參考圖放進 3D 座標裡當輸入，讓生成從老虎機變成導演。", "abstract": "語言模型處理 token，世界模型處理物理空間。Atlas 的關鍵不是生成更長的視頻，而是把相機和參考圖放進 3D 座標裡當輸入，讓生成從老虎機變成導演。", "datePublished": "2026-09-13T10:00:00Z", "dateModified": "2026-09-14T17:40:36Z", "url": "https://ourword.ai/podcast/p/2026-09-13-a16z-世界模型不是视频生成-atlas-把-3d-控制做成了输入/", "timeRequired": "PT23M", "partOfSeries": {"@type": "PodcastSeries", "name": "The a16z Show", "url": "https://ourword.ai/podcast/s/a16z/"}, "inLanguage": "zh-TW", "isBasedOn": "https://a16z.simplecast.com/episodes/world-models-robotics-and-the-future-of-3d-ai-mGOuUHi0", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "世界模型, 3D 生成, 機器人仿真, VFX, Atlas, world model, Gaussian splat, real to sim, bullet time, SFT, Atlas 重建所需輸入照片數, Atlas 生成視頻時長示例, bullet time 所需輸入視角", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}, "associatedMedia": {"@type": "AudioObject", "contentUrl": "https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/e578e083-6b40-4815-a479-28213e86988a/audio/128/default.mp3?aid=rss_feed&awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&awEpisodeId=e578e083-6b40-4815-a479-28213e86988a&feed=JGE3yC0V"}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首頁", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "a16z", "item": "https://ourword.ai/podcast/s/a16z/"}, {"@type": "ListItem", "position": 3, "name": "世界模型不是視頻生成：Atlas 把 3D 控制做成了輸入"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/tw/"><span class="wordmark">原聲<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<button class="pill ghost" id="lang-toggle" type="button" data-en="1" data-sc="繁體" data-tw="簡體"></button>
+<button class="icon-btn" data-theme-toggle aria-label="切換深淺色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，來原聲聽播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/tw/">首頁</a><span class="sep">/</span>
+<a href="/podcast/tw/s/a16z/">a16z</a>
+<span class="sep">/</span><span>2026-09-13</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">a16z</span>
+<time class="date" datetime="2026-09-13T10:00:00Z">2026-09-13</time>
+<button class="share-btn" type="button" data-share data-share-title="世界模型不是視頻生成：Atlas 把 3D 控制做成了輸入" data-share-url="https://ourword.ai/podcast/tw/e/a16z-e3ddc41d16/" data-share-desc="語言模型處理 token，世界模型處理物理空間。Atlas 的關鍵不是生成更長的視頻，而是把相機和參考圖放進 3D 座標裡當輸入，讓生成從老虎機變成導演。" data-share-text="世界模型不是視頻生成：Atlas 把 3D 控制做成了輸入&#10;a16z · 23 分鐘 · 原聲深讀&#10;&#10;語言模型處理 token，世界模型處理物理空間。Atlas 的關鍵不是生成更長的視頻，而是把相機和參考圖放進 3D 座標裡當輸入，讓生成從老虎機變成導演。&#10;&#10;https://ourword.ai/podcast/e/a16z-e3ddc41d16/" aria-label="複製分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>世界模型不是視頻生成：Atlas 把 3D 控制做成了輸入</h1>
+<p class="dek-lead">語言模型處理 token，世界模型處理物理空間。Atlas 的關鍵不是生成更長的視頻，而是把相機和參考圖放進 3D 座標裡當輸入，讓生成從老虎機變成導演。</p>
+<div class="ep-meta"><span class="tag">世界模型</span><span class="tag">3D 生成</span><span class="tag">機器人仿真</span><span class="tag">VFX</span><span class="tag">Atlas</span></div>
+</div>
+<div class="player" data-player-box>
+  <div class="strip" data-audio-strip>
+    <p class="afallback">原視頻在 YouTube 上放不出來，用音頻聽：</p>
+    <audio data-player controls preload="none" src="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/e578e083-6b40-4815-a479-28213e86988a/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=e578e083-6b40-4815-a479-28213e86988a&amp;feed=JGE3yC0V"></audio>
+    <div class="aui" data-audio-ui data-dur="1410" hidden>
+      <button class="aplay" type="button" aria-label="播放"></button>
+      <div class="abar" role="slider" tabindex="0" aria-label="播放進度"
+           aria-valuemin="0" aria-valuemax="100"><div class="afill"></div></div>
+      <span class="atime"><span class="acur">0:00</span><span class="asep">/</span><span class="atot">--:--</span></span>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="why">23 分鐘信息密度中等，但 Justin 把世界模型和視頻生成的分野講得很清楚，做 3D、機器人、VFX 的人值得聽。</div></section>
+
+<section class="section"><h2>核心論點 · 點時間戳可跳到原聲</h2><div class="point" id="p0"><a class="ts" data-t="65" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/e578e083-6b40-4815-a479-28213e86988a/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=e578e083-6b40-4815-a479-28213e86988a&amp;feed=JGE3yC0V#t=65" target="_blank" rel="noopener">1:05</a><div><h4>Atlas 是模型發布，不是產品發布</h4>
+<p class="body">Justin 開場就澄清：Atlas 不是產品，是 World Labs 的基座模型，產品後面才來。它做三件事——生成不存在的世界、從真實空間重建、在重建空間裡做仿真。生成可以從文本或圖像起步，然後直接操控相機飛過這個世界；重建可以只用一張照片，也可以給到一百張以上，照片越多重建越準；仿真則面向 VFX 和機器人。這個順序本身說明 World Labs 不打算先做消費級應用，而是先把橫向基座模型立住，再讓產品長在上面。</p>
+<span class="spk">— Justin Johnson</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="249" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/e578e083-6b40-4815-a479-28213e86988a/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=e578e083-6b40-4815-a479-28213e86988a&amp;feed=JGE3yC0V#t=249" target="_blank" rel="noopener">4:09</a><div><h4>參考圖被釘在 3D 空間裡，不是餵給模型</h4>
+<p class="body">視頻模型生成到十秒左右容易開始跑偏、自己幻覺出方向，Justin 說 Atlas 的解法是 spatial context：你給的參考圖不是普通圖像，而是被 grounded 在 3D 空間裡，可以指定「這張放這裡、那張放那裡」。生成視頻時你也不只是給文本提示，而是直接操控相機，要求它往這個方向、那個方向飛，做到精確的像素級控制。所以哪怕生成到一分鐘，也不是拉老虎機，而是你在生成、在導演、在控制模型輸出什麼。</p>
+<span class="spk">— Justin Johnson</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="430" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/e578e083-6b40-4815-a479-28213e86988a/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=e578e083-6b40-4815-a479-28213e86988a&amp;feed=JGE3yC0V#t=430" target="_blank" rel="noopener">7:10</a><div><h4>Atlas 把 2D 和 3D 的分叉提前了</h4>
+<p class="body">和 World Labs 第一個產品 Marble 相比，Atlas 是完全重建的模型棧。Marble 把 Gaussian splat 放在中心，輸出視頻、3D 場景、mesh 都要先經過 Gaussian 表示，再渲染回圖像或視頻。Atlas 要打破這個依賴：架構更統一、更容易擴展，2D 和 3D 的分叉發生在更早的位置。生成 2D 或視頻輸出時不再瓶頸在 Gaussian 場景上，模型直接給出 2D 像素；只有在你確實需要 3D 的應用裡，才把它提升到 3D。</p>
+<span class="spk">— Justin Johnson</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="490" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/e578e083-6b40-4815-a479-28213e86988a/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=e578e083-6b40-4815-a479-28213e86988a&amp;feed=JGE3yC0V#t=490" target="_blank" rel="noopener">8:10</a><div><h4>Gaussian 沒被淘汰，只是不再是必經之路</h4>
+<p class="body">Justin 不認為 Gaussian 被 outgrow 了，它就是個工具，要用對地方。VFX 的最終產物是 2D 圖像或視頻，也許根本不需要顯式 3D。但實時應用、嵌入式設備上，Gaussian 和 mesh 這類顯式 3D 表示仍有位置：未來也許能從服務器農場實時流式傳像素，但現在還沒到，而且會很貴，所以客戶端渲染、移動端和 VR 設備上，Gaussian 或 mesh 依然有用。另一個作用是接入現有工作流——遊戲、VFX、設計、建築的人已經有基於 3D 表示的管線，與其讓他們一次性切換到全 AI 原生，不如讓 AI 進入他們的工作流。</p>
+<span class="spk">— Justin Johnson</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="673" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/e578e083-6b40-4815-a479-28213e86988a/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=e578e083-6b40-4815-a479-28213e86988a&amp;feed=JGE3yC0V#t=673" target="_blank" rel="noopener">11:13</a><div><h4>仿真補的是機器人訓練的最後一段路</h4>
+<p class="body">real to sim 對機器人的價值，Justin 說首先是評估：機器人最終要在特定工廠、特定機器、特定環境裡工作，你得確保它恰好在這個環境裡能用。所以仿真在訓練和評估的最後一段路很有用——建一個儘可能貼近最終用例的仿真，然後要麼在這個仿真裡直接微調預訓練的機器人基礎模型，要麼做評估確認它能工作。這給了你一條不同於「收集大量演示或人工遙操作」的路徑。他還描述了一個更激進的版本：拿手機拍幾張照片或幾段隨手視頻，用 Atlas 重建空間，用自然語言描述任務，讓 agent 去搭仿真、做 RL 微調，幾分鐘內就得到一個適配這個空間的機器人。</p>
+<span class="spk">— Justin Johnson</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="856" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/e578e083-6b40-4815-a479-28213e86988a/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=e578e083-6b40-4815-a479-28213e86988a&amp;feed=JGE3yC0V#t=856" target="_blank" rel="noopener">14:16</a><div><h4>OpenAI 放下世界模型，可能是創新者困境</h4>
+<p class="body">主持人問為什麼 OpenAI 當年把 Sora 那篇「視頻生成模型即世界模擬器」的方向做成了消費產品、現在又不做世界模型了。Justin 說不評論 OpenAI 內部策略，但給出一個解釋：可能存在創新者困境——你手裡握著 LLM 這個很強的東西，而且在這個方向上領先，那麼去投資下一個東西就不一定划算。而 World Labs 的判斷是，這裡存在另一類模型，有大量機會，他們想去做抓住機會的人。</p>
+<span class="spk">— Justin Johnson</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="1101" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/e578e083-6b40-4815-a479-28213e86988a/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=e578e083-6b40-4815-a479-28213e86988a&amp;feed=JGE3yC0V#t=1101" target="_blank" rel="noopener">18:21</a><div><h4>三臺 iPhone 拍出子彈時間，比預期好太多</h4>
+<p class="body">被問到難物理時，Justin 說黑洞他沒試過，猜不會太驚豔。但真正讓他意外的是 bullet time：用三臺 iPhone 架在三腳架上做同步拍攝，再用 Atlas 做凍結幀、繞飛的重構圖。他舉了官方示例——草莓掉進燕麥奶，奶花濺起的瞬間凍結時間，繞著飛一圈，效果完全瘋狂。這個能力只需要三個輸入視角。這說明 Atlas 的價值不只在「生成新世界」，也在把少量真實拍攝變成傳統上需要大量相機陣列才能做的鏡頭。</p>
+<span class="spk">— Justin Johnson</span></div></div>
+<div class="point" id="p7"><a class="ts" data-t="1161" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/e578e083-6b40-4815-a479-28213e86988a/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=e578e083-6b40-4815-a479-28213e86988a&amp;feed=JGE3yC0V#t=1161" target="_blank" rel="noopener">19:21</a><div><h4>3D 在輸入端被低估了</h4>
+<p class="body">Justin 說 3D 的價值有兩處，輸出端大家已經聊過——有時你就是需要顯式 3D 資產插進工作流或遊戲引擎。但輸入端 3D 的價值被低估了：哪怕最終輸出是 2D 的 VFX 鏡頭，讓模型提供 3D 控制面，也能幫導演決定模型該輸出什麼樣的場景。你不想只用文字寫「推進、拉遠、左移」，而是想直接抓住相機，讓它精確地按你要的方式變焦——這用文字根本描述不出來。所以 Atlas 把相機控制做成原生輸入類型，多模態裡的一模態就是相機。</p>
+<span class="spk">— Justin Johnson</span></div></div></section>
+<section class="section"><h2>原話 · 已逐字校驗</h2><blockquote class="quote"><p class="raw">language models are these general horizontal engines for processing streams of discrete tax, discrete tokens. Those have had tons of applications from everything that we know and love today. And our thesis is that there exists another category of model called world models that should be based in visual understanding, should be based in physical understanding that can be used to generate, simulate, reconstruct worlds.</p>
+<p class="zh">語言模型是處理離散文本、離散 token 流的通用橫向引擎，今天我們所熟知和喜愛的一切應用都建立在它之上。我們的論點是，還存在另一類模型，叫世界模型，它應該建立在視覺理解、物理理解之上，可以用來生成、仿真、重建世界。</p>
+<div class="attrib"><b>Justin Johnson</b><a class="ts" data-t="187" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/e578e083-6b40-4815-a479-28213e86988a/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=e578e083-6b40-4815-a479-28213e86988a&amp;feed=JGE3yC0V#t=187" target="_blank" rel="noopener">3:07</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">when you give Atlas reference images, they aren&#x27;t just images. They&#x27;re actually grounded in 3D space. So you can stage those images in 3D and say, this reference image should be here.</p>
+<p class="zh">當你給 Atlas 參考圖時，它們不只是圖像，它們實際上被錨定在 3D 空間裡。你可以在 3D 中擺放這些圖像，說這張參考圖應該在這裡。</p>
+<div class="attrib"><b>Justin Johnson</b><a class="ts" data-t="249" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/e578e083-6b40-4815-a479-28213e86988a/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=e578e083-6b40-4815-a479-28213e86988a&amp;feed=JGE3yC0V#t=249" target="_blank" rel="noopener">4:09</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">So the idea here is that even as you go to really long generations, it&#x27;s not a slot machine. You&#x27;re generating and directing and really controlling what the model outputs.</p>
+<p class="zh">所以這裡的思路是，即使你生成很長的內容，它也不是老虎機。你在生成、在導演、在真正控制模型輸出什麼。</p>
+<div class="attrib"><b>Justin Johnson</b><a class="ts" data-t="309" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/e578e083-6b40-4815-a479-28213e86988a/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=e578e083-6b40-4815-a479-28213e86988a&amp;feed=JGE3yC0V#t=309" target="_blank" rel="noopener">5:09</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">Marble really put Gaussian splats really at the center of many things that it did. So Marble could output videos, Marble could output 3D scenes, Marble could output meshes, but everything was kind of bottlenecking through a 3D Gaussian splat representation.</p>
+<p class="zh">Marble 把 Gaussian splat 放在它做的很多事情的中心。Marble 能輸出視頻、能輸出 3D 場景、能輸出 mesh，但所有東西都在某種程度上瓶頸在 3D Gaussian splat 表示上。</p>
+<div class="attrib"><b>Justin Johnson</b><a class="ts" data-t="430" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/e578e083-6b40-4815-a479-28213e86988a/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=e578e083-6b40-4815-a479-28213e86988a&amp;feed=JGE3yC0V#t=430" target="_blank" rel="noopener">7:10</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">I think there is maybe a sense of a bit of innovators dilemma, right? Like you&#x27;re sitting on LLMs and you&#x27;ve got this as a really powerful thing and you&#x27;re, you&#x27;re leading the pack there. It doesn&#x27;t necessarily make sense to try to invest in that next thing.</p>
+<p class="zh">我覺得這裡可能有一點創新者困境的味道。你手裡握著 LLM，它是非常強大的東西，而且你在那裡領先。去投資下一個東西就不一定划算了。</p>
+<div class="attrib"><b>Justin Johnson</b><a class="ts" data-t="856" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/e578e083-6b40-4815-a479-28213e86988a/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=e578e083-6b40-4815-a479-28213e86988a&amp;feed=JGE3yC0V#t=856" target="_blank" rel="noopener">14:16</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">I think there&#x27;s an underappreciated value of 3D on the input side as well. Right. Like even even in a situation like a VFX shot or something like that or the ultimate output is 2D. It&#x27;s. useful for the model to offer these 3D control surfaces to let the human director figure out what kind of scene the model should output.</p>
+<p class="zh">我認為 3D 在輸入端的價值也被低估了。哪怕是在 VFX 鏡頭這種最終輸出是 2D 的場景裡，讓模型提供這些 3D 控制面、讓人類導演去決定模型該輸出什麼樣的場景，也是有用的。</p>
+<div class="attrib"><b>Justin Johnson</b><a class="ts" data-t="1161" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/e578e083-6b40-4815-a479-28213e86988a/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=e578e083-6b40-4815-a479-28213e86988a&amp;feed=JGE3yC0V#t=1161" target="_blank" rel="noopener">19:21</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">you can control precisely where does the camera move because I don&#x27;t just want to write in text like pan in, pan out, truck left. I want to be able to grab the camera and make it zoom exactly as I like. And there&#x27;s really no way to describe that explicitly in text.</p>
+<p class="zh">你可以精確控制相機往哪移動，因為我不想只在文字裡寫「推進、拉遠、左移」。我想能直接抓住相機，讓它完全按我喜歡的方式變焦。而這用文字根本沒法明確描述出來。</p>
+<div class="attrib"><b>Justin Johnson</b><a class="ts" data-t="1221" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/e578e083-6b40-4815-a479-28213e86988a/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=e578e083-6b40-4815-a479-28213e86988a&amp;feed=JGE3yC0V#t=1221" target="_blank" rel="noopener">20:21</a></div>
+</blockquote></section>
+<section class="section"><h2>數字與實體</h2><table class="facts"><tr><td class="k">Atlas 重建所需輸入照片數</td><td class="v">少至 1 張，多至 100 張以上</td><td class="t"><a class="ts" data-t="126" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/e578e083-6b40-4815-a479-28213e86988a/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=e578e083-6b40-4815-a479-28213e86988a&amp;feed=JGE3yC0V#t=126" target="_blank" rel="noopener">2:06</a></td></tr>
+<tr><td class="k">Atlas 生成視頻時長示例</td><td class="v">最長約 1 分鐘</td><td class="t"><a class="ts" data-t="249" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/e578e083-6b40-4815-a479-28213e86988a/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=e578e083-6b40-4815-a479-28213e86988a&amp;feed=JGE3yC0V#t=249" target="_blank" rel="noopener">4:09</a></td></tr>
+<tr><td class="k">bullet time 所需輸入視角</td><td class="v">3 個</td><td class="t"><a class="ts" data-t="1101" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/e578e083-6b40-4815-a479-28213e86988a/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=e578e083-6b40-4815-a479-28213e86988a&amp;feed=JGE3yC0V#t=1101" target="_blank" rel="noopener">18:21</a></td></tr></table></section>
+<section class="section"><h2>術語</h2><dl class="terms"><div><dt>world model<span>世界模型</span></dt><dd>基於視覺與物理理解、可生成/仿真/重建世界的橫向基座模型。</dd></div>
+<div><dt>Gaussian splat<span>高斯潑濺</span></dt><dd>一種顯式 3D 表示，用大量高斯點重建場景，便於客戶端渲染。</dd></div>
+<div><dt>real to sim<span>實拍到仿真</span></dt><dd>用真實拍攝的照片或視頻重建 3D 空間，再在其中做機器人仿真。</dd></div>
+<div><dt>bullet time<span>子彈時間</span></dt><dd>凍結瞬間並繞場景飛行的鏡頭效果，傳統上需相機陣列。</dd></div>
+<div><dt>SFT<span>監督微調</span></dt><dd>用標註數據對預訓練模型做監督微調，Justin 說牛頓物理問題大概一次 SFT 就能解決。</dd></div></dl></section>
+<section class="section"><h2>收聽指南</h2>
+<div class="panel guide">
+<div><span class="k">誰該聽</span><p>做 3D 生成、VFX、遊戲引擎、機器人仿真的工程師和創業者，以及想理解世界模型與視頻模型分野的投資人。</p></div>
+<div><span class="k">可跳過</span><p>開頭 0:00-1:05 是節目預告和嘉賓介紹，可跳過。</p></div>
+</div></section>
+<nav class="prevnext"><a href="/podcast/tw/p/2026-09-13-ycsp-外联回复率接近零-先别怪文案-先查你在发给谁/"><span class="lbl">← 更新</span><strong>外聯回覆率接近零，先別怪文案，先查你在發給誰</strong></a><a class="r" href="/podcast/tw/p/2026-09-12-thisweekinmicr-本生灯不减少平板污染-蔬菜护心另有机制/"><span class="lbl">更早 →</span><strong>本生燈不減少平板汙染，蔬菜護心另有機制</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原節目</h4>
+<div class="row"><span>節目</span><span>The a16z Show</span></div>
+<div class="row"><span>原標題</span><span>World Models, Robotics, and the Future of 3D AI</span></div>
+<div class="row"><span>發布</span><span>2026-09-13</span></div>
+<div class="row"><span>時長</span><span>23:30</span></div>
+<a class="row" href="https://a16z.simplecast.com/episodes/world-models-robotics-and-the-future-of-3d-ai-mGOuUHi0" target="_blank" rel="noopener"><span>原頁面</span><span>打開 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇結構</h4><nav class="toc"><a href="#p0"><span class="t">1:05</span><span>Atlas 是模型發布，不是產品發布</span></a>
+<a href="#p1"><span class="t">4:09</span><span>參考圖被釘在 3D 空間裡，不是餵給模型</span></a>
+<a href="#p2"><span class="t">7:10</span><span>Atlas 把 2D 和 3D 的分叉提前了</span></a>
+<a href="#p3"><span class="t">8:10</span><span>Gaussian 沒被淘汰，只是不再是必經之路</span></a>
+<a href="#p4"><span class="t">11:13</span><span>仿真補的是機器人訓練的最後一段路</span></a>
+<a href="#p5"><span class="t">14:16</span><span>OpenAI 放下世界模型，可能是創新者困境</span></a>
+<a href="#p6"><span class="t">18:21</span><span>三臺 iPhone 拍出子彈時間，比預期好太多</span></a>
+<a href="#p7"><span class="t">19:21</span><span>3D 在輸入端被低估了</span></a></nav></div>
+
+<div class="panel"><h4>這篇是怎麼來的</h4>
+<div class="row"><span>成稿評分</span><span>8 / 10</span></div>
+<div class="row"><span>文稿來源</span><span>音頻轉寫</span></div>
+<div class="row"><span>文稿字數</span><span>5152</span></div>
+<div class="row"><span>語速核驗</span><span>219.2 wpm</span></div>
+<div class="row"><span>逐字校驗金句</span><span>7 條</span></div>
+<div class="row"><span>回溯校驗數字</span><span>3 條</span></div>
+
+<p class="note">金句在逐字稿裡逐字比對過，數字回原文核對過；對不上的當場刪掉，不上站。
+成稿另經一道獨立評審（信息密度／忠實度／選擇力／具體性／中文），低於 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原聲 · <a href="https://ourword.ai">OurWord.ai</a>的播客線。內容為原播客的中文深讀，
+版權歸各節目所有；每篇都附原節目鏈接，請去支持原作者。</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/tw/" lang="zh">人類世界生存法則</a> · <a href="/podcast/tw/">原聲</a></div>
+<div class="links"><a href="/podcast/tw/">首頁</a><a href="/podcast/tw/sources/">信源</a>
+<a href="/podcast/tw/log/">更新日誌</a><a href="/podcast/tw/feed.xml">RSS</a>
+<a href="/podcast/tw/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源碼</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=6bddac8d2f" defer></script>
+</body></html>

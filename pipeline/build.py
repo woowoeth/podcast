@@ -928,10 +928,25 @@ def card(ep: dict, *, hero: bool, is_new: bool = False) -> str:
     # 31.9 KB（+23%）—— 另一种字形是真正不同的文本，压不掉。
     # 简繁互搜放在懒加载的 search.json 里（见 search_index），只有真去搜的
     # 读者才付这份钱，首屏一个字节都不涨。
-    hay = " ".join([d.get("title", ""), d.get("dek", ""), ep.get("source", ""),
-                    ep.get("source_zh", ""), ep.get("title_original", ""),
-                    " ".join(d.get("tags") or []),
-                    " ".join(t.get("term", "") for t in d.get("terms") or [])])
+    # **只放卡片上看不见的部分。**
+    # 标题、摘要、源名、标签在卡片里本来就是可见文字（h2 / .dek / .src /
+    # .tag），原来又原样抄进 data-hay 一份 —— 63 张卡抄一遍，全是压不掉的
+    # 独有文本，首屏 gzip 因此顶到 56.9 KB（上限 56）。
+    # 现在属性里只留**看不见**的两样：英文原标题和术语表；
+    # 可见的那部分由 site.js 从 DOM 里读（见 _hay 的拼法）。
+    # 搜索能匹配的东西一个都没少，只是不再抄两遍。
+    _vis = {(d.get("title") or "").strip(), (d.get("dek") or "").strip(),
+            (ep.get("source") or "").strip(), (ep.get("source_zh") or "").strip(),
+            *[(t or "").strip() for t in (d.get("tags") or [])]}
+    _seen: set[str] = set()
+    _parts = []
+    for x in (ep.get("title_original", ""),
+              " ".join(t.get("term", "") for t in d.get("terms") or [])):
+        x = (x or "").strip()
+        if x and x not in _seen and x not in _vis:
+            _seen.add(x)
+            _parts.append(x)
+    hay = " ".join(_parts)
     img = ep.get("image") or ""
     # 头卡那张是 LCP 元素：它不能 lazy。loading="lazy" 会让浏览器先等布局
     # 再发请求，首屏最大那张图因此白等一轮——首屏可见的图要 eager +

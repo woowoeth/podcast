@@ -7397,3 +7397,74 @@ class ABrokenLedgerMustStopTheRunBeforeItSpends(unittest.TestCase):
         finally:
             if keep is not None:
                 p.write_text(keep)
+
+
+class EveryCommitThatShipsPagesMustShipTheirData(unittest.TestCase):
+    """推页面就要连数据一起推，否则那几页是孤儿。
+
+    本机线的提交顺序是：日更 → `git add data/episodes` + commit →
+    **建档（--catchup）→ YouTube 观察名单**（这两步还会发集）→ 建站 + commit。
+    建站那一趟原来只 `git add $SITE_FILES` —— 于是后两步发的集
+    **只有页面进了仓库，数据文件没有**。
+
+    实测：推上去 418 个正文页、414 个数据文件（instituteforad ×2、
+    youdead、tal 四篇建档出的集）。后果不是少了四个文件：
+    下一次谁跑 build.py 都是**从数据重建**，这四页会被当成孤儿删掉 ——
+    钱白花、内容消失，而账本里查不到它们发过。
+
+    体检的「数据／正文页／短链三个数字必须相等」抓住了它。
+    有检测没有预防，还是会每天重演一次。
+    """
+
+    def _site_adds(self) -> list[str]:
+        """脚本里每一处把 $SITE_FILES 加进索引的命令。"""
+        src = (ROOT / "scripts" / "local-daily.sh").read_text()
+        code = [l for l in src.splitlines() if not l.lstrip().startswith("#")]
+        out, buf = [], ""
+        for l in code:
+            buf = (buf + " " + l.strip()) if buf else l.strip()
+            if buf.endswith("\\"):
+                buf = buf[:-1]
+                continue
+            if "git add" in buf and "SITE_FILES" in buf:
+                out.append(buf)
+            buf = ""
+        return out
+
+    def test_there_is_at_least_one(self):
+        """先验尺子：真的找到了那几条命令，不然下面的断言等于没测。"""
+        self.assertTrue(self._site_adds(),
+                        "没在脚本里找到 git add ... $SITE_FILES —— 判据本身失效了")
+
+    def test_they_all_add_the_episode_data(self):
+        for cmd in self._site_adds():
+            self.assertIn("data/episodes", cmd,
+                          f"这条提交只推页面不推数据，那几页会变成孤儿：{cmd[:90]}")
+            self.assertIn("data/state.json", cmd,
+                          f"账本没跟着推，下一轮会重复深读：{cmd[:90]}")
+
+
+class ASourcesKindMustMatchItsFeed(unittest.TestCase):
+    """kind 和 feed 要说同一件事。
+
+    实测：bg2 标着 `kind: youtube`，feed 却是 anchor.fm 的播客 RSS。
+    后果不显眼但真实 —— 选题闸的 `_caption_sample` 只在 `kind == youtube`
+    时去取 YouTube 字幕，而它拿 guid 当视频 id 用；一个 RSS 的 guid
+    当然不是 11 位视频 id，于是每一集都白跑一趟判断。
+    反过来（feed 是频道 feed 却没标 youtube）更糟：拿不到字幕这条路，
+    整档源只能靠 ASR。
+
+    判据是**两边对照**，不是挑一边看。
+    """
+
+    def test_kind_and_feed_agree(self):
+        srcs = json.loads((ROOT / "data" / "sources.json").read_text())["sources"]
+        bad = []
+        for s in srcs:
+            feed = s.get("feed") or ""
+            is_channel = "youtube.com/feeds/videos.xml" in feed
+            if (s.get("kind") == "youtube") != is_channel:
+                bad.append((s["id"], s.get("kind"), feed[:52]))
+        self.assertEqual([], bad,
+                         "kind 和 feed 对不上：kind=youtube 就该配频道 feed，"
+                         "配了播客 RSS 的要写 kind=rss")

@@ -1,0 +1,138 @@
+{
+ "slug": "2026-08-24-a16z-医疗-ai-考满分也进不了医院-缺一个独立裁判",
+ "of": "a16z-a181786bb4",
+ "source_lang": "en",
+ "title": "A Perfect Score on Medical AI Exams Still Won't Get It Into the Hospital: There's No Independent Referee",
+ "dek": "A model can answer thousands of medical questions correctly and still score only 45% on a real clinical task. The problem isn't that the model isn't smart enough — it's that nobody independently and continuously tests whether it actually works in real settings.",
+ "why": "The first half is background; the genuinely valuable part starts at 15 minutes: why evals get contaminated, who gets to be the referee, and why government can't do this job.",
+ "who": "Founders and investors building or backing medical AI products; teams currently running evals on models, or who need to prove to customers that a model is trustworthy.",
+ "skip": "The first ~10 minutes of background and personal history; skip to after 15:36.",
+ "tags": [
+  "Medical AI",
+  "Evals",
+  "Data",
+  "Regulation",
+  "Alignment"
+ ],
+ "points": [
+  {
+   "h": "Catastrophic failure is paradoxically the easiest thing to define",
+   "body": "Engy splits AI safety risk into two categories and says outright that the two differ in difficulty. Catastrophic failure is narrow — you can define it directly as a hard metric like mortality rate — which makes it easier to guard against. The genuinely hard part is broad misalignment and subtle bias: very difficult to define, harder still to detect. Her example: if a model checks whether you owe the hospital money before prescribing, is that an alignment problem? If a hospital writes ‘don't refer patients out of network’ into the prompt, and the patient's actual preference is to pay out of pocket to go out of network, is that one? These questions have no ready-made answers, and nobody is testing them."
+  },
+  {
+   "h": "AI can strip bias out of medical notes — or amplify it",
+   "body": "She paints a very concrete picture: a medical note will say ‘she looked very unkempt, her husband asked good questions,’ and underneath the words it's really saying this patient isn't credible, so her pain gets attributed to a psychiatric problem and no clinical workup is done. A tool that records the doctor-patient conversation and auto-generates a SOAP note cuts all of that subjective judgment out entirely, leaving only an accurate clinical description — and a third-party doctor reading it would say ‘this pain should get a workup to find the cause.’ But the other side of the same argument: if the training data itself carries bias, AI will lock that in too. Both things are true at once, and right now only the negative side is being evaluated."
+  },
+  {
+   "h": "Benchmark rankings flip depending on the prompt",
+   "body": "Two papers reached opposite conclusions: one in Nature said general frontier models outperform vertical medical models on medical tasks; another on arXiv reached the same conclusion but in the opposite direction. Engy says that when Protege runs evals for clients, it finds these benchmarks are highly sensitive — sensitive to how you prompt, sensitive to which harness you use, and on tasks like oncologic pathology, merely shuffling the order of multiple-choice options changes model rankings. Some people therefore argue the benchmarks themselves are already contaminated, and the models have simply memorised the position of the right answer like students. So the question ‘who's best’ has no stable answer under existing evaluation methods."
+  },
+  {
+   "h": "The government's quality regime is too slow to keep up with AI",
+   "body": "Since 2007 the US has had a program called value-based purchasing, tying 80% of government payments to doctors and hospitals to quality, with a whole national apparatus for defining and tracking what quality is. But Engy points out two fatal features: it's static — the metrics are fixed items like ‘how many times did you prescribe antibiotics to patients who looked like they had a viral infection’ or ‘how many elderly patients here fractured a hip in a fall’; and it's retrospective — reports often come out six months or even a year later. She says AI can't be evaluated this way: the technology moves too fast, and it has agency. Her analogy is the opioid epidemic: it wasn't until it peaked in 2010 that anyone set up a national task force, formally called it an epidemic, and started acting. She says plainly she doesn't want to wait for that."
+  },
+  {
+   "h": "Doctors' personal preferences make ‘the model got it wrong’ a broken judgment",
+   "body": "This is the most counterintuitive passage in the whole piece. Protege's internal data shows knee replacement surgeons split into two groups: some never do total knee replacements, only partials; others do a total the moment they touch a knee, never a partial. Engy calls this a doctor's beat — a sticky, almost hysteresis-like preference. So when you put a real case in front of a model and ask ‘what would you recommend,’ and the model's recommendation contradicts what this doctor actually did, you can't simply say the model is wrong — it could be that the doctor is wrong. That means using doctors' answers as ground truth to evaluate models has a ceiling built in. And when a model is someday stronger than the average doctor, the path of ‘ask a few more doctors and rely on the law of large numbers’ also runs out."
+  },
+  {
+   "h": "The referee's seat is one the model companies asked it to take",
+   "body": "Engy says that across multiple vertical AI companies in the same subnode — say environmental records, clinical trial recommendations, nurse workflows, scheduling, oncologic pathology — the relationship is ‘ships in the night’: I don't know if you're better than me, you say you're the best, I say I'm the best. So these companies come to Protege on their own, asking to have their models hosted and run through one unified evaluation, to produce a report comparing them against each other, and to learn where they're stronger than others and where they can improve. Protege thus gets pulled into the role of arbiter, and it has to draw the lines itself: who sets the prompt? Does a frontier model need a dedicated harness? When a model refuses to answer, do you take the mean or fall back to the second-best model? These choices themselves change the rankings."
+  },
+  {
+   "h": "Once the eval is done, it knows what data to add",
+   "body": "Engy uses absolute advantage and comparative advantage to separate two things: absolute advantage is ‘we're the best in the business of medical data’; comparative advantage is ‘of everything we do, doing medical training data and evals together has the lowest marginal cost.’ But she says comparative advantage doesn't mean you deserve to win. What actually qualifies it is the closed loop: once an eval is run, the test set is sealed permanently and never leaks; if a model shows a weakness on some attribute, Protege can tell you directly which kind of data to add to fix that weakness. Because its data scale and sources are broad enough, the path from finding a problem to reinforcing with new data is very short. Besides, impartiality is itself in its commercial interest — if trust collapses, the whole network effect collapses immediately."
+  },
+  {
+   "h": "To avoid contamination, you have to find slices nobody has scanned",
+   "body": "Engy says she didn't believe data contamination was a real problem at first, until her team told her: 80% of the data on hand had already been given out for training, and if ‘independent’ means this patient has never been seen by a model, that's a hard problem. So when building the oncologic pathology eval, they went straight to hospitals and dug through pathology drawers for slides that had never been scanned — she calls these net new slides: this patient has never entered any model. Protege now has a hard rule she calls sealing a membrane: any dataset or patient that has entered training is not allowed to appear again in a benchmark or eval. She also rebuts the argument that ‘the model performs worse than random, so a little contamination doesn't matter’: performing worse than random may itself be a signal of serious misalignment, and deserves to be investigated on its own."
+  }
+ ],
+ "terms": [
+  {
+   "term": "evals",
+   "def": "Quantitative tests of a model's performance on specific tasks, as distinct from general benchmarks."
+  },
+  {
+   "term": "misalignment",
+   "def": "When a model's behaviour diverges from what the user actually wants, often hard to define and detect."
+  },
+  {
+   "term": "subnode",
+   "def": "Engy's term for a specific niche within medical AI, such as oncologic pathology or nurse workflows."
+  },
+  {
+   "term": "harness",
+   "def": "The layer wrapped around a model that organises prompts and calls, and which affects eval results."
+  },
+  {
+   "term": "value-based purchasing",
+   "def": "A US program tying government medical payments to quality metrics that are static and retrospective."
+  },
+  {
+   "term": "hedonics",
+   "def": "An economics method that infers the value of something from willingness to pay."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Gap between model scores on licensing exams and on real clinical tasks",
+   "v": "92% vs 45%"
+  },
+  {
+   "k": "Share of medical payments covered by the government pay-for-performance program",
+   "v": "80%"
+  },
+  {
+   "k": "Share of Protege's data already used for training",
+   "v": "80%"
+  },
+  {
+   "k": "US healthcare as a share of GDP",
+   "v": "20%"
+  },
+  {
+   "k": "US healthcare jobs",
+   "v": "20 million of 150 million jobs"
+  },
+  {
+   "k": "Year the opioid epidemic peaked and was formally called an epidemic",
+   "v": "2010"
+  },
+  {
+   "k": "Year the US government launched the value-based purchasing program",
+   "v": "2007"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "So I think the answer is everyone and no one.",
+   "translated": false
+  },
+  {
+   "text": "And so the no one is that if everyone says they are best, no one knows who's best.",
+   "translated": false
+  },
+  {
+   "text": "And it would recommend the opposite of what the physician did. And you say, oh, model's wrong. But actually, it could be that the physician is wrong, right?",
+   "translated": false
+  },
+  {
+   "text": "And like, basically, what's more unsafe, right, is like sitting there and saying, well, I'm going to wait for the government to do it. No, we think what's more safe is just do it, right? And then let people challenge you on it, but just do it.",
+   "translated": false
+  },
+  {
+   "text": "You know, the government can't even get you to file taxes online.",
+   "translated": false
+  },
+  {
+   "text": "And I'm like, yeah, but like worse than random could be a detection that there is serious misalignment to like, why is it doing worse than random?",
+   "translated": false
+  },
+  {
+   "text": "And then we have these AI tools that are unleashed in health care systems or in kind of practices with absolutely no credentials other than the fact that the maker says compared to some physicians we have, the AI beat it.",
+   "translated": false
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}

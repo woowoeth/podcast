@@ -619,3 +619,88 @@ if __name__ == "__main__":
     if not HAVE_PW:
         print("没装 playwright，渲染层这一层不会跑", file=sys.stderr)
     unittest.main()
+
+
+class SearchMatchesWhatTheCardSays(Harness):
+    """搜索要能搜到卡片上写着的字，也能搜到卡片上没写的原标题。
+
+    为什么要在浏览器里敲一遍：卡片的搜索文本原来整份抄在 data-hay 属性里，
+    63 张卡抄一遍标题+摘要+源名+标签，全是压不掉的独有文本，
+    首屏 gzip 因此顶到 56.9 KB（上限 56）。
+    改成属性只留**看不见的两样**（英文原标题、术语），可见的由 site.js
+    现从 DOM 读 —— 首屏降到 54.3 KB。
+
+    这是**运行时行为**的改动：静态断言看不见它对不对，只有真敲一个词才知道。
+    两头都要验：摘要里的词（现在来自 DOM）和原标题里的词（仍来自属性）。
+    """
+
+    def _first_card(self, p):
+        return p.evaluate("""() => {
+          const c = document.querySelector('[data-card]');
+          if (!c) return null;
+          const t = s => (c.querySelector(s) || {}).textContent || '';
+          return {href: c.getAttribute('href'),
+                  dek: t('.dek'), title: t('h2'), src: t('.src'),
+                  hay: c.getAttribute('data-hay') || ''};
+        }""")
+
+    def _block_deep_index(self, p):
+        """把懒加载的 search.json 掐掉，只留内联那条路。
+
+        **第一版没掐，于是这道闸是假绿的。** 把 site.js 改回「只读属性」
+        注入缺陷之后闸照样过 —— 因为敲第一个字就会去拉 search.json，
+        350ms 内它已经落地接管，我量到的是深索引的结果，
+        不是我改的那条内联路径。验之前先确认量的是要量的那个东西。
+        """
+        p.route("**/search.json*", lambda route: route.abort())
+
+    def _visible_after(self, p, term):
+        p.fill("[data-search]", term)
+        p.wait_for_timeout(350)
+        return p.evaluate("""() => Array.from(document.querySelectorAll('[data-card]'))
+            .filter(c => c.offsetParent !== null).map(c => c.getAttribute('href'))""")
+
+    def test_a_word_only_in_the_summary_still_matches(self):
+        p = self.page()
+        self._block_deep_index(p)
+        p.goto(self.url("/"), wait_until="load")
+        card = self._first_card(p)
+        self.assertTrue(card and card["dek"], "首页第一张卡没有摘要，判据失效")
+        # 挑一个只在摘要里、不在标题里的词
+        words = [w for w in re.findall(r"[一-鿿]{3,6}", card["dek"])
+                 if w not in card["title"]]
+        self.assertTrue(words, "摘要里找不到标题没有的词，判据失效")
+        hit = self._visible_after(p, words[0])
+        self.assertIn(card["href"], hit,
+                      f"搜摘要里的「{words[0]}」搜不到这张卡 —— "
+                      f"可见文字没有进搜索池")
+
+    def test_a_word_only_in_the_attribute_still_matches(self):
+        """英文原标题在卡片上不显示，只在 data-hay 里 —— 它也要能搜到。"""
+        p = self.page()
+        self._block_deep_index(p)
+        p.goto(self.url("/"), wait_until="load")
+        target = p.evaluate("""() => {
+          for (const c of document.querySelectorAll('[data-card]')) {
+            const hay = c.getAttribute('data-hay') || '';
+            const seen = ['h2', '.dek', '.src'].map(s =>
+              (c.querySelector(s) || {}).textContent || '').join(' ');
+            const w = hay.split(/\\s+/).filter(x =>
+              /^[A-Za-z][A-Za-z-]{5,}$/.test(x) && !seen.includes(x));
+            if (w.length) return {href: c.getAttribute('href'), word: w[0]};
+          }
+          return null;
+        }""")
+        if not target:
+            self.skipTest("首屏这批卡里没有「只在属性里」的词")
+        hit = self._visible_after(p, target["word"])
+        self.assertIn(target["href"], hit,
+                      f"搜只在 data-hay 里的「{target['word']}」搜不到这张卡")
+
+    def test_a_word_in_nothing_matches_nothing(self):
+        """反面：乱敲一个词不该留下卡片。只验「该搜到的搜到」等于没验。"""
+        p = self.page()
+        self._block_deep_index(p)
+        p.goto(self.url("/"), wait_until="load")
+        self.assertEqual([], self._visible_after(p, "zzqqxx不存在的词"),
+                         "搜一个不存在的词还有卡片留着 —— 筛选根本没生效")

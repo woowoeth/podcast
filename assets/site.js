@@ -119,8 +119,25 @@
     // immediately. The full index — every point body, every quote in both
     // languages, the facts and the glossary — is fetched on the first
     // keystroke and takes over once it lands.
+    // 卡片上看得见的字就在 DOM 里，不必在 data-hay 里再抄一份。
+    // 抄一份的代价：63 张卡的标题+摘要+源名+标签全是压不掉的独有文本，
+    // 首屏 gzip 顶到 56.9 KB（上限 56）。现在属性里只留看不见的两样
+    // （英文原标题、术语），可见的这里现取。能搜到的东西一个没少。
+    function cardHay(c) {
+      var bits = [];
+      ['h2', '.dek', '.src'].forEach(function (sel) {
+        var el = c.querySelector(sel);
+        if (el) bits.push(el.textContent || '');
+      });
+      Array.prototype.forEach.call(c.querySelectorAll('.tag'), function (t) {
+        bits.push(t.textContent || '');
+      });
+      bits.push(c.getAttribute('data-hay') || '');
+      return bits.join(' ').toLowerCase();
+    }
+
     cards.forEach(function (c) {
-      c._hay = (c.getAttribute('data-hay') || '').toLowerCase();
+      c._hay = cardHay(c);
       c._slug = decodeURIComponent((c.getAttribute('href') || '').replace(/.*\/(?:p|e)\/|\/$/g, ''));
     });
 
@@ -175,7 +192,7 @@
           box.innerHTML = html.join('');
           var anchor = feed.querySelector('[data-empty]');
           [].slice.call(box.querySelectorAll('[data-card]')).forEach(function (c) {
-            c._hay = (c.getAttribute('data-hay') || '').toLowerCase();
+            c._hay = cardHay(c);
             c._slug = decodeURIComponent((c.getAttribute('href') || '').replace(/.*\/p\/|\/$/g, ''));
             cards.push(c);
             anchor ? feed.insertBefore(c, anchor) : feed.appendChild(c);

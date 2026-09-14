@@ -1,0 +1,118 @@
+{
+ "slug": "2026-09-13-a16z-世界模型不是视频生成-atlas-把-3d-控制做成了输入",
+ "of": "a16z-e3ddc41d16",
+ "source_lang": "en",
+ "title": "World Models Are Not Video Generation: Atlas Makes 3D Control an Input",
+ "dek": "Language models process tokens; world models process physical space. Atlas's key move is not generating longer video but putting the camera and reference images into 3D coordinates as inputs, turning generation from a slot machine into directing.",
+ "why": "23 minutes, medium information density, but Justin draws the line between world models and video generation very clearly. Worth hearing for anyone working in 3D, robotics or VFX.",
+ "who": "Engineers and founders working on 3D generation, VFX, game engines and robot simulation, plus investors who want to understand the split between world models and video models.",
+ "skip": "The opening 0:00-1:05 is show promos and guest intro, skippable.",
+ "tags": [
+  "World Models",
+  "3D Generation",
+  "Robot Simulation",
+  "VFX",
+  "Atlas"
+ ],
+ "points": [
+  {
+   "h": "Atlas is a model release, not a product release",
+   "body": "Justin clarifies right at the top: Atlas is not a product, it is World Labs' foundation model; products come later. It does three things — generate worlds that don't exist, reconstruct from real space, and simulate inside reconstructed space. Generation can start from text or an image, and then you can directly fly the camera through that world; reconstruction can take just one photo, or a hundred or more, and the more photos the more accurate the reconstruction; simulation is aimed at VFX and robotics. That ordering itself shows World Labs doesn't intend to start with a consumer app, but to stand up a horizontal foundation model first and let products grow on top of it."
+  },
+  {
+   "h": "Reference images are pinned into 3D space, not fed to the model",
+   "body": "Video models tend to drift and hallucinate their own direction after about ten seconds of generation. Justin says Atlas's answer is spatial context: the reference images you give it are not ordinary images but are grounded in 3D space, so you can specify ‘put this one here, that one there’. When generating video you also don't just give a text prompt — you directly control the camera, telling it to fly in this direction or that one, achieving precise pixel-level control. So even if you generate for a minute, it isn't pulling a slot machine; you are generating, directing, controlling what the model outputs."
+  },
+  {
+   "h": "Atlas moves the 2D/3D fork earlier",
+   "body": "Compared with Marble, World Labs' first product, Atlas is a completely rebuilt model stack. Marble put Gaussian splat at the center: video, 3D scenes and mesh outputs all had to pass through a Gaussian representation before being rendered back to images or video. Atlas breaks that dependency: the architecture is more unified and easier to scale, and the 2D/3D fork happens earlier. Generating 2D or video output is no longer bottlenecked on a Gaussian scene — the model gives 2D pixels directly; only in applications where you actually need 3D does it lift to 3D."
+  },
+  {
+   "h": "Gaussian isn't obsolete, it's just no longer mandatory",
+   "body": "Justin doesn't think Gaussian has been outgrown; it's a tool, and you use it in the right place. VFX's final product is a 2D image or video, and may not need explicit 3D at all. But in real-time applications and on embedded devices, explicit 3D representations like Gaussian and mesh still have a place: in the future you might stream pixels in real time from a server farm, but we're not there yet and it would be very expensive, so for client-side rendering, mobile and VR devices, Gaussian or mesh is still useful. Another role is plugging into existing workflows — people in games, VFX, design and architecture already have pipelines built on 3D representations, and rather than making them switch to fully AI-native all at once, it's better to bring AI into their workflow."
+  },
+  {
+   "h": "Simulation covers the last stretch of robot training",
+   "body": "On the value of real to sim for robots, Justin says it starts with evaluation: a robot ultimately has to work in a specific factory, on a specific machine, in a specific environment, and you have to make sure it works in exactly that environment. So simulation is useful in the last stretch of training and evaluation — build a simulation as close as possible to the final use case, then either fine-tune a pretrained robot foundation model directly in that simulation, or run evaluations to confirm it works. That gives you a path different from ‘collect lots of demonstrations or human teleoperation’. He also describes a more aggressive version: take a few photos or casual videos with your phone, reconstruct the space with Atlas, describe the task in natural language, and let an agent build the simulation and do RL fine-tuning, getting a robot adapted to that space within minutes."
+  },
+  {
+   "h": "OpenAI dropping world models may be an innovator's dilemma",
+   "body": "The host asks why OpenAI turned that Sora direction — ‘video generation models are world simulators’ — into a consumer product back then, and now isn't doing world models. Justin says he won't comment on OpenAI's internal strategy, but offers an explanation: there may be an innovator's dilemma — you're holding something as strong as the LLM and you're leading in that direction, so investing in the next thing isn't necessarily worth it. World Labs' judgment is that there is another class of model here, with a lot of opportunity, and they want to be the ones who seize it."
+  },
+  {
+   "h": "Three iPhones shoot bullet time, far better than expected",
+   "body": "Asked about hard physics, Justin says he hasn't tried a black hole and guesses it wouldn't be too impressive. But what really surprised him was bullet time: three iPhones on tripods shooting in sync, then using Atlas to do a frozen-frame, orbit-around recomposition. He cites the official example — a strawberry dropping into oat milk, freezing time at the instant the milk splashes up, flying a full circle around it, and the effect is completely insane. This capability needs only three input viewpoints. That shows Atlas's value isn't only in ‘generating new worlds’ but also in turning a small amount of real footage into shots that traditionally required a large camera array."
+  },
+  {
+   "h": "3D is underrated on the input side",
+   "body": "Justin says 3D has value in two places. The output side has already been discussed — sometimes you just need explicit 3D assets to drop into a workflow or game engine. But 3D's value on the input side is underrated: even if the final output is a 2D VFX shot, giving the model a 3D control surface helps the director decide what kind of scene the model should output. You don't want to write ‘push in, pull out, move left’ in text; you want to grab the camera directly and have it zoom exactly the way you want — which text simply cannot describe. So Atlas makes camera control a native input type: one of the modalities in the multimodal mix is the camera."
+  }
+ ],
+ "terms": [
+  {
+   "term": "world model",
+   "def": "A horizontal foundation model built on visual and physical understanding that can generate, simulate and reconstruct worlds."
+  },
+  {
+   "term": "Gaussian splat",
+   "def": "An explicit 3D representation that reconstructs a scene from a large number of Gaussian points, convenient for client-side rendering."
+  },
+  {
+   "term": "real to sim",
+   "def": "Reconstructing 3D space from real photos or video, then running robot simulation inside it."
+  },
+  {
+   "term": "bullet time",
+   "def": "A shot effect that freezes an instant and flies around the scene, traditionally requiring a camera array."
+  },
+  {
+   "term": "SFT",
+   "def": "Supervised fine-tuning of a pretrained model on labelled data; Justin says the Newtonian physics problem is probably solved with about one SFT."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Photos required for Atlas reconstruction",
+   "v": "As few as 1, as many as 100+"
+  },
+  {
+   "k": "Example Atlas generated video length",
+   "v": "Up to about 1 minute"
+  },
+  {
+   "k": "Input viewpoints needed for bullet time",
+   "v": "3"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "language models are these general horizontal engines for processing streams of discrete tax, discrete tokens. Those have had tons of applications from everything that we know and love today. And our thesis is that there exists another category of model called world models that should be based in visual understanding, should be based in physical understanding that can be used to generate, simulate, reconstruct worlds.",
+   "translated": false
+  },
+  {
+   "text": "when you give Atlas reference images, they aren't just images. They're actually grounded in 3D space. So you can stage those images in 3D and say, this reference image should be here.",
+   "translated": false
+  },
+  {
+   "text": "So the idea here is that even as you go to really long generations, it's not a slot machine. You're generating and directing and really controlling what the model outputs.",
+   "translated": false
+  },
+  {
+   "text": "Marble really put Gaussian splats really at the center of many things that it did. So Marble could output videos, Marble could output 3D scenes, Marble could output meshes, but everything was kind of bottlenecking through a 3D Gaussian splat representation.",
+   "translated": false
+  },
+  {
+   "text": "I think there is maybe a sense of a bit of innovators dilemma, right? Like you're sitting on LLMs and you've got this as a really powerful thing and you're, you're leading the pack there. It doesn't necessarily make sense to try to invest in that next thing.",
+   "translated": false
+  },
+  {
+   "text": "I think there's an underappreciated value of 3D on the input side as well. Right. Like even even in a situation like a VFX shot or something like that or the ultimate output is 2D. It's. useful for the model to offer these 3D control surfaces to let the human director figure out what kind of scene the model should output.",
+   "translated": false
+  },
+  {
+   "text": "you can control precisely where does the camera move because I don't just want to write in text like pan in, pan out, truck left. I want to be able to grab the camera and make it zoom exactly as I like. And there's really no way to describe that explicitly in text.",
+   "translated": false
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}
