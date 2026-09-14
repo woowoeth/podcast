@@ -299,6 +299,17 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
                     continue
                 state["done"].pop(key, None)
             f = state["fail"].get(key)
+            if f and "no-transcript" in (f.get("why") or "") \
+                    and f.get("gen") != T.pipeline_id():
+                # **上一代取稿代码判死的集不算数。**
+                # 和 triage 的「旧尺子判的不做不算数」是同一条规则，
+                # 而这里栽得更深：账本里 164 条「取不到文稿」，68 条已经到
+                # 重试上限、永远不会再试 —— 而多数是被一个 bug 判死的
+                # （切音频没丢内嵌封面图，每片只剩 0.3 秒）。
+                # bug 修完了，没有任何东西会去把它们捞回来。
+                # 「我们取不到」是我们的能力限制，能力变了，旧结论就作废。
+                state["fail"].pop(key, None)
+                f = None
             if f and (f.get("n", 0) >= MAX_FAILS or f.get("soft", 0) >= MAX_SOFT_FAILS):
                 continue
             low = ep["title"].lower()
@@ -439,7 +450,7 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
                 f"(soft {rec['soft']}/{MAX_SOFT_FAILS})")
         else:
             rec = {"n": prev.get("n", 0) + 1, "soft": prev.get("soft", 0),
-                   "why": "no-transcript"}
+                   "why": "no-transcript", "gen": T.pipeline_id()}
             log(f"    not published: no usable transcript "
                 f"(attempt {rec['n']}/{MAX_FAILS})")
         rec.update(at=iso(now()), title=ep["title"][:120], src=s["id"])

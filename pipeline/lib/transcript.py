@@ -1194,6 +1194,31 @@ def yt_length(vid: str) -> int:
     return int(m.group(1)) if m else 0
 
 
+# 取稿这一层的「这一代」。**取不到文稿的判决，要连着当时那套取稿代码一起存。**
+#
+# 和 triage 的 rubric_id 是同一个道理，而这里栽得更深：账本里 164 条
+# 「取不到文稿」，68 条已经到重试上限、**永远不会再试**——而它们中的大多数
+# 是被一个 bug 判死的：切音频时没丢掉内嵌封面图，每一片装的是那张 JPEG，
+# 音频只剩 0.3 秒，whisper 转出两个词，然后报「取不到文稿」。
+# bug 修完了，这 68 篇还躺在黑名单里，没有任何东西会去把它们捞回来。
+#
+# 「我们取不到」是**我们的能力限制**，能力变了，旧结论就不算数。
+# 改了取稿能力就把这个数字加一，上一代判死的集会自动重新排队；
+# 质量闸一道都不少，只是重新给它们一次机会。
+#
+#   1 → 2  修好切片丢封面图（-vn）、空片不再当成功缓存（2026-09-14）
+TRANSCRIPT_GEN = 2
+
+
+def pipeline_id() -> str:
+    """当前这套取稿代码的指纹。代号 + 真正决定结果的那几个旋钮。"""
+    import hashlib
+    knobs = "|".join(str(x) for x in
+                     (TRANSCRIPT_GEN, ORDER, CHUNK_SEC, LOCAL_MODEL,
+                      ASR_MAX_MB, sorted(MIN_WORDS.items())))
+    return hashlib.sha1(knobs.encode("utf-8")).hexdigest()[:10]
+
+
 def seek_tolerance(dur: int) -> int:
     """时间戳允许错多少秒。
 

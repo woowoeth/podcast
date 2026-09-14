@@ -7200,3 +7200,64 @@ class EmptyAsrChunksMustNotBeCachedAsSuccess(unittest.TestCase):
         blk = code[r:code.index("with _ASR_LOCK", r)]
         self.assertRegex(blk, r"cp\.unlink\(",
                          "读到坏缓存不删掉 —— 会被一直复用")
+
+
+class ANoTranscriptVerdictMustCarryTheCodeThatMadeIt(unittest.TestCase):
+    """「取不到文稿」的判决要连着当时那套取稿代码一起存。
+
+    和 triage 的 rubric_id 是同一条规则，而这里栽得更深：
+    账本里 164 条「取不到文稿」，**68 条已经到重试上限、永远不会再试** ——
+    而多数是被一个 bug 判死的：切音频时没丢掉内嵌封面图，
+    每一片装的是那张 JPEG，音频只剩 0.3 秒，whisper 转出两个词。
+    bug 修完了，这 68 篇还躺在黑名单里，**没有任何东西会去把它们捞回来**。
+
+    「我们取不到」是我们的能力限制，不是这一集的问题。
+    能力变了，旧结论就不算数。
+    """
+
+    def _mods(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return importlib.import_module("run"), importlib.import_module("lib.transcript")
+
+    def test_the_fingerprint_moves_when_the_knobs_move(self):
+        _, T = self._mods()
+        a = T.pipeline_id()
+        was = T.CHUNK_SEC
+        try:
+            T.CHUNK_SEC = was + 1
+            self.assertNotEqual(a, T.pipeline_id(), "换了片长，指纹却没变")
+        finally:
+            T.CHUNK_SEC = was
+        self.assertEqual(a, T.pipeline_id(), "指纹不稳定")
+
+    def test_the_failure_record_stores_it(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index('"why": "no-transcript"')
+        self.assertIn("pipeline_id()", src[i:i + 120],
+                      "记「取不到文稿」时没存当时那套取稿代码的指纹")
+
+    def test_candidates_drops_a_verdict_from_an_older_generation(self):
+        """判据落在**真正的比较**上，不落在注释上。"""
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index("def candidates(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        code = "\n".join(l for l in body.splitlines()
+                         if not l.lstrip().startswith("#"))
+        self.assertRegex(
+            code, r'f\.get\("gen"\)\s*!=\s*T\.pipeline_id\(\)',
+            "候选环节没有比对取稿代码的代号 —— 旧 bug 判死的集永远捞不回来")
+        j = code.index('f.get("gen")')
+        self.assertIn("state[\"fail\"].pop", code[j:j + 400],
+                      "比对出来不一致却没把那条判决作废")
+
+    def test_it_only_touches_no_transcript_verdicts(self):
+        """别把评审不合格、体裁不符那些判决一起作废了 —— 那些不是能力问题。"""
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index("def candidates(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        j = body.index('f.get("gen")')
+        # 往前找这个条件的开头，确认它被 no-transcript 限定住了
+        head = body[max(0, j - 200):j]
+        self.assertIn("no-transcript", head,
+                      "作废条件没限定在「取不到文稿」上 —— 会把质量判决也一起作废")
