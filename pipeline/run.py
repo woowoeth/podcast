@@ -383,6 +383,15 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
         # much as six ordinary ones. On a small budget, leave it for later
         # rather than spending the whole run on it. Not a failure — no counter.
         log(f"    {tr['words']} words > --max-words {cap_words}, 留给以后再发")
+        # **留痕。** 原来这里什么都不写：这一集每轮都会被重新挑中、重新取稿、
+        # 再被跳过一次，而外面看不出它存在。上限卡死的源（AXRP 每集 3 万多词）
+        # 会永远停在这里，输出上和「这档源没更新」一模一样。
+        # 不计进重试预算（n / soft 都不动）——它不是失败，是钱不够这一轮做。
+        prev = state["fail"].get(key, {})
+        state["fail"][key] = {"n": prev.get("n", 0), "soft": prev.get("soft", 0),
+                              "why": "too-long", "words": tr["words"],
+                              "cap": cap_words, "at": iso(now()),
+                              "title": ep["title"][:120], "src": s["id"]}
         _release(state, fp, key)
         return "too-long"
     if not tr:

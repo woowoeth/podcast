@@ -1,0 +1,249 @@
+{
+ "id": "axrp-60b3436f23",
+ "slug": "2026-02-18-axrp-程序均衡-交代码比交人更可能合作-但协调极难",
+ "fingerprint": "a39bb184cff811d9",
+ "source_id": "axrp",
+ "source": "AXRP",
+ "source_zh": "AXRP",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "AI对齐与多智能体机制设计",
+ "tier": 2,
+ "lang": "en",
+ "title_original": "49 - Caspar Oesterheld on Program Equilibrium",
+ "published": "2026-02-18T01:21:00Z",
+ "duration": 9127,
+ "audio": "https://traffic.libsyn.com/secure/axrpodcast/caspar_with_chapters_0.mp3?dest-id=2517215",
+ "link": "https://axrpodcast.libsyn.com/49-caspar-oesterheld-on-program-equilibrium",
+ "image": "https://static.libsyn.com/p/assets/4/e/e/d/4eedec7195c619db16c3140a3186d450/Untitled_Artwork-20260218-6hsttkd1i4.png",
+ "youtube_id": "NMEwiZQK_C4",
+ "video_len": 0,
+ "transcript_url": "https://www.youtube.com/watch?v=NMEwiZQK_C4",
+ "digest": {
+  "title": "程序均衡：交代码比交人更可能合作，但协调极难",
+  "dek": "程序均衡让双方互读源代码，用 Löb 定理实现合作；但合作依赖几乎相同的代码或共享随机数，现实中协调成本极高。",
+  "why": "适合对博弈论、AI 对齐和机制设计感兴趣的听众；技术细节多，后半段关于共享随机数和 simulationist 程序的讨论信息密度高。",
+  "points": [
+   {
+    "t": 70,
+    "h": "程序均衡：先交代码，再玩游戏",
+    "body": "程序均衡是博弈论里的一个设定：玩家不直接选合作或背叛，而是各自提交一段计算机程序，由程序替自己行动。关键增量是程序在运行时能读到对方的源代码，据此决定合作还是背叛。于是可以写出「如果对手程序等于我自己就合作，否则背叛」这种程序——它对自己构成纳什均衡，双方各得 3 而不是各得 1。Caspar 强调，这个设定最早在 1984 年左右被提出，之后被重新发现或重新发明了大约三次。",
+    "spk": "Caspar Oesterheld"
+   },
+   {
+    "t": 796,
+    "h": "程序均衡的死穴是要事先对暗号",
+    "body": "这套机制在实践中的麻烦在于：两个程序必须「相同」或满足某种语法对应，才能互相合作。如果双方能事先沟通，可以直说「我提交这段代码，你也提交同一段」；但如果两人是独立、在不同时间写程序，协调就非常困难。哪怕只是多一个空格，或者把「相同则合作否则背叛」写成「不同则背叛否则合作」，这种极小的改动就会让整个合作机制失效。",
+    "spk": "Caspar Oesterheld"
+   },
+   {
+    "t": 2440,
+    "h": "证明搜索不会陷入无限递归",
+    "body": "直觉上「证明对方会合作」和「直接运行对方程序」应该同样陷入无限循环——后者确实会。但证明搜索不会：这依赖逻辑学里一个相对冷门的结果 Löb 定理。它的形式是：如果你能证明「若 P 可证则 P 为真」，那你就能证明 P。之所以不平凡，是因为你无法证明自己的证明系统永远可靠，所以不能无条件地从「P 可证」推出 P。Löb 定理恰好是程序均衡需要的那个工具，一旦写下来，合作性质几乎立刻推出。",
+    "spk": "Caspar Oesterheld"
+   },
+   {
+    "t": 3288,
+    "h": "用 epsilon 概率打破无限循环",
+    "body": "朴素做法「运行对方程序，它合作我就合作」在双方同时提交时会无限循环。修法是：以 epsilon 的小概率直接合作、根本不看对方程序；只有这个低概率事件没触发时，才去模拟对方并复制其行动。这样每一层递归都有 epsilon 概率停下，双方最终以概率一停机。这对应重复博弈里只看对手上一手的策略，epsilon 分支相当于还没看到对手任何动作的第一轮。",
+    "spk": "Caspar Oesterheld"
+   },
+   {
+    "t": 6572,
+    "h": "共享随机串让所有模拟同时停机",
+    "body": "新论文（Emry Cooper 一作，Vince Conitzer 也在）用一个技巧解决无限模拟：把随机性建模成程序启动时拿到的一串无限随机数。调用两个对手和自己时，传同一串随机输入，并去掉第一位。所有人检查第一位是否小于 epsilon，是就停机，否则去掉第一位递归。因为共享同一串，所有模拟会在同一个位置一起停机。这样既能模拟多个对手，也能模拟多个过去时间步。",
+    "spk": "Caspar Oesterheld"
+   },
+   {
+    "t": 7663,
+    "h": "无关联随机数让惩罚失效",
+    "body": "为什么 uncorrelated 情形拿不到完整的 folk theorem？Caspar 给了一个三人的直觉：Alice 可以用自己的私有随机数以极低概率偏离，而我模拟 Alice 时用的是完全不同的随机串，所以我无法判断她是否真的会偏离；你模拟她时用的又是你的随机数，于是「你检测到她偏离」和「我检测到她偏离」也不相关。结果是低概率偏离几乎无法被同时抓到，惩罚也就无从协调。他还提到，如果惩罚需要两人同时做一个特定动作，这种不可相关性就更致命。",
+    "spk": "Caspar Oesterheld"
+   },
+   {
+    "t": 8329,
+    "h": "simulationist 程序比 pybots 更强",
+    "body": "论文第三部分定义了更一般的 simulationist programs：直观上它们只做一件事——把对手和其他玩家作为输入跑起来。Caspar 说这类程序在 uncorrelated 情形下达成均衡的能力比 epsilon grounded pybots 更强。直觉是：pybots 要求所有人做同一件事，而 simulationist 允许只有我需要做模拟，于是我可以独立地对你的程序采样一万次——这是 pybots 做不到的。定义本身是递归的，base case 可能是「模拟空对象」或直接忽略对方输入。",
+    "spk": "Caspar Oesterheld"
+   },
+   {
+    "t": 8693,
+    "h": "folk theorem 是坏消息不是好消息",
+    "body": "Caspar 对 folk theorem 的态度和主流博弈论相反：博弈论者通常把它当正面结果，他则「感受非常复杂」，因为它意味着什么都能发生，包括大量对我极差的结局——只要比「所有人最大程度惩罚我」好一点，就都是均衡。均衡越多，我们越难协调到其中一个。他提到 correlated 情形至少有一个凸的均衡空间，比在六个离散点之间选要好一些，但总体上他同意均衡选择问题非常关键，这也是他很多工作的动机。",
+    "spk": "Caspar Oesterheld"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 250,
+    "spk": "Caspar Oesterheld",
+    "raw": "the crucial addition is that the programs get to get access to each other's source code at runtime",
+    "zh": "关键的附加设定是，程序在运行时可以访问彼此的源代码。"
+   },
+   {
+    "t": 796,
+    "spk": "Caspar Oesterheld",
+    "raw": "all these like very minor changes would already break these uh schemes",
+    "zh": "所有这些非常微小的改动，就已经会让这些机制失效。"
+   },
+   {
+    "t": 1042,
+    "spk": "Caspar Oesterheld",
+    "raw": "robust program equilibrium is not actually a solution concept in the sense that Nash equilibrium is or trembling hand equilibrium is",
+    "zh": "鲁棒程序均衡其实并不是纳什均衡或颤抖手均衡意义上的那种解概念。"
+   },
+   {
+    "t": 2501,
+    "spk": "Caspar Oesterheld",
+    "raw": "Lub's theorem says that if you can prove that if you could prove P then P would be true then you would be able to prove P.",
+    "zh": "Löb 定理说的是：如果你能证明「若 P 可证则 P 为真」，那你就能证明 P。"
+   },
+   {
+    "t": 5053,
+    "spk": "Caspar Oesterheld",
+    "raw": "you just have like a very high credence that like if you face a corporate bot probably something funny is going on, right?",
+    "zh": "你会有很高的置信度认为，如果你面对的是一个合作机器人，那背后多半有花样。"
+   },
+   {
+    "t": 8026,
+    "spk": "Caspar Oesterheld",
+    "raw": "But if you don't have shared randomness, all of this like like this is all like complete fiction, right?",
+    "zh": "但如果你没有共享随机数，这一切就全是虚构的，对吧？"
+   },
+   {
+    "t": 8693,
+    "spk": "Caspar Oesterheld",
+    "raw": "I think game theorists often view this as sort of like a positive results whereas I have like very mixed feelings about this because it's it's kind of like a well anything can happen",
+    "zh": "博弈论者通常把这看成正面结果，而我的感受非常复杂，因为它差不多等于说什么都可能发生。"
+   },
+   {
+    "t": 8936,
+    "spk": "Caspar Oesterheld",
+    "raw": "the programs themselves aren't rational they're doing don't do expected utility maximization they just do what their source code says",
+    "zh": "程序本身并不理性，它们不做期望效用最大化，它们只是执行自己源码里写的东西。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "程序均衡设定首次提出年份",
+    "v": "1984 年左右",
+    "t": 491
+   },
+   {
+    "k": "程序均衡被重新发现/重新发明的次数",
+    "v": "大约三次",
+    "t": 491
+   },
+   {
+    "k": "Manifold 锦标赛允许提交的程序数",
+    "v": "最多三个",
+    "t": 371
+   },
+   {
+    "k": "Andrew Critch 有界 Löb 定理论文年份",
+    "v": "2019",
+    "t": 2804
+   },
+   {
+    "k": "epsilon grounded fairbot 平均停机轮数",
+    "v": "约 1/epsilon",
+    "t": 4078
+   },
+   {
+    "k": "模拟树增长条件",
+    "v": "epsilon 小于二分之一时，模拟树增长快于收缩",
+    "t": 6391
+   },
+   {
+    "k": "PrudentBot 所需证明系统",
+    "v": "PA 加上该系统一致的假设（PA plus one）",
+    "t": 6024
+   },
+   {
+    "k": "锦标赛中基本无效程序的比例",
+    "v": "约 30%",
+    "t": 5416
+   },
+   {
+    "k": "simulationist 程序独立采样对手次数（举例）",
+    "v": "10,000 次",
+    "t": 8329
+   },
+   {
+    "k": "讨论的博弈人数（举例）",
+    "v": "3 人",
+    "t": 7663
+   }
+  ],
+  "terms": [
+   {
+    "term": "program equilibrium",
+    "zh": "程序均衡",
+    "def": "博弈论设定：玩家提交程序，程序运行时互读源码决定行动。"
+   },
+   {
+    "term": "Löb's theorem",
+    "zh": "Löb 定理",
+    "def": "若可证「P 可证则 P 为真」，则可证 P。"
+   },
+   {
+    "term": "folk theorem",
+    "zh": "无名氏定理",
+    "def": "重复博弈中，任何优于 minimax 收益的结果都可能是均衡。"
+   },
+   {
+    "term": "epsilon grounded fairbot",
+    "zh": "epsilon 接地公平机器人",
+    "def": "以 epsilon 概率直接合作，否则模拟对手并复制其行动的程序。"
+   },
+   {
+    "term": "simulationist programs",
+    "zh": "模拟主义程序",
+    "def": "只把对手和其他玩家作为输入跑起来的程序，递归定义。"
+   }
+  ],
+  "who": "对博弈论、AI 对齐和机制设计感兴趣的创业者和工程师，尤其是想理解多智能体合作底层逻辑的人。",
+  "skip": "对逻辑学和证明论细节不感兴趣的听众，可跳过 40:40 至 1:07:58 的技术推导。",
+  "tags": [
+   "博弈论",
+   "AI 对齐",
+   "程序均衡",
+   "多智能体",
+   "机制设计"
+  ],
+  "quality": {
+   "transcript_source": "youtube",
+   "transcript_detail": "en",
+   "words": 27999,
+   "wpm": 184.1,
+   "timed": true,
+   "verified_quotes": 8,
+   "grounded_facts": 10,
+   "points": 8,
+   "pruned": 0,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-09-14T05:48:58Z",
+ "triage": {
+  "score": 8.0,
+  "why": "博弈论机制拆解，推导链完整，含作者自纠错与失效边界，符合课程/理论尺子",
+  "kind": "机制拆解",
+  "basis": "notes",
+  "rubric": "340d4dad65"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 8,
+   "faithful": 9,
+   "selection": 8,
+   "concrete": 8,
+   "chinese": 9
+  },
+  "verdict": "上站",
+  "why": "要点多为机制与判断（Löb 定理、epsilon 停机、共享随机串、folk theorem 是坏消息），忠实、具体、无空话，可上站。",
+  "worst": "「谁该听」把听众写成创业者和工程师，与导语「对博弈论、AI 对齐和机制设计感兴趣」不一致，且原集是理论内容，这一定位偏窄，建议改为对齐/博弈论研究者。"
+ },
+ "model": "openai:deepseek-chat"
+}

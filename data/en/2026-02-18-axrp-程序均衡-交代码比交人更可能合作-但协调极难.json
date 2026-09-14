@@ -1,0 +1,150 @@
+{
+ "slug": "2026-02-18-axrp-程序均衡-交代码比交人更可能合作-但协调极难",
+ "of": "axrp-60b3436f23",
+ "source_lang": "en",
+ "title": "Program Equilibrium: Trading Code Cooperates More Than Trading People, but Coordination Is Extremely Hard",
+ "dek": "Program equilibrium lets two parties read each other's source code and achieve cooperation via Löb's theorem; but cooperation depends on nearly identical code or shared randomness, and in reality coordination costs are extremely high.",
+ "why": "Suited to listeners interested in game theory, AI alignment and mechanism design; heavy on technical detail, with the second half on shared randomness and simulationist programs carrying high information density.",
+ "who": "Founders and engineers interested in game theory, AI alignment and mechanism design, especially those who want to understand the underlying logic of multi-agent cooperation.",
+ "skip": "Listeners uninterested in the details of logic and proof theory can skip the technical derivation from 40:40 to 1:07:58.",
+ "tags": [
+  "Game Theory",
+  "AI Alignment",
+  "Program Equilibrium",
+  "Multi-Agent",
+  "Mechanism Design"
+ ],
+ "points": [
+  {
+   "h": "Program equilibrium: hand over code first, then play the game",
+   "body": "Program equilibrium is a setup in game theory: players do not directly choose to cooperate or defect, but each submits a computer program, and the program acts on their behalf. The key addition is that at runtime a program can read the opponent's source code and decide on that basis whether to cooperate or defect. So you can write a program like ‘if the opponent's program equals myself, cooperate; otherwise defect’— it constitutes a Nash equilibrium against itself, and both sides get 3 instead of 1 each. Caspar stresses that this setup was first proposed around 1984, and has since been rediscovered or reinvented about three times."
+  },
+  {
+   "h": "Program equilibrium's fatal flaw is needing a prearranged signal",
+   "body": "The practical trouble with this mechanism is that the two programs must be ‘identical’ or satisfy some syntactic correspondence in order to cooperate with each other. If the two sides can communicate beforehand, they can simply say ‘I'll submit this code, you submit the same code’; but if the two are independent and write their programs at different times, coordination becomes very difficult. Even a single extra space, or writing ‘cooperate if identical, otherwise defect’ as ‘defect if different, otherwise cooperate’, is such a tiny change that it breaks the whole cooperation mechanism."
+  },
+  {
+   "h": "Proof search does not fall into infinite recursion",
+   "body": "Intuitively, ‘proving the opponent will cooperate’ and ‘directly running the opponent's program’ should both fall into an infinite loop — and the latter indeed does. But proof search does not: this relies on a relatively obscure result in logic, Löb's theorem. Its form is: if you can prove ‘if P is provable then P is true’, then you can prove P. The reason this is nontrivial is that you cannot prove your own proof system is always sound, so you cannot unconditionally infer P from ‘P is provable’. Löb's theorem happens to be exactly the tool program equilibrium needs, and once it is written down, the cooperation property follows almost immediately."
+  },
+  {
+   "h": "Breaking the infinite loop with epsilon probability",
+   "body": "The naive approach — ‘run the opponent's program, and if it cooperates I cooperate’ — loops forever when both sides submit simultaneously. The fix: with a small probability epsilon, cooperate directly without looking at the opponent's program at all; only when this low-probability event does not trigger do you simulate the opponent and copy its action. This way every level of recursion has probability epsilon of stopping, and both sides eventually halt with probability one. This corresponds to a strategy in a repeated game that looks only at the opponent's last move, with the epsilon branch standing in for the first round before you have seen any of the opponent's actions."
+  },
+  {
+   "h": "A shared random string makes all simulations halt together",
+   "body": "A new paper (first author Emry Cooper, with Vince Conitzer also on it) uses a trick to solve infinite simulation: model randomness as an infinite string of random numbers that a program receives at startup. When calling both opponents and yourself, pass the same random string and drop the first bit. Everyone checks whether the first bit is less than epsilon; if so, halt, otherwise drop the first bit and recurse. Because they share the same string, all simulations halt together at the same position. This lets you simulate multiple opponents as well as multiple past time steps."
+  },
+  {
+   "h": "Uncorrelated randomness makes punishment fail",
+   "body": "Why can't the uncorrelated case get the full folk theorem? Caspar gives a three-player intuition: Alice can use her own private randomness to deviate with very low probability, and when I simulate Alice I use a completely different random string, so I cannot tell whether she would really deviate; when you simulate her you use your random numbers, so ‘you detect her deviating’ and ‘I detect her deviating’ are also uncorrelated. The result is that low-probability deviations can hardly ever be caught simultaneously, so punishment cannot be coordinated. He also notes that if punishment requires two people to perform a specific action at the same time, this uncorrelatedness is even more fatal."
+  },
+  {
+   "h": "Simulationist programs are stronger than pybots",
+   "body": "The third part of the paper defines more general simulationist programs: intuitively they do only one thing — run the opponent and the other players as inputs. Caspar says this class of programs is stronger than epsilon grounded pybots at reaching equilibrium in the uncorrelated case. The intuition: pybots require everyone to do the same thing, whereas simulationist programs allow only me to need to do the simulation, so I can independently sample your program ten thousand times — something pybots cannot do. The definition itself is recursive, and the base case might be ‘simulate the empty object’ or simply ignore the opponent's input."
+  },
+  {
+   "h": "The folk theorem is bad news, not good news",
+   "body": "Caspar's attitude toward the folk theorem is the opposite of mainstream game theory: game theorists usually treat it as a positive result, while he ‘feels very mixed about it’, because it means anything can happen, including a great many outcomes that are terrible for me — as long as it is a little better than ‘everyone punishing me to the maximum’, it is an equilibrium. The more equilibria there are, the harder it is for us to coordinate on one of them. He notes that the correlated case at least has a convex equilibrium space, which is somewhat better than choosing among six discrete points, but on the whole he agrees that the equilibrium selection problem is very important, and this is the motivation behind much of his work."
+  }
+ ],
+ "terms": [
+  {
+   "term": "program equilibrium",
+   "def": "A game-theoretic setup: players submit programs, and at runtime the programs read each other's source code to decide their actions."
+  },
+  {
+   "term": "Löb's theorem",
+   "def": "If ‘if P is provable then P is true’ is provable, then P is provable."
+  },
+  {
+   "term": "folk theorem",
+   "def": "In a repeated game, any outcome better than the minimax payoff can be an equilibrium."
+  },
+  {
+   "term": "epsilon grounded fairbot",
+   "def": "A program that cooperates directly with probability epsilon, and otherwise simulates the opponent and copies its action."
+  },
+  {
+   "term": "simulationist programs",
+   "def": "Programs that do only one thing: run the opponent and the other players as inputs; recursively defined."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Year program equilibrium was first proposed",
+   "v": "around 1984"
+  },
+  {
+   "k": "Number of times program equilibrium was rediscovered/reinvented",
+   "v": "about three"
+  },
+  {
+   "k": "Number of programs allowed in the Manifold tournament",
+   "v": "at most three"
+  },
+  {
+   "k": "Year of Andrew Critch's bounded Löb theorem paper",
+   "v": "2019"
+  },
+  {
+   "k": "Average number of rounds for epsilon grounded fairbot to halt",
+   "v": "about 1/epsilon"
+  },
+  {
+   "k": "Condition for the simulation tree to grow",
+   "v": "when epsilon is less than one half, the simulation tree grows faster than it shrinks"
+  },
+  {
+   "k": "Proof system required by PrudentBot",
+   "v": "PA plus the assumption that the system is consistent (PA plus one)"
+  },
+  {
+   "k": "Share of essentially ineffective programs in the tournament",
+   "v": "about 30%"
+  },
+  {
+   "k": "Number of times a simulationist program independently samples the opponent (example)",
+   "v": "10,000"
+  },
+  {
+   "k": "Number of players in the game discussed (example)",
+   "v": "3"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "the crucial addition is that the programs get to get access to each other's source code at runtime",
+   "translated": false
+  },
+  {
+   "text": "all these like very minor changes would already break these uh schemes",
+   "translated": false
+  },
+  {
+   "text": "robust program equilibrium is not actually a solution concept in the sense that Nash equilibrium is or trembling hand equilibrium is",
+   "translated": false
+  },
+  {
+   "text": "Lub's theorem says that if you can prove that if you could prove P then P would be true then you would be able to prove P.",
+   "translated": false
+  },
+  {
+   "text": "you just have like a very high credence that like if you face a corporate bot probably something funny is going on, right?",
+   "translated": false
+  },
+  {
+   "text": "But if you don't have shared randomness, all of this like like this is all like complete fiction, right?",
+   "translated": false
+  },
+  {
+   "text": "I think game theorists often view this as sort of like a positive results whereas I have like very mixed feelings about this because it's it's kind of like a well anything can happen",
+   "translated": false
+  },
+  {
+   "text": "the programs themselves aren't rational they're doing don't do expected utility maximization they just do what their source code says",
+   "translated": false
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}

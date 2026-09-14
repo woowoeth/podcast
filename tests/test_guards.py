@@ -6538,3 +6538,45 @@ class IndexNowFailuresMustNotBeSilent(unittest.TestCase):
         body = hc[i:hc.index("\ndef ", i + 1)]
         self.assertRegex(body, r"streak\s*>=\s*[2-9]", "没有连续次数的阈值")
         self.assertIn("r.note(", body, "偶发一次也报硬伤 —— 会喊狼来了")
+
+
+class TooLongMustLeaveATrace(unittest.TestCase):
+    """「这一集太长，这轮做不起」要留痕，不能静默跳过。
+
+    实测差点栽进去：AXRP 每集 100–200 分钟、31,755 词，而云端上限 14,000、
+    本机 30,000 —— 它每一集都会被判成「太长，留给以后再发」。
+    而原来这条路 `return "too-long"` **什么都不写**：这一集每轮都会被重新
+    挑中、重新取稿、再被跳过一次，外面看不出它存在，
+    输出上和「这档源没更新」一模一样。
+
+    留痕但**不计进重试预算**：它不是失败，是这一轮的钱不够做它。
+    """
+
+    def test_the_skip_is_recorded(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index('return "too-long"')
+        blk = src[max(0, i - 900):i]
+        self.assertIn('state["fail"][key]', blk,
+                      "太长直接跳过、什么都不写 —— 每轮重来且没人知道")
+        self.assertIn('"words"', blk, "没记下它到底多长，下次没法判断该不该提上限")
+
+    def test_it_does_not_burn_the_retry_budget(self):
+        """太长不是失败：把 n / soft 加上去，八轮之后这集会被永久拉黑。"""
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index('return "too-long"')
+        blk = src[max(0, i - 900):i]
+        self.assertRegex(blk, r'"n":\s*prev\.get\("n",\s*0\)(?!\s*\+)',
+                         "太长在累加硬失败计数")
+        self.assertRegex(blk, r'"soft":\s*prev\.get\("soft",\s*0\)(?!\s*\+)',
+                         "太长在累加软失败计数 —— 撞满 MAX_SOFT_FAILS 就永久没了")
+
+    def test_the_local_line_can_hold_a_long_interview(self):
+        """本机线是长访谈的唯一通路（ASR 与字幕都在它这边）。
+        上限低于三小时访谈的词数，等于这类源收了也发不出来。"""
+        sh = (ROOT / "scripts" / "local-daily.sh").read_text()
+        m = re.search(r'MAX_WORDS:=(\d+)', sh)
+        self.assertTrue(m, "本机线没有 MAX_WORDS 默认值")
+        self.assertGreaterEqual(
+            int(m.group(1)), 35000,
+            f"本机线上限 {m.group(1)} —— 装不下两三小时的长访谈"
+            f"（AXRP 每集 31,755 词），那类源收了也永远发不出来")

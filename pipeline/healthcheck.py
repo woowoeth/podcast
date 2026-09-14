@@ -624,8 +624,17 @@ def check_source_coverage(r: Report) -> None:
             swept = set(m.group(1).split())
     srcs = {x["id"]: x for x in
             json.loads((DATA / "sources.json").read_text())["sources"]}
+    # **已经不在册的源不叫「轮不到」，叫「没有了」。**
+    # data/coverage.json 是上一次实探的快照，源退役之后它里面还留着记录；
+    # 原来这里 `srcs.get(k, {}).get("cat") or "?"` 把「查不到这档源」
+    # 当成「它的分类不在轮转里」，于是对着两个早就退役的 id 报硬伤。
+    # 陈旧快照是常态，检查要能分清「查不到」和「到不了」。
+    stale = [k for k in should if k not in srcs]
     unreachable = [k for k in should
-                   if (srcs.get(k, {}).get("cat") or "?") not in swept]
+                   if k in srcs and (srcs[k].get("cat") or "?") not in swept]
+    if stale:
+        r.note(f"{len(stale)} 档源在实探快照里、但已经不在册（退役或改名）："
+               + "、".join(stale[:5]) + " —— 跑 srccoverage.py --probe --write 刷新")
     if unreachable:
         r.fail(f"{len(unreachable)} 档信源的 feed 里有能进候选的集，而它们所在的"
                f"分类**不在定时扫描的轮转清单里**——结构上永远轮不到："

@@ -122,6 +122,22 @@ EXTRA: list[dict] = [
        cat="hist", tier=2, lang="en", itunes=1042631089,
        feed="https://access.acast.com/rss/c939f8d1-c4bc-478e-8bb9-e5343f9a7ab5",
        residential=True, desc="Dan Snow 与史家访谈，论断给出处"),
+  dict(id="axrp", name="AXRP", zh="AXRP", cat="ai", tier=2, lang="en", kind="rss",
+       itunes=1544393261,
+       feed="https://rss.libsyn.com/shows/312947/destinations/2517215.xml",
+       site="https://axrp.net/",
+       # 取稿走 YouTube 字幕：实测 31,755 词、4,545 个不同时间点、时间轴与
+       # 视频天然对齐 —— 免费、有锚点、可跳转。官网也有完整逐字稿（24k 词），
+       # 但没有时间戳，机械闸门要的锚点靠它给不了。
+       residential=True,
+       desc="论文作者对谈 AI 安全：METR 时间地平线、有效算力这类数字都带出处，每集两三小时"),
+  dict(id="papertrail", name="Paper Trail", zh="Paper Trail",
+       cat="ideas", tier=2, lang="en", kind="rss",
+       feed="https://publicfeeds.net/f/16890/feed-rss.xml",
+       # 只能走本机线：三层都没有现成文稿，ProPublica 站上那是**调查原文**，
+       # 不是这一集的逐字稿 —— 拿它当文稿，机械闸门会去核对一篇别的文章。
+       residential=True,
+       desc="ProPublica 的调查播客，每集跟一桩调查把收据摊开：3M 何时知道 PFAS 进了血、25 美分的药怎么做成千亿生意"),
   dict(id="ancients", name="The Ancients", zh="The Ancients",
        cat="hist", tier=2, lang="en", itunes=1520403988,
        feed="https://access.acast.com/rss/f2925f7a-eb08-471a-9958-387cb5ee6353",
