@@ -369,6 +369,9 @@ FIRST_PAGE = 24
 # data-new，客户端只认这个标记，不自己算日期——两边算日期迟早会算出两个答案。
 NEW_DAYS = 7
 MIN_NEW = 12
+# 首屏最多内联几张。首屏预算 56 KB（gzip）是硬约束，60 张实测 ~55 KB。
+# 没有这个上限，发得多的一周首页就自己胀破预算 —— 而那是读者第一眼的加载量。
+MAX_INLINE = 60
 
 GA_ID = os.environ.get("GA_ID", "G-DHD3WEXQ8T")   # 与 ourword.ai 其他站同一个属性
 
@@ -1061,8 +1064,16 @@ def inline_count(eps: list[dict]) -> int:
     实测过的洞：「最新」把内联从 24 张放大到 41 张，而分页文件还按 24 切，
     于是第 24-40 篇**同时出现在两处**——首页 41 + 分页 250 = 291，比总数
     多 17。表面症状是分类按钮上写 75 条、筛出来 79 条。
+
+    **上限加在这里，不加在 new_window 上。**
+    new_window 只有下限没有上限：一周发得多，内联就无限涨。
+    实测某天发了 30 篇，内联变成 76 张，首屏 gzip 从 54.3 涨到 57.7 KB，
+    两道闸同时红（卡片数 76>72、首屏 57>56）。
+    但「最新」那个按钮上的数要继续说实话（这一周确实有 76 篇），
+    所以封的是**内联几张**，不是**算作最新的有几篇**：
+    超出的那些照旧带 data-new，从 cards.json 补齐。
     """
-    return max(FIRST_PAGE, new_window(eps))
+    return min(MAX_INLINE, max(FIRST_PAGE, new_window(eps)))
 
 
 def new_window(eps: list[dict]) -> int:

@@ -1,0 +1,114 @@
+{
+ "slug": "2026-06-07-karpathy-压缩就是智能-预测与压缩是同一枚硬币的两面",
+ "of": "karpathy-e427855a4a",
+ "source_lang": "en",
+ "title": "Compression Is Intelligence: Prediction and Compression Are Two Sides of the Same Coin",
+ "dek": "Information theory says prediction and compression are mathematically equivalent, so the pretraining objective of a language model can be re-understood as building the most efficient text compressor, not just predicting the next token.",
+ "why": "This is the first part of a trilogy, covering only the mathematical foundations of compression limits, with no engineering details or product judgments, and medium information density. Suitable for people who want to build intuition for information theory, not for those who want industry judgments.",
+ "who": "Engineers and researchers who want to build intuition for information theory, especially those who use cross-entropy loss every day but haven't thought clearly about why it looks the way it does.",
+ "skip": "The last minute or so of the virtual job fair ad can be skipped.",
+ "tags": [
+  "Information Theory",
+  "Compression",
+  "Language Models",
+  "Shannon",
+  "Pretraining"
+ ],
+ "points": [
+  {
+   "h": "The pretraining objective is actually compression",
+   "body": "Karpathy points out that large language model pretraining is usually described as ‘next token prediction’, using cross-entropy loss, and the term cross-entropy itself comes from information theory. One conclusion of information theory is that prediction and compression are mathematically equivalent, two sides of the same coin. So you can completely restate the pretraining objective as—not predicting the next token, but building the most efficient text compressor. The value of this restatement is that it makes clearer what cross-entropy actually is and why it is used."
+  },
+  {
+   "h": "Robot example: probability determines code length",
+   "body": "Warm up with a robot far away on the moon: the commands are only up, down, left, right, but the distribution is uneven—half are up, a quarter are down, an eighth are left, an eighth are right, and each command is independent. The naive student gives each command a fixed two bits, averaging 2 bits; the smart student uses variable-length codes: 0 for up, 10 for down, 110 for left, 111 for right, weighted average 1.75 bits. The key constraint is that no codeword can be a prefix of another codeword, called a prefix-free code, so the robot can decode unambiguously."
+  },
+  {
+   "h": "Perfect compression output looks like random noise",
+   "body": "A third ‘impractical’ student proposes: random noise is incompressible, so the bitstream produced by a perfect compression algorithm should be indistinguishable from random noise. If the compressed n-bit bitstream really looks like random noise, then all 2 to the n messages must be equally probable, each with probability 1/2^n. Conversely, a message using n bits in a perfect scheme means its probability is 2 to the negative n. Taking log and negating gives n = -log₂(p). This negative log expression is the fundamental formula of information theory, and Shannon's definition of ‘the information content of an event’."
+  },
+  {
+   "h": "Information content is the lower bound on compression",
+   "body": "Perfect compression is not always possible, because the probabilities of real messages are usually not integer powers of 2. More generally: the information content of a message gives a lower bound on how short it can be compressed, at least when averaged over all possible messages. You could certainly overfit a compression algorithm to one specific case. In the robot example the probabilities are too clean, all powers of 2, so the information content per symbol is exactly an integer number of bits; but in natural language the probability of each letter depends heavily on context, and none are powers of 2, so the computed information content is all fractional."
+  },
+  {
+   "h": "Shannon had his wife guess the next letter",
+   "body": "Shannon initially used n-gram statistics, but long strings simply don't appear in the corpus, so the statistics break down. So he switched to a different model: his wife Betty. Shannon took a book and had Betty guess the next letter one by one; if she guessed wrong, he wrote down the correct letter, and if she guessed right, he drew a dash. The transcribed text has fewer letters but the same information content—because if he could replicate a Betty, he would only need to give her this reduced text to restore the original. In a 1950 paper, he changed to recording how many guesses were needed and from that inferred the implicit probabilities the human brain assigns to real letters. When he analyzed language, he wasn't purely doing data analysis, but probing an underlying language model, namely the brain of the interviewee."
+  },
+  {
+   "h": "Entropy is the average information per symbol",
+   "body": "Entropy asks for the average information content per symbol in a signal. Because under perfect compression the codeword length equals the information content, entropy is essentially asking about the compression limit, giving a lower bound on how efficiently a signal can be compressed. For any probability distribution, entropy is the sum over all p times negative log₂(p). Visually, draw the probability distribution as stacked horizontal bars, with width equal to probability, and on each bar place a rectangle with height equal to negative log₂(p); entropy is the sum of all rectangle areas. The more uniform the distribution, the higher the entropy; the more skewed, the lower; and the more symbol types, the higher the entropy."
+  },
+  {
+   "h": "Noiseless coding theorem: the limit is achievable",
+   "body": "A more precise understanding of entropy is: it describes the minimum number of bits per symbol needed to encode a message according to this distribution. This is the core theorem in Shannon's 1948 paper that founded information theory—the noiseless coding theorem. It says no encoding can be more efficient than this limit, and even stronger, Shannon proved you can always get arbitrarily close to it. This expression only applies when each symbol follows the same distribution; natural language does not satisfy this, requiring the more general entropy rate, which is averaged over all possible messages, but this is almost never something that can be computed cleanly."
+  },
+  {
+   "h": "English is about one bit per character",
+   "body": "Shannon estimated that the entropy of English is about one bit per character, provided the interviewee has at least 100 preceding letters of context. This number is crazy because it means English can be compressed to just one yes/no answer per character. Karpathy says in part three he will show that algorithm: if you allow a high-quality language model for encoding and decoding, in practice you can get quite close to this limit. He also previews that part two will cover cross-entropy and its use in training large language models, as well as distilling large models into small ones, and why GZIP can recover structure across different languages."
+  }
+ ],
+ "terms": [
+  {
+   "term": "prefix-free code",
+   "def": "An encoding in which no codeword is a prefix of another, ensuring unambiguous decoding."
+  },
+  {
+   "term": "noiseless coding theorem",
+   "def": "Shannon 1948 proved: entropy is the compression limit, and it can be approached arbitrarily closely."
+  },
+  {
+   "term": "entropy rate",
+   "def": "The average information per symbol in a stochastic process, applicable when the symbol distribution is not fixed."
+  },
+  {
+   "term": "cross-entropy loss",
+   "def": "The loss function used for language model pretraining, whose name comes from information theory."
+  }
+ ],
+ "facts": [
+  {
+   "k": "English entropy estimate",
+   "v": "about 1 bit/character (when the interviewee has at least 100 preceding letters of context)"
+  },
+  {
+   "k": "Average code length of the smart student in the robot example",
+   "v": "1.75 bits/command"
+  },
+  {
+   "k": "Average code length of the naive student in the robot example",
+   "v": "2 bits/command"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "one of the conclusions of information theory says that prediction and compression are mathematically equivalent. They turn out to be two sides of the same coin.",
+   "translated": false
+  },
+  {
+   "text": "we can't really answer this question, or at least Shannon couldn't, without necessarily engaging with some notion of intelligence.",
+   "translated": false
+  },
+  {
+   "text": "random noise should be incompressible, and therefore, a perfect compression algorithm should produce a bitstream that's indistinguishable from random noise.",
+   "translated": false
+  },
+  {
+   "text": "the information of a message gives you a lower bound on how much it can be compressed, at least when you average overall possible messages.",
+   "translated": false
+  },
+  {
+   "text": "he wasn't just doing pure data analysis looking through books. He was trying to probe at an underlying model of language, namely the interviewee's brain.",
+   "translated": false
+  },
+  {
+   "text": "This question of measuring the average information per symbol is basically asking about the limit of compression.",
+   "translated": false
+  },
+  {
+   "text": "no encoding can ever be more efficient than this limit, and even more strongly, he showed that it's always possible to get arbitrarily close to this limit.",
+   "translated": false
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}

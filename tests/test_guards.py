@@ -7251,16 +7251,28 @@ class ANoTranscriptVerdictMustCarryTheCodeThatMadeIt(unittest.TestCase):
         self.assertIn("state[\"fail\"].pop", code[j:j + 400],
                       "比对出来不一致却没把那条判决作废")
 
-    def test_it_only_touches_no_transcript_verdicts(self):
-        """别把评审不合格、体裁不符那些判决一起作废了 —— 那些不是能力问题。"""
+    def test_it_does_not_touch_quality_verdicts(self):
+        """别把评审不合格那些判决一起作废 —— 那不是能力问题。
+
+        **判据编码的是本意，不是字面。** 第一版断言条件里出现
+        「no-transcript」这个词；后来机械闸也被纳进来（它量的正是文稿覆盖度），
+        这道闸就红了 —— 而它要防的那件事一点没变：
+        评审是对成稿的质量判断，跟着模型走，不该跟着取稿层作废。
+        所以改成直接问那个函数。
+        """
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        run = importlib.import_module("run")
+        for why in ("review:5.0", "review:3.5", "too-long", "triage-unreliable"):
+            self.assertFalse(run._transcript_bound(why),
+                             f"质量判决被当成「依赖文稿」一起作废了：{why}")
         src = (ROOT / "pipeline" / "run.py").read_text()
         i = src.index("def candidates(")
         body = src[i:src.index("\ndef ", i + 1)]
         j = body.index('f.get("gen")')
-        # 往前找这个条件的开头，确认它被 no-transcript 限定住了
         head = body[max(0, j - 200):j]
-        self.assertIn("no-transcript", head,
-                      "作废条件没限定在「取不到文稿」上 —— 会把质量判决也一起作废")
+        self.assertIn("_transcript_bound", head,
+                      "作废条件没有限定在「依赖那份文稿」的判决上")
 
 
 class AFeedWhoseLinksAllPointAtTheHomepageStillFindsItsTranscript(unittest.TestCase):
@@ -7468,3 +7480,248 @@ class ASourcesKindMustMatchItsFeed(unittest.TestCase):
         self.assertEqual([], bad,
                          "kind 和 feed 对不上：kind=youtube 就该配频道 feed，"
                          "配了播客 RSS 的要写 kind=rss")
+
+
+class NoEpisodeIsPublishedTwice(unittest.TestCase):
+    """同一集不许出现两遍。
+
+    实测：secureattach 有一集发了两遍 —— guid 相同、指纹相同
+    （7e09f28f2e3680db）、时长相同、文稿都是同一份 9118 词，
+    只有模型两次生成的中文标题不一样，于是 slug 不同、谁都没认出来。
+    短链 id 却是同一个，后发的那篇把先发的短链页覆盖掉了；
+    体检那条「数据／正文页／短链一样多」抓到了症状（462 / 462 / 461）。
+
+    **指纹认领是按工作副本记的，而两条发布线跑在不同机器上。**
+    各自认领一次，rebase 一合，两篇都进来 ——
+    去重挡得住同一台机器上的重复，挡不住两条线之间的。
+    合并之后没有任何东西再看一眼。
+    """
+
+    def _eps(self):
+        out = []
+        for f in (ROOT / "data" / "episodes").glob("*.json"):
+            try:
+                out.append(json.loads(f.read_text()))
+            except Exception:
+                pass
+        return out
+
+    def test_share_ids_are_unique(self):
+        import collections
+        c = collections.Counter(d.get("id") for d in self._eps() if d.get("id"))
+        dup = {k: n for k, n in c.items() if n > 1}
+        self.assertEqual({}, dup,
+                         "两篇共用一个短链 id —— 后发的会把先发的短链页覆盖掉")
+
+    def test_fingerprints_are_unique(self):
+        import collections
+        c = collections.Counter(d.get("fingerprint") for d in self._eps()
+                                if d.get("fingerprint"))
+        dup = {k: n for k, n in c.items() if n > 1}
+        self.assertEqual({}, dup, "同一集发了两遍（指纹相同，标题不同所以 slug 不同）")
+
+    def test_the_healthcheck_names_the_collision(self):
+        """检查要说出是哪两篇，不能只报一个数 —— 只报数没法处理。"""
+        src = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        i = src.index("def check_duplicate_episodes(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        code = "\n".join(l for l in body.splitlines()
+                         if not l.lstrip().startswith("#"))
+        self.assertIn('d.get("fingerprint")', code, "没有按指纹查重")
+        self.assertIn('d.get("id")', code, "没有按短链 id 查重")
+        self.assertRegex(code, r'r\.fail\(', "查到了却不报硬伤")
+
+
+class AWeakerLinesVerdictMustNotBindAStrongerOne(unittest.TestCase):
+    """「云端取不到」不等于「取不到」。
+
+    云端定时跑批是 `--tiers feed,notes,page`，**不含 asr**；
+    本机线有 ASR 和住宅 IP。同一条 no-transcript，云端记满三次就把这一集
+    永久拉黑 —— 而本机线本来能把它转出来。
+
+    更要命的是 state.json 是两条线**共享的文件**、git 按行合并：
+    云端的判决会跟着 rebase 回到本机这边，把本机刚放回队列的记录又盖死。
+    实测一次 rebase 之后，出局的集从 2 篇变回 17 篇。
+
+    判据：记这条判决时可用的取稿层**比现在少**，那它说明不了什么。
+    """
+
+    def _run(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return importlib.import_module("run"), importlib.import_module("lib.transcript")
+
+    def test_a_cloud_verdict_does_not_bind_the_local_line(self):
+        run, T = self._run()
+        was = run._tiers["allow"]
+        try:
+            run._tiers["allow"] = T.ORDER                 # 本机：五层全开
+            self.assertTrue(run._weaker_tiers("feed,notes,page"),
+                            "云端三层记的「取不到」，在本机五层这边还算数")
+            self.assertFalse(run._weaker_tiers(",".join(T.ORDER)),
+                             "同样能力记的判决被当成了更弱的")
+        finally:
+            run._tiers["allow"] = was
+
+    def test_a_line_does_not_overturn_its_own_verdict(self):
+        """云端自己重跑时不该翻自己的案，否则永远重试、永远失败。"""
+        run, _ = self._run()
+        was = run._tiers["allow"]
+        try:
+            run._tiers["allow"] = ("feed", "notes", "page")
+            self.assertFalse(run._weaker_tiers("feed,notes,page"),
+                             "同一条线翻自己的案，会无限重试")
+        finally:
+            run._tiers["allow"] = was
+
+    def test_unknown_is_left_alone(self):
+        """没记取稿层的老记录交给 gen 那条判据管，这里不插手。"""
+        run, _ = self._run()
+        for v in (None, ""):
+            self.assertFalse(run._weaker_tiers(v))
+
+    def test_the_failure_record_stores_the_tiers(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index('"why": "no-transcript"')
+        self.assertIn('"tiers"', src[i:i + 200],
+                      "记「取不到文稿」时没存当时能用哪些取稿层")
+
+    def test_candidates_actually_uses_it(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index("def candidates(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        code = "\n".join(l for l in body.splitlines()
+                         if not l.lstrip().startswith("#"))
+        self.assertIn("_weaker_tiers(f.get(\"tiers\"))", code,
+                      "候选环节没有比对取稿层 —— 云端的判决还是会拖死本机线")
+
+
+class AVerdictThatDependedOnTheTranscriptExpiresWithIt(unittest.TestCase):
+    """依赖那份文稿的判决，取稿层换代之后不算数。
+
+    `no-transcript` 显然依赖。**机械闸也依赖** —— 它量的正是
+    「要点覆盖了这一集多少时长」。实测 tbpn 那条：
+    `points span 720s of a 7910s episode — one passage, not the episode`，
+    2 小时 12 分的集只覆盖 12 分钟，那是文稿被截断的形状，不是这一集不行。
+    它记于 2026-08-28，早于修好切音频丢封面图的那一版（09-14）。
+
+    `review:` 不算：那是对成稿的质量判断，跟着模型走不跟着取稿层走。
+    把它也作废，每次动取稿代码都要重跑所有被评审拦下的稿，太贵。
+    """
+
+    def _run(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return importlib.import_module("run")
+
+    def test_which_verdicts_expire(self):
+        run = self._run()
+        for why in ("no-transcript",
+                    "gate:points span 720s of a 7910s episode"):
+            self.assertTrue(run._transcript_bound(why), f"该作废却没作废：{why}")
+        for why in ("review:5.0", "too-long", "triage-unreliable", ""):
+            self.assertFalse(run._transcript_bound(why),
+                             f"不该作废却作废了：{why}")
+
+    def test_candidates_uses_it(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index("def candidates(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        code = "\n".join(l for l in body.splitlines()
+                         if not l.lstrip().startswith("#"))
+        self.assertIn('_transcript_bound(f.get("why"))', code,
+                      "候选环节没用这条判据 —— 旧文稿判死的集捞不回来")
+
+
+class TheLookbackWindowMustBeMeasuredInDaysNotItems(unittest.TestCase):
+    """`--days` 名义上按天，原来实际按条数封顶。
+
+    `candidates()` 写死只看每个 feed 的前 25 条。对日更节目，
+    25 集以前的东西无论 --days 写多大都够不着 ——
+    实测 tbpn 有一篇正好排在第 26 条，专门补跑一轮也永远碰不到它，
+    而它的失败记录早就该被作废重排了。
+
+    云端日更（10 天）仍是 25 条，成本不变；本机日更（21 天）得到 42 条，
+    那本来就该这么多 —— 日更节目 21 天就有 21 集，25 条连窗口都盖不满。
+    按日期过滤本来就兜着底，条数上限只是保护。
+
+    **这条判据抓到过我自己：** 第一版写 `days * 4`，10 天窗口变成 40 条，
+    而我在注释里写着「成本不变」。说的和做的对不上，闸红了。
+    """
+
+    def test_the_cap_grows_with_the_window(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index("def candidates(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        code = "\n".join(l for l in body.splitlines()
+                         if not l.lstrip().startswith("#"))
+        self.assertNotIn("eps[:25]", code,
+                         "还是写死 25 条 —— 回溯再久也够不着更早的集")
+        m = re.search(r"for ep in eps\[:([^\]]+)\]", code)
+        self.assertTrue(m, "找不到条数上限那一行")
+        expr = m.group(1)
+        self.assertIn("days", expr, "条数上限没有跟着回溯窗口走")
+        cap10 = eval(expr, {"days": 10})
+        cap21 = eval(expr, {"days": 21})
+        cap120 = eval(expr, {"days": 120})
+        self.assertEqual(25, cap10, "云端日更窗口的上限被抬高了，成本会涨")
+        self.assertGreaterEqual(cap21, 21, "本机日更的条数盖不满它自己的窗口")
+        self.assertGreaterEqual(cap120, 120,
+                                "120 天的回溯仍然够不着 120 天前的集")
+
+
+class TheHomepageMustNotGrowWithHowMuchWePublish(unittest.TestCase):
+    """首屏内联张数要有上限。
+
+    `new_window()` 只有下限（MIN_NEW=12），**没有上限**：
+    「最新」= 最近 7 天，发得多就涨得多。实测某天发了 30 篇，
+    内联从 41 张变成 76 张，首屏 gzip 从 54.3 涨到 57.7 KB，
+    卡片数和首屏体积两道闸同时红。
+
+    这不是「阈值定低了」，是**代码里少了一个上限**：
+    读者第一眼的加载量，不该由那一周我们发了多少篇来决定。
+
+    上限加在「内联几张」，不加在「算作最新的有几篇」——
+    「最新」按钮上的数要继续说实话，超出的那些照旧带 data-new，
+    从 cards.json 补齐。
+    """
+
+    def _build(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return importlib.import_module("build")
+
+    @staticmethod
+    def _eps(n: int):
+        import datetime as _dt
+        today = _dt.datetime.now(_dt.timezone.utc)
+        return [{"published": (today - _dt.timedelta(hours=i)).isoformat()}
+                for i in range(n)]
+
+    def test_a_busy_week_does_not_inflate_the_first_paint(self):
+        b = self._build()
+        for n in (200, 500):
+            self.assertLessEqual(
+                b.inline_count(self._eps(n)), b.MAX_INLINE,
+                f"一周发了 {n} 篇，首屏就内联 {b.inline_count(self._eps(n))} 张")
+
+    def test_a_quiet_week_still_fills_the_page(self):
+        """只验「多的被封住」等于没验：安静的一周首页不能空着。"""
+        b = self._build()
+        self.assertGreaterEqual(b.inline_count(self._eps(3)), b.FIRST_PAGE,
+                                "安静的一周首页少于一整页")
+
+    def test_the_new_chip_still_tells_the_truth(self):
+        """上限封的是内联张数，不是「这一周有几篇」。"""
+        b = self._build()
+        eps = self._eps(200)
+        self.assertGreater(b.new_window(eps), b.MAX_INLINE,
+                           "上限被加到了 new_window 上，"
+                           "「最新」按钮会少报这一周的篇数")
+
+    def test_the_cap_leaves_room_under_the_paint_budget(self):
+        """上限要留在首屏预算之内，否则等于没封。"""
+        import gzip
+        own = sum(len(gzip.compress((ROOT / f).read_bytes(), 9))
+                  for f in ("index.html", "assets/site.css", "assets/site.js")) / 1024
+        self.assertLessEqual(own, 56, f"首屏自有资源 {own:.1f} KB 超了 56 KB")

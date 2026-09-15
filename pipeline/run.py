@@ -255,6 +255,35 @@ def _release(state: dict, fp: str, key: str) -> None:
             state["fp"].pop(fp, None)
 
 
+def _transcript_bound(why: str | None) -> bool:
+    """这条判决是不是依赖当时那份文稿。
+
+    `no-transcript` 显然是。**机械闸也是** —— 它量的正是「要点覆盖了这一集
+    多少时长」。实测 tbpn 那条：`points span 720s of a 7910s episode —
+    one passage, not the episode`，2 小时 12 分的集只覆盖 12 分钟，
+    那是文稿被截断的形状，不是这一集不行。它记于 2026-08-28，
+    早于修好切音频丢封面图的那一版。
+
+    `review:` 不算。那是对成稿的质量判断，跟着模型走，不跟着取稿层走；
+    把它也一起作废，每次动取稿代码都要重跑所有被评审拦下的稿，太贵。
+    """
+    w = str(why or "")
+    return "no-transcript" in w or w.startswith("gate:")
+
+
+def _weaker_tiers(recorded: str | None) -> bool:
+    """记这条判决时，可用的取稿层是不是比现在少。
+
+    少 = 那一轮根本没机会试现在能试的那几层，它的「取不到」说明不了什么。
+    没记的按「不知道」处理，交给 gen 那条判据去管，这里不插手。
+    """
+    if not recorded:
+        return False
+    had = {t for t in recorded.split(",") if t}
+    now = set(_tiers["allow"])
+    return bool(had) and had < now
+
+
 def _soft_expired(f: dict) -> bool:
     """这条软失败是不是已经过期。
 
@@ -305,7 +334,15 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
             log(f"  ! {s['id']}: feed failed — {err}")
             continue
         kept = 0
-        for ep in eps[:25]:
+        # **每个 feed 看多少条，要跟着回溯窗口走。**
+        # 原来写死前 25 条：对日更节目，25 集以前的东西无论 --days 写多大
+        # 都够不着 —— `--days` 名义上按天，实际按条数封顶。
+        # 实测 tbpn 那一篇正好排在第 26 条，补跑了也永远碰不到它。
+        # 云端日更（10 天窗口）仍是 25 条，成本不变；
+        # 本机日更（21 天）得到 42 条 —— 那本来就该这么多：
+        # 日更节目 21 天就有 21 集，25 条连窗口都盖不满。
+        # 回溯（--days 120）才真正放开，而按日期过滤本来就兜着底。
+        for ep in eps[:max(25, days * 2)]:
             if not ep["published"] or ep["published"] < cutoff:
                 continue
             key = eid(s["id"], ep["guid"])
@@ -322,6 +359,17 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
                 state["done"].pop(key, None)
             f = state["fail"].get(key)
             if f and "no-transcript" in (f.get("why") or "") \
+                    and _weaker_tiers(f.get("tiers")):
+                # **「云端取不到」不等于「取不到」。**
+                # 云端定时跑批是 --tiers feed,notes,page，**不含 asr**；
+                # 本机线有 ASR 和住宅 IP。同一条 no-transcript，
+                # 云端记三次就把这一集永久拉黑，而本机线本来能转出来。
+                # state.json 是两条线共享的文件、按行合并，
+                # 于是云端的判决会跟着 rebase 回到本机这边。
+                # 判据：记这条判决时**可用的取稿层比现在少**，那它说明不了什么。
+                state["fail"].pop(key, None)
+                f = None
+            if f and _transcript_bound(f.get("why")) \
                     and f.get("gen") != T.pipeline_id():
                 # **上一代取稿代码判死的集不算数。**
                 # 和 triage 的「旧尺子判的不做不算数」是同一条规则，
@@ -476,7 +524,8 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
                 f"(soft {rec['soft']}/{MAX_SOFT_FAILS})")
         else:
             rec = {"n": prev.get("n", 0) + 1, "soft": prev.get("soft", 0),
-                   "why": "no-transcript", "gen": T.pipeline_id()}
+                   "why": "no-transcript", "gen": T.pipeline_id(),
+                   "tiers": ",".join(_tiers["allow"])}
             log(f"    not published: no usable transcript "
                 f"(attempt {rec['n']}/{MAX_FAILS})")
         rec.update(at=iso(now()), title=ep["title"][:120], src=s["id"])

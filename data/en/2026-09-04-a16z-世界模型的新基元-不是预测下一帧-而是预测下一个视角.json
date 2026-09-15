@@ -1,0 +1,130 @@
+{
+ "slug": "2026-09-04-a16z-世界模型的新基元-不是预测下一帧-而是预测下一个视角",
+ "of": "a16z-4b5c93813b",
+ "source_lang": "en",
+ "title": "The New Primitive of World Models: Not Predicting the Next Frame, but the Next Viewpoint",
+ "dek": "Language models predict the next token; Atlas predicts the next viewpoint. It puts generation and reconstruction into a single model, using three iPhones to reproduce the bullet-time shot that took hundreds of cameras in The Matrix.",
+ "why": "Fei-Fei Li and three co-founders of World Labs personally explain the technical choices and trade-offs behind the new Atlas model, with concrete numbers and internal decision moments — high information density.",
+ "who": "Engineers and researchers working on multimodality, 3D generation, world models and robot simulation; investors evaluating opportunities in the spatial intelligence space.",
+ "skip": "Around 30:03 there is a stretch of obvious transcription garble that can be skipped; the robot data discussion before and after is still listenable.",
+ "tags": [
+  "World Models",
+  "Spatial Intelligence",
+  "3D Reconstruction",
+  "Robot Simulation",
+  "Multimodality"
+ ],
+ "points": [
+  {
+   "h": "Atlas stuffs generation and reconstruction into one model",
+   "body": "Justin says Atlas does three things: generation, reconstruction, simulation. The core change is that for the first time it unifies pixel generation and pixel reconstruction in one architecture — historically reconstruction was a separate subfield of computer vision with its own dedicated models; generation was the strong suit of diffusion models. Fei-Fei Li stresses that this unification ‘anchoring on viewpoints’ stitches the two traditional tracks together via viewpoint estimation. To that end the model is natively multimodal from the pretraining stage: text, images, video, camera pose, 3D are all native inputs, and camera pose as a pretraining input had never been done before."
+  },
+  {
+   "h": "Three iPhones shoot bullet time",
+   "body": "The shot of Neo leaning back in The Matrix was filmed in front of a green screen with hundreds of cameras arranged in a circle. Atlas can reproduce it with three iPhones: film someone shooting a basket, someone dropping a strawberry into milk, then reframe, freeze time, and fly the camera into the instant the milk splashes. Ben says this is ‘no studio capture, no green screen, no expensive calibration’. This image is the most intuitive entry point for understanding Atlas's capability — it doesn't just generate pretty pixels, it can set up a virtual camera at any point in space and time."
+  },
+  {
+   "h": "Dense reconstruction needs hundreds of photos; Atlas needs three",
+   "body": "Ben explains why dense reconstruction is dense: for something to appear in the reconstruction, you need at least three or four viewpoints of it. Under the microphone in this room, under the table, between the chair legs, the plant leaves — all of it has to be covered, and a trained person takes minutes to shoot it, while an ordinary consumer scanning a multi-room environment for the first time might take two hours. Atlas compresses that number to three images, which Ben calls a ‘50, 100 X reduction’. He took his own footage of a multi-room house shot with two thousand images, cut the input to thirty or forty, and the fly-through effect was basically the same."
+  },
+  {
+   "h": "Reconstruction inevitably has holes, so generation is mandatory",
+   "body": "Justin gives the mechanism for why generation and reconstruction must be coupled: traditional reconstruction triangulates the same 3D point across multiple views, so any pixel not seen by an input view is a hole. Even if you have Ben shoot hundreds of frames with a DSLR, he can never capture under every microphone or between every table leg. So the model must have generative ability to ‘imagine’ the parts that weren't shot. He likens this to the LLM context: reconstruction is generation with an extremely long context, and Atlas can fit a 64-image capture to do a fly-through of an entire house, whereas the Marble era couldn't fit more than a few images."
+  },
+  {
+   "h": "The bottleneck is compute, not architecture, and not data",
+   "body": "Asked whether this architecture has reached the end of its scaling, Justin says ‘No, no, we're at the beginning’, and that no architecture change is needed. He states clearly that the main bottleneck right now is training compute: during development they trained a series of models, and every time they made it bigger, trained it longer, or added more chips, it got significantly better; the size of the model released this time was determined backwards from the release date, not limited by scale or data. Fei-Fei Li adds that early on they bet on two hypotheses — scaling law and next viewpoint prediction — but didn't expect the first round of pretraining to reach this quality."
+  },
+  {
+   "h": "That shot under the table made the three decide in five seconds",
+   "body": "Fei-Fei Li recounts an internal moment: one day in early summer, not at the current Atlas scale but a smaller model, Ben hooked up viewpoint generation and used the famous garden table from the NeRF paper, with the camera flying under the table, carrying a soccer ball. She stresses ‘no one has ever seen this result’. That morning the three looked at each other and said that was it, making the decision within five seconds. This detail shows that technical judgment doesn't come from a roadmap, it comes from one concrete image."
+  },
+  {
+   "h": "The biggest bottleneck for robots is data, not chips",
+   "body": "Fei-Fei Li says the biggest problem for robots right now is data; chips are a later concern. To train a robotic arm for cable manipulation, you need a real-to-sim, sim-to-real loop, plus randomization — the same cable must be able to bend in different directions, and boxes must come in different sizes, colors and lids. The acquired Cinex team was already doing dense reconstruction, which was extremely painful and slowed simulation down; Atlas is the next-generation technology for this link. Justin adds that robots are fundamentally different from other AI applications: a policy doesn't produce a static artifact, it has to act in the real world and encounter surprises, so it must rely on simulation to expose all possible failures."
+  },
+  {
+   "h": "New viewpoint prediction is AI-complete just like next-token prediction",
+   "body": "Justin argues for the status of the Atlas primitive using AI completeness: 3-SAT is the classic example of NP-completeness, because any NP-hard problem can be reduced to it; next-token prediction is considered AI-complete, because you can construct a detective novel whose last sentence is ‘the murderer is’ and then predict the next token. He says generative new viewpoint prediction is likewise AI-complete — you could have Martine write a proof of the Riemann hypothesis on the blackboard and Cameron solve it on the whiteboard next door. Fei-Fei Li adds the evolutionary version: nature gave animals eyes but not trees eyes, because animals move, and moving lets you see new viewpoints."
+  }
+ ],
+ "terms": [
+  {
+   "term": "new view prediction",
+   "def": "Given several viewpoints or a scene description, predict what a virtual camera should see at any point in space and time."
+  },
+  {
+   "term": "Gaussian splat",
+   "def": "A 3D scene representation that renders efficiently and runs easily on mobile and VR devices; Marble's output format."
+  },
+  {
+   "term": "NeRF",
+   "def": "A method for reconstructing 3D scenes from images, co-created by Ben Mildenhall, requiring many dense viewpoints."
+  },
+  {
+   "term": "AI complete",
+   "def": "Analogous to Turing complete: an AI task that, if solved in the most general sense, would let you solve any intelligent task."
+  },
+  {
+   "term": "spatial intelligence",
+   "def": "The ability to generate space, reason within it, and edit and interact with it — World Labs' long-term goal."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Cameras needed for Atlas to reproduce bullet time",
+   "v": "3"
+  },
+  {
+   "k": "Upper limit of sparse reconstruction input frames Atlas supports",
+   "v": "up to 100 frames"
+  },
+  {
+   "k": "Reduction in capture volume of Atlas versus dense reconstruction",
+   "v": "50 to 100 X"
+  },
+  {
+   "k": "How long World Labs has existed",
+   "v": "two and a half years"
+  },
+  {
+   "k": "Image capture Atlas can process in a single pass",
+   "v": "64 images"
+  },
+  {
+   "k": "Input for a multi-room house fly-through reduced from two thousand images to",
+   "v": "30 to 40 images"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "But now with Atlas, we can do this with as few as three cameras. So no studio capture, no green screen, no expensive calibration.",
+   "translated": false
+  },
+  {
+   "text": "With Atlas, every image actually has an associated three-dimensional camera pose.",
+   "translated": false
+  },
+  {
+   "text": "I've seen someone for their first time trying to scan a multi-room environment, spend like two hours walking through it and get enough coverage.",
+   "translated": false
+  },
+  {
+   "text": "No, no, we're at the beginning.",
+   "translated": false
+  },
+  {
+   "text": "That morning, the three of us looked at each other in the eyes and said, that's it, this is, we're going to build this. Like, we made a decision within five seconds.",
+   "translated": false
+  },
+  {
+   "text": "We should zoom out and recognize the biggest problem right now in robotics is actually data. One day it'll be chips, but for now it's data.",
+   "translated": false
+  },
+  {
+   "text": "new view prediction, this primitive that we have in Atlas, especially generative new view prediction, this is also AI complete.",
+   "translated": false
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}

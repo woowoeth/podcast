@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>压缩就是智能：预测与压缩是同一枚硬币的两面 — Andrej Karpathy · 原声</title>
+<meta name="description" content="信息论说预测和压缩在数学上等价，所以语言模型的预训练目标可以重新理解为造一台最高效的文本压缩器，而不只是预测下一个 token。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/p/2026-06-07-karpathy-压缩就是智能-预测与压缩是同一枚硬币的两面/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原声">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="压缩就是智能：预测与压缩是同一枚硬币的两面 — Andrej Karpathy · 原声">
+<meta property="og:description" content="信息论说预测和压缩在数学上等价，所以语言模型的预训练目标可以重新理解为造一台最高效的文本压缩器，而不只是预测下一个 token。">
+<meta property="og:url" content="https://ourword.ai/podcast/p/2026-06-07-karpathy-压缩就是智能-预测与压缩是同一枚硬币的两面/">
+<meta property="og:image" content="https://ourword.ai/podcast/assets/cover/911ed142cc051a24.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-06-07T11:49:51Z">
+<meta property="article:modified_time" content="2026-09-15T09:10:27Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="压缩就是智能：预测与压缩是同一枚硬币的两面 — Andrej Karpathy · 原声">
+<meta name="twitter:description" content="信息论说预测和压缩在数学上等价，所以语言模型的预训练目标可以重新理解为造一台最高效的文本压缩器，而不只是预测下一个 token。">
+<meta name="twitter:image" content="https://i1.ytimg.com/vi/l6DKRf-fAAM/hqdefault.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原声" href="/podcast/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-06-07-karpathy-压缩就是智能-预测与压缩是同一枚硬币的两面/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-06-07-karpathy-压缩就是智能-预测与压缩是同一枚硬币的两面/">
+<link rel="alternate" hreflang="en" href="https://ourword.ai/podcast/en/p/2026-06-07-karpathy-压缩就是智能-预测与压缩是同一枚硬币的两面/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-06-07-karpathy-压缩就是智能-预测与压缩是同一枚硬币的两面/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=e27ecd7fee">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-06-07-karpathy-压缩就是智能-预测与压缩是同一枚硬币的两面/#episode", "name": "压缩就是智能：预测与压缩是同一枚硬币的两面", "headline": "压缩就是智能：预测与压缩是同一枚硬币的两面", "description": "信息论说预测和压缩在数学上等价，所以语言模型的预训练目标可以重新理解为造一台最高效的文本压缩器，而不只是预测下一个 token。", "abstract": "信息论说预测和压缩在数学上等价，所以语言模型的预训练目标可以重新理解为造一台最高效的文本压缩器，而不只是预测下一个 token。", "datePublished": "2026-06-07T11:49:51Z", "dateModified": "2026-09-15T09:10:27Z", "url": "https://ourword.ai/podcast/p/2026-06-07-karpathy-压缩就是智能-预测与压缩是同一枚硬币的两面/", "timeRequired": "PT32M", "partOfSeries": {"@type": "PodcastSeries", "name": "Andrej Karpathy", "url": "https://ourword.ai/podcast/s/karpathy/"}, "inLanguage": "zh-CN", "isBasedOn": "https://www.youtube.com/watch?v=l6DKRf-fAAM", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "信息论, 压缩, 语言模型, Shannon, 预训练, prefix-free code, noiseless coding theorem, entropy rate, cross-entropy loss, 英语熵估计, 机器人例子中聪明学生的平均码长, 机器人例子中朴素学生的平均码长", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首页", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "Andrej Karpathy", "item": "https://ourword.ai/podcast/s/karpathy/"}, {"@type": "ListItem", "position": 3, "name": "压缩就是智能：预测与压缩是同一枚硬币的两面"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/"><span class="wordmark">原声<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<button class="pill ghost" id="lang-toggle" type="button" data-en="1" data-sc="繁體" data-tw="简体"></button>
+<button class="icon-btn" data-theme-toggle aria-label="切换深浅色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，来原声听播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/">首页</a><span class="sep">/</span>
+<a href="/podcast/s/karpathy/">Andrej Karpathy</a>
+<span class="sep">/</span><span>2026-06-07</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">Andrej Karpathy</span>
+<time class="date" datetime="2026-06-07T11:49:51Z">2026-06-07</time>
+<button class="share-btn" type="button" data-share data-share-title="压缩就是智能：预测与压缩是同一枚硬币的两面" data-share-url="https://ourword.ai/podcast/e/karpathy-e427855a4a/" data-share-desc="信息论说预测和压缩在数学上等价，所以语言模型的预训练目标可以重新理解为造一台最高效的文本压缩器，而不只是预测下一个 token。" data-share-text="压缩就是智能：预测与压缩是同一枚硬币的两面&#10;Andrej Karpathy · 32 分钟 · 原声深读&#10;&#10;信息论说预测和压缩在数学上等价，所以语言模型的预训练目标可以重新理解为造一台最高效的文本压缩器，而不只是预测下一个 token。&#10;&#10;https://ourword.ai/podcast/e/karpathy-e427855a4a/" aria-label="复制分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>压缩就是智能：预测与压缩是同一枚硬币的两面</h1>
+<p class="dek-lead">信息论说预测和压缩在数学上等价，所以语言模型的预训练目标可以重新理解为造一台最高效的文本压缩器，而不只是预测下一个 token。</p>
+<div class="ep-meta"><span class="tag">信息论</span><span class="tag">压缩</span><span class="tag">语言模型</span><span class="tag">Shannon</span><span class="tag">预训练</span></div>
+</div>
+<div class="player" data-player-box>
+  <button class="video-facade" data-yt="l6DKRf-fAAM" type="button"
+          aria-label="播放原节目视频">
+    <span class="frame">
+      <img src="https://i.ytimg.com/vi/l6DKRf-fAAM/hq720.jpg" alt="" loading="lazy" width="1280"
+           onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/l6DKRf-fAAM/hqdefault.jpg'">
+      <span class="play" aria-hidden="true"><svg viewBox="0 0 44 44" width="44" height="44" focusable="false"><circle cx="22" cy="22" r="21" fill="rgba(18,16,13,.55)" stroke="rgba(255,255,255,.92)" stroke-width="1.5"/><path d="M17 14.5 32 22 17 29.5Z" fill="#fff"/></svg></span>
+    </span>
+  </button>
+</div>
+
+<section class="section"><div class="why">这集是三部曲的第一部，只讲压缩极限的数学基础，没有工程细节和产品判断，信息密度中等。适合想补信息论直觉的人，不适合想听行业判断的人。</div></section>
+
+<section class="section"><h2>核心论点 · 点时间戳可跳到原声</h2><div class="point" id="p0"><a class="ts" data-t="0" href="https://www.youtube.com/watch?v=l6DKRf-fAAM&amp;t=0s" target="_blank" rel="noopener">0:00</a><div><h4>预训练目标其实是压缩</h4>
+<p class="body">Karpathy 指出，大语言模型预训练通常被描述为「next token prediction」，用的是 cross-entropy loss，而 cross-entropy 这个词本身就来自信息论。信息论的一个结论是：预测和压缩在数学上等价，是同一枚硬币的两面。所以你可以把预训练目标完全重新表述为——不是预测下一个 token，而是造出最高效的文本压缩器。这个重新表述的价值在于，它让你更清楚 cross-entropy 到底是什么、为什么用它。</p>
+<span class="spk">— Andrej Karpathy</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="185" href="https://www.youtube.com/watch?v=l6DKRf-fAAM&amp;t=185s" target="_blank" rel="noopener">3:05</a><div><h4>机器人例子：概率决定码长</h4>
+<p class="body">用一个远在月球上的机器人做热身：指令只有上、下、左、右四种，但分布不均匀——一半是上，四分之一是下，八分之一是左，八分之一是右，且每条指令独立。朴素学生给每个指令固定两位，平均 2 bits；聪明学生用变长编码：0 表示上，10 表示下，110 表示左，111 表示右，加权平均 1.75 bits。关键约束是没有任何码字可以是另一个码字的前缀，这叫 prefix-free code，机器人才能无歧义解码。</p>
+<span class="spk">— Andrej Karpathy</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="613" href="https://www.youtube.com/watch?v=l6DKRf-fAAM&amp;t=613s" target="_blank" rel="noopener">10:13</a><div><h4>完美压缩的输出像随机噪声</h4>
+<p class="body">第三个「不切实际」的学生提出：随机噪声不可压缩，所以完美压缩算法产出的比特流应该和随机噪声无法区分。如果压缩后的 n 位比特流真的像随机噪声，那么所有 2 的 n 次方条消息必须等概率，每条概率为 1/2^n。反过来推，一条消息在完美方案里用 n 位，就意味着它的概率是 2 的负 n 次方。取 log 再取负，就得到 n = -log₂(p)。这个负 log 表达式就是信息论的基本公式，也是 Shannon 对「一个事件的信息量」的定义。</p>
+<span class="spk">— Andrej Karpathy</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="1039" href="https://www.youtube.com/watch?v=l6DKRf-fAAM&amp;t=1039s" target="_blank" rel="noopener">17:19</a><div><h4>信息量是压缩的下界</h4>
+<p class="body">完美压缩不总是可能，因为真实消息的概率通常不是 2 的整数次幂。更一般的说法是：一条消息的信息量给出了它能被压缩到多短的下界，至少在对所有可能消息取平均时成立。你完全可能把一个压缩算法过拟合到某一个具体案例上。机器人例子里概率太干净，全是 2 的幂，所以每个符号的信息量正好是整数比特；但自然语言里每个字母的概率高度依赖上下文，而且都不是 2 的幂，算出来的信息量全是小数。</p>
+<span class="spk">— Andrej Karpathy</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="1287" href="https://www.youtube.com/watch?v=l6DKRf-fAAM&amp;t=1287s" target="_blank" rel="noopener">21:27</a><div><h4>Shannon 让妻子猜下一个字母</h4>
+<p class="body">Shannon 早期用 n-gram 统计，但长字符串在语料里根本不出现，统计就崩了。于是他换了个模型：他的妻子 Betty。Shannon 拿一本书，让 Betty 逐个猜下一个字母，猜错就写下正确字母，猜对就画一个破折号。这样转录出来的文本字母更少，但信息量相同——因为如果他能复制一个 Betty，只需要给她这份缩减文本就能还原原文。1950 年的论文里，他改成记录猜对需要几次，并据此反推人脑给真实字母分配的隐含概率。他分析语言时不是在纯做数据分析，而是在探测一个底层语言模型，也就是被访者的大脑。</p>
+<span class="spk">— Andrej Karpathy</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="1469" href="https://www.youtube.com/watch?v=l6DKRf-fAAM&amp;t=1469s" target="_blank" rel="noopener">24:29</a><div><h4>熵就是每个符号的平均信息量</h4>
+<p class="body">熵问的是一个信号里每个符号的平均信息量。因为完美压缩下码字长度等于信息量，所以熵本质上是在问压缩极限，给出一个信号能被压缩到多高效的下界。对任意概率分布，熵就是所有 p 乘以负 log₂(p) 再求和。可视化上，把概率分布画成堆叠的水平条，宽度是概率，上面每个条上放一个高度等于负 log₂(p) 的矩形，熵就是所有矩形面积之和。分布越均匀熵越高，越倾斜熵越低，符号种类越多熵也越高。</p>
+<span class="spk">— Andrej Karpathy</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="1715" href="https://www.youtube.com/watch?v=l6DKRf-fAAM&amp;t=1715s" target="_blank" rel="noopener">28:35</a><div><h4>无噪声编码定理：极限可达</h4>
+<p class="body">熵更精确的理解是：它描述了按这个分布编码一条消息时，每个符号所需的最小比特数。这就是 Shannon 1948 年那篇开创信息论的论文里的核心定理——noiseless coding theorem。它说没有任何编码能比这个极限更高效，而且更强的是，Shannon 证明了你总是可以任意接近这个极限。这个表达式只适用于每个符号服从同一分布的情况；自然语言不满足，需要更一般的 entropy rate，也就是对所有可能消息取平均，但这几乎从来不是一个能干净计算的东西。</p>
+<span class="spk">— Andrej Karpathy</span></div></div>
+<div class="point" id="p7"><a class="ts" data-t="1776" href="https://www.youtube.com/watch?v=l6DKRf-fAAM&amp;t=1776s" target="_blank" rel="noopener">29:36</a><div><h4>英语每个字符约一比特</h4>
+<p class="body">Shannon 估计英语的熵大约是每个字符一比特，前提是受访者有至少 100 个前置字母的上下文。这个数字很疯狂，因为它意味着英语可以被压缩到每个字符只需要一个是/否的答案。Karpathy 说在第三部里会展示那个算法：如果允许用高质量语言模型做编码和解码，实践中可以相当接近这个极限。他还预告第二部会讲 cross-entropy 以及它在训练大语言模型里的用法，还有大模型蒸馏成小模型、以及 GZIP 为什么能恢复不同语言之间的结构。</p>
+<span class="spk">— Andrej Karpathy</span></div></div></section>
+<section class="section"><h2>原话 · 已逐字校验</h2><blockquote class="quote"><p class="raw">one of the conclusions of information theory says that prediction and compression are mathematically equivalent. They turn out to be two sides of the same coin.</p>
+<p class="zh">信息论的一个结论是：预测和压缩在数学上等价。它们是同一枚硬币的两面。</p>
+<div class="attrib"><b>Andrej Karpathy</b><a class="ts" data-t="0" href="https://www.youtube.com/watch?v=l6DKRf-fAAM&amp;t=0s" target="_blank" rel="noopener">0:00</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">we can&#x27;t really answer this question, or at least Shannon couldn&#x27;t, without necessarily engaging with some notion of intelligence.</p>
+<p class="zh">我们其实无法回答这个问题，至少 Shannon 不能，除非必然要涉及某种智能的概念。</p>
+<div class="attrib"><b>Andrej Karpathy</b><a class="ts" data-t="185" href="https://www.youtube.com/watch?v=l6DKRf-fAAM&amp;t=185s" target="_blank" rel="noopener">3:05</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">random noise should be incompressible, and therefore, a perfect compression algorithm should produce a bitstream that&#x27;s indistinguishable from random noise.</p>
+<p class="zh">随机噪声应该是不可压缩的，因此一个完美的压缩算法应该产生一个与随机噪声无法区分的比特流。</p>
+<div class="attrib"><b>Andrej Karpathy</b><a class="ts" data-t="613" href="https://www.youtube.com/watch?v=l6DKRf-fAAM&amp;t=613s" target="_blank" rel="noopener">10:13</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">the information of a message gives you a lower bound on how much it can be compressed, at least when you average overall possible messages.</p>
+<p class="zh">一条消息的信息量给出了它能被压缩到多短的下界，至少在你对所有可能消息取平均时是这样。</p>
+<div class="attrib"><b>Andrej Karpathy</b><a class="ts" data-t="1039" href="https://www.youtube.com/watch?v=l6DKRf-fAAM&amp;t=1039s" target="_blank" rel="noopener">17:19</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">he wasn&#x27;t just doing pure data analysis looking through books. He was trying to probe at an underlying model of language, namely the interviewee&#x27;s brain.</p>
+<p class="zh">他并不是在纯做数据分析、翻书。他是在试图探测一个底层的语言模型，也就是被访者的大脑。</p>
+<div class="attrib"><b>Andrej Karpathy</b><a class="ts" data-t="1287" href="https://www.youtube.com/watch?v=l6DKRf-fAAM&amp;t=1287s" target="_blank" rel="noopener">21:27</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">This question of measuring the average information per symbol is basically asking about the limit of compression.</p>
+<p class="zh">测量每个符号平均信息量这个问题，本质上就是在问压缩的极限。</p>
+<div class="attrib"><b>Andrej Karpathy</b><a class="ts" data-t="1469" href="https://www.youtube.com/watch?v=l6DKRf-fAAM&amp;t=1469s" target="_blank" rel="noopener">24:29</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">no encoding can ever be more efficient than this limit, and even more strongly, he showed that it&#x27;s always possible to get arbitrarily close to this limit.</p>
+<p class="zh">没有任何编码能比这个极限更高效，而且更强的是，他证明了你总是可以任意接近这个极限。</p>
+<div class="attrib"><b>Andrej Karpathy</b><a class="ts" data-t="1715" href="https://www.youtube.com/watch?v=l6DKRf-fAAM&amp;t=1715s" target="_blank" rel="noopener">28:35</a></div>
+</blockquote></section>
+<section class="section"><h2>数字与实体</h2><table class="facts"><tr><td class="k">英语熵估计</td><td class="v">约 1 bit/字符（受访者有至少 100 个前置字母上下文时）</td><td class="t"><a class="ts" data-t="1776" href="https://www.youtube.com/watch?v=l6DKRf-fAAM&amp;t=1776s" target="_blank" rel="noopener">29:36</a></td></tr>
+<tr><td class="k">机器人例子中聪明学生的平均码长</td><td class="v">1.75 bits/指令</td><td class="t"><a class="ts" data-t="310" href="https://www.youtube.com/watch?v=l6DKRf-fAAM&amp;t=310s" target="_blank" rel="noopener">5:10</a></td></tr>
+<tr><td class="k">机器人例子中朴素学生的平均码长</td><td class="v">2 bits/指令</td><td class="t"><a class="ts" data-t="247" href="https://www.youtube.com/watch?v=l6DKRf-fAAM&amp;t=247s" target="_blank" rel="noopener">4:07</a></td></tr></table></section>
+<section class="section"><h2>术语</h2><dl class="terms"><div><dt>prefix-free code<span>前缀码</span></dt><dd>没有任何码字是另一个码字前缀的编码方式，保证解码无歧义。</dd></div>
+<div><dt>noiseless coding theorem<span>无噪声编码定理</span></dt><dd>Shannon 1948 年证明：熵是压缩极限，且可任意接近。</dd></div>
+<div><dt>entropy rate<span>熵率</span></dt><dd>随机过程中每个符号的平均信息量，适用于符号分布不固定的情况。</dd></div>
+<div><dt>cross-entropy loss<span>交叉熵损失</span></dt><dd>语言模型预训练用的损失函数，名字来源于信息论。</dd></div></dl></section>
+<section class="section"><h2>收听指南</h2>
+<div class="panel guide">
+<div><span class="k">谁该听</span><p>想补信息论直觉的工程师和研究者，尤其是天天用 cross-entropy loss 但没想清楚它为什么长这样的人。</p></div>
+<div><span class="k">可跳过</span><p>最后约一分钟的虚拟招聘会广告可以跳过。</p></div>
+</div></section>
+<nav class="prevnext"><a href="/podcast/p/2026-06-12-luanfanshu-极速版的本质不是增长-是商业化和算法/"><span class="lbl">← 更新</span><strong>极速版红包不是增长，是算法和商业化的收割机</strong></a><a class="r" href="/podcast/p/2026-06-01-parentmojo-adhd-药物改得了行为-改不了学习/"><span class="lbl">更早 →</span><strong>ADHD 药物改得了行为，改不了学习</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原节目</h4>
+<div class="row"><span>节目</span><span>Andrej Karpathy</span></div>
+<div class="row"><span>原标题</span><span>Reinventing Entropy | Compression is Intelligence Part 1</span></div>
+<div class="row"><span>发布</span><span>2026-06-07</span></div>
+<div class="row"><span>时长</span><span>32:25</span></div>
+<a class="row" href="https://www.youtube.com/watch?v=l6DKRf-fAAM" target="_blank" rel="noopener"><span>原页面</span><span>打开 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇结构</h4><nav class="toc"><a href="#p0"><span class="t">0:00</span><span>预训练目标其实是压缩</span></a>
+<a href="#p1"><span class="t">3:05</span><span>机器人例子：概率决定码长</span></a>
+<a href="#p2"><span class="t">10:13</span><span>完美压缩的输出像随机噪声</span></a>
+<a href="#p3"><span class="t">17:19</span><span>信息量是压缩的下界</span></a>
+<a href="#p4"><span class="t">21:27</span><span>Shannon 让妻子猜下一个字母</span></a>
+<a href="#p5"><span class="t">24:29</span><span>熵就是每个符号的平均信息量</span></a>
+<a href="#p6"><span class="t">28:35</span><span>无噪声编码定理：极限可达</span></a>
+<a href="#p7"><span class="t">29:36</span><span>英语每个字符约一比特</span></a></nav></div>
+
+<div class="panel"><h4>这篇是怎么来的</h4>
+<div class="row"><span>成稿评分</span><span>8 / 10</span></div>
+<div class="row"><span>文稿来源</span><span>YouTube 字幕</span></div>
+<div class="row"><span>文稿字数</span><span>5960</span></div>
+<div class="row"><span>语速核验</span><span>183.9 wpm</span></div>
+<div class="row"><span>逐字校验金句</span><span>7 条</span></div>
+<div class="row"><span>回溯校验数字</span><span>3 条</span></div>
+
+<p class="note">金句在逐字稿里逐字比对过，数字回原文核对过；对不上的当场删掉，不上站。
+成稿另经一道独立评审（信息密度／忠实度／选择力／具体性／中文），低于 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原声 · <a href="https://ourword.ai">OurWord.ai</a>的播客线。内容为原播客的中文深读，
+版权归各节目所有；每篇都附原节目链接，请去支持原作者。</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/" lang="zh">人类世界生存法则</a> · <a href="/podcast/">原声</a></div>
+<div class="links"><a href="/podcast/">首页</a><a href="/podcast/sources/">信源</a>
+<a href="/podcast/log/">更新日志</a><a href="/podcast/feed.xml">RSS</a>
+<a href="/podcast/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源码</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=6bddac8d2f" defer></script>
+</body></html>

@@ -1051,6 +1051,46 @@ def check_online(r: Report) -> None:
             r.fail(f"{path} 取不到：{type(ex).__name__}")
 
 
+def check_duplicate_episodes(r: Report) -> None:
+    """同一集不许出现两遍。
+
+    实测：secureattach 有一集发了两遍 —— guid 相同、指纹相同
+    （7e09f28f2e3680db）、时长相同、文稿都是同一份 9118 词，
+    只有模型两次生成的中文标题不一样，于是 slug 不同、谁都没认出来。
+    短链 id 却是同一个，后发的那篇把前一篇的短链页覆盖掉了。
+
+    **指纹认领是按工作副本记的，而两条发布线跑在不同机器上。**
+    各自认领一次，rebase 一合，两篇都进来了 ——
+    去重挡得住同一台机器上的重复，挡不住两条线之间的。
+    合并之后没有任何东西再看一眼，所以这里看。
+    """
+    import collections as _c
+    fp = _c.defaultdict(list)
+    sid = _c.defaultdict(list)
+    for f in (DATA / "episodes").glob("*.json"):
+        try:
+            d = json.loads(f.read_text())
+        except Exception:
+            continue
+        if d.get("fingerprint"):
+            fp[d["fingerprint"]].append(d.get("slug") or f.stem)
+        if d.get("id"):
+            sid[d["id"]].append(d.get("slug") or f.stem)
+    dup_fp = {k: v for k, v in fp.items() if len(v) > 1}
+    dup_id = {k: v for k, v in sid.items() if len(v) > 1}
+    if not dup_fp and not dup_id:
+        r.good(f"没有重复的集（{len(fp)} 个指纹、{len(sid)} 个短链 id 都唯一）")
+        return
+    for k, v in list(dup_id.items())[:3]:
+        r.fail(f"两篇共用一个短链 id（{k}）—— 后发的会把先发的短链页覆盖掉："
+               + "、".join(x[:34] for x in v))
+    for k, v in list(dup_fp.items())[:3]:
+        if k in {x for x in dup_id}:
+            continue
+        r.fail(f"同一集发了两遍（指纹 {k} 相同，标题不同所以 slug 不同）："
+               + "、".join(x[:34] for x in v))
+
+
 def check_dead_episodes(r: Report) -> None:
     """再也不会被尝试的集，每一篇都要有人看过。
 
@@ -1118,6 +1158,7 @@ def main(argv: list[str] | None = None) -> int:
     check_language_parity(r)
     check_asr_only_routing(r)
     check_dead_episodes(r)
+    check_duplicate_episodes(r)
     check_token_usage(r)
     check_local_asr(r)
     check_catchup_is_working(r)
