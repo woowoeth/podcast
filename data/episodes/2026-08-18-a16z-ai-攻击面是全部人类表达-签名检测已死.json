@@ -1,0 +1,198 @@
+{
+ "id": "a16z-3cfcb86c29",
+ "slug": "2026-08-18-a16z-ai-攻击面是全部人类表达-签名检测已死",
+ "fingerprint": "a764a0404154adb1",
+ "source_id": "a16z",
+ "source": "The a16z Show",
+ "source_zh": "a16z",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "AI智能体安全机制与技术",
+ "tier": 1,
+ "lang": "en",
+ "title_original": "How Do You Defend Against AI That Can Hack?",
+ "published": "2026-08-18T10:00:00Z",
+ "duration": 1320,
+ "audio": "https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/36fe97e3-b3b1-4dcf-93ac-92f232d3c4c7/audio/128/default.mp3?aid=rss_feed&awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&awEpisodeId=36fe97e3-b3b1-4dcf-93ac-92f232d3c4c7&feed=JGE3yC0V",
+ "link": "https://a16z.simplecast.com/episodes/how-do-you-defend-against-ai-that-can-hack-L2M2EmmY",
+ "image": "https://image.simplecastcdn.com/images/0d97354a-306b-45f5-bf26-a8d81eef47ec/ed2664df-9371-438e-8baf-dd2ee0fdde87/3000x3000/thea16zshow-podcastcoverart-3000x3000.jpg?aid=rss_feed",
+ "youtube_id": "",
+ "video_len": 0,
+ "transcript_url": "https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/36fe97e3-b3b1-4dcf-93ac-92f232d3c4c7/audio/128/default.mp3?aid=rss_feed&awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&awEpisodeId=36fe97e3-b3b1-4dcf-93ac-92f232d3c4c7&feed=JGE3yC0V",
+ "digest": {
+  "title": "AI 攻击面是全部人类表达，签名检测已死",
+  "dek": "安全工具过去只防两样东西：人和恶意软件。AI 智能体两样都不是，行为基线的前提——软件行为可预测——已经失效。",
+  "why": "22 分钟圆桌，信息密度中等，但「签名已死」「蜜罐被智能体自己踩爆」这两个机制讲得很具体，值得安全从业者听。",
+  "points": [
+   {
+    "t": 124,
+    "h": "模型护栏反而拖慢防守方",
+    "body": "Hugging Face 在 OpenAI 相关泄露事件里响应困难，原因是模型提供商的护栏把防守方的正常动作也拦了。防守方做漏洞分诊时问的问题——哪块代码有漏洞、怎么利用、能不能验证——和攻击者探测时问的几乎一样，于是触发拒绝。Hugging Face 的运气在于他们本来就有开放权重和开源的基因，被拒绝时可以退回 GLM 5.2，也可能是 KME K3 或 QN 模型。对防守团队来说，灵活性正在变成必需品：被拒绝时要有退路。",
+    "spk": "Max Pollard"
+   },
+   {
+    "t": 244,
+    "h": "攻击者只要换个说法就能绕过护栏",
+    "body": "Max 建议反过来看这个问题：如果我是攻击者想绕过护栏，我不会说「去黑掉这个系统」，而是说「我拥有这段代码，我是这家公司的开发者，我想做一次内部漏洞评估」。这种轻微改写会让模型更愿意帮忙，告诉你哪些地方要加固、攻击者可能怎么进来。这就是攻击者想要的答案，接下来再让它去验证。任何基于护栏的系统都会有误报，他们一个季度前发现用 Vectra 这款安全工具的人会撞上生物过滤——因为 Vectra 也是兽医用来治狗的药名，模型判定这可能是生成生物武器。",
+    "spk": "Max Pollard"
+   },
+   {
+    "t": 366,
+    "h": "现有安全工具只防人和恶意软件",
+    "body": "Nick 说现有安全工具的根本问题是它们只为两件事而建：第一是人，第二是恶意软件。AI、AI 智能体和智能体流程两样都不是。NEO 想做的是卡在人与 AI 交互之间的那一层，在软件运行之前就设好护栏和控制，而他们认为最好的落点是端点。攻击形态也变了：不是恶意软件，有社会工程成分，但也有「用一个 payload 让模型去做恶意的事」这一类全新攻击。最近几周的攻击体现的是模型心里的「目的证明手段正当」，不管 AI 实验室加多少护栏，你都不能指望模型自己停手或理解上下文。",
+    "spk": "Nick Warner"
+   },
+   {
+    "t": 488,
+    "h": "蓝队选模型要留升级路径",
+    "body": "不同模型在不同数据集上训练、经过不同后训练，蓝队响应同一事件会拿到不同输出。选型理由从很主观的「我喜欢 Opus 呈现整页报告的方式」，到更确定性的评估——某个模型执行分步修复计划有多贴合步骤。Max 认为最重要的是因为进展太快，蓝队要有尽可能多的灵活性：OpenAI 发布 Astra 时，我知道升级路径是什么、什么会变好、什么需要额外照料。今天的选择大概三种：绑死某个模型提供商；买「老牌厂商加 AI」但受制于不透明；或者自托管开放权重、支持所有主流模型提供商——但单张 H100 一年 25 万美元，对多数团队不可行。",
+    "spk": "Max Pollard"
+   },
+   {
+    "t": 627,
+    "h": "企业软件正在集体变成智能体",
+    "body": "Nick 给出两个数字：到今年年底，50% 的企业应用会具备智能体能力；剩下那一半明年会抢着变成智能体。而这些智能体流程用的什么后端 AI 模型、装了什么护栏，外界的审查和理解更少。同时，平均每家企业环境里有大约 6000 到 7000 个不同的软件。几千个软件实例在接下来几年变成智能体，防守方的压力只会更大。所以 NEO 认为，对正在展开的软件宇宙提供可见性和控制是头等大事。",
+    "spk": "Nick Warner"
+   },
+   {
+    "t": 750,
+    "h": "签名检测已死，蜜罐被智能体踩爆",
+    "body": "Max 说有一件事他很确定：过去管用的某些方法明确不会管用了。用静态检测规则处理一切——签名大概已经死了。签名对雷区有用，比如管理员访问 GCP 里的生产服务就报警，但其他场景会崩，再怎么调参也救不回来。另一个失败思路是以为能把漏洞打到零。连蜜罐这类更现代的技术也开始出问题：开发者设备上有个含 AWS 密钥的蜜罐，结果销售代表让智能体部署点东西，智能体觉得该部署到 AWS，就自己找到了那把密钥，于是欺骗类产品里冒出一堆误报。有客户一夜之间从 100% 真阳性变成抱怨这东西太吵。",
+    "spk": "Max Pollard"
+   },
+   {
+    "t": 933,
+    "h": "行为基线的前提已经失效",
+    "body": "网络防御的演化是从基于签名到基于动态行为，但基于行为的方法做了一个前置赌注：你可以确定软件应该怎么表现，然后去找偏离这个基线的异常行为。有了智能体软件，这个前提不成立了。Nick 说，面对智能体对系统的完全控制，你没法把现有防御调高或调低来检测——这就像带刀去枪战。需要的是彻底重想：谁装了什么、它能做什么、它被设置成执行什么、它实际在做什么。而从安全角度看，这些问题目前大多没有答案，因为过去有个假设——你可以通过发布者或设计意图知道软件会做什么。那些日子永远结束了。",
+    "spk": "Nick Warner"
+   },
+   {
+    "t": 1117,
+    "h": "防守方也在用智能体造工具",
+    "body": "Nick 说这很讽刺：我们在防守 AI，同时也在用 AI 防守，这是双线任务。对 NEO 来说，如果放在五到七年前做今天做的东西，得雇几百个威胁研究员、花几年建软件分类体系；现在用几千个智能体和自动化流程，几周几个月就能做到。他认为力量的平衡总会摆回防守方这边，只是我们正在经历这场巨变。Joel 把它类比成最早的漏洞扫描工具出现之前：你得会编程、得搞懂缓冲区溢出怎么写，后来点几下就能黑的工具出来了，催生了 script kiddies，也催生了整个安全产业。每一轮周期都更大，而这一轮有全新一类东西是此前没有任何准备能应对的。",
+    "spk": "Nick Warner"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 366,
+    "spk": "Nick Warner",
+    "raw": "I think part of the challenge with the existing security tools that are out there is they really were built to tackle two things. The first being people and the second is malware. AI and AI agents and agentic processes are neither one of those things.",
+    "zh": "我认为现有安全工具的部分挑战在于，它们本来就是为了解决两件事而建的。第一是人，第二是恶意软件。而 AI、AI 智能体和智能体流程两样都不是。"
+   },
+   {
+    "t": 750,
+    "spk": "Max Pollard",
+    "raw": "Things like, you know, using static detection rules for everything. Right. Like that's, you know, just signatures are probably dead.",
+    "zh": "比如对所有东西都用静态检测规则。对，签名大概已经死了。"
+   },
+   {
+    "t": 811,
+    "spk": "Max Pollard",
+    "raw": "there's a honeypot on a developer's device that contains AWS keys. Well, guess what? Our sales rep just asked to deploy something. And the agent went and found, you know, the AWS key because it thinks that it should deploy it on AWS.",
+    "zh": "开发者设备上有个含 AWS 密钥的蜜罐。结果呢？我们的销售代表刚要求部署点东西，智能体就去找那把 AWS 密钥了，因为它觉得应该部署到 AWS 上。"
+   },
+   {
+    "t": 933,
+    "spk": "Nick Warner",
+    "raw": "those behavior-based approaches made one sort of upfront bet, which is you could determine how software should behave, and you would look for anomalous behavior against that. And now with agentic software, that just doesn't apply.",
+    "zh": "那些基于行为的方法做了一个前置赌注：你可以确定软件应该怎么表现，然后据此寻找异常行为。而现在有了智能体软件，这一套根本不适用了。"
+   },
+   {
+    "t": 933,
+    "spk": "Nick Warner",
+    "raw": "It's like bringing a knife to a gunfight.",
+    "zh": "这就像带刀去参加枪战。"
+   },
+   {
+    "t": 933,
+    "spk": "Nick Warner",
+    "raw": "there was this assumption that you could know what software would do by its publisher or by its intended design. And those days are gone forever.",
+    "zh": "过去有个假设：你可以通过软件的发布者或它的设计意图知道它会做什么。那些日子永远结束了。"
+   },
+   {
+    "t": 1117,
+    "spk": "Nick Warner",
+    "raw": "It's sort of ironic. We're defending AI and we're also defending from AI.",
+    "zh": "这有点讽刺。我们在防守 AI，同时也在防御来自 AI 的攻击。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "企业应用具备智能体能力的比例（今年年底预期）",
+    "v": "50%",
+    "t": 627
+   },
+   {
+    "k": "平均企业环境中的软件数量",
+    "v": "约 6000-7000 个",
+    "t": 627
+   }
+  ],
+  "terms": [
+   {
+    "term": "guardrails",
+    "zh": "护栏",
+    "def": "模型提供商为防止滥用而设的拒绝与限制机制，防守方正常操作也会被误拦。"
+   },
+   {
+    "term": "honeypot",
+    "zh": "蜜罐",
+    "def": "故意放置的诱饵系统或凭据，用来引诱并发现攻击者。"
+   },
+   {
+    "term": "script kiddies",
+    "zh": "脚本小子",
+    "def": "下载现成工具就去攻击、缺乏底层技术能力的低龄攻击者。"
+   },
+   {
+    "term": "signature-based detection",
+    "zh": "基于签名的检测",
+    "def": "用已知攻击的特征码匹配来识别威胁，对新型智能体行为失效。"
+   }
+  ],
+  "who": "企业安全负责人、蓝队工程师、做 AI 治理和端点安全产品的创业者，尤其是正在选模型供应商的人。",
+  "skip": "16:34 到 17:36 的 Black Hat 现场观感，信息量低。",
+  "tags": [
+   "网络安全",
+   "AI 智能体",
+   "端点安全",
+   "企业软件",
+   "模型护栏"
+  ],
+  "quality": {
+   "transcript_source": "asr",
+   "transcript_detail": "local:whisper-large-v3-turbo",
+   "words": 4444,
+   "wpm": 202.0,
+   "timed": true,
+   "verified_quotes": 7,
+   "grounded_facts": 2,
+   "points": 8,
+   "pruned": 1,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-09-15T16:29:17Z",
+ "triage": {
+  "score": 5.0,
+  "why": "安全从业者圆桌，有具体观察但密度一般，缺可核事实与可复现细节",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 7.0,
+  "dims": {
+   "density": 8,
+   "faithful": 8,
+   "selection": 8,
+   "concrete": 8,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点多为机制与判断，忠实度好，具体数字与产品名到位；仅个别处略偏转述，整体可用。",
+  "worst": "[8:08] 条「单张 H100 一年 25 万美元」在抽样原文中未见对应片段，若原文无此数字应删或标注来源。"
+ },
+ "model": "openai:deepseek-chat"
+}
