@@ -49,6 +49,14 @@ MAX_FAILS = 3          # genuine failures: no transcript exists, or the gate say
 MAX_SOFT_FAILS = 8     # infrastructure hiccups: a 429, a dropped connection, a
                        # model call that died. These must not burn an episode's
                        # retry budget, or one bad afternoon blacklists good shows.
+SOFT_COOLS_AFTER_DAYS = 7
+                       # **软失败要会过期。** 上面写着「不该烧掉重试预算」，
+                       # 可撞满 8 次照样永久出局 —— 一个坏下午确实把节目拉黑了，
+                       # 只是慢了八拍。实测躺着 5 篇这样的，包括硅谷101 那集
+                       # 1:16:50 的 mRNA 疫苗访谈：n=0（一次真失败都没有）、
+                       # soft=8，就再也不会被碰。
+                       # 「基础设施抖了八次」不是「这一集不行」。超过这些天
+                       # 没再试过，软计数清零重来。
 # Trailers, teasers and paywall stubs: never worth a page.
 SKIP_TITLE = ("(preview)", "[preview]", "trailer", "coming soon", "announcement:",
               "subscriber-only", "teaser", "预告", "试听",
@@ -247,6 +255,20 @@ def _release(state: dict, fp: str, key: str) -> None:
             state["fp"].pop(fp, None)
 
 
+def _soft_expired(f: dict) -> bool:
+    """这条软失败是不是已经过期。
+
+    软失败记的是「当时基础设施抖了」，不是「这一集不行」。
+    隔了 SOFT_COOLS_AFTER_DAYS 天还不清零，等于把一个坏下午变成永久拉黑。
+    """
+    at = f.get("at") or ""
+    try:
+        t = dt.datetime.fromisoformat(at.replace("Z", "+00:00"))
+    except Exception:
+        return True          # 连时间都没记，按过期处理：宁可多试一次
+    return (now() - t).days >= SOFT_COOLS_AFTER_DAYS
+
+
 def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> list[dict]:
     """Fetch every feed concurrently — a serial pass over 49 feeds, some of them
     12MB, takes minutes and dominates the whole run."""
@@ -310,6 +332,10 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
                 # 「我们取不到」是我们的能力限制，能力变了，旧结论就作废。
                 state["fail"].pop(key, None)
                 f = None
+            if f and f.get("soft", 0) >= MAX_SOFT_FAILS and _soft_expired(f):
+                # 软失败撞满之后隔了足够久 —— 那一阵的抖动早过去了，清零重来。
+                f = dict(f, soft=0)
+                state["fail"][key] = f
             if f and (f.get("n", 0) >= MAX_FAILS or f.get("soft", 0) >= MAX_SOFT_FAILS):
                 continue
             low = ep["title"].lower()

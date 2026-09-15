@@ -94,6 +94,11 @@ jobs:
             TIERS="feed,notes,page"
             WORDCAP="--max-words 14000"
           fi
+          # **坏账本要在花钱之前拦住。** 本机线栽过：autostash 恢复时冲突，
+          # git pull 退出码仍是 0，冲突标记留在 data/en/_sources.json 里；
+          # 那一轮照跑，深读发了 6 篇，最后在建站时崩掉 —— 6 篇既没提交也没推。
+          # 判据不看 git 的退出码，直接读 data 下每个 JSON。
+          python pipeline/checkdata.py
           python pipeline/run.py $ONLY --tiers $TIERS --skip-residential --no-build $WORDCAP \
             --triage-min "$TRIAGE" --review-min "$REVIEW" \
             2>&1 | tee "${RUNNER_TEMP}/run.log"
@@ -234,6 +239,13 @@ jobs:
           # 而守护只在比例超过 1/8 才响，中间一路静默劣化。
           python pipeline/cache_covers.py || true
           python pipeline/build.py
+          # **推之前先数一遍：数据、正文页、短链必须一样多。**
+          # 本机线推上去过 418 个正文页、只有 414 个数据文件 —— 建档那一步
+          # 发的集在 `git add data/episodes` 之后才落盘，只有页面进了仓库。
+          # 下一次谁跑一次 build.py 都是从数据重建，那四页会被当孤儿删掉。
+          # 这里 git add -A 不会漏，但数不上就是别处出了问题，宁可不推。
+          python pipeline/healthcheck.py --only-consistency || {
+            echo "::error::数据/正文页/短链对不上，本轮不推" >&2; exit 1; }
           git add -A
           if git diff --cached --quiet; then echo "site unchanged"; exit 0; fi
           git commit -m "build: regenerate site"

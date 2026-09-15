@@ -1051,12 +1051,56 @@ def check_online(r: Report) -> None:
             r.fail(f"{path} 取不到：{type(ex).__name__}")
 
 
+def check_dead_episodes(r: Report) -> None:
+    """再也不会被尝试的集，每一篇都要有人看过。
+
+    重试撞满上限之后 candidates() 直接跳过 —— 那一集从此消失，
+    没有任何地方会再提它一句。实测某一刻躺着 24 篇，其中 5 篇是
+    `n=0 soft=8`：一次真失败都没有，纯粹是基础设施抖了八次
+    （包括硅谷101 那集 1:16:50 的 mRNA 疫苗访谈）。
+
+    **「发不出去」本身不报错，悄悄发不出去才报错。**
+    有些集确实哪儿都找不到文稿，那是能力限制，写下来就好；
+    这里拦的是「死了却没人看过」。要么救活，要么 giveup.py 记下原因。
+    """
+    try:
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import giveup
+    except Exception:
+        return
+    todo = giveup.unaccepted()
+    all_dead = giveup.dead()
+    if not todo:
+        if all_dead:
+            r.good(f"出局的 {len(all_dead)} 篇都有记录在案的原因")
+        else:
+            r.good("没有出局的集")
+        return
+    import collections as _c
+    by = _c.Counter(str(v.get("src")) for v in todo.values())
+    r.fail(f"{len(todo)} 篇再也不会被尝试、而且没人看过："
+           + "、".join(f"{k}×{n}" for k, n in by.most_common(6))
+           + " —— 跑 python3 pipeline/giveup.py 看是哪几篇，"
+             "救活它，或者写下为什么放弃")
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--online", action="store_true", help="连线上一起查")
+    ap.add_argument("--only-consistency", action="store_true",
+                    help="只查「数据／正文页／短链一样多」。发布线在 push 之前用它："
+                         "整套体检里有停更、心跳这类和本轮无关的项，"
+                         "拿整套当 push 闸会因为不相干的原因卡住发布。")
     a = ap.parse_args(argv)
 
     r = Report()
+    if a.only_consistency:
+        check_build_consistency(r)
+        for m in r.bad:
+            print(f"  坏了  {m}")
+        for m in r.ok:
+            print(f"  ok    {m}")
+        return 1 if r.bad else 0
     check_heartbeats(r)
     check_content_freshness(r)
     check_build_consistency(r)
@@ -1073,6 +1117,7 @@ def main(argv: list[str] | None = None) -> int:
     check_source_coverage(r)
     check_language_parity(r)
     check_asr_only_routing(r)
+    check_dead_episodes(r)
     check_token_usage(r)
     check_local_asr(r)
     check_catchup_is_working(r)
