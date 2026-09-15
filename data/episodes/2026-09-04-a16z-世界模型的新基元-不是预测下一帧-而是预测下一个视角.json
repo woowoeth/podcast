@@ -1,0 +1,223 @@
+{
+ "id": "a16z-4b5c93813b",
+ "slug": "2026-09-04-a16z-世界模型的新基元-不是预测下一帧-而是预测下一个视角",
+ "fingerprint": "c66458211b7dfc73",
+ "source_id": "a16z",
+ "source": "The a16z Show",
+ "source_zh": "a16z",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "世界模型与3D重建技术机制",
+ "tier": 1,
+ "lang": "en",
+ "title_original": "Fei Fei Li: The Race to Build World Models For AI",
+ "published": "2026-09-04T10:00:00Z",
+ "duration": 2676,
+ "audio": "https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/7a8beefc-2d73-42f7-8b7a-d2f15ad0358d/audio/128/default.mp3?aid=rss_feed&awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&awEpisodeId=7a8beefc-2d73-42f7-8b7a-d2f15ad0358d&feed=JGE3yC0V",
+ "link": "https://a16z.simplecast.com/episodes/fei-fei-li-the-race-to-build-world-models-for-ai-tvIN7XfT",
+ "image": "https://image.simplecastcdn.com/images/0d97354a-306b-45f5-bf26-a8d81eef47ec/ed2664df-9371-438e-8baf-dd2ee0fdde87/3000x3000/thea16zshow-podcastcoverart-3000x3000.jpg?aid=rss_feed",
+ "youtube_id": "",
+ "video_len": 0,
+ "transcript_url": "https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/7a8beefc-2d73-42f7-8b7a-d2f15ad0358d/audio/128/default.mp3?aid=rss_feed&awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&awEpisodeId=7a8beefc-2d73-42f7-8b7a-d2f15ad0358d&feed=JGE3yC0V",
+ "digest": {
+  "title": "世界模型的新基元：不是预测下一帧，而是预测下一个视角",
+  "dek": "语言模型靠预测下一个 token，Atlas 靠预测下一个视角。它把生成和重建放进同一个模型，用三台 iPhone 复现《黑客帝国》几百台摄像机才拍出的子弹时间。",
+  "why": "Fei-Fei Li 和 World Labs 三位联创亲自讲清新模型 Atlas 的技术选择与取舍，含具体数字和内部决策时刻，信息密度高。",
+  "points": [
+   {
+    "t": 70,
+    "h": "Atlas 把生成和重建塞进同一个模型",
+    "body": "Justin 说 Atlas 有三件事：生成、重建、模拟。核心变化是它第一次把像素生成和像素重建统一在一个架构里——历史上重建是计算机视觉的独立子领域，有自己的专门模型；生成则是扩散模型的强项。Fei-Fei Li 强调这个统一「anchoring on viewpoints」，靠视角估计把两条传统赛道缝在一起。为此模型从预训练阶段就是原生多模态：文本、图像、视频、相机位姿、3D 都是原生输入，相机位姿作为预训练输入此前没人做过。",
+    "spk": "Justin Johnson / Fei-Fei Li"
+   },
+   {
+    "t": 198,
+    "h": "三台 iPhone 拍出子弹时间",
+    "body": "《黑客帝国》里 Neo 后仰那一镜，是绿幕前几百台摄像机围成一圈拍的。Atlas 用三台 iPhone 就能复现：拍下有人投篮、有人把草莓丢进牛奶，然后重新取景、冻结时间、让镜头飞进牛奶溅起的瞬间。Ben 说这是「no studio capture, no green screen, no expensive calibration」。这个画面是理解 Atlas 能力最直观的入口——它不只是生成好看的像素，而是能在任意时空点重新架设虚拟摄像机。",
+    "spk": "Justin Johnson"
+   },
+   {
+    "t": 812,
+    "h": "稠密重建要几百张照片，Atlas 要三张",
+    "body": "Ben 解释稠密重建为什么稠密：要让某个东西出现在重建里，你至少需要它的三四个视角。这个房间的麦克风底下、桌子底下、椅腿之间、植物叶子，全都要覆盖到，训练有素的人要拍几分钟，普通消费者第一次扫一个多房间环境可能花两小时。Atlas 把这个数字压到三张，Ben 说这是「50, 100 X reduction」。他拿自己以前拍的两千张多房间房子的素材，砍到三四十张输入，飞越效果基本一样。",
+    "spk": "Ben Mildenhall"
+   },
+   {
+    "t": 1067,
+    "h": "重建必然有洞，所以必须生成",
+    "body": "Justin 给出生成和重建必须耦合的机制：传统重建靠多视角三角化同一个 3D 点，任何没被输入视角看到的像素就是洞。就算让 Ben 拿单反拍几百张，也永远拍不到所有麦克风底下和桌腿之间。所以模型必须有生成能力去「想象」没拍到的部分。他把这类比成 LLM 的上下文：重建就是上下文极长的生成，Atlas 能塞进 64 张图的采集做整栋房子的飞越，而 Marble 时代根本塞不进超过几张图。",
+    "spk": "Justin Johnson"
+   },
+   {
+    "t": 1376,
+    "h": "瓶颈是算力，不是架构，也不是数据",
+    "body": "被问是否到了这个架构的扩展尽头，Justin 说「No, no, we're at the beginning」，而且不用改架构。他明确说当前主要瓶颈是训练算力：开发时训了一串模型，每加大、每训久、每上更多芯片，都显著变好；这次发布的模型大小是被发布日期倒推决定的，不是被规模或数据限制的。Fei-Fei Li 补充，他们早期就押注两个假设——scaling law 和 next viewpoint prediction，但没料到第一轮预训练就能到这个质量。",
+    "spk": "Justin Johnson / Fei-Fei Li"
+   },
+   {
+    "t": 1436,
+    "h": "那张桌子下的镜头让三人五秒内拍板",
+    "body": "Fei-Fei Li 讲了一个内部时刻：初夏某天，还不是现在这个 Atlas 规模，是个更小的模型，Ben 把视角生成接进去，用 Nerf 论文那张著名的花园桌子，镜头从桌子底下飞过，还带着一个足球。她强调「no one has ever seen this result」。那天早上三个人对视，说就是它了，五秒内做了决定。这个细节说明技术判断不是靠路线图，是靠一个具体画面。",
+    "spk": "Fei-Fei Li"
+   },
+   {
+    "t": 1743,
+    "h": "机器人最大的瓶颈是数据，不是芯片",
+    "body": "Fei-Fei Li 说机器人现在最大的问题是数据，芯片是以后的事。要训一个做线缆操作的机械臂，需要真实到仿真、仿真到真实的循环，还要做 randomization——同一根线缆要能往不同方向弯，盒子要有不同尺寸、颜色、盖子。收购的 Cinex 团队原本就在做稠密重建，极其痛苦、拖慢仿真速度，Atlas 是这一环的下一代技术。Justin 补充机器人和别的 AI 应用本质不同：策略不是产出静态 artifact，而是要在真实世界里行动、遭遇意外，所以必须靠仿真暴露所有可能的失败。",
+    "spk": "Fei-Fei Li / Justin Johnson"
+   },
+   {
+    "t": 2478,
+    "h": "新视角预测和下一 token 预测一样是 AI 完备的",
+    "body": "Justin 用 AI completeness 论证 Atlas 基元的地位：三 SAT 是 NP 完备的经典例子，因为任何 NP 难问题都能归约到它；下一 token 预测被认为 AI 完备，因为可以构造一个推理小说，最后一句是「凶手是」然后预测下一个 token。他说生成式新视角预测同样 AI 完备——你可以让 Martine 在黑板上写黎曼猜想的证明，Cameron 在隔壁白板把它解出来。Fei-Fei Li 补了进化论版本：大自然给了动物眼睛却没给树眼睛，因为动物会动，动了就能看到新视角。",
+    "spk": "Justin Johnson / Fei-Fei Li"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 198,
+    "spk": "Justin Johnson",
+    "raw": "But now with Atlas, we can do this with as few as three cameras. So no studio capture, no green screen, no expensive calibration.",
+    "zh": "但现在用 Atlas，三台摄像机就能做到。不需要摄影棚采集，不需要绿幕，不需要昂贵的标定。"
+   },
+   {
+    "t": 265,
+    "spk": "Ben Mildenhall",
+    "raw": "With Atlas, every image actually has an associated three-dimensional camera pose.",
+    "zh": "在 Atlas 里，每一张图像实际上都关联着一个三维相机位姿。"
+   },
+   {
+    "t": 942,
+    "spk": "Ben Mildenhall",
+    "raw": "I've seen someone for their first time trying to scan a multi-room environment, spend like two hours walking through it and get enough coverage.",
+    "zh": "我见过有人第一次扫一个多房间环境，走了两个小时才拿到足够的覆盖。"
+   },
+   {
+    "t": 1376,
+    "spk": "Justin Johnson",
+    "raw": "No, no, we're at the beginning.",
+    "zh": "不，不，我们才刚开始。"
+   },
+   {
+    "t": 1436,
+    "spk": "Fei-Fei Li",
+    "raw": "That morning, the three of us looked at each other in the eyes and said, that's it, this is, we're going to build this. Like, we made a decision within five seconds.",
+    "zh": "那天早上，我们三个人对视，说就是它了，我们要做这个。我们五秒内就做了决定。"
+   },
+   {
+    "t": 1864,
+    "spk": "Fei-Fei Li",
+    "raw": "We should zoom out and recognize the biggest problem right now in robotics is actually data. One day it'll be chips, but for now it's data.",
+    "zh": "我们应该拉远看，认清现在机器人最大的问题其实是数据。有一天会是芯片，但现在是数据。"
+   },
+   {
+    "t": 2538,
+    "spk": "Justin Johnson",
+    "raw": "new view prediction, this primitive that we have in Atlas, especially generative new view prediction, this is also AI complete.",
+    "zh": "新视角预测，我们在 Atlas 里的这个基元，尤其是生成式新视角预测，同样是 AI 完备的。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "Atlas 复现子弹时间所需摄像机数",
+    "v": "3 台",
+    "t": 198
+   },
+   {
+    "k": "Atlas 支持的稀疏重建输入帧数上限",
+    "v": "最多 100 帧",
+    "t": 135
+   },
+   {
+    "k": "Atlas 相对稠密重建的采集量缩减",
+    "v": "50 到 100 倍",
+    "t": 942
+   },
+   {
+    "k": "World Labs 成立时长",
+    "v": "两年半",
+    "t": 630
+   },
+   {
+    "k": "Atlas 单次可处理的图像采集量",
+    "v": "64 张",
+    "t": 1131
+   },
+   {
+    "k": "多房间房子飞越所需输入从两千张降到",
+    "v": "30 到 40 张",
+    "t": 1193
+   }
+  ],
+  "terms": [
+   {
+    "term": "new view prediction",
+    "zh": "新视角预测",
+    "def": "给定若干视角或场景描述，预测任意时空点上虚拟摄像机应看到什么。"
+   },
+   {
+    "term": "Gaussian splat",
+    "zh": "高斯泼溅",
+    "def": "一种 3D 场景表示，渲染高效、易在移动和 VR 设备上运行，Marble 的输出格式。"
+   },
+   {
+    "term": "NeRF",
+    "zh": "神经辐射场",
+    "def": "Ben Mildenhall 参与开创的从图像重建 3D 场景的方法，需大量稠密视角。"
+   },
+   {
+    "term": "AI complete",
+    "zh": "AI 完备",
+    "def": "类比图灵完备：某个 AI 任务若能在最一般意义上求解，就能解决任何智能任务。"
+   },
+   {
+    "term": "spatial intelligence",
+    "zh": "空间智能",
+    "def": "生成空间、在其中推理、并编辑和交互的能力，World Labs 的长期目标。"
+   }
+  ],
+  "who": "做多模态、3D 生成、世界模型和机器人仿真的工程师与研究者；评估空间智能赛道投资机会的投资人。",
+  "skip": "30:03 附近有一段明显转写乱码，可跳过，前后机器人数据讨论仍可听。",
+  "tags": [
+   "世界模型",
+   "空间智能",
+   "3D 重建",
+   "机器人仿真",
+   "多模态"
+  ],
+  "quality": {
+   "transcript_source": "asr",
+   "transcript_detail": "local:whisper-large-v3-turbo",
+   "words": 9258,
+   "wpm": 207.6,
+   "timed": true,
+   "verified_quotes": 7,
+   "grounded_facts": 6,
+   "points": 8,
+   "pruned": 0,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-09-15T03:32:10Z",
+ "triage": {
+  "score": 7.0,
+  "why": "World Labs 三位创始人讲 Atlas 的技术取舍：新视角预测、生成与三维重建合一、动态与可编辑性的边界，属一手",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "340d4dad65"
+ },
+ "review": {
+  "score": 7.0,
+  "dims": {
+   "density": 8,
+   "faithful": 6,
+   "selection": 8,
+   "concrete": 8,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点密度与具体性到位，但子弹时间那条把 Justin 的话安到 Ben 头上，且「三台 iPhone 复现黑客帝国」的表述比原文更硬。",
+  "worst": "[3:18] 要点把「no studio capture, no green screen, no expensive calibration」记成 Ben 说，原文是 Justin Johnson；同条「用三台 iPhone 复现子弹时间"
+ },
+ "model": "openai:deepseek-chat"
+}
