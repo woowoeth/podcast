@@ -7574,11 +7574,30 @@ class AWeakerLinesVerdictMustNotBindAStrongerOne(unittest.TestCase):
         finally:
             run._tiers["allow"] = was
 
-    def test_unknown_is_left_alone(self):
-        """没记取稿层的老记录交给 gen 那条判据管，这里不插手。"""
-        run, _ = self._run()
-        for v in (None, ""):
-            self.assertFalse(run._weaker_tiers(v))
+    def test_a_legacy_record_is_retried_once_on_the_asr_line(self):
+        """没记取稿层的老记录，在有 ASR 的线上重试一次。
+
+        那批记录产生在加这个字段之前，绝大多数来自云端（它从来没有 asr），
+        而 state.json 两条线共享、按行合并：每 merge 一次就回来一次。
+        一条不说明自己有没有 ASR 的「取不到文稿」，在本机线上说明不了什么。
+
+        **不会循环**：重试之后的新记录带着真实取稿层，下次就不再翻案。
+        云端自己重跑时也不翻（它没有 asr），否则那边会无限重试。
+        """
+        run, T = self._run()
+        was = run._tiers["allow"]
+        try:
+            run._tiers["allow"] = T.ORDER
+            for v in (None, ""):
+                self.assertTrue(run._weaker_tiers(v),
+                                "老记录在本机线上仍然算数 —— merge 一次就复发一次")
+            self.assertFalse(run._weaker_tiers(",".join(T.ORDER)),
+                             "重试后的新记录又被翻案 —— 会无限重试")
+            run._tiers["allow"] = ("feed", "notes", "page")
+            self.assertFalse(run._weaker_tiers(None),
+                             "云端也翻老记录的案 —— 那边会无限重试")
+        finally:
+            run._tiers["allow"] = was
 
     def test_the_failure_record_stores_the_tiers(self):
         src = (ROOT / "pipeline" / "run.py").read_text()

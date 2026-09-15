@@ -277,10 +277,16 @@ def _weaker_tiers(recorded: str | None) -> bool:
     少 = 那一轮根本没机会试现在能试的那几层，它的「取不到」说明不了什么。
     没记的按「不知道」处理，交给 gen 那条判据去管，这里不插手。
     """
-    if not recorded:
-        return False
-    had = {t for t in recorded.split(",") if t}
     now = set(_tiers["allow"])
+    if not recorded:
+        # **没记取稿层的，是加这个字段之前的老记录。**
+        # 那时候绝大多数判决来自云端（它从来没有 asr），而 state.json
+        # 是两条线共享、按行合并的：每 merge 一次，那批判决就回来一次。
+        # 所以在**有 ASR 的这条线**上，一条不说明自己有没有 ASR 的
+        # 「取不到文稿」说明不了什么，重试一次。
+        # 不会循环：重试后的新记录带着真实取稿层，下次这里就返回 False。
+        return "asr" in now
+    had = {t for t in recorded.split(",") if t}
     return bool(had) and had < now
 
 
