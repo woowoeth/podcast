@@ -7744,3 +7744,133 @@ class TheHomepageMustNotGrowWithHowMuchWePublish(unittest.TestCase):
         own = sum(len(gzip.compress((ROOT / f).read_bytes(), 9))
                   for f in ("index.html", "assets/site.css", "assets/site.js")) / 1024
         self.assertLessEqual(own, 56, f"首屏自有资源 {own:.1f} KB 超了 56 KB")
+
+
+class ARetiredCategoryMustLeaveNothingBehind(unittest.TestCase):
+    """退役一档分类，五处定义和两处数据都要跟着走。
+
+    分类散落在五个地方：build.CAT_ORDER / build.CAT_LABEL /
+    triage.CATS / triage.CAT_SYSTEM 的清单 / resolve_sources.CATS，
+    外加 curate 写新源时的 cat_label 表。少改一处的后果实测过两次：
+    「首页少了『AI 课程』和『科学』两档」就是两张表对不上。
+
+    数据也要跟着：源和集里留着退役分类，chip 没了、内容就从首页摸不到
+    ——「中国视角」当初就差点这样。
+
+    **尺子不跟着退役。** 「AI 课程」那一档带着一条专给讲课用的判据
+    （「用讲课的尺子量，不要拿产业机制苛责」）。分类并进 ai 时，
+    那段话搬进了 ai 的条目 —— 分类没了不等于标准没了，
+    否则讲课型内容会被默默判死，而且没人看得见是哪一步判的。
+    """
+
+    def _mods(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return (importlib.import_module("build"),
+                importlib.import_module("lib.triage"),
+                importlib.import_module("resolve_sources"))
+
+    def test_the_five_definitions_agree(self):
+        b, tri, rs = self._mods()
+        self.assertEqual(set(b.CAT_ORDER), set(b.CAT_LABEL),
+                         "CAT_ORDER 和 CAT_LABEL 对不上 —— 首页会少 chip")
+        self.assertEqual(set(b.CAT_ORDER), set(tri.CATS),
+                         "首页的分类和判分类的分类对不上")
+        self.assertEqual(set(b.CAT_ORDER), set(rs.CATS),
+                         "首页的分类和收源时的分类对不上")
+        listed = set(re.findall(r"^- (\w+)\s", tri.CAT_SYSTEM, re.M))
+        self.assertEqual(set(tri.CATS), listed,
+                         "判分类的提示词里列的分类和 CATS 对不上")
+
+    def test_the_prompt_says_how_many_there_are(self):
+        """提示词里写的数目要对。实测它一直写着「八个分类」而只列了七个。"""
+        _, tri, _ = self._mods()
+        m = re.search(r"([一二三四五六七八九十]+)个分类", tri.CAT_SYSTEM)
+        self.assertTrue(m, "提示词里没写有几个分类")
+        n = "一二三四五六七八九十".index(m.group(1)) + 1
+        self.assertEqual(len(tri.CATS), n,
+                         f"提示词说有 {m.group(1)} 个分类，实际 {len(tri.CATS)} 个")
+
+    def test_no_data_carries_a_retired_category(self):
+        b, _, _ = self._mods()
+        live = set(b.CAT_ORDER)
+        bad_src = [s["id"] for s in
+                   json.loads((ROOT / "data" / "sources.json").read_text())["sources"]
+                   if s.get("cat") not in live]
+        self.assertEqual([], bad_src, "有源挂在已退役的分类上 —— 它的集从首页摸不到")
+        bad_ep = []
+        for f in (ROOT / "data" / "episodes").glob("*.json"):
+            try:
+                d = json.loads(f.read_text())
+            except Exception:
+                continue
+            if d.get("cat") not in live:
+                bad_ep.append(d.get("slug") or f.stem)
+        self.assertEqual([], bad_ep[:5], "有集挂在已退役的分类上")
+
+    def test_the_lecture_ruler_survived_the_merge(self):
+        """「AI 课程」并进 ai，那把讲课的尺子必须还在。"""
+        _, tri, _ = self._mods()
+        self.assertIn("讲课的尺子", tri.SYSTEM,
+                      "并掉分类时把讲课的判据也一起丢了 —— "
+                      "讲课型内容会被默默判死")
+        self.assertIn("能不能自己复现", tri.SYSTEM,
+                      "讲课判据里那条分界（复现 vs 宣传）丢了")
+
+
+class AnAutoRuleMustNotOverrideAPersonsDecision(unittest.TestCase):
+    """人钉住的源，自动规则不许降它。
+
+    实测：用户说「这几个 youtube 频道……记得加到优先源」，All-In 因此提到 tier 1；
+    下一次 `curate --demote` 跑完，它以「成稿评分中位 7.0，产出质量偏低」
+    被降回 tier 2 —— 而 **7.0 正是评审的及格线**。
+    一条自动规则悄悄推翻了人的明确指示，账本里只留一行「降级」。
+
+    挡的只是质量类判断（降级／休眠）。
+    「feed 死了」「只靠转写要改派本机线」这类**事实**照旧生效 ——
+    钉住一档源不等于对它失明。
+    """
+
+    def _curate(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return importlib.import_module("curate")
+
+    @staticmethod
+    def _m(**kw):
+        base = {"feed_ok": True, "fail_streak": 0, "published": 8, "no_transcript": 0,
+                "age_days": 1.0, "max_gap_days": 7.0, "triage_n": 0, "triage_pass": None,
+                "review_median": 7.0, "review_rejected": 6, "gate_rejected": 0,
+                "draft_pass": 0.57, "official_transcripts": 0, "tier": 1,
+                "asr_only": False, "residential": True, "pinned": False}
+        base.update(kw)
+        return base
+
+    def test_a_pinned_source_is_not_demoted(self):
+        c = self._curate()
+        m = self._m()
+        got = c.judge("allin", m)
+        self.assertIsNotNone(got, "判据本身失效了：没钉住时也不降级")
+        self.assertEqual("demote", got[0])
+        self.assertIsNone(c.judge("allin", self._m(pinned=True)),
+                          "钉住的源仍然被自动降级 —— 人的指示被规则推翻")
+
+    def test_pinning_does_not_blind_us_to_facts(self):
+        """只挡质量判断。feed 死了、只靠转写要改派，照旧要报。"""
+        c = self._curate()
+        got = c.judge("x", self._m(pinned=True, asr_only=True, residential=False))
+        self.assertEqual("residential", (got or (None,))[0],
+                         "钉住之后连「该改派本机线」都不报了")
+        got = c.judge("x", self._m(pinned=True, feed_ok=False, fail_streak=99,
+                                   residential=True))
+        self.assertEqual("drop", (got or (None,))[0],
+                         "钉住之后连「feed 死了」都不报了")
+
+    def test_the_pinned_sources_are_actually_pinned(self):
+        """用户点名过的那几档，名册里要真的带着标记。"""
+        srcs = {s["id"]: s for s in
+                json.loads((ROOT / "data" / "sources.json").read_text())["sources"]}
+        for sid in ("allin", "a16z", "ycsp", "solofounders"):
+            with self.subTest(sid=sid):
+                self.assertTrue(srcs[sid].get("pinned"), f"{sid} 没有被钉住")
+                self.assertEqual(1, srcs[sid].get("tier"), f"{sid} 不在 tier 1")

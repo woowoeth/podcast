@@ -132,6 +132,7 @@ def performance() -> dict[str, dict]:
             "feed_ok": st.get("ok", True), "fail_streak": st.get("fail_streak", 0),
             # judge 要用它决定"删掉"还是"改派本机线"
             "residential": bool(s.get("residential")),
+            "pinned": bool(s.get("pinned")),
             # 出过稿的，稿子是从哪一层来的。只靠 asr 的必须走本机线。
             "asr_only": bool(p["tr"]) and set(p["tr"]) == {"asr"},
             "age_days": st.get("age_days"),
@@ -142,6 +143,28 @@ def performance() -> dict[str, dict]:
 
 
 def judge(sid: str, m: dict) -> tuple[str, str] | None:
+    """这一档源该不该动。
+
+    **人钉住的源，自动规则不许降它。**
+    实测：用户说「这几个 youtube 频道……记得加到优先源」，All-In 因此提到 tier 1；
+    下一次 `curate --demote` 跑完，它以「成稿评分中位 7.0，产出质量偏低」
+    被降回 tier 2 —— 而 7.0 正是评审的及格线。
+    一条自动规则**悄悄推翻了人的明确指示**，账本里只留下一行「降级」。
+    钉住的源仍然会被改派本机线、仍然会报 feed 失效；
+    不许的只是「按产出质量降级／休眠」这一类判断。
+    """
+    if m.get("pinned"):
+        # 只挡质量类判断，不挡「取不到」「feed 死了」这类事实
+        forbid = {"demote", "dormant"}
+    else:
+        forbid = set()
+    got = _judge(sid, m)
+    if got and got[0] in forbid:
+        return None
+    return got
+
+
+def _judge(sid: str, m: dict) -> tuple[str, str] | None:
     if m["feed_ok"] is False:
         streak = m.get("fail_streak") or 1
         if streak < DEAD_STREAK:
@@ -1093,7 +1116,7 @@ def discover(minimum: float, dry: bool = False,
                  "kind": "youtube" if "youtube.com/feeds/videos.xml" in c["feed"]
                          else "rss",
                  "feed": c["feed"], "desc": v["desc"],
-                 "cat_label": {"ai": "AI / 技术", "edu": "AI 课程", "biz": "投资 / 商业",
+                 "cat_label": {"ai": "AI / 技术", "biz": "投资 / 商业",
                                "ideas": "人文 / 思想",
                                "hist": "文明 / 历史", "parent": "育儿 / 教育", "sci": "健康 / 科学"}.get(v["cat"], v["cat"])}
         if c.get("itunes"):

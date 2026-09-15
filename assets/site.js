@@ -314,8 +314,13 @@
         // 17 篇里只出 4 篇（全是最近几天的），而空状态还写着"搜索会搜进
         // 每条要点的正文"。这是加「最新」那次改动带进来的：在那之前
         // 默认档是「全部」，这条分支永远不会限制搜索。
+        // 「必看」认的是构建期打的 data-core（**当前** tier 1 的源）——
+        // 和「最新」一样，构建期算好、客户端只认标记。
+        // 它是筛子不是时间视图，所以要看全站：wantsEverything() 里
+        // cat !== 'new' && cat !== 'all' 已经把它算进去了。
         var okCat = (cat === 'all' || (cat === 'new' && terms.length)) ? true
                   : cat === 'new' ? c.hasAttribute('data-new')
+                  : cat === 'core' ? c.hasAttribute('data-core')
                   : c.getAttribute('data-cat') === cat;
         var hay = c._hay;
         if (deep && deep[c._slug]) hay = c._hay + ' ' + deep[c._slug];

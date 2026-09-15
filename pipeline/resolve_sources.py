@@ -144,11 +144,11 @@ CURATED: list[dict] = [
   dict(id="mianji", name="面基", zh="面基", cat="biz", tier=3, lang="zh",
        itunes=1610952415, feed="https://feed.xyzfm.space/6hpdgggtxpxb", desc="投资与个人财务，讲人话"),
   # ---------- 只在 YouTube 更新、没有播客 RSS 的一手信源 ----------
-  dict(id="anthropic", name="Anthropic", zh="Anthropic", cat="edu", tier=1, lang="en", kind="youtube", feed="https://www.youtube.com/feeds/videos.xml?channel_id=UCrDwWp7EBBv4NwvScIpBDOA",
+  dict(id="anthropic", name="Anthropic", zh="Anthropic", cat="ai", tier=1, lang="en", kind="youtube", feed="https://www.youtube.com/feeds/videos.xml?channel_id=UCrDwWp7EBBv4NwvScIpBDOA",
        residential=True, desc="Claude 与 AI 安全的官方一手材料"),
-  dict(id="openai", name="OpenAI", zh="OpenAI", cat="edu", tier=2, lang="en", kind="youtube", feed="https://www.youtube.com/feeds/videos.xml?channel_id=UCXZCJLdBC09xxGZ6gcdrc6A",
+  dict(id="openai", name="OpenAI", zh="OpenAI", cat="ai", tier=2, lang="en", kind="youtube", feed="https://www.youtube.com/feeds/videos.xml?channel_id=UCXZCJLdBC09xxGZ6gcdrc6A",
        residential=True, desc="OpenAI 官方发布与访谈"),
-  dict(id="karpathy", name="Andrej Karpathy", zh="Andrej Karpathy", cat="edu", tier=1, lang="en", kind="youtube", feed="https://www.youtube.com/feeds/videos.xml?channel_id=UCYO_jab_esuFRV4b17AJtAw",
+  dict(id="karpathy", name="Andrej Karpathy", zh="Andrej Karpathy", cat="ai", tier=1, lang="en", kind="youtube", feed="https://www.youtube.com/feeds/videos.xml?channel_id=UCYO_jab_esuFRV4b17AJtAw",
        residential=True, desc="更新极少，但每条都值得逐帧看"),
   dict(id="spc", name="South Park Commons", zh="South Park Commons", cat="biz", tier=3, lang="en", kind="youtube", feed="https://www.youtube.com/feeds/videos.xml?channel_id=UCNT5auOEW5CzgngC8oE1nMA",
        residential=True, desc="pre-idea 阶段创业者的现场讨论"),
@@ -203,7 +203,7 @@ CURATED: list[dict] = [
        desc="公司为什么失败的案例拆解，财务与商业模式讲得干净"),
 ]
 
-CATS = {"ai": "AI / 技术", "edu": "AI 课程", "biz": "投资 / 商业",
+CATS = {"ai": "AI / 技术", "biz": "投资 / 商业",
         "ideas": "人文 / 思想", "hist": "文明 / 历史", "parent": "育儿 / 教育",
         "sci": "健康 / 科学"}
 ALL_SOURCES = CURATED + EXTRA

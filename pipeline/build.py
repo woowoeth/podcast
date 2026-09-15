@@ -82,13 +82,16 @@ def _blurb() -> str:
 # CAT_ORDER 里，于是首页从来没有「科学 / 医学」这个 chip——以前有「全部」
 # 兜着，那 31 篇还够得到；「全部」一去掉，它们从首页就彻底摸不到了。
 # 守护 EveryCategoryHasAChip 按数据反查这两张表，加分类不可能再漏。
+# 「AI 课程」这一档也去掉了：10 档教学源只养出 4 篇，而按篇判分类之后
+# 它们的集大多已经落在 ai。一个常年个位数的 chip 占着首页一格，不如并回去。
+# 讲课那把尺子没跟着丢——搬进了 triage 的 ai 条目里（「用讲课的尺子量，
+# 不要拿产业机制苛责」）。分类没了不等于标准没了。
 # 「中国视角」这一档去掉了：中国相关内容按题材分（讲中国 AI 芯片就是 ai，
 # 讲中国公司经营就是 biz）。原来那一档混着中文 AI 技术访谈、中国公司商业史、
 # 中美政策对照三类，同一条定义对不同的集给出矛盾的答案。
-CAT_ORDER = ["ai", "edu", "biz", "ideas", "hist", "sci", "parent"]
+CAT_ORDER = ["ai", "biz", "ideas", "hist", "sci", "parent"]
 CAT_LABEL = {
     "ai": "AI / 技术",
-    "edu": "AI 课程",
     "biz": "投资 / 商业",
     "ideas": "人文 / 思想",
     "hist": "历史",
@@ -98,6 +101,20 @@ CAT_LABEL = {
 
 
 BLURB = ""          # 首次 build 时填充（要先读到 data/sources.json）
+
+# 「必看」这一档 = **当前** tier 1 的源。
+# 为什么不读集记录里的 tier：那是**发布当时**的等级。a16z、All-In 都是后来
+# 才提到 tier 1 的，照集里存的算，它们过去的稿永远进不了必看。
+# 一档源今天算不算核心，要问今天的名册。
+CORE_TIER = 1
+CORE_IDS: set[str] = set()
+
+
+def set_core(srcs: dict) -> None:
+    """记下当前哪些源算核心。srcs 是 data/sources.json 的整个 blob。"""
+    CORE_IDS.clear()
+    CORE_IDS.update(s["id"] for s in (srcs.get("sources") or [])
+                    if s.get("tier") == CORE_TIER)
 
 
 # 分享卡片的图必须小。张小珺那集的封面是 3000×3000 的 PNG、3.2 MB——微信抓图
@@ -962,7 +979,7 @@ def card(ep: dict, *, hero: bool, is_new: bool = False) -> str:
     tags = "".join(f'<span class="tag">{e(t)}</span>' for t in (d.get("tags") or [])[:2])
     src_label = show_name(ep)
     return f"""<a class="card{' hero' if hero else ''}" data-card data-cat="{e(ep.get('cat'))}"\
-{' data-new="1"' if is_new else ''} data-hay="{e(hay)}" href="{BASE}/p/{e(ep['slug'])}/">
+{' data-new="1"' if is_new else ''}{' data-core="1"' if ep.get("source_id") in CORE_IDS else ''} data-hay="{e(hay)}" href="{BASE}/p/{e(ep['slug'])}/">
 <div class="cover">{cover}{dur}</div>
 <div class="card-body">
 <div class="kicker" data-cat="{e(ep.get('cat'))}"><span class="src"{zh_attr(src_label)}>{e(src_label)}</span>
@@ -1094,8 +1111,11 @@ def index_page(eps: list[dict], srcs: dict) -> str:
     # 「最新」取代「全部」。他要的：默认只看最近七天，不然每次打开都要
     # 载入整个存档。去掉「全部」不会让任何内容不可达——每一集都有分类
     # （实测 0 例外），另有搜索、信源页和 sitemap。
+    n_core = sum(1 for x in eps if x.get("source_id") in CORE_IDS)
     chips = [f'<button class="chip" data-cat-chip="new" aria-pressed="true">'
-             f'{T("最新")}<span class="n">{n_new}</span></button>']
+             f'{T("最新")}<span class="n">{n_new}</span></button>',
+             f'<button class="chip" data-cat-chip="core" aria-pressed="false">'
+             f'{T("必看")}<span class="n">{n_core}</span></button>']
     for c in CAT_ORDER:
         chips.append(f'<button class="chip" data-cat-chip="{c}" aria-pressed="false">'
                      f'{T(CAT_LABEL[c])}<span class="n">{counts.get(c, 0)}</span></button>')
@@ -1881,6 +1901,7 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
         BASE, SITE = BASE_ZH, SITE_ZH
     BLURB = _blurb()
     eps, srcs = load()
+    set_core(srcs)          # 卡片要按**当前**源等级打「必看」标记
     global _EN
     global _EN_SRC
     global _EN_SPK

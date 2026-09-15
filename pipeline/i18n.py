@@ -41,6 +41,7 @@ UI: dict[str, str] = {
     "分享": "Share",
     "分类": "Topics",
     # 「最新」取代了「全部」：默认只看最近七天。
+    "必看": "Essential",
     "最新": "Latest",
     "以上是最近七天。想看更早的，点上面的分类。":
         "That's the last seven days. For anything older, pick a category above.",
@@ -52,7 +53,6 @@ UI: dict[str, str] = {
     "找不到这一页": "Page not found",
     # —— 分类 ——
     "AI / 技术": "AI & Tech",
-    "AI 课程": "AI Courses",
     "投资 / 商业": "Investing & Business",
     "中国视角": "China",
     "人文 / 思想": "Ideas",

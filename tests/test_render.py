@@ -704,3 +704,48 @@ class SearchMatchesWhatTheCardSays(Harness):
         p.goto(self.url("/"), wait_until="load")
         self.assertEqual([], self._visible_after(p, "zzqqxx不存在的词"),
                          "搜一个不存在的词还有卡片留着 —— 筛选根本没生效")
+
+
+class TheEssentialTabShowsOnlyCoreSources(Harness):
+    """「必看」只显示核心源（当前 tier 1）的内容。
+
+    两件事都要真点一遍，静态断言看不见：
+    一是**筛出来的每一张都带 data-core**，二是**筛的是全站不是内联那批**
+    ——「最新」那一档就是内联的那批，而「必看」是筛子，
+    只筛前 60 张会让读者以为站上没有那篇。
+    """
+
+    def _click(self, p, chip):
+        p.click(f'[data-cat-chip="{chip}"]')
+        p.wait_for_timeout(1200)
+        return p.evaluate("""() => {
+          const v = Array.from(document.querySelectorAll('[data-card]'))
+            .filter(c => c.offsetParent !== null);
+          return {n: v.length, allCore: v.every(c => c.hasAttribute('data-core'))};
+        }""")
+
+    def test_it_filters_to_core_and_nothing_else(self):
+        p = self.page()
+        p.goto(self.url("/"), wait_until="load")
+        got = self._click(p, "core")
+        self.assertGreater(got["n"], 0, "点「必看」一张卡都没有")
+        self.assertTrue(got["allCore"], "「必看」里混进了非核心源的卡")
+
+    def test_it_reaches_past_the_inline_batch(self):
+        """必看有 178 篇，而首屏只内联 60 张 —— 它必须去把其余的拉回来。"""
+        p = self.page()
+        p.goto(self.url("/"), wait_until="load")
+        inline = p.evaluate(
+            "() => document.querySelectorAll('[data-card][data-core]').length")
+        got = self._click(p, "core")
+        self.assertGreater(got["n"], inline,
+                           f"只筛了内联那批（{inline} 张）—— "
+                           f"读者会以为站上只有这么多")
+
+    def test_the_chip_count_matches_what_it_shows(self):
+        p = self.page()
+        p.goto(self.url("/"), wait_until="load")
+        said = int(p.inner_text('[data-cat-chip="core"] .n'))
+        got = self._click(p, "core")
+        self.assertEqual(said, got["n"],
+                         f"chip 上写 {said}，筛出来 {got['n']} —— 数对不上")
