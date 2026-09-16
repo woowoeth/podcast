@@ -2,98 +2,98 @@
  "slug": "2026-08-03-latentspace-量化更多层反而更准-因为误差会互相抵消",
  "of": "latentspace-37f7d28fa1",
  "source_lang": "en",
- "title": "Quantizing more layers can be more faithful: the errors cancel out",
- "dek": "Once you have picked the right layers, quantizing more of them actually preserves more fidelity — the errors cancel each other out. By the same logic, a 10x speedup is not one breakthrough: it is quantization, the speculator and PD disaggregation each roughly doubling and stacking up.",
- "why": "Two engineers break ‘supporting a new model’ down to the granularity of GPU counts, layer indices and race conditions, with almost no marketing talk; the price is a fair amount of interrupting each other with small talk across 100 minutes.",
- "who": "Infrastructure engineers who rent their own GPUs to host open models, tech leads deciding between self-hosting and an API, and teams working on video generation.",
- "skip": "0:00–1:00, the intern jokes; the stretch on music diffusion after 1:21 reaches essentially no conclusion.",
+ "title": "Quantizing More Layers Is Actually More Accurate: Errors Cancel Each Other Out",
+ "dek": "Pick the right layers and quantizing more preserves fidelity better — the errors cancel each other out. Likewise, a 10x speedup isn't a single breakthrough; it's quantization, a speculator, and PD disaggregation each doubling on top of the others.",
+ "why": "Two engineers break down \"supporting a new model\" down to the granularity of card counts, layer indices, and race conditions, with almost no marketing talk; the cost is that 100 minutes are peppered with a fair amount of cross-talk.",
+ "who": "Infrastructure engineers hosting open models on their own rented GPUs, technical leads deciding between self-hosting and APIs, and teams doing video generation.",
+ "skip": "The intern jokes from 0:00–1:00; the music diffusion segment after 1:21 basically reaches no conclusion.",
  "tags": [
-  "Inference optimization",
+  "Inference Optimization",
   "Quantization",
-  "Speculative decoding",
-  "GPU hardware",
-  "Video generation",
-  "Open models"
+  "Speculative Decoding",
+  "GPU Hardware",
+  "Video Generation",
+  "Open Models"
  ],
  "points": [
   {
-   "h": "Latency is not a property of the model, it is whether the speculator guesses right",
-   "body": "A request with 200,000 tokens arrives, and the first question is not compute but ‘have you sent this text before?’ The system begins with cache-aware routing, picking a replica that both has a free prefill worker and already holds part of the prefix in cache, so it can skip as much prefill as possible. On some models prefill and decode are already split across two groups of GPUs: the first produces the KV cache and the first token, the second does the token-by-token decoding. The crux is the speculator sitting in front — it is trained on traffic, so it assumes you are writing code, which is why its draft tokens get accepted at a high rate. If what you are actually doing is asking it to summarize all of Harry Potter, the very same system gets slower. Latency is not an intrinsic property of the model but a function of whether your traffic profile matches what the speculator was trained on."
+   "h": "Latency isn't a model property, it's how well the speculator guesses",
+   "body": "When a 200k-token request comes in, the first question isn't compute, it's \"have you sent this passage before.\" The system first does cache-aware routing, picking a replica that both has an idle prefill worker and has already cached part of the prefix, skipping prefill as much as possible; on some models prefill and decode are already split across two GPU groups, the former producing the KV cache and first token, the latter doing token-by-token decoding. The key is that the speculator sitting in front is trained on traffic — it assumes you're writing code, so draft-token acceptance is high; if you're actually asking it to summarize the entire Harry Potter series, the same system gets slower. Latency isn't an intrinsic property of the model, it's a function of how well the traffic profile matches the speculator."
   },
   {
-   "h": "Supporting a new model and having it production-ready are two different things",
-   "body": "‘Supporting model X’ has two completely different meanings: being able to emit tokens, and having a production-usable API. The first is not hard — the vLLM/SGLang maintainers often get the weights ahead of time, and the model labs file the PRs themselves. The second has to be redone on their own private stack: quantize the weights to NVFP4 to saturate Blackwell, then run calibrated quantization to confirm there is no intelligence regression; run inference with the real weights to collect hidden states and retrain the speculator; then add runtime support for the new architecture (GLM-5.2's DSA sparse attention is borrowed from DeepSeek). Because the model API side is zero data retention, they do not know what the actual traffic is and can only approximate it with public datasets — ‘coding and agents are the mainstream’ — to train a general-purpose speculator. Even when K2.5 to K2.6 is nothing more than continued post-training, there is no dodging this pipeline."
+   "h": "\"Supporting a new model\" and \"being production-ready\" are two different things",
+   "body": "\"Supporting a new model\" has two completely different meanings: being able to emit tokens, and having a production-usable API. The former isn't hard — vLLM/SGLang maintainers often get weights early, and the model side submits PRs themselves. The latter requires redoing everything on a private stack: quantizing weights to NVFP4 to saturate Blackwell, and calibrating the quantization to confirm there's no intelligence regression; running inference with real weights to get hidden states and retraining the speculator; then adding runtime support for the new architecture (GLM-5.2's DSA sparse attention was borrowed from DeepSeek). Because the model API side has zero data retention, they don't know the actual traffic, so they can only use public datasets to approximate \"coding and agents are the mainstream\" to train a general speculator. Even if K2.5 to K2.6 is just continued post-training, this process can't be avoided."
   },
   {
-   "h": "Vision can be transplanted, and the backbone loses nothing at all",
-   "body": "Open models can take organ transplants. Haley on the team grafted Kimi's vision encoder onto GLM-5.2: both the encoder and the backbone weights stay frozen, and only the projector in between — a few million parameters — gets trained, because touching the backbone weights risks the model getting dumber at something else. The first version was trained only on ‘describe this image’ data and never learned properly; after switching to a set of discriminative questions per image (is there a bird in the picture, is there a scientist), grokking appeared. The result is 56% on MMLU Pro — not frontier — but when there is no image input the encoder is skipped outright, so the original GLM-5.2 quality loses nothing at all. What you end up with is a model stitched together from Kimi's eyes, GLM's weights and DeepSeek's attention."
+   "h": "Vision can be transplanted without losing a point of the backbone",
+   "body": "Open models can undergo organ transplants. Haley on the team hooked Kimi's vision encoder onto GLM-5.2: both the encoder and backbone weights frozen, training only the few-million-parameter projector in between — the cost of touching backbone weights is that the model may get dumber at other capabilities. The first version was trained only on \"describe this image\" data and didn't learn it; after switching to pairing each image with a set of discriminative questions (is there a bird in the image, is there a scientist), grokking appeared. The result is MMLU Pro 56%, not frontier, but when there's no image input it skips the encoder entirely, and the original GLM-5.2 quality loses nothing. So you get a model assembled from Kimi's eyes, GLM's weights, and DeepSeek's attention."
   },
   {
-   "h": "Mode collapse is not the weights' fault, it is the cluster's",
-   "body": "GLM-5.2 and DSV 4 have both shown mode collapse — emitting the same token over and over, most often S — and it happens even at temperature 0.9. Their read is that this is not a weights problem. Take the same weights to a different inference engine (SGLang to vLLM), or merge in the changes from NVIDIA's new TensorRT-LLM image, and the problem disappears. A more extreme case: the same model would collapse on one cluster and not on another, because on the first the interconnect carrying KV cache transfers between nodes was slower, which exposed a race condition in a kernel that was missing a synchronization barrier — the eventual fix was to host it on a different cluster. There is also a backstop in production: if the same token appears more than four times in a row, cut it off and rerun — but you have to exclude special characters like table separator lines."
+   "h": "Mode collapse isn't the weights' fault, it's the cluster's fault",
+   "body": "On GLM-5.2 and DSV 4 there were mode collapses where the same token was output repeatedly (most commonly S), even at temperature 0.9. Their judgment: this isn't a weights problem. The same weights on a different inference engine (SGLang to vLLM), or merging in changes from NVIDIA's new TensorRT-LLM image, and the problem disappears. A more extreme case was the same model collapsing on one cluster but not another, because the former's inter-node KV cache transfer went over a slower interconnect, exposing a race condition from a missing synchronization barrier in the kernel — the final fix was to switch clusters. There's also a production fallback: if the same token appears four or more times in a row, cut it off and rerun, but exclude special characters like table separators."
   },
   {
-   "h": "Pick the right layers and 20% more quantization comes out more faithful",
-   "body": "The industry default is ‘the more you quantize, the more you lose’; their conclusion is that this is not necessarily so. Quantization is lossy compression, and all the craft is in choosing the layers (in image models, the modulation layers and the out projection are left unquantized). The method in the paper by Joshua, their research intern, is to predict which layers' quantization errors will cancel each other out — one skews right, another skews left — and then quantize precisely those. The evaluation criterion changed too: not benchmark scores, but the KL divergence between the logits distributions of the quantized model and the full-precision model. The closer the distributions, the more likely the behavior tracks the original. The result quantizes 20% more than NVIDIA's quantization (and therefore gets roughly 20% more throughput) while being more faithful at the same time. Note that this does not make the model stronger; it only cancels the loss."
+   "h": "Pick the right layers and quantizing 20% more is actually more faithful",
+   "body": "The industry default is \"more quantization, more loss,\" but their conclusion is that it's not necessarily so. Quantization is lossy compression, and the skill is all in choosing layers (in image models, modulation layers and out projection aren't quantized). Research intern Joshua's paper gives the approach: predict which layers' quantization errors will cancel each other out — one biased right, one biased left — and then specifically quantize those layers. The evaluation criterion also changed: instead of benchmark scores, look at the KL divergence between the quantized model's and the full-precision model's logits distributions; the closer the distributions, the more likely the behavior matches the original model. The result is 20% more quantization than NVIDIA's (and thus about 20% more throughput) while being more faithful. Note this isn't making the model stronger, just canceling out loss."
   },
   {
-   "h": "The 10x was not optimized into existence, it was bought with hardware",
-   "body": "The breakdown of the 10x is very concrete: a trillion-parameter model on an off-the-shelf engine with no optimization runs at roughly 30-50 tokens/second (this is tokens per second in the latency sense, which the industry should really be calling ITL). Getting to 300-400 requires all of these at once: the best hardware, a well-trained speculator, quantization done, a fairly high cache hit rate, and small batch and parallelism settings tuned for latency rather than throughput. Itemized, the gains are: BF16→FP8 about 30-40%, FP8→FP4 another 30-40%, the speculator about 2x, PD disaggregation about 2x, plus double-digit percentages from the runtime and new kernels. But if you hold the hardware and the GPU count fixed, pure inference optimization gets you only 2-4x — the difference is bought with hardware, and the 10x shows up more often as the gap between the worst and the best provider on OpenRouter."
+   "h": "10x isn't optimized out, it's bought with hardware",
+   "body": "The 10x breakdown is concrete: a trillion-parameter model on an unoptimized off-the-shelf engine runs at about 30-50 tokens/second (here meaning tokens per second in the latency sense, which the industry should call ITL). Getting to 300-400 requires simultaneously: the best hardware, a trained speculator, quantization done, a high cache hit rate, and small batch and parallelism configurations tuned for latency rather than throughput. The itemized gains are BF16→FP8 about 30-40%, FP8→FP4 another 30-40%, speculator about 2x, PD disaggregation about 2x, plus double-digit percentages from runtime and new kernels. But if you fix the same hardware and same card count, pure inference optimization is only 2-4x — the difference is bought with hardware, and 10x shows up more between the worst and best providers on OpenRouter."
   },
   {
-   "h": "Mega kernels cannot rescue communication that has to cross GPUs",
-   "body": "Ali is bearish on mega kernels: fusing kernels to save launch overhead sounds lovely, but under tensor parallelism half the matrix sits on another card, and a nonlinearity like softmax still has to communicate — fusion cannot save that. He has also dealt with companies building fused mega kernels whose production stacks end up running TensorRT-LLM and modular's kernels anyway. In NVIDIA's post unveiling Rubin, the GPU is designed such that mega kernels simply become unnecessary. Following that trend he asks the reverse question: every GPU generation adds more dedicated tensor cores and TMA, you are increasingly just orchestrating tiles rather than controlling threads, and Rubin relative to a T4 is already close to an ASIC — so why be bullish on AI ASIC companies? Swyx's counter: it makes sense for a vertically integrated model lab to build its own chip — by Martin Casado's arithmetic, taking 50 billion out of a 500 billion training budget for an ASIC is worth it if it buys more than 10% efficiency — and what the ASIC companies are really working on is interconnect and memory allocation, which is where the 10x to 1000x bottleneck sits."
+   "h": "Mega kernels can't save communication that must cross cards",
+   "body": "Ali is bearish on mega kernels: fused kernels saving launch overhead sounds nice, but under tensor parallelism half the matrix is on another card, and nonlinearities like softmax still require communication, which fusion can't save; moreover, he's dealt with companies doing fused mega kernels, and what actually runs in production is still TensorRT-LLM and modular kernels. In NVIDIA's post unveiling Rubin, this GPU's design simply makes mega kernels unnecessary. Following this trend he asks: GPUs add dedicated tensor cores and TMA every generation, you're increasingly just orchestrating tiles rather than controlling threads, and Rubin relative to T4 is already nearly an ASIC, so why be bullish on AI ASIC companies? Swyx's rebuttal is: vertical integration makes in-house chips reasonable for model makers — by Martin Casado's math, taking 50 billion out of a 500 billion training budget for an ASIC pays off if it buys more than 10% efficiency; and what ASIC companies are really doing is interconnect and memory allocation, which is the 10x to 1000x bottleneck."
   },
   {
-   "h": "Open video models are 100x cheaper and still nobody uses them",
-   "body": "The economics on the video side are the reverse of LLMs. In LLMs the open-versus-closed gap has nearly closed; in video it is night and day. Ali's example: even if he pushes the cost of generating a three-hour film down to $10, 100x cheaper than closed models, the customer is still facing an absolute figure of $1,000 — so they use Veo and Kling for the whole film regardless. Less demand → less innovation → fewer open checkpoints, and Wan 2.7 is already not open. The technical bottleneck is the quadratic term in attention: a 480p video at 16 frames/second, five seconds of it, is still 35000 tokens after being compressed into latents, and this is O(n²), so doubling the duration costs four times as much. That leaves only two roads: sparse attention (each token attends to only the preceding 12.5%, with a visible drop in quality), or autoregression — but every autoregressive video model today is very poor quality, and stitching together 5-7 second clips drifts segment by segment until the picture darkens to black after twenty-odd seconds."
+   "h": "Open video models are 100x cheaper and nobody uses them",
+   "body": "The economics on the video side are the opposite of LLMs. The open-closed gap for LLMs has nearly disappeared, but for video it's night and day — Ali's example: even if he pushed the cost of generating a three-hour movie down to $10, 100x cheaper than closed source, the customer still faces a $1000 absolute number, so they still use Veo and Kling for the whole film. Less demand → less innovation → fewer open checkpoints, and Wan 2.7 is no longer open source. The technical bottleneck is the quadratic attention term: a 480p video at 16 frames/second, 5 seconds compressed into latents is still 35000 tokens, and this is O(n²), so doubling the duration quadruples the cost. So there are only two paths: sparse attention (each token attends only the first 12.5%, with a noticeable drop in quality), or autoregression — but today all autoregressive video models are poor quality, and stitching 5-7 second clips drifts segment by segment, going dark to a black screen after twenty-some seconds."
   }
  ],
  "terms": [
   {
    "term": "speculative decoding (spec dec)",
-   "def": "A small draft model guesses several tokens ahead, and the large model verifies them in one forward pass, accepting or rejecting."
+   "def": "A small draft model guesses several tokens in a row, and the large model verifies them in one forward pass, accepting or rejecting."
   },
   {
-   "term": "PD disaggregation (prefill/decode separation)",
-   "def": "Splitting the processing of the input that produces the KV cache and the token-by-token generation across two groups of GPUs."
+   "term": "PD disaggregation",
+   "def": "Splitting input processing that produces the KV cache from token-by-token generation across two GPU groups."
   },
   {
    "term": "NVFP4",
-   "def": "A 4-bit floating-point format natively supported by Blackwell; each parameter takes only half a byte."
+   "def": "A 4-bit format natively supported by Blackwell, where each parameter takes only half a byte."
   },
   {
    "term": "mega kernel",
-   "def": "Fusing several GPU kernels into one, saving launch overhead and the movement of intermediate data."
+   "def": "Fusing multiple GPU kernels into one, saving launch overhead and intermediate data movement."
   },
   {
    "term": "expert parallelism",
-   "def": "In an MoE model, putting an entire expert on a single GPU, so inter-GPU communication is far lower than under tensor parallelism."
+   "def": "In MoE models, placing entire experts on a single card, with far less inter-card communication than tensor parallelism."
   },
   {
    "term": "KV cache compaction",
-   "def": "Compressing the existing KV without touching the weights; Ali sees this as a viable path to continual learning."
+   "def": "Compressing existing KV without changing weights; Ali sees this as a viable path to continual learning."
   }
  ],
  "facts": [
   {
-   "k": "GLM-5.2 score after the vision transplant",
+   "k": "GLM-5.2 score after vision retrofit",
    "v": "MMLU Pro 56%"
   },
   {
-   "k": "Baseten's quantization gain over NVIDIA's",
-   "v": "20% more quantized, roughly 20% higher throughput"
+   "k": "Baseten quantization increment over NVIDIA",
+   "v": "20% more quantization, about 20% higher throughput"
   },
   {
-   "k": "Trillion-parameter model, unoptimized baseline speed",
+   "k": "Trillion-parameter model unoptimized baseline speed",
    "v": "30-50 tokens/second"
   },
   {
-   "k": "Target speed with the full optimization stack",
+   "k": "Target speed after full optimization",
    "v": "300-400 tokens/second"
   },
   {
-   "k": "Itemized gains from lower precision",
+   "k": "Itemized gains from precision reduction",
    "v": "BF16→FP8 about 30-40%, FP8→FP4 another 30-40%"
   },
   {
@@ -123,5 +123,5 @@
    "translated": false
   }
  ],
- "model": "claude-cli:opus"
+ "model": "openai:deepseek-chat"
 }
