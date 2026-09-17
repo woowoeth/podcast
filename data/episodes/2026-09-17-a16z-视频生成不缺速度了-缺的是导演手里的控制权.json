@@ -1,0 +1,233 @@
+{
+ "id": "a16z-ea9e8e7fed",
+ "slug": "2026-09-17-a16z-视频生成不缺速度了-缺的是导演手里的控制权",
+ "fingerprint": "e89af491c217e604",
+ "source_id": "a16z",
+ "source": "The a16z Show",
+ "source_zh": "a16z",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "视频生成模型后训练与推理优化",
+ "tier": 1,
+ "lang": "en",
+ "title_original": "The Next Frontier of AI Video Is Control",
+ "published": "2026-09-17T10:00:00Z",
+ "duration": 2372,
+ "audio": "https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/3cafbcc2-e9d6-40ae-adcb-adee4b50432e/audio/128/default.mp3?aid=rss_feed&awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&awEpisodeId=3cafbcc2-e9d6-40ae-adcb-adee4b50432e&feed=JGE3yC0V",
+ "link": "https://a16z.simplecast.com/episodes/the-next-frontier-of-ai-video-is-control-RmfmPBwf",
+ "image": "https://image.simplecastcdn.com/images/0d97354a-306b-45f5-bf26-a8d81eef47ec/ed2664df-9371-438e-8baf-dd2ee0fdde87/3000x3000/thea16zshow-podcastcoverart-3000x3000.jpg?aid=rss_feed",
+ "youtube_id": "",
+ "video_len": 0,
+ "transcript_url": "https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/3cafbcc2-e9d6-40ae-adcb-adee4b50432e/audio/128/default.mp3?aid=rss_feed&awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&awEpisodeId=3cafbcc2-e9d6-40ae-adcb-adee4b50432e&feed=JGE3yC0V",
+ "digest": {
+  "title": "视频生成不缺速度了，缺的是导演手里的控制权",
+  "dek": "FAL 把开源视频模型后训练到比原版快一个数量级、便宜一个数量级，然后判断：速度已经不是瓶颈，接下来拼的是相机、灯光、角色和动作的可控性。",
+  "why": "前半段是推理系统的硬核优化细节，后半段是 Hollywood 工作流和可控性路线图，信息密度高，适合做判断。",
+  "points": [
+   {
+    "t": 182,
+    "h": "开源权重才是后训练的前提",
+    "body": "FAL 之前也给别的模型实验室跑推理，但没有权限在模型上叠加能力。Minimax H3 是第一个真正开源、且属于最新一代的视频模型，能接受参考图、架构和其他视频模型类似，这才让 FAL 决定 all in 做后训练。Gorka 说，这次所有优化能凑到一起，最大的原因就是 H3 是第一个真正下一代的开源视频模型——没有权重，就没有后训练这门生意。",
+    "spk": "Gorka Mirdsevin"
+   },
+   {
+    "t": 242,
+    "h": "整个行业从四月起被算力卡住",
+    "body": "Gorka 提出一个判断标准叫 token market fit：一个人能不能有生产力地消耗大量 token，量级在 10K 这种水平。视频生成的需求足够大，做这行的人整天坐在电脑前生成，花掉几千美元。但从四月开始，整个行业和 FAL 自己都受算力约束，加多少算力就增长多少。所以 FAL 一直在找效率，把省下来的算力释放给别的模型，或者让 H3 Max 生成更多 token。",
+    "spk": "Gorka Mirdsevin"
+   },
+   {
+    "t": 304,
+    "h": "系统优化撞到屋顶线，后训练把它顶穿",
+    "body": "Batuan 说，过去三四年做的系统级优化，最多让同一个模型快 2 到 3 倍，因为架构和约束没变，只是把芯片榨得更干，而这条屋顶线是存在的。新的后训练加系统与模型协同设计，能越过这条屋顶线一个数量级。FAL 之前在开源图像模型上练过手，做过 ideogram 和 flux 的版本，积累了后训练基础设施的经验，这次加上一个前沿视频模型，速度提升了一个数量级。",
+    "spk": "Batuan Tashkaya"
+   },
+   {
+    "t": 430,
+    "h": "先提质量，再压步数，顺序不能反",
+    "body": "扩散模型从 50 步压到 20 步会掉质量，所以 FAL 的做法是先跑后训练和 L 管线把模型质量提上去，再叠加优化栈，让最终结果质量持平甚至更高，同时快一个数量级。除了后训练，还有 kernel 和系统工程把硬件利用率从推理负载常见的 30-40% 拉到 70-80% 的理论 MFU。而且视频模型不是单次调用，底层是管线：先用大 LLM 扩写 prompt，再在 latent 空间生成，再解码回像素，按负载还可能加超分，每个组件默认都没优化过。",
+    "spk": "Batuan Tashkaya"
+   },
+   {
+    "t": 619,
+    "h": "Turbo 版五秒视频一点五秒出",
+    "body": "H3 Max 发布一周后，团队发现能以 2 倍速度跑、质量还在 97 分位，于是公开了 H3 Max Turbo：生成五秒视频只要 1.5 秒，成本也降一半。Gorka 的判断是，今天这些模型已经足够便宜足够快，成本比前沿模型便宜一个数量级，速度比前沿快一个数量级以上，用户不需要更快更便宜了。他的赌注是接下来要提升质量，以及可控性——这才是过去两三周在推的方向。",
+    "spk": "Gorka Mirdsevin"
+   },
+   {
+    "t": 1003,
+    "h": "连续视频靠两分钟记忆，不是靠最后一帧",
+    "body": "Rehan 和 levels io 各自做的直播，本质是独立片段：一段结束，取最后一帧喂给下一段，第二段除了最后一帧不记得任何东西。FAL 内部 ML 团队做的是另一套：过渡更无缝，有两分钟记忆，有人走进房间时所有人都会看向他，场景是连续的。它记住的是原始视频的高度压缩表示，两分钟以上则靠一个持续演化的 system prompt 维持整体连贯，所以能记住最近四到八个场景，并无限流下去。",
+    "spk": "Gorka Mirdsevin"
+   },
+   {
+    "t": 1740,
+    "h": "Blender 加视频模型等于接近百分之百可控",
+    "body": "专业工作流里最流行的一种：先用 Blender 这类非 AI 技术渲染一个低分辨率场景，再把这段视频作为参考喂给 AI 模型，基本能拿到接近 100% 的可控性。H3 Max 发布一周后，人们开始用 GPT Astra 在 Blender 里生成场景，再交给 H3 Max，因为它足够快，可以并行试很多次，于是打开了一条全新管线。Gorka 说接下来一两个月会全力做可控性，让工作室和专业创作者能拿到完全贴合自己用例的内容。",
+    "spk": "Gorka Mirdsevin"
+   },
+   {
+    "t": 1983,
+    "h": "好莱坞要的是小点解决方案，不是从零生成",
+    "body": "Gorka 说好莱坞是 FAL 增长最快的板块，一年前使用量几乎为零。Amazon MGM Studios 发布的 NARA 工具背后主要是 FAL 的基础设施。好莱坞要的不是从零生成一切，而是把视频延长一点、改相机控制、改灯光——这些小点解决方案。研究实验室在做的和创作者真正需要的之间存在脱节，FAL 想用后训练项目补上这个缺口。另一半问题是法律和数据驻留，Seedance 现在也有了美国托管，Gorka 认为好莱坞的 AI 使用量会在接下来几个月涨 10 倍、100 倍。",
+    "spk": "Gorka Mirdsevin"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 182,
+    "spk": "Gorka Mirdsevin",
+    "raw": "the biggest reason why everything came together for this particular moment was because H3 was the first truly next generation video model that's open-source.",
+    "zh": "所有事情能在这个时间点凑到一起，最大的原因是 H3 是第一个真正下一代的、开源的视频模型。"
+   },
+   {
+    "t": 242,
+    "spk": "Gorka Mirdsevin",
+    "raw": "since around April, the whole industry and FAL itself, we've been compute constrained. We are growing as much as we are adding compute.",
+    "zh": "大概从四月开始，整个行业和 FAL 自己都受算力约束。我们加多少算力，就增长多少。"
+   },
+   {
+    "t": 304,
+    "spk": "Batuan Tashkaya",
+    "raw": "this new set of post-training-related optimizations with system-slash-model co-design enables us to go beyond that roof line by an order of magnitude.",
+    "zh": "这套新的后训练优化，加上系统与模型的协同设计，让我们能越过那条屋顶线一个数量级。"
+   },
+   {
+    "t": 619,
+    "spk": "Gorka Mirdsevin",
+    "raw": "we have a version called H3 Max Turbo that's public that can generate like a five second video in like 1.5 seconds, which is like insane.",
+    "zh": "我们有一个公开的版本叫 H3 Max Turbo，生成五秒视频只要 1.5 秒，这简直离谱。"
+   },
+   {
+    "t": 685,
+    "spk": "Gorka Mirdsevin",
+    "raw": "my bet today is we just need to improve quality more than like the speed at these speeds",
+    "zh": "我今天的赌注是，在这样的速度下，我们更需要提升的是质量，而不是速度。"
+   },
+   {
+    "t": 1555,
+    "spk": "Gorka Mirdsevin",
+    "raw": "everyone's waiting for a large consumer moment in AI. Now it's like good enough and cheap enough that like a truly novel social AI experience can be built on top of it.",
+    "zh": "所有人都在等 AI 的大型消费级时刻。现在它已经足够好、足够便宜，可以在上面搭建真正新颖的社交 AI 体验了。"
+   },
+   {
+    "t": 2043,
+    "spk": "Gorka Mirdsevin",
+    "raw": "Hollywood is our fastest growing segment. And there's a lot of noise about how AI might disrupt Hollywood, but Hollywood usage was non-existent a year ago.",
+    "zh": "好莱坞是我们增长最快的板块。关于 AI 会如何颠覆好莱坞有很多噪音，但一年前好莱坞的使用量几乎为零。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "H3 Max 相对原版 Minimax H3 端点的加速倍数",
+    "v": "35x",
+    "t": 369
+   },
+   {
+    "k": "硬件利用率提升区间",
+    "v": "从 30-40% 提升到 70-80%",
+    "t": 430
+   },
+   {
+    "k": "H3 Max Turbo 生成五秒视频耗时",
+    "v": "1.5 秒",
+    "t": 619
+   },
+   {
+    "k": "H3 Max Turbo 成本降幅",
+    "v": "2x less",
+    "t": 619
+   },
+   {
+    "k": "H3 Max Director 可连续生成的视频时长",
+    "v": "最长 60 分钟",
+    "t": 1187
+   },
+   {
+    "k": "H3 Max Director 的记忆窗口",
+    "v": "2 分钟",
+    "t": 1125
+   },
+   {
+    "k": "H3 Max 在 FAL 平台上的使用量领先幅度",
+    "v": "是第二名的两倍多",
+    "t": 1374
+   },
+   {
+    "k": "Hopper 到 Blackwell 的硬件提升",
+    "v": "2 到 3 倍",
+    "t": 555
+   }
+  ],
+  "terms": [
+   {
+    "term": "token market fit",
+    "zh": "token 市场契合",
+    "def": "FAL 的定义：一个人能否有生产力地消耗大量 token，量级约 10K。"
+   },
+   {
+    "term": "MFU",
+    "zh": "模型浮点利用率",
+    "def": "衡量芯片算力被实际利用程度的指标，70-80% 已接近理论上限。"
+   },
+   {
+    "term": "roofline",
+    "zh": "屋顶线",
+    "def": "同一模型架构下，靠系统优化能榨出的性能上限。"
+   },
+   {
+    "term": "LoRa",
+    "zh": "低秩适配微调",
+    "def": "在基础模型上叠加的小型微调，用来加相机角度、风格等特定能力。"
+   },
+   {
+    "term": "VAE",
+    "zh": "变分自编码器",
+    "def": "视频管线里把 latent 表示解码回像素的组件。"
+   }
+  ],
+  "who": "做视频生成、推理基础设施或 AI 工具链的工程师和创业者，以及关注 Hollywood 与生成式媒体结合的投资者。",
+  "skip": "开头两分钟的主持人介绍和结尾的播客宣传可以跳过。",
+  "tags": [
+   "视频生成",
+   "后训练",
+   "推理优化",
+   "好莱坞",
+   "可控性"
+  ],
+  "quality": {
+   "transcript_source": "asr",
+   "transcript_detail": "local:whisper-large-v3-turbo",
+   "words": 7055,
+   "wpm": 178.5,
+   "timed": true,
+   "verified_quotes": 7,
+   "grounded_facts": 8,
+   "points": 8,
+   "pruned": 0,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-09-17T14:02:41Z",
+ "triage": {
+  "score": 6.0,
+  "why": "讲实时视频生成的速度优化与控制维度，有工程细节但缺具体数字与失败取舍，密度中等。",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 7.0,
+  "dims": {
+   "density": 8,
+   "faithful": 8,
+   "selection": 7,
+   "concrete": 8,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点多为判断与机制，数字具体，忠实度无硬伤；但漏掉抽样中更值钱的可靠性目标与实时模型产品化路径。",
+  "worst": "漏掉 [31:16] 的「目标是输出 99.9% 可靠性」——这是可控性路线图里最硬的可检验指标，比 [29:00] Blender 工作流更值钱，应补入要点。"
+ },
+ "model": "openai:deepseek-chat"
+}
