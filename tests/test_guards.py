@@ -6395,6 +6395,80 @@ class AChunkThatFailsToDecodeIsNotTheEpisodesFault(unittest.TestCase):
                          "软失败也在累加硬失败计数 —— 等于没分类")
 
 
+class PromotingASourceMustReopenWhatTheOldBarRejected(unittest.TestCase):
+    """把源升成核心源，要连带放开它被旧尺子判掉的集。
+
+    核心源（tier 1/2）只拦广告，普通源要够 7 分。这两把尺子共用一本账本：
+    同一条 off-brief 判决，源是普通源时成立，升了 tier 就不成立了。
+
+    实测 The Good Fight：2026-09-17 刚收进来时还是普通源，当天 4 集按 7 分线
+    判掉（6/6/4/4 分）；几十分钟后升到 tier 1 —— 按核心源规则一集都不该拦，
+    但那 4 集已经躺进 done，而 candidates() 只比 rubric 变没变，rubric 没变
+    就跳过。于是「升 tier」只对以后的集生效，已经判过的永远不会再看一眼。
+    站上看起来就是：源在册、feed 正常、一篇没有。
+
+    这和 TheCheckMustUseTheSameRulerAsTheCode 是同一件事的两面 ——
+    那边防的是尺子**分叉**，这边防的是尺子**换了没回头重判**。
+    """
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.run = importlib.import_module("run")
+
+    def _prior(self, **kw):
+        d = {"skip": "off-brief", "score": 6.0, "kind": "一手访谈",
+             "rubric": "R1"}
+        d.update(kw)
+        return d
+
+    def test_a_core_source_reopens_what_the_ordinary_bar_rejected(self):
+        self.assertTrue(
+            self.run._verdict_is_stale(self._prior(), {"tier": 1}, "R1"),
+            "升到核心源之后，6 分那集仍被旧判决挡着 —— 加了源却没内容")
+
+    def test_an_ordinary_source_keeps_its_verdict(self):
+        self.assertFalse(
+            self.run._verdict_is_stale(self._prior(), {"tier": 3}, "R1"),
+            "普通源的 off-brief 被无故放开 —— 每一轮都要重判一次，白花钱")
+
+    def test_even_a_core_source_still_blocks_ads_and_the_truly_bad(self):
+        for prior, why in ((self._prior(kind="宣传"), "广告"),
+                           (self._prior(score=2.0), "2 分")):
+            self.assertFalse(
+                self.run._verdict_is_stale(prior, {"tier": 1}, "R1"),
+                f"核心源把{why}那集也放开了 —— _core_blocks 本来就该拦它")
+
+    def test_only_triage_verdicts_are_reopened(self):
+        for prior in ({"ok": 1}, {"skip": "review"}, {"skip": "dup"}):
+            self.assertFalse(
+                self.run._verdict_is_stale(prior, {"tier": 1}, "R1"),
+                f"{prior} 也被当成可重开 —— 只有选题闸门判的「不做」归这里管")
+
+    def test_the_caller_uses_the_function_instead_of_restating_it(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index("def candidates(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        self.assertIn("_verdict_is_stale(", body,
+                      "candidates 自己又写了一遍新旧判决的规则 —— 迟早分叉")
+
+    def test_the_ledger_has_no_verdict_that_the_current_tiers_disown(self):
+        """拿真实账本对一遍：不该再有「按今天的尺子早就该重判」的旧判决。"""
+        f = ROOT / "data" / "state.json"
+        if not f.exists():
+            self.skipTest("没有账本")
+        tiers = {s["id"]: s for s in json.loads(
+            (ROOT / "data" / "sources.json").read_text())["sources"]}
+        stuck = [v for v in (json.loads(f.read_text()).get("done") or {}).values()
+                 if isinstance(v, dict) and v.get("skip") == "off-brief"
+                 and v.get("src") in tiers
+                 and tiers[v["src"]].get("tier", 3) in self.run.NO_FILTER_TIERS
+                 and not self.run._core_blocks(v)]
+        self.assertFalse(
+            stuck, f"{len(stuck)} 集卡在升 tier 之前的旧判决里："
+                   f"{[(v.get('src'), v.get('score')) for v in stuck[:3]]}")
+
+
 class TheCheckMustUseTheSameRulerAsTheCode(unittest.TestCase):
     """体检判「这条判决对不对」，必须调用**代码里那个判断函数**，不能另写一遍。
 
@@ -7985,3 +8059,57 @@ class AnUnfixableExternalBlockMustNotHoldUpEveryRelease(unittest.TestCase):
         r = self._check("", streak=0, ok=True)
         self.assertEqual([], r.bad)
         self.assertTrue(r.ok, "通过的时候一声不吭")
+
+
+class JudgingASourceNeedsEnoughEvidence(unittest.TestCase):
+    """判「这档源不行」要有足够证据。
+
+    **发得出来的稿必然 ≥ 评审及格线 7**，所以「成稿中位 ≤ 7.0」这条
+    只可能在**刚好及格**这个值上触发 —— 而原来 3 篇就下判决。
+    3 篇都刚好 7 分是噪音，不是信号。
+
+    实测代价：用户刚提名、我刚收进来的 The Good Fight，发了 3 篇
+    （每篇都通过评审），下一次 curate 就把它移除了，理由「产出质量偏低」。
+    一档源刚进来就被 3 篇判死，等于从来没给过它机会。
+
+    142 档有产出的源里中位 8.0 的 111 档、7.5 的 16 档、7.0 的 15 档；
+    门槛 3 篇判掉 3 档，6 篇只判掉 1 档 —— 另外两档都是刚建档的新源。
+    """
+
+    def _curate(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return importlib.import_module("curate")
+
+    def test_three_episodes_is_not_enough_to_condemn_a_source(self):
+        c = self._curate()
+        base = {"feed_ok": True, "fail_streak": 0, "no_transcript": 0,
+                "age_days": 1.0, "max_gap_days": 7.0, "triage_n": 0,
+                "triage_pass": None, "review_median": 7.0, "review_rejected": 0,
+                "gate_rejected": 0, "draft_pass": 1.0, "official_transcripts": 0,
+                "tier": 3, "asr_only": False, "residential": True, "pinned": False}
+        self.assertIsNone(c.judge("x", {**base, "published": 3}),
+                          "3 篇刚好及格就把源判死 —— 新源永远活不过建档期")
+        got = c.judge("x", {**base, "published": 8})
+        self.assertEqual("demote", (got or (None,))[0],
+                         "证据够了也不判 —— 这条规则等于废了")
+
+    def test_the_reason_says_what_it_actually_means(self):
+        """中位等于及格线，意思是「每一篇都只是刚好及格」，不是「质量偏低」。"""
+        c = self._curate()
+        # **锚在真正那条判据上。** 第一版从常量定义往下找第一个
+        # `return "demote"`，找到的是「选题通过率」那条 —— 又一次匹配错了地方。
+        src = (ROOT / "pipeline" / "curate.py").read_text()
+        i = src.index('and m["review_median"] <= MIN_REVIEW_MEDIAN')
+        j = src.index('return "demote"', i)
+        self.assertIn("刚好及格", src[j:j + 220],
+                      "判词还写着「产出质量偏低」—— 它们每一篇都通过了评审")
+
+    def test_the_bar_and_the_rule_use_the_same_number(self):
+        """降级线不能低于评审及格线，否则这条规则永远不会触发。"""
+        c = self._curate()
+        sys.path.insert(0, str(ROOT / "pipeline" / "lib"))
+        import importlib
+        rv = importlib.import_module("lib.review")
+        self.assertGreaterEqual(c.MIN_REVIEW_MEDIAN, rv.MIN_SCORE,
+                                "降级线低于评审及格线 —— 发得出来的稿不可能低于它")

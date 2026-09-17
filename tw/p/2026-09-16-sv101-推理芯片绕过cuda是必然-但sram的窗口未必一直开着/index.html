@@ -98,7 +98,7 @@ else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
 <p class="body">Groq和Cerebras都在Transformer出現前就看到了帶寬需求，最後都收斂到SRAM——因為SRAM的帶寬絕對值和每塊錢買到的帶寬都比HBM高兩三個數量級。代價是容量：DRAM一個晶體管加一個電容存一個比特，SRAM要六個晶體管，單芯片容量可能比HBM低兩個數量級。於是只能把系統做大，幾百上千顆芯片把模型權重全放下，瓶頸隨即從容量變成集群通信調度。這時兩家分歧：Groq把調度全部提前到編譯期，Cerebras乾脆把一櫃子芯片塞進一整片晶圓。</p>
 <span class="spk">— Mark</span></div></div>
 <div class="point" id="p2"><a class="ts" data-t="1174" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=1174s" target="_blank" rel="noopener">19:34</a><div><h4>Groq的靜態調度撞上MoE的動態性</h4>
-<p class="body">Groq圍繞編譯器設計硬件，把確定性做到極致，運行時沒有調度開銷。但MoE出現後，每個Token在128個專家裡激活8個，選哪幾個是運行時決定的，編譯期無法預測。靜態方案只有兩條路：要麼保守地把Token都送過去，讓一部分芯片空轉；要麼換一種切模型的方式，但現在的模型很難用專家以外的維度切乾淨。空轉隻影響性價比，不影響它依然很快，所以Groq仍是GPU之外較好的選擇。</p>
+<p class="body">Groq圍繞編譯器設計硬件，把確定性做到極致，運行時沒有調度開銷。但MoE出現後，每個Token在128個專家裡激活8個，選哪幾個是運行時決定的，編譯期無法預測。靜態方案只有兩條路：要麼保守地把Token都送過去，讓一部分芯片空轉；要麼換一種切模型的方式，但現在的模型很難用專家以外的維度切乾淨。空轉只影響性價比，不影響它依然很快，所以Groq仍是GPU之外較好的選擇。</p>
 <span class="spk">— Mark</span></div></div>
 <div class="point" id="p3"><a class="ts" data-t="1518" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=1518s" target="_blank" rel="noopener">25:18</a><div><h4>Cerebras為良率付出的代價</h4>
 <p class="body">單芯片尺寸極限約800平方毫米，一個晶圓能切三四十顆，良率50%還能出20顆好的。但Cerebras整個晶圓就是一顆產品，只要瑕疵超過它能接受的30%，整片晶圓作廢。這不是掩模成本（掩模可以攤薄），而是每造10個可能9個不能用。所以它可能做到10倍英偉達的帶寬，但成本是HBM的3倍，帶寬性價比要打折。Groq為確定性打折，Cerebras為良率成本打折，折扣最終都打到Token成本上。</p>

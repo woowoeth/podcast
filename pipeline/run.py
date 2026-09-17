@@ -354,13 +354,7 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
             key = eid(s["id"], ep["guid"])
             prior = state["done"].get(key)
             if prior is not None:
-                # **用已经不存在的那把尺子判出来的「不做」不算数。**
-                # 判决和判它的尺子要绑在一起，否则改尺子只对以后的集生效，
-                # 而账本里那几百条旧判决永远没人再看一眼。
-                stale = (isinstance(prior, dict)
-                         and prior.get("skip") == "off-brief"
-                         and prior.get("rubric") != triage.rubric_id())
-                if not stale:
+                if not _verdict_is_stale(prior, s, triage.rubric_id()):
                     continue
                 state["done"].pop(key, None)
             f = state["fail"].get(key)
@@ -720,6 +714,32 @@ def _write_catchup_note(published: int) -> None:
 NO_FILTER_TIERS = (1, 2)
 CORE_TIER = 1          # 「核心源」仍只指 tier 1（体检、挑选优先都用它）
 AD_KINDS = ("宣传", "廣告", "广告")
+
+
+def _verdict_is_stale(prior: dict, s: dict, rubric: str) -> bool:
+    """账本里这条「不做」还算不算数。
+
+    **用已经不存在的那把尺子判出来的「不做」不算数。**
+    判决和判它的尺子要绑在一起，否则改尺子只对以后的集生效，
+    而账本里那几百条旧判决永远没人再看一眼。
+
+    **尺子会变的不只是标准本身，还有「这一集该用哪把尺子」。**
+    核心源（tier 1/2）只拦广告，普通源要够 7 分。同一条判决，源升了 tier
+    就该换一把尺子重判 —— 而原来这里只比 rubric，rubric 没变就一律跳过，
+    于是升 tier 只对以后的集生效。实测 The Good Fight：刚收进来时是普通源，
+    4 集按 7 分线判掉（两集 6 分、两集 4 分）；当天升到 tier 1 之后按新规则
+    一集都不该拦，但那 4 集已经永久躺在 done 里，谁也不会再看。
+    这就是「加了源却没内容」的另一种长相：不是没抓到，是判过一次就不再判。
+
+    只放开 off-brief（选题闸门判的「不做」）。发出去了、评审判掉的、
+    失败的，都不归这里管。判据直接调 _core_blocks，和体检、闸门共用同一个
+    函数，免得两把尺子分叉。
+    """
+    if not isinstance(prior, dict) or prior.get("skip") != "off-brief":
+        return False
+    if prior.get("rubric") != rubric:
+        return True
+    return (s.get("tier", 3) in NO_FILTER_TIERS) and not _core_blocks(prior)
 
 
 def _core_blocks(v: dict) -> bool:

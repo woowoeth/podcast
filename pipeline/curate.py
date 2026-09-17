@@ -41,7 +41,15 @@ LEDGER = DATA / "curation.json"
 # 而且踢掉之后不会有人注意到它不见了。
 MIN_TRIAGE_EVALS = 6        # 少于这个次数不作判断，样本太小
 MIN_TRIAGE_PASS = 0.25      # 选题通过率低于此 → 降级
-MIN_PUBLISHED_FOR_REVIEW = 3
+# **判「这档源不行」要有足够证据。**
+# 原来 3 篇就下判决，而发得出来的稿必然 ≥ 评审及格线 7，
+# 所以「中位 ≤ 7.0」这条只可能在**刚好及格**这个值上触发 ——
+# 3 篇都刚好 7 分是噪音，不是信号。
+# 实测：142 档有产出的源里中位 8.0 的 111 档、7.5 的 16 档、7.0 的 15 档；
+# 门槛 3 篇会判掉 3 档，6 篇只判掉 1 档 —— 另外两档是刚收进来还没跑开的新源
+# （The Good Fight 3 篇、Empire 3 篇，都是用户提名或刚建档的）。
+# 一档源刚进来就被 3 篇判死，等于从来没给过它机会。
+MIN_PUBLISHED_FOR_REVIEW = 6
 MIN_REVIEW_MEDIAN = 7.0     # 成稿评分中位不高于此 → 降级
 MIN_DRAFT_TRIES = 4         # 至少试过这么多次，才谈得上合格率
 MIN_DRAFT_PASS = 0.34       # 成稿合格率低于此 → 降级（三次里过不了一次）
@@ -213,8 +221,9 @@ def _judge(sid: str, m: dict) -> tuple[str, str] | None:
                           f"（{m['triage_n']} 次评估），选题质量下降")
     if (m["published"] >= MIN_PUBLISHED_FOR_REVIEW and m["review_median"] is not None
             and m["review_median"] <= MIN_REVIEW_MEDIAN):
+        # 判词要说它真正的意思：中位等于及格线 = 每一篇都只是刚好及格。
         return "demote", (f"成稿评分中位 {m['review_median']:.1f}"
-                          f"（{m['published']} 篇），产出质量偏低")
+                          f"（{m['published']} 篇），每一篇都只是刚好及格")
     # 成稿合格率：被拦下的稿子也算分母。只看"已发布稿子的评分中位"会漏掉整整一类
     # 源——Y Combinator 发 0 篇、被评审拦 4 篇（评分 3、3、4、4），产出全不合格，
     # 却永远不会被降级，因为那 4 次根本没进统计。
