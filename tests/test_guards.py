@@ -7874,3 +7874,114 @@ class AnAutoRuleMustNotOverrideAPersonsDecision(unittest.TestCase):
             with self.subTest(sid=sid):
                 self.assertTrue(srcs[sid].get("pinned"), f"{sid} 没有被钉住")
                 self.assertEqual(1, srcs[sid].get("tier"), f"{sid} 不在 tier 1")
+
+
+class AnUnknownDurationMustNotBecomeAFakeDefault(unittest.TestCase):
+    """时长未知 ≠ 时长等于某个默认值。
+
+    实测 The Good Fight：Substack 的 feed 正文里就是 7000–10000 词的官方
+    逐字稿，却三层全挂 ——
+      · notes 层：没时长就 return None，哪怕手里就是完整逐字稿
+      · page 层：`max(时长, 1分钟)` 把 7948 词算成 7948 wpm，
+        直接判成「这不是这一集的文稿」
+      · acquire 收尾：同一个假默认值
+
+    而同一个文件第 235 行早就写着正确的思路（「有时间戳的文稿比不给时长的
+    feed 更知道这一集多长」）。**拿不到判据就别用这条判据**：
+    语速跳过，字数和标题核对照常。
+
+    这和之前 `_yt_audio` 里 `if want_dur:` 是同一个家族的错 ——
+    那次是「拿不到时长就整个不检查」，这次是「拿不到时长就假装是 1 分钟」。
+    两头都错，错在把「未知」当成了一个具体的值。
+    """
+
+    def _T(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return importlib.import_module("lib.transcript")
+
+    def test_no_site_fakes_a_one_minute_default(self):
+        src = (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
+        code = "\n".join(l for l in src.splitlines()
+                         if not l.lstrip().startswith("#"))
+        self.assertNotIn('max((ep.get("duration") or 0) / 60, 1)', code,
+                         "还有地方把未知时长当成 1 分钟 —— "
+                         "一篇 7000 词的真逐字稿会被算成 7000 wpm 拒掉")
+
+    def test_the_notes_tier_accepts_a_long_transcript_without_duration(self):
+        T = self._T()
+        ep = {"title": "Jared Diamond on Whether Leaders Make History",
+              "notes": "Jared Diamond on Whether Leaders Make History. " +
+                       ("the interview text continues here with real content " * 400),
+              "link": "https://example.com/p/x"}
+        got = T.from_notes(ep, "en")
+        self.assertIsNotNone(got, "没给时长就把完整逐字稿扔了")
+        self.assertEqual("notes", got["source"])
+
+    def test_short_notes_are_still_rejected_without_duration(self):
+        """只验「长的能过」等于没验：没时长时，简介长度的 notes 仍要拒。"""
+        T = self._T()
+        ep = {"title": "X", "notes": "A short show blurb. " * 10, "link": "u"}
+        self.assertIsNone(T.from_notes(ep, "en"),
+                          "没时长时连简介都当成逐字稿了")
+
+    def test_skipping_wpm_does_not_skip_the_title_check(self):
+        """**第一版我在这里写了 break**，把归属核对和正常返回一起跳过了，
+        而日志写着「标题核对照常」。说的和做的不一致，比不做更坏。"""
+        src = (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
+        i = src.index("def acquire(")
+        body = src[i:]
+        j = body.index("语速判据不成立")
+        seg = body[j:j + 900]
+        self.assertNotIn("break", seg,
+                         "跳过语速判据时直接跳出循环 —— 归属核对没跑")
+        self.assertIn("belongs_to(", body[j:j + 2000],
+                      "跳过语速之后没有走到标题归属核对")
+
+
+class AnUnfixableExternalBlockMustNotHoldUpEveryRelease(unittest.TestCase):
+    """自己修不了的外部依赖，报提醒不报硬伤 —— 但也不许静默。
+
+    IndexNow 回 403 UserForbiddedToAccessSite，意思是 Bing 认不出我们拥有
+    这个域名。key 文件已经验到逐字节正确（32 位十六进制 + 换行、
+    text/plain、HTTP 200），三种 keyLocation 写法、GET/POST 都试过，
+    两小时八次重试全是 403。解法在 Bing Webmaster Tools 里，这个仓库做不了。
+
+    拿它报硬伤，等于每次发布前都被一件自己修不了的事拦住，
+    人很快就学会忽略这个检查 —— 那才是真正的损失。
+
+    但**不是降级成静默**：提醒里要写清是什么、去哪按、影响多大。
+    而真正属于我们的失败（配置错、payload 坏、文件丢）仍然是硬伤。
+    """
+
+    def _check(self, detail, streak=5, ok=False):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib, json as _json, tempfile, pathlib as _p
+        hc = importlib.import_module("healthcheck")
+        f = hc.DATA / "indexnow.json"
+        keep = f.read_text() if f.exists() else None
+        try:
+            f.write_text(_json.dumps({"ok": ok, "detail": detail,
+                                      "fail_streak": streak, "at": "x"}))
+            r = hc.Report()
+            hc.check_indexnow(r)
+            return r
+        finally:
+            if keep is not None:
+                f.write_text(keep)
+
+    def test_an_ownership_block_is_a_note(self):
+        r = self._check('{"errorCode":"UserForbiddedToAccessSite"}')
+        self.assertEqual([], r.bad, "被 Bing 拒了却报硬伤 —— 每次发布都被自己修不了的事拦住")
+        self.assertTrue(r.warn, "降成提醒之后就没人看得到了")
+        self.assertIn("bing.com/webmasters", r.warn[0], "提醒里没写去哪按")
+
+    def test_our_own_failure_is_still_hard(self):
+        """只验「该放行的放行」等于没验：真属于我们的错仍要红。"""
+        r = self._check("ConnectionResetError: payload 发不出去", streak=5)
+        self.assertTrue(r.bad, "我们自己的失败被一起降级了")
+
+    def test_success_is_still_reported(self):
+        r = self._check("", streak=0, ok=True)
+        self.assertEqual([], r.bad)
+        self.assertTrue(r.ok, "通过的时候一声不吭")

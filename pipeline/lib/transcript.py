@@ -232,12 +232,19 @@ def from_notes(ep: dict, lang: str) -> dict | None:
     lines = [ln for ln in body.split("\n") if not _NOTE_NOISE.match(ln.strip())]
     body = "\n".join(lines)
     words = _count(body, lang)
-    dur_min = (ep.get("duration") or 0) / 60
-    if not dur_min:
-        return None
     # Only accept notes as the primary text when they are dense enough to be
     # the actual transcript or the full essay the episode reads out.
-    if words / dur_min < MIN_WPM.get(lang, 70):
+    #
+    # **时长未知不是「时长等于 0」，也不该一票否决。**
+    # 原来没有时长就 return None —— 而 The Good Fight 的 Substack feed
+    # 恰恰是「notes 里 5–7 万字全文、但不给时长」：真逐字稿就在手里，
+    # 却因为没法算语速被扔掉。
+    # 拿不到时长时改成看绝对字数：一篇够长的正文本身就说明它不是简介。
+    dur_min = (ep.get("duration") or 0) / 60
+    if dur_min:
+        if words / dur_min < MIN_WPM.get(lang, 70):
+            return None
+    elif words < MIN_WORDS.get(lang, 1200):
         return None
     segs = _timestamped_notes(body) or _plain_to_segs(body, ep.get("duration"))
     return {"segments": segs, "source": "notes", "detail": "feed item full text", "url": ep.get("link", "")}
@@ -377,7 +384,12 @@ def from_page(ep: dict, lang: str, others: list[str] | None = None) -> dict | No
     if ep.get("link"):
         urls += _alt_urls(ep["link"]) + [ep["link"]]
         urls += _root_link_guess(ep)
-    dur_min = max((ep.get("duration") or 0) / 60, 1)
+    # **时长未知时不要假装它是 1 分钟。**
+    # `max(..., 1)` 会把一篇 7000 词的真逐字稿算成 7000 wpm，直接判成
+    # 「这不是这一集的文稿」。实测 The Good Fight：page 层抓到了正确的
+    # 集页、正文就是全文，却因为这个默认值被拒。
+    # 拿不到判据就别用这条判据 —— 标题核对、列表页判据、最低字数都还在。
+    dur_min = (ep.get("duration") or 0) / 60
     lo, hi = MIN_WPM.get(lang, 70), MAX_WPM.get(lang, 300)
     for u in dict.fromkeys(urls):
         try:
@@ -395,7 +407,9 @@ def from_page(ep: dict, lang: str, others: list[str] | None = None) -> dict | No
             words = _count(body, lang)
             if words <= best_words:
                 continue
-            if not (lo <= words / dur_min <= hi):
+            if dur_min and not (lo <= words / dur_min <= hi):
+                continue
+            if not dur_min and words < MIN_WORDS.get(lang, 1200):
                 continue
             if not _is_this_episode(body, ep.get("title", "")):
                 continue
@@ -1140,13 +1154,21 @@ def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
         if not ep.get("duration") and got["segments"] and not got["segments"][-1].get("approx"):
             ep["duration"] = int(got["segments"][-1]["t"]) + 30
             log(f"    duration was missing; taking {ep['duration']}s from the transcript")
-        dur_min = max((ep.get("duration") or 0) / 60, 1)
-        wpm = words / dur_min
-        if wpm < MIN_WPM.get(lang, 70):
+        # 上面已经尽力从带时间戳的文稿里回推时长；还是没有的话，
+        # 语速这条判据就不成立 —— 不要用一个假的 1 分钟去算它。
+        dur_min = (ep.get("duration") or 0) / 60
+        wpm = words / dur_min if dur_min else 0.0
+        if not dur_min:
+            # **不要 break。** 第一版在这里直接跳出循环，把后面的归属核对
+            # 和正常返回一起跳过了 —— 而日志里写着「标题核对照常」。
+            # 说的和做的不一致，比不做更坏：只跳过语速这一条，继续往下走。
+            log(f"    tier {tier}: {words} words，这一集没给时长，"
+                f"语速判据不成立，跳过它（字数与标题核对照常）")
+        elif wpm < MIN_WPM.get(lang, 70):
             attempts.append(f"{tier}:thin({wpm:.0f}wpm)")
             log(f"    tier {tier}: {words} words = {wpm:.0f} wpm, too thin — rejected")
             continue
-        if wpm > MAX_WPM.get(lang, 300):
+        elif wpm > MAX_WPM.get(lang, 300):
             attempts.append(f"{tier}:bloated({wpm:.0f}wpm)")
             log(f"    tier {tier}: {words} words = {wpm:.0f} wpm — that is not this "
                 f"episode's transcript, rejected")

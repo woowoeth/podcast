@@ -387,12 +387,26 @@ def check_indexnow(r: Report) -> None:
         r.fail(f"data/indexnow.json 读不出来（{type(ex).__name__}）")
         return
     streak = int(d.get("fail_streak") or 0)
+    detail = str(d.get("detail") or "")
+    # **分清「我们的 bug」和「要人去别处按一下」。**
+    # 403 UserForbiddedToAccessSite 的意思是 Bing 认不出我们拥有这个域名 ——
+    # key 文件已经验到逐字节正确（32 位十六进制 + 换行、text/plain、HTTP 200），
+    # 三种 keyLocation 写法和 GET/POST 都试过，两小时内八次重试全是 403。
+    # 解法在 Bing Webmaster Tools 里验证站点所有权，这个仓库里做不了，
+    # 而且它不影响站点内容，Google 也根本不用 IndexNow。
+    # 拿它报硬伤 = 每一次发布前都被一件自己修不了的事拦住，
+    # 人很快就会学会忽略这个检查 —— 那才是真正的损失。
+    NEEDS_A_PERSON = ("UserForbiddedToAccessSite", "Forbidden", "403")
     if d.get("ok"):
         r.good(f"搜索引擎通知正常（{d.get('at')}）")
+    elif any(k in detail for k in NEEDS_A_PERSON):
+        r.note(f"搜索引擎通知被拒（第 {streak} 轮，Bing 认不出域名所有权）——"
+               f"去 bing.com/webmasters 验证 ourword.ai 即可；"
+               f"key 文件本身已逐字节验过没问题。只影响 Bing/Yandex 的收录速度")
     elif streak >= 3:
-        r.fail(f"搜索引擎通知连着失败 {streak} 轮：{str(d.get('detail'))[:120]}")
+        r.fail(f"搜索引擎通知连着失败 {streak} 轮：{detail[:120]}")
     else:
-        r.note(f"搜索引擎通知失败（第 {streak} 轮）：{str(d.get('detail'))[:120]}")
+        r.note(f"搜索引擎通知失败（第 {streak} 轮）：{detail[:120]}")
 
 
 def check_core_sources(r: Report) -> None:
