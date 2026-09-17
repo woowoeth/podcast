@@ -7181,7 +7181,13 @@ class AudioChunksMustContainAudioNotCoverArt(unittest.TestCase):
                 return types.SimpleNamespace(returncode=1, stdout=b"", stderr=b"")
             return real(cmd, *a, **kw)
 
+        # **连 ffmpeg 都要替掉。** CI 的 runner 上没装 ffmpeg，_split 会在
+        # `if not ff` 那里提前返回 None —— 一条命令都不发，这道闸于是永远绿。
+        # 本机有 ffmpeg 所以我这边是真绿的，推上去才红。
+        # 闸在最该起作用的地方（CI）悄悄空转，比没有闸更坏：它给的是假保证。
+        real_ff = T._ffmpeg
         T.subprocess.run = spy
+        T._ffmpeg = lambda: "/usr/bin/ffmpeg"
         try:
             with tempfile.TemporaryDirectory() as td:
                 src = pathlib.Path(td) / "a.mp3"
@@ -7189,6 +7195,7 @@ class AudioChunksMustContainAudioNotCoverArt(unittest.TestCase):
                 T._split(src, 99.0, td, force=True)
         finally:
             T.subprocess.run = real
+            T._ffmpeg = real_ff
         self.assertTrue(seen, "_split 根本没调 ffmpeg —— 这道闸没测到东西")
         self.assertIn("-vn", seen[0],
                       "切片命令没有 -vn —— 内嵌封面图会把音频挤成 0.3 秒")
