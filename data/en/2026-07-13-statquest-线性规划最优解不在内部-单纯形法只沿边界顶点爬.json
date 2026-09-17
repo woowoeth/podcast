@@ -2,61 +2,61 @@
  "slug": "2026-07-13-statquest-线性规划最优解不在内部-单纯形法只沿边界顶点爬",
  "of": "statquest-d4504a013f",
  "source_lang": "en",
- "title": "The Optimal Solution Never Lives Inside: The Simplex Algorithm Only Climbs Boundary Vertices",
- "dek": "The optimal solution to a linear program always lies on a boundary vertex, so the simplex algorithm never searches the interior: starting from the origin, it picks a direction by the most negative column, sets the step size by the minimum ratio, and keeps swapping to adjacent vertices with higher payoff.",
- "why": "This episode turns the geometric intuition of 'climbing boundary vertices' into concrete matrix operations at every step, clarifying direction, step size, and stopping conditions. After working through a hand calculation, reading an optimizer's documentation feels completely different.",
- "who": "Suitable for engineers who call optimization libraries but have never hand-derived the simplex method, operations research students, and teachers preparing to explain linear programming.",
- "skip": "The opening Gurobi ad, the linear programming recap at the start, and the book/merchandise pitch at the end can be skipped; everything else is hand-calculation detail.",
+ "title": "The optimal linear-programming solution is never interior: simplex climbs only along boundary vertices",
+ "dek": "The optimum of a linear program always sits on some boundary vertex, so the simplex algorithm never searches the interior: starting from the origin, it picks a direction from the most negative column, sets the step size by the minimum ratio, and keeps moving to a more profitable adjacent vertex.",
+ "why": "This episode turns the geometric intuition of \"climbing along boundary vertices\" into matrix operations at every step, spelling out direction, step size and stopping condition. Once you've worked it by hand, optimizer documentation reads completely differently.",
+ "who": "Engineers who call optimization libraries but have never derived the simplex method by hand, operations-research students, and teachers preparing to lecture on linear programming.",
+ "skip": "The Gurobi ad at the top, the linear-programming recap at the start, and the book-and-merch pitch at the end are skippable; everything else is hand-calculation detail.",
  "tags": [
-  "linear programming",
-  "simplex method",
-  "slack variables",
+  "Linear programming",
+  "Simplex method",
+  "Slack variables",
   "Gaussian elimination",
-  "operations research",
-  "algorithm details"
+  "Operations research",
+  "Algorithm details"
  ],
  "points": [
   {
    "h": "Climbing between adjacent vertices",
-   "body": "Linear programming seeks the maximum or minimum of an objective function over a feasible region bounded by straight-line constraints. The simplex method does not search the interior; it starts at the origin and moves along edges to adjacent vertices that increase revenue. At each new vertex, it looks at the next adjacent vertex until no move increases revenue. Because the algorithm 'cannot see' the graph, all the seemingly complex matrix operations are essentially answering two questions with numbers: direction and distance."
+   "body": "A linear program seeks the extreme value of an objective function inside a feasible region bounded by straight-line constraints. The simplex algorithm does not search the interior of that region; it starts at the origin and moves along an edge to an adjacent vertex that raises revenue, then from the new vertex looks at the next adjacent vertex, until no move increases revenue any further. Because the algorithm \"cannot see\" the picture, all the seemingly complicated matrix operations that follow are essentially answering two questions with numbers: which direction, and how far."
   },
   {
-   "h": "First, normalize all constraints to less-than-or-equal",
-   "body": "Before iterating, standardize: constraints with a greater-than-or-equal sign must be multiplied by -1 on both sides to flip to less-than-or-equal; equality constraints are split into a less-than-or-equal and a greater-than-or-equal inequality, then the latter is flipped by multiplying by -1, forming an 'inequality sandwich' equivalent to the original equality. The show explains that this lets the algorithm handle only one sign at each step, avoiding branching checks for different constraint forms during iteration."
+   "h": "First normalize every constraint to less-than-or-equal",
+   "body": "Before the iterations proper, standardization is required: a constraint with a greater-than-or-equal sign must be flipped into less-than-or-equal by multiplying both sides by -1; a constraint with an equals sign is split into a less-than-or-equal and a greater-than-or-equal inequality, and the greater-than-or-equal one is then multiplied by -1 and flipped, so the two inequalities form a kind of \"inequality sandwich\" equivalent to the original equality. The episode explains the purpose: the algorithm then only has to handle one kind of sign at every step, with no branching checks for different constraint forms during iteration."
   },
   {
-   "h": "Slack variables turn inequalities into equalities",
-   "body": "Even after converting to less-than-or-equal, the left and right sides may still not be equal. The fix is to add a nonnegative slack variable to each equation, making up the shortfall. The show's example: producing 10 kg of cookie mix and 8 kg of doughnut mix uses only 8 kg of flour, while 10 kg is available, so the flour slack variable is set to 2 kg; other constraints' slack variables vanish in calculations because their coefficients are 0. After adding slack variables, all equations have the same format and can be placed uniformly into a matrix."
+   "h": "Slack variables pad inequalities into equalities",
+   "body": "Even after an expression becomes less-than-or-equal, the left and right sides may still not be equal. The fix is to append a non-negative slack variable to each equation, filling in exactly the shortfall. The episode's example: when producing 10 kg of cookie mix and 8 kg of doughnut mix, only 8 kg of flour is actually used while 10 kg is available, so the slack variable for flour is set to 2 kg; the slack variables of the other constraints vanish from the calculation because their coefficients are 0. Only after the slack variables are added do all equations share one format and can be put into a matrix uniformly."
   },
   {
-   "h": "Pack into a matrix, then negate the first row",
-   "body": "The final formatting step is to fill the matrix with all coefficients and totals, then multiply the first row by -1. Negating is just to match the usual definition of the simplex method, letting 'where to go next' be read directly as the most negative coefficient in the first row; at this point the initial revenue is 0 because the search starts at the origin. Once the matrix is assembled, each iteration revolves around the same action: pick a direction, set the distance, then use row operations to explicitly read off the coordinates of the new vertex."
+   "h": "Load the matrix, then negate the first row",
+   "body": "The last formatting step is to fill all coefficients and totals into the matrix and multiply the first row by -1. The negation is only to match the usual definition of the simplex method, so that \"where to go next\" can be read directly as the most negative coefficient in the first row; at this point the initial revenue is 0, because the search starts at the origin. Once the matrix is in order, every iteration revolves around the same action: first choose a direction, then fix a distance, and finally use row operations to read the new vertex's coordinates explicitly."
   },
   {
-   "h": "The minimum ratio lands on the boundary",
-   "body": "The algorithm cannot see the feasible region, so it uses a ratio test to set the step size: for each constraint row, divide the right-hand side total by the corresponding positive coefficient in the current column; the quotient is the coordinate reachable along that axis. The show uses three candidate points on the cookie mix axis: ratios 25 and 16.7 correspond to intersections with the yellow and blue lines, both outside the feasible region; the lowest, 10, falls on the intersection with the brown line, which is on the boundary. Therefore, always choose the minimum ratio; any larger ratio would overshoot. If the minimum ratio ties, the convention is to pick the row with the smallest index."
+   "h": "Only the minimum ratio lands on the boundary",
+   "body": "The algorithm itself cannot see the feasible region, so it uses the ratio test to set the step size: take the total on the right-hand side of each constraint row and divide it by the corresponding positive coefficient in the current column; the quotient is the coordinate reachable along that axis. The episode uses three candidate points on the cookie mix axis to illustrate: the ratios 25 and 16.7 correspond to where the yellow and blue lines meet the axis, both outside the feasible region; the lowest, 10, lands on the brown line's intersection, i.e. on the boundary. So the minimum ratio is always chosen; a point with a larger ratio necessarily overshoots. If the minimum ratio is tied, the convention is to pick the row with the smallest row number."
   },
   {
-   "h": "Gaussian elimination makes coordinates emerge",
-   "body": "After selecting the pivot column and pivot row, use Gaussian elimination to turn the pivot position into 1, then clear all other entries in that column to 0 via row addition. After elimination, the reading rule is simple: if a column has exactly one 1 and the rest are 0, read the total value in that column's corresponding row as the coordinate of the current vertex on that axis; when multiple variable columns satisfy this simultaneously, coordinates appear together, and the top-right value directly gives the revenue at that vertex. The show uses this to read the second vertex (10,10) and revenue 50."
+   "h": "Gaussian elimination makes the coordinates surface on their own",
+   "body": "Once the pivot column and pivot row are chosen, Gaussian elimination turns the pivot position into 1, then clears every other position in that column to 0 by adding multiples of rows. After elimination the reading rule is simple: if a column has a single 1 and zeros everywhere else, read the total on that column's row as the current vertex's coordinate on that axis; when several variable columns satisfy this at once, the coordinates appear together, and the value in the top-right corner directly gives that vertex's revenue. The episode reads off the second vertex (10,10) and revenue 50 this way."
   },
   {
    "h": "Stop when the first row has no negatives",
-   "body": "When to stop is as important as how to move. As long as there is a most negative coefficient in the first row that can be a candidate, the algorithm continues to test whether revenue can improve; once the first row has no negatives, the simplex method declares the current vertex optimal. The first example's second stop (10,10) satisfies this condition, and revenue 50 is the best achievable under the flour, sugar, and chocolate constraints. This stopping condition is the matrix-language equivalent of the geometric intuition that 'no adjacent vertex can improve revenue'."
+   "body": "When to stop matters as much as how to move. As long as the first row still holds a most negative coefficient that can serve as a candidate, the algorithm keeps testing whether revenue can be raised; once the first row has no negatives left, the simplex method declares the current vertex optimal. The second stop of the first example, (10,10), satisfies this condition, and revenue 50 is the best value attainable under the three constraints of flour, sugar and chocolate. This stopping condition is exactly the matrix-language equivalent of the geometric intuition that \"no adjacent vertex can raise revenue any further.\""
   },
   {
-   "h": "The 3D example adds no new mechanics",
-   "body": "Extending the example from two products to three, the simplex method still holds. The show labels doughnut, cookie, and brownie mixes as x, y, z, each of the five constraints gets a slack variable, and from the origin each step follows the same procedure: pick the column by the most negative coefficient in the first row, pick the pivot row by the minimum ratio, then do Gaussian elimination. When multiple most negative coefficients tie, take the leftmost column first. After several moves, the first row has no negatives, and the algorithm stops at (9,9,4), corresponding to a maximum revenue of 22."
+   "h": "The three-dimensional example adds no new machinery",
+   "body": "Extending the example from two products to three, the simplex method still holds. The episode labels doughnut, cookie and brownie mix as x, y and z, gives each of the five constraints its own slack variable, and after starting from the origin every step is still the same procedure: use the most negative coefficient in the first row to pick a column, use the minimum ratio to pick the pivot row, then do Gaussian elimination. When several most negative coefficients tie, take the leftmost column first. After a few moves the first row has no negatives left, and the algorithm stops at (9,9,4), corresponding to a maximum revenue of 22."
   }
  ],
  "terms": [
   {
    "term": "simplex algorithm",
-   "def": "An algorithm that starts at the origin and moves along adjacent boundary vertices to find the optimal solution to a linear program."
+   "def": "An algorithm that starts at the origin and moves step by step along adjacent boundary vertices to find the optimal solution of a linear program."
   },
   {
    "term": "feasible region",
-   "def": "The region of all feasible solutions bounded by all constraints."
+   "def": "The region containing all feasible solutions, bounded by all the constraints together."
   },
   {
    "term": "objective function",
@@ -64,20 +64,20 @@
   },
   {
    "term": "slack variable",
-   "def": "A nonnegative variable added to turn an inequality into an equality."
+   "def": "A non-negative variable added to pad an inequality into an equality."
   },
   {
    "term": "Gaussian elimination",
-   "def": "Using row operations to reduce a matrix to row echelon form, thereby reading intersection coordinates."
+   "def": "Using row operations to reduce a matrix to echelon form so the intersection coordinates can be read off."
   },
   {
    "term": "ratio test",
-   "def": "Dividing each constraint's total by the positive coefficient in the current column and taking the smallest ratio to set the step size."
+   "def": "Dividing each constraint total by the positive coefficient in the current column and taking the smallest ratio to set the step size."
   }
  ],
  "facts": [
   {
-   "k": "First move endpoint in the first example",
+   "k": "Endpoint of the first move in the first example",
    "v": "cookie mix = 10, doughnut mix = 0"
   },
   {
@@ -85,19 +85,19 @@
    "v": "30"
   },
   {
-   "k": "Second move endpoint in the first example",
+   "k": "Endpoint of the second move in the first example",
    "v": "cookie mix = 10, doughnut mix = 10"
   },
   {
-   "k": "Revenue improvement at that vertex",
+   "k": "Revenue gain at that vertex",
    "v": "from 30 to 50"
   },
   {
-   "k": "Optimal vertex in the 3D example",
+   "k": "Optimal vertex of the three-dimensional example",
    "v": "x = 9, y = 9, z = 4"
   },
   {
-   "k": "Maximum revenue in the 3D example",
+   "k": "Maximum revenue of the three-dimensional example",
    "v": "22"
   }
  ],
@@ -127,5 +127,5 @@
    "translated": false
   }
  ],
- "model": "openai:deepseek-reasoner"
+ "model": "openai:deepseek-chat"
 }

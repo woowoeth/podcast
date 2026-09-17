@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>推理芯片绕过CUDA是必然，但SRAM的窗口未必一直开着 — 硅谷101 · 原声</title>
+<meta name="description" content="训练拼算力、推理拼带宽，Groq和Cerebras都押SRAM，但一个为确定性打折、一个为良率打折；OpenAI却选了最贵的HBM4，因为它缺的是电不是钱。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/p/2026-09-16-sv101-推理芯片绕过cuda是必然-但sram的窗口未必一直开着/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原声">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="推理芯片绕过CUDA是必然，但SRAM的窗口未必一直开着 — 硅谷101 · 原声">
+<meta property="og:description" content="训练拼算力、推理拼带宽，Groq和Cerebras都押SRAM，但一个为确定性打折、一个为良率打折；OpenAI却选了最贵的HBM4，因为它缺的是电不是钱。">
+<meta property="og:url" content="https://ourword.ai/podcast/p/2026-09-16-sv101-推理芯片绕过cuda是必然-但sram的窗口未必一直开着/">
+<meta property="og:image" content="https://ourword.ai/podcast/assets/cover/cfe8fa9f8e3fa476.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-09-16T00:00:00Z">
+<meta property="article:modified_time" content="2026-09-16T02:31:03Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="推理芯片绕过CUDA是必然，但SRAM的窗口未必一直开着 — 硅谷101 · 原声">
+<meta name="twitter:description" content="训练拼算力、推理拼带宽，Groq和Cerebras都押SRAM，但一个为确定性打折、一个为良率打折；OpenAI却选了最贵的HBM4，因为它缺的是电不是钱。">
+<meta name="twitter:image" content="https://media24.fireside.fm/file/fireside-images-2024/podcasts/images/f/f0f20376-8faf-4940-b920-84af6c734e2d/cover.jpg?v=6">
+<link rel="icon" type="image/svg+xml" href="/podcast/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原声" href="/podcast/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-09-16-sv101-推理芯片绕过cuda是必然-但sram的窗口未必一直开着/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-09-16-sv101-推理芯片绕过cuda是必然-但sram的窗口未必一直开着/">
+<link rel="alternate" hreflang="en" href="https://ourword.ai/podcast/en/p/2026-09-16-sv101-推理芯片绕过cuda是必然-但sram的窗口未必一直开着/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-09-16-sv101-推理芯片绕过cuda是必然-但sram的窗口未必一直开着/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=e27ecd7fee">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-09-16-sv101-推理芯片绕过cuda是必然-但sram的窗口未必一直开着/#episode", "name": "推理芯片绕过CUDA是必然，但SRAM的窗口未必一直开着", "headline": "推理芯片绕过CUDA是必然，但SRAM的窗口未必一直开着", "description": "训练拼算力、推理拼带宽，Groq和Cerebras都押SRAM，但一个为确定性打折、一个为良率打折；OpenAI却选了最贵的HBM4，因为它缺的是电不是钱。", "abstract": "训练拼算力、推理拼带宽，Groq和Cerebras都押SRAM，但一个为确定性打折、一个为良率打折；OpenAI却选了最贵的HBM4，因为它缺的是电不是钱。", "datePublished": "2026-09-16T00:00:00Z", "dateModified": "2026-09-16T02:31:03Z", "url": "https://ourword.ai/podcast/p/2026-09-16-sv101-推理芯片绕过cuda是必然-但sram的窗口未必一直开着/", "timeRequired": "PT91M", "partOfSeries": {"@type": "PodcastSeries", "name": "硅谷101", "url": "https://ourword.ai/podcast/s/sv101/"}, "inLanguage": "zh-CN", "isBasedOn": "https://sv101.fireside.fm/264", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "推理芯片, SRAM, Groq, Cerebras, 异构计算, arithmetic intensity, roofline model, MFU, MBU, Dark silicon, Amdahl's Law, Groq与Cerebras单用户推理速度对比, SRAM相对HBM的带宽性价比优势, 单芯片尺寸极限, Cerebras可接受的晶圆瑕疵比例, Cerebras带宽与成本相对英伟达, 英伟达acqui-hire Groq金额", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}, "associatedMedia": {"@type": "AudioObject", "contentUrl": "https://aphid.fireside.fm/d/1437767933/f0f20376-8faf-4940-b920-84af6c734e2d/786d63c4-d46c-4ff3-80f8-fc895b2a57f0.mp3"}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首页", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "硅谷101", "item": "https://ourword.ai/podcast/s/sv101/"}, {"@type": "ListItem", "position": 3, "name": "推理芯片绕过CUDA是必然，但SRAM的窗口未必一直开着"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/"><span class="wordmark">原声<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<button class="pill ghost" id="lang-toggle" type="button" data-en="1" data-sc="繁體" data-tw="简体"></button>
+<button class="icon-btn" data-theme-toggle aria-label="切换深浅色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，来原声听播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/">首页</a><span class="sep">/</span>
+<a href="/podcast/s/sv101/">硅谷101</a>
+<span class="sep">/</span><span>2026-09-16</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">硅谷101</span>
+<time class="date" datetime="2026-09-16T00:00:00Z">2026-09-16</time>
+<button class="share-btn" type="button" data-share data-share-title="推理芯片绕过CUDA是必然，但SRAM的窗口未必一直开着" data-share-url="https://ourword.ai/podcast/e/sv101-dff864b3dd/" data-share-desc="训练拼算力、推理拼带宽，Groq和Cerebras都押SRAM，但一个为确定性打折、一个为良率打折；OpenAI却选了最贵的HBM4，因为它缺的是电不是钱。" data-share-text="推理芯片绕过CUDA是必然，但SRAM的窗口未必一直开着&#10;硅谷101 · 91 分钟 · 原声深读&#10;&#10;训练拼算力、推理拼带宽，Groq和Cerebras都押SRAM，但一个为确定性打折、一个为良率打折；OpenAI却选了最贵的HBM4，因为它缺的是电不是钱。&#10;&#10;https://ourword.ai/podcast/e/sv101-dff864b3dd/" aria-label="复制分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>推理芯片绕过CUDA是必然，但SRAM的窗口未必一直开着</h1>
+<p class="dek-lead">训练拼算力、推理拼带宽，Groq和Cerebras都押SRAM，但一个为确定性打折、一个为良率打折；OpenAI却选了最贵的HBM4，因为它缺的是电不是钱。</p>
+<div class="ep-meta"><span class="tag">推理芯片</span><span class="tag">SRAM</span><span class="tag">Groq</span><span class="tag">Cerebras</span><span class="tag">异构计算</span></div>
+</div>
+<div class="player" data-player-box>
+  <button class="video-facade" data-yt="aS69y40BoyM" type="button"
+          aria-label="播放原节目视频">
+    <span class="frame">
+      <img src="https://i.ytimg.com/vi/aS69y40BoyM/hq720.jpg" alt="" loading="lazy" width="1280"
+           onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/aS69y40BoyM/hqdefault.jpg'">
+      <span class="play" aria-hidden="true"><svg viewBox="0 0 44 44" width="44" height="44" focusable="false"><circle cx="22" cy="22" r="21" fill="rgba(18,16,13,.55)" stroke="rgba(255,255,255,.92)" stroke-width="1.5"/><path d="M17 14.5 32 22 17 29.5Z" fill="#fff"/></svg></span>
+    </span>
+  </button>
+  <div class="strip" data-audio-strip hidden>
+    <p class="afallback">原视频在 YouTube 上放不出来，用音频听：</p>
+    <audio data-player controls preload="none" src="https://aphid.fireside.fm/d/1437767933/f0f20376-8faf-4940-b920-84af6c734e2d/786d63c4-d46c-4ff3-80f8-fc895b2a57f0.mp3"></audio>
+    <div class="aui" data-audio-ui data-dur="5492" hidden>
+      <button class="aplay" type="button" aria-label="播放"></button>
+      <div class="abar" role="slider" tabindex="0" aria-label="播放进度"
+           aria-valuemin="0" aria-valuemax="100"><div class="afill"></div></div>
+      <span class="atime"><span class="acur">0:00</span><span class="asep">/</span><span class="atot">--:--</span></span>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="why">两位一线芯片创业者拆解Groq、Cerebras与OpenAI三条路径的取舍，含大量工程细节与成本账，适合想搞懂推理芯片到底在赌什么的人。</div></section>
+
+<section class="section"><h2>核心论点 · 点时间戳可跳到原声</h2><div class="point" id="p0"><a class="ts" data-t="257" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=257s" target="_blank" rel="noopener">4:17</a><div><h4>训练赌算力，推理赌带宽</h4>
+<p class="body">训练时代没人能靠训练本身赚钱，所以成本不可量化，大家只想赌一个最强集群；推理时代账能算清楚——用户为每百万Token付多少钱，我推这百万Token花多少成本。更本质的是计算密度：训练有海量数据把算力喂满，推理的decode阶段是严格自回归的，必须一个Token一个Token产生，而每产生一个Token都要把整个模型从存储介质读进计算单元。所以推理的核心矛盾从算力变成了内存带宽。</p>
+<span class="spk">— 子扬</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="999" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=999s" target="_blank" rel="noopener">16:39</a><div><h4>SRAM是共识，但两家分道扬镳</h4>
+<p class="body">Groq和Cerebras都在Transformer出现前就看到了带宽需求，最后都收敛到SRAM——因为SRAM的带宽绝对值和每块钱买到的带宽都比HBM高两三个数量级。代价是容量：DRAM一个晶体管加一个电容存一个比特，SRAM要六个晶体管，单芯片容量可能比HBM低两个数量级。于是只能把系统做大，几百上千颗芯片把模型权重全放下，瓶颈随即从容量变成集群通信调度。这时两家分歧：Groq把调度全部提前到编译期，Cerebras干脆把一柜子芯片塞进一整片晶圆。</p>
+<span class="spk">— Mark</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="1174" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=1174s" target="_blank" rel="noopener">19:34</a><div><h4>Groq的静态调度撞上MoE的动态性</h4>
+<p class="body">Groq围绕编译器设计硬件，把确定性做到极致，运行时没有调度开销。但MoE出现后，每个Token在128个专家里激活8个，选哪几个是运行时决定的，编译期无法预测。静态方案只有两条路：要么保守地把Token都送过去，让一部分芯片空转；要么换一种切模型的方式，但现在的模型很难用专家以外的维度切干净。空转只影响性价比，不影响它依然很快，所以Groq仍是GPU之外较好的选择。</p>
+<span class="spk">— Mark</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="1518" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=1518s" target="_blank" rel="noopener">25:18</a><div><h4>Cerebras为良率付出的代价</h4>
+<p class="body">单芯片尺寸极限约800平方毫米，一个晶圆能切三四十颗，良率50%还能出20颗好的。但Cerebras整个晶圆就是一颗产品，只要瑕疵超过它能接受的30%，整片晶圆作废。这不是掩模成本（掩模可以摊薄），而是每造10个可能9个不能用。所以它可能做到10倍英伟达的带宽，但成本是HBM的3倍，带宽性价比要打折。Groq为确定性打折，Cerebras为良率成本打折，折扣最终都打到Token成本上。</p>
+<span class="spk">— Mark</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="2038" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=2038s" target="_blank" rel="noopener">33:58</a><div><h4>推理时代CUDA一定会被绕过</h4>
+<p class="body">TPU、Trainium都没有一丁点要兼容CUDA，但大家仍觉得TPU软件难用，Anthropic能大量采购是因为很多工程师来自谷歌、懂JAX。关键变化在于：训练时代大家愿意为软件好用买单，推理时代天平倒向性能和性价比。只要不是很多个难问题、而是一个难问题，把Transformer所有算子在新芯片上写出来，商业逻辑就通了；再加上AI Coding加速算子优化，软件栈门槛被大幅降低。DeepSeek宁愿写底层PTX汇编做优化，就是这个逻辑。</p>
+<span class="spk">— 子扬</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="2665" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=2665s" target="_blank" rel="noopener">44:25</a><div><h4>推理越快，模型越聪明</h4>
+<p class="body">Agent大规模爆发后，大量Token不是给人读的，是给别的Agent读的，人阅读速度100 Token每秒就到顶了。但推理速度的意义不在交互变快，而在同样一分钟的等待里，模型能用10倍Token做更多内部思考，从而更聪明。老黄PPT横轴标的就是Smarter AI，纵轴是每瓦Token数。反过来说，有些应用很快给答案，可能只是AI思考得少。时间才是本质约束——让AI判断明天股市，它想两天这答案就没意义了。</p>
+<span class="spk">— 子扬</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="2944" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=2944s" target="_blank" rel="noopener">49:04</a><div><h4>抓不变量：FFN变成MoE后就稳了</h4>
+<p class="body">模型结构一定会影响芯片设计，比如diffusion模型计算密集，适合另一种范式，所以要先做异构选择：做不做这件事。更关键的是找不变量——Transformer里注意力机制还在不断革新，每个新实验室都发论文提新思路；但后面的FFN自从变成MoE以后就成了相对不变量。RL在后训练里也没有本质影响模型结构。所以优先解决已经收敛的那部分，芯片才不会被算法迭代甩掉。</p>
+<span class="spk">— Mark</span></div></div>
+<div class="point" id="p7"><a class="ts" data-t="4180" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=4180s" target="_blank" rel="noopener">1:09:40</a><div><h4>一切围绕局部性展开</h4>
+<p class="body">Bill Dally的原话是计算机系统结构就像房地产，一切都在于location、location、location。时间局部性是用过一段数据未来大概率还会用，空间局部性是用了一段数据马上会用到它周围的数据，CPU的Cache就是这两者的应用。但在AI推理decode阶段，算法上的时间和空间局部性都被抹平了，所以要在架构上用硬件补回局部性——把模型权重放进SRAM，本质就是买最好的局部性。</p>
+<span class="spk">— Mark</span></div></div>
+<div class="point" id="p8"><a class="ts" data-t="4650" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=4650s" target="_blank" rel="noopener">1:17:30</a><div><h4>OpenAI选HBM4，因为它缺电不缺钱</h4>
+<p class="body">Jalapeño是一颗通用推理芯片，把prefill、decode、attention、FFN全包在一颗芯片里，甚至能跑游戏demo，下一代还要支持训练。它把HBM4带宽堆到单封装每秒15.4TB，走的是最贵的路。原因是美国数据中心缺的不是资本和空间而是电，所以它极度关心每瓦能产出多少Token，功耗上做了很多工作，每兆瓦产出Token数大于英伟达对应Rubin架构。中国电占成本约1/3，美国约2/3，限制条件不同，收敛点就不同。</p>
+<span class="spk">— 子扬</span></div></div>
+<div class="point" id="p9"><a class="ts" data-t="5223" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=5223s" target="_blank" rel="noopener">1:27:03</a><div><h4>异构做进芯片内，还是做在系统级</h4>
+<p class="body">OpenAI提出Dark silicon概念：一颗芯片做不同的事时，可以把其中一些部分关掉或降功耗，用更多成本买电效率。这和Groq、Cerebras的系统级异构不同——后者是一颗芯片和别的芯片配合，把attention的KV cache放到另一块芯片上。SRAM的容量性价比低，适合存固定的模型权重，不适合存会持续增长的KV cache。所以对电是第一限制的场景，OpenAI方案很好；对带宽性价比要求极高的场景，仍会收敛到SRAM。</p>
+<span class="spk">— 子扬</span></div></div></section>
+<section class="section"><h2>原话 · 已逐字校验</h2><blockquote class="quote"><p class="raw">就在训练的时代 大家是没有办法依靠训练 来获得任何商业上的回报的 就训练本身是一个 没有直接回报的事情</p>
+<p class="zh">训练时代，大家没法靠训练获得任何商业回报，训练本身是一件没有直接回报的事。</p>
+<div class="attrib"><b>子扬</b><a class="ts" data-t="306" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=306s" target="_blank" rel="noopener">5:06</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">这种介质其实不在于介质本身 而在于你要关注局部性的问题 你要提供 比起HBM更高一层的局部性</p>
+<p class="zh">这种介质的关键不在介质本身，而在于你要关注局部性问题，要提供比HBM更高一层的局部性。</p>
+<div class="attrib"><b>Mark</b><a class="ts" data-t="671" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=671s" target="_blank" rel="noopener">11:11</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">当你可以做出一个比别人更快 而且更便宜的东西的时候 你不会告诉别人 你的成本其实是更便宜的</p>
+<p class="zh">当你能做出一个比别人更快而且更便宜的东西时，你不会告诉别人你的成本其实更低。</p>
+<div class="attrib"><b>子扬</b><a class="ts" data-t="1338" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=1338s" target="_blank" rel="noopener">22:18</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">在一个成熟的公司里面 把一个research idea（研究想法） 颠覆式地推给产品的团队 还是难度非常大的</p>
+<p class="zh">在一个成熟公司里，把一个研究想法颠覆式地推给产品团队，难度还是非常大的。</p>
+<div class="attrib"><b>Mark</b><a class="ts" data-t="2009" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=2009s" target="_blank" rel="noopener">33:29</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">所以推理速度更快并不意味着 你要从一分钟的思考 最后你跟它的交互速度 要变成一秒钟 而是在都是一分钟的 交互速度的情况下 你这个模型可以用10倍 更多的Token 做更多内部自我的思考 来提升它的智能水平</p>
+<p class="zh">推理速度更快并不意味着把一分钟的思考变成一秒的交互，而是在同样一分钟的交互速度下，模型能用10倍更多的Token做更多内部自我思考，来提升智能水平。</p>
+<div class="attrib"><b>子扬</b><a class="ts" data-t="2736" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=2736s" target="_blank" rel="noopener">45:36</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">计算机系统结构就像房地产 一切都在于location location location</p>
+<p class="zh">计算机系统结构就像房地产，一切都在于location、location、location。</p>
+<div class="attrib"><b>Mark</b><a class="ts" data-t="4256" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=4256s" target="_blank" rel="noopener">1:10:56</a></div>
+</blockquote></section>
+<section class="section"><h2>数字与实体</h2><table class="facts"><tr><td class="k">Groq与Cerebras单用户推理速度对比</td><td class="v">Groq约100 Token每秒，Cerebras可达750甚至2000 Token每秒</td><td class="t"><a class="ts" data-t="1278" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=1278s" target="_blank" rel="noopener">21:18</a></td></tr>
+<tr><td class="k">SRAM相对HBM的带宽性价比优势</td><td class="v">两到三个数量级</td><td class="t"><a class="ts" data-t="1338" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=1338s" target="_blank" rel="noopener">22:18</a></td></tr>
+<tr><td class="k">单芯片尺寸极限</td><td class="v">约800平方毫米</td><td class="t"><a class="ts" data-t="1520" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=1520s" target="_blank" rel="noopener">25:20</a></td></tr>
+<tr><td class="k">Cerebras可接受的晶圆瑕疵比例</td><td class="v">30%</td><td class="t"><a class="ts" data-t="1580" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=1580s" target="_blank" rel="noopener">26:20</a></td></tr>
+<tr><td class="k">Cerebras带宽与成本相对英伟达</td><td class="v">约10倍带宽，约3倍HBM成本</td><td class="t"><a class="ts" data-t="1765" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=1765s" target="_blank" rel="noopener">29:25</a></td></tr>
+<tr><td class="k">英伟达acqui-hire Groq金额</td><td class="v">200亿美元</td><td class="t"><a class="ts" data-t="1949" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=1949s" target="_blank" rel="noopener">32:29</a></td></tr>
+<tr><td class="k">理想推理系统相对GPU的提升目标</td><td class="v">速度两到三个数量级，性价比约10倍</td><td class="t"><a class="ts" data-t="2192" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=2192s" target="_blank" rel="noopener">36:32</a></td></tr>
+<tr><td class="k">中美数据中心电费占TCO比例</td><td class="v">中国约1/3，美国约2/3</td><td class="t"><a class="ts" data-t="2555" href="https://www.youtube.com/watch?v=aS69y40BoyM&amp;t=2555s" target="_blank" rel="noopener">42:35</a></td></tr></table></section>
+<section class="section"><h2>术语</h2><dl class="terms"><div><dt>arithmetic intensity<span>计算密度</span></dt><dd>每读取一份数据能做的计算量，决定芯片是算力瓶颈还是带宽瓶颈。</dd></div>
+<div><dt>roofline model<span>屋顶线模型</span></dt><dd>用计算密度判断应用卡在算力还是带宽上的体系结构分析框架。</dd></div>
+<div><dt>MFU<span>模型算力利用率</span></dt><dd>实际算力相对理论峰值的比例，主要统计矩阵乘法部分的利用率。</dd></div>
+<div><dt>MBU<span>内存带宽利用率</span></dt><dd>访存带宽被实际用起来的比例，推理高速度场景的关键指标。</dd></div>
+<div><dt>Dark silicon<span>暗硅</span></dt><dd>芯片内部分单元在特定任务时被关闭或降功耗，以换取电效率。</dd></div>
+<div><dt>Amdahl&#x27;s Law<span>阿姆达尔定律</span></dt><dd>系统整体加速受限于未优化部分，解释了异构系统为何只提升10倍。</dd></div></dl></section>
+<section class="section"><h2>收听指南</h2>
+<div class="panel guide">
+<div><span class="k">谁该听</span><p>做AI芯片、编译器或推理基础设施的工程师与创业者，以及想搞懂推理成本账和异构路线的投资人。</p></div>
+<div><span class="k">可跳过</span><p>1:13:03到1:14:47 Bill给学生的创业建议偏个人回忆，可快进。</p></div>
+</div></section>
+<nav class="prevnext"><a href="/podcast/p/2026-09-16-freakonomics-数学教授和nfl球员-他说自己只是运气好/"><span class="lbl">← 更新</span><strong>数学教授和NFL球员，他说自己只是运气好</strong></a><a class="r" href="/podcast/p/2026-09-15-iq2-特朗普在莫斯科的档案-比任何政策分析都更能解释他的顺从/"><span class="lbl">更早 →</span><strong>特朗普在莫斯科的档案，比任何政策分析都更能解释他的顺从</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原节目</h4>
+<div class="row"><span>节目</span><span>硅谷101</span></div>
+<div class="row"><span>原标题</span><span>E251｜推理芯片之战：聊聊Groq、Cerebras与OpenAI三大路径与Bill Dally的设计哲学</span></div>
+<div class="row"><span>发布</span><span>2026-09-16</span></div>
+<div class="row"><span>时长</span><span>1:31:32</span></div>
+<a class="row" href="https://sv101.fireside.fm/264" target="_blank" rel="noopener"><span>原页面</span><span>打开 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇结构</h4><nav class="toc"><a href="#p0"><span class="t">4:17</span><span>训练赌算力，推理赌带宽</span></a>
+<a href="#p1"><span class="t">16:39</span><span>SRAM是共识，但两家分道扬镳</span></a>
+<a href="#p2"><span class="t">19:34</span><span>Groq的静态调度撞上MoE的动态性</span></a>
+<a href="#p3"><span class="t">25:18</span><span>Cerebras为良率付出的代价</span></a>
+<a href="#p4"><span class="t">33:58</span><span>推理时代CUDA一定会被绕过</span></a>
+<a href="#p5"><span class="t">44:25</span><span>推理越快，模型越聪明</span></a>
+<a href="#p6"><span class="t">49:04</span><span>抓不变量：FFN变成MoE后就稳了</span></a>
+<a href="#p7"><span class="t">1:09:40</span><span>一切围绕局部性展开</span></a>
+<a href="#p8"><span class="t">1:17:30</span><span>OpenAI选HBM4，因为它缺电不缺钱</span></a>
+<a href="#p9"><span class="t">1:27:03</span><span>异构做进芯片内，还是做在系统级</span></a></nav></div>
+
+<div class="panel"><h4>这篇是怎么来的</h4>
+<div class="row"><span>成稿评分</span><span>8 / 10</span></div>
+<div class="row"><span>文稿来源</span><span>YouTube 字幕</span></div>
+<div class="row"><span>文稿字数</span><span>29134</span></div>
+<div class="row"><span>语速核验</span><span>318.3 wpm</span></div>
+<div class="row"><span>逐字校验金句</span><span>6 条</span></div>
+<div class="row"><span>回溯校验数字</span><span>8 条</span></div>
+<div class="row"><span>质检剔除</span><span>3 处</span></div>
+<p class="note">金句在逐字稿里逐字比对过，数字回原文核对过；对不上的当场删掉，不上站。
+成稿另经一道独立评审（信息密度／忠实度／选择力／具体性／中文），低于 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原声 · <a href="https://ourword.ai">OurWord.ai</a>的播客线。内容为原播客的中文深读，
+版权归各节目所有；每篇都附原节目链接，请去支持原作者。</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/" lang="zh">人类世界生存法则</a> · <a href="/podcast/">原声</a></div>
+<div class="links"><a href="/podcast/">首页</a><a href="/podcast/sources/">信源</a>
+<a href="/podcast/log/">更新日志</a><a href="/podcast/feed.xml">RSS</a>
+<a href="/podcast/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源码</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=d235129544" defer></script>
+</body></html>

@@ -2,61 +2,61 @@
  "slug": "2026-07-06-sv101-ai最快半年跑通自进化-验证与品味是最后门槛",
  "of": "sv101-6ceba01530",
  "source_lang": "zh",
- "title": "Self-evolving AI could close the loop in six months, but the model will quietly drift",
- "dek": "The inflection point for RSI is models becoming capable of long-horizon tasks. Apodex's chief scientist says the self-evolution loop could close in as little as six months, but recursive drift and the model's taste will need human gatekeeping for a long time yet.",
- "why": "Front-line researchers take apart RSI's technical path, its verification methods and its timeline. Dense with information, and direct material for understanding how far model self-evolution has actually got.",
- "who": "AI founders, large-model researchers, investors, and engineers who follow agent architecture.",
- "skip": "The roughly five minutes at the end comparing the two founders' styles can be skipped; it has little to do with the main thread.",
+ "title": "AI self-evolution could close the loop in as little as six months, but models will quietly drift off course",
+ "dek": "The inflection point for RSI is a model that can handle long-horizon tasks. Apodex's chief scientist says the self-evolution loop could close in as little as six months, but recursive drift and model taste still need humans minding them for a long time to come.",
+ "why": "A frontline researcher breaks down the RSI technical path, verification methods and timeline. High information density, and direct material for understanding the real progress of model self-evolution.",
+ "who": "AI founders, large-model researchers, investors, and engineers following agent architectures.",
+ "skip": "The roughly 5-minute comparison of the two founders' styles at the end can be skipped; it has little to do with the main thread.",
  "tags": [
   "AI self-evolution",
   "RSI",
-  "Long-horizon tasks",
-  "Agent teams",
-  "Model taste",
-  "Research automation"
+  "long-horizon tasks",
+  "agent teams",
+  "model taste",
+  "research automation"
  ],
  "points": [
   {
-   "h": "The ‘R’ in RSI only works now that tasks run long",
-   "body": "Self-evolution is not a new concept. Two or three years ago there were already approaches like LM-as-optimizer and agent optimizer, but back then a model could only optimize for two or three hours, and one small mistake compounded on itself until the model could not keep iterating. What is different this year is that models have got stronger: they can finish long-horizon tasks that take a human 1.5 hours or even 12 hours, so a model can correct itself several times within a single task, and the ‘R’ in recursive finally holds. Eighty percent of Anthropic's code is written by Claude — it is precisely this coding ability that makes a model training itself feel natural."
+   "h": "Recursive self-improvement became possible because of long-horizon tasks",
+   "body": "Self-evolution is not a new idea. Two or three years ago there were already approaches like LM-as-optimizer and agent optimizer, but back then a model could only optimize for two or three hours; one small mistake would compound on itself and it could not keep iterating. What is different this year is that models have gotten stronger and can complete long-horizon tasks that take a human 1.5 hours or even 12 hours, so they can self-correct many times within a single task, and the \"R\" in recursive finally holds up. At Anthropic, 80% of code is written by Claude — it is precisely coding ability that makes it natural for a model to train itself."
   },
   {
-   "h": "Long-horizon tasks are three stacked problems, not just a context limit",
-   "body": "Long-horizon work is not simply a matter of context length. First, standard attention is quadratic in complexity, so inference over a million tokens is enormously resource-hungry and needs architectural innovation. Second, supporting a long context is not enough on its own — the model has to have been trained on very long data, otherwise it goes out-of-distribution. Third, the training and inference infra has to change too, including GPU optimization and kernel-level code. Stack the three difficulties and the difficulty of long-horizon tasks rises exponentially. Simon (西蒙) adds that even with a million-token context, genuinely ultra-long-horizon tasks still need agent architecture and memory mechanisms to digest them."
+   "h": "Three technical bottlenecks stand in the way of long-horizon tasks",
+   "body": "Long-horizon tasks are not just a context-length problem. First, standard attention has quadratic complexity, so million-token inference is extremely resource-hungry and needs architectural innovation. Second, long-context support alone is not enough: the model must have been trained on very long data, otherwise it goes out-of-distribution. Third, the training and inference infra also has to change, including GPU optimization and kernel-level code. Stack those three difficulties together and the difficulty of long-horizon tasks rises exponentially. Simon adds that even with a million-token context, truly ultra-long-horizon tasks still need agent architecture and memory mechanisms to digest."
   },
   {
    "h": "Recursive drift is the fundamental obstacle to self-evolution",
-   "body": "When a model generates its own training data, reasoning errors accumulate and amplify across generation after generation — that is recursive drift. Apodex's answer is verification: code and math are easy to verify, with test scripts or formal proofs, so they are relatively controllable. But the tests themselves can be too broad or too narrow, and subtle drift still occurs. So Apodex trains verification ability specifically, and during reinforcement learning has the judge learn alongside the model, to keep it from picking up bad behaviors such as reward hacking."
+   "body": "When a model generates its own training data, reasoning errors accumulate and amplify across generations — that is recursive drift. Apodex's countermeasure is verification: code and math are easy to verify, using test scripts or formal proofs, so they are relatively controllable; but the tests themselves can be too broad or too narrow, and subtle drift still occurs. So Apodex specifically trains verification ability, and during reinforcement learning it has the judge learn alongside, to keep the model from learning bad behaviors like reward hacking."
   },
   {
-   "h": "Verification comes from sub-agents checking each other, plus redundancy",
-   "body": "The name Apodex comes from the Greek for ‘proof’. Verification methods divide by domain: unit tests for code, formal proofs for math — but more problems depend on human judgment. Apodex 1.0 uses an agent team: first decompose the problem, have one sub-agent solve it and a separate sub-agent verify it, so the context does not get contaminated; then have several agents work the same problem to produce redundancy, with a global agent judging which answer is more accurate. In training, agents are also taught to judge how trustworthy a source is — a forum is less reliable than a textbook."
+   "h": "Verification relies on sub-agents checking each other plus redundancy",
+   "body": "The name Apodex comes from the Greek word for \"proof.\" Verification methods differ by domain: code uses unit tests, math uses formal proofs, but more problems depend on human judgment. Apodex 1.0 uses an agent team: first decompose the problem, one sub-agent solves it and another sub-agent verifies it separately, avoiding context contamination; then have multiple agents work the same problem to produce redundancy, with a global agent judging which answer is more accurate. During training it also has agents judge the credibility of information sources — a forum, for instance, is less reliable than a textbook."
   },
   {
    "h": "The three self-evolution paths have very different moats",
-   "body": "Bei Bing (贝冰) divides self-evolution into three paths: pre-training, post-training, and the harness (the scaffolding). Evolving on the harness costs the least — you can do it by tuning API calls, the open-source community and academia have produced plenty of results there, and the moat is shallowest. Post-training is the more central and harder battlefield: you have to diagnose the model's defects first, manufacture targeted problems, and verify that the training worked, which takes a great deal of resources. Pre-training is currently mostly toy-scale tasks and has not really scaled to product level. Apodex works all three, with post-training and the scaffolding bootstrapping each other — left foot on right foot — iterating in alternation. To judge a company's capability, first ask which layer it evolves at."
+   "body": "Beibing divides self-evolution into three paths: pretraining, post-training, and harness (scaffolding). Evolving at the harness level is the cheapest — you can do it just by calling APIs — and the open-source community and academia have produced plenty of results there, so the moat is the shallowest. Post-training is the more core and more difficult battlefield: you first have to diagnose model defects, create targeted problems, and verify training results, which takes a lot of resources. Pretraining is currently mostly toy-level tasks and has not really scaled to product level. Apodex does all three; post-training and scaffolding are like the left foot stepping on the right foot, iterating alternately. To judge a company's capability, first ask which layer it evolves at."
   },
   {
-   "h": "A team of agents that check each other beats one smart AI",
-   "body": "Simon says it flatly: one smart AI cannot beat a team that checks each other. The reason lies in the nature of self-attention — the longer the context, the worse attention performs, and linear attention does not solve ultra-long context either. A single model has a ceiling under current technology, the same way a person's working memory is limited and they need notes. So you want multiple agents dividing the work, sharing information through a memory mechanism, in order to handle ultra-long-horizon problems. Model capability and agent engineering are one plus one greater than two; agent teams in vertical domains still have a moat, it is just that the scaffolding has to be tuned as models iterate every month."
+   "h": "Why an agent team beats a single smart AI",
+   "body": "Simon states it plainly: one smart AI cannot beat a team that checks each other. The reason is the nature of self-attention — the longer the context, the worse attention works, and linear attention does not solve ultra-long context either, so a single model has a ceiling under current technology, just as a person's working memory is limited and needs notes. So multiple agents must divide the work and share information through memory mechanisms to handle ultra-long-horizon problems. Model capability and agent engineering are one plus one greater than two; agent teams in vertical domains still have a moat, though the scaffolding has to be fine-tuned as models iterate every month."
   },
   {
-   "h": "For discovery models the hard part is verification, not generation",
-   "body": "Generative models already have a mature training recipe, but a discovery model's goal is not to generate an answer — it is to propose an out-of-distribution hypothesis and verify it. The first step requires a creative hypothesis, and the difficulty is that it sits far away from the pre-training data. The second step is judging whether the hypothesis holds, which comes back to the verification problem. You can use deep research to gather existing information to help with hypotheses, and you can write code to run simulations to strengthen confidence. But unknown territory often has no standard answer and no trustworthy simulation environment, so self-evolution is Apodex's main method for getting to a Heavy Duty Solver."
+   "h": "The hard part of a discovery model is verification, not generation",
+   "body": "Generative models already have mature training recipes, but a discovery model's goal is not to generate answers but to propose and verify out-of-distribution hypotheses. The first step requires a creative hypothesis, and the hard part is that it is far from the pretraining data; the second step is judging whether the hypothesis holds, which brings us back to verification. You can use deep research to gather existing information to assist the hypothesis, and you can write code to run simulations to build confidence. But unknown domains often have no standard answer and no trustworthy simulation environment, so self-evolution is Apodex's main route toward a Heavy Duty Solver."
   },
   {
-   "h": "Six months to the first loop; drift will take years",
-   "body": "Bei Bing expects the first closed loop of self-evolution to run in six months to a year at the earliest: in some domain (coding, for instance) the model finds its own problems, manufactures its own training data, verifies itself, and completes one round of iteration. But the recursive part of RSI has to run many rounds, and recursive drift is still unsolved; he is confident it will be completely solved within a few years. What keeps him up at night most is not knowing whether the model has gone off course while self-evolving — both the safety objective and the performance objective can drift. For now the only option is to read model outputs by hand every day and intervene in agent behavior; in future, ‘distilling yourself’ could inject that monitoring ability into the model and speed the process up."
+   "h": "A six-month loop, but drift will take years",
+   "body": "Beibing expects the first self-evolution loop to close in as little as six months to a year: in some domain (coding, say) the model finds its own problems, generates its own training data, verifies itself, and iterates one round. But the recursive part of RSI requires many rounds, and recursive drift is still unsolved; he is confident it can be fully solved within a few years. What keeps him up at night is not knowing whether the model has drifted off course while self-evolving — both safety goals and performance goals can drift. For now the only option is to manually read model outputs every day and intervene in agent behavior; in the future, \"distilling yourself\" could inject that monitoring ability into the model and speed up the process."
   }
  ],
  "terms": [
   {
-   "term": "RSI (Recursive Self-Improvement)",
-   "def": "A model's ability to train itself and improve in a loop."
+   "term": "RSI / Recursive Self-Improvement",
+   "def": "The ability of a model to train itself and improve in a loop."
   },
   {
    "term": "Recursive Drift",
-   "def": "Errors compounding generation after generation as a model trains on data it generated itself, gradually pulling it away from the target."
+   "def": "When a model self-generates training data, errors accumulate across generations and it gradually deviates from the goal."
   },
   {
    "term": "Heavy Duty Solver",
@@ -64,32 +64,32 @@
   },
   {
    "term": "Discovery Model",
-   "def": "A model that proposes and verifies new hypotheses rather than relying on known answers."
+   "def": "A model that does not rely on known answers but proposes and verifies new hypotheses."
   },
   {
    "term": "Agent Team",
-   "def": "A collaborative system of sub-agents that divide the work and verify each other, used for ultra-long tasks and for verification."
+   "def": "A collaborative system in which multiple sub-agents divide work and verify each other, used for ultra-long tasks and verification."
   }
  ],
  "facts": [
   {
-   "k": "Share of Anthropic's code generated by Claude",
+   "k": "Share of Anthropic code generated by Claude",
    "v": "80%"
   },
   {
-   "k": "Length of human task Claude 3 Ops can handle",
+   "k": "Human task duration Claude 3 Ops can handle",
    "v": "about 4 minutes"
   },
   {
-   "k": "Length of human task Claude 3.7 Sonnet can handle",
+   "k": "Human task duration Claude 3.7 Sonnet can handle",
    "v": "about 1.5 hours"
   },
   {
-   "k": "Length of human task Claude 4.6 Ops can handle",
+   "k": "Human task duration Claude 4.6 Ops can handle",
    "v": "about 12 hours"
   },
   {
-   "k": "Industry-accepted doubling period for the task length models can handle",
+   "k": "Industry-accepted doubling period for task duration models can handle",
    "v": "doubles every 7 months"
   },
   {
@@ -97,31 +97,31 @@
    "v": "six months to a year"
   },
   {
-   "k": "Target reduction in the recursive drift rate",
-   "v": "from 10% drift per pass down to 1%, and eventually to 0.01%"
+   "k": "Target reduction in recursive drift rate",
+   "v": "from 10% drift per round to 1%, and ultimately to 0.01%"
   }
  ],
  "quotes": [
   {
-   "text": "A model that likes to flatter you actually has a very hard time proposing a bold hypothesis.",
+   "text": "A model that likes to flatter is actually very unlikely to propose a bold hypothesis.",
    "translated": true
   },
   {
-   "text": "One question that keeps me up at night is how we know that while this model is self-evolving, it is meeting human needs and has not gone off course.",
+   "text": "The question that keeps me up at night is how we know that while this model is self-evolving, it is meeting human needs and has not drifted off course.",
    "translated": true
   },
   {
-   "text": "I'm not writing code one function at a time any more; I'm at a higher dimension, a higher level, monitoring different agents writing code.",
+   "text": "I don't write code function by function; instead I monitor different agents writing code from a higher dimension, a higher level.",
    "translated": true
   },
   {
-   "text": "Taste has no right or wrong to it, and no good or bad either — only fitting and not fitting.",
+   "text": "Taste has no right or wrong distinction, and no good or bad distinction — only a suitable and unsuitable distinction.",
    "translated": true
   },
   {
-   "text": "I think our taste is only what — if you put it in the language of training — you'd call a war start; it just gave it a warm start.",
+   "text": "I think our taste is just — if we put it in training language, it's called warm start — it just gives it a warm start.",
    "translated": true
   }
  ],
- "model": "claude-cli:opus"
+ "model": "openai:deepseek-chat"
 }

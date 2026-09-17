@@ -2,86 +2,86 @@
  "slug": "2026-07-16-karpathy-训练语言模型本质上是在训练一个文本压缩器",
  "of": "karpathy-509fc0065a",
  "source_lang": "en",
- "title": "Why cross-entropy loss won: it is training a text compressor",
- "dek": "Cross-entropy loss was selected because it can be proved mathematically to be the only functional form that guarantees the loss is minimized exactly when the model's output equals the true distribution of the data — and that turns out to be equivalent to training the model into a text compressor approaching the Shannon limit.",
- "why": "It nails two frames that sound entirely unrelated — next-token prediction and compression — together with a single formula. For people who want to understand why the loss function has the shape it has, not just how to call it.",
- "who": "Engineers and researchers interested in loss function design and in the intersection of information theory and deep learning, especially anyone who wants to understand where the name cross-entropy loss comes from.",
- "skip": "The rigorous Lagrange multiplier derivation at 24:38 can be skipped; it does not affect the conclusions that follow.",
+ "title": "Why cross-entropy loss wins: it trains a text compressor",
+ "dek": "Cross-entropy loss was chosen because it can be proven mathematically to be the only function form that guarantees the loss is minimized when the model's output equals the data's true distribution — which is exactly equivalent to training the model into a text compressor that approaches the Shannon limit.",
+ "why": "It pins together two frameworks that sound completely unrelated — next-token prediction and compression — with a single formula. For anyone who wants to understand why the loss function looks the way it does, not just how to call it.",
+ "who": "Engineers and researchers interested in the intersection of loss function design, information theory and deep learning, especially those who want to understand where the name \"cross-entropy loss\" comes from.",
+ "skip": "The rigorous derivation with Lagrange multipliers at 24:38 can be skipped without affecting the conclusions that follow.",
  "tags": [
   "Information theory",
   "Cross-entropy",
   "Language model training",
-  "Distillation",
+  "Model distillation",
   "Compression",
   "KL divergence"
  ],
  "points": [
   {
-   "h": "gzip alone can draw a family tree of human languages",
-   "body": "A 2002 paper used nothing but gzip — an ordinary general-purpose file compressor — to cluster texts in different languages automatically, and even to recover the genealogical tree of the language families, without relying on any linguistic prior knowledge at any point. The method is to append a fragment of document B to the end of document A, compress the result, and compare its file size against compressing A on its own. That difference is essentially asking how well a compression scheme optimized for A handles a fragment of B. The same idea was later used for authorship identification."
+   "h": "gzip can draw the language family tree",
+   "body": "A 2002 paper used only gzip, a general-purpose file compressor, to automatically cluster texts in different languages and even reconstruct the genealogical tree among language families, all without relying on any linguistic prior knowledge. The method is to append a fragment of document B to the end of document A and compress the result, then compare this with the file size of compressing A alone — the difference is essentially asking \"how well does a compression scheme optimized for A handle a fragment of B,\" and the same idea was later used for text authorship attribution."
   },
   {
-   "h": "An old code meeting a new distribution wastes bits: that is cross-entropy",
-   "body": "Suppose a coding scheme is optimized for some distribution Q — say the robot commands up/down/left/right are assigned probabilities 1/2, 1/4, 1/8, 1/8 and given bit lengths to match — but the actual data has shifted to a new distribution P. Keeping the old code now wastes bits. Reweight that old code by the new distribution and compute the average number of bits it consumes: that value is the cross-entropy of Q relative to P. What it measures is exactly this — how a compression scheme optimized for one situation performs when moved into another."
+   "h": "The cost of an old code meeting a new distribution",
+   "body": "If a coding scheme was optimized for some distribution Q (say, assigning probabilities 1/2, 1/4, 1/8, 1/8 to the robot commands up/down/left/right and designing corresponding bit lengths), but the actual data has become a new distribution P, continuing to use the old code wastes bits. Re-weighting by the new distribution to compute the average number of bits this old code would use gives a value called \"the cross-entropy of Q relative to P\" — it measures exactly how a compression scheme optimized for one situation performs in another."
   },
   {
-   "h": "Cross-entropy bottoms out at the entropy itself, exactly when Q equals P",
-   "body": "Picture the cross-entropy formula as a curve: hold P fixed and let Q vary. The curve always attains its minimum where Q equals P, and that minimum is precisely the entropy of P. The reason is that the question cross-entropy asks — how does a code optimized for one setting perform in another — can only reach the theoretical optimum in compression efficiency when the two settings are exactly the same. This property is the hinge on which the whole subsequent argument turns."
+   "h": "The minimum of cross-entropy is entropy itself",
+   "body": "Picture the cross-entropy formula as a curve drawn by fixing P and letting Q vary. This curve always attains its minimum where Q equals P, and that minimum is exactly the entropy of P. This is because the question cross-entropy asks — \"how does a code optimized for one setting perform in another\" — can only reach theoretical optimal compression efficiency when the two settings are identical. This property is the pivot of the entire argument that follows."
   },
   {
-   "h": "Pretraining loss is nothing but the average information content per token",
-   "body": "When you train a language model, for every real next token in the training data you take the negative logarithm of the probability the model assigned to it, then average over all tokens. That is the entire pretraining loss function. The smarter the model, the higher the probability it puts on the token that actually occurred, and the lower the corresponding negative log — the information content, the degree of surprise. A badly trained model, by contrast, is confident about nothing and is startled everywhere."
+   "h": "The pretraining loss is the average information per token",
+   "body": "When training a language model, for every next token that actually appears in the training data, take the negative log of the probability the model assigns to it, then average over all tokens — that is the entire pretraining loss function. The \"smarter\" the model, the higher the probability it gives to tokens that actually occur, and the lower the corresponding negative log value (information content / degree of surprise); a poorly trained model is unconfident about everything and is \"surprised\" everywhere."
   },
   {
-   "h": "The negative log is forced out by mathematics, not chosen by you",
-   "body": "The common explanation is that in the cross-entropy formula every term other than the one for the true token is zero, so what remains is naturally the negative log — but that does not explain why you reached for cross-entropy in the first place. The sturdier argument is this: require only that some function F satisfy the condition that the average loss over all training examples attains its minimum only when the model's output distribution equals the true statistical distribution of the data. Constrained optimization with Lagrange multipliers then proves that F must be the logarithm. The choice was never yours; the negative log is forced out by the mathematics — and the average-loss formula you arrive at is exactly the definition of cross-entropy."
+   "h": "Why it must be the negative log, not just any decreasing function",
+   "body": "The common explanation is \"in the cross-entropy formula everything except the term for the true token is zero, so what's left is naturally the negative log\" — but this doesn't explain why cross-entropy was chosen in the first place. A more solid argument: if you only require some function F to satisfy \"the average loss over all training samples is minimized only when the model's output distribution equals the data's true statistical distribution,\" then constrained optimization with Lagrange multipliers proves F must be a logarithmic function — the choice isn't actually yours, the negative log is forced by mathematics, and the average loss formula at that point is exactly the definition of cross-entropy."
   },
   {
-   "h": "Distillation feeds the small model the large model's entire probability distribution",
-   "body": "Ordinary pretraining puts full weight on exactly one token per position — the one that actually occurred — and zero on everything else. Distillation instead has the small model match, at every position, the complete probability distribution the large model produces, with the loss defined as the cross-entropy of the small model's distribution relative to the large model's. A single training example therefore transmits far more information than it does in ordinary pretraining — like learning chess not by watching only the one move that was played, but by having a stronger player walk you through every candidate move at each step and how much weight each one carries."
+   "h": "Distillation: feed the small model the big model's entire probability distribution",
+   "body": "Ordinary pretraining gives full weight only to \"the one token that actually occurred\" at each position, and zero to everything else; distillation instead has the small model match the full probability distribution given by the big model at each position, with the loss defined as the cross-entropy of the small model's distribution relative to the big model's. A single training sample thus conveys far more information than in ordinary pretraining — like learning chess not by seeing only the one move actually played, but by having a stronger player explain every candidate move and its weight at each step."
   },
   {
-   "h": "Training with cross-entropy loss is equivalent to training a text compressor",
-   "body": "From the compression side, cross-entropy naturally measures how wasteful one compression scheme is once it is moved into another situation. From the language-model-training side, the loss function is the average information content per token. All that is needed is to turn a general-purpose predictor — a language model, for instance — into a compressor, encoding a text with roughly as many bits as that text's information content under the model. Once you can do that, the two threads line up completely: training a model with cross-entropy loss is equivalent to training it to be as good a text compressor as possible."
+   "h": "Cross-entropy loss is equivalent to training a text compressor",
+   "body": "From the compression angle, cross-entropy naturally measures \"how wasteful it is to move one compression scheme to another situation\"; from the language model training angle, the loss function is the average information per token. As long as you can turn a general predictor (such as a language model) into a compressor — encoding the text with roughly as many bits as the text's information content in the model's view — the two threads line up completely: training a model with cross-entropy loss is equivalent to training it into the best possible text compressor."
   },
   {
-   "h": "KL divergence counts how many bits a badly fitted code wastes",
-   "body": "Subtract the entropy from the cross-entropy and you get the KL divergence (Kolbach-Leibler divergence), which measures specifically how many bits per symbol, on average, are wasted by using a coding scheme that was not well optimized. In machine learning KL divergence is often treated as a distance between two distributions: zero when they are identical, and larger the more they differ. But it is not symmetric — the KL divergence of Q relative to P does not equal that of P relative to Q — which is why using cross-entropy rather than KL divergence in distillation is a choice worth chewing on."
+   "h": "KL divergence: how many bits the encoding wastes",
+   "body": "Cross-entropy minus entropy gives the KL divergence (Kolbach-Leibler divergence), which specifically measures \"with a poorly optimized coding scheme, how many bits are wasted per symbol on average.\" In machine learning, KL divergence is often treated as a \"distance\" between two distributions: zero when the two distributions are identical, larger as they differ more, but it is asymmetric — the KL divergence of Q relative to P is not equal to that of P relative to Q, which is also why using cross-entropy rather than KL divergence in distillation is a choice worth pondering."
   }
  ],
  "terms": [
   {
    "term": "cross-entropy",
-   "def": "The average number of bits per symbol required when data from distribution P is encoded with a code optimized for distribution Q"
+   "def": "The average number of bits per symbol required to encode data from distribution P using a code optimized for distribution Q"
   },
   {
-   "term": "KL divergence (relative entropy)",
-   "def": "Cross-entropy minus entropy; a measure of how many bits a coding scheme wastes relative to the optimal one"
+   "term": "KL divergence",
+   "def": "Cross-entropy minus entropy; measures how many bits a coding scheme wastes relative to the optimal scheme"
   },
   {
    "term": "distillation",
-   "def": "Training a small model on the full probability distribution output by a large model rather than on a single correct answer"
+   "def": "Training a small model using the full probability distribution output by a large model rather than a single correct answer"
   },
   {
    "term": "Lagrange multiplier",
-   "def": "A mathematical method for finding the extrema of a function subject to constraints"
+   "def": "A mathematical method for finding extrema of a function under constraints"
   },
   {
    "term": "Shannon limit",
-   "def": "The theoretical lower bound on the number of bits that lossless compression can achieve"
+   "def": "The theoretical lower bound on the optimal number of bits achievable in lossless compression"
   }
  ],
  "facts": [
   {
-   "k": "Cross-entropy of the old robot-command code applied to the new distribution",
+   "k": "Cross-entropy of the old robot-command code when facing a new distribution",
    "v": "2.625 bits/symbol"
   },
   {
-   "k": "Cross-entropy of a 90/10 skewed code used on a 50/50 uniform distribution",
+   "k": "Cross-entropy of a 90/10 skewed distribution code used on a 50/50 uniform distribution",
    "v": "about 1.74 bits/symbol"
   },
   {
-   "k": "Publication year of the paper Language Trees and Zipping",
+   "k": "Publication year of the paper \"Language Trees and Zipping\"",
    "v": "2002"
   }
  ],
@@ -119,5 +119,5 @@
    "translated": false
   }
  ],
- "model": "claude-cli:opus"
+ "model": "openai:deepseek-chat"
 }
