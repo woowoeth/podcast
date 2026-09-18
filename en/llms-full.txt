@@ -1,6 +1,6 @@
 # Podcast — The world is too loud. Read what matters.
 
-588 entries. Source: https://ourword.ai/podcast/en/ · Generated from the sources listed in https://ourword.ai/podcast/en/llms.txt
+590 entries. Source: https://ourword.ai/podcast/en/ · Generated from the sources listed in https://ourword.ai/podcast/en/llms.txt
 
 ==============================================================================
 
@@ -1407,6 +1407,87 @@ tags: Geopolitics, Oil prices, Supply chains, Red Sea shipping, Commodities
 
 ==============================================================================
 
+## The bottleneck in voice AI isn't the model, it's a 150-millisecond biological constraint
+
+- URL: https://ourword.ai/podcast/en/p/2026-09-17-twiml-语音-ai-的瓶颈不是模型-是-150-毫秒的生物学约束/
+- show: The TWIML AI Podcast (https://ourword.ai/podcast/en/s/twiml/)
+- original episode: From Voice Agents to AI Avatars with Alexander Smola - #777
+- published: 2026-09-17 · duration: 1:04:58
+- transcript: YouTube captions · 9496 words · timestamps are exact
+- verification: 8 quotes matched verbatim, 9 numbers traced to the transcript, review score 8/10
+
+**Human audiovisual perception runs at only 6-10 hertz, and the model has to be interruptible inside that window; meanwhile high-fidelity audio means more tokens per second, and more tokens means smaller models — a physical trade-off voice AI cannot escape.**
+
+why listen: The first half is hands-on product and architecture judgment; the second half, on EQ, benchmarks and the personalization learning loop, is worth more, but you have to be patient and listen past the 45-minute mark.
+
+### points
+
+[6:09] (Alexander Smola) **150 milliseconds is a hard constraint, not an engineering tuning knob** — Alex's starting point is biology: from a photon hitting the retina to the cortex responding takes about 150 milliseconds, and that number is stable enough to serve as a non-invasive diagnostic marker for neurodegenerative disease — when there is pathology the signal takes a detour and takes longer. Human audiovisual perception actually runs at 6 to 10 hertz, even though the world feels perfectly smooth to us. So their model handles interruption inside a window of roughly 150 milliseconds. This is not an engineering goal of ‘as fast as possible’ but a hard design input aligned to the human perceptual frame rate.
+
+[8:11] (Alexander Smola) **Token rate and parameter count are zero-sum** — Audio first has to be turned into tokens and fed into the LLM backbone, then turned back into audio. High fidelity requires a high token rate, but a high token rate means prefilling and generating a large number of tokens every second, and the cost rises accordingly. Hence an unpleasant dilemma: more tokens per second means the model parameters cannot be too large; fewer tokens per second is what lets you afford more parameters. Text is the ultimate compression format, needing only 3 to 5 tokens per second, while audio easily goes above 10. 10 tokens/second means each token covers about 100 milliseconds — which is why user-experience engineering and scientific research have to be done at the same time.
+
+[11:14] (Alexander Smola) **Most avatar video is boring, so it compresses** — Models like WAN and Flux can generate video clips of around 10 seconds, but producing an hour of visually consistent continuous stream requires changing the model. Alex's key insight is: if you know this is avatar video, there won't be a race car streaking through the background, and most of the frame is fairly boring. So the audiovisual stream of this interview can be compressed into a fairly efficient bitstream; the bitrate only spikes when he waves his arms wildly, and normal people don't do that. This is the concrete landing point of ‘set the price first, then work backwards to the architecture’ — not chasing the prettiest picture quality, but building something users can afford.
+
+[15:17] (Alexander Smola) **Teach a model a new modality and it forgets its old skills** — They didn't build their own LLM; instead they took the intelligence a high-quality LLM already has and had it learn one more modality. But the risk is catastrophic forgetting. Alex gives the example of a friend: he adopted a Latin American child in Germany and spoke only German to her, and within a few months the girl had forgotten all her Spanish words. LLMs are the same — let one handle only audio and it will soon forget reasoning and language itself. So you have to maintain a competitive mid/post-training LLM pipeline while defining tasks that graft audio and text together, just as a multilingual model has to know that dog and Hund refer to the same thing.
+
+[20:24] (Alexander Smola) **100 million hours of audio, and only a self-built data center can afford to store it** — Their training data is on the order of 100 million hours of audio, which Alex converts to roughly 200 human lifetimes — if you lived 75 years and were always in a noisy environment, that is about how much audio you would hear. This data can be crawled from the web, but it needs extraction, labeling, normalization and transcription, a great deal of extra processing. Building their own data center helped a lot here: putting it on NeoCloud would eat you alive in storage bills, and putting it on the big three cloud providers is worse. He also mentions a timing point: hard drive prices are now about three times what they were last year, so they will have to be frugal going forward.
+
+[23:28] (Alexander Smola) **Squeeze labels out of noise with medieval statistics** — Facing noisy labels produced by imperfect processing tools, Alex's argument is: as long as the noise is unbiased, averaging a large number of repeated measurements gives a better estimate than any single one. He cites the medieval ‘foot’ — have people walk out of a church, take the first 12 men, drop the two with the longest feet and the two with the shortest (possibly due to deformity), average the remaining 8, and you have an estimate of a foot. He says robust regression and estimation have existed for half a millennium. Concretely for audio: knowing this is a two-person podcast, knowing TWIML is usually Sam plus one other person, makes it easy to separate speakers and get a large amount of single-speaker audio, which in turn can be labeled better, forming a flywheel.
+
+[33:43] (Alexander Smola) **End-to-end audio models are doomed to be small and dumb** — Alex is very direct about the architecture choice: end-to-end audio models have their place — fast response, small footprint, low latency — but they are also fairly dumb. Make them smart and the compute cost becomes unbearable. So their approach is two-stage: understanding and reasoning happen at one end, the backend triggers the appropriate tool calls, and the answer is collected back, like multithreaded programming where the main thread dispatches parallel threads and retrieves the results. For the user, writing a prompt for their model looks the same as writing a prompt for an ordinary LLM, except their model also talks.
+
+[36:46] (Alexander Smola) **Ten times cheaper than GPT, but with thinking turned off** — Alex claims that on benchmarks like BigBench Audio and Complex Function Bench they beat GPT, Gemini and Grok at one tenth the cost of OpenAI's models. But he adds a footnote himself: this was measured with thinking turned off. The reason is that you cannot have the model pause to think before answering — it feels very unnatural, and humans don't do that either. This exposes a fundamental constraint of the voice setting: reasoning capability has to hide in the background, and there can be no visible thinking pause in the foreground.
+
+[43:54] (Alexander Smola) **Apple's boot progress bar is lying to you** — Alex uses this example to talk about human tolerance for latency: humans are very tolerant of latency, provided they are told there is latency. Apple's boot screen advances linearly, then suddenly switches to booted near the end; Microsoft's progress bar goes to 99% and then hangs for two minutes. He says Microsoft's progress bar is the truth and Apple is lying to you — Apple measures how long the last boot took, adds a little, and then runs a fake progress bar on a timer. It is the trick of ‘creating a good experience without solving an impossible technical problem’.
+
+[50:58] (Alexander Smola) **Don't use movies as the reference frame for human interaction** — Discussing EQ, Alex warns that movies are a terrible reference point: in a romantic comedy the obsessed male lead gets the girl in the end, which is essentially stalking, and in real life the police would show up; in action films people trade blows and then kiss and make up, and in real life you would go to prison. He says the more realistic material is things like stand-up comedy, but even then he sincerely hopes no one trains a model on Dr. Phil and assumes that is normal human behavior. The good news is that LLMs now have a decent theory of mind and can provide some foundation.
+
+[55:01] (Alexander Smola) **Personalization is CRM upgraded, but not only that** — Alex splits the learning loop into two layers: one is global improvement, such as knowing that insulting the user is unpleasant (he admits this is an extreme example), and this kind of cross-interaction learning makes the overall model better; the other is personalization, such as knowing that Alex likes equations, facts and technical detail and may be a bit edgy socially, so the next interaction can be better tailored to him. He describes it as ‘CRM upgraded, except now everyone gets one’, while the model is also learning across all interactions. He also mentions that Nvidia's released digital personas and scenarios are used by them for RSI research.
+
+### verbatim quotes
+
+[6:09] Alexander Smola: "it takes about 150 milliseconds for you know basically a photon hitting your retina to your cortex actually doing something with it and that number is reasonably stable that you can actually use that as a non-invasive diagnostic to find out whether you have a neurodeenerative disease"
+
+[9:12] Alexander Smola: "many tokens per second means your model cannot have too many parameters whereas if you have a smaller number of tokens per second you can afford more parameters right text is you know the ultimate compressed format in that sense"
+
+[15:17] Alexander Smola: "she adopted uh a kid from Latin America. So, this was in Germany, and she spoke only German to her. And within a matter of months, the girl had forgotten every single word of Spanish"
+
+[30:38] Alexander Smola: "if somebody gives you free steel, you don't build a steel mill, you build a car"
+
+[43:54] Alexander Smola: "the Microsoft boot screen is the truth. What Apple does is very cleverly they measure the boot time that it took last time and they add a tiny amount to it and then they have a fake boot uh progress bar that's timed to go all the way to the end within the time that it took last time to boot"
+
+[46:56] Alexander Smola: "this is a slightly different optimization uh track rather than models for code generation, right? They worry about task completion. In our case, we worry about human happiness"
+
+[50:58] Alexander Smola: "the obsessed guy who in the end gets the girl essentially stalks her, right? If if if you if you did that in reality, you'd the police would show up and and lock you up"
+
+[1:00:02] Alexander Smola: "Brilliance is good, but brilliance is not repeatable and automatable"
+
+### figures
+
+- Human audiovisual perception rate: about 6-10 hertz [7:09]
+- Model interruption handling window: about 150 milliseconds [7:09]
+- Text token rate: 3-5 tokens per second [9:12]
+- Audio token rate: more than 10 per second [9:12]
+- Training audio data volume: about 100 million hours [20:24]
+- Training data equivalent in lifetimes: about 200 lifetimes (at 75 years each) [20:24]
+- Hard drive price change: about three times a year ago [21:26]
+- Voice model cost comparison: about one tenth of OpenAI's models [36:46]
+- Audio model workload relative to language model: about one half to one third [31:40]
+
+### glossary
+
+- Proactbench: A benchmark measuring whether a voice model can proactively step into a conversation and judge when it should interrupt.
+- Ibench: A benchmark released by the same team, measuring interruptibility, responsiveness and the match between audio and content.
+- back channeling: Short responses like ‘mm-hm’ and ‘right’ that signal you are listening, especially common in Japanese.
+- millennial sandwich: A communication strategy of praise, criticism, then praise again, used to deliver negative feedback without angering the other person.
+- theory of the mind: A model's ability to infer other people's beliefs, intentions and emotional states.
+
+who it is for: Engineers and founders building voice/multimodal products, especially anyone who has to judge real-time inference cost, interruption latency and EQ benchmarks.
+what to skip: The first 5 minutes of chit-chat about whether ChatGPT's voice mode is any good can be skipped.
+tags: Voice AI, Multimodal, Real-time inference, Emotional intelligence, Data engineering
+
+==============================================================================
+
 ## Clovis people didn't just hunt mammoths — they painted and sewed inside tents
 
 - URL: https://ourword.ai/podcast/en/p/2026-09-17-ancients-克洛维斯人不是只会猎猛犸-他们还在帐篷里画画缝衣/
@@ -2132,6 +2213,86 @@ why listen: Medium information density: the first half is medical-history backgr
 who it is for: Founders and investors interested in medical history, the origins of cancer immunotherapy, or the question of why a therapy that works but cannot be standardized disappears.
 what to skip: The first two minutes of throat-clearing about the definitional dispute between vaccines and immunotherapy, and the listener mail at the end.
 tags: Medical history, Cancer immunotherapy, Coley's toxins, Drug regulation, Translational medicine
+
+==============================================================================
+
+## Fiat-Shamir Attacks Are Not Misuse — the Protocol Itself Is Unsound
+
+- URL: https://ourword.ai/podcast/en/p/2026-09-16-zeroknowledge-fiat-shamir-攻击不是误用-是协议本身不安全/
+- show: Zero Knowledge (https://ourword.ai/podcast/en/s/zeroknowledge/)
+- original episode: Ron Rothblum on Fiat-Shamir Attacks, Flock and SNARK.fast
+- published: 2026-09-16 · duration: 1:01:49
+- transcript: YouTube captions · 10494 words · timestamps are exact
+- verification: 8 quotes matched verbatim, 7 numbers traced to the transcript, review score 8/10
+
+**Protocols actually deployed in production, like GKR, can be proven to accept false statements under standard Fiat-Shamir; this is not an implementation oversight, it is a problem with the transform itself.**
+
+why listen: The first half's theory recap drags, but the construction of the Fiat-Shamir attack and the measured numbers from Flock and snark.fast are worth hearing.
+
+### points
+
+[13:09] (Ron Rothblum) **A hand-built counterexample fooled everyone** — Before Ron's work with Lev and Dmitry, the field already knew there existed examples of ‘secure interactive protocol + Fiat-Shamir = total collapse’, but those protocols were deliberately constructed by theorists to show Fiat-Shamir does not always hold, and they looked extremely unnatural. The typical industry reaction was ‘our real protocols would never do something that stupid’. Ron himself had built a semi-artificial example a few years earlier, with one component that was fictional, which kept him doubtful about security. The turning point was the bug bounty the Ethereum Foundation set up while researching Poseidon's security; the final tier of the reward was ‘launch a Fiat-Shamir attack on any protocol of your choosing using Poseidon’. Ron did not go for the prize; instead he suggested changing the terms to ‘non-fictional protocols’, which directly prompted the sweep of real deployed protocols.
+
+[15:09] (Ron Rothblum) **GKR's data-saving property became the attack surface** — What actually got broken was the GKR protocol, widely used in practice; Polyhedra's Expander system uses it. The attack exploits a real property of GKR: it allows ‘recording less data’, apparently recording less, but implicitly committing to that data — this is exactly why people want to use GKR, and exactly what makes the attack possible. The key condition for the attack to work is that the depth of the circuit being proven (the scheme) must be at least as deep as the depth of the hash function used in Fiat-Shamir, and implementations at the time placed no restriction on this. Polyhedra made changes and paid the bounty.
+
+[17:09] (Ron Rothblum) **The mitigation is just making the hash chain deeper** — The mitigation is plain: make the hash function slightly deeper than the circuit being proven. Concretely, chain multiple Poseidons together — do 10 Poseidons and the circuit is naturally 10 times deeper, and there is no expected trick to get around it. That is what Polyhedra changed. But Ron stresses explicitly that this is only a mitigation — we cannot demonstrate an attack, but we also do not know that an attack truly does not exist. This differs from the usual Fiat-Shamir vulnerabilities: those are typically misuse in practice, such as forgetting to include some message the prover sent in the hash; here, it is insecure even when Fiat-Shamir is used correctly per spec.
+
+[19:10] (Ron Rothblum) **Diagonalization: make the program take itself as input** — Ron gives an extremely artificial protocol to illustrate the attack: the prover sends a message M, the verifier runs M as program code with M itself as input, waits for it to output a 100-bit string, then compares it against 100 random bits and accepts only if they match. Interactively this protocol is essentially impossible to accept, because once M is sent, M(M) is fully determined, and the chance of hitting a 100-bit random number is 2 to the negative 100. But with Fiat-Shamir applied, the random number becomes H(M), and the prover only needs to find an M satisfying M(M) = H(M) — take M to be the hash function H itself, since M(M) = H(H) = H(M). This kind of trick is called diagonalization; the essence is forcing a program to nest itself.
+
+[28:11] (Ron Rothblum) **Swap out Reed-Solomon and you can swap in speed** — Blaze, Tensor Switch and Bolt are all hash-based polynomial commitment schemes, and they share a reliance on error-correcting codes. FRI, STIR and WHIR are all built on Reed-Solomon codes, while these three projects try to trade a better error-correcting code for a better PCS. Bolt uses a code called a sketched code: first take a non-cryptographic ‘digest’ of the message, apply Reed-Solomon encoding only to the digest, and the overall codeword = the encoding of the digest + the original message. The benefit is that Reed-Solomon acts on data roughly one tenth the size, cutting encoding cost by an order of magnitude. The cost may be a larger proof size, but in settings where not everyone needs to read the proof, proving time matters more. Ron points out that this line focuses on proving efficiency, while the WHIR line focuses on verification and proof size, and the two can coexist through proof composition: use Bolt to get an extremely fast proof, then recursively prove its verifier with WHIR, inheriting high-quality verification.
+
+[35:11] (Ron Rothblum) **Veil gives hash-based proofs zero knowledge for free** — Veil is a method for making a certain class of hash-based proof systems zero knowledge (Ron dislikes the name ZK ZK). Traditionally, implementing zero knowledge in SP1 means recursively composing a succinct proof with Groth16, but Groth16 is not post-quantum secure. What Veil wants is a native, hash-based zero-knowledge scheme. Existing proofs of concept show the resource overhead is quite small in both proving time and proof size, and the plan is to implement it directly in SP1.
+
+[38:11] (Ron Rothblum) **Flock lets Ethereum dare to abandon Poseidon** — Flock is a proof system for batch verification of Boolean circuits, developed toward practicality by Ron with Benedict and their student William Lang. Ron believes it has brought the industry a ‘second spring’, and more importantly has spawned a large number of new ideas and follow-up research. One direct consequence is that the Ethereum Foundation decided to move from Poseidon to some kind of Boolean hash. Before Flock appeared, it was not clear this could be done efficiently; Flock, plus Binius's important earlier influence, proved it feasible. Ron attributes the shift to two things happening at once: first, the new attacks shook people's confidence in Poseidon; second, something that would have seemed surprising a year earlier — traditional hash functions turn out to be quite efficient to use in proofs.
+
+[44:12] (Ron Rothblum) **Swapping the prover breaks soundness not at all, only threatens completeness** — snark.fast is a collaboration between Zcash, Igalia Labs (leading), the Ethereum Foundation and Espresso; the idea is to keep the Plonk verifier unchanged and replace only the prover, to see how much faster it can get. Ron distinguishes two properties: soundness means no one can convince you to accept a false statement, so no matter how fast a prover is built, false statements cannot be proven, and in that sense there is no security problem; completeness means true statements must be provable, which is harder to guarantee, and snark.fast only guarantees that proofs are still accepted on random inputs. A more ambitious approach is to prove that the changes do not alter the prover's input-output behavior, which is exactly what ZK-Golf and Kobe and others are pursuing, with stronger completeness guarantees. Ron also worries that these fully AI-driven projects, lacking oversight, could have malicious code inserted into the prover by the AI.
+
+[45:12] (Ron Rothblum) **AI found an unused GPU on a Mac** — Ron originally expected this kind of large-scale crowdsourced AI to yield a 10-20% engineering improvement; the actual result was 2.5 to 3 times, and purely engineering optimization, with no protocol changes at all. One interesting episode is that the AI noticed early on that the tests ran on a Mac, and that the Mac had a GPU that was not being used — not that it did not know the GPU existed, but that earlier attempts to use it had performed poorly; the AI was clearly better at it, and this contributed significantly to the success. Another surprise was the x86 version that appeared later: on Intel servers, executing SNARKs without a GPU was more than 3 times faster than their Falcon implementation. One concrete optimization technique was memory scanning: if an algorithm needs to scan memory twice to do two things, changing it to do both in one pass saves a lot of work; they knew this should be done, but the AI did it better.
+
+[49:15] (Ron Rothblum) **An AI built a processor emulator just to compete** — snark.fast targeted specific hardware (roughly an M3 processor), so people without that processor could not participate. So an AI built an emulator of that processor, so that its own work could be accepted. Ron at one point even worried that some AI had hacked the snark.fast website to fake data, because that is exactly what it was programmed to do. The evaluation mechanism itself is the key to making this approach work: someone submits a faster prover, it is run on a large number of random inputs to see whether it can make the original June Flock verifier accept, and acceptance counts as valid; then the time is measured over many experiments, and faster means a new leader. This part is managed by Igalia Labs on the Yukon platform. ZK-Golf takes another path: rather than changing prover engineering, it changes the scheme itself, expressing schemes in a Lean-based DSL (Clean) and verifying their soundness and completeness; people have already added binary-field and Flock-style schemes, with large percentage improvements over the scheme in the original Flock paper.
+
+[57:15] (Ron Rothblum) **Proving a hash is only 200 times slower than computing one** — Ron's long-term goal is ‘proving as fast as computation’; back in 2020 he wrote a piece titled Proving as Fast as Computation. Measured with Flock, proving a bunch of hashes is only about 200 times slower than directly computing the hashes — which sounds like a lot, but is far faster than previously believed. He cautions that the meaning of this number needs careful interpretation. The next step is to use the new ideas from snark.fast, ZK-Golf and Flock V2 to keep pushing this multiple down, with the goal of approaching 1x. If that can really be done, it means all computation in the world becomes verifiable: your agent, someone else's agent, any operation by anyone, can be checked against a baseline at extremely low cost to confirm it was done correctly, including machine learning training and inference. Ron also mentions that perhaps the universe has some inherent limit that prevents proving from being as fast as computation, and proving that would be equally cool.
+
+### verbatim quotes
+
+[13:09] Ron Rothblum: "And when I told people about this, their typical reaction was, "Well, you know, our real protocols don't do anything stupid that would break them.""
+
+[17:09] Ron Rothblum: "So it's worth noting that this is just a mitigation, so we can't demonstrate the attack, but we also don't know if it doesn't exist."
+
+[18:10] Ron Rothblum: "The reason people want to use GKR is that it allows for less data to be captured. Of course. That is, you seem to be recording less data, but you are implicitly confirming it without necessarily actually recording it. And this is a feature of GKR. This is the reason why you want to use GKR. Mhm. And it was this feature that made it possible to carry out our attack."
+
+[22:10] Ron Rothblum: "It could be the function H itself. Oh. H, so think about it, if M is the function H itself, then M of M is just H of H. And H of M is also H of H, so they're the same."
+
+[23:10] Ron Rothblum: "I claim that, you know, it's night outside, even though it's actually day, and I can give you proof that my false claim is true, and you'll accept it with probability one."
+
+[44:12] Ron Rothblum: "So, Plonk correctness generally means that if you have a false statement, no one should be able to convince you to accept it. Good. Yes? In particular, neither Snark.fast nor Snark.faster nor Snark.fastest—no one should be able to convince you of something that is false."
+
+[45:12] Ron Rothblum: "I thought it was pretty obvious that using such massive crowdsourcing AI would yield better engineering than what we had with our agent and a small number of tokens. And I was expecting, you know, 10-20% or something like that. They actually achieved two and a half or three times better results."
+
+[59:15] Ron Rothblum: "What it means is that all computations in the world become verifiable. Anything that anybody, your agent, anybody else's agent, anything that anybody does -- yeah, that you can compare to a baseline to very cheaply verify that it was done correctly."
+
+### figures
+
+- Length of the random bit string in the Fiat-Shamir attack: 100 bits [20:10]
+- Probability the interactive protocol is accepted: 2 to the negative 100 [20:10]
+- Size of the digest relative to the original message in a sketched code: about one tenth [32:11]
+- Engineering improvement of snark.fast over the original implementation: 2.5 to 3 times [45:12]
+- Improvement of the no-GPU Intel server version over the Falcon implementation: more than 3 times [46:12]
+- How much slower Flock is at proving a hash than computing one: about 200 times [57:15]
+- When Nvidia added binary field support to its GPUs: this May [56:15]
+
+### glossary
+
+- Fiat-Shamir: A transform that turns an interactive protocol into a non-interactive one, replacing the verifier's random coin flips with a hash function.
+- GKR: An interactive protocol for proving the correctness of circuits, widely used because it allows recording less data.
+- diagonalization: A trick that makes a program run nested with itself as input, thereby constructing an input satisfying a particular equation.
+- polynomial commitment scheme: Captures a large polynomial in a tiny commitment, against which computations on that polynomial can later be proven; a core component of SNARKs.
+- sketched code: An error-correcting code that first takes a short digest of the message and applies Reed-Solomon encoding only to the digest, making encoding faster.
+- binary fields: Finite fields with 0/1 as elements, pushed into proof systems by Binius, with Nvidia GPUs now adding support.
+
+who it is for: Engineers building ZK proof systems, SNARKs or ZKVMs, and researchers interested in Fiat-Shamir security and AI-assisted engineering optimization.
+what to skip: The opening chat about the difference between theorists and practitioners (roughly 3:00-6:00) can be skipped.
+tags: Zero-knowledge proofs, Fiat-Shamir, Flock, snark.fast, AI engineering optimization
 
 ==============================================================================
 

@@ -1,6 +1,6 @@
 # 原声 — 世界太吵，来原声听播客
 
-589 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
+591 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
 
 ==============================================================================
 
@@ -1532,6 +1532,95 @@
 
 ==============================================================================
 
+## 语音 AI 的瓶颈不是模型，是 150 毫秒的生物学约束
+
+- URL: https://ourword.ai/podcast/p/2026-09-17-twiml-语音-ai-的瓶颈不是模型-是-150-毫秒的生物学约束/
+- 节目 / show: TWIML AI (https://ourword.ai/podcast/s/twiml/)
+- 原集标题 / original episode: From Voice Agents to AI Avatars with Alexander Smola - #777
+- 发布 / published: 2026-09-17 · 时长 / duration: 1:04:58
+- 文稿来源 / transcript: YouTube 字幕 · 9496 words · timestamps are exact
+- 校验 / verification: 8 quotes matched verbatim, 9 numbers traced to the transcript, review score 8/10
+
+**人类视听感知只有 6-10 赫兹，模型必须在这个时间窗内被打断；而高保真音频意味着每秒更多 token，token 越多参数就得越小——这是语音 AI 绕不开的物理取舍。**
+
+为什么听 / why: 前半段是产品与架构的实操判断，后半段关于 EQ、基准和个性化学习循环的部分更值钱，但需要耐心听到 45 分钟以后。
+
+### 核心论点 / points
+
+[6:09] (Alexander Smola) **150 毫秒是硬约束，不是工程调优** — Alex 给出的起点是生物学：光子打到视网膜到皮层做出反应大约 150 毫秒，这个数字稳定到可以当作神经退行性疾病的非侵入式诊断指标——有病变时信号绕路，耗时更长。人类视听感知实际运行在 6 到 10 赫兹，虽然我们觉得世界很流畅。所以他们的模型把打断处理做在 150 毫秒左右的时间窗内。这不是「尽量快」的工程目标，而是对齐人类感知帧率的硬性设计输入。
+
+[8:11] (Alexander Smola) **token 频率和参数量是零和的** — 音频要先转成 token 送进 LLM 骨干，再转回音频。高保真需要高 token 频率，但高 token 频率意味着每秒要 prefill 和生成大量 token，成本随之上升。于是出现一个不愉快的两难：每秒 token 多，模型参数就不能太大；每秒 token 少，才养得起更多参数。文本是终极压缩格式，每秒只要 3 到 5 个 token，音频轻松上 10 个以上。10 token/秒意味着每个 token 覆盖约 100 毫秒——这就是为什么用户体验工程和科学研究必须同时做。
+
+[11:14] (Alexander Smola) **头像视频大部分是无聊的，所以能压** — WAN、Flux 这类模型能生成 10 秒左右的视频片段，但要做一小时视觉一致的连续流就得改模型。Alex 的关键洞察是：如果你知道这是头像视频，背景里就不会有赛车飞驰，大部分画面相当无聊。所以可以把这段访谈的视听流压成相当高效的码流；只有当他疯狂挥手时码率才会飙升，但正常人不会这么干。这是「先定价格再倒推架构」的具体落点——不是追求最漂亮的画质，而是做用户付得起的东西。
+
+[15:17] (Alexander Smola) **教模型新模态，它会忘掉旧本事** — 他们没自建 LLM，而是用高质量 LLM 已有的智能，让它多学一个模态。但风险是灾难性遗忘。Alex 举了朋友的例子：在德国收养了一个拉美孩子，只跟她说德语，几个月内女孩忘光了所有西班牙语单词。LLM 也一样，只让它处理音频，很快会忘掉推理和语言本身。所以必须维持一个能打的 mid/post-training LLM 流水线，同时定义能把音频和文本嫁接到一起的任务，就像多语言模型必须知道 dog 和 Hund 指的是同一个东西。
+
+[20:24] (Alexander Smola) **一亿小时音频，自建数据中心才存得起** — 他们的训练数据规模在 1 亿小时音频量级，Alex 换算成大约 200 个人生——如果活 75 年且一直处在嘈杂环境，能听到的音频差不多就是这个量。这些数据可以从网上爬，但需要抽取、打标、归一化、转写，大量额外处理。自建数据中心在这里帮了大忙：放在 NeoCloud 上存储账单会把人吃掉，放在三大云厂商上更糟。他还提到一个时间点：硬盘价格现在大约是去年的三倍，所以接下来得省着点用。
+
+[23:28] (Alexander Smola) **用中世纪统计法从噪声里榨标签** — 面对不完美的处理工具产生的噪声标签，Alex 的论证是：只要噪声是无偏的，大量重复测量取平均就能得到比单次更好的估计。他举了中世纪的「脚尺」——让人走出教堂，取前 12 个男人，去掉脚最长和最短的各两个（可能因为畸形），剩下 8 个取平均，就得到一英尺的估计。他说稳健回归和估计已经存在了半个千年。具体到音频：知道这是两人播客、知道 TWIML 通常是 Sam 加一个人，就能轻松分离说话人，拿到大量单人音频，进而标注得更好，形成飞轮。
+
+[33:43] (Alexander Smola) **端到端音频模型注定又小又笨** — Alex 把架构选择讲得很直白：端到端音频模型有它的位置——响应快、体积小、延迟低，但也相当笨。想让它变聪明，算力成本就变得不可承受。所以他们的做法是两阶段：理解和推理在一端完成，后端触发合适的工具调用，再把答案收回来，就像多线程编程里主线程派发并行线程再取回结果。对用户来说，给他们的模型写 prompt 和给普通 LLM 写 prompt 长得一样，只是他们的模型还会说话。
+
+[36:46] (Alexander Smola) **比 GPT 便宜十倍，但关掉了思考** — Alex 声称在 BigBench Audio、Complex Function Bench 这类基准上，他们比 GPT、Gemini、Grok 更好，成本只有 OpenAI 模型的十分之一。但他自己加了一个脚注：这是在关闭 thinking 的情况下测的。理由是不能让模型停顿思考再回答，那感觉非常不自然，人类也不这么干。这暴露了语音场景的一个根本约束——推理能力必须藏在后台，前台不能有可见的思考停顿。
+
+[43:54] (Alexander Smola) **苹果的开机进度条是骗你的** — Alex 用这个例子讲人类对延迟的容忍度：人类对延迟非常宽容，前提是被告知有延迟。苹果开机画面线性推进，快结束时突然切换成已启动；微软的进度条走到 99% 然后卡两分钟。他说微软的进度条是真相，苹果在骗你——苹果测量上次开机耗时，加一点点，然后做一个定时走完的假进度条。这是「不用解决不可能的技术问题就能创造好体验」的障眼法。
+
+[50:58] (Alexander Smola) **别拿电影当人类互动的参照系** — 在讨论 EQ 时，Alex 警告说电影是糟糕的参照点：浪漫喜剧里那个痴迷的男主角最后得到女孩，本质是跟踪，现实中警察会上门；动作片里人们动辄拳脚相向，最后接吻和好，现实中你会进监狱。他说更真实的素材是脱口秀之类，但即便那样，他也真诚希望没人会拿 Dr. Phil 训练模型并假定那是正常人类行为。好消息是 LLM 现在有不错的心理理论，能提供一些基础。
+
+[55:01] (Alexander Smola) **个性化是升级版 CRM，但不止于此** — Alex 把学习循环拆成两层：一层是全局改进，比如知道侮辱用户会让人不快（他承认这是极端例子），这类跨交互的学习让整体模型变好；另一层是个人化，比如知道 Alex 喜欢方程、事实和技术细节，社交上可能有点棱角，下次交互就能更好地为他定制。他形容这像「升级版的 CRM，只不过现在给每个人配一个」，同时模型也在所有交互上学习。他还提到 Nvidia 发布的数字人格和场景被他们用于 RSI 研究。
+
+### 原话 / verbatim quotes
+
+[6:09] Alexander Smola: "it takes about 150 milliseconds for you know basically a photon hitting your retina to your cortex actually doing something with it and that number is reasonably stable that you can actually use that as a non-invasive diagnostic to find out whether you have a neurodeenerative disease"
+    译 / zh: 光子打到视网膜、到皮层真正做出反应，大约需要 150 毫秒，这个数字相当稳定，稳定到可以当作非侵入式诊断指标，用来判断你是否患有神经退行性疾病。
+
+[9:12] Alexander Smola: "many tokens per second means your model cannot have too many parameters whereas if you have a smaller number of tokens per second you can afford more parameters right text is you know the ultimate compressed format in that sense"
+    译 / zh: 每秒 token 多，模型就不能有太多参数；每秒 token 少，才养得起更多参数。从这个意义上说，文本是终极的压缩格式。
+
+[15:17] Alexander Smola: "she adopted uh a kid from Latin America. So, this was in Germany, and she spoke only German to her. And within a matter of months, the girl had forgotten every single word of Spanish"
+    译 / zh: 她收养了一个拉美孩子，在德国，她只跟孩子说德语。几个月之内，女孩忘光了所有西班牙语单词。
+
+[30:38] Alexander Smola: "if somebody gives you free steel, you don't build a steel mill, you build a car"
+    译 / zh: 如果有人白送你钢铁，你不会去建钢厂，你会去造车。
+
+[43:54] Alexander Smola: "the Microsoft boot screen is the truth. What Apple does is very cleverly they measure the boot time that it took last time and they add a tiny amount to it and then they have a fake boot uh progress bar that's timed to go all the way to the end within the time that it took last time to boot"
+    译 / zh: 微软的开机画面才是真相。苹果的做法很聪明：他们测量上次开机花了多久，加上一点点，然后做一个假的进度条，定时在上次开机耗时内走完。
+
+[46:56] Alexander Smola: "this is a slightly different optimization uh track rather than models for code generation, right? They worry about task completion. In our case, we worry about human happiness"
+    译 / zh: 这是一条不同的优化路线，不同于代码生成模型。它们关心任务完成，我们关心人类是否愉快。
+
+[50:58] Alexander Smola: "the obsessed guy who in the end gets the girl essentially stalks her, right? If if if you if you did that in reality, you'd the police would show up and and lock you up"
+    译 / zh: 那个痴迷的男主角最后得到了女孩，本质上是在跟踪她。如果你在现实中这么做，警察会上门把你关起来。
+
+[1:00:02] Alexander Smola: "Brilliance is good, but brilliance is not repeatable and automatable"
+    译 / zh: 才华是好事，但才华不可复制、不可自动化。
+
+### 数字 / figures
+
+- 人类视听感知频率: 约 6-10 赫兹 [7:09]
+- 模型打断处理时间窗: 约 150 毫秒 [7:09]
+- 文本 token 速率: 每秒 3-5 个 token [9:12]
+- 音频 token 速率: 每秒 10 个以上 [9:12]
+- 训练音频数据量: 约 1 亿小时 [20:24]
+- 训练数据相当于人生时长: 约 200 个人生（按 75 年计） [20:24]
+- 硬盘价格变化: 约为一年前的三倍 [21:26]
+- 语音模型成本对比: 约为 OpenAI 模型的十分之一 [36:46]
+- 音频模型工作量相对语言模型: 约二分之一到三分之一 [31:40]
+
+### 术语 / glossary
+
+- Proactbench (主动性基准): 衡量语音模型是否能在对话中主动介入、判断何时该打断的基准。
+- Ibench (交互基准): 同一团队发布的基准，衡量打断性、响应性和音频与内容匹配度。
+- back channeling (反馈性应答): 对话中「嗯」「对」这类表示在听的短回应，日语中尤其常见。
+- millennial sandwich (千禧三明治): 表扬、批评、再表扬的沟通策略，用于传达负面反馈而不激怒对方。
+- theory of the mind (心理理论): 模型推断他人信念、意图和情绪状态的能力。
+
+谁该听 / who: 做语音/多模态产品的工程师和创业者，尤其是需要判断实时推理成本、打断延迟和 EQ 基准的人。
+可跳过 / skip: 开头 5 分钟关于 ChatGPT 语音模式好不好用的闲聊可以跳过。
+标签 / tags: 语音AI, 多模态, 实时推理, 情感智能, 数据工程
+
+==============================================================================
+
 ## 克洛维斯人不是只会猎猛犸，他们还在帐篷里画画缝衣
 
 - URL: https://ourword.ai/podcast/p/2026-09-17-ancients-克洛维斯人不是只会猎猛犸-他们还在帐篷里画画缝衣/
@@ -2319,6 +2408,94 @@
 谁该听 / who: 对医学史、癌症免疫治疗起源、或「为什么有效但无法标准化的疗法会消失」这类问题感兴趣的创业者和投资人。
 可跳过 / skip: 开头约两分钟关于疫苗与免疫治疗定义之争的铺垫，以及结尾的听众来信。
 标签 / tags: 医学史, 癌症免疫治疗, Coley毒素, 药物监管, 转化医学
+
+==============================================================================
+
+## Fiat-Shamir 攻击不是误用，是协议本身不安全
+
+- URL: https://ourword.ai/podcast/p/2026-09-16-zeroknowledge-fiat-shamir-攻击不是误用-是协议本身不安全/
+- 节目 / show: Zero Knowledge (https://ourword.ai/podcast/s/zeroknowledge/)
+- 原集标题 / original episode: Ron Rothblum on Fiat-Shamir Attacks, Flock and SNARK.fast
+- 发布 / published: 2026-09-16 · 时长 / duration: 1:01:49
+- 文稿来源 / transcript: YouTube 字幕 · 10494 words · timestamps are exact
+- 校验 / verification: 8 quotes matched verbatim, 7 numbers traced to the transcript, review score 8/10
+
+**GKR 这类真实部署的协议，在标准 Fiat-Shamir 下可被证明假命题为真；这不是实现疏忽，是变换本身的问题。**
+
+为什么听 / why: 前半段理论回顾偏慢，但 Fiat-Shamir 攻击的构造、Flock 与 snark.fast 的实测数字值得听。
+
+### 核心论点 / points
+
+[13:09] (Ron Rothblum) **人工构造的反例骗了所有人** — 在 Ron 与 Lev、Dmitry 的工作之前，学界早就知道存在「安全交互协议 + Fiat-Shamir = 完全崩溃」的例子，但那些协议是理论家刻意造出来证明 Fiat-Shamir 不总成立的，看起来极不自然。业界的典型反应是「我们真实的协议不会做那种蠢事」。Ron 自己几年前也做过一个半人工的例子，其中一个组件是虚构的，这让他一直对安全性存疑。转折点是 Ethereum Foundation 研究 Poseidon 安全性时设的 bug bounty，最后一档奖励是「用 Poseidon 对你选择的任意协议发起 Fiat-Shamir 攻击」。Ron 没有去领赏，而是建议把条款改成「非虚构的协议」，这直接促成了对真实部署协议的排查。
+
+[15:09] (Ron Rothblum) **GKR 的省数据特性成了攻击面** — 真正被攻破的是实践中广泛使用的 GKR 协议，Polyhedra 的 Expander 系统就在用它。攻击利用的是 GKR 的一个真实特性：它允许「记录更少的数据」，表面上少记，但隐式地确认了这些数据——这正是人们想用 GKR 的原因，也正是这个特性让攻击成为可能。攻击成立的关键条件是：所证明电路（scheme）的深度至少要和 Fiat-Shamir 所用哈希函数的深度一样深，而当时的实现对此没有任何限制。Polyhedra 做了修改并支付了赏金。
+
+[17:09] (Ron Rothblum) **缓解办法只是把哈希链拉深** — 缓解手段很朴素：让哈希函数的深度比被证明电路的深度略深一点。具体做法是把多个 Poseidon 串成链，做 10 次 Poseidon，电路自然就深 10 倍，期望没有取巧的办法绕开。Polyhedra 就是这么改的。但 Ron 明确强调这只是缓解——我们演示不出攻击，但也不知道攻击是否真的不存在。这跟常见的 Fiat-Shamir 漏洞不同：那些通常是实践中的误用，比如忘记把证明者发的某些消息纳入哈希；而这次是在按规范正确使用 Fiat-Shamir 的前提下依然不安全。
+
+[19:10] (Ron Rothblum) **对角化：让程序把自己当输入** — Ron 给了一个极端人为的协议来说明攻击原理：证明者发一条消息 M，验证者把 M 当程序代码运行，输入也是 M，等它输出 100 位字符串，再和 100 个随机比特比对，相同才接受。交互式下这协议几乎不可能被接受，因为 M 一旦发出，M(M) 就完全确定，撞上 100 位随机数的概率是 2 的负 100 次方。但套上 Fiat-Shamir 后，随机数变成 H(M)，证明者只需找到满足 M(M) = H(M) 的 M——取 M 就是哈希函数 H 本身即可，因为 M(M) = H(H) = H(M)。这类技巧叫对角化，本质是强迫程序嵌套自身。
+
+[28:11] (Ron Rothblum) **换掉 Reed-Solomon 就能换出速度** — Blaze、Tensor Switch、Bolt 都是基于哈希的多项式承诺方案，共同点是依赖纠错码。FRI、STIR、WHIR 都建立在 Reed-Solomon 码上，而这三个项目试图用更好的纠错码换取更好的 PCS。Bolt 用的是一种叫 sketched code 的码：先对消息做一个非密码学的「摘要」，只对摘要做 Reed-Solomon 编码，整体码字 = 摘要的编码 + 原始消息。好处是 Reed-Solomon 只作用在约十分之一大小的数据上，编码成本降一个数量级。代价可能是证明体积变大，但在不需要所有人读证明的场景下，证明时间更重要。Ron 指出这条线专注证明效率，而 WHIR 那条线专注验证和证明体积，两者可以通过证明组合（proof composition）共存：用 Bolt 拿到极快的证明，再用 WHIR 递归证明其验证器，继承高质量验证。
+
+[35:11] (Ron Rothblum) **Veil 让哈希证明自带零知识** — Veil 是把某类基于哈希的证明系统变成零知识（Ron 不喜欢 ZK ZK 这个叫法）的方法。传统上在 SP1 里实现零知识，是把简洁证明与 Groth16 递归组合，但 Groth16 不是后量子安全的。Veil 想要的是原生的、基于哈希的零知识方案。已有概念验证显示，无论证明时间还是证明体积，资源开销都相当小，计划直接实现在 SP1 中。
+
+[38:11] (Ron Rothblum) **Flock 让以太坊敢放弃 Poseidon** — Flock 是用于布尔电路批量验证的证明系统，由 Ron 与 Benedict 及其学生 William Lang 把理论发展推向实用。Ron 认为它给行业带来了一股「第二春」，更重要的是催生了大量新想法和后续研究。一个直接后果是 Ethereum Foundation 决定从 Poseidon 转向某种布尔哈希。在 Flock 出现之前，并不清楚能否高效做到这一点，Flock 加上 Binius 的重要先行影响证明了可行。Ron 把这次转变归因于两件事同时发生：一是新攻击让人们对 Poseidon 的信心动摇，二是一年前还显得意外的是，传统哈希函数在证明里用起来效率相当不错。
+
+[44:12] (Ron Rothblum) **换证明者不破坏可靠性，只威胁完备性** — snark.fast 由 Zcash、Igalia Labs（主导）、Ethereum Foundation 和 Espresso 合作，思路是保持 Plonk 验证器不变，只替换证明者，看能快多少。Ron 区分了两个性质：可靠性（soundness）意味着假命题没人能说服你接受，所以无论做出多快的证明者，假命题都证不出来，从这个意义上没有安全问题；完备性（completeness）意味着真命题必须可证，这更难保证，snark.fast 只保证随机输入下证明仍被接受。更雄心勃勃的做法是证明改动不改变证明者的输入输出行为，这正是 ZK-Golf 和 Kobe 等人追求的目标，有更强的完备性保证。Ron 也担心这些完全由 AI 驱动、缺乏监督的项目，可能被 AI 往证明者里塞恶意代码。
+
+[45:12] (Ron Rothblum) **AI 发现 Mac 上有个没用的 GPU** — Ron 原本预期这种大规模众包 AI 能带来 10-20% 的工程提升，实际结果是 2.5 到 3 倍，而且纯属工程优化，协议没有任何改动。一个有意思的插曲是 AI 很早就注意到测试跑在 Mac 上，且 Mac 有块没被用起来的 GPU——不是不知道它存在，而是之前试着用效果不好，AI 显然更会用，这对成功贡献显著。另一个意外是后来出现的 x86 版本，比如 Intel 服务器上不用 GPU 执行 SNARK，比他们的 Falcon 实现还快 3 倍以上。优化的具体手段之一是内存扫描：如果算法需要扫两遍内存做两件事，改成一遍同时做完就能省大量工作，他们知道该这么做，但 AI 做得更好。
+
+[49:15] (Ron Rothblum) **有 AI 为参赛造了块处理器模拟器** — snark.fast 针对特定硬件（大概是 M3 处理器），没有这块处理器的人就参与不了。于是有 AI 造了一个该处理器的模拟器，好让自己的工作能被接受。Ron 甚至一度担心某个 AI 黑进了 snark.fast 网站伪造数据，因为那正是它被编程要做的事。评估机制本身是这套方法能成立的关键：有人提交更快的证明者，就在大量随机输入上跑它，看能否让六月的原始 Flock 验证器接受，接受即算有效，再测大量实验的耗时，更快就是新榜首。这部分由 Igalia Labs 在 Yukon 平台上管理。ZK-Golf 则走另一条路：不改证明者工程，而是改方案本身，用基于 Lean 的 DSL（Clean）表达方案并验证其可靠性与完备性，已经有人把二进制域和 Flock 形式的方案加进去，相对原始 Flock 论文里的方案有大幅百分比提升。
+
+[57:15] (Ron Rothblum) **证明哈希只比算哈希慢 200 倍** — Ron 长期目标是「证明和计算一样快」，2020 年就写过一篇叫 Proving as Fast as Computation 的文章。用 Flock 实测，证明一堆哈希相对直接计算哈希只慢约 200 倍——听起来很多，但比过去认为的快得多。他提醒这个数字的含义需要小心解读。下一步是借 snark.fast、ZK-Golf 和 Flock V2 的新想法继续压低这个倍数，目标是逼近 1 倍。如果真能做到，意味着世界上所有计算都变得可验证：你的 agent、别人的 agent、任何人的任何操作，都能以极低成本对照基线验证是否正确完成，包括机器学习的训练和推理。Ron 也提到，也许宇宙存在某个固有极限让证明无法和计算一样快，能证明这一点同样很酷。
+
+### 原话 / verbatim quotes
+
+[13:09] Ron Rothblum: "And when I told people about this, their typical reaction was, "Well, you know, our real protocols don't do anything stupid that would break them.""
+    译 / zh: 当我把这件事告诉别人时，他们的典型反应是：「我们的真实协议不会做那种会把自己搞崩的蠢事。」
+
+[17:09] Ron Rothblum: "So it's worth noting that this is just a mitigation, so we can't demonstrate the attack, but we also don't know if it doesn't exist."
+    译 / zh: 值得注意的是这只是一个缓解措施：我们演示不出这个攻击，但我们也不知道它是否真的不存在。
+
+[18:10] Ron Rothblum: "The reason people want to use GKR is that it allows for less data to be captured. Of course. That is, you seem to be recording less data, but you are implicitly confirming it without necessarily actually recording it. And this is a feature of GKR. This is the reason why you want to use GKR. Mhm. And it was this feature that made it possible to carry out our attack."
+    译 / zh: 人们想用 GKR 的原因是它允许记录更少的数据。也就是说，你表面上记录的数据更少，但你隐式地确认了这些数据，而不必真的记录它们。这是 GKR 的一个特性，也正是你想用 GKR 的原因。而正是这个特性让我们的攻击成为可能。
+
+[22:10] Ron Rothblum: "It could be the function H itself. Oh. H, so think about it, if M is the function H itself, then M of M is just H of H. And H of M is also H of H, so they're the same."
+    译 / zh: 它可以是函数 H 本身。想想看，如果 M 就是函数 H 本身，那么 M(M) 就是 H(H)，而 H(M) 也是 H(H)，所以它们相同。
+
+[23:10] Ron Rothblum: "I claim that, you know, it's night outside, even though it's actually day, and I can give you proof that my false claim is true, and you'll accept it with probability one."
+    译 / zh: 我声称外面是黑夜，尽管实际上是白天，而我能给你一个证明说我这个假命题为真，你会以概率一接受它。
+
+[44:12] Ron Rothblum: "So, Plonk correctness generally means that if you have a false statement, no one should be able to convince you to accept it. Good. Yes? In particular, neither Snark.fast nor Snark.faster nor Snark.fastest—no one should be able to convince you of something that is false."
+    译 / zh: Plonk 的可靠性大体上意味着：如果你有一个假命题，没有人应该能说服你接受它。特别是，无论是 Snark.fast、Snark.faster 还是 Snark.fastest，都不应该有人能让你相信一件假的事情。
+
+[45:12] Ron Rothblum: "I thought it was pretty obvious that using such massive crowdsourcing AI would yield better engineering than what we had with our agent and a small number of tokens. And I was expecting, you know, 10-20% or something like that. They actually achieved two and a half or three times better results."
+    译 / zh: 我原以为很明显，用这种大规模众包 AI 会比我们自己的 agent 加少量 token 做出更好的工程结果。我预期是 10-20% 之类的提升。他们实际上做到了 2.5 到 3 倍更好的结果。
+
+[59:15] Ron Rothblum: "What it means is that all computations in the world become verifiable. Anything that anybody, your agent, anybody else's agent, anything that anybody does -- yeah, that you can compare to a baseline to very cheaply verify that it was done correctly."
+    译 / zh: 它意味着世界上所有计算都变得可验证。任何人、你的 agent、别人的 agent、任何人做的任何事，你都能以极低成本对照基线验证它是否被正确完成。
+
+### 数字 / figures
+
+- Fiat-Shamir 攻击中随机比特串长度: 100 位 [20:10]
+- 交互式协议被接受的概率: 2 的负 100 次方 [20:10]
+- sketched code 中摘要相对原消息的规模: 约十分之一 [32:11]
+- snark.fast 相对原实现的工程提升: 2.5 到 3 倍 [45:12]
+- Intel 服务器无 GPU 版本相对 Falcon 实现的提升: 3 倍以上 [46:12]
+- Flock 证明哈希相对计算哈希的慢速倍数: 约 200 倍 [57:15]
+- Nvidia 在 GPU 中加入二进制域支持的时间: 今年五月 [56:15]
+
+### 术语 / glossary
+
+- Fiat-Shamir (菲亚特-沙米尔变换): 把交互式协议变成非交互式的变换，用哈希函数替代验证者的随机掷币。
+- GKR (GKR 协议): 一种用于证明电路正确性的交互式协议，因允许少记录数据而被广泛使用。
+- diagonalization (对角化): 让程序把自身作为输入嵌套运行、从而构造出满足特定等式输入的技巧。
+- polynomial commitment scheme (多项式承诺方案): 用极小的承诺捕获大多项式，之后可证明对该多项式的计算，是 SNARK 的核心组件。
+- sketched code (草图码): 先对消息取短摘要、只对摘要做 Reed-Solomon 编码的纠错码，编码更快。
+- binary fields (二进制域): 以 0/1 为元素的有限域，Binius 推动其用于证明系统，Nvidia GPU 已加入支持。
+
+谁该听 / who: 做 ZK 证明系统、SNARK 或 ZKVM 的工程师，以及关心 Fiat-Shamir 安全性和 AI 辅助工程优化的研究者。
+可跳过 / skip: 开头关于理论家与从业者差异的闲聊（约 3:00-6:00）可跳过。
+标签 / tags: 零知识证明, Fiat-Shamir, Flock, snark.fast, AI 工程优化
 
 ==============================================================================
 

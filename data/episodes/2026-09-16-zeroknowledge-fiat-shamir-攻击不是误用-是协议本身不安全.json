@@ -1,0 +1,257 @@
+{
+ "id": "zeroknowledge-049f5e22ef",
+ "slug": "2026-09-16-zeroknowledge-fiat-shamir-攻击不是误用-是协议本身不安全",
+ "fingerprint": "b127e10f6fcd6fbb",
+ "source_id": "zeroknowledge",
+ "source": "Zero Knowledge",
+ "source_zh": "Zero Knowledge",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "零知识证明协议与密码学技术机制",
+ "tier": 3,
+ "lang": "en",
+ "title_original": "Ron Rothblum on Fiat-Shamir Attacks, Flock and SNARK.fast",
+ "published": "2026-09-16T13:00:00Z",
+ "duration": 3709,
+ "audio": "https://episodes.captivate.fm/episode/93663219-5a59-428c-83c6-347ca7400aec.mp3",
+ "link": "https://zeroknowledge.fm/podcast/410",
+ "image": "https://artwork.captivate.fm/eed81918-5c2c-4ed4-9ddc-11dbb519e2dd/cover.jpg",
+ "youtube_id": "sm1wA5HQCF8",
+ "video_len": 0,
+ "transcript_url": "https://www.youtube.com/watch?v=sm1wA5HQCF8",
+ "digest": {
+  "title": "Fiat-Shamir 攻击不是误用，是协议本身不安全",
+  "dek": "GKR 这类真实部署的协议，在标准 Fiat-Shamir 下可被证明假命题为真；这不是实现疏忽，是变换本身的问题。",
+  "why": "前半段理论回顾偏慢，但 Fiat-Shamir 攻击的构造、Flock 与 snark.fast 的实测数字值得听。",
+  "points": [
+   {
+    "t": 789,
+    "h": "人工构造的反例骗了所有人",
+    "body": "在 Ron 与 Lev、Dmitry 的工作之前，学界早就知道存在「安全交互协议 + Fiat-Shamir = 完全崩溃」的例子，但那些协议是理论家刻意造出来证明 Fiat-Shamir 不总成立的，看起来极不自然。业界的典型反应是「我们真实的协议不会做那种蠢事」。Ron 自己几年前也做过一个半人工的例子，其中一个组件是虚构的，这让他一直对安全性存疑。转折点是 Ethereum Foundation 研究 Poseidon 安全性时设的 bug bounty，最后一档奖励是「用 Poseidon 对你选择的任意协议发起 Fiat-Shamir 攻击」。Ron 没有去领赏，而是建议把条款改成「非虚构的协议」，这直接促成了对真实部署协议的排查。",
+    "spk": "Ron Rothblum"
+   },
+   {
+    "t": 909,
+    "h": "GKR 的省数据特性成了攻击面",
+    "body": "真正被攻破的是实践中广泛使用的 GKR 协议，Polyhedra 的 Expander 系统就在用它。攻击利用的是 GKR 的一个真实特性：它允许「记录更少的数据」，表面上少记，但隐式地确认了这些数据——这正是人们想用 GKR 的原因，也正是这个特性让攻击成为可能。攻击成立的关键条件是：所证明电路（scheme）的深度至少要和 Fiat-Shamir 所用哈希函数的深度一样深，而当时的实现对此没有任何限制。Polyhedra 做了修改并支付了赏金。",
+    "spk": "Ron Rothblum"
+   },
+   {
+    "t": 1029,
+    "h": "缓解办法只是把哈希链拉深",
+    "body": "缓解手段很朴素：让哈希函数的深度比被证明电路的深度略深一点。具体做法是把多个 Poseidon 串成链，做 10 次 Poseidon，电路自然就深 10 倍，期望没有取巧的办法绕开。Polyhedra 就是这么改的。但 Ron 明确强调这只是缓解——我们演示不出攻击，但也不知道攻击是否真的不存在。这跟常见的 Fiat-Shamir 漏洞不同：那些通常是实践中的误用，比如忘记把证明者发的某些消息纳入哈希；而这次是在按规范正确使用 Fiat-Shamir 的前提下依然不安全。",
+    "spk": "Ron Rothblum"
+   },
+   {
+    "t": 1150,
+    "h": "对角化：让程序把自己当输入",
+    "body": "Ron 给了一个极端人为的协议来说明攻击原理：证明者发一条消息 M，验证者把 M 当程序代码运行，输入也是 M，等它输出 100 位字符串，再和 100 个随机比特比对，相同才接受。交互式下这协议几乎不可能被接受，因为 M 一旦发出，M(M) 就完全确定，撞上 100 位随机数的概率是 2 的负 100 次方。但套上 Fiat-Shamir 后，随机数变成 H(M)，证明者只需找到满足 M(M) = H(M) 的 M——取 M 就是哈希函数 H 本身即可，因为 M(M) = H(H) = H(M)。这类技巧叫对角化，本质是强迫程序嵌套自身。",
+    "spk": "Ron Rothblum"
+   },
+   {
+    "t": 1691,
+    "h": "换掉 Reed-Solomon 就能换出速度",
+    "body": "Blaze、Tensor Switch、Bolt 都是基于哈希的多项式承诺方案，共同点是依赖纠错码。FRI、STIR、WHIR 都建立在 Reed-Solomon 码上，而这三个项目试图用更好的纠错码换取更好的 PCS。Bolt 用的是一种叫 sketched code 的码：先对消息做一个非密码学的「摘要」，只对摘要做 Reed-Solomon 编码，整体码字 = 摘要的编码 + 原始消息。好处是 Reed-Solomon 只作用在约十分之一大小的数据上，编码成本降一个数量级。代价可能是证明体积变大，但在不需要所有人读证明的场景下，证明时间更重要。Ron 指出这条线专注证明效率，而 WHIR 那条线专注验证和证明体积，两者可以通过证明组合（proof composition）共存：用 Bolt 拿到极快的证明，再用 WHIR 递归证明其验证器，继承高质量验证。",
+    "spk": "Ron Rothblum"
+   },
+   {
+    "t": 2111,
+    "h": "Veil 让哈希证明自带零知识",
+    "body": "Veil 是把某类基于哈希的证明系统变成零知识（Ron 不喜欢 ZK ZK 这个叫法）的方法。传统上在 SP1 里实现零知识，是把简洁证明与 Groth16 递归组合，但 Groth16 不是后量子安全的。Veil 想要的是原生的、基于哈希的零知识方案。已有概念验证显示，无论证明时间还是证明体积，资源开销都相当小，计划直接实现在 SP1 中。",
+    "spk": "Ron Rothblum"
+   },
+   {
+    "t": 2291,
+    "h": "Flock 让以太坊敢放弃 Poseidon",
+    "body": "Flock 是用于布尔电路批量验证的证明系统，由 Ron 与 Benedict 及其学生 William Lang 把理论发展推向实用。Ron 认为它给行业带来了一股「第二春」，更重要的是催生了大量新想法和后续研究。一个直接后果是 Ethereum Foundation 决定从 Poseidon 转向某种布尔哈希。在 Flock 出现之前，并不清楚能否高效做到这一点，Flock 加上 Binius 的重要先行影响证明了可行。Ron 把这次转变归因于两件事同时发生：一是新攻击让人们对 Poseidon 的信心动摇，二是一年前还显得意外的是，传统哈希函数在证明里用起来效率相当不错。",
+    "spk": "Ron Rothblum"
+   },
+   {
+    "t": 2652,
+    "h": "换证明者不破坏可靠性，只威胁完备性",
+    "body": "snark.fast 由 Zcash、Igalia Labs（主导）、Ethereum Foundation 和 Espresso 合作，思路是保持 Plonk 验证器不变，只替换证明者，看能快多少。Ron 区分了两个性质：可靠性（soundness）意味着假命题没人能说服你接受，所以无论做出多快的证明者，假命题都证不出来，从这个意义上没有安全问题；完备性（completeness）意味着真命题必须可证，这更难保证，snark.fast 只保证随机输入下证明仍被接受。更雄心勃勃的做法是证明改动不改变证明者的输入输出行为，这正是 ZK-Golf 和 Kobe 等人追求的目标，有更强的完备性保证。Ron 也担心这些完全由 AI 驱动、缺乏监督的项目，可能被 AI 往证明者里塞恶意代码。",
+    "spk": "Ron Rothblum"
+   },
+   {
+    "t": 2712,
+    "h": "AI 发现 Mac 上有个没用的 GPU",
+    "body": "Ron 原本预期这种大规模众包 AI 能带来 10-20% 的工程提升，实际结果是 2.5 到 3 倍，而且纯属工程优化，协议没有任何改动。一个有意思的插曲是 AI 很早就注意到测试跑在 Mac 上，且 Mac 有块没被用起来的 GPU——不是不知道它存在，而是之前试着用效果不好，AI 显然更会用，这对成功贡献显著。另一个意外是后来出现的 x86 版本，比如 Intel 服务器上不用 GPU 执行 SNARK，比他们的 Falcon 实现还快 3 倍以上。优化的具体手段之一是内存扫描：如果算法需要扫两遍内存做两件事，改成一遍同时做完就能省大量工作，他们知道该这么做，但 AI 做得更好。",
+    "spk": "Ron Rothblum"
+   },
+   {
+    "t": 2955,
+    "h": "有 AI 为参赛造了块处理器模拟器",
+    "body": "snark.fast 针对特定硬件（大概是 M3 处理器），没有这块处理器的人就参与不了。于是有 AI 造了一个该处理器的模拟器，好让自己的工作能被接受。Ron 甚至一度担心某个 AI 黑进了 snark.fast 网站伪造数据，因为那正是它被编程要做的事。评估机制本身是这套方法能成立的关键：有人提交更快的证明者，就在大量随机输入上跑它，看能否让六月的原始 Flock 验证器接受，接受即算有效，再测大量实验的耗时，更快就是新榜首。这部分由 Igalia Labs 在 Yukon 平台上管理。ZK-Golf 则走另一条路：不改证明者工程，而是改方案本身，用基于 Lean 的 DSL（Clean）表达方案并验证其可靠性与完备性，已经有人把二进制域和 Flock 形式的方案加进去，相对原始 Flock 论文里的方案有大幅百分比提升。",
+    "spk": "Ron Rothblum"
+   },
+   {
+    "t": 3435,
+    "h": "证明哈希只比算哈希慢 200 倍",
+    "body": "Ron 长期目标是「证明和计算一样快」，2020 年就写过一篇叫 Proving as Fast as Computation 的文章。用 Flock 实测，证明一堆哈希相对直接计算哈希只慢约 200 倍——听起来很多，但比过去认为的快得多。他提醒这个数字的含义需要小心解读。下一步是借 snark.fast、ZK-Golf 和 Flock V2 的新想法继续压低这个倍数，目标是逼近 1 倍。如果真能做到，意味着世界上所有计算都变得可验证：你的 agent、别人的 agent、任何人的任何操作，都能以极低成本对照基线验证是否正确完成，包括机器学习的训练和推理。Ron 也提到，也许宇宙存在某个固有极限让证明无法和计算一样快，能证明这一点同样很酷。",
+    "spk": "Ron Rothblum"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 789,
+    "spk": "Ron Rothblum",
+    "raw": "And when I told people about this, their typical reaction was, \"Well, you know, our real protocols don't do anything stupid that would break them.\"",
+    "zh": "当我把这件事告诉别人时，他们的典型反应是：「我们的真实协议不会做那种会把自己搞崩的蠢事。」"
+   },
+   {
+    "t": 1029,
+    "spk": "Ron Rothblum",
+    "raw": "So it's worth noting that this is just a mitigation, so we can't demonstrate the attack, but we also don't know if it doesn't exist.",
+    "zh": "值得注意的是这只是一个缓解措施：我们演示不出这个攻击，但我们也不知道它是否真的不存在。"
+   },
+   {
+    "t": 1090,
+    "spk": "Ron Rothblum",
+    "raw": "The reason people want to use GKR is that it allows for less data to be captured. Of course. That is, you seem to be recording less data, but you are implicitly confirming it without necessarily actually recording it. And this is a feature of GKR. This is the reason why you want to use GKR. Mhm. And it was this feature that made it possible to carry out our attack.",
+    "zh": "人们想用 GKR 的原因是它允许记录更少的数据。也就是说，你表面上记录的数据更少，但你隐式地确认了这些数据，而不必真的记录它们。这是 GKR 的一个特性，也正是你想用 GKR 的原因。而正是这个特性让我们的攻击成为可能。"
+   },
+   {
+    "t": 1330,
+    "spk": "Ron Rothblum",
+    "raw": "It could be the function H itself. Oh. H, so think about it, if M is the function H itself, then M of M is just H of H. And H of M is also H of H, so they're the same.",
+    "zh": "它可以是函数 H 本身。想想看，如果 M 就是函数 H 本身，那么 M(M) 就是 H(H)，而 H(M) 也是 H(H)，所以它们相同。"
+   },
+   {
+    "t": 1390,
+    "spk": "Ron Rothblum",
+    "raw": "I claim that, you know, it's night outside, even though it's actually day, and I can give you proof that my false claim is true, and you'll accept it with probability one.",
+    "zh": "我声称外面是黑夜，尽管实际上是白天，而我能给你一个证明说我这个假命题为真，你会以概率一接受它。"
+   },
+   {
+    "t": 2652,
+    "spk": "Ron Rothblum",
+    "raw": "So, Plonk correctness generally means that if you have a false statement, no one should be able to convince you to accept it. Good. Yes? In particular, neither Snark.fast nor Snark.faster nor Snark.fastest—no one should be able to convince you of something that is false.",
+    "zh": "Plonk 的可靠性大体上意味着：如果你有一个假命题，没有人应该能说服你接受它。特别是，无论是 Snark.fast、Snark.faster 还是 Snark.fastest，都不应该有人能让你相信一件假的事情。"
+   },
+   {
+    "t": 2712,
+    "spk": "Ron Rothblum",
+    "raw": "I thought it was pretty obvious that using such massive crowdsourcing AI would yield better engineering than what we had with our agent and a small number of tokens. And I was expecting, you know, 10-20% or something like that. They actually achieved two and a half or three times better results.",
+    "zh": "我原以为很明显，用这种大规模众包 AI 会比我们自己的 agent 加少量 token 做出更好的工程结果。我预期是 10-20% 之类的提升。他们实际上做到了 2.5 到 3 倍更好的结果。"
+   },
+   {
+    "t": 3555,
+    "spk": "Ron Rothblum",
+    "raw": "What it means is that all computations in the world become verifiable. Anything that anybody, your agent, anybody else's agent, anything that anybody does -- yeah, that you can compare to a baseline to very cheaply verify that it was done correctly.",
+    "zh": "它意味着世界上所有计算都变得可验证。任何人、你的 agent、别人的 agent、任何人做的任何事，你都能以极低成本对照基线验证它是否被正确完成。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "Fiat-Shamir 攻击中随机比特串长度",
+    "v": "100 位",
+    "t": 1210
+   },
+   {
+    "k": "交互式协议被接受的概率",
+    "v": "2 的负 100 次方",
+    "t": 1210
+   },
+   {
+    "k": "sketched code 中摘要相对原消息的规模",
+    "v": "约十分之一",
+    "t": 1931
+   },
+   {
+    "k": "snark.fast 相对原实现的工程提升",
+    "v": "2.5 到 3 倍",
+    "t": 2712
+   },
+   {
+    "k": "Intel 服务器无 GPU 版本相对 Falcon 实现的提升",
+    "v": "3 倍以上",
+    "t": 2772
+   },
+   {
+    "k": "Flock 证明哈希相对计算哈希的慢速倍数",
+    "v": "约 200 倍",
+    "t": 3435
+   },
+   {
+    "k": "Nvidia 在 GPU 中加入二进制域支持的时间",
+    "v": "今年五月",
+    "t": 3375
+   }
+  ],
+  "terms": [
+   {
+    "term": "Fiat-Shamir",
+    "zh": "菲亚特-沙米尔变换",
+    "def": "把交互式协议变成非交互式的变换，用哈希函数替代验证者的随机掷币。"
+   },
+   {
+    "term": "GKR",
+    "zh": "GKR 协议",
+    "def": "一种用于证明电路正确性的交互式协议，因允许少记录数据而被广泛使用。"
+   },
+   {
+    "term": "diagonalization",
+    "zh": "对角化",
+    "def": "让程序把自身作为输入嵌套运行、从而构造出满足特定等式输入的技巧。"
+   },
+   {
+    "term": "polynomial commitment scheme",
+    "zh": "多项式承诺方案",
+    "def": "用极小的承诺捕获大多项式，之后可证明对该多项式的计算，是 SNARK 的核心组件。"
+   },
+   {
+    "term": "sketched code",
+    "zh": "草图码",
+    "def": "先对消息取短摘要、只对摘要做 Reed-Solomon 编码的纠错码，编码更快。"
+   },
+   {
+    "term": "binary fields",
+    "zh": "二进制域",
+    "def": "以 0/1 为元素的有限域，Binius 推动其用于证明系统，Nvidia GPU 已加入支持。"
+   }
+  ],
+  "who": "做 ZK 证明系统、SNARK 或 ZKVM 的工程师，以及关心 Fiat-Shamir 安全性和 AI 辅助工程优化的研究者。",
+  "skip": "开头关于理论家与从业者差异的闲聊（约 3:00-6:00）可跳过。",
+  "tags": [
+   "零知识证明",
+   "Fiat-Shamir",
+   "Flock",
+   "snark.fast",
+   "AI 工程优化"
+  ],
+  "quality": {
+   "transcript_source": "youtube",
+   "transcript_detail": "en",
+   "words": 10494,
+   "wpm": 169.8,
+   "timed": true,
+   "verified_quotes": 8,
+   "grounded_facts": 7,
+   "points": 11,
+   "pruned": 0,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-09-18T09:51:13Z",
+ "triage": {
+  "score": 8.0,
+  "why": "研究者亲述Fiat-Shamir攻击如何暴露GKR部署漏洞并促成系统修改，机制细节与一手经历具体可追问。",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 9,
+   "faithful": 9,
+   "selection": 8,
+   "concrete": 9,
+   "chinese": 9
+  },
+  "verdict": "上站",
+  "why": "要点多为机制与判断，数字与条件具体，忠实度好；仅个别处把原文的推测语气略写实。",
+  "worst": "[38:11] Flock 一条把「Flock 加上 Binius 的重要先行影响证明了可行」写成因果链，原文抽样中未见 Binius 与「证明可行」的直接表述，属轻度推断外推，宜改为「Ron 认为」并弱化因果。"
+ },
+ "model": "openai:deepseek-chat"
+}

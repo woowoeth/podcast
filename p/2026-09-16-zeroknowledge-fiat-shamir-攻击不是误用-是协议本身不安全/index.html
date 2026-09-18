@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fiat-Shamir 攻击不是误用，是协议本身不安全 — Zero Knowledge · 原声</title>
+<meta name="description" content="GKR 这类真实部署的协议，在标准 Fiat-Shamir 下可被证明假命题为真；这不是实现疏忽，是变换本身的问题。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/p/2026-09-16-zeroknowledge-fiat-shamir-攻击不是误用-是协议本身不安全/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原声">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="Fiat-Shamir 攻击不是误用，是协议本身不安全 — Zero Knowledge · 原声">
+<meta property="og:description" content="GKR 这类真实部署的协议，在标准 Fiat-Shamir 下可被证明假命题为真；这不是实现疏忽，是变换本身的问题。">
+<meta property="og:url" content="https://ourword.ai/podcast/p/2026-09-16-zeroknowledge-fiat-shamir-攻击不是误用-是协议本身不安全/">
+<meta property="og:image" content="https://artwork.captivate.fm/eed81918-5c2c-4ed4-9ddc-11dbb519e2dd/cover.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-09-16T13:00:00Z">
+<meta property="article:modified_time" content="2026-09-18T09:51:13Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Fiat-Shamir 攻击不是误用，是协议本身不安全 — Zero Knowledge · 原声">
+<meta name="twitter:description" content="GKR 这类真实部署的协议，在标准 Fiat-Shamir 下可被证明假命题为真；这不是实现疏忽，是变换本身的问题。">
+<meta name="twitter:image" content="https://artwork.captivate.fm/eed81918-5c2c-4ed4-9ddc-11dbb519e2dd/cover.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原声" href="/podcast/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-09-16-zeroknowledge-fiat-shamir-攻击不是误用-是协议本身不安全/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-09-16-zeroknowledge-fiat-shamir-攻击不是误用-是协议本身不安全/">
+<link rel="alternate" hreflang="en" href="https://ourword.ai/podcast/en/p/2026-09-16-zeroknowledge-fiat-shamir-攻击不是误用-是协议本身不安全/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-09-16-zeroknowledge-fiat-shamir-攻击不是误用-是协议本身不安全/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=e27ecd7fee">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-09-16-zeroknowledge-fiat-shamir-攻击不是误用-是协议本身不安全/#episode", "name": "Fiat-Shamir 攻击不是误用，是协议本身不安全", "headline": "Fiat-Shamir 攻击不是误用，是协议本身不安全", "description": "GKR 这类真实部署的协议，在标准 Fiat-Shamir 下可被证明假命题为真；这不是实现疏忽，是变换本身的问题。", "abstract": "GKR 这类真实部署的协议，在标准 Fiat-Shamir 下可被证明假命题为真；这不是实现疏忽，是变换本身的问题。", "datePublished": "2026-09-16T13:00:00Z", "dateModified": "2026-09-18T09:51:13Z", "url": "https://ourword.ai/podcast/p/2026-09-16-zeroknowledge-fiat-shamir-攻击不是误用-是协议本身不安全/", "timeRequired": "PT61M", "partOfSeries": {"@type": "PodcastSeries", "name": "Zero Knowledge", "url": "https://ourword.ai/podcast/s/zeroknowledge/"}, "inLanguage": "zh-CN", "isBasedOn": "https://zeroknowledge.fm/podcast/410", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "零知识证明, Fiat-Shamir, Flock, snark.fast, AI 工程优化, Fiat-Shamir, GKR, diagonalization, polynomial commitment scheme, sketched code, binary fields, Fiat-Shamir 攻击中随机比特串长度, 交互式协议被接受的概率, sketched code 中摘要相对原消息的规模, snark.fast 相对原实现的工程提升, Intel 服务器无 GPU 版本相对 Falcon 实现的提升, Flock 证明哈希相对计算哈希的慢速倍数", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}, "associatedMedia": {"@type": "AudioObject", "contentUrl": "https://episodes.captivate.fm/episode/93663219-5a59-428c-83c6-347ca7400aec.mp3"}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首页", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "Zero Knowledge", "item": "https://ourword.ai/podcast/s/zeroknowledge/"}, {"@type": "ListItem", "position": 3, "name": "Fiat-Shamir 攻击不是误用，是协议本身不安全"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/"><span class="wordmark">原声<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<button class="pill ghost" id="lang-toggle" type="button" data-en="1" data-sc="繁體" data-tw="简体"></button>
+<button class="icon-btn" data-theme-toggle aria-label="切换深浅色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，来原声听播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/">首页</a><span class="sep">/</span>
+<a href="/podcast/s/zeroknowledge/">Zero Knowledge</a>
+<span class="sep">/</span><span>2026-09-16</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">Zero Knowledge</span>
+<time class="date" datetime="2026-09-16T13:00:00Z">2026-09-16</time>
+<button class="share-btn" type="button" data-share data-share-title="Fiat-Shamir 攻击不是误用，是协议本身不安全" data-share-url="https://ourword.ai/podcast/e/zeroknowledge-049f5e22ef/" data-share-desc="GKR 这类真实部署的协议，在标准 Fiat-Shamir 下可被证明假命题为真；这不是实现疏忽，是变换本身的问题。" data-share-text="Fiat-Shamir 攻击不是误用，是协议本身不安全&#10;Zero Knowledge · 61 分钟 · 原声深读&#10;&#10;GKR 这类真实部署的协议，在标准 Fiat-Shamir 下可被证明假命题为真；这不是实现疏忽，是变换本身的问题。&#10;&#10;https://ourword.ai/podcast/e/zeroknowledge-049f5e22ef/" aria-label="复制分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>Fiat-Shamir 攻击不是误用，是协议本身不安全</h1>
+<p class="dek-lead">GKR 这类真实部署的协议，在标准 Fiat-Shamir 下可被证明假命题为真；这不是实现疏忽，是变换本身的问题。</p>
+<div class="ep-meta"><span class="tag">零知识证明</span><span class="tag">Fiat-Shamir</span><span class="tag">Flock</span><span class="tag">snark.fast</span><span class="tag">AI 工程优化</span></div>
+</div>
+<div class="player" data-player-box>
+  <button class="video-facade" data-yt="sm1wA5HQCF8" type="button"
+          aria-label="播放原节目视频">
+    <span class="frame">
+      <img src="https://i.ytimg.com/vi/sm1wA5HQCF8/hq720.jpg" alt="" loading="lazy" width="1280"
+           onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/sm1wA5HQCF8/hqdefault.jpg'">
+      <span class="play" aria-hidden="true"><svg viewBox="0 0 44 44" width="44" height="44" focusable="false"><circle cx="22" cy="22" r="21" fill="rgba(18,16,13,.55)" stroke="rgba(255,255,255,.92)" stroke-width="1.5"/><path d="M17 14.5 32 22 17 29.5Z" fill="#fff"/></svg></span>
+    </span>
+  </button>
+  <div class="strip" data-audio-strip hidden>
+    <p class="afallback">原视频在 YouTube 上放不出来，用音频听：</p>
+    <audio data-player controls preload="none" src="https://episodes.captivate.fm/episode/93663219-5a59-428c-83c6-347ca7400aec.mp3"></audio>
+    <div class="aui" data-audio-ui data-dur="3709" hidden>
+      <button class="aplay" type="button" aria-label="播放"></button>
+      <div class="abar" role="slider" tabindex="0" aria-label="播放进度"
+           aria-valuemin="0" aria-valuemax="100"><div class="afill"></div></div>
+      <span class="atime"><span class="acur">0:00</span><span class="asep">/</span><span class="atot">--:--</span></span>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="why">前半段理论回顾偏慢，但 Fiat-Shamir 攻击的构造、Flock 与 snark.fast 的实测数字值得听。</div></section>
+
+<section class="section"><h2>核心论点 · 点时间戳可跳到原声</h2><div class="point" id="p0"><a class="ts" data-t="789" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=789s" target="_blank" rel="noopener">13:09</a><div><h4>人工构造的反例骗了所有人</h4>
+<p class="body">在 Ron 与 Lev、Dmitry 的工作之前，学界早就知道存在「安全交互协议 + Fiat-Shamir = 完全崩溃」的例子，但那些协议是理论家刻意造出来证明 Fiat-Shamir 不总成立的，看起来极不自然。业界的典型反应是「我们真实的协议不会做那种蠢事」。Ron 自己几年前也做过一个半人工的例子，其中一个组件是虚构的，这让他一直对安全性存疑。转折点是 Ethereum Foundation 研究 Poseidon 安全性时设的 bug bounty，最后一档奖励是「用 Poseidon 对你选择的任意协议发起 Fiat-Shamir 攻击」。Ron 没有去领赏，而是建议把条款改成「非虚构的协议」，这直接促成了对真实部署协议的排查。</p>
+<span class="spk">— Ron Rothblum</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="909" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=909s" target="_blank" rel="noopener">15:09</a><div><h4>GKR 的省数据特性成了攻击面</h4>
+<p class="body">真正被攻破的是实践中广泛使用的 GKR 协议，Polyhedra 的 Expander 系统就在用它。攻击利用的是 GKR 的一个真实特性：它允许「记录更少的数据」，表面上少记，但隐式地确认了这些数据——这正是人们想用 GKR 的原因，也正是这个特性让攻击成为可能。攻击成立的关键条件是：所证明电路（scheme）的深度至少要和 Fiat-Shamir 所用哈希函数的深度一样深，而当时的实现对此没有任何限制。Polyhedra 做了修改并支付了赏金。</p>
+<span class="spk">— Ron Rothblum</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="1029" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=1029s" target="_blank" rel="noopener">17:09</a><div><h4>缓解办法只是把哈希链拉深</h4>
+<p class="body">缓解手段很朴素：让哈希函数的深度比被证明电路的深度略深一点。具体做法是把多个 Poseidon 串成链，做 10 次 Poseidon，电路自然就深 10 倍，期望没有取巧的办法绕开。Polyhedra 就是这么改的。但 Ron 明确强调这只是缓解——我们演示不出攻击，但也不知道攻击是否真的不存在。这跟常见的 Fiat-Shamir 漏洞不同：那些通常是实践中的误用，比如忘记把证明者发的某些消息纳入哈希；而这次是在按规范正确使用 Fiat-Shamir 的前提下依然不安全。</p>
+<span class="spk">— Ron Rothblum</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="1150" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=1150s" target="_blank" rel="noopener">19:10</a><div><h4>对角化：让程序把自己当输入</h4>
+<p class="body">Ron 给了一个极端人为的协议来说明攻击原理：证明者发一条消息 M，验证者把 M 当程序代码运行，输入也是 M，等它输出 100 位字符串，再和 100 个随机比特比对，相同才接受。交互式下这协议几乎不可能被接受，因为 M 一旦发出，M(M) 就完全确定，撞上 100 位随机数的概率是 2 的负 100 次方。但套上 Fiat-Shamir 后，随机数变成 H(M)，证明者只需找到满足 M(M) = H(M) 的 M——取 M 就是哈希函数 H 本身即可，因为 M(M) = H(H) = H(M)。这类技巧叫对角化，本质是强迫程序嵌套自身。</p>
+<span class="spk">— Ron Rothblum</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="1691" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=1691s" target="_blank" rel="noopener">28:11</a><div><h4>换掉 Reed-Solomon 就能换出速度</h4>
+<p class="body">Blaze、Tensor Switch、Bolt 都是基于哈希的多项式承诺方案，共同点是依赖纠错码。FRI、STIR、WHIR 都建立在 Reed-Solomon 码上，而这三个项目试图用更好的纠错码换取更好的 PCS。Bolt 用的是一种叫 sketched code 的码：先对消息做一个非密码学的「摘要」，只对摘要做 Reed-Solomon 编码，整体码字 = 摘要的编码 + 原始消息。好处是 Reed-Solomon 只作用在约十分之一大小的数据上，编码成本降一个数量级。代价可能是证明体积变大，但在不需要所有人读证明的场景下，证明时间更重要。Ron 指出这条线专注证明效率，而 WHIR 那条线专注验证和证明体积，两者可以通过证明组合（proof composition）共存：用 Bolt 拿到极快的证明，再用 WHIR 递归证明其验证器，继承高质量验证。</p>
+<span class="spk">— Ron Rothblum</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="2111" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=2111s" target="_blank" rel="noopener">35:11</a><div><h4>Veil 让哈希证明自带零知识</h4>
+<p class="body">Veil 是把某类基于哈希的证明系统变成零知识（Ron 不喜欢 ZK ZK 这个叫法）的方法。传统上在 SP1 里实现零知识，是把简洁证明与 Groth16 递归组合，但 Groth16 不是后量子安全的。Veil 想要的是原生的、基于哈希的零知识方案。已有概念验证显示，无论证明时间还是证明体积，资源开销都相当小，计划直接实现在 SP1 中。</p>
+<span class="spk">— Ron Rothblum</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="2291" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=2291s" target="_blank" rel="noopener">38:11</a><div><h4>Flock 让以太坊敢放弃 Poseidon</h4>
+<p class="body">Flock 是用于布尔电路批量验证的证明系统，由 Ron 与 Benedict 及其学生 William Lang 把理论发展推向实用。Ron 认为它给行业带来了一股「第二春」，更重要的是催生了大量新想法和后续研究。一个直接后果是 Ethereum Foundation 决定从 Poseidon 转向某种布尔哈希。在 Flock 出现之前，并不清楚能否高效做到这一点，Flock 加上 Binius 的重要先行影响证明了可行。Ron 把这次转变归因于两件事同时发生：一是新攻击让人们对 Poseidon 的信心动摇，二是一年前还显得意外的是，传统哈希函数在证明里用起来效率相当不错。</p>
+<span class="spk">— Ron Rothblum</span></div></div>
+<div class="point" id="p7"><a class="ts" data-t="2652" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=2652s" target="_blank" rel="noopener">44:12</a><div><h4>换证明者不破坏可靠性，只威胁完备性</h4>
+<p class="body">snark.fast 由 Zcash、Igalia Labs（主导）、Ethereum Foundation 和 Espresso 合作，思路是保持 Plonk 验证器不变，只替换证明者，看能快多少。Ron 区分了两个性质：可靠性（soundness）意味着假命题没人能说服你接受，所以无论做出多快的证明者，假命题都证不出来，从这个意义上没有安全问题；完备性（completeness）意味着真命题必须可证，这更难保证，snark.fast 只保证随机输入下证明仍被接受。更雄心勃勃的做法是证明改动不改变证明者的输入输出行为，这正是 ZK-Golf 和 Kobe 等人追求的目标，有更强的完备性保证。Ron 也担心这些完全由 AI 驱动、缺乏监督的项目，可能被 AI 往证明者里塞恶意代码。</p>
+<span class="spk">— Ron Rothblum</span></div></div>
+<div class="point" id="p8"><a class="ts" data-t="2712" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=2712s" target="_blank" rel="noopener">45:12</a><div><h4>AI 发现 Mac 上有个没用的 GPU</h4>
+<p class="body">Ron 原本预期这种大规模众包 AI 能带来 10-20% 的工程提升，实际结果是 2.5 到 3 倍，而且纯属工程优化，协议没有任何改动。一个有意思的插曲是 AI 很早就注意到测试跑在 Mac 上，且 Mac 有块没被用起来的 GPU——不是不知道它存在，而是之前试着用效果不好，AI 显然更会用，这对成功贡献显著。另一个意外是后来出现的 x86 版本，比如 Intel 服务器上不用 GPU 执行 SNARK，比他们的 Falcon 实现还快 3 倍以上。优化的具体手段之一是内存扫描：如果算法需要扫两遍内存做两件事，改成一遍同时做完就能省大量工作，他们知道该这么做，但 AI 做得更好。</p>
+<span class="spk">— Ron Rothblum</span></div></div>
+<div class="point" id="p9"><a class="ts" data-t="2955" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=2955s" target="_blank" rel="noopener">49:15</a><div><h4>有 AI 为参赛造了块处理器模拟器</h4>
+<p class="body">snark.fast 针对特定硬件（大概是 M3 处理器），没有这块处理器的人就参与不了。于是有 AI 造了一个该处理器的模拟器，好让自己的工作能被接受。Ron 甚至一度担心某个 AI 黑进了 snark.fast 网站伪造数据，因为那正是它被编程要做的事。评估机制本身是这套方法能成立的关键：有人提交更快的证明者，就在大量随机输入上跑它，看能否让六月的原始 Flock 验证器接受，接受即算有效，再测大量实验的耗时，更快就是新榜首。这部分由 Igalia Labs 在 Yukon 平台上管理。ZK-Golf 则走另一条路：不改证明者工程，而是改方案本身，用基于 Lean 的 DSL（Clean）表达方案并验证其可靠性与完备性，已经有人把二进制域和 Flock 形式的方案加进去，相对原始 Flock 论文里的方案有大幅百分比提升。</p>
+<span class="spk">— Ron Rothblum</span></div></div>
+<div class="point" id="p10"><a class="ts" data-t="3435" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=3435s" target="_blank" rel="noopener">57:15</a><div><h4>证明哈希只比算哈希慢 200 倍</h4>
+<p class="body">Ron 长期目标是「证明和计算一样快」，2020 年就写过一篇叫 Proving as Fast as Computation 的文章。用 Flock 实测，证明一堆哈希相对直接计算哈希只慢约 200 倍——听起来很多，但比过去认为的快得多。他提醒这个数字的含义需要小心解读。下一步是借 snark.fast、ZK-Golf 和 Flock V2 的新想法继续压低这个倍数，目标是逼近 1 倍。如果真能做到，意味着世界上所有计算都变得可验证：你的 agent、别人的 agent、任何人的任何操作，都能以极低成本对照基线验证是否正确完成，包括机器学习的训练和推理。Ron 也提到，也许宇宙存在某个固有极限让证明无法和计算一样快，能证明这一点同样很酷。</p>
+<span class="spk">— Ron Rothblum</span></div></div></section>
+<section class="section"><h2>原话 · 已逐字校验</h2><blockquote class="quote"><p class="raw">And when I told people about this, their typical reaction was, &quot;Well, you know, our real protocols don&#x27;t do anything stupid that would break them.&quot;</p>
+<p class="zh">当我把这件事告诉别人时，他们的典型反应是：「我们的真实协议不会做那种会把自己搞崩的蠢事。」</p>
+<div class="attrib"><b>Ron Rothblum</b><a class="ts" data-t="789" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=789s" target="_blank" rel="noopener">13:09</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">So it&#x27;s worth noting that this is just a mitigation, so we can&#x27;t demonstrate the attack, but we also don&#x27;t know if it doesn&#x27;t exist.</p>
+<p class="zh">值得注意的是这只是一个缓解措施：我们演示不出这个攻击，但我们也不知道它是否真的不存在。</p>
+<div class="attrib"><b>Ron Rothblum</b><a class="ts" data-t="1029" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=1029s" target="_blank" rel="noopener">17:09</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">The reason people want to use GKR is that it allows for less data to be captured. Of course. That is, you seem to be recording less data, but you are implicitly confirming it without necessarily actually recording it. And this is a feature of GKR. This is the reason why you want to use GKR. Mhm. And it was this feature that made it possible to carry out our attack.</p>
+<p class="zh">人们想用 GKR 的原因是它允许记录更少的数据。也就是说，你表面上记录的数据更少，但你隐式地确认了这些数据，而不必真的记录它们。这是 GKR 的一个特性，也正是你想用 GKR 的原因。而正是这个特性让我们的攻击成为可能。</p>
+<div class="attrib"><b>Ron Rothblum</b><a class="ts" data-t="1090" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=1090s" target="_blank" rel="noopener">18:10</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">It could be the function H itself. Oh. H, so think about it, if M is the function H itself, then M of M is just H of H. And H of M is also H of H, so they&#x27;re the same.</p>
+<p class="zh">它可以是函数 H 本身。想想看，如果 M 就是函数 H 本身，那么 M(M) 就是 H(H)，而 H(M) 也是 H(H)，所以它们相同。</p>
+<div class="attrib"><b>Ron Rothblum</b><a class="ts" data-t="1330" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=1330s" target="_blank" rel="noopener">22:10</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">I claim that, you know, it&#x27;s night outside, even though it&#x27;s actually day, and I can give you proof that my false claim is true, and you&#x27;ll accept it with probability one.</p>
+<p class="zh">我声称外面是黑夜，尽管实际上是白天，而我能给你一个证明说我这个假命题为真，你会以概率一接受它。</p>
+<div class="attrib"><b>Ron Rothblum</b><a class="ts" data-t="1390" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=1390s" target="_blank" rel="noopener">23:10</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">So, Plonk correctness generally means that if you have a false statement, no one should be able to convince you to accept it. Good. Yes? In particular, neither Snark.fast nor Snark.faster nor Snark.fastest—no one should be able to convince you of something that is false.</p>
+<p class="zh">Plonk 的可靠性大体上意味着：如果你有一个假命题，没有人应该能说服你接受它。特别是，无论是 Snark.fast、Snark.faster 还是 Snark.fastest，都不应该有人能让你相信一件假的事情。</p>
+<div class="attrib"><b>Ron Rothblum</b><a class="ts" data-t="2652" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=2652s" target="_blank" rel="noopener">44:12</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">I thought it was pretty obvious that using such massive crowdsourcing AI would yield better engineering than what we had with our agent and a small number of tokens. And I was expecting, you know, 10-20% or something like that. They actually achieved two and a half or three times better results.</p>
+<p class="zh">我原以为很明显，用这种大规模众包 AI 会比我们自己的 agent 加少量 token 做出更好的工程结果。我预期是 10-20% 之类的提升。他们实际上做到了 2.5 到 3 倍更好的结果。</p>
+<div class="attrib"><b>Ron Rothblum</b><a class="ts" data-t="2712" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=2712s" target="_blank" rel="noopener">45:12</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">What it means is that all computations in the world become verifiable. Anything that anybody, your agent, anybody else&#x27;s agent, anything that anybody does -- yeah, that you can compare to a baseline to very cheaply verify that it was done correctly.</p>
+<p class="zh">它意味着世界上所有计算都变得可验证。任何人、你的 agent、别人的 agent、任何人做的任何事，你都能以极低成本对照基线验证它是否被正确完成。</p>
+<div class="attrib"><b>Ron Rothblum</b><a class="ts" data-t="3555" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=3555s" target="_blank" rel="noopener">59:15</a></div>
+</blockquote></section>
+<section class="section"><h2>数字与实体</h2><table class="facts"><tr><td class="k">Fiat-Shamir 攻击中随机比特串长度</td><td class="v">100 位</td><td class="t"><a class="ts" data-t="1210" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=1210s" target="_blank" rel="noopener">20:10</a></td></tr>
+<tr><td class="k">交互式协议被接受的概率</td><td class="v">2 的负 100 次方</td><td class="t"><a class="ts" data-t="1210" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=1210s" target="_blank" rel="noopener">20:10</a></td></tr>
+<tr><td class="k">sketched code 中摘要相对原消息的规模</td><td class="v">约十分之一</td><td class="t"><a class="ts" data-t="1931" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=1931s" target="_blank" rel="noopener">32:11</a></td></tr>
+<tr><td class="k">snark.fast 相对原实现的工程提升</td><td class="v">2.5 到 3 倍</td><td class="t"><a class="ts" data-t="2712" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=2712s" target="_blank" rel="noopener">45:12</a></td></tr>
+<tr><td class="k">Intel 服务器无 GPU 版本相对 Falcon 实现的提升</td><td class="v">3 倍以上</td><td class="t"><a class="ts" data-t="2772" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=2772s" target="_blank" rel="noopener">46:12</a></td></tr>
+<tr><td class="k">Flock 证明哈希相对计算哈希的慢速倍数</td><td class="v">约 200 倍</td><td class="t"><a class="ts" data-t="3435" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=3435s" target="_blank" rel="noopener">57:15</a></td></tr>
+<tr><td class="k">Nvidia 在 GPU 中加入二进制域支持的时间</td><td class="v">今年五月</td><td class="t"><a class="ts" data-t="3375" href="https://www.youtube.com/watch?v=sm1wA5HQCF8&amp;t=3375s" target="_blank" rel="noopener">56:15</a></td></tr></table></section>
+<section class="section"><h2>术语</h2><dl class="terms"><div><dt>Fiat-Shamir<span>菲亚特-沙米尔变换</span></dt><dd>把交互式协议变成非交互式的变换，用哈希函数替代验证者的随机掷币。</dd></div>
+<div><dt>GKR<span>GKR 协议</span></dt><dd>一种用于证明电路正确性的交互式协议，因允许少记录数据而被广泛使用。</dd></div>
+<div><dt>diagonalization<span>对角化</span></dt><dd>让程序把自身作为输入嵌套运行、从而构造出满足特定等式输入的技巧。</dd></div>
+<div><dt>polynomial commitment scheme<span>多项式承诺方案</span></dt><dd>用极小的承诺捕获大多项式，之后可证明对该多项式的计算，是 SNARK 的核心组件。</dd></div>
+<div><dt>sketched code<span>草图码</span></dt><dd>先对消息取短摘要、只对摘要做 Reed-Solomon 编码的纠错码，编码更快。</dd></div>
+<div><dt>binary fields<span>二进制域</span></dt><dd>以 0/1 为元素的有限域，Binius 推动其用于证明系统，Nvidia GPU 已加入支持。</dd></div></dl></section>
+<section class="section"><h2>收听指南</h2>
+<div class="panel guide">
+<div><span class="k">谁该听</span><p>做 ZK 证明系统、SNARK 或 ZKVM 的工程师，以及关心 Fiat-Shamir 安全性和 AI 辅助工程优化的研究者。</p></div>
+<div><span class="k">可跳过</span><p>开头关于理论家与从业者差异的闲聊（约 3:00-6:00）可跳过。</p></div>
+</div></section>
+<nav class="prevnext"><a href="/podcast/p/2026-09-16-stuffmissed-他用细菌毒素治癌症-被同行骂了四十年/"><span class="lbl">← 更新</span><strong>他用细菌毒素治癌症，被同行骂了四十年</strong></a><a class="r" href="/podcast/p/2026-09-16-tyler-政府不只浪费你的钱-还浪费你每周一小时/"><span class="lbl">更早 →</span><strong>政府不只浪费你的钱，还浪费你每周一小时</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原节目</h4>
+<div class="row"><span>节目</span><span>Zero Knowledge</span></div>
+<div class="row"><span>原标题</span><span>Ron Rothblum on Fiat-Shamir Attacks, Flock and SNARK.fast</span></div>
+<div class="row"><span>发布</span><span>2026-09-16</span></div>
+<div class="row"><span>时长</span><span>1:01:49</span></div>
+<a class="row" href="https://zeroknowledge.fm/podcast/410" target="_blank" rel="noopener"><span>原页面</span><span>打开 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇结构</h4><nav class="toc"><a href="#p0"><span class="t">13:09</span><span>人工构造的反例骗了所有人</span></a>
+<a href="#p1"><span class="t">15:09</span><span>GKR 的省数据特性成了攻击面</span></a>
+<a href="#p2"><span class="t">17:09</span><span>缓解办法只是把哈希链拉深</span></a>
+<a href="#p3"><span class="t">19:10</span><span>对角化：让程序把自己当输入</span></a>
+<a href="#p4"><span class="t">28:11</span><span>换掉 Reed-Solomon 就能换出速度</span></a>
+<a href="#p5"><span class="t">35:11</span><span>Veil 让哈希证明自带零知识</span></a>
+<a href="#p6"><span class="t">38:11</span><span>Flock 让以太坊敢放弃 Poseidon</span></a>
+<a href="#p7"><span class="t">44:12</span><span>换证明者不破坏可靠性，只威胁完备性</span></a>
+<a href="#p8"><span class="t">45:12</span><span>AI 发现 Mac 上有个没用的 GPU</span></a>
+<a href="#p9"><span class="t">49:15</span><span>有 AI 为参赛造了块处理器模拟器</span></a>
+<a href="#p10"><span class="t">57:15</span><span>证明哈希只比算哈希慢 200 倍</span></a></nav></div>
+
+<div class="panel"><h4>这篇是怎么来的</h4>
+<div class="row"><span>成稿评分</span><span>8 / 10</span></div>
+<div class="row"><span>文稿来源</span><span>YouTube 字幕</span></div>
+<div class="row"><span>文稿字数</span><span>10494</span></div>
+<div class="row"><span>语速核验</span><span>169.8 wpm</span></div>
+<div class="row"><span>逐字校验金句</span><span>8 条</span></div>
+<div class="row"><span>回溯校验数字</span><span>7 条</span></div>
+
+<p class="note">金句在逐字稿里逐字比对过，数字回原文核对过；对不上的当场删掉，不上站。
+成稿另经一道独立评审（信息密度／忠实度／选择力／具体性／中文），低于 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原声 · <a href="https://ourword.ai">OurWord.ai</a>的播客线。内容为原播客的中文深读，
+版权归各节目所有；每篇都附原节目链接，请去支持原作者。</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/" lang="zh">人类世界生存法则</a> · <a href="/podcast/">原声</a></div>
+<div class="links"><a href="/podcast/">首页</a><a href="/podcast/sources/">信源</a>
+<a href="/podcast/log/">更新日志</a><a href="/podcast/feed.xml">RSS</a>
+<a href="/podcast/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源码</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=d235129544" defer></script>
+</body></html>
