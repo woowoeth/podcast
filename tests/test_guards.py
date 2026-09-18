@@ -6482,6 +6482,73 @@ class GivingUpOnASourceRequiresTryingTheLineThatCanDoIt(unittest.TestCase):
             f" —— 规则还在，喂给它的数已经没了")
 
 
+class EveryStarvedSourceMustGetItsTurn(unittest.TestCase):
+    """留了名额还不够，名额得轮着来。
+
+    建档模式给零产出的源留了一半预算，但名额是按**分数序**发的 ——
+    分数序是确定的，于是每一轮赢的都是同几档。实测：建档队列 169 档，
+    连着两轮 pending 不变、published 0，而队列里 55 档零产出的源有
+    **31 档从头到尾一次都没被碰过**，其中 17 档窗口里明明有新集
+    （samharris、sharptech、twiml、lastweekai…）。前面几档每天被试两次，
+    后面的永远排不上。
+
+    这件事两头都堵：没被试过就没有证据，没有证据既不会出稿、
+    也够不着任何移除规则 —— 队列于是既不产出也不收缩。
+    按「上次碰它是什么时候」排序，从没碰过的排最前，每档源迟早有一次机会
+    证明自己行或不行。
+    """
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.run = importlib.import_module("run")
+
+    def tearDown(self):
+        self.run._starve.update(on=False, have={}, last_try={})
+
+    def _order(self, ranked):
+        st = self.run._starve
+        zero = [e for e in ranked if st["have"].get(e["_src"]["id"], 0) == 0]
+        zero.sort(key=lambda e: st["last_try"].get(e["_src"]["id"], ""))
+        return [e["_src"]["id"] for e in zero]
+
+    def _ep(self, sid):
+        return {"_src": {"id": sid, "tier": 3, "cat": "ai"}}
+
+    def test_a_source_never_tried_goes_first(self):
+        self.run._starve.update(on=True, have={"a": 0, "b": 0, "c": 0},
+                                last_try={"a": "2026-09-18T08:00",
+                                          "b": "2026-09-17T08:00"})
+        got = self._order([self._ep("a"), self._ep("b"), self._ep("c")])
+        self.assertEqual(got[0], "c", "从没碰过的没排最前 —— 它永远拿不到名额")
+        self.assertEqual(got, ["c", "b", "a"],
+                         "没有按「上次碰它是什么时候」轮转，同几档会一直赢")
+
+    def test_the_reservation_reads_the_rotation_key(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index('if _starve["on"]:', src.index("def spread("))
+        blk = src[i:i + 1400]
+        self.assertIn('_starve["last_try"]', blk,
+                      "预留名额还是按分数序发的 —— 留了名额也只有同几档拿得到")
+        self.assertIn("zero.sort(", blk, "没有排序，等于没轮转")
+
+    def test_the_rotation_key_is_actually_populated(self):
+        """判据对不对是一回事，喂给它的数据有没有在算是另一回事。
+
+        last_try 是在 --catchup 分支里从 state.json 现算的。那段被删掉，
+        上面两条照样全绿（它们自己塞 last_try）—— 所以这里直接验采集。
+        """
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index("if a.catchup:")
+        blk = src[i:i + 2000]
+        self.assertIn("last_try=_last", blk,
+                      "建档模式没把「上次碰它是什么时候」算出来传进去 ——"
+                      "轮转的钥匙永远是空的，退化回原来的分数序")
+        self.assertRegex(blk, r'for _bucket in \("done", "fail"\)',
+                         "只数了一半记录：失败也是「碰过」，漏掉它会让"
+                         "一直失败的源被当成从没碰过，永远排最前")
+
+
 class ASourceThatNeverPassesMustEventuallyBeRemoved(unittest.TestCase):
     """判过很多次、一次都没过、一篇都没发 —— 要有一条规则结束它。
 
@@ -7240,9 +7307,14 @@ class CatchUpRankingMustFavourStarvingSources(unittest.TestCase):
             run._starve.clear(); run._starve.update(was)
 
     def test_catchup_mode_actually_turns_it_on(self):
+        # **判据的范围要按结构切，不按字节数切。**
+        # 原来取 `if a.catchup:` 之后固定 700 字节。往这个分支里加几行
+        # （算「上次碰它是什么时候」）就把 _starve.update 挤出了窗口，
+        # 闸红了 —— 而代码是对的。判据钉在旧写法上，改对了也会红。
+        # 改成切到分支结束（下一句顶格语句）。
         src = (ROOT / "pipeline" / "run.py").read_text()
         i = src.index("if a.catchup:")
-        blk = src[i:i + 700]
+        blk = src[i:src.index("\n    srcs = json.loads(", i)]
         self.assertIn("_starve.update(on=True", blk,
                       "建档模式没有打开饥饿加权 —— 改了也不生效")
 

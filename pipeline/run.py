@@ -190,11 +190,23 @@ def spread(ranked: list[dict], limit: int, per_source: int) -> list[dict]:
     if _starve["on"]:
         keep = max(1, limit // 2)
         n0 = len(out)
-        for ep in ranked:
+        # **留了名额还不够，名额得轮着来。**
+        # 这里原来按分数序扫 ranked，取前 keep 个零产出源的集。分数序是确定的，
+        # 于是每一轮赢的都是同几档 —— 实测建档队列 169 档连着两轮 pending 不变、
+        # published 0，而队列里 55 档零产出的源有 **31 档从头到尾一次都没被碰过**，
+        # 其中 17 档窗口里明明有新集（samharris、sharptech、twiml、lastweekai…）。
+        # 前面几档每天被试两次，后面的永远排不上。
+        #
+        # 没被试过就没有证据，没有证据就既不会出稿、也够不着任何移除规则 ——
+        # 队列于是两头都不动。按「上次碰它是什么时候」排序，从没碰过的排最前，
+        # 名额就会轮转，每档源迟早有一次机会证明自己行或不行。
+        zero = [ep for ep in ranked
+                if _starve["have"].get(ep["_src"]["id"], 0) == 0]
+        zero.sort(key=lambda ep: _starve["last_try"].get(ep["_src"]["id"], ""))
+        for ep in zero:
             if len(out) - n0 >= keep or len(out) >= limit:
                 break
-            if _starve["have"].get(ep["_src"]["id"], 0) == 0:
-                try_add(ep)
+            try_add(ep)
         if len(out) > n0:
             log(f"  零产出源保底 {len(out) - n0} 集（上限 {keep}）")
 
@@ -399,7 +411,7 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
     return out
 
 
-_starve: dict = {"on": False, "have": {}}
+_starve: dict = {"on": False, "have": {}, "last_try": {}}
 
 
 def score(ep: dict) -> float:
@@ -945,7 +957,21 @@ def main() -> int:
                 _have[json.loads(_f.read_text()).get("source_id")] += 1
             except Exception:
                 continue
-        _starve.update(on=True, have=dict(_have))
+        # 每档源最近一次被碰是什么时候（done 和 fail 都算）。空串＝从没碰过，
+        # 排序时自然排最前。
+        _last: dict = {}
+        try:
+            _st = json.loads((DATA / "state.json").read_text())
+            for _bucket in ("done", "fail"):
+                for _v in (_st.get(_bucket) or {}).values():
+                    if not isinstance(_v, dict):
+                        continue
+                    _s, _at = _v.get("src"), str(_v.get("at") or "")
+                    if _s and _at > _last.get(_s, ""):
+                        _last[_s] = _at
+        except Exception:
+            pass
+        _starve.update(on=True, have=dict(_have), last_try=_last)
         ids = _catchup_ids()
         if not ids:
             log("没有需要建档的新信源")
