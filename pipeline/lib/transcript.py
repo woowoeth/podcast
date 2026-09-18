@@ -1081,7 +1081,44 @@ def belongs_to(text: str, title: str) -> bool | None:
         return None
     # 配错集的文稿在两个通道上都会接近 0；标题修饰语不会被念出来，所以门槛压低，
     # 宁可放过个别错配（后面还有成稿评审对照原文），也不要误杀正确的文稿。
-    return lat_hit >= 1 or cjk_hit >= 2
+    if lat_hit >= 1 or cjk_hit >= 2:
+        return True
+    return _two_char_rescue(low, title)
+
+
+# 标题上的家具词：每档播客的标题里都可能有，转写里也常出现，
+# 拿它们兜底等于没兜。
+_TITLE_FURNITURE = {"嘉宾", "本期", "上期", "下期", "节目", "播客", "特辑",
+                    "系列", "对谈", "访谈", "问答", "番外", "加餐", "预告"}
+# 两字词要出现这么多次才算数。实测：139 个带独立两字词的中文原始标题里，
+# ≥3 次会误认 15%、≥5 次 9%、≥10 次 6%。取 10。
+_TWO_CHAR_MIN = 10
+_TWO_CHAR = re.compile(r"(?<![\u4e00-\u9fff])([\u4e00-\u9fff]{2})(?![\u4e00-\u9fff])")
+
+
+def _two_char_rescue(low: str, title: str) -> bool:
+    """前两个通道都说「不是这一集」时的兜底：标题里的**两字专名**。
+
+    起因：香港美食那一集，24206 字的正确转写被判成「不属于这一集」丢掉，
+    而「香港」在转写里出现 **243 次**。真因是 3-gram 通道的正则是
+    `[\u4e00-\u9fff]{3,}` —— **两字专名整个够不着它**（香港、北京、腾讯、
+    美团、苹果都是两字）。那条标题里剩下能提取的只有粤语俏皮话「搵嘢食倒不难」
+    和嘉宾昵称「五色全味」，两样普通话音频里都不会照念。
+
+    为什么不直接把 3-gram 放宽成 2-gram：量过，那会把标题切成一地常用词碎片，
+    139 个标题里 72% 会被一份无关转写认领。这里只取**恰好两字、前后都不是汉字**
+    的独立词（更可能是专名），并要求出现 ≥10 次 —— 误认率 6%，
+    而真集是 243 次。量级差得很开。
+
+    只在「其他通道都判否」时才走这条，而且只能救不能杀：
+    它返回 False 的话，结论和原来一样。
+    """
+    for w in set(_TWO_CHAR.findall(title or "")):
+        if w in _TITLE_FURNITURE:
+            continue
+        if low.count(w) >= _TWO_CHAR_MIN:
+            return True
+    return False
 
 
 ORDER = ("feed", "notes", "page", "youtube", "asr")
@@ -1256,15 +1293,22 @@ def yt_length(vid: str) -> int:
 # 质量闸一道都不少，只是重新给它们一次机会。
 #
 #   1 → 2  修好切片丢封面图（-vn）、空片不再当成功缓存（2026-09-14）
-TRANSCRIPT_GEN = 2
+# 3：belongs_to 加了两字专名兜底。**改判据就要换代号** —— 香港那一集是
+# 被旧的 belongs_to 判死的（正确的 24206 字转写因为「香港」是两字而被丢），
+# 判据修好了，旧的「取不到文稿」结论就不算数，账本里那些要能被捞回来。
+TRANSCRIPT_GEN = 3
 
 
 def pipeline_id() -> str:
     """当前这套取稿代码的指纹。代号 + 真正决定结果的那几个旋钮。"""
     import hashlib
+    # **「归属判据」也决定结果，所以也要进指纹。**
+    # 原来这几个旋钮里没有它：改了 belongs_to、结果变了，而 id 没变，
+    # 于是被旧判据误杀的集一个都捞不回来 —— 指纹漏了一段，等于这段没有指纹。
     knobs = "|".join(str(x) for x in
                      (TRANSCRIPT_GEN, ORDER, CHUNK_SEC, LOCAL_MODEL,
-                      ASR_MAX_MB, sorted(MIN_WORDS.items())))
+                      ASR_MAX_MB, sorted(MIN_WORDS.items()),
+                      _TWO_CHAR_MIN, sorted(_TITLE_FURNITURE)))
     return hashlib.sha1(knobs.encode("utf-8")).hexdigest()[:10]
 
 

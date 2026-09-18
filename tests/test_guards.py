@@ -6482,6 +6482,87 @@ class GivingUpOnASourceRequiresTryingTheLineThatCanDoIt(unittest.TestCase):
             f" —— 规则还在，喂给它的数已经没了")
 
 
+class ATwoCharacterProperNounMustNotBeInvisible(unittest.TestCase):
+    """两字专名够不着 3-gram 通道 —— 得有一条兜底，否则整篇正确文稿被丢掉。
+
+    实测：香港美食那一集，**24206 字的正确转写**被判成「不属于这一集」扔了，
+    而「香港」在转写里出现 **243 次**。真因是 3-gram 通道的正则是
+    `[\u4e00-\u9fff]{3,}` —— 两字专名整个够不着它（香港、北京、腾讯、美团、
+    苹果都是两字）。那条标题里能提取的只剩粤语俏皮话「搵嘢食倒不难」和嘉宾
+    昵称「五色全味」，两样普通话音频里都不会照念。于是这一集撞满三次出局。
+
+    **修之前量了三次尺子，前两把都是错的：**
+      · 把 3-gram 放宽成 2-gram：139 个标题里 72% 会被一份无关转写认领 —— 废案；
+      · 改用「这一集自己的简介」做通道：单个样本看着分得很开（21% vs 6%），
+        扩到 30 个样本就塌了（自己 76% / 别集 56%，区间重叠）—— 废案；
+      · 只取**恰好两字、前后都不是汉字**的独立词（更可能是专名）、要求出现
+        ≥10 次：误认 6%，而真集 243 次 —— 用这个。
+
+    这条只能救不能杀：它返回 False 时结论和原来一模一样。
+    """
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.T = importlib.import_module("lib.transcript")
+
+    def test_a_two_character_proper_noun_rescues_a_correct_transcript(self):
+        title = 'Vol.280｜且加餐：香港"搵食"不容易，搵嘢食倒不难｜嘉宾：五色全味'
+        text = ("香港的茶餐厅文化把西方料理平民化了。" * 20)
+        self.assertTrue(
+            self.T.belongs_to(text, title),
+            "标题里唯一的识别信号是两字专名「香港」，转写里出现几十次，"
+            "却仍被判成不属于这一集 —— 整篇正确文稿会被丢掉")
+
+    def test_title_furniture_never_rescues(self):
+        """嘉宾／本期／节目这种词哪篇转写里都有，拿它兜底等于没兜。"""
+        self.assertFalse(
+            self.T._two_char_rescue("本期嘉宾聊节目。" * 40, "｜嘉宾：某某｜本期"),
+            "用标题家具词救活了一份无关转写")
+
+    def test_a_passing_mention_does_not_rescue(self):
+        self.assertFalse(
+            self.T._two_char_rescue("这里提到香港一次。", "香港｜某某"),
+            "只出现一两次就算命中 —— 门槛没起作用，误认率会翻好几倍")
+
+    def test_the_threshold_is_not_quietly_lowered(self):
+        self.assertGreaterEqual(
+            self.T._TWO_CHAR_MIN, 10,
+            "两字兜底的门槛被调低了。实测 ≥3 次误认 15%、≥5 次 9%、≥10 次 6% ——"
+            "调低之前先拿真实转写重量一遍")
+
+    def test_the_rescue_only_runs_after_the_other_channels_say_no(self):
+        """兜底只能救不能杀：前面通道已经判是，就不该再走这条。"""
+        src = (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
+        i = src.index("def belongs_to(")
+        body = src[i:src.index("\n\n# 标题上的家具词", i)]
+        self.assertIn("if lat_hit >= 1 or cjk_hit >= 2:\n        return True", body,
+                      "兜底放在了判据前面 —— 它只该在其他通道都说否时才出场")
+        self.assertIn("return _two_char_rescue(", body, "兜底没接上")
+
+    def test_changing_the_rule_invalidates_old_verdicts(self):
+        """判据进了指纹 —— 否则改对了也捞不回被旧判据误杀的集。
+
+        账本里那条「取不到文稿」带着记录当时的 pipeline_id。改了 belongs_to
+        却不换指纹的话，id 没变、旧结论继续成立，香港那一集永远不会被再试
+        一次 —— **修好了 bug，没有任何东西去把受害者捞回来。**
+        """
+        import inspect
+        src = inspect.getsource(self.T.pipeline_id)
+        self.assertIn("_TWO_CHAR_MIN", src,
+                      "归属判据的旋钮没进指纹 —— 改了它，旧的死刑判决还生效")
+        self.assertIn("_TITLE_FURNITURE", src, "家具词表没进指纹")
+        self.assertGreaterEqual(self.T.TRANSCRIPT_GEN, 3,
+                                "改了判据没升代号")
+
+    def test_the_two_char_pattern_requires_a_standalone_word(self):
+        """必须是「恰好两字」，不是从长词里切两字 —— 后者 72% 会误认。"""
+        self.assertEqual(self.T._TWO_CHAR.findall("北京很大"), [],
+                         "从长串里切两字了 —— 那会把标题切成一地常用词碎片")
+        self.assertEqual(self.T._TWO_CHAR.findall("Vol.1｜北京：the city"), ["北京"],
+                         "独立的两字词没被取到")
+
+
 class TheRunningLineMustSayWhichVersionItIsRunning(unittest.TestCase):
     """跑批必须留下「我跑的是哪一版」的指纹。
 
