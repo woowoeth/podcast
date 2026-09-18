@@ -1373,7 +1373,7 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
             + f"""
 <main class="wrap ep">
 <nav class="crumb"><a href="{BASE}/">{T("首页")}</a><span class="sep">/</span>
-<a href="{BASE}/s/{e(ep.get('source_id'))}/"{zh_attr(src_label)}>{e(src_label)}</a>
+{cat_crumb(ep)}<a href="{BASE}/s/{e(ep.get('source_id'))}/"{zh_attr(src_label)}>{e(src_label)}</a>
 <span class="sep">/</span><span>{e(date)}</span></nav>
 
 <div class="ep-grid">
@@ -1550,6 +1550,88 @@ def source_page(src: dict, eps: list[dict], total_known: int | None) -> str:
 </main>""" + foot())
 
 
+def cat_page(cat: str, eps: list[dict], counts: dict) -> str:
+    """一个分类自己的页。
+
+    **为什么值得单独做一页：分类原来只活在 JS 里。**
+    实测 `?cat=ai` 和首页返回的字节完全一样 —— 服务端没有这一页。
+    后果分两头：
+      · 搜索：「AI 播客 深度解读」这类查询在站上没有任何一页对得上，
+        778 条 sitemap 里没有一条是主题页；
+      · 答案引擎：agent 想引用「这个站的 AI 板块」时没有 URL 可引，
+        要么爬 611 页，要么去解首页那段筛选逻辑。
+
+    内容全部来自已有数据，不新增判断：就是这个分类下的集，按时间倒序。
+    """
+    label = T_dict(CAT_LABEL, cat, cat)
+    n = len(eps)
+    desc = T("{label}分类下的 {n} 篇播客深读，要点与金句都带时间戳，"
+             "可回到原声核对。").format(label=label, n=n)
+    cards = "\n".join(card(x, hero=(i == 0)) for i, x in enumerate(eps[:60]))
+    items = "".join(
+        f'{{"@type":"ListItem","position":{i + 1},'
+        f'"url":"{SITE}/p/{x["slug"]}/"}},'
+        for i, x in enumerate(eps[:60])).rstrip(",")
+    ld = _ld({"@context": "https://schema.org", "@graph": [
+        {"@type": "CollectionPage", "name": f"{label} — {NAME}",
+         "description": desc, "url": f"{SITE}/c/{cat}/",
+         "isPartOf": {"@type": "WebSite", "name": NAME, "url": SITE + "/"},
+         "mainEntity": {"@type": "ItemList", "numberOfItems": n,
+                        "itemListElement": json.loads("[" + items + "]")}},
+        {"@type": "BreadcrumbList", "itemListElement": [
+            {"@type": "ListItem", "position": 1, "name": T("首页"), "item": SITE + "/"},
+            {"@type": "ListItem", "position": 2, "name": label}]}]})
+    nav = cat_nav(counts, here=cat)
+    more = ("" if n <= 60 else
+            f'<p class="lede" style="margin-top:14px">'
+            + T("这里列出最近 60 篇；全部 {n} 篇在首页按分类筛选。").format(n=n)
+            + "</p>")
+    return (head(f"{label} — {NAME}", desc, path=f"/c/{cat}/", extra=ld)
+            + masthead(n, home=False, path=f"/c/{cat}/")
+            + f"""<main class="wrap">
+<nav class="crumb" style="margin-top:26px"><a href="{BASE}/">{T("首页")}</a><span class="sep">/</span><span>{e(label)}</span></nav>
+<div class="page-head"><h1 class="sec-title" style="margin-top:0">{e(label)}</h1></div>
+<p class="lede">{e(desc)}</p>
+{nav}
+<div class="feed" data-feed>{cards}</div>
+{more}
+</main>""" + foot())
+
+
+def cat_crumb(ep: dict) -> str:
+    """集页面包屑里那一段分类链接。
+
+    **每个集页都要有一条通向主题页的真链接。** 抽查 400 个集页，每页平均
+    只有 2 个指向其他集页的链接，74 篇没有任何集页指向它 —— 站的内部结构
+    基本是「首页 → 集页」两层，中间是空的。分类页补上中间这层之后，
+    每篇都能被「主题」串起来，爬虫和 agent 都少走很多路。
+    """
+    c = ep.get("cat")
+    if c not in CAT_LABEL:
+        return ""
+    lab = T_dict(CAT_LABEL, c, c)
+    return (f'<a href="{BASE}/c/{c}/">{e(lab)}</a><span class="sep">/</span>')
+
+
+def cat_nav(counts: dict, here: str = "") -> str:
+    """分类之间的**真链接**。
+
+    首页那排 chip 是 JS 筛选，爬虫和 agent 顺不过去；这排是 <a>，
+    让分类页互相连通，也给 611 个集页之外的结构留一条主干。
+    """
+    out = []
+    for c in CAT_ORDER:
+        if not counts.get(c):
+            continue
+        lab = T_dict(CAT_LABEL, c, c)
+        if c == here:
+            out.append(f'<span class="chip on">{e(lab)}<span class="n">{counts[c]}</span></span>')
+        else:
+            out.append(f'<a class="chip" href="{BASE}/c/{c}/">{e(lab)}'
+                       f'<span class="n">{counts[c]}</span></a>')
+    return f'<nav class="chips" style="margin:14px 0 6px">{"".join(out)}</nav>' if out else ""
+
+
 # ---------------------------------------------------------------- 更新日志
 
 KIND_LABEL = {"added": "收录", "removed": "移除", "demoted": "降级", "dormant": "休眠"}
@@ -1673,6 +1755,10 @@ def llms_txt(eps: list[dict], srcs: dict) -> str:
           "", "## Read it", "",
          f"- Site: {SITE}/",
          f"- Every source, with coverage and fetch health: {SITE}/sources/",
+         # 主题页要写进来：agent 想引用「这个站的 AI 板块」时得有个 URL 可引，
+         # 否则只能爬 611 页或者去解首页那段 JS 筛选。
+         f"- One page per topic: "
+         + ", ".join(f"{CAT_LABEL.get(c, c)} {SITE}/c/{c}/" for c in CAT_ORDER),
          f"- One page per source: {SITE}/s/<source-id>/",
          f"- One page per episode: {SITE}/p/<slug>/",
          f"- Full text of every entry, one file: {SITE}/llms-full.txt",
@@ -1858,6 +1944,11 @@ def sitemap(eps: list[dict]) -> str:
             f"<url><loc>{xesc(SITE)}/sources/</loc>"
             + (f"<lastmod>{xesc(newest)}</lastmod>" if newest else "")
             + "<changefreq>weekly</changefreq><priority>0.6</priority></url>"]
+    for c in CAT_ORDER:
+        if any(x.get("cat") == c for x in eps):
+            urls.append(f"<url><loc>{xesc(SITE)}/c/{xesc(c)}/</loc>"
+                        + (f"<lastmod>{xesc(newest)}</lastmod>" if newest else "")
+                        + "<changefreq>daily</changefreq><priority>0.7</priority></url>")
     for sid in sorted({x["source_id"] for x in eps}):
         urls.append(f"<url><loc>{xesc(SITE)}/s/{xesc(sid)}/</loc><changefreq>weekly</changefreq></url>")
     for x in eps:
@@ -1966,6 +2057,24 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
             if d.is_dir() and d.name not in live_src:
                 shutil.rmtree(d)
     log(f"  {len(live_src)} source pages")
+
+    # 分类页。数据都是现成的，缺的只是「有没有这一页」。
+    cdir = out / "c"
+    counts = {c: sum(1 for x in eps if x.get("cat") == c) for c in CAT_ORDER}
+    live_cat = set()
+    for c in CAT_ORDER:
+        rows = [x for x in eps if x.get("cat") == c]
+        if not rows:
+            continue
+        cout = cdir / c
+        cout.mkdir(parents=True, exist_ok=True)
+        (cout / "index.html").write_text(cat_page(c, rows, counts))
+        live_cat.add(c)
+    if cdir.exists():
+        for d in cdir.iterdir():
+            if d.is_dir() and d.name not in live_cat:
+                shutil.rmtree(d)
+    log(f"  {len(live_cat)} category pages")
 
     # 显式放行答案引擎的爬虫。这个站的价值就是被引用时能带出可核对的判断，
     # 所以默认允许而不是默认拦——沉默的 User-agent: * 在有些爬虫那里等于不确定。

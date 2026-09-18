@@ -6482,6 +6482,86 @@ class GivingUpOnASourceRequiresTryingTheLineThatCanDoIt(unittest.TestCase):
             f" —— 规则还在，喂给它的数已经没了")
 
 
+class ATopicMustHaveAUrlNotJustAJsFilter(unittest.TestCase):
+    """分类得是一页，不能只活在 JS 里。
+
+    实测：`?cat=ai` 和首页返回的**字节完全一样** —— 服务端没有这一页，
+    分类只是首页上的一段筛选逻辑。778 条 sitemap 里没有一条是主题页。
+    两头都吃亏：
+      · 搜索：「AI 播客 深度解读」这类查询在站上没有任何一页对得上；
+      · 答案引擎：agent 想引用「这个站的 AI 板块」时没有 URL 可引，
+        要么爬 611 页，要么去解首页那段 JS。
+
+    顺带补站的中间层：抽查 400 个集页，每页平均只有 2 个指向其他集页的链接，
+    **74 篇没有任何集页指向它** —— 结构基本是「首页 → 集页」两层，中间是空的。
+    """
+
+    def _cat_pages(self):
+        return sorted(d.name for d in (ROOT / "c").iterdir() if d.is_dir()) \
+            if (ROOT / "c").exists() else []
+
+    def test_every_category_with_content_has_a_page(self):
+        import json as _j
+        cats = set()
+        for p in (ROOT / "data" / "episodes").glob("*.json"):
+            c = _j.loads(p.read_text()).get("cat")
+            if c:
+                cats.add(c)
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        build = importlib.import_module("build")
+        want = {c for c in cats if c in build.CAT_ORDER}
+        have = set(self._cat_pages())
+        self.assertFalse(want - have,
+                         f"这些分类有内容却没有页：{sorted(want - have)}")
+
+    def test_a_category_page_is_server_rendered_and_citable(self):
+        import re
+        pages = self._cat_pages()
+        if not pages:
+            self.skipTest("还没有分类页")
+        h = (ROOT / "c" / pages[0] / "index.html").read_text()
+        body = re.sub(r"<script.*?</script>", " ", h, flags=re.S)
+        text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", body)).strip()
+        self.assertGreater(len(text), 1500,
+                           "分类页不跑 JS 就没内容 —— 爬虫和 agent 拿到的是空壳")
+        for k in ('rel="canonical"', "CollectionPage", "ItemList", "BreadcrumbList"):
+            self.assertIn(k, h, f"分类页缺 {k}，引用时认不出这是什么页")
+
+    def test_the_categories_link_to_each_other(self):
+        import re
+        pages = self._cat_pages()
+        if len(pages) < 2:
+            self.skipTest("分类页不足两个")
+        h = (ROOT / "c" / pages[0] / "index.html").read_text()
+        linked = set(re.findall(r'href="[^"]*/c/([a-z]+)/"', h))
+        self.assertGreaterEqual(
+            len(linked), 2,
+            "分类页之间没有真链接 —— 只有 sitemap 能发现它们，爬不过去")
+
+    def test_every_episode_links_up_to_its_topic(self):
+        import re, random
+        eps = list((ROOT / "p").glob("*/index.html"))
+        if not eps:
+            self.skipTest("还没有集页")
+        random.seed(3)
+        bad = [p.parent.name for p in random.sample(eps, min(25, len(eps)))
+               if not re.search(r'href="[^"]*/c/[a-z]+/"', p.read_text())]
+        self.assertFalse(bad, f"这些集页没有通向主题页的链接：{bad[:4]}")
+
+    def test_the_sitemap_lists_the_topic_pages(self):
+        import re
+        sm = (ROOT / "sitemap.xml").read_text()
+        got = set(re.findall(r"<loc>[^<]*/c/([a-z]+)/</loc>", sm))
+        self.assertEqual(got, set(self._cat_pages()),
+                         "主题页没进 sitemap（或进了已经不存在的）")
+
+    def test_llms_txt_points_at_the_topic_pages(self):
+        t = (ROOT / "llms.txt").read_text()
+        self.assertIn("/c/", t,
+                      "llms.txt 里没有主题页 —— agent 只能爬 611 页或解 JS")
+
+
 class ThrottlingIsNotAReasonToSpendTheGPU(unittest.TestCase):
     """被 YouTube 限流 ≠ 这集没字幕。别拿转写去补一份免费的东西。
 
