@@ -1269,7 +1269,8 @@ def player_block(ep: dict) -> str:
     return "\n".join(out)
 
 
-def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
+def episode_page(ep: dict, prev: dict | None, nxt: dict | None,
+                 eps_by_slug: dict | None = None) -> str:
     d = D(ep)
     q = d.get("quality") or {}
     src_label = show_name(ep)
@@ -1356,6 +1357,32 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
     }]
     if ep.get("audio"):
         graph[0]["associatedMedia"] = {"@type": "AudioObject", "contentUrl": ep["audio"]}
+    # **正文也要进结构化数据。**
+    # 这一页真正值得被引用的东西——每条要点的判断、每句金句、每个数字——
+    # 原来只在 HTML 里。答案引擎要拿到它就得解 DOM，而 DOM 会变、类名会改。
+    # 这一页不是「播客本身」，是**我们写的那篇深读**，所以单独立一个 Article
+    # 节点：about 指向那一集，articleBody 就是要点＋金句＋数字的纯文本。
+    # 不重复整份逐字稿（第三方版权），只放我们自己写的这部分。
+    body = article_body(d)
+    if body:
+        graph.append({
+            "@type": "Article",
+            "@id": f"{SITE}/p/{ep['slug']}/#deepread",
+            "headline": d.get("title"),
+            "description": d.get("dek"),
+            "articleBody": body,
+            # wordCount 是**词**数，不是字符数。中文按汉字计、西文按空格分词，
+            # 混排时两边相加 —— 写 len(body) 会把一篇 2500 字的稿报成 2500 词。
+            "wordCount": _wordcount(body),
+            "inLanguage": in_language(),
+            "datePublished": ep.get("published"),
+            "dateModified": ep.get("generated") or ep.get("published"),
+            "url": f"{SITE}/p/{ep['slug']}/",
+            "about": {"@id": f"{SITE}/p/{ep['slug']}/#episode"},
+            "isBasedOn": orig or None,
+            "publisher": _publisher(),
+            "isAccessibleForFree": True,
+        })
     graph.append({"@type": "BreadcrumbList", "itemListElement": [
         {"@type": "ListItem", "position": 1, "name": T("首页"), "item": SITE + "/"},
         {"@type": "ListItem", "position": 2, "name": src_label,
@@ -1399,6 +1426,7 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None) -> str:
 <div><span class="k">{T("谁该听")}</span><p>{mark_zh(e(d.get("who")))}</p></div>
 {f'<div><span class="k">{T("可跳过")}</span><p>{mark_zh(e(d.get("skip")))}</p></div>' if d.get('skip') else ''}
 </div></section>''' if d.get('who') else ''}
+{related_block(ep, eps_by_slug or {})}
 {prevnext}
 </article>
 
@@ -1596,6 +1624,116 @@ def cat_page(cat: str, eps: list[dict], counts: dict) -> str:
 <div class="feed" data-feed>{cards}</div>
 {more}
 </main>""" + foot())
+
+
+def _wordcount(text: str) -> int:
+    import re as _re
+    cjk = len(_re.findall(r"[\u4e00-\u9fff]", text))
+    lat = len(_re.findall(r"[A-Za-z][A-Za-z'’-]*", text))
+    return cjk + lat
+
+
+_RELATED: dict = {"by_tag": {}, "rank": {}}
+
+
+def index_related(eps: list[dict]) -> None:
+    """建一次全站的标签倒排，供 related_block 用。
+
+    **站原来是一条按日期排的直线。** 每个集页只连前一篇和后一篇，
+    实测从首页出发最深要走 **552 跳**（平均 249.9）—— 没有哪个爬虫会顺着
+    一条链走五百步，最老的那几百篇等于不存在。加上话题相关块之后最深 5 跳。
+    对 agent 也一样：「顺着这个话题还有什么」在一条直线上答不出来。
+
+    用标签做关联：611 篇里有 2414 个不同标签，其中 159 个出现在 ≥3 篇上
+    （算力 30、AI 安全 22、开源模型 19…）—— 够用而且是内容本身长出来的，
+    不是我另编一套分类。
+    """
+    by_tag: dict = {}
+    for x in eps:
+        for t in ((x.get("digest") or {}).get("tags") or []):
+            by_tag.setdefault(str(t), []).append(x["slug"])
+    _RELATED["by_tag"] = by_tag
+    # 同一篇的稳定序号，用来做确定性的并列排序（构建必须幂等）
+    _RELATED["rank"] = {x["slug"]: i for i, x in enumerate(eps)}
+
+
+def related_eps(ep: dict, eps_by_slug: dict, limit: int = 5) -> list[dict]:
+    """和这一篇最相关的几篇。
+
+    打分：共享标签越**稀有**越值钱（都挂「AI」不说明什么，同挂
+    「reward hacking」才说明这两篇在讲同一件事），同源加一点分，
+    同分时按全站固定序号排 —— 构建必须一字不差地可重复。
+    """
+    import math
+    by_tag = _RELATED["by_tag"]
+    if not by_tag:
+        return []
+    me = ep["slug"]
+    score: dict = {}
+    for t in ((ep.get("digest") or {}).get("tags") or []):
+        peers = by_tag.get(str(t)) or []
+        if len(peers) < 2 or len(peers) > 60:
+            continue                       # 独有的和烂大街的都没有区分度
+        w = 1.0 / math.log(len(peers) + 1.5)
+        for sl in peers:
+            if sl != me:
+                score[sl] = score.get(sl, 0.0) + w
+    if not score:
+        return []
+    for sl in list(score):
+        other = eps_by_slug.get(sl)
+        if other and other.get("source_id") == ep.get("source_id"):
+            score[sl] += 0.15
+    rank = _RELATED["rank"]
+    order = sorted(score, key=lambda sl: (-score[sl], rank.get(sl, 1 << 30)))
+    return [eps_by_slug[sl] for sl in order[:limit] if sl in eps_by_slug]
+
+
+def related_block(ep: dict, eps_by_slug: dict) -> str:
+    rel = related_eps(ep, eps_by_slug)
+    if not rel:
+        return ""
+    items = "".join(
+        f'<li><a href="{BASE}/p/{e(x["slug"])}/">'
+        f'<span class="rel-t"{zh_attr((x.get("digest") or {}).get("title") or "")}>'
+        f'{e((D(x) or {}).get("title") or x.get("slug"))}</span>'
+        f'<span class="rel-s"{zh_attr(show_name(x))}>{e(show_name(x))}</span></a></li>'
+        for x in rel)
+    return (f'<section class="related"><h2 class="sec-title">{T("顺着这个话题")}</h2>'
+            f'<ul class="rel-list">{items}</ul></section>')
+
+
+def article_body(d: dict) -> str:
+    """深读的纯文本：导语 + 每条要点 + 金句 + 数字。
+
+    **只放我们自己写的部分。** 逐字稿是第三方版权内容，不进结构化数据，
+    也不进仓库；这里放的是要点的判断、金句的译文和可核对的数字 ——
+    正好是答案引擎该引用、也是我们愿意被引用的那一块。
+
+    每条前面带上时间戳（[12:34]），引用的人能顺着回到原声那一秒 ——
+    这个站的全部价值就在这条链上，结构化数据里丢掉它等于丢掉出处。
+    """
+    def hms(t):
+        t = int(t or 0)
+        return f"{t // 3600}:{t % 3600 // 60:02d}:{t % 60:02d}" if t >= 3600 \
+            else f"{t // 60}:{t % 60:02d}"
+    out = []
+    if d.get("dek"):
+        out.append(str(d["dek"]))
+    for p in (d.get("points") or []):
+        h, b = str(p.get("h") or "").strip(), str(p.get("body") or "").strip()
+        if h or b:
+            out.append(f"[{hms(p.get('t'))}] {h}。{b}" if h and b else f"[{hms(p.get('t'))}] {h or b}")
+    for q in (d.get("quotes") or []):
+        z = str(q.get("zh") or q.get("raw") or "").strip()
+        if z:
+            spk = str(q.get("spk") or "").strip()
+            out.append(f"[{hms(q.get('t'))}] {spk}：「{z}」" if spk else f"[{hms(q.get('t'))}]「{z}」")
+    for f in (d.get("facts") or []):
+        k, v = str(f.get("k") or "").strip(), str(f.get("v") or "").strip()
+        if k and v:
+            out.append(f"[{hms(f.get('t'))}] {k}：{v}")
+    return "\n".join(out)
 
 
 def cat_crumb(ep: dict) -> str:
@@ -2107,6 +2245,8 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
 
     pdir = out / "p"
     live = set()
+    index_related(eps)                     # 全站标签倒排，一次建好
+    by_slug = {x["slug"]: x for x in eps}
     for i, x in enumerate(eps):
         prev = eps[i - 1] if i > 0 else None
         nxt = eps[i + 1] if i + 1 < len(eps) else None
@@ -2115,7 +2255,7 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
         # s/<最后一个源>/ 下；短链循环让 out 在循环后指向最后一集的目录。
         pout = pdir / x["slug"]
         pout.mkdir(parents=True, exist_ok=True)
-        (pout / "index.html").write_text(episode_page(x, prev, nxt))
+        (pout / "index.html").write_text(episode_page(x, prev, nxt, by_slug))
         live.add(x["slug"])
     if pdir.exists():                      # drop pages whose record is gone
         for d in pdir.iterdir():

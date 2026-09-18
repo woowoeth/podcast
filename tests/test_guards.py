@@ -6511,6 +6511,153 @@ class EveryUiStringMustBeRegisteredBeforePush(unittest.TestCase):
             f"{missing[:3]}")
 
 
+class EveryEpisodeMustBeAFewHopsFromTheFrontPage(unittest.TestCase):
+    """从首页走到任何一篇，不能要走几百跳。
+
+    **我第一版把这件事诊断错了，记在这里。** 我报「74 篇没有任何集页指向它」，
+    那是扫了前 400 页的出链、却拿全部 611 页做差算出来的 —— 抽样偏差。
+    真实孤岛数**一直是 0**：prev/next 链本来就保证每页都有入链。
+    （教训还是那条：先验尺子。）
+
+    真正的问题是链的**形状**：改之前每页只连前一篇和后一篇，整站是一条按
+    日期排的**直线**。实测从首页出发：
+        只有 prev/next：最深 552 跳，平均 249.9 跳
+        加上话题相关块：最深   5 跳，平均   2.8 跳
+    552 跳意味着最老的那些集在爬虫眼里等于不存在 —— 没有哪个爬虫会顺着
+    一条链走五百步。对 agent 也一样：「顺着这个话题还有什么」在直线上答不出来。
+    """
+
+    def _graph(self):
+        import re, pathlib as _p
+        graph = {}
+        for p in (ROOT / "p").glob("*/index.html"):
+            hs = set(re.findall(r'href="/podcast/p/([^"]+)/"', p.read_text()))
+            hs.discard(p.parent.name)
+            graph[p.parent.name] = hs
+        return graph
+
+    def test_nothing_is_hundreds_of_hops_deep(self):
+        import re, collections
+        graph = self._graph()
+        if len(graph) < 50:
+            self.skipTest("集页太少，量不出深度")
+        home = (ROOT / "index.html").read_text()
+        seen = {s: 1 for s in re.findall(r'href="/podcast/p/([^"]+)/"', home)
+                if s in graph}
+        self.assertTrue(seen, "首页一条集页链接都没有")
+        q = collections.deque(seen)
+        while q:
+            cur = q.popleft()
+            for nxt in graph.get(cur, ()):
+                if nxt not in seen:
+                    seen[nxt] = seen[cur] + 1
+                    q.append(nxt)
+        self.assertEqual(len(seen), len(graph),
+                         f"{len(graph) - len(seen)} 篇从首页顺链接走不到")
+        deepest = max(seen.values())
+        self.assertLessEqual(
+            deepest, 20,
+            f"最深的一篇离首页 {deepest} 跳 —— 站退回成一条按日期排的直线了，"
+            f"爬虫走不到尾巴上那几百篇")
+
+    def test_a_rare_shared_tag_outranks_two_common_ones(self):
+        """稀有标签要压得过两个大路标签。
+
+        **第一版这条测不出东西**：反向注入把权重改成常数 1.0，它照样绿 ——
+        因为并列时按固定序号排，稀有的那篇恰好排在前面。判据要让「不加权
+        就会选错」，才算真的在测加权。
+        """
+        b = self.build
+        eps = [{"slug": "me", "source_id": "x",
+                "digest": {"tags": ["AI", "算力", "reward hacking"]}},
+               # common 共享两个大路标签；rare 只共享一个稀有标签。
+               # 不加权：common 2 分 > rare 1 分，选错。
+               # 加权后：rare 的那个标签只出现在 2 篇上，权重高得多。
+               {"slug": "common", "source_id": "y", "digest": {"tags": ["AI", "算力"]}},
+               {"slug": "rare", "source_id": "y",
+                "digest": {"tags": ["reward hacking"]}}]
+        eps += [{"slug": f"f{i}", "source_id": "z", "digest": {"tags": ["AI", "算力"]}}
+                for i in range(20)]
+        b.index_related(eps)
+        got = b.related_eps(eps[0], {x["slug"]: x for x in eps}, limit=1)
+        self.assertEqual(
+            got[0]["slug"], "rare",
+            "两个大路标签压过了一个稀有标签 —— 那「相关」只是「都提过 AI」")
+
+    def test_related_is_deterministic(self):
+        """构建必须一字不差地可重复 —— 并列时要有稳定的次序。"""
+        b = self.build
+        eps = [{"slug": f"e{i}", "source_id": "s", "digest": {"tags": ["t"]}}
+               for i in range(8)]
+        b.index_related(eps)
+        by = {x["slug"]: x for x in eps}
+        a = [x["slug"] for x in b.related_eps(eps[0], by)]
+        for _ in range(3):
+            b.index_related(eps)
+            self.assertEqual([x["slug"] for x in b.related_eps(eps[0], by)], a,
+                             "同样的输入两次算出不同顺序 —— 构建就不幂等了")
+
+    def test_an_episode_never_recommends_itself(self):
+        b = self.build
+        eps = [{"slug": "me", "source_id": "s", "digest": {"tags": ["t"]}},
+               {"slug": "other", "source_id": "s", "digest": {"tags": ["t"]}}]
+        b.index_related(eps)
+        got = [x["slug"] for x in b.related_eps(eps[0], {x["slug"]: x for x in eps})]
+        self.assertNotIn("me", got, "把自己推荐给了自己")
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.build = importlib.import_module("build")
+
+
+class TheDeepReadMustBeReadableAsData(unittest.TestCase):
+    """我们自己写的那部分，要能从结构化数据里直接取到。
+
+    这一页真正值得被引用的是要点的判断、金句和数字，原来只在 HTML 里 ——
+    答案引擎要拿就得解 DOM，而 DOM 会变、类名会改。
+    所以单独立一个 Article 节点（about 指向那一集），articleBody 放纯文本。
+
+    **只放我们自己写的部分**：逐字稿是第三方版权内容，不进结构化数据。
+    每条前面带时间戳，引用的人能顺着回到原声那一秒 —— 这个站的全部价值
+    就在这条链上，结构化数据里丢掉它等于丢掉出处。
+    """
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.build = importlib.import_module("build")
+
+    def test_the_body_carries_points_quotes_and_numbers_with_timestamps(self):
+        b = self.build.article_body({
+            "dek": "导语。",
+            "points": [{"t": 790, "h": "标题", "body": "正文"}],
+            "quotes": [{"t": 971, "spk": "某人", "zh": "一句话"}],
+            "facts": [{"k": "指标", "v": "1.5%", "t": 606}]})
+        for want in ("导语。", "13:10", "标题", "正文", "16:11", "一句话", "10:06", "1.5%"):
+            self.assertIn(want, b, f"articleBody 里没有 {want!r}")
+
+    def test_a_real_page_has_an_article_node_pointing_at_the_episode(self):
+        import re, json as _j
+        pages = sorted((ROOT / "p").glob("*/index.html"))
+        if not pages:
+            self.skipTest("还没有集页")
+        h = pages[-1].read_text()
+        m = re.search(r'<script type="application/ld\+json">(.*?)</script>', h, re.S)
+        g = _j.loads(m.group(1))["@graph"]
+        art = [x for x in g if x.get("@type") == "Article"]
+        self.assertTrue(art, "结构化数据里没有 Article 节点 —— 正文只能靠解 DOM 取")
+        self.assertIn("articleBody", art[0], "Article 节点没有正文")
+        self.assertGreater(len(art[0]["articleBody"]), 300, "正文太短，像是没填上")
+        self.assertTrue(str(art[0].get("about", {}).get("@id", "")).endswith("#episode"),
+                        "Article 没有 about 指向那一集 —— 引用时说不清它在讲哪一集")
+
+    def test_word_count_counts_words_not_characters(self):
+        n = self.build._wordcount("公积金不是存款 AI model")
+        self.assertLess(n, 20, "wordCount 写成了字符数 —— 会把 2500 字报成 2500 词")
+        self.assertGreater(n, 5)
+
+
 class ATopicMustHaveAUrlNotJustAJsFilter(unittest.TestCase):
     """分类得是一页，不能只活在 JS 里。
 
@@ -6521,8 +6668,10 @@ class ATopicMustHaveAUrlNotJustAJsFilter(unittest.TestCase):
       · 答案引擎：agent 想引用「这个站的 AI 板块」时没有 URL 可引，
         要么爬 611 页，要么去解首页那段 JS。
 
-    顺带补站的中间层：抽查 400 个集页，每页平均只有 2 个指向其他集页的链接，
-    **74 篇没有任何集页指向它** —— 结构基本是「首页 → 集页」两层，中间是空的。
+    顺带补站的中间层：改之前每个集页只连前一篇和后一篇，整站是一条按日期排的
+    直线 —— 从首页出发最深要走 552 跳。（我最初把这件事诊断成「74 篇孤岛」，
+    那是抽样偏差算错的，真实孤岛一直是 0；详见
+    EveryEpisodeMustBeAFewHopsFromTheFrontPage。）
     """
 
     def _cat_pages(self):
