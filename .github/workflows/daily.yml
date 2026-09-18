@@ -73,7 +73,7 @@ jobs:
           MAX_NEW:       ${{ github.event.inputs.limit || '6' }}
           # Episodes are independent; 3 in flight keeps the run inside the job
           # timeout without leaning on the model provider's rate limit.
-          JOBS: "3"
+          JOBS: "6"
           LOOKBACK_DAYS: ${{ github.event.inputs.days  || '4' }}
         run: |
           set -o pipefail
@@ -144,11 +144,11 @@ jobs:
           LLM_MODEL_TRIAGE: ${{ secrets.LLM_MODEL_TRIAGE }}
           LLM_MODEL_REVIEW: ${{ secrets.LLM_MODEL_REVIEW }}
           LLM_AUTH:     ${{ secrets.LLM_AUTH }}
-          JOBS: "3"
+          JOBS: "6"
         run: |
           set -o pipefail
           python pipeline/run.py --catchup 30 --skip-residential --no-build \
-            --tiers feed,notes,page --per-source 3 --limit 8 \
+            --tiers feed,notes,page --per-source 2 --limit 20 \
             --triage-min 7 --review-min 7 2>&1 | tail -40
 
       - name: Heartbeat

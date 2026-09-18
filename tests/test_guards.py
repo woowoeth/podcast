@@ -6482,6 +6482,69 @@ class GivingUpOnASourceRequiresTryingTheLineThatCanDoIt(unittest.TestCase):
             f" —— 规则还在，喂给它的数已经没了")
 
 
+class ThroughputKnobsMustBeMeasuredNotInherited(unittest.TestCase):
+    """吞吐的每个上限都要有量过的依据，不能是「一直就这么写的」。
+
+    用户说「没出过稿可能是我们压根就没跑过」。量了一遍，确实不是内容问题，
+    也不是发现问题：
+      · 抓 165 档 feed + 筛候选 **15 秒**，手上常年 400 条候选 —— 发现不是瓶颈；
+      · 本地转写 **12.2× 实时**（56 分钟音频 274 秒）—— 这才是瓶颈；
+      · 并行转写没用：同一段音频 1 路 20.7s、2 路 21.3s、3 路 33.7s ——
+        GPU 已经吃满，多开只会互相拖慢，_ASR_LOCK 拦得对；
+      · 而这台机器一天只跑两轮、每轮占 25 分钟，**GPU 一天闲 23 小时**。
+
+    瓶颈拆不动的时候，能拿的只有没在用的时间和没量过的常量。
+    这道闸盯住那几个数字别被悄悄改回去，也别在没有新证据时往上抬。
+    """
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.llm = importlib.import_module("lib.llm")
+
+    def test_the_cli_backend_still_runs_one_at_a_time(self):
+        """claude -p 并行会无消息非零退出 —— 这条不是保守，是事实。"""
+        import unittest.mock as mock
+        with mock.patch.object(self.llm, "provider", lambda: "claude-cli"):
+            self.assertEqual(self.llm.safe_jobs(), 1,
+                             "CLI 后端被放开并发 —— 它会无消息地失败")
+
+    def test_the_http_cap_is_tunable_without_a_code_change(self):
+        import unittest.mock as mock, os
+        with mock.patch.object(self.llm, "provider", lambda: "openai"):
+            with mock.patch.dict(os.environ, {"LLM_MAX_JOBS": "12"}):
+                self.assertEqual(self.llm.safe_jobs(), 12,
+                                 "上限不能用环境变量调 —— 每次调吞吐都要改代码")
+            with mock.patch.dict(os.environ, {"LLM_MAX_JOBS": "不是数字"}):
+                self.assertEqual(self.llm.safe_jobs(), 8,
+                                 "坏值没有回落，一个笔误会把整条线打挂")
+
+    def test_the_catchup_budget_is_not_back_to_a_handful(self):
+        """两条线的建档预算别被改回个位数 —— 队列里常年 160+ 档等着被碰。"""
+        import re
+        sh = (ROOT / "scripts" / "local-daily.sh").read_text()
+        yml = (ROOT / ".github" / "workflows" / "daily.yml").read_text()
+        for name, text in (("本机线", sh), ("云端线", yml)):
+            # 锚在**真正那条命令**上。`text.index("--catchup")` 命中的是上面
+            # 那句注释里的 --catchup，窗口根本够不到命令 —— 判据落在注释上，
+            # 又一次。
+            i = text.index("run.py --catchup")
+            m = re.search(r"--limit (\d+)", text[i:i + 400])
+            self.assertIsNotNone(m, f"{name} 的建档没有 --limit")
+            self.assertGreaterEqual(
+                int(m.group(1)), 16,
+                f"{name} 建档预算又回到 {m.group(1)} —— 队列 160+ 档，"
+                f"一轮几篇的话轮转再公平也要一个月才轮一遍")
+
+    def test_asr_stays_serialized(self):
+        """转写必须串行 —— 实测 3 路并行每份从 20.7s 退化到 33.7s。"""
+        src = (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
+        i = src.index("def _local_chunked(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        self.assertIn("with _ASR_LOCK:", body,
+                      "本地转写的锁没了 —— GPU 已经吃满，多开只会互相拖慢")
+
+
 class EveryStarvedSourceMustGetItsTurn(unittest.TestCase):
     """留了名额还不够，名额得轮着来。
 

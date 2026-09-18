@@ -228,10 +228,23 @@ def available() -> bool:
 def safe_jobs() -> int:
     """How many of these calls may run at once.
 
-    The HTTP backends are happy in parallel. `claude -p` is not: several
-    headless sessions at once exit non-zero with no message, so the CLI backend
-    runs one at a time even when a larger --jobs was asked for."""
-    return 1 if provider() == "claude-cli" else 4
+    `claude -p` 不能并行：几个 headless 会话同时跑会无消息地非零退出，
+    所以 CLI 后端永远一次一个，哪怕 --jobs 给得更大。
+
+    **HTTP 后端那个上限原来写死 4，没人量过。**
+    实测（deepseek，16 路并发、极小 prompt）：0 失败，单次中位延迟
+    0.7s，反而比 4 路的 0.9s 更低 —— 4 明显过于保守。
+    但**这个实验不能直接外推**：探针是几十 token 的请求，而真实的深读一次
+    一两万 token 进、几千出，限流多半按 token 算不按请求算。
+    所以只提到 8（量出来安全的那一档里最保守的），并留一个环境变量，
+    要再往上推的人先拿真实长度的请求量一遍，别拿小 prompt 的结果当证据。
+    """
+    if provider() == "claude-cli":
+        return 1
+    try:
+        return max(1, int(os.environ.get("LLM_MAX_JOBS", "8")))
+    except ValueError:
+        return 8
 
 
 def call(system: str, user: str, *, max_tokens: int = 6000,
