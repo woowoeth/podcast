@@ -3,10 +3,10 @@
  "of": "semianalysiswe-42d66a9493",
  "source_lang": "en",
  "title": "Nvidia's Flagship GPU Memory Regresses for the First Time: Why 4-HI HBM Wins",
- "dek": "Rubin Ultra's HBM was cut from a promised 1TB to 192GB — less than the 288GB shipping today. This isn't a technical step backward, it's capacity rationing under a DRAM shortage: 4-HI stacks yield better and can squeeze out more than twice as many HBM cubes.",
- "why": "An episode that thoroughly works through the HBM height debate: from yields and bandwidth/capacity pricing to why model parameter counts are no longer exploding. High information density, and the second half's reasoning is worth more than the opening.",
- "who": "Engineers, investors and founders watching the AI compute supply chain, especially anyone trying to understand how HBM supply constraints are reshaping GPU specs and the memory vendor landscape.",
- "skip": "The opening 0:00-1:01 small talk and article background can be skipped.",
+ "dek": "Rubin Ultra's HBM was cut from a promised 1TB to 192GB — less than the 288GB shipping today. This isn't a technical step backward, it's capacity rationing under the DRAM shortage: 4-HI stacks yield better and can squeeze out more than twice as many HBM cubes.",
+ "why": "An episode that thoroughly works through the HBM height debate: from yields and bandwidth-per-capacity pricing to why model parameter counts stopped exploding. High information density, and the second half's reasoning is worth more than the opening.",
+ "who": "Engineers, investors and founders watching the AI compute supply chain, especially anyone trying to understand how HBM supply constraints are reshaping GPU specs and the memory makers' landscape.",
+ "skip": "The small talk and article background at the start, 0:00-1:01, can be skipped.",
  "tags": [
   "Compute",
   "HBM",
@@ -21,31 +21,31 @@
   },
   {
    "h": "The downgrade was forced by DRAM supply",
-   "body": "The motive is mainly supply. DRAM wafer capacity has barely grown, while accelerator shipments are rising and HBM demand is rising with them. Suppliers and customers like Nvidia, Google and Broadcom ran the numbers: the logic capacity locked in at TSMC is fixed, and if that HBM is made into 12-HI cubes, there aren't enough cubes to pair with all the logic. Switch to 8-HI and the same wafers yield more cubes, balancing the equation. This is capacity rationing, not a performance trade-off."
+   "body": "The motive is mainly supply. DRAM wafer capacity has barely grown, while accelerator shipments are rising and HBM demand is rising with them. Suppliers and customers like Nvidia, Google and Broadcom ran the numbers: the logic capacity locked in at TSMC is fixed, and if that HBM is made into 12-HI cubes, there aren't enough cubes to pair with all the logic. Switch to 8-HI and the same wafers yield more cubes, and the equation balances. This is capacity rationing, not a performance trade-off."
   },
   {
-   "h": "Past a capacity threshold, the returns diminish",
-   "body": "Inference genuinely needs enough HBM capacity to hold model weights and the KV cache for effective batching. But once you cross that threshold, extra capacity has diminishing returns. At the same time, HBM is getting more expensive from next year because of the shortage, so paying for capacity you don't use is punished harder. The assumption that ‘more capacity is always better’ does not hold on the cost curve."
+   "h": "Past a capacity threshold, returns diminish",
+   "body": "Inference genuinely needs enough HBM capacity to hold model weights and the KV cache for effective batching. But once you cross that threshold, extra capacity has diminishing returns. At the same time, HBM is getting more expensive from next year because of the shortage, so buying capacity you don't use is punished harder. The assumption that more capacity is always better does not hold on the cost curve."
   },
   {
-   "h": "Parameter scale hasn't kept up with system scale",
-   "body": "In the Hopper era, an 8-GPU H200 node had 640GB of HBM in total, and Llama 3.1 405B took about 60% of it after quantization. Today's largest model, Kimi K3, is 2.8 trillion parameters, roughly six times Llama 3.1, but MXFP4 quantization halves the capacity requirement. Put on NVL72 (72 GPUs × 288GB), one set of K3 weights takes only about 8% of the HBM capacity. System scale is growing faster than models, so capacity pressure has actually gotten lighter."
+   "h": "Parameter counts haven't kept up with system scale",
+   "body": "In the Hopper era, an 8-GPU H200 node had 640GB of HBM in total, and Llama 3.1 405B quantized took about 60% of it. Today's largest, Kimi K3, is 2.8 trillion parameters, roughly six times Llama 3.1, but MXFP4 quantization halves the capacity requirement. Put on an NVL72 (72 GPUs × 288GB), one set of K3 weights takes only about 8% of HBM capacity. System scale is growing faster than models, so capacity pressure has actually gotten smaller."
   },
   {
    "h": "Post-training and inference eat most of the compute",
-   "body": "Parameter counts aren't exploding because performance can come from elsewhere: more reasoning, more post-training and reinforcement learning. And post-training looks a lot like inference, likewise favoring bandwidth over capacity. The result is that inference-sensitive compute (post-training plus standard inference) is rapidly taking over, while classic pre-training — the part that genuinely needs large capacity — makes up a shrinking share of total compute at frontier labs."
+   "body": "Parameter counts haven't exploded because performance can come from elsewhere: more reasoning, more post-training and reinforcement learning. And post-training looks a lot like inference, likewise favoring bandwidth over capacity. The result is that inference-sensitive compute (post-training plus standard inference) is rapidly taking over, while classic pre-training — the part that genuinely needs large capacity — is a shrinking share of total compute at frontier labs."
   },
   {
    "h": "4-HI is a free lunch on bandwidth",
-   "body": "HBM bandwidth is set by the interface between the cube and the SoC. HBM4/4E has 2048 data lines, and each cube supports at most 512, so you need at least 4 DRAM layers to run at full bandwidth. But suppliers charge by capacity (dollars per GB), so 8-HI and 12-HI pay two to three times as much for the same bandwidth. 4-HI has the best dollars-per-bandwidth, and as long as capacity is sufficient, it is close to a free lunch. Physically you also cannot go below 4-HI."
+   "body": "HBM bandwidth is set by the interface between the cube and the SoC. HBM4/4E has 2048 data lines, and each cube supports at most 512, so you need at least 4 DRAM layers to run at full bandwidth. But suppliers charge by capacity (dollars per GB), so 8-HI and 12-HI pay two to three times as much for the same bandwidth. 4-HI has the best dollars-per-bandwidth, and as long as capacity suffices, it is a near-free lunch. Physically you also cannot go below 4-HI."
   },
   {
    "h": "4-HI yields better and doubles the cubes",
-   "body": "Every layer added to an HBM stack costs yield. Assume 99% yield per layer: a 1% loss stacked 8 or 12 times is far higher than stacking only 4 times. 4-HI also has a longer production history and a simpler manufacturing flow, and it is easier to deliver power into the stack. So the number of harvestable HBM cubes from 4-HI is more than double that of 8-HI, and the bottleneck shifts from HBM to logic wafers, substrates and PCBs."
+   "body": "Every layer added to an HBM stack carries a yield loss. Assume 99% yield per layer: a 1% loss compounded 8 or 12 times is far higher than compounding it only 4 times. 4-HI also has a longer production history and a simpler manufacturing flow, and it is easier to deliver power into the stack. So the number of harvestable HBM cubes from 4-HI is more than double that of 8-HI, and the bottleneck shifts from HBM to logic wafers, substrates and PCBs."
   },
   {
    "h": "The memory shortage won't ease this decade",
-   "body": "Why are memory makers raking it in but not expanding capacity? Semiconductor manufacturing has extremely long lead times: you first have to build cleanrooms (the number one reason short-term capacity can't be added), then fill them with equipment, and the equipment itself is constrained by ASML's EUV and related tools. ASML can only make so many a year, because its own supply chain — for instance the supplier that makes extremely smooth mirrors — is also long. Myron's TLDR: the memory shortage will not ease within this decade."
+   "body": "Why aren't memory makers, who are making a fortune, expanding capacity? Semiconductor manufacturing has extremely long lead times: you first build the cleanroom (the number one reason short-term capacity can't be added), then fill it with equipment, and the equipment itself is constrained by ASML's EUV and related tools. ASML can only make so many a year, because its own supply chain — for instance the supplier that makes extremely smooth mirrors — is also long. Myron's TLDR: the memory shortage will not ease within this decade."
   }
  ],
  "terms": [
@@ -63,11 +63,11 @@
   },
   {
    "term": "MXFP4",
-   "def": "A 4-bit floating point quantization format that halves the capacity requirement for model weights."
+   "def": "A 4-bit floating-point quantization format that halves the capacity requirement for model weights."
   },
   {
    "term": "scale-up domain",
-   "def": "A cluster of GPUs connected by high-speed interconnects into a single memory pool, such as NVL72."
+   "def": "A cluster of GPUs joined by high-speed interconnects into a single memory pool, such as NVL72."
   }
  ],
  "facts": [
@@ -84,7 +84,7 @@
    "v": "2048"
   },
   {
-   "k": "When the memory shortage eases",
+   "k": "Time for the memory shortage to ease",
    "v": "not within this decade (before 2030)"
   }
  ],
