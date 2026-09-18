@@ -168,6 +168,10 @@ UI: dict[str, str] = {
     '版权归各节目所有；每篇都附原节目链接，请去支持原作者。': 'copyright stays with each show. Every piece links to the original — please go support them.',
     'SOURCES_DESC': 'The full list of the {n} Chinese- and English-language podcasts NAME tracks, with fetch health.',
     '这档还没有深读': 'No deep reads from this show yet',
+    '{label}分类下的 {n} 篇播客深读，要点与金句都带时间戳，可回到原声核对。':
+        '{n} podcast deep-reads in {label}. Every point and quote carries a timestamp back to the moment it was said.',
+    '这里列出最近 60 篇；全部 {n} 篇在首页按分类筛选。':
+        'The 60 most recent are listed here; filter the front page by topic for all {n}.',
     '取不到可核对的文稿时不会发，等文稿到位再上。': 'Nothing goes up without a transcript we can check against. It waits until one exists.',
     '正在打开': 'Opening ',
     '最新一集': 'Latest',

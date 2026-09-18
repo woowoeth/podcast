@@ -6482,6 +6482,35 @@ class GivingUpOnASourceRequiresTryingTheLineThatCanDoIt(unittest.TestCase):
             f" —— 规则还在，喂给它的数已经没了")
 
 
+class EveryUiStringMustBeRegisteredBeforePush(unittest.TestCase):
+    """新写的界面文案要在推之前就红，而不是到 CI 才红。
+
+    英文站的规矩是「漏一条界面文案，构建就失败」——不交中英混排的半成品。
+    这条规矩是对的，但它只在**跑到英文那一趟**时才生效，而我本地只 grep
+    了 `built:` 那几行、没看退出码，于是带着崩掉的构建推了上去，CI 那一步
+    6 秒退出、连 diff 都没打印。**判据看错了地方，比没有判据更容易骗过自己。**
+
+    这里把同一条规矩提前到单元测试：扫 build.py 里所有 T("…") 字面量，
+    逐个对 i18n.UI。不用跑构建，毫秒级。
+    """
+
+    def test_every_literal_passed_to_T_is_translated(self):
+        import re
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        i18n = importlib.import_module("i18n")
+        src = (ROOT / "pipeline" / "build.py").read_text()
+        # T("…") / T('…')，跨行的也要抓到
+        lits = set(re.findall(r'\bT\(\s*"([^"\\]{2,}?)"\s*\)', src))
+        lits |= set(re.findall(r"\bT\(\s*'([^'\\]{2,}?)'\s*\)", src))
+        cn = {x for x in lits if re.search(r"[\u4e00-\u9fff]", x)}
+        missing = sorted(x for x in cn if x not in i18n.UI)
+        self.assertFalse(
+            missing,
+            f"{len(missing)} 条界面文案没登记进 i18n.UI —— 英文站会构建失败："
+            f"{missing[:3]}")
+
+
 class ATopicMustHaveAUrlNotJustAJsFilter(unittest.TestCase):
     """分类得是一页，不能只活在 JS 里。
 
