@@ -6395,6 +6395,98 @@ class AChunkThatFailsToDecodeIsNotTheEpisodesFault(unittest.TestCase):
                          "软失败也在累加硬失败计数 —— 等于没分类")
 
 
+class RegeneratingTheRegistryMustNotUndoWhatWasMeasuredOrDecided(unittest.TestCase):
+    """重新生成 sources.json，不许冲掉量出来的和人定的。
+
+    sources.json 是从硬编码的 ALL_SOURCES 重新生成的，而两类东西只活在
+    这个文件里：**量出来的**（status：更新频率、停更天数、有没有官方逐字稿；
+    image：封面）和**人定的**（pinned、residential、用户指定的 tier）。
+    跑一次 resolve_sources，两类一起没。
+
+    实测代价：为了收一档新源（Clearer Thinking）跑了一次重新生成，
+    顺手冲掉 23 处人定的（a16z／allin 从 tier1 掉回 2、三档 pinned 消失、
+    14 档 residential 清零，其中两档是当天刚按体检硬伤标上的）、
+    135 档的 status 和 131 档的 image。**加一档源，悄悄退回二十档。**
+
+    status 丢了最阴：curate 判「停更休眠」全靠 status.age_days，
+    数据没了它一条都不判，日志写的是「没有需要记录的改动」——
+    BBC Analysis（停更 904 天）和 Rationally Speaking（1728 天）
+    就这么从待处理名单上消失了。**检查静默失效，比检查报错坏得多。**
+
+    这和退役表（RemovalsMustStick）是同一条规矩的两半：那边挡「删掉的又长
+    回来」，这边挡「改过的又变回去」。
+    """
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.R = importlib.import_module("resolve_sources")
+
+    def test_a_persons_decisions_are_replayed_from_the_ledger(self):
+        got = self.R.overrides([
+            {"kind": "pinned", "id": "a,b"},
+            {"kind": "residential", "id": "c"},
+            {"kind": "promoted", "id": "d", "to_tier": 1},
+        ])
+        self.assertEqual(got.get("a"), {"pinned": True}, "pinned 没replay —— 人钉的东西重新生成就没了")
+        self.assertEqual(got.get("b"), {"pinned": True}, "逗号分隔的那条只认了第一个 id")
+        self.assertEqual(got.get("c"), {"residential": True},
+                         "residential 没replay —— 云端会反复挑走转不了，撞满上限永久失败")
+        self.assertEqual(got.get("d"), {"tier": 1}, "用户指定的 tier 没replay")
+
+    def test_an_automatic_verdict_is_not_frozen_into_the_ledger(self):
+        """自动判决不 replay —— 它每一轮都该按当前数据重算。
+
+        replay 会把一条过期的自动判决钉成永久的。实测 empirehist 被 3 篇的
+        旧门槛判到 tier3，而门槛当天已提到 6 篇 —— replay 会让它再也起不来。
+        """
+        got = self.R.overrides([
+            {"kind": "promoted", "id": "d", "to_tier": 1},
+            {"kind": "demoted", "id": "d", "to_tier": 3},
+            {"kind": "dormant", "id": "e", "to_tier": 3},
+        ])
+        self.assertEqual(got.get("d"), {"tier": 1},
+                         "自动降级被 replay 了 —— 过期的判决被钉成永久的")
+        self.assertNotIn("e", got, "休眠判决被 replay 了 —— 它该由 curate 每轮重算")
+
+    def test_a_retired_source_carries_no_decisions(self):
+        got = self.R.overrides([{"kind": "residential", "id": "f"},
+                                {"kind": "removed", "id": "f"}])
+        self.assertNotIn("f", got, "已退役的源身上还贴着决定")
+
+    def test_measured_fields_survive_a_regeneration(self):
+        out = [{"id": "x"}, {"id": "y", "status": {"new": 1}}]
+        n = self.R.carry_forward(out, {"x": {"status": {"old": 1}, "image": "i"},
+                                       "y": {"status": {"old": 1}}})
+        self.assertEqual(n, 2, "量出来的 status／image 没带过来")
+        self.assertEqual(out[0].get("status"), {"old": 1})
+        self.assertEqual(out[0].get("image"), "i")
+        self.assertEqual(out[1]["status"], {"new": 1},
+                         "把新探到的 status 覆盖回旧的了 —— 结转不该压过刚量的")
+
+    def test_the_registry_still_has_the_measurements_it_needs(self):
+        """拿真实清单对一遍：绝大多数源都该有 status，否则 curate 什么都判不了。"""
+        rows = json.loads((ROOT / "data" / "sources.json").read_text())["sources"]
+        naked = [s["id"] for s in rows if not s.get("status")]
+        self.assertLessEqual(
+            len(naked), 5,
+            f"{len(naked)}/{len(rows)} 档没有 status —— curate 判停更休眠全靠它，"
+            f"没有就静默什么都不判：{naked[:8]}")
+
+    def test_every_decision_in_the_ledger_is_in_the_registry(self):
+        """账本说钉住／走本机线的，清单里必须真是那样。"""
+        rows = {s["id"]: s for s in json.loads(
+            (ROOT / "data" / "sources.json").read_text())["sources"]}
+        bad = []
+        for sid, fields in self.R.overrides().items():
+            if sid not in rows:
+                continue
+            for f, v in fields.items():
+                if rows[sid].get(f) != v:
+                    bad.append((sid, f, v, rows[sid].get(f)))
+        self.assertFalse(bad, f"账本里的决定没落到清单上：{bad[:5]}")
+
+
 class PromotingASourceMustReopenWhatTheOldBarRejected(unittest.TestCase):
     """把源升成核心源，要连带放开它被旧尺子判掉的集。
 

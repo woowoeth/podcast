@@ -95,7 +95,7 @@ CURATED: list[dict] = [
   dict(id="tbpn", name="TBPN", zh="TBPN", cat="biz", tier=2, lang="en",
        itunes=1772360235, feed="https://feeds.transistor.fm/technology-brother", desc="科技商业日播，自带官方逐字稿"),
   # ---------- 投资 / 商业（Onepod 完全空白的一块）----------
-  dict(id="bg2", name="BG2Pod", zh="BG2", cat="biz", tier=1, lang="en", kind="youtube", feed="https://anchor.fm/s/f06c2370/podcast/rss",
+  dict(id="bg2", name="BG2Pod", zh="BG2", cat="biz", tier=1, lang="en", kind="rss", feed="https://anchor.fm/s/f06c2370/podcast/rss",
        residential=True, desc="Gerstner 与 Gurley 论 AI 资本开支，谁在为算力买单的第一现场"),
   dict(id="acquired", name="Acquired", zh="Acquired", cat="biz", tier=1, lang="en",
        itunes=1050462261, feed="https://feeds.transistor.fm/acquired", desc="单集三到五小时的公司史，研究深度是播客里的天花板"),
@@ -207,6 +207,37 @@ CATS = {"ai": "AI / 技术", "biz": "投资 / 商业",
         "ideas": "人文 / 思想", "hist": "文明 / 历史", "parent": "育儿 / 教育",
         "sci": "健康 / 科学"}
 ALL_SOURCES = CURATED + EXTRA
+
+
+MEASURED = ("status", "image", "itunes")
+
+
+def carry_forward(out: list[dict], prev: dict[str, dict]) -> int:
+    """把上一版**量出来的**字段带过来，返回带了多少处。
+
+    硬编码清单里没有 status（探测出来的更新频率、停更天数、有没有官方逐字稿）
+    和 image（封面），它们只有 `--check` 那趟会写。所以不带 --check 跑一次
+    重新生成，就会把它们全丢掉 —— 实测一次普通的加源丢了 135 档的 status、
+    131 档的 image。
+
+    丢了不会报错，会静默改变判断：curate 判「停更休眠」全靠 status.age_days，
+    数据没了它一条都不判，日志上却是干干净净的「没有需要记录的改动」。
+    实测 BBC Analysis（停更 904 天）和 Rationally Speaking（1728 天）
+    就这么从待处理名单上消失了，status 补回来之后两条判决立刻又出现。
+
+    只带这几个字段，不做通用 merge：通用 merge 会把硬编码清单里**故意删掉**的
+    字段也复活，那是另一个方向的「清理和生成互相撤销」。
+    """
+    n = 0
+    for srec in out:
+        old = prev.get(srec["id"])
+        if not old:
+            continue
+        for f in MEASURED:
+            if f not in srec and f in old:
+                srec[f] = old[f]
+                n += 1
+    return n
 
 
 def itunes_lookup(cid: int) -> dict | None:
@@ -376,6 +407,52 @@ def retired_ids() -> set:
     return out
 
 
+
+def overrides(rows: list[dict] | None = None) -> dict[str, dict]:
+    """账本里那些**重新生成算不出来**的决定，逐条替回去。
+
+    **为什么必须有这个函数**：退役表挡住了「删掉的又长回来」，但字段没人管。
+    sources.json 是从硬编码的 ALL_SOURCES 重新生成的，而 pinned、residential、
+    「用户指定为优先源」这些都只写在 sources.json 里 —— 跑一次 resolve_sources
+    就全没了。实测一次普通的加源（收 Clearer Thinking）顺手冲掉 23 处：
+    a16z/allin 从 tier1 掉回 2、三档的 pinned 消失、14 档的 residential 清零，
+    其中 sciencepod、skeptics 是当天刚按体检硬伤标上的。
+    加一档源，悄悄退回二十档 —— 而日志上只写「wrote 205 sources」。
+
+    **只替回算不出来的那些。** 判据是「这条决定能不能从今天的数据重新得出」：
+      · pinned      —— 人钉的，数据里没有任何痕迹能推出来，必须替回
+      · residential —— 从「已发布的稿全靠转写」测出来的，账本记着，替回
+      · promoted    —— 记的是「用户指定为优先源」，人的决定，替回
+    demoted / dormant **不替**：curate 每一轮都会按当前数据重算，替回去等于
+    把一条过期的自动判决钉成永久的。实测 empirehist 就是这么被 3 篇的旧门槛
+    判到 tier3 的，而门槛当天已经提到 6 篇 —— replay 会让它再也起不来。
+    这和「用已经不存在的那把尺子判出来的结论不算数」是同一条规矩。
+    """
+    out: dict[str, dict] = {}
+    if rows is None:
+        try:
+            rows = json.loads((ROOT / "data" / "curation.json").read_text())
+        except Exception:
+            return out
+    for r in rows:
+        kind, sid = r.get("kind"), r.get("id")
+        if not sid:
+            continue
+        # pinned 那条记的是逗号分隔的一串 id
+        for one in str(sid).split(","):
+            one = one.strip()
+            if not one:
+                continue
+            if kind == "pinned":
+                out.setdefault(one, {})["pinned"] = True
+            elif kind == "residential":
+                out.setdefault(one, {})["residential"] = True
+            elif kind == "promoted" and r.get("to_tier"):
+                out.setdefault(one, {})["tier"] = r["to_tier"]
+            elif kind == "removed":
+                out.pop(one, None)      # 退役了就别再往它身上贴决定
+    return out
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--only-residential", action="store_true",
@@ -513,6 +590,34 @@ def main() -> int:
 
     if healed:
         _write_back(healed)
+
+    # **重新生成只该带来硬编码清单里的东西，不该丢掉量出来的东西。**
+    # status（探测出来的更新频率、停更天数、有没有官方逐字稿）和 image（封面）
+    # 只有 --check 那趟会写。不带 --check 跑一次，203 档里 135 档的 status
+    # 和 131 档的 image 就没了 —— 而 curate 判「停更休眠」全靠 status.age_days：
+    # 数据没了它就什么都不判，日志上却是干干净净的「没有需要记录的改动」。
+    # 实测就是这么来的：为了收一档新源跑了一次 resolve_sources，
+    # 顺手把两档该休眠的源的依据抹了，curate 下一轮再也看不见它们。
+    prev = {}
+    try:
+        for r in json.loads(OUT.read_text())["sources"]:
+            prev[r["id"]] = r
+    except Exception:
+        pass
+    n_keep = carry_forward(out, prev)
+    if n_keep:
+        log(f"  保留上一版量出来的 {n_keep} 处 status／image／itunes")
+
+    ov = overrides()
+    n_ov = 0
+    for srec in out:
+        for f, v in (ov.get(srec["id"]) or {}).items():
+            if srec.get(f) != v:
+                srec[f] = v
+                n_ov += 1
+    if n_ov:
+        log(f"  账本里替回 {n_ov} 处重新生成算不出来的决定"
+            f"（pinned／residential／用户指定的 tier）")
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(
