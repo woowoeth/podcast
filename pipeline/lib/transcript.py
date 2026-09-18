@@ -545,7 +545,7 @@ _YT_LOCK = threading.Lock()
 
 # 区分"这一集本来就没有文稿"和"这次没拿到"。前者该消耗重试预算（试三次就别再试），
 # 后者不该——限流、机器人拦截、连接中断都属于后者，而它们在日志里长得跟前者一样。
-_transient = {"hit": False}
+_transient = {"hit": False, "yt_throttled": False}
 
 
 def last_was_transient() -> bool:
@@ -620,6 +620,10 @@ def _from_youtube(vid: str, lang: str) -> dict | None:
             err = yt_failure_message(r.stderr or "", r.stdout or "")
             if kind == "ratelimit":
                 _transient["hit"] = True
+                # **记下「是被限流挡住的」，而不是「这个视频没字幕」。**
+                # 两者后果完全不同：没字幕就该去转写，被限流去转写是白烧 GPU ——
+                # 过一会儿再来同一条视频的字幕就在那儿。
+                _transient["yt_throttled"] = True
                 wait = 30 * (2 ** attempt)
                 log(f"    YouTube 限流或要求登录，等 {wait}s 再试（{attempt + 1}/3）")
                 time.sleep(wait)
@@ -1144,11 +1148,13 @@ def _sibling_titles(ep: dict, src: dict | None) -> list[str]:
 
 
 def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
-            src: dict | None = None) -> dict | None:
+            src: dict | None = None,
+            asr_after_throttle: bool = True) -> dict | None:
     """Walk the tiers and return the first transcript that passes the density
     check. Returns None when nothing does — the caller must then NOT publish."""
     attempts = []
     _transient["hit"] = False
+    _transient["yt_throttled"] = False
     # 本地转写一集要几分钟，重跑（改了提示词、调了闸门）不该重做一遍。
     # 只缓存在本机 .cache 下，不进仓库——原文是第三方版权内容。
     cp = _cache_path(ep)
@@ -1168,6 +1174,20 @@ def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
     for tier in ORDER:
         if tier not in allow:
             continue
+        if tier == "asr" and _transient["yt_throttled"] and not asr_after_throttle:
+            # **被限流不等于没字幕，别拿 GPU 去补。**
+            # 实测：61 篇「feed 里本来就有 youtube_id、却走了本地转写」的集，
+            # 抽 6 篇现在去拿字幕 **6/6 都拿得到** —— 当初每篇烧了约 5 分钟 GPU
+            # 转写一份免费的东西，合计约 5 小时。真因就是这里：youtube 那层
+            # 撞上 429／要登录，退避三次仍失败，然后一路掉进 asr。
+            # 限流是会过去的，转写花掉的时间不会回来。这一轮先放着，
+            # 按软失败记一次，下一轮多半就拿到字幕了。
+            # asr_after_throttle 由调用方按「已经放过几轮」决定，
+            # 免得一条永远被限流的集永远发不出来。
+            log("    YouTube 限流没过去——这一轮不转写了（字幕是免费的，"
+                "转写不是），留给下一轮")
+            attempts.append("asr:deferred-yt-throttle")
+            break
         try:
             got = {"feed": lambda: from_feed(ep),
                    "notes": lambda: from_notes(ep, lang),

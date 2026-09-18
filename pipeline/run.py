@@ -50,6 +50,9 @@ MAX_SOFT_FAILS = 8     # infrastructure hiccups: a 429, a dropped connection, a
                        # model call that died. These must not burn an episode's
                        # retry budget, or one bad afternoon blacklists good shows.
 SOFT_COOLS_AFTER_DAYS = 7
+# 遇到 YouTube 限流，先放过这么多轮再考虑动用转写。软失败上限是 8，
+# 所以 3 轮之后仍然有足够的预算走完转写这条路。
+YT_THROTTLE_PATIENCE = 3
                        # **软失败要会过期。** 上面写着「不该烧掉重试预算」，
                        # 可撞满 8 次照样永久出局 —— 一个坏下午确实把节目拉黑了，
                        # 只是慢了八拍。实测躺着 5 篇这样的，包括硅谷101 那集
@@ -506,7 +509,13 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
                 _release(state, fp, key)
                 return "off-brief"
 
-    tr = T.acquire(ep, s.get("lang", "en"), src=s, allow=_tiers["allow"])
+    # **被 YouTube 限流的集，先别拿 GPU 去补字幕。**
+    # 字幕免费、转写一集约 5 分钟；限流会过去，烧掉的时间不会回来。
+    # 前 3 轮遇到限流就放着（记软失败，下一轮再来），之后才允许落到转写 ——
+    # 免得一条长期被限流的集永远发不出来。软失败本来就有上限和过期。
+    _soft_so_far = (state["fail"].get(key) or {}).get("soft", 0)
+    tr = T.acquire(ep, s.get("lang", "en"), src=s, allow=_tiers["allow"],
+                   asr_after_throttle=_soft_so_far >= YT_THROTTLE_PATIENCE)
     cap_words = _ceiling["words"]
     if tr and cap_words and tr["words"] > cap_words:
         # Cost scales with transcript length, and a 35k-word episode costs as

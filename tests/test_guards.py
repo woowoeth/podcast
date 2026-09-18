@@ -6482,6 +6482,110 @@ class GivingUpOnASourceRequiresTryingTheLineThatCanDoIt(unittest.TestCase):
             f" —— 规则还在，喂给它的数已经没了")
 
 
+class ThrottlingIsNotAReasonToSpendTheGPU(unittest.TestCase):
+    """被 YouTube 限流 ≠ 这集没字幕。别拿转写去补一份免费的东西。
+
+    实测：站上 604 篇里 328 篇（54%）走了本地转写，约 27 小时 GPU。
+    其中 **61 篇 feed 里本来就带 youtube_id** —— 抽 6 篇现在去拿字幕，
+    **6/6 都拿得到**。也就是说这 61 篇各烧了约 5 分钟 GPU 去转写一份免费的
+    东西，合计约 5 小时。
+
+    真因在取稿层的落层顺序：youtube 那层撞上 429／要求登录，退避三次仍失败，
+    返回 None，然后 `for tier in ORDER` 一路 continue 到 asr。
+    **「拿不到」被当成了「没有」** —— 而限流是会过去的，转写花掉的时间不会。
+
+    所以限流要和「真的没字幕」分开记（_transient["yt_throttled"]），
+    限流时先放着按软失败记一次，下一轮多半就拿到了。
+    放几轮由调用方定（YT_THROTTLE_PATIENCE），免得一条长期被限流的集
+    永远发不出来 —— 软失败本来就有上限（8）和过期（7 天）。
+    """
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.T = importlib.import_module("lib.transcript")
+        self.run = importlib.import_module("run")
+
+    def _walk(self, *, asr_after_throttle, throttled=True):
+        import unittest.mock as mock, pathlib as _p
+        T = self.T
+        seen = []
+        def fake_yt(vid, lang):
+            T._transient["hit"] = True
+            T._transient["yt_throttled"] = throttled
+            seen.append("youtube")
+            return None
+        def fake_asr(ep, lang):
+            seen.append("asr")
+            return None
+        ep = {"title": "T", "guid": "g", "youtube_id": "vid",
+              "duration": 3600, "notes": ""}
+        with mock.patch.object(T, "from_youtube", fake_yt), \
+             mock.patch.object(T, "from_audio", fake_asr), \
+             mock.patch.object(T, "from_feed", lambda e: None), \
+             mock.patch.object(T, "from_notes", lambda e, l: None), \
+             mock.patch.object(T, "from_page", lambda e, l, t: None), \
+             mock.patch.object(T, "_cache_path",
+                               lambda e: _p.Path("/nonexistent/x.json")):
+            T.acquire(ep, "en", asr_after_throttle=asr_after_throttle)
+        return seen
+
+    def test_a_throttled_episode_does_not_fall_through_to_the_gpu(self):
+        self.assertEqual(
+            self._walk(asr_after_throttle=False), ["youtube"],
+            "被限流就直接去转写了 —— 字幕是免费的，转写一集约 5 分钟")
+
+    def test_patience_runs_out_so_nothing_is_stranded_forever(self):
+        self.assertEqual(
+            self._walk(asr_after_throttle=True), ["youtube", "asr"],
+            "耐心用完还不肯转写 —— 长期被限流的集会永远发不出来")
+
+    def test_a_real_absence_of_captions_still_goes_to_the_gpu(self):
+        """「这个视频没有字幕轨」和「被限流」必须分开 —— 前者就该去转写。"""
+        self.assertEqual(
+            self._walk(asr_after_throttle=False, throttled=False),
+            ["youtube", "asr"],
+            "把「真的没字幕」也当成限流 —— 那这集永远等不到字幕")
+
+    def test_the_flag_is_really_set_where_yt_dlp_reports_a_429(self):
+        """判据对不对是一回事，**那个标志有没有真被设上**是另一回事。
+
+        上面几条都自己 fake 了 from_youtube 并手动设标志 —— 把真正的设置点
+        删掉，它们照样全绿。反向注入当场验出这个洞。这里跑真的
+        from_youtube，只把 subprocess 换成一个吐 429 的假进程。
+        """
+        import unittest.mock as mock, types
+        T = self.T
+        T._transient["yt_throttled"] = False
+
+        def fake_run(cmd, *a, **kw):
+            return types.SimpleNamespace(
+                returncode=1, stdout="[youtube] fetching...",
+                stderr="ERROR: unable to download: HTTP Error 429: Too Many Requests")
+
+        with mock.patch.object(T.subprocess, "run", fake_run), \
+             mock.patch.object(T.time, "sleep", lambda *_: None), \
+             mock.patch.object(T.shutil, "which", lambda n: "/usr/bin/yt-dlp"):
+            T.from_youtube("vid", "en")
+        self.assertTrue(
+            T._transient["yt_throttled"],
+            "yt-dlp 明明报的是 429，却没记成「被限流」——"
+            "下游会把它当成「这集没字幕」，直接拿 GPU 去补")
+
+    def test_the_caller_spends_its_patience_from_the_ledger(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index("tr = T.acquire(")
+        blk = src[max(0, i - 500):i + 300]
+        self.assertIn("asr_after_throttle=", blk, "调用方没把这个开关接上")
+        self.assertIn("YT_THROTTLE_PATIENCE", blk,
+                      "耐心是写死的 —— 它该从账本里这一集已经放过几轮来算")
+
+    def test_patience_leaves_room_inside_the_soft_budget(self):
+        self.assertLess(
+            self.run.YT_THROTTLE_PATIENCE, self.run.MAX_SOFT_FAILS,
+            "放过的轮数比软失败上限还大 —— 这一集会先撞满上限再轮到转写")
+
+
 class ATwoCharacterProperNounMustNotBeInvisible(unittest.TestCase):
     """两字专名够不着 3-gram 通道 —— 得有一条兜底，否则整篇正确文稿被丢掉。
 
