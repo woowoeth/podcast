@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import subprocess
 import pathlib
 import re
 import sys
@@ -100,6 +101,50 @@ def _commits_behind() -> int:
 
 # ------------------------------------------------------------------ 各项检查
 
+def _check_line_revision(r: Report, who: str, hb: dict) -> None:
+    """这条线上一轮跑的是哪一版代码。
+
+    **没有指纹，「我改了」和「它在跑」是两件互不相关的事。**
+    实测：一整天 14 个提交（建档轮转、剔除规则、吞吐预算），而真正执行的
+    那份副本停在当天早上的 commit —— 它在每轮开头才 pull，所以要到下一轮
+    才看得见。这一整天里「本机线建档预算是 24」只在工作区里成立，
+    从外面没有任何东西说得出这件事。
+
+    落后几个提交本身是正常的（两轮之间总会有新提交）。真正的故障是
+    **这条线在提交落地之后跑过，却还是旧版** —— 那说明它的 pull 没起作用。
+    判据就按这个分：跑过但没跟上 → 硬伤；只是还没轮到 → 报一句。
+    """
+    rev = hb.get("rev")
+    if not rev:
+        r.note(f"{who}：心跳里没有版本指纹，看不出它跑的是哪一版代码")
+        return
+    if hb.get("dirty"):
+        r.note(f"{who}：跑的那份副本有未提交的改动（pipeline/ 或 scripts/ 下）")
+    try:
+        out = subprocess.run(["git", "-C", str(ROOT), "log", "--format=%H %cI",
+                              f"{rev}..origin/main"],
+                             capture_output=True, text=True, timeout=20)
+    except Exception:
+        return
+    if out.returncode != 0:
+        r.note(f"{who}：认不出心跳里的版本 {rev}（这份副本可能还没 fetch）")
+        return
+    rows = [l.split(None, 1) for l in out.stdout.strip().splitlines() if l.strip()]
+    if not rows:
+        r.good(f"{who}：跑的就是 origin/main 最新版（{rev}）")
+        return
+    at = hb.get("at") or ""
+    # 心跳时间之前就已经推上去、而它没跑到的提交，才算「没跟上」
+    missed = [c for c in rows if len(c) > 1 and c[1][:19].replace("T", "T") < at[:19]]
+    if missed:
+        r.fail(f"{who}：跑的是 {rev}，而它开跑时 origin/main 上已经有 {len(missed)} 个"
+               f"更新的提交没被拉下来——这条线的 git pull 没起作用，"
+               f"你改的东西没在跑")
+    else:
+        r.note(f"{who}：跑的是 {rev}，之后又有 {len(rows)} 个提交——"
+               f"下一轮才会生效")
+
+
 def check_heartbeats(r: Report) -> None:
     """两条线各自还活着吗。
 
@@ -139,6 +184,7 @@ def check_heartbeats(r: Report) -> None:
                    f"（发布 {hb.get('published', '?')} 篇，退出码 {hb.get('exit', '?')}）")
         if hb.get("exit") not in (0, "0", None):
             r.fail(f"{who}：最后一轮退出码 {hb.get('exit')}")
+        _check_line_revision(r, who, hb)
     if behind:
         r.note(f"本地落后 origin/main {behind} 个提交——上面凡是和时间有关的判断"
                f"都可能因此失真")

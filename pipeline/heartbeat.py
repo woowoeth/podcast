@@ -20,6 +20,40 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
+def _rev() -> dict:
+    """这一轮跑的是哪一版代码。
+
+    **没有指纹，「我改了」和「它在跑」是两件互不相关的事。**
+    实测：改了一整天（轮转、剔除规则、吞吐预算共 14 个提交），而真正执行的
+    那份副本停在当天早上的commit —— 它在每轮开头才 git pull，所以下一轮才会
+    看到。这一整天里，「本机线的建档预算是 24」只在我的工作区里成立。
+    心跳不记版本的话，从外面根本看不出来这件事。
+
+    取不到就不写这几个字段（比如那份副本不是 git 仓库）—— 宁可没有，
+    不要写一个假的。
+    """
+    import subprocess
+    out = {}
+    try:
+        r = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short", "HEAD"],
+                           capture_output=True, text=True, timeout=10)
+        if r.returncode == 0 and r.stdout.strip():
+            out["rev"] = r.stdout.strip()
+    except Exception:
+        return out
+    try:
+        r = subprocess.run(["git", "-C", str(ROOT), "status", "--porcelain",
+                            "--", "pipeline", "scripts"],
+                           capture_output=True, text=True, timeout=10)
+        # 只看代码目录：data/ 和构建产物每轮都在变，拿它们判「有没有本地改动」
+        # 会永远是 dirty，等于没判。
+        if r.returncode == 0:
+            out["dirty"] = bool(r.stdout.strip())
+    except Exception:
+        pass
+    return out
+
+
 def write(line: str, exit_code: int, published: int | None = None,
           why: str | None = None) -> pathlib.Path:
     eps = len(list((ROOT / "data" / "episodes").glob("*.json")))
@@ -30,6 +64,7 @@ def write(line: str, exit_code: int, published: int | None = None,
         "exit": int(exit_code),
         "episodes": eps,
     }
+    rec.update(_rev())
     if published is not None:
         rec["published"] = int(published)
     if why:

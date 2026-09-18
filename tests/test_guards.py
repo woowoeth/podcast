@@ -6482,6 +6482,68 @@ class GivingUpOnASourceRequiresTryingTheLineThatCanDoIt(unittest.TestCase):
             f" —— 规则还在，喂给它的数已经没了")
 
 
+class TheRunningLineMustSayWhichVersionItIsRunning(unittest.TestCase):
+    """跑批必须留下「我跑的是哪一版」的指纹。
+
+    **没有指纹，「我改了」和「它在跑」是两件互不相关的事。**
+    实测代价：一整天 14 个提交（建档轮转、剔除规则、吞吐预算），而真正执行的
+    那份副本（launchd 从另一个目录跑）停在当天早上的 commit —— 它在每轮开头
+    才 pull。也就是说这一整天里，「本机线建档预算是 24」只在我的工作区里成立，
+    而从外面**没有任何东西说得出这件事**：心跳只记了时间、退出码、集数。
+
+    落后几个提交本身正常（两轮之间总会有新提交）。真正的故障是
+    **这条线在提交落地之后跑过、却还是旧版** —— pull 没起作用。
+    两者必须分开报，否则要么天天喊狼、要么永远看不见。
+    """
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.hb = importlib.import_module("heartbeat")
+        self.hc = importlib.import_module("healthcheck")
+
+    def test_the_heartbeat_carries_a_revision(self):
+        got = self.hb._rev()
+        self.assertIn("rev", got,
+                      "心跳不记版本 —— 改了什么和跑的是什么对不上号")
+        self.assertRegex(got["rev"], r"^[0-9a-f]{7,40}$", "版本指纹不是 commit sha")
+        self.assertIn("dirty", got, "没记「那份副本有没有未提交的改动」")
+
+    def test_dirty_ignores_data_and_build_output(self):
+        """脏不脏只看代码目录 —— data/ 和构建产物每轮都在变。"""
+        src = (ROOT / "pipeline" / "heartbeat.py").read_text()
+        i = src.index("def _rev(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        self.assertIn('"pipeline", "scripts"', body,
+                      "dirty 判据没有限定目录 —— 那会永远是 True，等于没判")
+
+    def test_write_puts_the_revision_into_the_record(self):
+        src = (ROOT / "pipeline" / "heartbeat.py").read_text()
+        i = src.index("def write(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        self.assertIn("rec.update(_rev())", body,
+                      "算了指纹却没写进心跳记录")
+
+    def test_a_line_that_ran_after_a_commit_but_missed_it_is_a_hard_failure(self):
+        """跑过了却还是旧版 = pull 没起作用，这是硬伤不是提醒。"""
+        src = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        i = src.index("def _check_line_revision(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        self.assertIn("r.fail(", body,
+                      "「跑过却没跟上」只报了提醒 —— 那正是你改的东西没在跑")
+        self.assertIn("missed", body, "没有区分「没跟上」和「还没轮到」")
+        self.assertIn("r.note(", body,
+                      "「之后才有的提交」也报硬伤 —— 两轮之间有新提交是常态，"
+                      "这样每天都会喊狼")
+
+    def test_the_check_is_wired_into_the_heartbeat_pass(self):
+        src = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        i = src.index("def check_heartbeats(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        self.assertIn("_check_line_revision(r, who, hb)", body,
+                      "写了检查但没人调 —— 又一个静默失效的判据")
+
+
 class ThroughputKnobsMustBeMeasuredNotInherited(unittest.TestCase):
     """吞吐的每个上限都要有量过的依据，不能是「一直就这么写的」。
 
