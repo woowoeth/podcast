@@ -3,10 +3,10 @@
  "of": "sv101-dff864b3dd",
  "source_lang": "zh",
  "title": "Bypassing CUDA for inference chips is inevitable, but SRAM's window may not stay open forever",
- "dek": "Training is a compute game, inference is a bandwidth game. Groq and Cerebras both bet on SRAM, but one discounts for determinism and the other discounts for yield; OpenAI chose the most expensive HBM4 because what it lacks is power, not money.",
- "why": "Two frontline chip entrepreneurs break down the trade-offs of the three paths taken by Groq, Cerebras and OpenAI, with plenty of engineering detail and cost accounting, for anyone who wants to understand what inference chips are really betting on.",
- "who": "Engineers and founders working on AI chips, compilers or inference infrastructure, and investors who want to understand the inference cost equation and heterogeneous approaches.",
- "skip": "From 1:13:03 to 1:14:47, Bill's startup advice to students is personal reminiscence; fast-forward.",
+ "dek": "Training is a compute game, inference is a bandwidth game. Groq and Cerebras both bet on SRAM — one discounts for determinism, the other discounts for yield. OpenAI instead picked the most expensive HBM4, because what it lacks is power, not money.",
+ "why": "Two frontline chip founders break down the trade-offs across the three paths of Groq, Cerebras and OpenAI, with plenty of engineering detail and cost math — for anyone trying to understand what inference chips are really betting on.",
+ "who": "Engineers and founders working on AI chips, compilers or inference infrastructure, and investors trying to understand the inference cost equation and heterogeneous approaches.",
+ "skip": "1:13:03 to 1:14:47 — Bill's startup advice to students is mostly personal reminiscence; fast-forward.",
  "tags": [
   "Inference chips",
   "SRAM",
@@ -17,43 +17,43 @@
  "points": [
   {
    "h": "Training bets on compute, inference bets on bandwidth",
-   "body": "In the training era no one could make money from training itself, so costs were unquantifiable and everyone just wanted to bet on the strongest cluster; in the inference era the math is clear—how much the user pays per million tokens, and how much it costs me to produce those million tokens. More fundamentally it is about computational density: training has massive data to feed the compute, while the decode phase of inference is strictly autoregressive, producing one token at a time, and each token produced requires reading the entire model from storage into the compute unit. So the core contradiction of inference shifts from compute to memory bandwidth."
+   "body": "In the training era nobody could make money from training itself, so costs were unquantifiable and everyone just wanted to bet on the single strongest cluster. In the inference era the math is legible — how much a user pays per million tokens, and how much it costs me to produce those million tokens. More fundamentally it's about compute density: training has massive data to keep the compute fed, while the decode phase of inference is strictly autoregressive, producing one token at a time, and every token produced requires reading the entire model from storage into the compute units. So the core tension of inference shifts from compute to memory bandwidth."
   },
   {
    "h": "SRAM is the consensus, but the two companies part ways",
-   "body": "Groq and Cerebras both saw the bandwidth demand before Transformers appeared, and both converged on SRAM—because SRAM's absolute bandwidth and bandwidth per dollar are two to three orders of magnitude higher than HBM. The cost is capacity: DRAM stores one bit with one transistor plus one capacitor, while SRAM needs six transistors, so per-chip capacity may be two orders of magnitude lower than HBM. Thus the system must be scaled up, with hundreds or thousands of chips holding all model weights, and the bottleneck immediately shifts from capacity to cluster communication scheduling. Here the two diverge: Groq moves all scheduling ahead to compile time, while Cerebras simply stuffs a cabinet of chips into a single wafer."
+   "body": "Both Groq and Cerebras saw the bandwidth requirement before Transformers existed, and both converged on SRAM — because SRAM's absolute bandwidth and bandwidth per dollar are two to three orders of magnitude higher than HBM. The price is capacity: DRAM stores one bit with one transistor plus one capacitor, while SRAM needs six transistors, so per-chip capacity can be two orders of magnitude lower than HBM. So you have to scale the system up — hundreds or thousands of chips to hold all the model weights — and the bottleneck immediately shifts from capacity to cluster communication and scheduling. Here the two diverge: Groq moves all scheduling ahead into compile time, while Cerebras simply stuffs a rack of chips into one whole wafer."
   },
   {
    "h": "Groq's static scheduling collides with MoE's dynamism",
-   "body": "Groq designs hardware around the compiler, pushing determinism to the extreme with no runtime scheduling overhead. But after MoE appeared, each token activates 8 out of 128 experts, and which ones are chosen is decided at runtime, unpredictable at compile time. The static approach has only two options: conservatively send all tokens and let some chips idle; or change the way the model is partitioned, but current models are hard to partition cleanly along dimensions other than experts. Idling only affects cost-effectiveness, not the fact that it is still fast, so Groq remains a good choice outside of GPUs."
+   "body": "Groq designs hardware around the compiler, pushing determinism to the extreme, with no runtime scheduling overhead. But after MoE appeared, each token activates 8 of 128 experts, and which ones is decided at runtime — unpredictable at compile time. A static approach has only two options: conservatively send the token everywhere and let some chips idle, or change how the model is partitioned, but today's models are hard to partition cleanly along any dimension other than experts. Idling only hurts cost-effectiveness, not the fact that it's still fast, so Groq remains a good option outside GPUs."
   },
   {
    "h": "The price Cerebras pays for yield",
-   "body": "The maximum single-chip size is about 800 square millimeters, and a wafer can yield thirty or forty dies, so with 50% yield you still get 20 good ones. But Cerebras's entire wafer is one product, and if defects exceed the 30% it can tolerate, the whole wafer is scrapped. This is not mask cost (masks can be amortized), but the fact that out of every 10 made, maybe 9 are unusable. So it may achieve 10 times Nvidia's bandwidth, but at 3 times the cost of HBM, and the bandwidth cost-effectiveness is discounted. Groq discounts for determinism, Cerebras discounts for yield cost, and the discounts ultimately land on token cost."
+   "body": "The single-die size limit is about 800 square millimeters; a wafer yields thirty or forty dies, and at 50% yield you still get 20 good ones. But for Cerebras the entire wafer is one product — if defects exceed the 30% it can tolerate, the whole wafer is scrapped. This isn't mask cost (masks can be amortized), it's that out of every 10 you make, maybe 9 are unusable. So it may achieve 10x Nvidia's bandwidth, but at 3x the cost of HBM, and its bandwidth cost-effectiveness has to be discounted. Groq discounts for determinism, Cerebras discounts for yield cost, and the discounts ultimately land on token cost."
   },
   {
-   "h": "In the inference era, CUDA will definitely be bypassed",
-   "body": "TPU and Trainium have no intention of being CUDA-compatible, yet people still find TPU software hard to use; Anthropic can buy large quantities because many of its engineers come from Google and know JAX. The key change is: in the training era people were willing to pay for good software, but in the inference era the balance tips toward performance and cost-effectiveness. As long as it is not many hard problems but one hard problem, writing all Transformer operators on a new chip makes business sense; plus AI Coding accelerates operator optimization, greatly lowering the software stack barrier. DeepSeek would rather write low-level PTX assembly for optimization, which is exactly this logic."
+   "h": "In the inference era CUDA will inevitably be bypassed",
+   "body": "TPU and Trainium have zero intention of being CUDA-compatible, yet people still find TPU software hard to use — Anthropic can buy them at scale because many of its engineers came from Google and know JAX. The key shift: in the training era people were willing to pay for good software; in the inference era the scales tip toward performance and cost-effectiveness. As long as it's not many hard problems but one hard problem, writing all of Transformer's operators on a new chip makes the business case work; add AI coding accelerating operator optimization, and the software-stack barrier drops sharply. DeepSeek preferring to write low-level PTX assembly for optimization is exactly this logic."
   },
   {
-   "h": "Faster inference makes models smarter",
-   "body": "After agents explode in scale, a large number of tokens are not for humans to read but for other agents to read; human reading speed tops out at 100 tokens per second. But the significance of inference speed is not faster interaction, but that in the same minute of waiting, the model can use 10 times more tokens for more internal thinking, thus becoming smarter. Jensen Huang's slide has 'Smarter AI' on the horizontal axis and tokens per watt on the vertical axis. Conversely, some applications that give answers quickly may simply be thinking less. Time is the essential constraint—ask AI to predict tomorrow's stock market, and if it thinks for two days the answer is meaningless."
+   "h": "The faster inference runs, the smarter the model gets",
+   "body": "After agents exploded, a huge share of tokens aren't read by humans but by other agents — human reading speed tops out at 100 tokens per second. But the point of inference speed isn't faster interaction; it's that in the same one minute of waiting, the model can use 10x more tokens for more internal thinking, and thus be smarter. The x-axis on Jensen's slide is literally Smarter AI, the y-axis tokens per watt. Conversely, some applications that answer quickly may simply be thinking less. Time is the fundamental constraint — ask AI to predict tomorrow's stock market and if it thinks for two days, the answer is meaningless."
   },
   {
-   "h": "Grasp the invariants: FFN became stable after turning into MoE",
-   "body": "Model structure will definitely affect chip design; for example, diffusion models are compute-intensive and suit another paradigm, so you must first make a heterogeneous choice: whether to do this at all. More critically, find the invariants—in Transformers the attention mechanism is still constantly innovating, with every new lab publishing papers proposing new ideas; but the FFN behind it has become a relative invariant since turning into MoE. RL in post-training also has no essential impact on model structure. So prioritize solving the part that has already converged, and the chip won't be left behind by algorithm iterations."
+   "h": "Grab the invariants: once FFN becomes MoE, it's stable",
+   "body": "Model architecture will always influence chip design — diffusion models, for instance, are compute-dense and suit a different paradigm, so you first make the heterogeneity choice: do this or not. More critical is finding the invariants — within Transformer, attention keeps being reinvented, with every new lab publishing papers proposing new ideas; but the FFN behind it has been a relative invariant ever since it became MoE. RL in post-training also has no fundamental effect on model architecture. So solve the part that has already converged first, and the chip won't be left behind by algorithm iteration."
   },
   {
    "h": "Everything revolves around locality",
-   "body": "Bill Dally's exact words are that computer architecture is like real estate, everything is about location, location, location. Temporal locality means data used once is likely to be used again; spatial locality means data used once will soon be followed by its neighbors; CPU caches are applications of both. But in the decode phase of AI inference, algorithmic temporal and spatial locality are both flattened, so you must restore locality with hardware at the architecture level—putting model weights into SRAM is essentially buying the best locality."
+   "body": "Bill Dally's exact words are that computer architecture is like real estate: everything is location, location, location. Temporal locality is that data you've used will probably be used again; spatial locality is that once you use a piece of data you'll soon use the data around it; the CPU cache is the application of both. But in the decode phase of AI inference, algorithmic temporal and spatial locality are both flattened out, so you have to restore locality in hardware at the architecture level — putting model weights in SRAM is essentially buying the best possible locality."
   },
   {
-   "h": "OpenAI chose HBM4 because it lacks power, not money",
-   "body": "Jalapeño is a general-purpose inference chip that packs prefill, decode, attention and FFN all into one chip, can even run game demos, and the next generation will support training. It stacks HBM4 bandwidth to 15.4 TB per second per package, taking the most expensive path. The reason is that US data centers lack not capital and space but power, so it cares intensely about tokens produced per watt, doing a lot of work on power consumption, with tokens per megawatt greater than Nvidia's corresponding Rubin architecture. In China electricity is about 1/3 of cost, in the US about 2/3; different constraints lead to different convergence points."
+   "h": "OpenAI picked HBM4 because it lacks power, not money",
+   "body": "Jalapeño is a general-purpose inference chip that wraps prefill, decode, attention and FFN all into one chip, can even run game demos, and the next generation will support training too. It stacks HBM4 bandwidth to 15.4 TB per second per package, taking the most expensive path. The reason is that what US data centers lack isn't capital or space but power, so it cares intensely about tokens produced per watt, did a lot of work on power, and its tokens per megawatt exceed Nvidia's corresponding Rubin architecture. In China electricity is about 1/3 of cost, in the US about 2/3; different constraints lead to different convergence points."
   },
   {
    "h": "Heterogeneity inside the chip, or at the system level",
-   "body": "OpenAI proposed the concept of Dark silicon: when a chip does different things, some parts can be turned off or powered down, buying power efficiency at greater cost. This differs from the system-level heterogeneity of Groq and Cerebras—the latter is one chip working with other chips, putting the attention KV cache on another chip. SRAM's capacity cost-effectiveness is low, suitable for storing fixed model weights, not for storing a continuously growing KV cache. So for scenarios where power is the first constraint, OpenAI's approach is great; for scenarios demanding extremely high bandwidth cost-effectiveness, it will still converge to SRAM."
+   "body": "OpenAI proposes the concept of Dark silicon: when one chip does different things, you can shut down or power down some of its parts, spending more cost to buy power efficiency. This differs from Groq's and Cerebras's system-level heterogeneity — the latter is one chip working with other chips, putting attention's KV cache on another chip. SRAM's capacity cost-effectiveness is poor, making it good for storing fixed model weights but not for a KV cache that keeps growing. So for scenarios where power is the first constraint, OpenAI's approach is great; for scenarios demanding extremely high bandwidth cost-effectiveness, things will still converge on SRAM."
   }
  ],
  "terms": [
@@ -63,7 +63,7 @@
   },
   {
    "term": "roofline model",
-   "def": "An architectural analysis framework that uses arithmetic intensity to judge whether an application is limited by compute or bandwidth."
+   "def": "An architectural analysis framework that uses arithmetic intensity to judge whether an application is stuck on compute or bandwidth."
   },
   {
    "term": "MFU",
@@ -71,20 +71,20 @@
   },
   {
    "term": "MBU",
-   "def": "The proportion of memory bandwidth actually utilized, a key metric for high-speed inference scenarios."
+   "def": "The share of memory bandwidth actually used — a key metric for high-speed inference scenarios."
   },
   {
    "term": "Dark silicon",
-   "def": "Parts of a chip are turned off or powered down during specific tasks to gain power efficiency."
+   "def": "Parts of a chip being shut down or powered down during specific tasks in exchange for power efficiency."
   },
   {
    "term": "Amdahl's Law",
-   "def": "Overall system speedup is limited by the unoptimized portion, explaining why heterogeneous systems only improve by 10x."
+   "def": "Overall system speedup is limited by the unoptimized portion, explaining why a heterogeneous system only gains 10x."
   }
  ],
  "facts": [
   {
-   "k": "Single-user inference speed comparison between Groq and Cerebras",
+   "k": "Single-user inference speed, Groq vs Cerebras",
    "v": "Groq about 100 tokens per second, Cerebras up to 750 or even 2000 tokens per second"
   },
   {
@@ -92,11 +92,11 @@
    "v": "Two to three orders of magnitude"
   },
   {
-   "k": "Maximum single-chip size",
+   "k": "Single-die size limit",
    "v": "About 800 square millimeters"
   },
   {
-   "k": "Cerebras's acceptable wafer defect ratio",
+   "k": "Wafer defect ratio Cerebras can tolerate",
    "v": "30%"
   },
   {
@@ -104,41 +104,41 @@
    "v": "About 10x bandwidth, about 3x HBM cost"
   },
   {
-   "k": "Nvidia acqui-hire Groq amount",
-   "v": "20 billion USD"
+   "k": "Nvidia acqui-hire of Groq amount",
+   "v": "$20 billion"
   },
   {
    "k": "Target improvement of an ideal inference system over GPU",
    "v": "Two to three orders of magnitude in speed, about 10x in cost-effectiveness"
   },
   {
-   "k": "Electricity share of data center TCO in China and US",
+   "k": "Electricity as share of data center TCO, China vs US",
    "v": "China about 1/3, US about 2/3"
   }
  ],
  "quotes": [
   {
-   "text": "In the training era, no one could rely on training to get any commercial return; training itself is something with no direct return.",
+   "text": "Back in the training era, there was no way to get any commercial return from training itself — training was something with no direct return.",
    "translated": true
   },
   {
-   "text": "This medium is not really about the medium itself, but about focusing on the locality problem; you need to provide a higher level of locality than HBM.",
+   "text": "This medium isn't really about the medium itself, it's that you have to care about the locality problem — you have to provide a higher level of locality than HBM.",
    "translated": true
   },
   {
-   "text": "When you can make something faster and cheaper than others, you won't tell people that your cost is actually cheaper.",
+   "text": "When you can make something faster and cheaper than everyone else, you don't tell people that your cost is actually cheaper.",
    "translated": true
   },
   {
-   "text": "In a mature company, it is still very difficult to disruptively push a research idea to the product team.",
+   "text": "Inside a mature company, pushing a research idea disruptively into the product team is still extremely difficult.",
    "translated": true
   },
   {
-   "text": "So faster inference speed does not mean that from one minute of thinking you must reduce the interaction speed to one second; rather, with the same one-minute interaction speed, your model can use 10 times more tokens for more internal self-thinking to improve its intelligence level.",
+   "text": "So faster inference doesn't mean that from one minute of thinking you end up interacting with it in one second — it means that at the same one-minute interaction speed, your model can use 10x more tokens for more internal self-thinking, raising its intelligence.",
    "translated": true
   },
   {
-   "text": "Computer architecture is like real estate, everything is about location, location, location.",
+   "text": "Computer architecture is like real estate: everything is location, location, location.",
    "translated": true
   }
  ],

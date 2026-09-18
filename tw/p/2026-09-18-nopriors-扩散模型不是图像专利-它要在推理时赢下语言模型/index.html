@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>擴散模型不是圖像專利，它要在推理時贏下語言模型 — No Priors · 原聲</title>
+<meta name="description" content="自迴歸推理必須一個 token 一個 token 順序生成，是內存帶寬瓶頸；擴散模型一次並行處理多個 token，推理負載更像訓練，所以 Inception 押它。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/tw/p/2026-09-18-nopriors-扩散模型不是图像专利-它要在推理时赢下语言模型/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原聲">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:title" content="擴散模型不是圖像專利，它要在推理時贏下語言模型 — No Priors · 原聲">
+<meta property="og:description" content="自迴歸推理必須一個 token 一個 token 順序生成，是內存帶寬瓶頸；擴散模型一次並行處理多個 token，推理負載更像訓練，所以 Inception 押它。">
+<meta property="og:url" content="https://ourword.ai/podcast/tw/p/2026-09-18-nopriors-扩散模型不是图像专利-它要在推理时赢下语言模型/">
+<meta property="og:image" content="https://megaphone.imgix.net/podcasts/51c4092c-b309-11f1-8603-fb8d30e1277f/image/432b6af9d1b0d625ffd98b71a629d0a9.jpg?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-09-18T10:00:00Z">
+<meta property="article:modified_time" content="2026-09-18T13:30:49Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="擴散模型不是圖像專利，它要在推理時贏下語言模型 — No Priors · 原聲">
+<meta name="twitter:description" content="自迴歸推理必須一個 token 一個 token 順序生成，是內存帶寬瓶頸；擴散模型一次並行處理多個 token，推理負載更像訓練，所以 Inception 押它。">
+<meta name="twitter:image" content="https://megaphone.imgix.net/podcasts/51c4092c-b309-11f1-8603-fb8d30e1277f/image/432b6af9d1b0d625ffd98b71a629d0a9.jpg?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress">
+<link rel="icon" type="image/svg+xml" href="/podcast/tw/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/tw/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原聲" href="/podcast/tw/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-09-18-nopriors-扩散模型不是图像专利-它要在推理时赢下语言模型/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-09-18-nopriors-扩散模型不是图像专利-它要在推理时赢下语言模型/">
+<link rel="alternate" hreflang="en" href="https://ourword.ai/podcast/en/p/2026-09-18-nopriors-扩散模型不是图像专利-它要在推理时赢下语言模型/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-09-18-nopriors-扩散模型不是图像专利-它要在推理时赢下语言模型/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=e27ecd7fee">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-09-18-nopriors-扩散模型不是图像专利-它要在推理时赢下语言模型/#episode", "name": "擴散模型不是圖像專利，它要在推理時贏下語言模型", "headline": "擴散模型不是圖像專利，它要在推理時贏下語言模型", "description": "自迴歸推理必須一個 token 一個 token 順序生成，是內存帶寬瓶頸；擴散模型一次並行處理多個 token，推理負載更像訓練，所以 Inception 押它。", "abstract": "自迴歸推理必須一個 token 一個 token 順序生成，是內存帶寬瓶頸；擴散模型一次並行處理多個 token，推理負載更像訓練，所以 Inception 押它。", "datePublished": "2026-09-18T10:00:00Z", "dateModified": "2026-09-18T13:30:49Z", "url": "https://ourword.ai/podcast/p/2026-09-18-nopriors-扩散模型不是图像专利-它要在推理时赢下语言模型/", "timeRequired": "PT38M", "partOfSeries": {"@type": "PodcastSeries", "name": "No Priors", "url": "https://ourword.ai/podcast/s/nopriors/"}, "inLanguage": "zh-TW", "isBasedOn": "https://www.youtube.com/watch?v=N1rjtDs8blY", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "擴散模型, 推理效率, 模型架構, 語音agent, AI創業, diffusion model, autoregressive model, perplexity, serving engine, RL post-training, 擴散模型文本生成速度提升, Inception 公司規模, 對延遲極度敏感的任務佔比估算", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}, "associatedMedia": {"@type": "AudioObject", "contentUrl": "https://traffic.megaphone.fm/PDP7720707490.mp3"}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首頁", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "No Priors", "item": "https://ourword.ai/podcast/s/nopriors/"}, {"@type": "ListItem", "position": 3, "name": "擴散模型不是圖像專利，它要在推理時贏下語言模型"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/tw/"><span class="wordmark">原聲<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<button class="pill ghost" id="lang-toggle" type="button" data-en="1" data-sc="繁體" data-tw="簡體"></button>
+<button class="icon-btn" data-theme-toggle aria-label="切換深淺色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，來原聲聽播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/tw/">首頁</a><span class="sep">/</span>
+<a href="/podcast/tw/s/nopriors/">No Priors</a>
+<span class="sep">/</span><span>2026-09-18</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">No Priors</span>
+<time class="date" datetime="2026-09-18T10:00:00Z">2026-09-18</time>
+<button class="share-btn" type="button" data-share data-share-title="擴散模型不是圖像專利，它要在推理時贏下語言模型" data-share-url="https://ourword.ai/podcast/tw/e/nopriors-3788766925/" data-share-desc="自迴歸推理必須一個 token 一個 token 順序生成，是內存帶寬瓶頸；擴散模型一次並行處理多個 token，推理負載更像訓練，所以 Inception 押它。" data-share-text="擴散模型不是圖像專利，它要在推理時贏下語言模型&#10;No Priors · 38 分鐘 · 原聲深讀&#10;&#10;自迴歸推理必須一個 token 一個 token 順序生成，是內存帶寬瓶頸；擴散模型一次並行處理多個 token，推理負載更像訓練，所以 Inception 押它。&#10;&#10;https://ourword.ai/podcast/e/nopriors-3788766925/" aria-label="複製分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>擴散模型不是圖像專利，它要在推理時贏下語言模型</h1>
+<p class="dek-lead">自迴歸推理必須一個 token 一個 token 順序生成，是內存帶寬瓶頸；擴散模型一次並行處理多個 token，推理負載更像訓練，所以 Inception 押它。</p>
+<div class="ep-meta"><span class="tag">擴散模型</span><span class="tag">推理效率</span><span class="tag">模型架構</span><span class="tag">語音agent</span><span class="tag">AI創業</span></div>
+</div>
+<div class="player" data-player-box>
+  <button class="video-facade" data-yt="N1rjtDs8blY" type="button"
+          aria-label="播放原節目視頻">
+    <span class="frame">
+      <img src="https://i.ytimg.com/vi/N1rjtDs8blY/hq720.jpg" alt="" loading="lazy" width="1280"
+           onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/N1rjtDs8blY/hqdefault.jpg'">
+      <span class="play" aria-hidden="true"><svg viewBox="0 0 44 44" width="44" height="44" focusable="false"><circle cx="22" cy="22" r="21" fill="rgba(18,16,13,.55)" stroke="rgba(255,255,255,.92)" stroke-width="1.5"/><path d="M17 14.5 32 22 17 29.5Z" fill="#fff"/></svg></span>
+    </span>
+  </button>
+  <div class="strip" data-audio-strip hidden>
+    <p class="afallback">原視頻在 YouTube 上放不出來，用音頻聽：</p>
+    <audio data-player controls preload="none" src="https://traffic.megaphone.fm/PDP7720707490.mp3"></audio>
+    <div class="aui" data-audio-ui data-dur="2293" hidden>
+      <button class="aplay" type="button" aria-label="播放"></button>
+      <div class="abar" role="slider" tabindex="0" aria-label="播放進度"
+           aria-valuemin="0" aria-valuemax="100"><div class="afill"></div></div>
+      <span class="atime"><span class="acur">0:00</span><span class="asep">/</span><span class="atot">--:--</span></span>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="why">一位擴散模型奠基者講清楚了為什麼推理階段的並行性會成為架構勝負手，以及一家 50 人公司怎麼在巨頭夾縫裡找差異化。</div></section>
+
+<section class="section"><h2>核心論點 · 點時間戳可跳到原聲</h2><div class="point" id="p0"><a class="ts" data-t="190" href="https://www.youtube.com/watch?v=N1rjtDs8blY&amp;t=190s" target="_blank" rel="noopener">3:10</a><div><h4>擴散模型的起點是嫌 GAN 太不穩</h4>
+<p class="body">Ermon 說當年做圖像生成時對 GAN 很不滿意：能work，但訓練極不穩定、結果很難復現。於是他和博士生在 2019 年轉向 score-based generative models，思路是訓練一個神經網絡去噪，如果它能去噪，就說明它理解了圖像結構，也就能反過來從純噪聲逐步精煉出乾淨圖像。這就是現代擴散模型的底層技術。他強調今天最好的圖像、視頻、部分音樂和大量蛋白質模型都基於擴散。</p>
+<span class="spk">— Stefano Ermon</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="311" href="https://www.youtube.com/watch?v=N1rjtDs8blY&amp;t=311s" target="_blank" rel="noopener">5:11</a><div><h4>2024 年那篇論文把擴散搬到了文本上</h4>
+<p class="body">Ermon 的團隊 2024 年發表論文，首次在 GPT-2 規模（不到十億參數）上讓擴散模型匹配自迴歸模型的質量：同樣的困惑度，同樣的數據擬合程度，但生成速度快約 10 倍，因為擴散一次輸出多個 token。他說這仍然偏學術，但足以讓他決定創業，把技術放大到商業規模。</p>
+<span class="spk">— Stefano Ermon</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="494" href="https://www.youtube.com/watch?v=N1rjtDs8blY&amp;t=494s" target="_blank" rel="noopener">8:14</a><div><h4>自迴歸推理是內存帶寬瓶頸</h4>
+<p class="body">Ermon 把 2017 年 RNN 到 transformer 的切換類比到推理階段：訓練時 transformer 靠並行處理多個 token 勝出，但推理時自迴歸模型仍然是順序的，生成第 10 個 token 前必須先生成前面所有 token。這種負載極度受內存帶寬限制，大部分時間花在內存層級間搬運權重，算術運算很少，對 GPU 不友好。擴散模型在推理時的負載更像訓練——同時並行處理多個 token，因此天然匹配 GPU 擅長的計算模式。</p>
+<span class="spk">— Stefano Ermon</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="616" href="https://www.youtube.com/watch?v=N1rjtDs8blY&amp;t=616s" target="_blank" rel="noopener">10:16</a><div><h4>推理效率還決定 RL 後訓練的上限</h4>
+<p class="body">Ermon 指出經濟性由每瓦特、每美元能換來的智能決定。推理模型的大量進展來自測試時計算擴展，而 RL 後訓練的瓶頸之一就是生成 rollout——讓模型探索、給軌跡打分、再改進模型。所以推理效率直接卡住後訓練效率：一個在推理時擴展得更好的模型，自動也會在後訓練時擴展得更好。這是他押注擴散 LLM 的核心邏輯，也是他說的「更並行的方案最終會贏」。</p>
+<span class="spk">— Stefano Ermon</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="739" href="https://www.youtube.com/watch?v=N1rjtDs8blY&amp;t=739s" target="_blank" rel="noopener">12:19</a><div><h4>Mercury 對標 Haiku、Flash、mini 系列</h4>
+<p class="body">Ermon 稱 Inception 的 Mercury 模型在基準上對標 Haiku、Flash、mini nano 等速度優化模型，質量相當但顯著更快，且已在生產環境服務客戶。他強調不能直接在 vLLM 或 SGLang 上跑擴散 LLM，必須自建 serving engine，處理真實生產負載的複雜度。這既是門檻也是護城河：即使別人訓出擴散 LLM，沒有對應 serving engine 也用不起來。</p>
+<span class="spk">— Stefano Ermon</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="1041" href="https://www.youtube.com/watch?v=N1rjtDs8blY&amp;t=1041s" target="_blank" rel="noopener">17:21</a><div><h4>語音客戶從定製芯片換回英偉達 GPU</h4>
+<p class="body">Ermon 舉了語音 agent 公司 OpenCall 的例子：語音管線包含 ASR、做工具調用的推理 LLM、TTS，速度至關重要。OpenCall 原先在 Cerebras 定製芯片上服務 LLM 來達到所需速度，後來換到 Inception 的擴散 LLM，因為在英偉達 GPU 上就能拿到同等速度——可用性更高、成本更低、質量更好。Ermon 說一旦用慣快模型就回不去了，像寬帶一樣。</p>
+<span class="spk">— Stefano Ermon</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="1526" href="https://www.youtube.com/watch?v=N1rjtDs8blY&amp;t=1526s" target="_blank" rel="noopener">25:26</a><div><h4>擴散模型天生比自迴歸更好控制</h4>
+<p class="body">Ermon 說擴散模型通常比自迴歸模型更容易控制：自迴歸必須等整個對象生成完，才知道它是否滿足約束、是否對齊、獎勵函數打多少分；擴散是粗到細的生成，從早期就能判斷方向對不對，可以用外部獎勵函數或約束集來引導生成。學術文獻裡有不少證據支持這一點，而且有些引導方式在自迴歸模型上根本做不到。他把這看作未來產品體驗的差異化空間。</p>
+<span class="spk">— Stefano Ermon</span></div></div>
+<div class="point" id="p7"><a class="ts" data-t="1769" href="https://www.youtube.com/watch?v=N1rjtDs8blY&amp;t=1769s" target="_blank" rel="noopener">29:29</a><div><h4>20% 到 30% 的任務對延遲極度敏感</h4>
+<p class="body">Ermon 參考 OpenRouter 的任務分類（研究、對話、編程、軟件工程、日誌處理等）做估算，認為其中約 20% 到 30% 的任務對延遲非常重要。作為下界，這部分負載可以由在給定延遲預算內提供最高質量的模型來承接。他也承認目前還沒到前沿智能水平，很多負載仍需要前沿級智能，所以擴散模型的可尋址市場是分層的。</p>
+<span class="spk">— Stefano Ermon</span></div></div>
+<div class="point" id="p8"><a class="ts" data-t="2136" href="https://www.youtube.com/watch?v=N1rjtDs8blY&amp;t=2136s" target="_blank" rel="noopener">35:36</a><div><h4>Flash Attention 和 DPO 都出自他的實驗室</h4>
+<p class="body">Ermon 回應「學術界做不了大模型」的質疑：早期擴散工作是在學術規模上擊敗 GAN 且更穩定，後來長成 Stable Diffusion、Midjourney；他還共同指導了 Flash Attention，DPO 也起源於他組裡的項目，如今被廣泛用於對齊 LLM 和擴散模型。他認為學術界的優勢是能下反直覺的賭注，有優秀學生，且大家不怕冒險——很多重要 AI 想法都源自學術界。</p>
+<span class="spk">— Stefano Ermon</span></div></div></section>
+<section class="section"><h2>原話 · 已逐字校驗</h2><blockquote class="quote"><p class="raw">the computation is one left to right one token at a time. You cannot generate the 10th token until you&#x27;ve generated everything that comes before it. That kind of workload is um does not map well to GPUs. that kind of workload is extremely memory bound.</p>
+<p class="zh">計算是一個 token 一個 token 從左到右。不生成前面所有 token，就無法生成第 10 個 token。這種負載不能很好地映射到 GPU，它極度受內存帶寬限制。</p>
+<div class="attrib"><b>Stefano Ermon</b><a class="ts" data-t="494" href="https://www.youtube.com/watch?v=N1rjtDs8blY&amp;t=494s" target="_blank" rel="noopener">8:14</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">the equivalent at inference time is a diffusion based is a diffusion model because a diffusion model is built to have at inference time a workload where you process many tokens at the same time.</p>
+<p class="zh">推理階段的等價物就是擴散模型，因為擴散模型在推理時的負載就是同時處理多個 token。</p>
+<div class="attrib"><b>Stefano Ermon</b><a class="ts" data-t="556" href="https://www.youtube.com/watch?v=N1rjtDs8blY&amp;t=556s" target="_blank" rel="noopener">9:16</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">the bitter lesson is that the more parallel solution is the one that is eventually going to win.</p>
+<p class="zh">苦澀的教訓是：更並行的方案最終會贏。</p>
+<div class="attrib"><b>Stefano Ermon</b><a class="ts" data-t="616" href="https://www.youtube.com/watch?v=N1rjtDs8blY&amp;t=616s" target="_blank" rel="noopener">10:16</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">once you get used to a fast model, it&#x27;s hard to go back. It&#x27;s kind of like broadband, right?</p>
+<p class="zh">一旦用慣快模型，就很難回去了。有點像寬帶，對吧？</p>
+<div class="attrib"><b>Stefano Ermon</b><a class="ts" data-t="1041" href="https://www.youtube.com/watch?v=N1rjtDs8blY&amp;t=1041s" target="_blank" rel="noopener">17:21</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">whenever you train these models you&#x27;re effectively trying to identify common structure by trying to find an efficient way of compressing the data. And so the more you can compress the data, the more structure, the more patterns you&#x27;re identifying.</p>
+<p class="zh">訓練這些模型時，你實際上是在通過尋找高效壓縮數據的方式來識別共同結構。壓縮得越多，說明你識別出的結構和模式越多。</p>
+<div class="attrib"><b>Stefano Ermon</b><a class="ts" data-t="1344" href="https://www.youtube.com/watch?v=N1rjtDs8blY&amp;t=1344s" target="_blank" rel="noopener">22:24</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">right now uh the the the human ingenuity is still like super important and the ability to come up with the the right ideas and kind of like prune the space and and kind of like identify directions that are more promising has been really important to us.</p>
+<p class="zh">目前人類的創造力仍然極其重要，提出正確想法、剪枝搜索空間、識別更有希望的方向，對我們來說一直非常關鍵。</p>
+<div class="attrib"><b>Stefano Ermon</b><a class="ts" data-t="2013" href="https://www.youtube.com/watch?v=N1rjtDs8blY&amp;t=2013s" target="_blank" rel="noopener">33:33</a></div>
+</blockquote></section>
+<section class="section"><h2>數字與實體</h2><table class="facts"><tr><td class="k">擴散模型文本生成速度提升</td><td class="v">約 10 倍於同規模自迴歸模型</td><td class="t"><a class="ts" data-t="311" href="https://www.youtube.com/watch?v=N1rjtDs8blY&amp;t=311s" target="_blank" rel="noopener">5:11</a></td></tr>
+<tr><td class="k">Inception 公司規模</td><td class="v">約 50 人，成立約兩年</td><td class="t"><a class="ts" data-t="799" href="https://www.youtube.com/watch?v=N1rjtDs8blY&amp;t=799s" target="_blank" rel="noopener">13:19</a></td></tr>
+<tr><td class="k">對延遲極度敏感的任務佔比估算</td><td class="v">20% 到 30%</td><td class="t"><a class="ts" data-t="1769" href="https://www.youtube.com/watch?v=N1rjtDs8blY&amp;t=1769s" target="_blank" rel="noopener">29:29</a></td></tr></table></section>
+<section class="section"><h2>術語</h2><dl class="terms"><div><dt>diffusion model<span>擴散模型</span></dt><dd>從純噪聲出發逐步去噪、迭代精煉出結果的生成模型。</dd></div>
+<div><dt>autoregressive model<span>自迴歸模型</span></dt><dd>逐個預測下一個 token、從左到右順序生成的模型。</dd></div>
+<div><dt>perplexity<span>困惑度</span></dt><dd>衡量語言模型對數據中結構識別程度的指標，越低越好。</dd></div>
+<div><dt>serving engine<span>推理服務引擎</span></dt><dd>把訓練好的模型部署成線上服務、處理生產請求的軟件棧。</dd></div>
+<div><dt>RL post-training<span>強化學習後訓練</span></dt><dd>用強化學習在預訓練後繼續優化模型，常需大量 rollout 生成。</dd></div></dl></section>
+<section class="section"><h2>收聽指南</h2>
+<div class="panel guide">
+<div><span class="k">誰該聽</span><p>關注推理成本、延遲敏感應用（語音 agent、編程）的工程師和創業者，以及想理解架構競爭格局的 AI 投資人。</p></div>
+<div><span class="k">可跳過</span><p>開頭 0:08–2:54 的學術回憶可快進，直接聽 5:11 起的架構論證。</p></div>
+</div></section>
+<nav class="prevnext"><a href="/podcast/tw/p/2026-09-18-freakonomics-预测市场不是赌场-但九成交易量来自体育/"><span class="lbl">← 更新</span><strong>預測市場不是賭場，但九成交易量來自體育</strong></a><a class="r" href="/podcast/tw/p/2026-09-18-raisinggh-孩子打架时-你是证人还是法官/"><span class="lbl">更早 →</span><strong>孩子打架時，你是證人還是法官</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原節目</h4>
+<div class="row"><span>節目</span><span>No Priors</span></div>
+<div class="row"><span>原標題</span><span>Why Diffusion Will Win AI Inference with Inception Co-Founder and CEO Stefano Ermon</span></div>
+<div class="row"><span>發布</span><span>2026-09-18</span></div>
+<div class="row"><span>時長</span><span>38:13</span></div>
+<a class="row" href="https://www.youtube.com/watch?v=N1rjtDs8blY" target="_blank" rel="noopener"><span>原頁面</span><span>打開 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇結構</h4><nav class="toc"><a href="#p0"><span class="t">3:10</span><span>擴散模型的起點是嫌 GAN 太不穩</span></a>
+<a href="#p1"><span class="t">5:11</span><span>2024 年那篇論文把擴散搬到了文本上</span></a>
+<a href="#p2"><span class="t">8:14</span><span>自迴歸推理是內存帶寬瓶頸</span></a>
+<a href="#p3"><span class="t">10:16</span><span>推理效率還決定 RL 後訓練的上限</span></a>
+<a href="#p4"><span class="t">12:19</span><span>Mercury 對標 Haiku、Flash、mini 系列</span></a>
+<a href="#p5"><span class="t">17:21</span><span>語音客戶從定製芯片換回英偉達 GPU</span></a>
+<a href="#p6"><span class="t">25:26</span><span>擴散模型天生比自迴歸更好控制</span></a>
+<a href="#p7"><span class="t">29:29</span><span>20% 到 30% 的任務對延遲極度敏感</span></a>
+<a href="#p8"><span class="t">35:36</span><span>Flash Attention 和 DPO 都出自他的實驗室</span></a></nav></div>
+
+<div class="panel"><h4>這篇是怎麼來的</h4>
+<div class="row"><span>成稿評分</span><span>8 / 10</span></div>
+<div class="row"><span>文稿來源</span><span>YouTube 字幕</span></div>
+<div class="row"><span>文稿字數</span><span>7257</span></div>
+<div class="row"><span>語速核驗</span><span>189.9 wpm</span></div>
+<div class="row"><span>逐字校驗金句</span><span>6 條</span></div>
+<div class="row"><span>回溯校驗數字</span><span>3 條</span></div>
+<div class="row"><span>質檢剔除</span><span>2 處</span></div>
+<p class="note">金句在逐字稿裡逐字比對過，數字回原文核對過；對不上的當場刪掉，不上站。
+成稿另經一道獨立評審（信息密度／忠實度／選擇力／具體性／中文），低於 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原聲 · <a href="https://ourword.ai">OurWord.ai</a>的播客線。內容為原播客的中文深讀，
+版權歸各節目所有；每篇都附原節目鏈接，請去支持原作者。</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/tw/" lang="zh">人類世界生存法則</a> · <a href="/podcast/tw/">原聲</a></div>
+<div class="links"><a href="/podcast/tw/">首頁</a><a href="/podcast/tw/sources/">信源</a>
+<a href="/podcast/tw/log/">更新日誌</a><a href="/podcast/tw/feed.xml">RSS</a>
+<a href="/podcast/tw/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源碼</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=d235129544" defer></script>
+</body></html>
