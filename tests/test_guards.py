@@ -1468,6 +1468,10 @@ class StalenessMustNotDeleteLiveSources(unittest.TestCase):
         import curate
         m = dict(name="X", tier=2, cat="ai", published=1, review_median=8,
                  triage_n=0, triage_pass=None, no_transcript=0,
+                 # cloud_only_fails=0 ＝「本机线也试过了」。这条闸问的是
+                 # 「真取不到的时候会不会删源」，所以要把「还没派活」那条路
+                 # 先排除掉，否则测到的是改派、不是这条闸想测的东西。
+                 cloud_only_fails=0, triage_kinds={},
                  official_transcripts=0, feed_ok=True, fail_streak=0,
                  residential=False, age_days=3, max_gap_days=None)
         m.update(over)
@@ -6393,6 +6397,264 @@ class AChunkThatFailsToDecodeIsNotTheEpisodesFault(unittest.TestCase):
         self.assertIn('"soft"', blk, "软失败没有单独的预算")
         self.assertRegex(blk, r'"n": prev\.get\("n", 0\)(?!\s*\+)',
                          "软失败也在累加硬失败计数 —— 等于没分类")
+
+
+class GivingUpOnASourceRequiresTryingTheLineThatCanDoIt(unittest.TestCase):
+    """判一档源出局之前，先问一句：能干这活的那条线试过没有。
+
+    云端定时跑批是 `--tiers feed,notes,page`（没有 ASR key），本机线才有 ASR。
+    一档源前三层都没有文稿、但 feed 里有音频，本机线做得了 —— 而原来的规则
+    看不见这件事：`asr_only` 那条只认「**已经**靠转写发过稿」的源，
+    于是从没发过稿的那批永远够不着它，只能一路撞到 DEAD_ATTEMPTS 判休眠。
+
+    实测 Hard Fork：云端按 feed,notes,page 试三次记 no-transcript 永久出局，
+    本机 ASR 一次出稿、成稿 8/10。**同一条判词，换条线就不成立了。**
+    一次性量了 16 档零产出的源，15 档 feed 里都有音频 ——
+    它们不是垃圾，是**没人给它们派能干的那条线**。
+
+    run.py 早就按这个判据单集重试了（_weaker_tiers），源这一级一直没有。
+    这是同一条规矩没贯彻到底：[[fix-the-detection-not-just-the-bug]] 的形状。
+    """
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.C = importlib.import_module("curate")
+
+    def _m(self, **kw):
+        m = {"name": "X", "tier": 3, "cat": "ai", "published": 0,
+             "review_median": None, "review_rejected": 0, "gate_rejected": 0,
+             "draft_pass": None, "triage_n": 0, "triage_pass": None,
+             "triage_kinds": {}, "no_transcript": 3, "cloud_only_fails": 3,
+             "age_days": 1.0, "max_gap_days": 7.0, "feed_ok": True,
+             "fail_streak": 0, "residential": False, "asr_only": False,
+             "pinned": False, "official_transcripts": 0}
+        m.update(kw)
+        return m
+
+    def test_a_cloud_only_failure_routes_instead_of_retiring(self):
+        got = self.C.judge("x", self._m())
+        self.assertEqual((got or [""])[0], "residential",
+                         "只被云端试过就判出局 —— 本机线有 ASR，根本没试过")
+
+    def test_it_fires_before_the_dormant_rule(self):
+        """撞满 DEAD_ATTEMPTS 也一样：先派活，再谈放弃。"""
+        got = self.C.judge("x", self._m(no_transcript=12, cloud_only_fails=12))
+        self.assertEqual((got or [""])[0], "residential",
+                         "攒够次数就直接休眠了 —— 而它一次都没被能干的线试过")
+
+    def test_a_source_the_local_line_already_tried_is_not_rerouted(self):
+        got = self.C.judge("x", self._m(no_transcript=12, cloud_only_fails=0))
+        self.assertNotEqual((got or [""])[0], "residential",
+                            "本机线试过了还在改派 —— 那才是真的取不到")
+
+    def test_an_already_local_source_is_not_rerouted(self):
+        got = self.C.judge("x", self._m(residential=True))
+        self.assertNotEqual((got or [""])[0], "residential", "已经在本机线上了还改派")
+
+    def test_a_source_with_output_is_out_of_scope(self):
+        got = self.C.judge("x", self._m(published=4))
+        self.assertNotEqual((got or [""])[0], "residential",
+                            "这条只管一篇都没发的；发过稿的走 asr_only 那条")
+
+    def test_the_metric_is_actually_counted_from_the_ledger(self):
+        """判据对不对是一回事，**喂给它的数有没有在算**是另一回事。
+
+        上面几条都是直接把 cloud_only_fails 塞进样本的 —— 把 performance()
+        里那行计数删掉，它们照样全绿。反向注入当场验出来这个洞：
+        规则测到了，采集没测到。真实账本对一遍，两头才算接上。
+        """
+        f = ROOT / "data" / "state.json"
+        if not f.exists():
+            self.skipTest("没有账本")
+        raw = 0
+        for v in (json.loads(f.read_text()).get("fail") or {}).values():
+            if (isinstance(v, dict) and "no-transcript" in str(v.get("why", ""))
+                    and "asr" not in str(v.get("tiers") or "")):
+                raw += 1
+        if raw == 0:
+            self.skipTest("账本里现在没有「只被云端试过」的失败")
+        got = sum(m.get("cloud_only_fails", 0)
+                  for m in self.C.performance().values())
+        self.assertGreater(
+            got, 0,
+            f"账本里有 {raw} 条只被云端试过的失败，performance() 一条都没数出来"
+            f" —— 规则还在，喂给它的数已经没了")
+
+
+class ASourceThatNeverPassesMustEventuallyBeRemoved(unittest.TestCase):
+    """判过很多次、一次都没过、一篇都没发 —— 要有一条规则结束它。
+
+    原来只有「选题通过率 < 25%（≥6 次评估）→ 降级」。于是 0 产出、0 通过的源
+    永远停在那里：判过 4、5 次一次都没摸到线，却因为不满 6 次而完全不被判断；
+    就算判了也只是降级 —— **而降级解决不了任何问题**，它下一轮照样被挑中、
+    照样花一次选题的钱、照样零产出。没有任何规则会结束它。
+
+    实测四档长期挂着：Stanford HAI（5 次判词里 4 次是校园迎新致辞、开学典礼、
+    规划宣传片）、Weights & Biases（4 次全是 CoreWeave 产品口播）、
+    Risky Business（5 次全是周度安全新闻综述）、The Daily Stoic（课程推销）。
+    不是「这几集不巧」，是**这档节目的体裁就不产深读**。
+
+    门槛取 4 不取 3：3 次全灭还可能是抽样不巧。收进来容易、清出去难，
+    这个站的毛病一直在后半截 —— 但清出去也得拿证据，不能凭印象。
+    """
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.C = importlib.import_module("curate")
+
+    def _m(self, **kw):
+        # 字段形状照着 performance() 真实产出抄的：review_rejected 是**计数**
+        # 不是列表，draft_pass / gate_rejected 也在。造样本先对一遍真尺子，
+        # 否则测的是一个现实里不存在的记录。
+        m = {"name": "X", "tier": 3, "cat": "ai", "published": 0,
+             "review_median": None, "review_rejected": 0, "gate_rejected": 0,
+             "draft_pass": None, "triage_n": 5, "triage_pass": 0.0,
+             "triage_kinds": {"宣传": 5}, "no_transcript": 0, "age_days": 1.0,
+             "max_gap_days": 7.0, "feed_ok": True, "fail_streak": 0,
+             "residential": True, "asr_only": False, "pinned": False,
+             "official_transcripts": 0}
+        m.update(kw)
+        return m
+
+    def test_four_strikes_with_nothing_published_is_removed(self):
+        got = self.C.judge("x", self._m(triage_n=4))
+        self.assertIsNotNone(got, "判过 4 次一次没过、一篇没发，还是没有任何规则动它")
+        self.assertEqual(got[0], "drop_quality", f"判成了 {got[0]}，降级解决不了零产出")
+        self.assertIn("宣传", got[1], "判词里没说它一直在产什么 —— 人没法复核这次移除")
+
+    def test_three_strikes_is_not_enough_evidence(self):
+        self.assertIsNone(self.C.judge("x", self._m(triage_n=3)),
+                          "3 次全灭就移除 —— 那可能只是抽样不巧")
+
+    def test_a_source_that_has_published_is_not_touched_by_this_rule(self):
+        got = self.C.judge("x", self._m(triage_n=9, published=3))
+        self.assertNotEqual((got or [""])[0], "drop_quality",
+                            "发过稿的源被这条规则删了 —— 它只管一篇都没发的")
+
+    def test_one_pass_is_enough_to_survive_this_rule(self):
+        got = self.C.judge("x", self._m(triage_n=9, triage_pass=0.11))
+        self.assertNotEqual((got or [""])[0], "drop_quality",
+                            "过过线的源被当成「一次都没过」")
+
+    def test_a_pinned_source_is_never_removed_by_quality(self):
+        self.assertIsNone(self.C.judge("x", self._m(triage_n=9, pinned=True)),
+                          "人钉住的源被自动规则删了 —— 这比降级还严重")
+
+    def test_transcript_failures_do_not_count_as_bad_content(self):
+        """取不到文稿是我们的能力限制，不是这档节目不好。"""
+        got = self.C.judge("x", self._m(triage_n=0, triage_pass=None,
+                                        no_transcript=12))
+        self.assertNotEqual((got or [""])[0], "drop_quality",
+                            "把「我们取不到」判成了「内容垃圾」——"
+                            "又一次把工程约束写成产品判断")
+
+
+class AFeedSwapMustNotLandOnADeadMirror(unittest.TestCase):
+    """自愈换 feed，不许换到一个已经废弃的镜像上。
+
+    实测：YouTube 的 feeds 端点整类 404 的那一轮，Modern MBA 的活频道被换成了
+    anchor.fm 上一个 2022-09 就停更的音频镜像 —— 因为原来的规则是
+    「手里这个取不到 → 任何能取到的都算更好」。而自愈是**会写回 Python 清单**的，
+    所以这个错误落了盘；下一轮 curate 立刻按「停更 1466 天」把它降级。
+
+    一次取不到，换来一个真死的镜像，外加一条看起来有理有据的降级 ——
+    **两步都合规，合起来把一档活着的源做掉了。**
+    """
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.R = importlib.import_module("resolve_sources")
+
+    def test_an_abandoned_mirror_is_never_an_upgrade(self):
+        self.assertFalse(
+            self.R.replacement_is_better({"ok": False},
+                                         {"ok": True, "age_days": 1466}),
+            "手里这个取不到，就换到一个停更四年的镜像上 —— 换完还会被判停更降级")
+
+    def test_a_live_feed_still_replaces_an_unreachable_one(self):
+        self.assertTrue(
+            self.R.replacement_is_better({"ok": False}, {"ok": True, "age_days": 3}),
+            "换不动了 —— 自愈本来要解决的就是这种情况")
+
+    def test_a_live_feed_replaces_a_stale_mirror(self):
+        self.assertTrue(
+            self.R.replacement_is_better({"ok": True, "age_days": 400},
+                                         {"ok": True, "age_days": 5}),
+            "手里是死镜像、有活的却不换")
+
+    def test_a_stale_mirror_never_replaces_a_live_feed(self):
+        self.assertFalse(
+            self.R.replacement_is_better({"ok": True, "age_days": 5},
+                                         {"ok": True, "age_days": 400}),
+            "拿活的换成旧的")
+
+    def test_the_caller_uses_the_rule_instead_of_restating_it(self):
+        src = (ROOT / "pipeline" / "resolve_sources.py").read_text()
+        self.assertIn("better = replacement_is_better(st, alt)", src,
+                      "换 feed 的条件又在调用处写了一遍 —— 迟早和这里分叉")
+
+
+class AWholeClassDyingAtOnceIsTheRulerNotTheSources(unittest.TestCase):
+    """一整类源在同一轮里全部翻红 —— 那是我们取不到，不是它们全死了。
+
+    实测：跑一次 `resolve_sources --check`，22 档 YouTube 源**全部**判 DEAD
+    （HTTP 404），里面有 Karpathy、Anthropic、Google DeepMind、Hugging Face。
+    同一时刻 youtube.com/@karpathy 返回 200，asianometry 前一天才刚发过稿 ——
+    是 feeds/videos.xml 这个端点在拒这台机器。
+
+    可怕的地方在于这个结论会**被别的规则当成事实用**：curate 有一条
+    「feed 连续 3 次体检失败 → 移除」，判据本身没错，错的是喂给它的数据。
+    **判据对、数据错，比判据错更难发现** —— 日志上每一行都理直气壮，
+    最后 22 档活着的源被删掉，账本里只留下 22 行「已失效」。
+
+    真的整站下线了，这条只是把判定推迟到下一次探测；而一次误删不可逆。
+    """
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.R = importlib.import_module("resolve_sources")
+
+    def _rows(self, n, host="www.youtube.com", ok=False):
+        return [{"id": f"s{i}", "feed": f"https://{host}/feeds/videos.xml?c={i}",
+                 "status": {"ok": ok, "error": "HTTP Error 404"}} for i in range(n)]
+
+    def test_a_class_wide_wipeout_is_not_recorded(self):
+        out = self._rows(4)
+        prev = {f"s{i}": {"status": {"ok": True, "episodes": 9}} for i in range(4)}
+        got = self.R.keep_class_wide_deaths_out(out, prev)
+        self.assertEqual(len(got), 4, "整类全红照样写进 status —— curate 会照着它删源")
+        self.assertTrue(all(r["status"]["ok"] for r in out), "还是记成了 DEAD")
+        self.assertTrue(all(r["status"].get("class_wide_suspect") for r in out),
+                        "兜底了却没留痕 —— 真的整站下线时没人查得到")
+
+    def test_one_survivor_means_the_endpoint_is_fine(self):
+        out = self._rows(3)
+        out[1]["status"] = {"ok": True}
+        prev = {f"s{i}": {"status": {"ok": True}} for i in range(3)}
+        self.assertFalse(self.R.keep_class_wide_deaths_out(out, prev),
+                         "同一端点上还有源取得到，说明端点没事，不该兜底")
+
+    def test_a_source_that_was_already_dead_stays_dead(self):
+        out = self._rows(3)
+        prev = {f"s{i}": {"status": {"ok": False}} for i in range(3)}
+        self.assertFalse(self.R.keep_class_wide_deaths_out(out, prev),
+                         "上一轮本来就全是死的，这次仍然死 —— 那就是真死了")
+
+    def test_too_few_of_a_kind_is_not_a_class(self):
+        out = self._rows(2)
+        prev = {f"s{i}": {"status": {"ok": True}} for i in range(2)}
+        self.assertFalse(self.R.keep_class_wide_deaths_out(out, prev),
+                         "两档也当成一类 —— 那会把真的双双失效也兜住")
+
+    def test_the_registry_has_no_source_left_for_dead(self):
+        """真实清单：别留着已经判死、又没人处理的源。"""
+        rows = json.loads((ROOT / "data" / "sources.json").read_text())["sources"]
+        dead = [s["id"] for s in rows if (s.get("status") or {}).get("ok") is False]
+        self.assertFalse(dead, f"清单里躺着 {len(dead)} 档判死的源没人处理：{dead[:6]}")
 
 
 class RegeneratingTheRegistryMustNotUndoWhatWasMeasuredOrDecided(unittest.TestCase):

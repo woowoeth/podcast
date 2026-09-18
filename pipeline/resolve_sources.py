@@ -183,8 +183,8 @@ CURATED: list[dict] = [
        kind="youtube", residential=True, feed="https://www.youtube.com/feeds/videos.xml?channel_id=UC1LpsuAUaKoMzzJSEt5WImw",
        desc="半导体与产业史，考据到具体工厂、设备型号和年份，中文世界几乎没有对应物"),
   dict(id="rationalreminder", name="The Rational Reminder Podcast", zh="Rational Reminder",
-       cat="biz", tier=1, lang="en", kind="youtube", residential=True,
-       feed="https://www.youtube.com/feeds/videos.xml?channel_id=UCOErWFfNOQzXsgE7f5S_ULw",
+       cat="biz", tier=1, lang="en", kind="rss", residential=True,
+       feed="https://rss.libsyn.com/shows/127327/destinations/763774.xml",
        desc="证据派投资研究，每集引论文、可核对，和叙事型投资播客是两回事"),
   dict(id="techtechpotato", name="TechTechPotato", zh="TechTechPotato", cat="ai", tier=2,
        lang="en", kind="youtube", residential=True, feed="https://www.youtube.com/feeds/videos.xml?channel_id=UC1r0DG-KEPyqOeW6o79PByw",
@@ -207,6 +207,85 @@ CATS = {"ai": "AI / 技术", "biz": "投资 / 商业",
         "ideas": "人文 / 思想", "hist": "文明 / 历史", "parent": "育儿 / 教育",
         "sci": "健康 / 科学"}
 ALL_SOURCES = CURATED + EXTRA
+
+
+
+
+def replacement_is_better(st: dict, alt: dict) -> bool:
+    """要不要把 feed 换成 alt。
+
+    **「手里这个取不到」不等于「随便换一个都算赚」。**
+    原来只要 st 取不到就无条件认新的 —— 于是 YouTube 那个端点整类 404 的
+    那一轮，Modern MBA 的活频道被换成了 anchor.fm 上一个 2022-09 就停更的
+    音频镜像，还写回了 Python 清单（自愈是会落盘的），下一轮 curate 立刻按
+    「停更 1466 天」把它降级。**一次取不到，换来一个真死的镜像外加一条
+    看起来有理有据的降级。**
+
+    明显已经废弃的替代品不要：它不可能比「这一轮暂时取不到」更好。
+    """
+    if not alt.get("ok"):
+        return False
+    if (alt.get("age_days") or 9e9) > ABANDONED_DAYS:
+        return False
+    if not st.get("ok"):
+        return True
+    return (alt.get("age_days") or 9e9) < (st.get("age_days") or 9e9)
+
+
+CLASS_WIDE_MIN = 3          # 同一个取稿端点上这么多档源同时翻红，就先怀疑尺子
+
+
+def _feed_host(s: dict) -> str:
+    try:
+        return urllib.parse.urlsplit(str(s.get("feed") or "")).netloc.lower()
+    except Exception:
+        return ""
+
+
+def keep_class_wide_deaths_out(out: list[dict], prev: dict[str, dict]) -> list[str]:
+    """一整类源在同一轮里全部翻红 —— 那是我们取不到，不是它们全死了。
+
+    实测：跑一次 `--check`，22 档 YouTube 源**全部**判 DEAD（404），
+    其中有 Karpathy、Anthropic、Google DeepMind、Hugging Face。
+    同一时刻 youtube.com/@karpathy 返回 200，而 asianometry 前一天才刚发过稿 ——
+    是 feeds/videos.xml 这个端点在拒这台机器，不是 22 个频道同时消失。
+
+    这个结论一旦写进 status，下一轮 curate 就会照着它删源：
+    「feed 连续 3 次体检失败」这条规则本身没错，错在喂给它的数据。
+    **判据对、数据错，比判据错更难发现** —— 日志上每一行都理直气壮。
+
+    所以：同一个取稿端点上有 ≥CLASS_WIDE_MIN 档源、而且这一轮**全部**翻红，
+    就保留上一轮的 status，并在记录里留下 class_wide_suspect 让人能查。
+    真的整站下线了，这条只是把判定推迟到下一次探测 —— 而一次误删是不可逆的。
+    """
+    by_host: dict[str, list[dict]] = {}
+    for srec in out:
+        h = _feed_host(srec)
+        if h:
+            by_host.setdefault(h, []).append(srec)
+    rescued = []
+    for host, rows in by_host.items():
+        probed = [r for r in rows if isinstance(r.get("status"), dict)]
+        if len(probed) < CLASS_WIDE_MIN:
+            continue
+        if any(r["status"].get("ok") for r in probed):
+            continue                       # 还有活的，说明端点没事
+        # 这一轮全红。上一轮有活的吗？没有的话它本来就是死的，不拦。
+        was_ok = [r for r in probed
+                  if ((prev.get(r["id"]) or {}).get("status") or {}).get("ok")]
+        if not was_ok:
+            continue
+        for r in probed:
+            old = (prev.get(r["id"]) or {}).get("status")
+            err = (r.get("status") or {}).get("error")
+            if old:
+                r["status"] = dict(old, class_wide_suspect=host, last_probe_error=err)
+            else:
+                r.pop("status", None)
+            rescued.append(r["id"])
+        log(f"  ⚠ {host} 上 {len(probed)} 档源这一轮全部取不到 —— "
+            f"整类同时死先怀疑尺子，保留上一轮的探测结论，不记 DEAD")
+    return rescued
 
 
 MEASURED = ("status", "image", "itunes")
@@ -341,6 +420,9 @@ def expected_block(s: dict, error: str) -> bool:
 # 超过这个天数就顺手问一次 iTunes：这个 feed 还是官方在用的那个吗？
 # 比 curate 的 STALE_DAYS(120) 早，好在被判休眠之前就有机会换回正确的 feed。
 STALE_RECHECK_DAYS = 75
+# 替代 feed 超过这个天数没更新，就是个废弃镜像，再怎么「手里这个取不到」
+# 也不该换过去。给到 180 天：正常的系列间休息（120 天量级）不会越线。
+ABANDONED_DAYS = 180
 
 
 def probe(s: dict) -> dict:
@@ -505,15 +587,19 @@ def main() -> int:
                 if meta and meta.get("feedUrl") and meta["feedUrl"] != s["feed"]:
                     alt = probe(dict(s, feed=meta["feedUrl"]))
                     # 换 feed 必须换到更新的那个，否则可能换成另一个死镜像
-                    better = alt.get("ok") and (
-                        not st.get("ok")
-                        or (alt.get("age_days") or 9e9) < (st.get("age_days") or 9e9))
+                    better = replacement_is_better(st, alt)
                     if better:
                         why = "取不到" if not st["ok"] else \
                             f"停在 {st.get('latest')}（{st.get('age_days'):.0f} 天前）"
                         log(f"  ! {s['id']}: feed 换新（原因：{why}）-> {meta['feedUrl']}"
                             f"，新 feed 最新 {alt.get('latest')}")
                         s["feed"] = meta["feedUrl"]
+                        # **换了 feed 就得换 kind。** 自愈把 YouTube 频道换成
+                        # 播客 RSS 之后 kind 还写着 youtube，取稿层会按 YouTube
+                        # 的路子走（找 video id、要住宅 IP），而手里是条普通 RSS。
+                        # 实测 Rational Reminder 换到 libsyn 之后就是这样挂着的。
+                        s["kind"] = ("youtube" if "youtube.com/feeds"
+                                     in meta["feedUrl"] else "rss")
                         # 顺手把 id 补上，下次就能按 id 查了
                         if not s.get("itunes") and meta.get("collectionId"):
                             s["itunes"] = meta["collectionId"]
@@ -604,6 +690,7 @@ def main() -> int:
             prev[r["id"]] = r
     except Exception:
         pass
+    keep_class_wide_deaths_out(out, prev)
     n_keep = carry_forward(out, prev)
     if n_keep:
         log(f"  保留上一版量出来的 {n_keep} 处 status／image／itunes")

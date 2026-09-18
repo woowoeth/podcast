@@ -40,6 +40,7 @@ LEDGER = DATA / "curation.json"
 # 淘汰阈值。定得宽松是有意的：误踢一个好源的代价比留一个平庸源大得多，
 # 而且踢掉之后不会有人注意到它不见了。
 MIN_TRIAGE_EVALS = 6        # 少于这个次数不作判断，样本太小
+NEVER_PASSED_EVALS = 4      # 判过这么多次、一次都没过、一篇都没发 → 移除
 MIN_TRIAGE_PASS = 0.25      # 选题通过率低于此 → 降级
 # **判「这档源不行」要有足够证据。**
 # 原来 3 篇就下判决，而发得出来的稿必然 ≥ 评审及格线 7，
@@ -77,7 +78,8 @@ def performance() -> dict[str, dict]:
     state = json.loads((DATA / "state.json").read_text()) if (DATA / "state.json").exists() \
         else {"done": {}, "fail": {}}
     per: dict[str, dict] = {sid: {"published": 0, "review": [], "triage": [],
-                                  "no_transcript": 0, "review_rejected": [],
+                                  "no_transcript": 0, "cloud_only_fails": 0,
+                                  "review_rejected": [],
                                   "gate_rejected": 0, "tr": collections.Counter()}
                             for sid in srcs}
     for f in (DATA / "episodes").glob("*.json"):
@@ -100,6 +102,12 @@ def performance() -> dict[str, dict]:
     for v in state.get("done", {}).values():
         if v.get("skip") == "off-brief" and v.get("src") in per:
             per[v["src"]]["triage"].append(float(v.get("score") or 0))
+            # 判词的体裁分布：移除一档源时要说得出「它一直在产什么」，
+            # 不能只甩一个通过率。没有它，判词里那段括号永远是空的。
+            k = str(v.get("kind") or "").strip()
+            if k:
+                per[v["src"]].setdefault("kinds", {})
+                per[v["src"]]["kinds"][k] = per[v["src"]]["kinds"].get(k, 0) + 1
     for v in state.get("fail", {}).values():
         why = str(v.get("why", ""))
         src = v.get("src")
@@ -107,6 +115,14 @@ def performance() -> dict[str, dict]:
             continue
         if "no-transcript" in why:
             per[src]["no_transcript"] += 1
+            # **「云端取不到」不等于「取不到」。**
+            # 云端定时跑批是 --tiers feed,notes,page，不含 asr；本机线有 ASR。
+            # 记这条失败时可用的层里没有 asr，那它只说明云端做不了这档源，
+            # 说明不了「谁都取不到」。run.py 已经按这个判据单集重试
+            # （_weaker_tiers），但**源这一级没人管**：一档从没发过稿的源
+            # 撞满 10 次就被判休眠，而它从头到尾只被云端试过。
+            if "asr" not in str(v.get("tiers") or ""):
+                per[src]["cloud_only_fails"] += 1
         # 被评审或机械闸门拦下的稿子，原来完全没进统计——而降级规则只看"已发布
         # 稿子的评分中位"。后果：Y Combinator 发 1 篇、被评审拦 4 篇（评分 3、3、
         # 4、4），产出八成不合格，却永远不会被降级，因为那 4 次根本没被看见。
@@ -135,8 +151,10 @@ def performance() -> dict[str, dict]:
                            if (p["published"] + len(p["review_rejected"])) else None),
             "review_median": statistics.median(p["review"]) if p["review"] else None,
             "triage_n": len(tri),
+            "triage_kinds": p.get("kinds") or {},
             "triage_pass": (sum(1 for x in tri if x >= 7) / len(tri)) if tri else None,
             "no_transcript": p["no_transcript"],
+            "cloud_only_fails": p["cloud_only_fails"],
             "feed_ok": st.get("ok", True), "fail_streak": st.get("fail_streak", 0),
             # judge 要用它决定"删掉"还是"改派本机线"
             "residential": bool(s.get("residential")),
@@ -163,7 +181,7 @@ def judge(sid: str, m: dict) -> tuple[str, str] | None:
     """
     if m.get("pinned"):
         # 只挡质量类判断，不挡「取不到」「feed 死了」这类事实
-        forbid = {"demote", "dormant"}
+        forbid = {"demote", "dormant", "drop_quality"}
     else:
         forbid = set()
     got = _judge(sid, m)
@@ -197,6 +215,19 @@ def _judge(sid: str, m: dict) -> tuple[str, str] | None:
         # 文稿、实际全靠转写的，就漏在这里。**实测才是判据，不是预测。**
         return "residential", ("发出来的稿全靠转写，而没标 residential——"
                                "云端不做 asr、本机只挑标了的，两边都不碰它")
+    if (m["published"] == 0 and m["no_transcript"] > 0
+            and not m.get("residential")
+            and m["cloud_only_fails"] >= m["no_transcript"]):
+        # **判它出局之前，先问一句：能干这活的那条线试过没有。**
+        # 这些源前三层（feed/notes/page）都没有文稿，但 feed 里有音频 ——
+        # 本机线的 ASR 做得了。实测 Hard Fork 就是这样：云端按
+        # feed,notes,page 试三次记 no-transcript 永久出局，本机 ASR 一次出稿，
+        # 成稿 8/10。同一条判词，换条线就不成立了。
+        # 原来的 asr_only 规则只认「已经靠转写发过稿」的源，
+        # 于是**从没发过稿的那批**永远够不着它，只能一路撞到休眠。
+        return "residential", (f"{m['no_transcript']} 次取不到文稿，"
+                               f"但每一次都只有云端那条线试过（不含 ASR）——"
+                               f"先交给本机线，确认它真取不到再说")
     if m["published"] == 0 and m["no_transcript"] >= DEAD_ATTEMPTS:
         # 不删。"我们取不到文稿"是**我们的能力限制**，不是这档节目不好——
         # 把它当成内容问题处理，就是又一次把工程约束写成了产品判断。
@@ -215,6 +246,29 @@ def _judge(sid: str, m: dict) -> tuple[str, str] | None:
             return None
         return "dormant", (f"已停更 {m['age_days']:.0f} 天，超过它自己历史最长间隔"
                            f"（{m.get('max_gap_days') or 0:.0f} 天）的 1.5 倍")
+    if (m["published"] == 0 and m["triage_n"] >= NEVER_PASSED_EVALS
+            and m["triage_pass"] == 0):
+        # **「一次都没过」和「通过率低」是两件事，不该共用一个样本量门槛。**
+        # 原来只有「通过率 < 25%（≥6 次评估）→ 降级」这一条，于是 0 产出、
+        # 0 通过的源永远停在这里：判过 4、5 次，一次都没摸到线，一篇都没发，
+        # 却因为不满 6 次而完全不被判断；就算判了也只是降级 —— 而降级解决不了
+        # 任何问题，它下一轮照样被挑中、照样花一次选题的钱、照样零产出。
+        # **没有任何规则会结束它。**
+        #
+        # 实测四档就是这么长期挂着的：Stanford HAI（5 次判词里 4 次是校园
+        # 迎新致辞、开学典礼、规划宣传片）、Weights & Biases（4 次全是
+        # CoreWeave 产品口播）、Risky Business（5 次全是周度安全新闻综述）、
+        # The Daily Stoic（课程推销加短篇鸡汤）。它们不是「这几集不巧」，
+        # 是**这档节目的体裁就不产深读**。
+        #
+        # 门槛取 4 不取 3：3 次全灭还可能是抽样不巧（The Longest Shortest
+        # Time 判过 3 次、分数 6/5/4，下一集未必不行）；4 次全灭、一次都没
+        # 摸到线，才算把体裁看清楚了。判词里带上 kind 分布，好让人复核。
+        kinds = m.get("triage_kinds") or {}
+        top = "、".join(f"{k}×{v}" for k, v in
+                       sorted(kinds.items(), key=lambda kv: -kv[1])[:3])
+        return "drop_quality", (f"判过 {m['triage_n']} 次一次都没过线、一篇都没发"
+                                + (f"（{top}）" if top else ""))
     if (m["triage_n"] >= MIN_TRIAGE_EVALS and m["triage_pass"] is not None
             and m["triage_pass"] < MIN_TRIAGE_PASS):
         return "demote", (f"选题通过率 {m['triage_pass']*100:.0f}%"
@@ -243,7 +297,8 @@ def audit(perf: dict) -> list[tuple[str, str, str]]:
     actions = []
     for sid, m in sorted(perf.items(), key=lambda kv: (-(kv[1]["published"]), kv[0])):
         v = judge(sid, m)
-        mark = {"drop": "移除", "demote": "降级", "dormant": "休眠"}.get(v[0], "") if v else ""
+        mark = {"drop": "移除", "drop_quality": "移除", "demote": "降级",
+                "dormant": "休眠"}.get(v[0], "") if v else ""
         rev = f"{m['review_median']:.0f}" if m["review_median"] is not None else "—"
         tp = f"{m['triage_pass'] * 100:.0f}%" if m["triage_pass"] is not None else "—"
         ag = f"{m['age_days']:.0f}d" if m["age_days"] is not None else "—"
@@ -272,7 +327,7 @@ def apply_actions(actions: list[tuple[str, str, str]], dry: bool = False) -> lis
             entries.append({"at": iso(now()), "kind": "residential", "id": sid,
                             "name": name, "cat": s["cat"], "why": why})
             log(f"  改派本机线 {name}：{why}")
-        elif act == "drop":
+        elif act in ("drop", "drop_quality"):
             blob["sources"] = [x for x in blob["sources"] if x["id"] != sid]
             entries.append({"at": iso(now()), "kind": "removed", "id": sid,
                             "name": name, "cat": s["cat"], "why": why})
