@@ -65,6 +65,17 @@ def dead(state: dict | None = None) -> dict[str, dict]:
         # 检查喊狼，下次就没人认真看它了。
         if v.get("n", 0) < R.MAX_FAILS:
             continue
+        # **「撞满上限」不等于「再也不会被尝试」。**
+        # run.py 对 no-transcript 的记录还有一条：记这条判决时可用的取稿层
+        # 比现在少（云端没有 ASR），那它说明不了什么，下一轮照样重试。
+        # 这里原来不看这一条，于是对着 9 篇**下一轮就会被重试**的集报硬伤，
+        # 其中 6 篇正是刚改派到本机线的那批 —— 改派是在救它们，
+        # 而体检把这件事报成了「再也不会被尝试、没人看过」。
+        # 检查喊狼，下次就没人认真看它了。判据直接调 run 里那个函数，
+        # 不在这儿另写一遍。
+        if "no-transcript" in str(v.get("why") or "") \
+                and R._weaker_tiers(v.get("tiers")):
+            continue
         # **源都已经不在册了，那不是「我们发不出去的集」，是退役源留下的残渣。**
         # 拿它报硬伤，只会让人学会忽略这个检查。
         if v.get("src") and v["src"] not in _registered():

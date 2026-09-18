@@ -6865,6 +6865,32 @@ class TheCheckMustUseTheSameRulerAsTheCode(unittest.TestCase):
             bad, f"{len(bad)} 集优质源被判掉，但按当前规则不该拦："
                  f"{[(v.get('src'), v.get('score')) for v in bad[:3]]}")
 
+    def test_giving_up_uses_the_same_retry_rule_as_the_runner(self):
+        """体检说「再也不会被尝试」的集，run.py 也必须真的不会再试它。
+
+        giveup.dead() 原来只看「撞满 MAX_FAILS」，而 run.candidates() 对
+        no-transcript 还有一条：记这条判决时可用的取稿层比现在少（云端没有
+        ASR），那它说明不了什么，下一轮照样重试。两把尺子一分叉，体检就对着
+        **9 篇下一轮就会被重试**的集报硬伤 —— 其中 6 篇正是刚改派到本机线的，
+        改派是在救它们，而体检把这件事报成「再也不会被尝试、没人看过」。
+
+        喊过一次狼，下次就没人认真看它了。
+        """
+        f = ROOT / "data" / "state.json"
+        if not f.exists():
+            self.skipTest("没有账本")
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        run = importlib.import_module("run")
+        giveup = importlib.import_module("giveup")
+        st = json.loads(f.read_text())
+        wrong = [v for v in giveup.dead(st).values()
+                 if "no-transcript" in str(v.get("why") or "")
+                 and run._weaker_tiers(v.get("tiers"))]
+        self.assertFalse(
+            wrong, f"{len(wrong)} 集被报成「再也不会被尝试」，而 run.py 下一轮"
+                   f"就会重试它们：{[v.get('src') for v in wrong[:5]]}")
+
 
 class EpisodeCategoryComesFromTheEpisodeNotTheSource(unittest.TestCase):
     """分类按**这一篇的内容**判，不继承源的分类。
