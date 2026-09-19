@@ -38,7 +38,11 @@ STATE = DATA / "state.json"
 MAX_PER_SOURCE = int(os.environ.get("MAX_PER_SOURCE", "2"))
 MAX_WORDS = int(os.environ.get("MAX_WORDS", "0"))          # 0 = no ceiling
 # Set once from --max-words before any episode is processed; process() reads it.
-_ceiling = {"words": MAX_WORDS}
+# words 在**转写之后**才拦得住 —— 那时 GPU 已经花掉了。
+# minutes 在**选集时**就拦，一分钟机时都不花。补存量时先做短的，
+# 同样的机时能多出好几倍篇数（实测张小珺：≤120 分钟的 107 集要 10.7 小时 GPU，
+# 而做满 142 集要 19.1 小时 —— 最后那 14 集长访谈吃掉 4.3 小时）。
+_ceiling = {"words": MAX_WORDS, "minutes": 0}
 _tiers = {"allow": T.ORDER}
 _triage = {"on": True, "min": triage.MIN_SCORE}
 _last_triage: dict[str, dict] = {}
@@ -367,6 +371,9 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
         for ep in eps[:max(25, days * 2)]:
             if not ep["published"] or ep["published"] < cutoff:
                 continue
+            cap_m = _ceiling["minutes"]
+            if cap_m and (ep.get("duration") or 0) > cap_m * 60:
+                continue               # 太长，这一轮不碰，一分钟机时都不花
             key = eid(s["id"], ep["guid"])
             prior = state["done"].get(key)
             if prior is not None:
@@ -902,6 +909,10 @@ def main() -> int:
     ap.add_argument("--max-words", type=int, default=MAX_WORDS,
                     help="skip episodes whose transcript is longer than this "
                          "(cost scales with length; 0 = no limit)")
+    ap.add_argument("--max-minutes", type=int, default=0, metavar="M",
+                    help="只挑时长不超过 M 分钟的集（0 = 不限）。"
+                         "和 --max-words 不同：这个在选集时就生效，"
+                         "不会先花掉转写再跳过")
     ap.add_argument("--per-source", type=int, default=MAX_PER_SOURCE,
                     help="max episodes from any one show in this run")
     ap.add_argument("--jobs", type=int, default=int(os.environ.get("JOBS", "3")),
@@ -934,6 +945,7 @@ def main() -> int:
         return 0
 
     _ceiling["words"] = a.max_words
+    _ceiling["minutes"] = a.max_minutes
     _triage["on"] = not a.no_triage
     _triage["min"] = a.triage_min
     _cat["v"] = a.cat
