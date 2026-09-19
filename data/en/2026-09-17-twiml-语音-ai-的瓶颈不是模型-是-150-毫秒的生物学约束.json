@@ -3,7 +3,7 @@
  "of": "twiml-0cc7f537a3",
  "source_lang": "en",
  "title": "The bottleneck in voice AI isn't the model, it's a 150-millisecond biological constraint",
- "dek": "Human audiovisual perception runs at only 6-10 hertz, and the model has to be interruptible inside that window; meanwhile high-fidelity audio means more tokens per second, and more tokens means smaller models — a physical trade-off voice AI cannot dodge.",
+ "dek": "Human audiovisual perception runs at only 6-10 hertz, and the model has to be interruptible inside that window; meanwhile high-fidelity audio means more tokens per second, and more tokens means fewer parameters — this is the physical trade-off voice AI cannot escape.",
  "why": "The first half is hands-on product and architecture judgment; the second half, on EQ, benchmarks and the personalized learning loop, is worth more, but you have to be patient and listen past the 45-minute mark.",
  "who": "Engineers and founders building voice and multimodal products, especially anyone who has to judge real-time inference cost, interruption latency and EQ benchmarks.",
  "skip": "The first 5 minutes of chit-chat about whether ChatGPT's voice mode is any good can be skipped.",
@@ -17,27 +17,27 @@
  "points": [
   {
    "h": "150 milliseconds is a hard constraint, not an engineering tuning knob",
-   "body": "Alex's starting point is biology: from a photon hitting the retina to the cortex responding takes about 150 milliseconds, and that number is stable enough to serve as a non-invasive diagnostic marker for neurodegenerative disease — when something is wrong, the signal takes a detour and the time gets longer. Human audiovisual perception actually runs at 6 to 10 hertz, even though the world feels perfectly smooth to us. So their model handles interruption inside a window of roughly 150 milliseconds. This is not an engineering goal of \"as fast as possible\" but a hard design input aligned to the human perceptual frame rate."
+   "body": "Alex's starting point is biology: from a photon hitting the retina to the cortex responding takes about 150 milliseconds, and that number is stable enough to serve as a non-invasive diagnostic marker for neurodegenerative disease — when something is wrong, the signal takes a detour and takes longer. Human audiovisual perception actually runs at 6 to 10 hertz, even though the world feels perfectly smooth to us. So their model handles interruption inside a window of roughly 150 milliseconds. This is not an engineering goal of ‘as fast as possible’; it is a hard design input aligned to the human perceptual frame rate."
   },
   {
    "h": "Token rate and parameter count are zero-sum",
-   "body": "Audio first has to be turned into tokens and fed into the LLM backbone, then turned back into audio. High fidelity requires a high token rate, but a high token rate means prefilling and generating a large number of tokens every second, and cost rises accordingly. Hence an unpleasant dilemma: more tokens per second means the model parameters cannot be too large; fewer tokens per second is what lets you afford more parameters. Text is the ultimate compression format, needing only 3 to 5 tokens per second, while audio easily goes above 10. At 10 tokens per second, each token covers about 100 milliseconds — which is why user-experience engineering and scientific research have to be done at the same time."
+   "body": "Audio first has to be turned into tokens and fed into the LLM backbone, then turned back into audio. High fidelity requires a high token rate, but a high token rate means prefilling and generating a large number of tokens every second, and cost rises accordingly. That produces an unpleasant dilemma: more tokens per second means the model parameters cannot be too large; fewer tokens per second is what lets you afford more parameters. Text is the ultimate compressed format, needing only 3 to 5 tokens per second, while audio easily goes above 10. At 10 tokens per second, each token covers about 100 milliseconds — which is why user-experience engineering and scientific research have to be done at the same time."
   },
   {
    "h": "Most avatar video is boring, so it compresses",
-   "body": "Models like WAN and Flux can generate video clips of around 10 seconds, but producing an hour of visually consistent continuous stream requires changing the model. Alex's key insight is that if you know this is avatar video, there won't be race cars flying through the background, and most of the frame is fairly boring. So the audiovisual stream of this interview can be compressed into a fairly efficient bitstream; the bitrate only spikes when he waves his arms wildly, and normal people don't do that. This is the concrete landing point of \"set the price first, then work backwards to the architecture\" — not chasing the prettiest picture quality, but building something users can afford."
+   "body": "Models like WAN and Flux can generate video clips of around 10 seconds, but producing an hour of visually consistent continuous stream requires changing the model. Alex's key insight is: if you know this is avatar video, there won't be race cars flying through the background, and most of the frame is fairly boring. So the audiovisual stream of this interview can be compressed into a quite efficient bitstream; the bitrate only spikes when he waves his arms wildly, and normal people don't do that. This is the concrete landing point of ‘set the price first, then work backwards to the architecture’ — not chasing the prettiest picture quality, but building something users can afford."
   },
   {
    "h": "Teach a model a new modality and it forgets its old skills",
-   "body": "They didn't build their own LLM; instead they took the intelligence already present in a high-quality LLM and had it learn one more modality. But the risk is catastrophic forgetting. Alex gives the example of a friend: he adopted a Latin American child in Germany and spoke only German to her, and within a few months the girl had forgotten all her Spanish words. LLMs are the same — let one process only audio and it will soon forget reasoning and language itself. So you have to maintain a capable mid/post-training LLM pipeline while defining tasks that graft audio and text together, just as a multilingual model has to know that dog and Hund refer to the same thing."
+   "body": "They didn't build their own LLM; instead they took the intelligence a high-quality LLM already has and had it learn one more modality. But the risk is catastrophic forgetting. Alex gives the example of a friend: he adopted a Latin American child in Germany and spoke only German to her, and within a few months the girl had forgotten all her Spanish words. LLMs are the same — let one process only audio and it will soon forget reasoning and language itself. So you have to maintain a competitive mid/post-training LLM pipeline while defining tasks that graft audio and text together, just as a multilingual model has to know that dog and Hund refer to the same thing."
   },
   {
-   "h": "100 million hours of audio is only storable if you build your own data center",
-   "body": "Their training data is on the order of 100 million hours of audio, which Alex converts into roughly 200 human lifetimes — if you lived 75 years and were always in a noisy environment, that's about how much audio you'd hear. This data can be crawled from the web, but it needs extraction, labeling, normalization and transcription, a great deal of extra processing. Building their own data center helped a lot here: storing it on NeoCloud would eat you alive on the bill, and on the big three cloud providers it's worse. He also mentions a timing point: hard drive prices are now about three times what they were last year, so they'll have to be frugal going forward."
+   "h": "100 million hours of audio — only a self-built data center can afford to store it",
+   "body": "Their training data is on the order of 100 million hours of audio, which Alex converts to roughly 200 human lifetimes — if you lived 75 years and were always in a noisy environment, that's about how much audio you'd hear. This data can be crawled from the web, but it needs extraction, labeling, normalization and transcription, a lot of extra processing. A self-built data center helps enormously here: putting it on NeoCloud would eat you alive on the storage bill, and the big three cloud providers would be worse. He also mentions a timing point: hard drive prices are now about three times what they were last year, so they'll have to be frugal going forward."
   },
   {
    "h": "Squeeze labels out of noise with medieval statistics",
-   "body": "Faced with noisy labels produced by imperfect processing tools, Alex's argument is that as long as the noise is unbiased, averaging over many repeated measurements gives a better estimate than any single one. He cites the medieval \"foot\" — have people walk out of a church, take the first 12 men, drop the two with the longest feet and the two with the shortest (possibly due to deformity), average the remaining 8, and you have an estimate of a foot. He says robust regression and estimation have existed for half a millennium. Concretely for audio: knowing this is a two-person podcast, knowing TWIML is usually Sam plus one other person, makes it easy to separate speakers and get lots of single-speaker audio, which in turn allows better labeling and forms a flywheel."
+   "body": "Faced with noisy labels produced by imperfect processing tools, Alex's argument is: as long as the noise is unbiased, averaging a large number of repeated measurements gives a better estimate than any single one. He cites the medieval ‘foot’ — have men walk out of a church, take the first 12, drop the two with the longest feet and the two with the shortest (possibly deformed), average the remaining 8, and you have an estimate of a foot. He says robust regression and estimation have existed for half a millennium. Concretely for audio: knowing this is a two-person podcast, knowing TWIML is usually Sam plus one other person, makes it easy to separate speakers, get lots of single-speaker audio, and thereby label better, forming a flywheel."
   },
   {
    "h": "End-to-end audio models are doomed to be small and dumb",
@@ -45,19 +45,19 @@
   },
   {
    "h": "Ten times cheaper than GPT, but with thinking turned off",
-   "body": "Alex claims that on benchmarks like BigBench Audio and Complex Function Bench they beat GPT, Gemini and Grok at one-tenth the cost of OpenAI's models. But he adds a footnote himself: this was measured with thinking turned off. The reason is that you can't have the model pause to think before answering — that feels deeply unnatural, and humans don't do it either. This exposes a fundamental constraint of the voice setting: reasoning capacity has to be hidden in the background, and there can be no visible thinking pause in the foreground."
+   "body": "Alex claims that on benchmarks like BigBench Audio and Complex Function Bench they beat GPT, Gemini and Grok at one tenth the cost of OpenAI's models. But he adds a footnote himself: this was measured with thinking turned off. The reason is that you can't have the model pause to think and then answer — that feels very unnatural, and humans don't do it either. This exposes a fundamental constraint of the voice setting: reasoning capacity has to be hidden in the background, and there can be no visible thinking pause in the foreground."
   },
   {
    "h": "Apple's boot progress bar is lying to you",
-   "body": "Alex uses this example to talk about human tolerance for latency: humans are very tolerant of latency, provided they are told there is latency. Apple's boot screen advances linearly, then suddenly switches to \"started\" near the end; Microsoft's progress bar goes to 99% and then hangs for two minutes. He says Microsoft's progress bar is the truth and Apple is lying to you — Apple measures how long the last boot took, adds a little, and then runs a fake progress bar on a timer. It's the sleight of hand that creates a good experience without solving an impossible technical problem."
+   "body": "Alex uses this example to talk about human tolerance for latency: humans are very tolerant of latency, provided they are told there is latency. Apple's boot screen advances linearly, then suddenly switches to booted near the end; Microsoft's progress bar goes to 99% and then hangs for two minutes. He says Microsoft's progress bar is the truth and Apple is lying to you — Apple measures how long the last boot took, adds a little, and then runs a fake progress bar on a timer. It's the sleight of hand that creates a good experience without solving an impossible technical problem."
   },
   {
    "h": "Don't use movies as the reference frame for human interaction",
-   "body": "Discussing EQ, Alex warns that movies are a terrible reference point: the obsessed male lead in a romantic comedy gets the girl in the end, which is essentially stalking, and in real life the police would show up; in action films people trade blows and then kiss and make up, and in real life you'd go to prison. He says the more realistic material is things like stand-up comedy, but even then he sincerely hopes no one trains a model on Dr. Phil and assumes that's normal human behavior. The good news is that LLMs now have a decent theory of mind and can provide some foundation."
+   "body": "Discussing EQ, Alex warns that movies are a terrible reference point: in a romantic comedy the obsessed male lead gets the girl, which is essentially stalking, and in real life the police would show up; in action films people trade punches and kicks and then kiss and make up, and in real life you'd go to prison. He says more realistic material is stand-up comedy and the like, but even then he sincerely hopes no one trains a model on Dr. Phil and assumes that's normal human behavior. The good news is that LLMs now have a decent theory of mind and can provide some foundation."
   },
   {
-   "h": "Personalization is CRM upgraded, but it doesn't stop there",
-   "body": "Alex splits the learning loop into two layers: one is global improvement, such as knowing that insulting the user is unpleasant (he admits this is an extreme example), and this kind of cross-interaction learning makes the overall model better; the other is personalization, such as knowing that Alex likes equations, facts and technical details and can be a bit edgy socially, so the next interaction can be better tailored to him. He describes it as \"CRM upgraded, except now everyone gets one,\" while the model is also learning across all interactions. He also mentions that Nvidia's released digital personas and scenarios are used by them for RSI research."
+   "h": "Personalization is an upgraded CRM, but more than that",
+   "body": "Alex splits the learning loop into two layers: one is global improvement, such as knowing that insulting the user is unpleasant (he admits this is an extreme example), and this kind of cross-interaction learning makes the overall model better; the other is personalization, such as knowing that Alex likes equations, facts and technical detail and may be a bit edgy socially, so the next interaction can be better tailored to him. He describes it as ‘an upgraded CRM, except now everyone gets one’, while the model is also learning across all interactions. He also mentions that Nvidia's released digital personas and scenes are used by them for RSI research."
   }
  ],
  "terms": [
@@ -67,11 +67,11 @@
   },
   {
    "term": "Ibench",
-   "def": "A benchmark released by the same team, measuring interruptibility, responsiveness and the match between audio and content."
+   "def": "A benchmark released by the same team, measuring interruptibility, responsiveness, and the match between audio and content."
   },
   {
    "term": "back channeling",
-   "def": "Short responses like \"mm-hm\" and \"right\" that signal you're listening, especially common in Japanese."
+   "def": "Short responses like ‘mm-hm’ and ‘right’ that signal you're listening, especially common in Japanese."
   },
   {
    "term": "millennial sandwich",
@@ -113,11 +113,11 @@
   },
   {
    "k": "Voice model cost comparison",
-   "v": "about one-tenth of OpenAI's models"
+   "v": "about one tenth of OpenAI's models"
   },
   {
    "k": "Audio model workload relative to language model",
-   "v": "about one-half to one-third"
+   "v": "about one half to one third"
   }
  ],
  "quotes": [
