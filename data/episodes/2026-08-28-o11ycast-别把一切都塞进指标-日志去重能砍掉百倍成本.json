@@ -1,0 +1,230 @@
+{
+ "id": "o11ycast-2af4131390",
+ "slug": "2026-08-28-o11ycast-别把一切都塞进指标-日志去重能砍掉百倍成本",
+ "fingerprint": "2922f30994d1c6aa",
+ "source_id": "o11ycast",
+ "source": "O11ycast",
+ "source_zh": "O11ycast",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "可观测性技术机制与成本优化",
+ "tier": 3,
+ "lang": "en",
+ "title_original": "Ep. #93, Adaptive Sampling Strategies with Mike Goldsmith",
+ "published": "2026-08-28T07:10:00Z",
+ "duration": 2392,
+ "audio": "https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3",
+ "link": "https://www.heavybit.com/library/podcasts/o11ycast/ep-93-adaptive-sampling-strategies-with-mike-goldsmith/",
+ "image": "https://d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/o11ycast.jpg",
+ "youtube_id": "",
+ "video_len": 0,
+ "transcript_url": "https://www.heavybit.com/library/podcasts/o11ycast/ep-93-adaptive-sampling-strategies-with-mike-goldsmith/",
+ "digest": {
+  "title": "别把一切都塞进指标：日志去重能砍掉百倍成本",
+  "dek": "日志、指标、链路三种信号里，日志最容易被无意义地堆量；用 log drain 做模板化、再配 log dedupe，可以在不丢保真度的前提下把日志量砍掉一百倍。",
+  "why": "面向已经在跑 OpenTelemetry Collector 的团队，讲清了 log drain、log dedupe、signal to metrics 和动态尾采样的具体机制，不是概念科普。",
+  "points": [
+   {
+    "t": 0,
+    "h": "重复的日志不是保真度，是账单",
+    "body": "Mike Goldsmith 把成本控制的起点放在「冗余信息」上：同一条看起来完全一样的记录被发送十万次，并不会增加价值，你只需要知道它发生的频率，然后外推。但无论数据落到后端分析系统还是基础设施内部的本地系统，处理、存储、分析都要付钱。所以他的目标不是砍掉保真度，而是保留「什么重要、为什么重要」，同时不再保留每一次的精确副本。Martin Thwaites 把这形容成铁三角：想要好的遥测数据、想要快、想要便宜，还要同时受内存和 CPU 约束。Mike 补了一句反直觉的：如果成本控制做得太粗暴，运行这套成本控制本身的代价，可能和直接把数据全发出去差不多。",
+    "spk": "Mike Goldsmith"
+   },
+   {
+    "t": 390,
+    "h": "最大的坑是用错了信号",
+    "body": "Ken Rimple 问最常见的痛点是什么，Mike 说「他们在用错误的遥测信号」。他的观察是团队过度指标驱动：指标能告诉你某件事发生了、发生了多少次，但因为它被采集的方式，它给不了「为什么发生」的上下文。日志和链路才是讲「为什么」的信号。Martin 补充了一个区分：little M metrics 是你画的图、你盯的可视化，永远需要；big M metrics 是预先想好的时间序列聚合，服务于「已知问题」。如果有一个需要实时产出的仪表盘，指标就是该用的东西；但要看单个用户请求里发生了什么、不同请求之间有什么共性，就得靠日志和链路。",
+    "spk": "Mike Goldsmith"
+   },
+   {
+    "t": 720,
+    "h": "log drain 把日志拆成模板加变量",
+    "body": "log drain 来自一个老 Python 库、一篇研究论文，被移植到 Go 后进了 Collector。它分析每条进来的日志：哪些部分是变量、哪些是静态的，经过一段学习期后生成模板。比如「user Mike logged in at IP address 192.168...」，模板会把 Mike 和 IP 变成两个占位符，其余是静态文本。之后 Martin 登录、Ken 登录，模板都不用变，只是两个变量不同。一旦变量被抽成属性，你就能做有依据的取舍：这个用户我不关心、这个内部 IP 段我不关心。Martin 建议它应该改名叫「AI log templating」，这样能卖得更好，说不定还能拿到 VC 的钱。",
+    "spk": "Mike Goldsmith"
+   },
+   {
+    "t": 960,
+    "h": "模板加去重，日志量直接除以一百",
+    "body": "log dedupe 单独用有个前提问题：如果日志正文里混着 Mike、Ken、Martin 这些变量，它们看起来就不一样，很难判断哪些是同一条。把 log drain 生成的模板和 log dedupe 配对之后，就能说「这个日志形状发生了一百次」，于是只留一份副本、附上计数，日志量降为百分之一百，保真度没有损失。Martin 立刻抛出反例：登录失败通常是合规日志，必须全留，不能去重。Mike 的答案是模板已经告诉你占位符里是什么值，所以可以在两者之间做过滤、路由，或者在 dedupe 里把「登录状态」这类属性加进去重逻辑，按不同速率保留。",
+    "spk": "Mike Goldsmith"
+   },
+   {
+    "t": 1230,
+    "h": "该留的证据别送进去重管道",
+    "body": "Martin 追问 reroute 是不是意味着可以分流到不同目的地，Mike 确认：用 log template 加 routing connector，基于模板抽出的属性做判断——登录成功的走 log dedupe、千分之一保留，因为你不关心；登录失败的整条绕过 dedupe，直接送 S3 或别的存储。他的原则很直接：log dedupe 是用来主动降量的工具，如果你知道某些东西必须留，就不要让它经过这个管道。Martin 由此推出成本控制的关键结构：热存储里只放需要快速回答问题的运营分析数据，同时另一条管道保留百分之百的数据用于取证分析。他还强调，用托管后端不等于 SRE 和平台团队不用碰 Collector，恰恰相反，清洗遥测、实现 log dedupe 和 log drain 正是他们的新工作。",
+    "spk": "Mike Goldsmith"
+   },
+   {
+    "t": 1470,
+    "h": "日志本该是指标，就把它转成指标",
+    "body": "signal to metrics connector 允许在 Collector 内部跨信号转换：如果日志在讲一件本来更适合用指标描述的事，就把它转成指标，指标有低得多的采集间隔，然后过滤掉原始日志。Mike 说这可能是很多人不知道的能力，同一份信息和上下文可以在不同信号之间移动。对指标本身，他的警告是别过度降基数——那会损害指标能告诉你的保真度，「聚合再聚合，你大概要倒霉了」。interval processor 则是安全的：把每秒或每五秒抓一次的数据聚合成三十秒或六十秒窗口，总量和保真度不变，只是频率更低。Martin 的立场是，如果你想要秒级粒度，应该用采样过的链路和日志，而不是拿指标去干这件事。",
+    "spk": "Mike Goldsmith"
+   },
+   {
+    "t": 1740,
+    "h": "头采样会吃掉罕见但重要的路径",
+    "body": "OpenTelemetry 目前有三种采样策略。头采样通常在 SDK 层做，按固定百分比取，完全不看链路内部发生了什么：成本控制很好，但系统里那些重要却罕见的路径会被采样器整个吃掉。tail sampling processor 是进步，它拿到完整链路上下文、在链路结束后决策，但可调的旋钮不够，尤其是没法处理高基数属性——用户 ID、会话 ID、钱包 ID 这类变化频繁的值，你没法保证每种变化都被代表到。这正是动态采样器要解决的问题。",
+    "spk": "Mike Goldsmith"
+   },
+   {
+    "t": 1890,
+    "h": "按指纹分桶，保证每种变化至少留一条",
+    "body": "动态采样器用的是 Refinery 的算法：你告诉它你在意的属性——服务名、用户 ID、钱包 ID、会话 ID——每当这些属性出现一种组合，就单独分桶、单独采样，并保证每个桶至少留下一条。同一个桶里的量涨到十、一百、一千，阈值就自动上调，也就是少留一些。你可以按固定百分比（比如大约百分之十）来，也可以按吞吐量（每分钟多少 span）来。Martin 举了结账流的例子：十个不同的忠诚度或折扣算法，其中某条路径只有二十分之一的概率被走到，如果你因为量太大而按百分之十甚至百分之一采样，这条路径基本不可能被采到；放进指纹分桶后，每种算法至少有一条链路。",
+    "spk": "Mike Goldsmith"
+   },
+   {
+    "t": 2130,
+    "h": "采样真正换的是回答问题的信心",
+    "body": "Mike 把采样策略的核心矛盾说成：你对自己基于这批遥测回答问题的信心有多高。头采样在低概率事件加高采样阈值下基本没戏，除非你专门去猎；尾采样理论上可行，但门槛很高，你得完全组织好每一条策略、理解每种变化如何被应用。动态采样器降低复杂度、提高信心，因为你知道每种组合至少会留下一条，也就有了一个可以开始回答问题的立足点。发布状态上，它已经在 Honeycomb Collector distribution 里可用，官方 OpenTelemetry Contrib 发行版还要等几周做最后打磨。Martin 提醒它现在是 alpha，接下来几周会有破坏性变更，建议等 beta 或正式发布。",
+    "spk": "Mike Goldsmith"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 0,
+    "spk": "Mike Goldsmith",
+    "raw": "So when you've got redundant information, you're having something that looks identical, and you'll send it 100,000 times, and it doesn't have a lot of value.",
+    "zh": "当你有了冗余信息，你手上是看起来一模一样的东西，你把它发送十万次，它并没有多少价值。"
+   },
+   {
+    "t": 0,
+    "spk": "Mike Goldsmith",
+    "raw": "If you do some cost controls just really heavy-handedly, the cost of running that cost control could not be that much different from just sending all of that data.",
+    "zh": "如果你非常粗暴地做成本控制，运行这套成本控制本身的代价，可能和直接把数据全发出去差不了多少。"
+   },
+   {
+    "t": 390,
+    "spk": "Mike Goldsmith",
+    "raw": "It doesn't give you context of why something happened. It tells you that something happened and how many times that thing happened.",
+    "zh": "它不给你「为什么发生」的上下文。它告诉你某件事发生了，以及那件事发生了多少次。"
+   },
+   {
+    "t": 960,
+    "spk": "Mike Goldsmith",
+    "raw": "I can have one copy of it and tell you that it happened 100 times. And those two, in that scenario there, it's very simplistic, but you've reduced the log volume by 100 times and you haven't lost any fidelity.",
+    "zh": "我可以只留一份副本，然后告诉你它发生了一百次。在那个场景里这非常简单，但你已经把日志量降低了一百倍，而且没有损失任何保真度。"
+   },
+   {
+    "t": 1230,
+    "spk": "Mike Goldsmith",
+    "raw": "Log Dedupe is a tool that is used to intentionally reduce volume. If you know that you need to keep something, don't pass your data through that.",
+    "zh": "Log Dedupe 是一个用来主动降低数据量的工具。如果你知道某些东西必须保留，就不要让你的数据经过它。"
+   },
+   {
+    "t": 1470,
+    "spk": "Mike Goldsmith",
+    "raw": "If you aggregate and aggregate, you're probably in for a bad time.",
+    "zh": "如果你聚合再聚合，你大概要倒霉了。"
+   },
+   {
+    "t": 1890,
+    "spk": "Mike Goldsmith",
+    "raw": "With the dynamic sampler, it reduces the complexity and increases your confidence because you know that you're going to get variations of everything.",
+    "zh": "用动态采样器，它降低了复杂度、提高了你的信心，因为你知道你会拿到所有东西的各种变化。"
+   },
+   {
+    "t": 2130,
+    "spk": "Mike Goldsmith",
+    "raw": "I think a lot of people have this almost misconception that instrumentation and a telemetry pipeline is something that you can just build once and forget. And that's not the case.",
+    "zh": "我觉得很多人有一种近乎误解的想法，认为埋点和遥测管道是建一次就可以忘掉的东西。事实并非如此。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "OpenTelemetry 采样策略数量",
+    "v": "3 种（头采样、尾采样处理器、动态采样器）",
+    "t": 1740
+   },
+   {
+    "k": "log dedupe 配合模板后的日志量降幅",
+    "v": "降低 100 倍",
+    "t": 960
+   },
+   {
+    "k": "interval processor 聚合窗口",
+    "v": "30 秒或 60 秒",
+    "t": 1470
+   },
+   {
+    "k": "动态采样器在官方 Contrib 发行版可用时间",
+    "v": "预计未来几周",
+    "t": 2130
+   }
+  ],
+  "terms": [
+   {
+    "term": "log drain",
+    "zh": "日志模板化处理器",
+    "def": "分析日志、区分静态与可变部分，生成模板并把变量抽成属性的 Collector 组件。"
+   },
+   {
+    "term": "log dedupe",
+    "zh": "日志去重处理器",
+    "def": "把形状相同的日志合并成一条并附上出现次数，用于主动降低日志量。"
+   },
+   {
+    "term": "tail sampling",
+    "zh": "尾采样",
+    "def": "等链路结束后，基于完整链路上下文决定是否保留的采样方式。"
+   },
+   {
+    "term": "head sampling",
+    "zh": "头采样",
+    "def": "在链路开始时按固定百分比决定是否保留，不看链路内部发生了什么。"
+   },
+   {
+    "term": "cardinality guardian",
+    "zh": "基数守卫",
+    "def": "社区贡献的 Collector 组件，用于降低指标基数。"
+   },
+   {
+    "term": "Refinery",
+    "zh": "Honeycomb 采样工具",
+    "def": "Honeycomb 长期自用的专有采样工具，动态采样器移植了它的算法。"
+   }
+  ],
+  "who": "已经在生产环境跑 OpenTelemetry Collector、被遥测账单或日志量压着的 SRE、平台工程师和可观测性负责人。",
+  "skip": "开头关于「喜欢啃带刺铁丝网」的寒暄可跳过。",
+  "tags": [
+   "可观测性",
+   "OpenTelemetry",
+   "成本控制",
+   "采样",
+   "日志"
+  ],
+  "quality": {
+   "transcript_source": "page",
+   "transcript_detail": "show page",
+   "words": 7482,
+   "wpm": 187.7,
+   "timed": false,
+   "verified_quotes": 8,
+   "grounded_facts": 4,
+   "points": 9,
+   "pruned": 0,
+   "approx_timestamps": true
+  }
+ },
+ "generated": "2026-09-19T04:59:54Z",
+ "triage": {
+  "score": 7.0,
+  "why": "从业者讲OTel采样与遥测成本控制的具体做法与取舍，可追问可复现",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 8,
+   "faithful": 8,
+   "selection": 8,
+   "concrete": 8,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点是机制与判断（模板+去重、指纹分桶、信号选错），有数字与边界条件，无空话；抽样里未见更值钱内容被丢。",
+  "worst": "「日志量降为百分之一百」表述别扭，应为「降为原来的百分之一」，属笔误级问题，建议改掉。"
+ },
+ "model": "openai:deepseek-chat"
+}

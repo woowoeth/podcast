@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>別把一切都塞進指標：日誌去重能砍掉百倍成本 — O11ycast · 原聲</title>
+<meta name="description" content="日誌、指標、鏈路三種信號裡，日誌最容易被無意義地堆量；用 log drain 做模板化、再配 log dedupe，可以在不丟保真度的前提下把日誌量砍掉一百倍。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/tw/p/2026-08-28-o11ycast-别把一切都塞进指标-日志去重能砍掉百倍成本/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原聲">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:title" content="別把一切都塞進指標：日誌去重能砍掉百倍成本 — O11ycast · 原聲">
+<meta property="og:description" content="日誌、指標、鏈路三種信號裡，日誌最容易被無意義地堆量；用 log drain 做模板化、再配 log dedupe，可以在不丟保真度的前提下把日誌量砍掉一百倍。">
+<meta property="og:url" content="https://ourword.ai/podcast/tw/p/2026-08-28-o11ycast-别把一切都塞进指标-日志去重能砍掉百倍成本/">
+<meta property="og:image" content="https://d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/o11ycast.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-08-28T07:10:00Z">
+<meta property="article:modified_time" content="2026-09-19T04:59:54Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="別把一切都塞進指標：日誌去重能砍掉百倍成本 — O11ycast · 原聲">
+<meta name="twitter:description" content="日誌、指標、鏈路三種信號裡，日誌最容易被無意義地堆量；用 log drain 做模板化、再配 log dedupe，可以在不丟保真度的前提下把日誌量砍掉一百倍。">
+<meta name="twitter:image" content="https://d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/o11ycast.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/tw/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/tw/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原聲" href="/podcast/tw/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-08-28-o11ycast-别把一切都塞进指标-日志去重能砍掉百倍成本/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-08-28-o11ycast-别把一切都塞进指标-日志去重能砍掉百倍成本/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-08-28-o11ycast-别把一切都塞进指标-日志去重能砍掉百倍成本/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=9bca03c30e">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-08-28-o11ycast-别把一切都塞进指标-日志去重能砍掉百倍成本/#episode", "name": "別把一切都塞進指標：日誌去重能砍掉百倍成本", "headline": "別把一切都塞進指標：日誌去重能砍掉百倍成本", "description": "日誌、指標、鏈路三種信號裡，日誌最容易被無意義地堆量；用 log drain 做模板化、再配 log dedupe，可以在不丟保真度的前提下把日誌量砍掉一百倍。", "abstract": "日誌、指標、鏈路三種信號裡，日誌最容易被無意義地堆量；用 log drain 做模板化、再配 log dedupe，可以在不丟保真度的前提下把日誌量砍掉一百倍。", "datePublished": "2026-08-28T07:10:00Z", "dateModified": "2026-09-19T04:59:54Z", "url": "https://ourword.ai/podcast/p/2026-08-28-o11ycast-别把一切都塞进指标-日志去重能砍掉百倍成本/", "timeRequired": "PT39M", "partOfSeries": {"@type": "PodcastSeries", "name": "O11ycast", "url": "https://ourword.ai/podcast/s/o11ycast/"}, "inLanguage": "zh-TW", "isBasedOn": "https://www.heavybit.com/library/podcasts/o11ycast/ep-93-adaptive-sampling-strategies-with-mike-goldsmith/", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "可觀測性, OpenTelemetry, 成本控制, 採樣, 日誌, log drain, log dedupe, tail sampling, head sampling, cardinality guardian, Refinery, OpenTelemetry 採樣策略數量, log dedupe 配合模板後的日誌量降幅, interval processor 聚合窗口, 動態採樣器在官方 Contrib 發行版可用時間", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}, "associatedMedia": {"@type": "AudioObject", "contentUrl": "https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3"}}, {"@type": "Article", "@id": "https://ourword.ai/podcast/p/2026-08-28-o11ycast-别把一切都塞进指标-日志去重能砍掉百倍成本/#deepread", "headline": "別把一切都塞進指標：日誌去重能砍掉百倍成本", "description": "日誌、指標、鏈路三種信號裡，日誌最容易被無意義地堆量；用 log drain 做模板化、再配 log dedupe，可以在不丟保真度的前提下把日誌量砍掉一百倍。", "articleBody": "日誌、指標、鏈路三種信號裡，日誌最容易被無意義地堆量；用 log drain 做模板化、再配 log dedupe，可以在不丟保真度的前提下把日誌量砍掉一百倍。\n[0:00] 重複的日誌不是保真度，是賬單。Mike Goldsmith 把成本控制的起點放在「冗餘信息」上：同一條看起來完全一樣的記錄被發送十萬次，並不會增加價值，你只需要知道它發生的頻率，然後外推。但無論數據落到後端分析系統還是基礎設施內部的本地系統，處理、存儲、分析都要付錢。所以他的目標不是砍掉保真度，而是保留「什麼重要、為什麼重要」，同時不再保留每一次的精確副本。Martin Thwaites 把這形容成鐵三角：想要好的遙測數據、想要快、想要便宜，還要同時受內存和 CPU 約束。Mike 補了一句反直覺的：如果成本控制做得太粗暴，運行這套成本控制本身的代價，可能和直接把數據全發出去差不多。\n[6:30] 最大的坑是用錯了信號。Ken Rimple 問最常見的痛點是什麼，Mike 說「他們在用錯誤的遙測信號」。他的觀察是團隊過度指標驅動：指標能告訴你某件事發生了、發生了多少次，但因為它被採集的方式，它給不了「為什麼發生」的上下文。日誌和鏈路才是講「為什麼」的信號。Martin 補充了一個區分：little M metrics 是你畫的圖、你盯的可視化，永遠需要；big M metrics 是預先想好的時間序列聚合，服務於「已知問題」。如果有一個需要實時產出的儀表盤，指標就是該用的東西；但要看單個用戶請求裡發生了什麼、不同請求之間有什麼共性，就得靠日誌和鏈路。\n[12:00] log drain 把日誌拆成模板加變量。log drain 來自一個老 Python 庫、一篇研究論文，被移植到 Go 後進了 Collector。它分析每條進來的日誌：哪些部分是變量、哪些是靜態的，經過一段學習期後生成模板。比如「user Mike logged in at IP address 192.168...」，模板會把 Mike 和 IP 變成兩個佔位符，其餘是靜態文本。之後 Martin 登錄、Ken 登錄，模板都不用變，只是兩個變量不同。一旦變量被抽成屬性，你就能做有依據的取捨：這個用戶我不關心、這個內部 IP 段我不關心。Martin 建議它應該改名叫「AI log templating」，這樣能賣得更好，說不定還能拿到 VC 的錢。\n[16:00] 模板加去重，日誌量直接除以一百。log dedupe 單獨用有個前提問題：如果日誌正文裡混著 Mike、Ken、Martin 這些變量，它們看起來就不一樣，很難判斷哪些是同一條。把 log drain 生成的模板和 log dedupe 配對之後，就能說「這個日誌形狀發生了一百次」，於是只留一份副本、附上計數，日誌量降為百分之一百，保真度沒有損失。Martin 立刻拋出反例：登錄失敗通常是合規日誌，必須全留，不能去重。Mike 的答案是模板已經告訴你佔位符裡是什麼值，所以可以在兩者之間做過濾、路由，或者在 dedupe 裡把「登錄狀態」這類屬性加進去重邏輯，按不同速率保留。\n[20:30] 該留的證據別送進去重管道。Martin 追問 reroute 是不是意味著可以分流到不同目的地，Mike 確認：用 log template 加 routing connector，基於模板抽出的屬性做判斷——登錄成功的走 log dedupe、千分之一保留，因為你不關心；登錄失敗的整條繞過 dedupe，直接送 S3 或別的存儲。他的原則很直接：log dedupe 是用來主動降量的工具，如果你知道某些東西必須留，就不要讓它經過這個管道。Martin 由此推出成本控制的關鍵結構：熱存儲裡只放需要快速回答問題的運營分析數據，同時另一條管道保留百分之百的數據用於取證分析。他還強調，用託管後端不等於 SRE 和平臺團隊不用碰 Collector，恰恰相反，清洗遙測、實現 log dedupe 和 log drain 正是他們的新工作。\n[24:30] 日誌本該是指標，就把它轉成指標。signal to metrics connector 允許在 Collector 內部跨信號轉換：如果日誌在講一件本來更適合用指標描述的事，就把它轉成指標，指標有低得多的採集間隔，然後過濾掉原始日誌。Mike 說這可能是很多人不知道的能力，同一份信息和上下文可以在不同信號之間移動。對指標本身，他的警告是別過度降基數——那會損害指標能告訴你的保真度，「聚合再聚合，你大概要倒霉了」。interval processor 則是安全的：把每秒或每五秒抓一次的數據聚合成三十秒或六十秒窗口，總量和保真度不變，只是頻率更低。Martin 的立場是，如果你想要秒級粒度，應該用採樣過的鏈路和日誌，而不是拿指標去幹這件事。\n[29:00] 頭採樣會吃掉罕見但重要的路徑。OpenTelemetry 目前有三種採樣策略。頭採樣通常在 SDK 層做，按固定百分比取，完全不看鏈路內部發生了什麼：成本控制很好，但系統裡那些重要卻罕見的路徑會被採樣器整個吃掉。tail sampling processor 是進步，它拿到完整鏈路上下文、在鏈路結束後決策，但可調的旋鈕不夠，尤其是沒法處理高基數屬性——用戶 ID、會話 ID、錢包 ID 這類變化頻繁的值，你沒法保證每種變化都被代表到。這正是動態採樣器要解決的問題。\n[31:30] 按指紋分桶，保證每種變化至少留一條。動態採樣器用的是 Refinery 的算法：你告訴它你在意的屬性——服務名、用戶 ID、錢包 ID、會話 ID——每當這些屬性出現一種組合，就單獨分桶、單獨採樣，並保證每個桶至少留下一條。同一個桶裡的量漲到十、一百、一千，閾值就自動上調，也就是少留一些。你可以按固定百分比（比如大約百分之十）來，也可以按吞吐量（每分鐘多少 span）來。Martin 舉了結賬流的例子：十個不同的忠誠度或折扣算法，其中某條路徑只有二十分之一的概率被走到，如果你因為量太大而按百分之十甚至百分之一採樣，這條路徑基本不可能被採到；放進指紋分桶後，每種算法至少有一條鏈路。\n[35:30] 採樣真正換的是回答問題的信心。Mike 把採樣策略的核心矛盾說成：你對自己基於這批遙測回答問題的信心有多高。頭採樣在低概率事件加高採樣閾值下基本沒戲，除非你專門去獵；尾採樣理論上可行，但門檻很高，你得完全組織好每一條策略、理解每種變化如何被應用。動態採樣器降低複雜度、提高信心，因為你知道每種組合至少會留下一條，也就有了一個可以開始回答問題的立足點。發布狀態上，它已經在 Honeycomb Collector distribution 裡可用，官方 OpenTelemetry Contrib 發行版還要等幾週做最後打磨。Martin 提醒它現在是 alpha，接下來幾週會有破壞性變更，建議等 beta 或正式發布。\n[0:00] Mike Goldsmith：「當你有了冗餘信息，你手上是看起來一模一樣的東西，你把它發送十萬次，它並沒有多少價值。」\n[0:00] Mike Goldsmith：「如果你非常粗暴地做成本控制，運行這套成本控制本身的代價，可能和直接把數據全發出去差不了多少。」\n[6:30] Mike Goldsmith：「它不給你「為什麼發生」的上下文。它告訴你某件事發生了，以及那件事發生了多少次。」\n[16:00] Mike Goldsmith：「我可以只留一份副本，然後告訴你它發生了一百次。在那個場景裡這非常簡單，但你已經把日誌量降低了一百倍，而且沒有損失任何保真度。」\n[20:30] Mike Goldsmith：「Log Dedupe 是一個用來主動降低數據量的工具。如果你知道某些東西必須保留，就不要讓你的數據經過它。」\n[24:30] Mike Goldsmith：「如果你聚合再聚合，你大概要倒霉了。」\n[31:30] Mike Goldsmith：「用動態採樣器，它降低了複雜度、提高了你的信心，因為你知道你會拿到所有東西的各種變化。」\n[35:30] Mike Goldsmith：「我覺得很多人有一種近乎誤解的想法，認為埋點和遙測管道是建一次就可以忘掉的東西。事實並非如此。」\n[29:00] OpenTelemetry 採樣策略數量：3 種（頭採樣、尾採樣處理器、動態採樣器）\n[16:00] log dedupe 配合模板後的日誌量降幅：降低 100 倍\n[24:30] interval processor 聚合窗口：30 秒或 60 秒\n[35:30] 動態採樣器在官方 Contrib 發行版可用時間：預計未來幾週", "wordCount": 2383, "inLanguage": "zh-TW", "datePublished": "2026-08-28T07:10:00Z", "dateModified": "2026-09-19T04:59:54Z", "url": "https://ourword.ai/podcast/p/2026-08-28-o11ycast-别把一切都塞进指标-日志去重能砍掉百倍成本/", "about": {"@id": "https://ourword.ai/podcast/p/2026-08-28-o11ycast-别把一切都塞进指标-日志去重能砍掉百倍成本/#episode"}, "isBasedOn": "https://www.heavybit.com/library/podcasts/o11ycast/ep-93-adaptive-sampling-strategies-with-mike-goldsmith/", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "isAccessibleForFree": true}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首頁", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "O11ycast", "item": "https://ourword.ai/podcast/s/o11ycast/"}, {"@type": "ListItem", "position": 3, "name": "別把一切都塞進指標：日誌去重能砍掉百倍成本"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/tw/"><span class="wordmark">原聲<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<button class="pill ghost" id="lang-toggle" type="button" data-en="" data-sc="繁體" data-tw="簡體"></button>
+<button class="icon-btn" data-theme-toggle aria-label="切換深淺色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，來原聲聽播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/tw/">首頁</a><span class="sep">/</span>
+<a href="/podcast/tw/c/ai/">AI / 技術</a><span class="sep">/</span><a href="/podcast/tw/s/o11ycast/">O11ycast</a>
+<span class="sep">/</span><span>2026-08-28</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">O11ycast</span>
+<time class="date" datetime="2026-08-28T07:10:00Z">2026-08-28</time>
+<button class="share-btn" type="button" data-share data-share-title="別把一切都塞進指標：日誌去重能砍掉百倍成本" data-share-url="https://ourword.ai/podcast/tw/e/o11ycast-2af4131390/" data-share-desc="日誌、指標、鏈路三種信號裡，日誌最容易被無意義地堆量；用 log drain 做模板化、再配 log dedupe，可以在不丟保真度的前提下把日誌量砍掉一百倍。" data-share-text="別把一切都塞進指標：日誌去重能砍掉百倍成本&#10;O11ycast · 39 分鐘 · 原聲深讀&#10;&#10;日誌、指標、鏈路三種信號裡，日誌最容易被無意義地堆量；用 log drain 做模板化、再配 log dedupe，可以在不丟保真度的前提下把日誌量砍掉一百倍。&#10;&#10;https://ourword.ai/podcast/e/o11ycast-2af4131390/" aria-label="複製分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>別把一切都塞進指標：日誌去重能砍掉百倍成本</h1>
+<p class="dek-lead">日誌、指標、鏈路三種信號裡，日誌最容易被無意義地堆量；用 log drain 做模板化、再配 log dedupe，可以在不丟保真度的前提下把日誌量砍掉一百倍。</p>
+<div class="ep-meta"><span class="tag">可觀測性</span><span class="tag">OpenTelemetry</span><span class="tag">成本控制</span><span class="tag">採樣</span><span class="tag">日誌</span></div>
+</div>
+<div class="player" data-player-box>
+  <div class="strip" data-audio-strip>
+    <p class="afallback">原視頻在 YouTube 上放不出來，用音頻聽：</p>
+    <audio data-player controls preload="none" src="https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3"></audio>
+    <div class="aui" data-audio-ui data-dur="2392" hidden>
+      <button class="aplay" type="button" aria-label="播放"></button>
+      <div class="abar" role="slider" tabindex="0" aria-label="播放進度"
+           aria-valuemin="0" aria-valuemax="100"><div class="afill"></div></div>
+      <span class="atime"><span class="acur">0:00</span><span class="asep">/</span><span class="atot">--:--</span></span>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="why">面向已經在跑 OpenTelemetry Collector 的團隊，講清了 log drain、log dedupe、signal to metrics 和動態尾採樣的具體機制，不是概念科普。</div></section>
+
+<section class="section"><h2>核心論點 · 時間戳為按文稿位置估算</h2><div class="point" id="p0"><a class="ts" data-t="0" href="https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3#t=0" target="_blank" rel="noopener">0:00</a><div><h4>重複的日誌不是保真度，是賬單</h4>
+<p class="body">Mike Goldsmith 把成本控制的起點放在「冗餘信息」上：同一條看起來完全一樣的記錄被發送十萬次，並不會增加價值，你只需要知道它發生的頻率，然後外推。但無論數據落到後端分析系統還是基礎設施內部的本地系統，處理、存儲、分析都要付錢。所以他的目標不是砍掉保真度，而是保留「什麼重要、為什麼重要」，同時不再保留每一次的精確副本。Martin Thwaites 把這形容成鐵三角：想要好的遙測數據、想要快、想要便宜，還要同時受內存和 CPU 約束。Mike 補了一句反直覺的：如果成本控制做得太粗暴，運行這套成本控制本身的代價，可能和直接把數據全發出去差不多。</p>
+<span class="spk">— Mike Goldsmith</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="390" href="https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3#t=390" target="_blank" rel="noopener">6:30</a><div><h4>最大的坑是用錯了信號</h4>
+<p class="body">Ken Rimple 問最常見的痛點是什麼，Mike 說「他們在用錯誤的遙測信號」。他的觀察是團隊過度指標驅動：指標能告訴你某件事發生了、發生了多少次，但因為它被採集的方式，它給不了「為什麼發生」的上下文。日誌和鏈路才是講「為什麼」的信號。Martin 補充了一個區分：little M metrics 是你畫的圖、你盯的可視化，永遠需要；big M metrics 是預先想好的時間序列聚合，服務於「已知問題」。如果有一個需要實時產出的儀表盤，指標就是該用的東西；但要看單個用戶請求裡發生了什麼、不同請求之間有什麼共性，就得靠日誌和鏈路。</p>
+<span class="spk">— Mike Goldsmith</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="720" href="https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3#t=720" target="_blank" rel="noopener">12:00</a><div><h4>log drain 把日誌拆成模板加變量</h4>
+<p class="body">log drain 來自一個老 Python 庫、一篇研究論文，被移植到 Go 後進了 Collector。它分析每條進來的日誌：哪些部分是變量、哪些是靜態的，經過一段學習期後生成模板。比如「user Mike logged in at IP address 192.168...」，模板會把 Mike 和 IP 變成兩個佔位符，其餘是靜態文本。之後 Martin 登錄、Ken 登錄，模板都不用變，只是兩個變量不同。一旦變量被抽成屬性，你就能做有依據的取捨：這個用戶我不關心、這個內部 IP 段我不關心。Martin 建議它應該改名叫「AI log templating」，這樣能賣得更好，說不定還能拿到 VC 的錢。</p>
+<span class="spk">— Mike Goldsmith</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="960" href="https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3#t=960" target="_blank" rel="noopener">16:00</a><div><h4>模板加去重，日誌量直接除以一百</h4>
+<p class="body">log dedupe 單獨用有個前提問題：如果日誌正文裡混著 Mike、Ken、Martin 這些變量，它們看起來就不一樣，很難判斷哪些是同一條。把 log drain 生成的模板和 log dedupe 配對之後，就能說「這個日誌形狀發生了一百次」，於是只留一份副本、附上計數，日誌量降為百分之一百，保真度沒有損失。Martin 立刻拋出反例：登錄失敗通常是合規日誌，必須全留，不能去重。Mike 的答案是模板已經告訴你佔位符裡是什麼值，所以可以在兩者之間做過濾、路由，或者在 dedupe 裡把「登錄狀態」這類屬性加進去重邏輯，按不同速率保留。</p>
+<span class="spk">— Mike Goldsmith</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="1230" href="https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3#t=1230" target="_blank" rel="noopener">20:30</a><div><h4>該留的證據別送進去重管道</h4>
+<p class="body">Martin 追問 reroute 是不是意味著可以分流到不同目的地，Mike 確認：用 log template 加 routing connector，基於模板抽出的屬性做判斷——登錄成功的走 log dedupe、千分之一保留，因為你不關心；登錄失敗的整條繞過 dedupe，直接送 S3 或別的存儲。他的原則很直接：log dedupe 是用來主動降量的工具，如果你知道某些東西必須留，就不要讓它經過這個管道。Martin 由此推出成本控制的關鍵結構：熱存儲裡只放需要快速回答問題的運營分析數據，同時另一條管道保留百分之百的數據用於取證分析。他還強調，用託管後端不等於 SRE 和平臺團隊不用碰 Collector，恰恰相反，清洗遙測、實現 log dedupe 和 log drain 正是他們的新工作。</p>
+<span class="spk">— Mike Goldsmith</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="1470" href="https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3#t=1470" target="_blank" rel="noopener">24:30</a><div><h4>日誌本該是指標，就把它轉成指標</h4>
+<p class="body">signal to metrics connector 允許在 Collector 內部跨信號轉換：如果日誌在講一件本來更適合用指標描述的事，就把它轉成指標，指標有低得多的採集間隔，然後過濾掉原始日誌。Mike 說這可能是很多人不知道的能力，同一份信息和上下文可以在不同信號之間移動。對指標本身，他的警告是別過度降基數——那會損害指標能告訴你的保真度，「聚合再聚合，你大概要倒霉了」。interval processor 則是安全的：把每秒或每五秒抓一次的數據聚合成三十秒或六十秒窗口，總量和保真度不變，只是頻率更低。Martin 的立場是，如果你想要秒級粒度，應該用採樣過的鏈路和日誌，而不是拿指標去幹這件事。</p>
+<span class="spk">— Mike Goldsmith</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="1740" href="https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3#t=1740" target="_blank" rel="noopener">29:00</a><div><h4>頭採樣會吃掉罕見但重要的路徑</h4>
+<p class="body">OpenTelemetry 目前有三種採樣策略。頭採樣通常在 SDK 層做，按固定百分比取，完全不看鏈路內部發生了什麼：成本控制很好，但系統裡那些重要卻罕見的路徑會被採樣器整個吃掉。tail sampling processor 是進步，它拿到完整鏈路上下文、在鏈路結束後決策，但可調的旋鈕不夠，尤其是沒法處理高基數屬性——用戶 ID、會話 ID、錢包 ID 這類變化頻繁的值，你沒法保證每種變化都被代表到。這正是動態採樣器要解決的問題。</p>
+<span class="spk">— Mike Goldsmith</span></div></div>
+<div class="point" id="p7"><a class="ts" data-t="1890" href="https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3#t=1890" target="_blank" rel="noopener">31:30</a><div><h4>按指紋分桶，保證每種變化至少留一條</h4>
+<p class="body">動態採樣器用的是 Refinery 的算法：你告訴它你在意的屬性——服務名、用戶 ID、錢包 ID、會話 ID——每當這些屬性出現一種組合，就單獨分桶、單獨採樣，並保證每個桶至少留下一條。同一個桶裡的量漲到十、一百、一千，閾值就自動上調，也就是少留一些。你可以按固定百分比（比如大約百分之十）來，也可以按吞吐量（每分鐘多少 span）來。Martin 舉了結賬流的例子：十個不同的忠誠度或折扣算法，其中某條路徑只有二十分之一的概率被走到，如果你因為量太大而按百分之十甚至百分之一採樣，這條路徑基本不可能被採到；放進指紋分桶後，每種算法至少有一條鏈路。</p>
+<span class="spk">— Mike Goldsmith</span></div></div>
+<div class="point" id="p8"><a class="ts" data-t="2130" href="https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3#t=2130" target="_blank" rel="noopener">35:30</a><div><h4>採樣真正換的是回答問題的信心</h4>
+<p class="body">Mike 把採樣策略的核心矛盾說成：你對自己基於這批遙測回答問題的信心有多高。頭採樣在低概率事件加高採樣閾值下基本沒戲，除非你專門去獵；尾採樣理論上可行，但門檻很高，你得完全組織好每一條策略、理解每種變化如何被應用。動態採樣器降低複雜度、提高信心，因為你知道每種組合至少會留下一條，也就有了一個可以開始回答問題的立足點。發布狀態上，它已經在 Honeycomb Collector distribution 裡可用，官方 OpenTelemetry Contrib 發行版還要等幾週做最後打磨。Martin 提醒它現在是 alpha，接下來幾週會有破壞性變更，建議等 beta 或正式發布。</p>
+<span class="spk">— Mike Goldsmith</span></div></div></section>
+<section class="section"><h2>原話 · 已逐字校驗</h2><blockquote class="quote"><p class="raw">So when you&#x27;ve got redundant information, you&#x27;re having something that looks identical, and you&#x27;ll send it 100,000 times, and it doesn&#x27;t have a lot of value.</p>
+<p class="zh">當你有了冗餘信息，你手上是看起來一模一樣的東西，你把它發送十萬次，它並沒有多少價值。</p>
+<div class="attrib"><b>Mike Goldsmith</b><a class="ts" data-t="0" href="https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3#t=0" target="_blank" rel="noopener">0:00</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">If you do some cost controls just really heavy-handedly, the cost of running that cost control could not be that much different from just sending all of that data.</p>
+<p class="zh">如果你非常粗暴地做成本控制，運行這套成本控制本身的代價，可能和直接把數據全發出去差不了多少。</p>
+<div class="attrib"><b>Mike Goldsmith</b><a class="ts" data-t="0" href="https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3#t=0" target="_blank" rel="noopener">0:00</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">It doesn&#x27;t give you context of why something happened. It tells you that something happened and how many times that thing happened.</p>
+<p class="zh">它不給你「為什麼發生」的上下文。它告訴你某件事發生了，以及那件事發生了多少次。</p>
+<div class="attrib"><b>Mike Goldsmith</b><a class="ts" data-t="390" href="https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3#t=390" target="_blank" rel="noopener">6:30</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">I can have one copy of it and tell you that it happened 100 times. And those two, in that scenario there, it&#x27;s very simplistic, but you&#x27;ve reduced the log volume by 100 times and you haven&#x27;t lost any fidelity.</p>
+<p class="zh">我可以只留一份副本，然後告訴你它發生了一百次。在那個場景裡這非常簡單，但你已經把日誌量降低了一百倍，而且沒有損失任何保真度。</p>
+<div class="attrib"><b>Mike Goldsmith</b><a class="ts" data-t="960" href="https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3#t=960" target="_blank" rel="noopener">16:00</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">Log Dedupe is a tool that is used to intentionally reduce volume. If you know that you need to keep something, don&#x27;t pass your data through that.</p>
+<p class="zh">Log Dedupe 是一個用來主動降低數據量的工具。如果你知道某些東西必須保留，就不要讓你的數據經過它。</p>
+<div class="attrib"><b>Mike Goldsmith</b><a class="ts" data-t="1230" href="https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3#t=1230" target="_blank" rel="noopener">20:30</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">If you aggregate and aggregate, you&#x27;re probably in for a bad time.</p>
+<p class="zh">如果你聚合再聚合，你大概要倒霉了。</p>
+<div class="attrib"><b>Mike Goldsmith</b><a class="ts" data-t="1470" href="https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3#t=1470" target="_blank" rel="noopener">24:30</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">With the dynamic sampler, it reduces the complexity and increases your confidence because you know that you&#x27;re going to get variations of everything.</p>
+<p class="zh">用動態採樣器，它降低了複雜度、提高了你的信心，因為你知道你會拿到所有東西的各種變化。</p>
+<div class="attrib"><b>Mike Goldsmith</b><a class="ts" data-t="1890" href="https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3#t=1890" target="_blank" rel="noopener">31:30</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">I think a lot of people have this almost misconception that instrumentation and a telemetry pipeline is something that you can just build once and forget. And that&#x27;s not the case.</p>
+<p class="zh">我覺得很多人有一種近乎誤解的想法，認為埋點和遙測管道是建一次就可以忘掉的東西。事實並非如此。</p>
+<div class="attrib"><b>Mike Goldsmith</b><a class="ts" data-t="2130" href="https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3#t=2130" target="_blank" rel="noopener">35:30</a></div>
+</blockquote></section>
+<section class="section"><h2>數字與實體</h2><table class="facts"><tr><td class="k">OpenTelemetry 採樣策略數量</td><td class="v">3 種（頭採樣、尾採樣處理器、動態採樣器）</td><td class="t"><a class="ts" data-t="1740" href="https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3#t=1740" target="_blank" rel="noopener">29:00</a></td></tr>
+<tr><td class="k">log dedupe 配合模板後的日誌量降幅</td><td class="v">降低 100 倍</td><td class="t"><a class="ts" data-t="960" href="https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3#t=960" target="_blank" rel="noopener">16:00</a></td></tr>
+<tr><td class="k">interval processor 聚合窗口</td><td class="v">30 秒或 60 秒</td><td class="t"><a class="ts" data-t="1470" href="https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3#t=1470" target="_blank" rel="noopener">24:30</a></td></tr>
+<tr><td class="k">動態採樣器在官方 Contrib 發行版可用時間</td><td class="v">預計未來幾週</td><td class="t"><a class="ts" data-t="2130" href="https://media.blubrry.com/heavybit/d3aeja1uqhkije.cloudfront.net/podcasts/o11ycast/20260818-o11ycast-093.mp3#t=2130" target="_blank" rel="noopener">35:30</a></td></tr></table></section>
+<section class="section"><h2>術語</h2><dl class="terms"><div><dt>log drain<span>日誌模板化處理器</span></dt><dd>分析日誌、區分靜態與可變部分，生成模板並把變量抽成屬性的 Collector 組件。</dd></div>
+<div><dt>log dedupe<span>日誌去重處理器</span></dt><dd>把形狀相同的日誌合併成一條並附上出現次數，用於主動降低日誌量。</dd></div>
+<div><dt>tail sampling<span>尾採樣</span></dt><dd>等鏈路結束後，基於完整鏈路上下文決定是否保留的採樣方式。</dd></div>
+<div><dt>head sampling<span>頭採樣</span></dt><dd>在鏈路開始時按固定百分比決定是否保留，不看鏈路內部發生了什麼。</dd></div>
+<div><dt>cardinality guardian<span>基數守衛</span></dt><dd>社區貢獻的 Collector 組件，用於降低指標基數。</dd></div>
+<div><dt>Refinery<span>Honeycomb 採樣工具</span></dt><dd>Honeycomb 長期自用的專有采樣工具，動態採樣器移植了它的算法。</dd></div></dl></section>
+<section class="section"><h2>收聽指南</h2>
+<div class="panel guide">
+<div><span class="k">誰該聽</span><p>已經在生產環境跑 OpenTelemetry Collector、被遙測賬單或日誌量壓著的 SRE、平臺工程師和可觀測性負責人。</p></div>
+<div><span class="k">可跳過</span><p>開頭關於「喜歡啃帶刺鐵絲網」的寒暄可跳過。</p></div>
+</div></section>
+<section class="related"><h2 class="sec-title">順著這個話題</h2><ul class="rel-list"><li><a href="/podcast/tw/p/2026-09-12-twentyvc-工程师一年前就不写代码了-ai-员工让公司规模翻三倍/"><span class="rel-t">工程師一年前就不寫代碼了，AI 員工讓公司規模翻三倍</span><span class="rel-s">20VC</span></a></li><li><a href="/podcast/tw/p/2026-08-12-pragmatic-ai-写代码不必逐行读-但信任必须重建/"><span class="rel-t">AI 寫代碼不必逐行讀，但信任必須重建</span><span class="rel-s">The Pragmatic Engineer</span></a></li></ul></section>
+<nav class="prevnext"><a href="/podcast/tw/p/2026-08-28-raisinggh-17-项追踪研究-疫情没有毁掉孩子的发展/"><span class="lbl">← 更新</span><strong>17 項追蹤研究：疫情沒有毀掉孩子的發展</strong></a><a class="r" href="/podcast/tw/p/2026-08-28-cn300980-6岁女童死于基因编辑-自闭症不是需要修复的错误/"><span class="lbl">更早 →</span><strong>6歲女童死於基因編輯：自閉症不是需要修復的錯誤</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原節目</h4>
+<div class="row"><span>節目</span><span>O11ycast</span></div>
+<div class="row"><span>原標題</span><span>Ep. #93, Adaptive Sampling Strategies with Mike Goldsmith</span></div>
+<div class="row"><span>發布</span><span>2026-08-28</span></div>
+<div class="row"><span>時長</span><span>39:52</span></div>
+<a class="row" href="https://www.heavybit.com/library/podcasts/o11ycast/ep-93-adaptive-sampling-strategies-with-mike-goldsmith/" target="_blank" rel="noopener"><span>原頁面</span><span>打開 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇結構</h4><nav class="toc"><a href="#p0"><span class="t">0:00</span><span>重複的日誌不是保真度，是賬單</span></a>
+<a href="#p1"><span class="t">6:30</span><span>最大的坑是用錯了信號</span></a>
+<a href="#p2"><span class="t">12:00</span><span>log drain 把日誌拆成模板加變量</span></a>
+<a href="#p3"><span class="t">16:00</span><span>模板加去重，日誌量直接除以一百</span></a>
+<a href="#p4"><span class="t">20:30</span><span>該留的證據別送進去重管道</span></a>
+<a href="#p5"><span class="t">24:30</span><span>日誌本該是指標，就把它轉成指標</span></a>
+<a href="#p6"><span class="t">29:00</span><span>頭採樣會吃掉罕見但重要的路徑</span></a>
+<a href="#p7"><span class="t">31:30</span><span>按指紋分桶，保證每種變化至少留一條</span></a>
+<a href="#p8"><span class="t">35:30</span><span>採樣真正換的是回答問題的信心</span></a></nav></div>
+
+<div class="panel"><h4>這篇是怎麼來的</h4>
+<div class="row"><span>成稿評分</span><span>8 / 10</span></div>
+<div class="row"><span>文稿來源</span><span>官方文稿頁</span></div>
+<div class="row"><span>文稿字數</span><span>7482</span></div>
+<div class="row"><span>語速核驗</span><span>187.7 wpm</span></div>
+<div class="row"><span>逐字校驗金句</span><span>8 條</span></div>
+<div class="row"><span>回溯校驗數字</span><span>4 條</span></div>
+
+<p class="note">金句在逐字稿裡逐字比對過，數字回原文核對過；對不上的當場刪掉，不上站。
+成稿另經一道獨立評審（信息密度／忠實度／選擇力／具體性／中文），低於 7 分不展示。
+這一集的文稿沒有原始時間碼，頁面上的時間戳是按文稿位置估算的，只作粗略定位。</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原聲 · <a href="https://ourword.ai">OurWord.ai</a>的播客線。內容為原播客的中文深讀，
+版權歸各節目所有；每篇都附原節目鏈接，請去支持原作者。</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/tw/" lang="zh">人類世界生存法則</a> · <a href="/podcast/tw/">原聲</a></div>
+<div class="links"><a href="/podcast/tw/">首頁</a><a href="/podcast/tw/sources/">信源</a>
+<a href="/podcast/tw/log/">更新日誌</a><a href="/podcast/tw/feed.xml">RSS</a>
+<a href="/podcast/tw/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源碼</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=d235129544" defer></script>
+</body></html>
