@@ -4,9 +4,9 @@
  "source_lang": "en",
  "title": "Feeding post-Newtonian terms to a neural network cuts training data by ten thousand times",
  "dek": "A pure neural-network waveform model needs 10^8 to 10^10 training waveforms, but writing known physics into the network and letting it learn only the corrections takes just 8 numerical-relativity waveforms.",
- "why": "The first half is the state of the field in gravitational-wave modeling; the second half, on surrogate speedups and the concrete numbers behind the PINN, is more worth hearing.",
- "who": "Graduate students and engineers working on gravitational-wave data analysis, numerical relativity, or scientific machine learning, especially those who want to use physical constraints to cut training data.",
- "skip": "The first ~5 minutes of conference introductions and detector sensitivity curve background can be fast-forwarded.",
+ "why": "The first half is the state of the field in gravitational-wave modeling; the second half, on surrogate speedups and the concrete numbers behind the PINN, is the part worth hearing.",
+ "who": "Graduate students and engineers working on gravitational-wave data analysis, numerical relativity, or scientific machine learning, especially those who want to use physical constraints to cut training-data requirements.",
+ "skip": "The first ~5 minutes of conference introductions and detector sensitivity-curve background can be fast-forwarded.",
  "tags": [
   "Gravitational waves",
   "Numerical relativity",
@@ -17,35 +17,35 @@
  "points": [
   {
    "h": "LIGO's error bars may come from theory, not the instrument",
-   "body": "The speaker says that for some LIGO events, it cannot be ruled out that the analysis result is limited by understanding of waveform systematic errors, not just cryogenic cooling or mirror defects. GW23123 is an example: run different models and the posterior distributions show non-trivial differences. His position is not to take sides on who is right, but to give the models better error bars so the data analysts can keep arguing about who is right."
+   "body": "The speaker says that for some LIGO events, it cannot be ruled out that the analysis result is limited by understanding of waveform systematic errors, not just cryogenic cooling or mirror defects. GW23123 is an example: run different models and the posterior distributions show non-trivial differences. His position is not to take sides on who is right, but to give the models better error bars so the data-analysis people can keep arguing about who is right."
   },
   {
    "h": "Double the simulation length, quadruple the error",
-   "body": "The mismatch of numerical-relativity simulations scales roughly as the square of the wavelength. Because simulation accuracy is dominated by phase error, phase error accumulates linearly with time, and mismatch is the square of phase error. So wanting a simulation twice as long doesn't just mean waiting longer, it means achieving higher accuracy, and the cost is penalized multiplicatively. Most simulations currently land at about 30 orbits, while the reference line is about 25 orbits."
+   "body": "The mismatch of numerical-relativity simulations scales roughly as the square of the wavelength. Because simulation accuracy is dominated by phase error, phase error accumulates linearly in time, and mismatch is the square of phase error. So wanting a simulation twice as long does not just mean waiting longer; you also have to make it more accurate, and the cost is penalised multiplicatively. Most simulations today land at about 30 orbits, while the reference line is about 25 orbits."
   },
   {
-   "h": "For next-generation detectors, pure numerical relativity has no hope",
-   "body": "The speaker showed a plot: the horizontal axis is event signal-to-noise ratio, the vertical axis is the number of simulations in the catalog with sufficient accuracy and length. For LIGO, about 85% to 90% of the catalog is sufficient, about 3000 simulations; but for heavy systems at 10^4 signal-to-noise ratio, only about 10 simulations in total are sufficient. For Cosmic Explorer and Einstein Telescope, the conclusion is that numerical relativity alone is completely insufficient and other models are needed to fill in."
+   "h": "On next-generation detectors, pure numerical relativity has no hope",
+   "body": "The speaker showed a plot: the horizontal axis is event signal-to-noise ratio, the vertical axis is the number of simulations in the catalogue that are accurate and long enough. For LIGO, about 85% to 90% of the catalogue is good enough, roughly 3000 simulations; but for heavy systems at a signal-to-noise ratio of 10^4, only about 10 simulations in total are good enough. For Cosmic Explorer and Einstein Telescope, the conclusion is that numerical relativity alone is completely insufficient and other models are needed to fill in."
   },
   {
-   "h": "Hybrid waveforms are actually stitching together two different physical systems",
-   "body": "When splicing post-Newtonian waveforms with numerical-relativity waveforms, the cost function has many local minima in parameter space, and the global minimum falls in a narrow, shallow valley that optimizers struggle to find. The test is to run a simulation of about 60 orbits, then move the matching window and look at what the early waveform looks like. The result is that the early numerical-relativity waveform and the post-Newtonian waveform look completely different, which amounts to smoothly stitching together waveforms from two different physical systems, introducing bias."
+   "h": "Hybrid waveforms are really stitching together two different physical systems",
+   "body": "When splicing post-Newtonian waveforms onto numerical-relativity waveforms, the cost function has many local minima in parameter space, and the global minimum sits in a narrow, shallow valley that optimizers struggle to find. The test is to run a simulation of about 60 orbits and then move the matching window to see what the early waveform looks like. The result is that the early numerical-relativity waveform and the post-Newtonian waveform look completely different, which amounts to smoothly sewing together waveforms from two different physical systems and introducing a bias."
   },
   {
    "h": "Let the neural network learn only what post-Newtonian cannot compute",
-   "body": "Each additional post-Newtonian term is a PhD thesis worth of work, so the speaker's idea is to treat the neural network as encoding all the post-Newtonian terms he doesn't want to write by hand. The network needs only about 100 parameters, about 120 CPU hours of training, and only 8 numerical-relativity waveforms in mass-ratio space. Besides the waveform difference, the loss function also requires the orbital velocity to be close, the correction terms to vanish as orbital velocity goes to zero, and equal-mass symmetry and weight regularization."
+   "body": "Each additional post-Newtonian term is a PhD thesis worth of work, so the speaker's idea is to treat the neural network as encoding all the post-Newtonian terms he does not want to write by hand. The network needs only about 100 parameters, about 120 CPU hours of training, and only 8 numerical-relativity waveforms in mass-ratio space. Besides the waveform difference, the loss function also requires the orbital velocity to be close, the correction term to vanish as the orbital velocity goes to zero, and equal-mass symmetry and weight regularisation."
   },
   {
    "h": "Physics-informed networks extrapolate better outside the training set",
-   "body": "At a point outside the training set, mass ratio 9 to 5, post-Newtonian completely fails near merger, the surrogate model (trained to mass ratio 8) gets worse as extrapolation error grows, while the physics-informed neural network performs much better. If after training to mass ratio 8 you add one more data point at mass ratio 15, the error all the way up to mass ratio 15 drops substantially. This promises to reduce the amount of training data needed to build models."
+   "body": "At a mass ratio of 9 to 5, a point outside the training set, post-Newtonian completely fails near merger, the surrogate model (trained up to mass ratio 8) gets worse as extrapolation error grows, while the physics-informed neural network does much better. If you add one data point at mass ratio 15 after already training up to mass ratio 8, the error all the way up to mass ratio 15 drops substantially. This promises to reduce the amount of training data needed to build models."
   },
   {
    "h": "Pure neural-network approaches need more than ten thousand times the training data",
-   "body": "The speaker says that most other attempts he has seen at modeling waveforms with neural networks throw physics away entirely and use only neural networks or autoencoders, and that really does require 10^8 to 10^10 waveforms to train, meaning you would have to build a surrogate first to generate the training data, because it is impossible to obtain that many numerical-relativity waveforms. His conclusion: machine learning is a useful tool, but don't forget that you actually do know something about the thing you are modeling."
+   "body": "The speaker says that most other attempts he has seen at modeling waveforms with neural networks throw physics away entirely and use only neural networks or autoencoders, and that really does require 10^8 to 10^10 waveforms to train, which means you would have to build a surrogate first to generate the training data, because you cannot get that many numerical-relativity waveforms. His conclusion: machine learning is a useful tool, but do not forget that you actually do know something about the thing you are modeling."
   },
   {
    "h": "The surrogate's 30x to 40x speedup comes from changing the algorithm",
-   "body": "The speaker says all he did was make the code less bad, with no revolutionary insight. The starting point was about 30 milliseconds, and now there is about a 30x to 40x speedup. The biggest speedup came from changing the algorithm: from cubic interpolation to tenth-order Hermite polynomials, with far fewer time nodes. Currently the dynamics part dominates, at about 370 microseconds, while waveform evaluation takes only 50 microseconds. He estimates that eventually he can deliver a frequency-domain waveform in 0.2 milliseconds, comparable to or better than the fastest phenom waveforms."
+   "body": "The speaker says all he did was make the code less bad, with no revolutionary insight. The starting point was about 30 milliseconds, and now there is about a 30x to 40x speedup. The biggest speedup came from changing the algorithm: from cubic interpolation to tenth-order Hermite polynomials, with far fewer time nodes. Currently the dynamics part dominates, at about 370 microseconds, while waveform evaluation takes only 50 microseconds. He estimates that in the end he can deliver a frequency-domain waveform in 0.2 milliseconds, comparable to or better than the fastest phenom waveforms."
   }
  ],
  "terms": [
@@ -55,15 +55,15 @@
   },
   {
    "term": "physics informed neural network",
-   "def": "A network that has known physical equations written into its structure and only learns the correction terms."
+   "def": "A network that has known physical equations written into its structure and is left to learn only the correction terms."
   },
   {
    "term": "post-Newtonian",
-   "def": "An approximate analytic expansion for the early inspiral of a gravitational wave, becoming less accurate closer to merger."
+   "def": "An approximate analytic expansion for the early inspiral of a gravitational wave, increasingly inaccurate as merger approaches."
   },
   {
    "term": "mismatch",
-   "def": "A metric measuring the difference between two waveforms, dominated by phase error in numerical relativity."
+   "def": "A metric measuring the difference between two waveforms; in numerical relativity it is dominated by phase error."
   },
   {
    "term": "co-orbital frame",
@@ -72,11 +72,11 @@
  ],
  "facts": [
   {
-   "k": "Fraction of the LIGO catalog with sufficient simulations",
-   "v": "about 85% to 90%, about 3000"
+   "k": "Fraction of the LIGO catalogue that is good enough",
+   "v": "about 85% to 90%, about 3000 simulations"
   },
   {
-   "k": "Number of sufficient simulations for heavy systems at 10^4 signal-to-noise ratio",
+   "k": "Number of good-enough simulations for heavy systems at a signal-to-noise ratio of 10^4",
    "v": "about 10"
   },
   {
