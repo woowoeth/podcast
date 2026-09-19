@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>世界模型不是预测未来，是给机器人做排名验证 — ML Street Talk · 原声</title>
+<meta name="description" content="Cosmos 3 把前向动力学、逆向动力学和策略塞进一个模型，但最先落地的不是训练，而是用神经模拟器给一堆 checkpoint 排名，筛掉大部分再上真机。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/p/2026-09-15-mlst-世界模型不是预测未来-是给机器人做排名验证/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原声">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="世界模型不是预测未来，是给机器人做排名验证 — ML Street Talk · 原声">
+<meta property="og:description" content="Cosmos 3 把前向动力学、逆向动力学和策略塞进一个模型，但最先落地的不是训练，而是用神经模拟器给一堆 checkpoint 排名，筛掉大部分再上真机。">
+<meta property="og:url" content="https://ourword.ai/podcast/p/2026-09-15-mlst-世界模型不是预测未来-是给机器人做排名验证/">
+<meta property="og:image" content="https://ourword.ai/podcast/assets/cover/e10a54548d7f7f00.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-09-15T16:01:58Z">
+<meta property="article:modified_time" content="2026-09-19T03:16:00Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="世界模型不是预测未来，是给机器人做排名验证 — ML Street Talk · 原声">
+<meta name="twitter:description" content="Cosmos 3 把前向动力学、逆向动力学和策略塞进一个模型，但最先落地的不是训练，而是用神经模拟器给一堆 checkpoint 排名，筛掉大部分再上真机。">
+<meta name="twitter:image" content="https://d3t3ozftmdmh3i.cloudfront.net/staging/podcast_uploaded_episode/4981699/4981699-1789488089484-208ec03aea187.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原声" href="/podcast/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-09-15-mlst-世界模型不是预测未来-是给机器人做排名验证/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-09-15-mlst-世界模型不是预测未来-是给机器人做排名验证/">
+<link rel="alternate" hreflang="en" href="https://ourword.ai/podcast/en/p/2026-09-15-mlst-世界模型不是预测未来-是给机器人做排名验证/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-09-15-mlst-世界模型不是预测未来-是给机器人做排名验证/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=9bca03c30e">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-09-15-mlst-世界模型不是预测未来-是给机器人做排名验证/#episode", "name": "世界模型不是预测未来，是给机器人做排名验证", "headline": "世界模型不是预测未来，是给机器人做排名验证", "description": "Cosmos 3 把前向动力学、逆向动力学和策略塞进一个模型，但最先落地的不是训练，而是用神经模拟器给一堆 checkpoint 排名，筛掉大部分再上真机。", "abstract": "Cosmos 3 把前向动力学、逆向动力学和策略塞进一个模型，但最先落地的不是训练，而是用神经模拟器给一堆 checkpoint 排名，筛掉大部分再上真机。", "datePublished": "2026-09-15T16:01:58Z", "dateModified": "2026-09-19T03:16:00Z", "url": "https://ourword.ai/podcast/p/2026-09-15-mlst-世界模型不是预测未来-是给机器人做排名验证/", "timeRequired": "PT25M", "partOfSeries": {"@type": "PodcastSeries", "name": "Machine Learning Street Talk", "url": "https://ourword.ai/podcast/s/mlst/"}, "inLanguage": "zh-CN", "isBasedOn": "https://podcasters.spotify.com/pod/show/machinelearningstreettalk/episodes/How-Physical-AI-Learns-Across-Language--Video-and-Action--Ming-Yu-Liu-e3ospub", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "世界模型, 机器人, NVIDIA, 仿真, 具身智能, world model, forward dynamics, inverse dynamics, sim-to-real gap, embodiment, temporal position embedding, Cosmos 模型尺寸档位, Edge 模型目标设备, Cosmos Edge 微调耗时, Cosmos 模型与数据托管", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}, "associatedMedia": {"@type": "AudioObject", "contentUrl": "https://traffic.megaphone.fm/APO4863104315.mp3"}}, {"@type": "Article", "@id": "https://ourword.ai/podcast/p/2026-09-15-mlst-世界模型不是预测未来-是给机器人做排名验证/#deepread", "headline": "世界模型不是预测未来，是给机器人做排名验证", "description": "Cosmos 3 把前向动力学、逆向动力学和策略塞进一个模型，但最先落地的不是训练，而是用神经模拟器给一堆 checkpoint 排名，筛掉大部分再上真机。", "articleBody": "Cosmos 3 把前向动力学、逆向动力学和策略塞进一个模型，但最先落地的不是训练，而是用神经模拟器给一堆 checkpoint 排名，筛掉大部分再上真机。\n[2:28] 一个模型干三件事，靠信息瓶颈逼出协同。Cosmos 3 的架构是两座塔：一座自回归的视觉语言模型负责理解和推理，一座双向扩散的生成器塔负责生成视频、动作和音频。生成器塔里每个 token 都注意其他所有 token，所以一个 chunk 内的信号是连贯的。关键设计是把前向动力学（给动作预测未来）、逆向动力学（给视觉变化反推动作）和策略（给任务决定做什么）放进同一个模型，并施加信息瓶颈——容量有限，三者必须共享对观察和动作之间相关性的表示。论文结果显示三者有协同，一个帮另一个。Ming-Yu 说这本质上是同一件事的不同切片。\n[6:24] 不同频率的信号要压到同一根时间轴上。视频有不同帧率，音频有不同赫兹，动作也有自己的频率。要让一个模型同时处理这些，必须解决时间尺度不一致的问题。Cosmos 3 的做法是 temporal position embedding，把所有信号归一化到同一根轴上，让每个 token 代表信号的一个时间片段，模型既知道哪些 token 属于同一时刻，也知道不同时刻之间的相对距离。Ming-Yu 说这是让整个模型能工作的关键部分。没有这一步，音频、视频、动作没法在同一个注意力空间里对齐。\n[9:28] 人类视频多、机器人数据少，但迁移的是模式不是动作。训练数据严重不对称：第一人称的人类视频海量，机器人视频少得多。但 Ming-Yu 认为迁移可行的原因是共享词汇——人手操作物体的视觉模式，和机器人夹爪操作物体的视觉模式，在观察与动作的相关性上非常相似。即使动作空间不能精确对应，一旦对齐了一组动作，模式是相似的，泛化到另一种 embodiment 就更容易。加入多种 embodiment 训练，还能帮助泛化到没见过的 embodiment。他承认模型并不知道什么时候不该迁移、迁移可能有害，但强调关键是模式而非精确的动作空间。\n[12:53] 神经模拟器先做被动验证，不做训练。被问到 sim-to-real gap 和策略在模拟器里钻空子的问题时，Ming-Yu 承认可能发生。但他给出的落地顺序是：神经模拟器先用于被动验证。模型训练会产生大量 checkpoint，理想情况是把每个策略部署到真机、真环境测完成率，但成本太高。用世界模拟器替代真机和真司机，让策略直接和模拟器交互，rollout 结束后测成功率。不需要模拟器的成功率精确，只需要排名保持——模拟器里 A 比 B 好，真机上大概率也是。这样能快速缩小需要真机验证的 checkpoint 数量，提高开发速度。他说即使世界模型还不够成熟到能喂训练数据，也先能做策略验证。\n[16:47] Cosmos 作为起点，提供数据、环境和初始权重。Cosmos 想帮生态的三件事：更好的数据、更好的环境、更好的起点。Ming-Yu 说把视频、动作、文本连在一起学共享表示，是构建策略模型的好起点，这不是理论——在后训练 Cosmos 模型到共享数据集上，取得了 pick and place 策略的结果。直觉是：如果能很好地预测像素动态，并学到像素和动作之间的相关性，就能帮助构建策略模型。随着 Cosmos 模型推进、引入更多 embodiment，它作为起点的质量会越来越高，适配新 embodiment 所需的工作量会越来越少。repo 里提供了后训练 recipe，让开发者能复现结果。\n[19:53] 导航已经够用，操作才是真正的难关。Ming-Yu 把机器人任务分成两类。导航任务里，你不希望物理设备碰到任何东西，相对简单，他认为现在一个模型已经够好。但操作任务要求各种交互，有接触就有缓冲，有潜在的形变，所以更难。他对整个领域在 world model 上的热情、深度学习研究的持续进步和算力的提升很乐观，认为会到达一个状态：用神经模拟能很好地处理复杂的操作任务。到那时就可以用世界模拟器测试机器人策略。这个判断把 Cosmos 的能力边界说得很清楚——不是所有机器人任务都同等成熟。\n[20:57] 人形机器人进家门，安全验证是唯一出路。Ming-Yu 用自动驾驶类比：车已经在人类空间里移动，所以今天就需要大量策略验证来保证足够安全。当人形机器人进入很多人的家里，安全更重要——你不会预期家里有辆车，但会预期人形机器人出现在你、你的孩子、你的宠物周围。开发者怎么保证每一次策略迭代、整个系统都足够安全？需要策略验证。但你不会有足够空间搭建各种厨房、各种任务。所以他认为用神经模拟器是唯一能给你开发速度的方式。这段把 Cosmos Dreams 的动机从技术推到了部署场景。\n[22:04] 世界模型要住在机器人住的地方。Cosmos 有三个尺寸：Super 是前沿模型，保真度最高，要最高精度且有算力就选它；Nano 居中，更小，更容易用各种 GPU 资源后训练；Edge 要跑在 Jetson Thor、Orin、DGX Spark 这类边缘设备上。做 Edge 的原因是让世界模型住在机器人住的地方，这样采取某个动作时不需要往返数据中心。Ming-Yu 说真实部署时不能指望网络连接足够好来完成所有任务，有些场景是安全关键的，必须当场完成任务。Edge 模型更小、算力需求更低，容易微调，他们有一个 recipe 能在一天内微调 Cosmos Edge 提升视觉理解能力。他还设想三种尺寸未来会协同工作：难任务调用强模型，简单任务靠边缘模型当场完成。\n[5:22] Ming-Yu Liu：「我认为世界模型也会一样。世界模型是一组有用的工具。我们对某样东西建模，是因为我们想达成某个目标。」\n[8:26] Ming-Yu Liu：「我认为这三者根本上都是在捕捉观察和动作之间的相关性。只是不同的切片、不同的视角。」\n[9:28] Ming-Yu Liu：「所以我认为这更多是关于不同 embodiment 之间的共享词汇。」\n[14:42] Ming-Yu Liu：「如果世界模拟器的成功率与真实世界测试相关，排名保持住，你不需要它们精确。你只需要知道在神经模拟器里策略 A 是否比策略 B 好。」\n[15:43] Ming-Yu Liu：「所以即使在它成熟到能给策略模型喂训练数据之前，世界模拟器也可以用作策略验证。」\n[20:57] Ming-Yu Liu：「你不会预期在自己家里看到一辆车。但一旦人形机器人无处不在，你会预期人形机器人围绕着你，也许是你的孩子、你的宠物。所以你确实希望它们足够安全。」\n[23:01] Ming-Yu Liu：「我们做这个的原因是，我们希望世界模型住在机器人住的地方。这样你想采取某个动作时，不需要往返数据中心。」\n[22:04] Cosmos 模型尺寸档位：Super、Nano、Edge 三档\n[22:50] Edge 模型目标设备：Jetson Thor、Orin、DGX Spark\n[23:01] Cosmos Edge 微调耗时：一天内完成微调以提升视觉理解\n[24:24] Cosmos 模型与数据托管：模型和数据在 Hugging Face，代码在 GitHub", "wordCount": 2066, "inLanguage": "zh-CN", "datePublished": "2026-09-15T16:01:58Z", "dateModified": "2026-09-19T03:16:00Z", "url": "https://ourword.ai/podcast/p/2026-09-15-mlst-世界模型不是预测未来-是给机器人做排名验证/", "about": {"@id": "https://ourword.ai/podcast/p/2026-09-15-mlst-世界模型不是预测未来-是给机器人做排名验证/#episode"}, "isBasedOn": "https://podcasters.spotify.com/pod/show/machinelearningstreettalk/episodes/How-Physical-AI-Learns-Across-Language--Video-and-Action--Ming-Yu-Liu-e3ospub", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "isAccessibleForFree": true}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首页", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "ML Street Talk", "item": "https://ourword.ai/podcast/s/mlst/"}, {"@type": "ListItem", "position": 3, "name": "世界模型不是预测未来，是给机器人做排名验证"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/"><span class="wordmark">原声<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<button class="pill ghost" id="lang-toggle" type="button" data-en="1" data-sc="繁體" data-tw="简体"></button>
+<button class="icon-btn" data-theme-toggle aria-label="切换深浅色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，来原声听播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/">首页</a><span class="sep">/</span>
+<a href="/podcast/c/ai/">AI / 技术</a><span class="sep">/</span><a href="/podcast/s/mlst/">ML Street Talk</a>
+<span class="sep">/</span><span>2026-09-15</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">ML Street Talk</span>
+<time class="date" datetime="2026-09-15T16:01:58Z">2026-09-15</time>
+<button class="share-btn" type="button" data-share data-share-title="世界模型不是预测未来，是给机器人做排名验证" data-share-url="https://ourword.ai/podcast/e/mlst-bf2cf9b434/" data-share-desc="Cosmos 3 把前向动力学、逆向动力学和策略塞进一个模型，但最先落地的不是训练，而是用神经模拟器给一堆 checkpoint 排名，筛掉大部分再上真机。" data-share-text="世界模型不是预测未来，是给机器人做排名验证&#10;ML Street Talk · 25 分钟 · 原声深读&#10;&#10;Cosmos 3 把前向动力学、逆向动力学和策略塞进一个模型，但最先落地的不是训练，而是用神经模拟器给一堆 checkpoint 排名，筛掉大部分再上真机。&#10;&#10;https://ourword.ai/podcast/e/mlst-bf2cf9b434/" aria-label="复制分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>世界模型不是预测未来，是给机器人做排名验证</h1>
+<p class="dek-lead">Cosmos 3 把前向动力学、逆向动力学和策略塞进一个模型，但最先落地的不是训练，而是用神经模拟器给一堆 checkpoint 排名，筛掉大部分再上真机。</p>
+<div class="ep-meta"><span class="tag">世界模型</span><span class="tag">机器人</span><span class="tag">NVIDIA</span><span class="tag">仿真</span><span class="tag">具身智能</span></div>
+</div>
+<div class="player" data-player-box>
+  <div class="strip" data-audio-strip>
+    <p class="afallback">原视频在 YouTube 上放不出来，用音频听：</p>
+    <audio data-player controls preload="none" src="https://traffic.megaphone.fm/APO4863104315.mp3"></audio>
+    <div class="aui" data-audio-ui data-dur="1557" hidden>
+      <button class="aplay" type="button" aria-label="播放"></button>
+      <div class="abar" role="slider" tabindex="0" aria-label="播放进度"
+           aria-valuemin="0" aria-valuemax="100"><div class="afill"></div></div>
+      <span class="atime"><span class="acur">0:00</span><span class="asep">/</span><span class="atot">--:--</span></span>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="why">NVIDIA Cosmos 3 的技术细节和落地路径，讲清了世界模型在机器人上先做什么、后做什么。信息密度中等，后半段的工程判断比前半段的架构描述值钱。</div></section>
+
+<section class="section"><h2>核心论点 · 点时间戳可跳到原声</h2><div class="point" id="p0"><a class="ts" data-t="148" href="https://traffic.megaphone.fm/APO4863104315.mp3#t=148" target="_blank" rel="noopener">2:28</a><div><h4>一个模型干三件事，靠信息瓶颈逼出协同</h4>
+<p class="body">Cosmos 3 的架构是两座塔：一座自回归的视觉语言模型负责理解和推理，一座双向扩散的生成器塔负责生成视频、动作和音频。生成器塔里每个 token 都注意其他所有 token，所以一个 chunk 内的信号是连贯的。关键设计是把前向动力学（给动作预测未来）、逆向动力学（给视觉变化反推动作）和策略（给任务决定做什么）放进同一个模型，并施加信息瓶颈——容量有限，三者必须共享对观察和动作之间相关性的表示。论文结果显示三者有协同，一个帮另一个。Ming-Yu 说这本质上是同一件事的不同切片。</p>
+<span class="spk">— Ming-Yu Liu</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="384" href="https://traffic.megaphone.fm/APO4863104315.mp3#t=384" target="_blank" rel="noopener">6:24</a><div><h4>不同频率的信号要压到同一根时间轴上</h4>
+<p class="body">视频有不同帧率，音频有不同赫兹，动作也有自己的频率。要让一个模型同时处理这些，必须解决时间尺度不一致的问题。Cosmos 3 的做法是 temporal position embedding，把所有信号归一化到同一根轴上，让每个 token 代表信号的一个时间片段，模型既知道哪些 token 属于同一时刻，也知道不同时刻之间的相对距离。Ming-Yu 说这是让整个模型能工作的关键部分。没有这一步，音频、视频、动作没法在同一个注意力空间里对齐。</p>
+<span class="spk">— Ming-Yu Liu</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="568" href="https://traffic.megaphone.fm/APO4863104315.mp3#t=568" target="_blank" rel="noopener">9:28</a><div><h4>人类视频多、机器人数据少，但迁移的是模式不是动作</h4>
+<p class="body">训练数据严重不对称：第一人称的人类视频海量，机器人视频少得多。但 Ming-Yu 认为迁移可行的原因是共享词汇——人手操作物体的视觉模式，和机器人夹爪操作物体的视觉模式，在观察与动作的相关性上非常相似。即使动作空间不能精确对应，一旦对齐了一组动作，模式是相似的，泛化到另一种 embodiment 就更容易。加入多种 embodiment 训练，还能帮助泛化到没见过的 embodiment。他承认模型并不知道什么时候不该迁移、迁移可能有害，但强调关键是模式而非精确的动作空间。</p>
+<span class="spk">— Ming-Yu Liu</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="773" href="https://traffic.megaphone.fm/APO4863104315.mp3#t=773" target="_blank" rel="noopener">12:53</a><div><h4>神经模拟器先做被动验证，不做训练</h4>
+<p class="body">被问到 sim-to-real gap 和策略在模拟器里钻空子的问题时，Ming-Yu 承认可能发生。但他给出的落地顺序是：神经模拟器先用于被动验证。模型训练会产生大量 checkpoint，理想情况是把每个策略部署到真机、真环境测完成率，但成本太高。用世界模拟器替代真机和真司机，让策略直接和模拟器交互，rollout 结束后测成功率。不需要模拟器的成功率精确，只需要排名保持——模拟器里 A 比 B 好，真机上大概率也是。这样能快速缩小需要真机验证的 checkpoint 数量，提高开发速度。他说即使世界模型还不够成熟到能喂训练数据，也先能做策略验证。</p>
+<span class="spk">— Ming-Yu Liu</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="1007" href="https://traffic.megaphone.fm/APO4863104315.mp3#t=1007" target="_blank" rel="noopener">16:47</a><div><h4>Cosmos 作为起点，提供数据、环境和初始权重</h4>
+<p class="body">Cosmos 想帮生态的三件事：更好的数据、更好的环境、更好的起点。Ming-Yu 说把视频、动作、文本连在一起学共享表示，是构建策略模型的好起点，这不是理论——在后训练 Cosmos 模型到共享数据集上，取得了 pick and place 策略的结果。直觉是：如果能很好地预测像素动态，并学到像素和动作之间的相关性，就能帮助构建策略模型。随着 Cosmos 模型推进、引入更多 embodiment，它作为起点的质量会越来越高，适配新 embodiment 所需的工作量会越来越少。repo 里提供了后训练 recipe，让开发者能复现结果。</p>
+<span class="spk">— Ming-Yu Liu</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="1193" href="https://traffic.megaphone.fm/APO4863104315.mp3#t=1193" target="_blank" rel="noopener">19:53</a><div><h4>导航已经够用，操作才是真正的难关</h4>
+<p class="body">Ming-Yu 把机器人任务分成两类。导航任务里，你不希望物理设备碰到任何东西，相对简单，他认为现在一个模型已经够好。但操作任务要求各种交互，有接触就有缓冲，有潜在的形变，所以更难。他对整个领域在 world model 上的热情、深度学习研究的持续进步和算力的提升很乐观，认为会到达一个状态：用神经模拟能很好地处理复杂的操作任务。到那时就可以用世界模拟器测试机器人策略。这个判断把 Cosmos 的能力边界说得很清楚——不是所有机器人任务都同等成熟。</p>
+<span class="spk">— Ming-Yu Liu</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="1257" href="https://traffic.megaphone.fm/APO4863104315.mp3#t=1257" target="_blank" rel="noopener">20:57</a><div><h4>人形机器人进家门，安全验证是唯一出路</h4>
+<p class="body">Ming-Yu 用自动驾驶类比：车已经在人类空间里移动，所以今天就需要大量策略验证来保证足够安全。当人形机器人进入很多人的家里，安全更重要——你不会预期家里有辆车，但会预期人形机器人出现在你、你的孩子、你的宠物周围。开发者怎么保证每一次策略迭代、整个系统都足够安全？需要策略验证。但你不会有足够空间搭建各种厨房、各种任务。所以他认为用神经模拟器是唯一能给你开发速度的方式。这段把 Cosmos Dreams 的动机从技术推到了部署场景。</p>
+<span class="spk">— Ming-Yu Liu</span></div></div>
+<div class="point" id="p7"><a class="ts" data-t="1324" href="https://traffic.megaphone.fm/APO4863104315.mp3#t=1324" target="_blank" rel="noopener">22:04</a><div><h4>世界模型要住在机器人住的地方</h4>
+<p class="body">Cosmos 有三个尺寸：Super 是前沿模型，保真度最高，要最高精度且有算力就选它；Nano 居中，更小，更容易用各种 GPU 资源后训练；Edge 要跑在 Jetson Thor、Orin、DGX Spark 这类边缘设备上。做 Edge 的原因是让世界模型住在机器人住的地方，这样采取某个动作时不需要往返数据中心。Ming-Yu 说真实部署时不能指望网络连接足够好来完成所有任务，有些场景是安全关键的，必须当场完成任务。Edge 模型更小、算力需求更低，容易微调，他们有一个 recipe 能在一天内微调 Cosmos Edge 提升视觉理解能力。他还设想三种尺寸未来会协同工作：难任务调用强模型，简单任务靠边缘模型当场完成。</p>
+<span class="spk">— Ming-Yu Liu</span></div></div></section>
+<section class="section"><h2>原话 · 已逐字校验</h2><blockquote class="quote"><p class="raw">I think a world model is going to be the same. So I think a world model is a collection of useful tools. We model something because we are trying to achieve some goal.</p>
+<p class="zh">我认为世界模型也会一样。世界模型是一组有用的工具。我们对某样东西建模，是因为我们想达成某个目标。</p>
+<div class="attrib"><b>Ming-Yu Liu</b><a class="ts" data-t="322" href="https://traffic.megaphone.fm/APO4863104315.mp3#t=322" target="_blank" rel="noopener">5:22</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">Yeah, so I think that these three, they are trying to fundamentally trying to capture the correlation between the observation and action. Right? It&#x27;s just a different slice, different perspective.</p>
+<p class="zh">我认为这三者根本上都是在捕捉观察和动作之间的相关性。只是不同的切片、不同的视角。</p>
+<div class="attrib"><b>Ming-Yu Liu</b><a class="ts" data-t="506" href="https://traffic.megaphone.fm/APO4863104315.mp3#t=506" target="_blank" rel="noopener">8:26</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">So I think it&#x27;s more about our shared vocabulary for different embodiments, right?</p>
+<p class="zh">所以我认为这更多是关于不同 embodiment 之间的共享词汇。</p>
+<div class="attrib"><b>Ming-Yu Liu</b><a class="ts" data-t="568" href="https://traffic.megaphone.fm/APO4863104315.mp3#t=568" target="_blank" rel="noopener">9:28</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">If the success rates of the world simulator, the new world simulator correlates with the real-world, you know, testing, the ranking preserve, you don&#x27;t need them to be precise. You just need to know if policy A is better than that. and policy B in neural simulator.</p>
+<p class="zh">如果世界模拟器的成功率与真实世界测试相关，排名保持住，你不需要它们精确。你只需要知道在神经模拟器里策略 A 是否比策略 B 好。</p>
+<div class="attrib"><b>Ming-Yu Liu</b><a class="ts" data-t="882" href="https://traffic.megaphone.fm/APO4863104315.mp3#t=882" target="_blank" rel="noopener">14:42</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">So even before it&#x27;s mature enough to feed the policy model, the training data to train, wall simulator can be used as a policy verification.</p>
+<p class="zh">所以即使在它成熟到能给策略模型喂训练数据之前，世界模拟器也可以用作策略验证。</p>
+<div class="attrib"><b>Ming-Yu Liu</b><a class="ts" data-t="943" href="https://traffic.megaphone.fm/APO4863104315.mp3#t=943" target="_blank" rel="noopener">15:43</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">You don&#x27;t expect to see a car, you know, in your house. But once human-knowing is everywhere, you&#x27;re going to expect to see human-knowing surrounding you and maybe your kid, your pet, right? So you do want them to be safe enough.</p>
+<p class="zh">你不会预期在自己家里看到一辆车。但一旦人形机器人无处不在，你会预期人形机器人围绕着你，也许是你的孩子、你的宠物。所以你确实希望它们足够安全。</p>
+<div class="attrib"><b>Ming-Yu Liu</b><a class="ts" data-t="1257" href="https://traffic.megaphone.fm/APO4863104315.mp3#t=1257" target="_blank" rel="noopener">20:57</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">So the reason we built this one is that we want the world model lives where a robot lives, right? So that you don&#x27;t need to have a round trip to data center when you want to take a certain action.</p>
+<p class="zh">我们做这个的原因是，我们希望世界模型住在机器人住的地方。这样你想采取某个动作时，不需要往返数据中心。</p>
+<div class="attrib"><b>Ming-Yu Liu</b><a class="ts" data-t="1381" href="https://traffic.megaphone.fm/APO4863104315.mp3#t=1381" target="_blank" rel="noopener">23:01</a></div>
+</blockquote></section>
+<section class="section"><h2>数字与实体</h2><table class="facts"><tr><td class="k">Cosmos 模型尺寸档位</td><td class="v">Super、Nano、Edge 三档</td><td class="t"><a class="ts" data-t="1324" href="https://traffic.megaphone.fm/APO4863104315.mp3#t=1324" target="_blank" rel="noopener">22:04</a></td></tr>
+<tr><td class="k">Edge 模型目标设备</td><td class="v">Jetson Thor、Orin、DGX Spark</td><td class="t"><a class="ts" data-t="1370" href="https://traffic.megaphone.fm/APO4863104315.mp3#t=1370" target="_blank" rel="noopener">22:50</a></td></tr>
+<tr><td class="k">Cosmos Edge 微调耗时</td><td class="v">一天内完成微调以提升视觉理解</td><td class="t"><a class="ts" data-t="1381" href="https://traffic.megaphone.fm/APO4863104315.mp3#t=1381" target="_blank" rel="noopener">23:01</a></td></tr>
+<tr><td class="k">Cosmos 模型与数据托管</td><td class="v">模型和数据在 Hugging Face，代码在 GitHub</td><td class="t"><a class="ts" data-t="1464" href="https://traffic.megaphone.fm/APO4863104315.mp3#t=1464" target="_blank" rel="noopener">24:24</a></td></tr></table></section>
+<section class="section"><h2>术语</h2><dl class="terms"><div><dt>world model<span>世界模型</span></dt><dd>对环境动态建模、能预测未来观察或反推动作的模型集合。</dd></div>
+<div><dt>forward dynamics<span>前向动力学</span></dt><dd>给定起始状态和动作，预测接下来会发生什么。</dd></div>
+<div><dt>inverse dynamics<span>逆向动力学</span></dt><dd>给定视觉上的状态转移，反推执行了什么动作。</dd></div>
+<div><dt>sim-to-real gap<span>仿真到现实的差距</span></dt><dd>模拟器里训练的策略迁移到真机时性能下降的现象。</dd></div>
+<div><dt>embodiment<span>具身形态</span></dt><dd>机器人的物理身体构型，如人手、夹爪、不同臂长。</dd></div>
+<div><dt>temporal position embedding<span>时间位置嵌入</span></dt><dd>把不同频率的信号归一化到同一时间轴，让模型对齐时刻。</dd></div></dl></section>
+<section class="section"><h2>收听指南</h2>
+<div class="panel guide">
+<div><span class="k">谁该听</span><p>做机器人策略、自动驾驶仿真、具身智能的工程师和研究者；评估世界模型落地路径的投资人。</p></div>
+<div><span class="k">可跳过</span><p>0:00-2:28 的开场演示和项目介绍可快进，技术内容从 2:28 开始。</p></div>
+</div></section>
+<section class="related"><h2 class="sec-title">顺着这个话题</h2><ul class="rel-list"><li><a href="/podcast/p/2026-08-25-lightstar-两万台出货九成吃灰-具身行业进入算roi的实战期/"><span class="rel-t">两万台出货九成吃灰：具身行业进入算ROI的实战期</span><span class="rel-s">漫谈Light the Star</span></a></li><li><a href="/podcast/p/2026-08-12-zhangxiaojun-英伟达研究副总裁-模型竞争终局是生态-不是击败对手/"><span class="rel-t">英伟达研究副总裁：模型终局是生态，不是击败对手</span><span class="rel-s">张小珺·商业访谈录</span></a></li><li><a href="/podcast/p/2026-09-11-oxide-仿真到能跑原厂固件-才算跨过谎言的边界/"><span class="rel-t">仿真到能跑原厂固件，才算跨过谎言的边界</span><span class="rel-s">Oxide and Friends</span></a></li><li><a href="/podcast/p/2026-07-16-sv101-机器人操作比运动控制难两三个数量级-硅谷却押错了方向/"><span class="rel-t">机器人操作比运动控制难两三个数量级，硅谷却押错了方向</span><span class="rel-s">硅谷101</span></a></li><li><a href="/podcast/p/2026-09-04-betteroffline-ai-巨头-80-企业收入来自-1-客户-多数靠-vc-续命/"><span class="rel-t">AI 巨头 80% 企业收入来自 1% 客户，多数靠 VC 续命</span><span class="rel-s">Better Offline</span></a></li></ul></section>
+<nav class="prevnext"><a href="/podcast/p/2026-09-15-allin-微软不追前沿模型-纳德拉说真正的生意是当所有人的中间层/"><span class="lbl">← 更新</span><strong>微软不追前沿模型：纳德拉说真正的生意是当所有人的中间层</strong></a><a class="r" href="/podcast/p/2026-09-15-intotheimpossi-银河系外缘转慢了-暗物质和-mond-可能都预测错了/"><span class="lbl">更早 →</span><strong>银河系外缘转慢了，暗物质和 MOND 可能都预测错了</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原节目</h4>
+<div class="row"><span>节目</span><span>Machine Learning Street Talk</span></div>
+<div class="row"><span>原标题</span><span>How Physical AI Learns Across Language, Video and Action — Ming-Yu Liu</span></div>
+<div class="row"><span>发布</span><span>2026-09-15</span></div>
+<div class="row"><span>时长</span><span>25:57</span></div>
+<a class="row" href="https://podcasters.spotify.com/pod/show/machinelearningstreettalk/episodes/How-Physical-AI-Learns-Across-Language--Video-and-Action--Ming-Yu-Liu-e3ospub" target="_blank" rel="noopener"><span>原页面</span><span>打开 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇结构</h4><nav class="toc"><a href="#p0"><span class="t">2:28</span><span>一个模型干三件事，靠信息瓶颈逼出协同</span></a>
+<a href="#p1"><span class="t">6:24</span><span>不同频率的信号要压到同一根时间轴上</span></a>
+<a href="#p2"><span class="t">9:28</span><span>人类视频多、机器人数据少，但迁移的是模式不是动作</span></a>
+<a href="#p3"><span class="t">12:53</span><span>神经模拟器先做被动验证，不做训练</span></a>
+<a href="#p4"><span class="t">16:47</span><span>Cosmos 作为起点，提供数据、环境和初始权重</span></a>
+<a href="#p5"><span class="t">19:53</span><span>导航已经够用，操作才是真正的难关</span></a>
+<a href="#p6"><span class="t">20:57</span><span>人形机器人进家门，安全验证是唯一出路</span></a>
+<a href="#p7"><span class="t">22:04</span><span>世界模型要住在机器人住的地方</span></a></nav></div>
+
+<div class="panel"><h4>这篇是怎么来的</h4>
+<div class="row"><span>成稿评分</span><span>8 / 10</span></div>
+<div class="row"><span>文稿来源</span><span>音频转写</span></div>
+<div class="row"><span>文稿字数</span><span>3617</span></div>
+<div class="row"><span>语速核验</span><span>139.4 wpm</span></div>
+<div class="row"><span>逐字校验金句</span><span>7 条</span></div>
+<div class="row"><span>回溯校验数字</span><span>4 条</span></div>
+
+<p class="note">金句在逐字稿里逐字比对过，数字回原文核对过；对不上的当场删掉，不上站。
+成稿另经一道独立评审（信息密度／忠实度／选择力／具体性／中文），低于 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原声 · <a href="https://ourword.ai">OurWord.ai</a>的播客线。内容为原播客的中文深读，
+版权归各节目所有；每篇都附原节目链接，请去支持原作者。</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/" lang="zh">人类世界生存法则</a> · <a href="/podcast/">原声</a></div>
+<div class="links"><a href="/podcast/">首页</a><a href="/podcast/sources/">信源</a>
+<a href="/podcast/log/">更新日志</a><a href="/podcast/feed.xml">RSS</a>
+<a href="/podcast/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源码</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=d235129544" defer></script>
+</body></html>
