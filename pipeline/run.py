@@ -22,7 +22,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from lib import digest as D, feeds, gate, llm, review, transcript as T, triage  # noqa: E402
+from lib import (digest as D, feeds, gate, llm, review, scrub,  # noqa: E402
+                 transcript as T, triage)
 from lib.util import (eid, fingerprint, hhmmss, iso, log, now,   # noqa: E402
                       slugify, squeeze)
 
@@ -574,6 +575,14 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
         _release(state, fp, key)
         return "error"
 
+    # **发稿前把转写残留从金句里摘掉。**
+    # 金句是逐字引用、署着真人名字的；语音转写把专名写成别的词之后，
+    # 查重闸拿它去对**同一份错的转写**，内部一致所以过了 ——
+    # 闸测的是一致性不是正确性，这个洞它堵不上。实测张小珺存量的头 6 集，
+    # 5 篇里 4 篇金句带这种残留（Elon→「英朗」、护城河→「户层盒」）。
+    dropped = scrub.drop_bad_quotes(d)
+    if dropped:
+        log(f"    摘掉 {len(dropped)} 条带转写残留的金句：{'、'.join(dropped[:3])}")
     ok, problems, d = gate.check(d, tr, ep)
     gate.report(problems, ok)
     if not ok:

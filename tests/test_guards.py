@@ -6511,6 +6511,84 @@ class EveryUiStringMustBeRegisteredBeforePush(unittest.TestCase):
             f"{missing[:3]}")
 
 
+class AQuoteMustNotCarrySpeechToTextGarbage(unittest.TestCase):
+    """逐字引用里不能留语音转写的残渣。
+
+    金句是**署着真人名字的逐字引用**。转写把专名写成别的词之后，查重闸拿
+    这句去对**同一份错的转写** —— 内部一致，所以过了。闸测的是一致性，
+    不是正确性，这个洞它堵不上。
+
+    实测（张小珺存量补齐的头 6 集）：31 条金句里 9 条带残留 ——
+    Elon→「英朗／伊朗」（单集 78 处）、护城河→「户层盒」「护身核」、
+    Anthropic→「Anthorpeg」、to B→「土币」、Falcon 9→「Fain 19号」、
+    通用人形机器人→「通用能行机型」。**要点里一处都没有** ——
+    深读是转述，模型会把话理顺；只有逐字引用会原样带出来。
+    再抽查六档中文源：**20% 的金句带残留**，不是这一档的毛病。
+
+    试过更便宜的办法，不行：给 whisper 喂 initial_prompt 词表，在真出错的
+    那段音频上测了两次（通用词表、专门加「埃隆/Elon」的词表），错字一处没少 ——
+    initial_prompt 只影响第一个窗口，300 秒一片里后面的窗口够不着它。
+    也不能做固定替换表：「伊朗」本身是正常词，一刀切会把真讲伊朗的集改坏。
+    """
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.scrub = importlib.import_module("lib.scrub")
+
+    def test_a_flagged_string_must_really_be_in_the_quote(self):
+        """模型说的那个字串必须真在那句里 —— 不然它随口编一个就能删掉好金句。"""
+        import unittest.mock as mock
+        sc = self.scrub
+        qs = [{"raw": "这句话完全正常，没有任何问题存在于其中"},
+              {"raw": "那原来你的护身核就变成了你的一个软肋"}]
+        with mock.patch.object(sc.llm, "available", lambda: True), \
+             mock.patch.object(sc.llm, "call_json",
+                               lambda *a, **k: {"bad": [{"i": 0, "s": "根本没这个词"},
+                                                        {"i": 1, "s": "护身核"}]}):
+            got = sc.bad_quotes(qs)
+        self.assertNotIn(0, got, "模型编的字串没核对就采信了 —— 会误删好金句")
+        self.assertEqual(got.get(1), "护身核", "真在句子里的残留没被标出")
+
+    def test_it_fails_open_when_the_model_is_unavailable(self):
+        """判不了就放行 —— 这一步是加分项，不该成为发不出去的新理由。"""
+        import unittest.mock as mock
+        sc = self.scrub
+        qs = [{"raw": "一句话"}, {"raw": "另一句话"}]
+        # **断言「压根没调模型」，不能只断言返回空。**
+        # 只看返回值的话，把 available() 这道判断删掉，代码会去调真的模型，
+        # 而模型对这两句本来就标不出东西 —— 返回照样是空，闸照样绿。
+        # 反向注入当场验出这个洞。
+        calls = []
+        with mock.patch.object(sc.llm, "available", lambda: False), \
+             mock.patch.object(sc.llm, "call_json",
+                               lambda *a, **k: calls.append(1) or {"bad": []}):
+            self.assertEqual(sc.bad_quotes(qs), {})
+        self.assertFalse(calls, "模型不可用时还去调它了 —— 每篇都会白等一次超时")
+        with mock.patch.object(sc.llm, "available", lambda: True), \
+             mock.patch.object(sc.llm, "call_json",
+                               lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom"))):
+            self.assertEqual(sc.bad_quotes(qs), {}, "模型报错就把整篇卡住了")
+
+    def test_dropping_actually_removes_them(self):
+        import unittest.mock as mock
+        sc = self.scrub
+        d = {"quotes": [{"raw": "好句子一条，内容完整可读"},
+                        {"raw": "这里有户层盒这个转写残留"},
+                        {"raw": "好句子两条，内容完整可读"}]}
+        with mock.patch.object(sc, "bad_quotes", lambda qs: {1: "户层盒"}):
+            note = sc.drop_bad_quotes(d)
+        self.assertEqual(len(d["quotes"]), 2, "标出来了却没摘掉")
+        self.assertTrue(note and "户层盒" in note[0], "没留下可复查的说明")
+
+    def test_the_pipeline_scrubs_before_the_gate(self):
+        """要在机械闸**之前**摘 —— 闸之后摘的话，闸统计的还是脏的那份。"""
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i_scrub = src.index("scrub.drop_bad_quotes(")
+        i_gate = src.index("ok, problems, d = gate.check(")
+        self.assertLess(i_scrub, i_gate, "校对放到了机械闸后面")
+
+
 class EveryEpisodeMustBeAFewHopsFromTheFrontPage(unittest.TestCase):
     """从首页走到任何一篇，不能要走几百跳。
 
