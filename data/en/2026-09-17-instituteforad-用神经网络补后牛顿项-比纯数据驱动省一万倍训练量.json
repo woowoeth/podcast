@@ -2,11 +2,11 @@
  "slug": "2026-09-17-instituteforad-用神经网络补后牛顿项-比纯数据驱动省一万倍训练量",
  "of": "instituteforad-4d05fce138",
  "source_lang": "en",
- "title": "Feeding Neural Networks the Post-Newtonian Terms Cuts Training Data by 10,000x",
- "dek": "A purely neural waveform model needs 10^8 to 10^10 training waveforms, but writing known physics into the network and letting it learn only the corrections requires just 8 numerical-relativity waveforms.",
- "why": "The first half covers the state of the field in gravitational-wave modeling; the second half, with concrete numbers on surrogate speedups and PINNs, is the part worth hearing.",
- "who": "Graduate students and engineers working on gravitational-wave data analysis, numerical relativity, or scientific machine learning, especially those who want to use physics constraints to reduce training-data requirements.",
- "skip": "The first ~5 minutes of conference introductions and detector-sensitivity-curve background can be fast-forwarded.",
+ "title": "Feeding Post-Newtonian Terms to a Neural Network Cuts Training Data by 10,000x",
+ "dek": "A purely neural waveform model needs 10^8 to 10^10 training waveforms, but writing known physics into the network and letting it learn only the corrections needs just 8 numerical-relativity waveforms.",
+ "why": "The first half covers the state of the field in gravitational-wave modeling; the second half, on surrogate speedups and the concrete numbers behind the PINN, is more worth hearing.",
+ "who": "Graduate students and engineers working on gravitational-wave data analysis, numerical relativity, or scientific machine learning, especially those who want to use physics constraints to reduce training data.",
+ "skip": "The first ~5 minutes of conference introductions and detector sensitivity curve background can be fast-forwarded.",
  "tags": [
   "Gravitational waves",
   "Numerical relativity",
@@ -17,23 +17,23 @@
  "points": [
   {
    "h": "LIGO's error bars may come from theory, not the instrument",
-   "body": "The speaker says that for some LIGO events, it cannot be ruled out that the analysis results are limited by understanding of waveform systematic errors, not just cryogenic cooling or mirror defects. GW23123 is an example: run different models and the posterior distributions show non-trivial differences. His position is not to take sides on who is right, but to give the models better error bars so that the data analysts can keep arguing about who is right."
+   "body": "The speaker says that for some LIGO events, it cannot yet be ruled out that the analysis results are limited by understanding of waveform systematic errors, rather than just cryogenic cooling or mirror defects. GW23123 is an example: run different models and the posterior distributions show non-trivial differences. His position is not to take sides on who is right, but to give models better error bars so that the people doing data analysis can keep arguing about who is right."
   },
   {
    "h": "Double the simulation length, quadruple the error",
-   "body": "The mismatch of numerical-relativity simulations scales roughly as the square of the wavelength. Because simulation accuracy is dominated by phase error, phase error accumulates linearly with time, and mismatch is the square of phase error. So wanting a simulation twice as long doesn't just mean waiting longer; you also have to make it more accurate, and the cost is penalized multiplicatively. Most simulations currently land at about 30 orbits, while the reference line is about 25 orbits."
+   "body": "The mismatch of numerical-relativity simulations scales roughly as the square of the wavelength. Because simulation accuracy is dominated by phase error, phase error accumulates linearly with time, and mismatch is the square of phase error. So wanting a simulation twice as long is not just waiting longer; you also have to make the accuracy higher, and the cost is penalized multiplicatively. Currently most simulations land at about 30 orbits, while the reference line is about 25 orbits."
   },
   {
    "h": "For next-generation detectors, pure numerical relativity has no hope",
-   "body": "The speaker showed a plot: the horizontal axis is event signal-to-noise ratio, the vertical axis is the number of simulations in the catalog that are accurate and long enough. For LIGO, about 85% to 90% of the catalog is sufficient, roughly 3000 simulations; but for heavy systems at 10^4 signal-to-noise ratio, only about 10 simulations in total are sufficient. For Cosmic Explorer and Einstein Telescope, the conclusion is that numerical relativity alone is completely insufficient and other models are needed to fill the gap."
+   "body": "The speaker showed a plot: the horizontal axis is event signal-to-noise ratio, the vertical axis is the number of simulations in the catalog that are accurate and long enough. For LIGO, about 85% to 90% of the catalog is sufficient, about 3000 simulations; but for heavy systems at 10^4 signal-to-noise ratio, only about 10 simulations in total are sufficient. For Cosmic Explorer and Einstein Telescope, the conclusion is that numerical relativity alone is completely insufficient and other models are needed to fill the gap."
   },
   {
    "h": "Hybrid waveforms are actually stitching together two different physical systems",
-   "body": "When splicing post-Newtonian waveforms with numerical-relativity waveforms, the cost function has many local minima in parameter space, and the global minimum falls in a narrow, shallow valley that optimizers struggle to find. The test is to run a simulation of about 60 orbits, then shift the matching window and see what the early waveform looks like. The result is that the early numerical-relativity waveform and the post-Newtonian waveform look completely different, which amounts to smoothly stitching together waveforms from two different physical systems, introducing bias."
+   "body": "When splicing post-Newtonian waveforms with numerical-relativity waveforms, the cost function has many local minima in parameter space, and the global minimum falls in a narrow, shallow valley that optimizers struggle to find. The test method is to run a simulation of about 60 orbits, then move the matching window and see what the early waveform looks like. The result is that the early numerical-relativity waveform and the post-Newtonian waveform look completely different, which amounts to smoothly stitching together waveforms from two different physical systems, introducing bias."
   },
   {
    "h": "Let the neural network learn only what post-Newtonian cannot compute",
-   "body": "Each additional post-Newtonian term is a PhD thesis worth of work, so the speaker's idea is to treat the neural network as encoding all the post-Newtonian terms he doesn't want to write by hand. The network needs only about 100 parameters, about 120 CPU hours of training, and only 8 numerical-relativity waveforms in mass-ratio space. In addition to waveform difference, the loss function requires the orbital velocity to be close, the correction term to vanish as orbital velocity goes to zero, and equal-mass symmetry and weight regularization."
+   "body": "Each additional post-Newtonian term is a PhD thesis worth of work, so the speaker's idea is to treat the neural network as encoding all the post-Newtonian terms he does not want to write by hand. The network needs only about 100 parameters, about 120 CPU hours of training, and only 8 numerical-relativity waveforms in mass-ratio space. In addition to waveform differences, the loss function also requires the orbital velocity to be close, the correction term to vanish as orbital velocity goes to zero, and equal-mass symmetry and weight regularization."
   },
   {
    "h": "Physics-informed networks extrapolate better outside the training set",
@@ -41,11 +41,11 @@
   },
   {
    "h": "Purely neural approaches need more than 10,000 times the training data",
-   "body": "The speaker says that most other attempts he has seen at modeling waveforms with neural networks throw physics out entirely and use only neural networks or autoencoders, which really do need 10^8 to 10^10 waveforms for training, meaning you would first have to build a surrogate to generate the training data, because it is impossible to obtain that many numerical-relativity waveforms. His conclusion: machine learning is a useful tool, but don't forget that you actually do know something about the thing you are modeling."
+   "body": "The speaker says that most other attempts he has seen at modeling waveforms with neural networks throw physics away entirely and use only neural networks or autoencoders; that really requires 10^8 to 10^10 waveforms to train, meaning you would first have to build a surrogate to generate the training data, because it is impossible to obtain that many numerical-relativity waveforms. His conclusion: machine learning is a useful tool, but do not forget that you actually do know something about the thing you are modeling."
   },
   {
    "h": "Surrogate speedup of 30 to 40 times comes from changing the algorithm",
-   "body": "The speaker says all he did was make the code less bad, with no revolutionary insight. The starting point was about 30 milliseconds, and now there is about a 30 to 40 times speedup. The biggest speedup came from changing the algorithm: from cubic interpolation to tenth-order Hermite polynomials, with far fewer time nodes. Currently the dynamics part dominates, at about 370 microseconds, while waveform evaluation takes only 50 microseconds. He estimates that eventually he can deliver a frequency-domain waveform in 0.2 milliseconds, comparable to or better than the fastest phenom waveforms."
+   "body": "The speaker says all he did was make the code less bad, with no revolutionary insight. The starting point was about 30 milliseconds, and now there is about a 30 to 40 times speedup. The biggest speedup came from changing the algorithm: from cubic interpolation to tenth-order Hermite polynomials, with far fewer time nodes. Currently the dynamics part dominates, at about 370 microseconds, while waveform evaluation takes only 50 microseconds. He estimates that eventually a frequency-domain waveform can be produced in 0.2 milliseconds, comparable to or better than the fastest phenom waveforms."
   }
  ],
  "terms": [
@@ -55,11 +55,11 @@
   },
   {
    "term": "physics informed neural network",
-   "def": "A network that has known physical equations written into its structure and learns only the correction terms."
+   "def": "A network that writes known physical equations into its structure and lets the network learn only the correction terms."
   },
   {
    "term": "post-Newtonian",
-   "def": "An approximate analytic expansion for the early inspiral of gravitational waves, becoming less accurate as merger approaches."
+   "def": "An approximate analytic expansion for the early inspiral of gravitational waves, becoming less accurate closer to merger."
   },
   {
    "term": "mismatch",
@@ -67,16 +67,16 @@
   },
   {
    "term": "co-orbital frame",
-   "def": "A reference frame that rotates with the binary, making waveforms smoother and easier to model."
+   "def": "A reference frame that rotates with the binary, making the waveform smoother and easier to model."
   }
  ],
  "facts": [
   {
-   "k": "Fraction of LIGO catalog simulations that are sufficient",
+   "k": "Fraction of LIGO catalog simulations sufficient",
    "v": "about 85% to 90%, about 3000"
   },
   {
-   "k": "Number of sufficient simulations for heavy systems at 10^4 signal-to-noise ratio",
+   "k": "Number of simulations sufficient for heavy systems at 10^4 signal-to-noise ratio",
    "v": "about 10"
   },
   {
