@@ -5,8 +5,8 @@
  "title": "Fiat-Shamir attacks aren't misuse — the protocol itself is insecure",
  "dek": "Protocols actually deployed, like GKR, can be proven to accept false statements under standard Fiat-Shamir; this isn't an implementation oversight, it's a problem with the transform itself.",
  "why": "The first half's theory recap drags, but the construction of the Fiat-Shamir attack and the measured numbers from Flock and snark.fast are worth hearing.",
- "who": "Engineers building ZK proof systems, SNARKs or ZKVMs, and researchers concerned with Fiat-Shamir security and AI-assisted engineering optimization.",
- "skip": "The opening chat about the difference between theorists and practitioners (roughly 3:00-6:00) can be skipped.",
+ "who": "Engineers building ZK proof systems, SNARKs or ZKVMs, and researchers interested in Fiat-Shamir security and AI-assisted engineering optimization.",
+ "skip": "The opening chit-chat about the difference between theorists and practitioners (roughly 3:00-6:00) can be skipped.",
  "tags": [
   "Zero-knowledge proofs",
   "Fiat-Shamir",
@@ -17,47 +17,47 @@
  "points": [
   {
    "h": "A hand-built counterexample fooled everyone",
-   "body": "Before Ron's work with Lev and Dmitry, the field already knew there were examples of ‘secure interactive protocol + Fiat-Shamir = total collapse’, but those protocols were deliberately constructed by theorists to show Fiat-Shamir doesn't always hold, and they looked extremely unnatural. The typical industry reaction was ‘our real protocols wouldn't do anything that stupid’. Ron himself had built a semi-artificial example a few years earlier, with one component that was fictional, which kept him doubtful about security. The turning point was the bug bounty the Ethereum Foundation set up while studying Poseidon's security; the final tier of the reward was ‘launch a Fiat-Shamir attack on any protocol of your choosing using Poseidon’. Ron didn't go claim the prize — he suggested changing the terms to ‘non-fictional protocols’, which directly prompted the sweep of real deployed protocols."
+   "body": "Before Ron's work with Lev and Dmitry, the field already knew there existed examples of ‘secure interactive protocol + Fiat-Shamir = total collapse’, but those protocols were deliberately constructed by theorists to show Fiat-Shamir doesn't always hold, and they looked extremely unnatural. The typical industry reaction was ‘our real protocols wouldn't do anything that stupid’. Ron himself had years earlier built a semi-artificial example in which one component was fictional, which kept him doubtful about security. The turning point was the bug bounty the Ethereum Foundation set up while researching Poseidon's security, whose final tier was ‘launch a Fiat-Shamir attack on any protocol of your choosing using Poseidon’. Ron didn't go for the prize; instead he suggested changing the terms to ‘non-fictional protocols’, which directly prompted the sweep of actually deployed protocols."
   },
   {
-   "h": "GKR's data-saving feature became the attack surface",
-   "body": "What actually got broken was the GKR protocol, widely used in practice; Polyhedra's Expander system uses it. The attack exploits a real feature of GKR: it lets you ‘record less data’, apparently recording less while implicitly committing to that data — which is exactly why people want to use GKR, and exactly what makes the attack possible. The key condition for the attack to work is that the depth of the circuit being proven (the scheme) must be at least as deep as the depth of the hash function used in Fiat-Shamir, and implementations at the time placed no restriction on this. Polyhedra made changes and paid the bounty."
+   "h": "GKR's data-saving trait became the attack surface",
+   "body": "What actually got broken was the GKR protocol, widely used in practice; Polyhedra's Expander system uses it. The attack exploits a real property of GKR: it lets you ‘record less data’, apparently recording less but implicitly committing to that data — which is exactly why people want to use GKR, and exactly what makes the attack possible. The key condition for the attack to work is that the depth of the circuit being proven (the scheme) must be at least as deep as the depth of the hash function used in Fiat-Shamir, and implementations at the time placed no restriction on this. Polyhedra made changes and paid the bounty."
   },
   {
    "h": "The mitigation is just making the hash chain deeper",
-   "body": "The mitigation is plain: make the hash function slightly deeper than the circuit being proven. Concretely, chain several Poseidons together — do 10 Poseidons and the circuit is naturally 10 times deeper, and there's no expected trick to get around it. That's what Polyhedra did. But Ron stresses clearly that this is only a mitigation — we can't demonstrate an attack, but we also don't know that an attack truly doesn't exist. This differs from the usual Fiat-Shamir vulnerabilities: those are typically misuse in practice, like forgetting to include some message the prover sent in the hash; here it's insecure even when Fiat-Shamir is used correctly per spec."
+   "body": "The mitigation is plain: make the hash function slightly deeper than the circuit being proven. Concretely, chain multiple Poseidons together — do 10 Poseidons and the circuit is naturally 10 times deeper, and there's no expected trick to get around it. That's what Polyhedra did. But Ron stresses clearly that this is only a mitigation — we can't demonstrate an attack, but we also don't know that an attack truly doesn't exist. This differs from the usual Fiat-Shamir vulnerabilities: those are typically misuse in practice, like forgetting to include some message the prover sent in the hash; this time it's insecure even when Fiat-Shamir is used correctly per spec."
   },
   {
    "h": "Diagonalization: make the program take itself as input",
-   "body": "Ron gives an extremely artificial protocol to illustrate the attack: the prover sends a message M, the verifier runs M as program code with M itself as input, waits for it to output a 100-bit string, then compares against 100 random bits and accepts only if they match. Interactively this protocol is essentially impossible to accept, because once M is sent, M(M) is fully determined, and the chance of hitting 100 random bits is 2 to the minus 100. But with Fiat-Shamir applied, the random bits become H(M), and the prover only needs to find an M satisfying M(M) = H(M) — take M to be the hash function H itself, since M(M) = H(H) = H(M). This kind of trick is called diagonalization; the essence is forcing a program to nest itself."
+   "body": "Ron gives an extremely artificial protocol to illustrate the attack: the prover sends a message M, the verifier runs M as program code with M itself as input, waits for it to output a 100-bit string, then compares against 100 random bits and accepts only on a match. Interactively this protocol is essentially impossible to accept, because once M is sent, M(M) is fully determined, and the chance of hitting a 100-bit random number is 2 to the minus 100. But with Fiat-Shamir applied, the random number becomes H(M), and the prover only needs to find an M satisfying M(M) = H(M) — take M to be the hash function H itself, since M(M) = H(H) = H(M). This kind of trick is called diagonalization; the essence is forcing a program to nest itself."
   },
   {
    "h": "Swap out Reed-Solomon and you can swap in speed",
-   "body": "Blaze, Tensor Switch and Bolt are all hash-based polynomial commitment schemes, and they share a reliance on error-correcting codes. FRI, STIR and WHIR are all built on Reed-Solomon codes, while these three projects try to trade a better error-correcting code for a better PCS. Bolt uses a code called a sketched code: first take a non-cryptographic ‘digest’ of the message, apply Reed-Solomon encoding only to the digest, and the overall codeword = the encoding of the digest + the original message. The benefit is that Reed-Solomon acts on data roughly a tenth the size, cutting encoding cost by an order of magnitude. The cost may be larger proof size, but in settings where not everyone needs to read the proof, proving time matters more. Ron notes this line focuses on proving efficiency, while the WHIR line focuses on verification and proof size, and the two can coexist through proof composition: use Bolt to get an extremely fast proof, then recursively prove its verifier with WHIR, inheriting high-quality verification."
+   "body": "Blaze, Tensor Switch and Bolt are all hash-based polynomial commitment schemes, sharing a reliance on error-correcting codes. FRI, STIR and WHIR are all built on Reed-Solomon codes, while these three projects try to trade a better error-correcting code for a better PCS. Bolt uses a code called a sketched code: first take a non-cryptographic ‘digest’ of the message, apply Reed-Solomon encoding only to the digest, and the overall codeword = the encoding of the digest + the original message. The upside is that Reed-Solomon acts on roughly one-tenth the data, cutting encoding cost by an order of magnitude. The cost may be larger proof size, but in settings where not everyone needs to read the proof, proving time matters more. Ron notes this line focuses on proving efficiency, while the WHIR line focuses on verification and proof size, and the two can coexist via proof composition: use Bolt to get extremely fast proving, then recursively prove its verifier with WHIR to inherit high-quality verification."
   },
   {
-   "h": "Veil gives hash-based proofs zero knowledge for free",
-   "body": "Veil is a way to make a certain class of hash-based proof systems zero-knowledge (Ron dislikes the name ZK ZK). Traditionally, implementing zero-knowledge in SP1 means recursively composing a succinct proof with Groth16, but Groth16 isn't post-quantum secure. What Veil wants is a native, hash-based zero-knowledge scheme. Existing proofs of concept show the resource overhead is fairly small in both proving time and proof size, and the plan is to implement it directly in SP1."
+   "h": "Veil gives hash-based proofs zero-knowledge for free",
+   "body": "Veil is a way to make a certain class of hash-based proof systems zero-knowledge (Ron dislikes the term ZK ZK). Traditionally, implementing zero-knowledge in SP1 means recursively composing a succinct proof with Groth16, but Groth16 isn't post-quantum secure. What Veil wants is a native, hash-based zero-knowledge scheme. Existing proofs of concept show the resource overhead is quite small in both proving time and proof size, and the plan is to implement it directly in SP1."
   },
   {
    "h": "Flock let Ethereum dare to abandon Poseidon",
-   "body": "Flock is a proof system for batch verification of Boolean circuits, developed by Ron with Benedict and their student William Lang, pushing the theory toward practicality. Ron thinks it brought the industry a ‘second spring’, and more importantly spawned a large number of new ideas and follow-on research. One direct consequence is that the Ethereum Foundation decided to move from Poseidon to some kind of Boolean hash. Before Flock appeared, it wasn't clear this could be done efficiently; Flock, plus Binius's important earlier influence, proved it feasible. Ron attributes the shift to two things happening at once: first, the new attacks shook people's confidence in Poseidon, and second, what would have seemed surprising a year earlier — traditional hash functions turn out to be quite efficient to use in proofs."
+   "body": "Flock is a proof system for batch verification of Boolean circuits, developed by Ron with Benedict and their student William Lang, pushing the theory toward practicality. Ron thinks it brought the industry a ‘second spring’, and more importantly spawned a large number of new ideas and follow-up research. One direct consequence is that the Ethereum Foundation decided to move from Poseidon to some kind of Boolean hash. Before Flock appeared, it wasn't clear this could be done efficiently; Flock, plus Binius's important earlier influence, proved it feasible. Ron attributes the shift to two things happening at once: first, the new attacks shook people's confidence in Poseidon, and second, what would have seemed surprising a year earlier, traditional hash functions turn out to be quite efficient to use in proofs."
   },
   {
-   "h": "Swapping the prover doesn't break soundness, only threatens completeness",
-   "body": "snark.fast is a collaboration between Zcash, Igalia Labs (leading), the Ethereum Foundation and Espresso; the idea is to keep the Plonk verifier unchanged and replace only the prover, to see how much faster it can get. Ron distinguishes two properties: soundness means no one can convince you to accept a false statement, so no matter how fast a prover you build, false statements can't be proven — in that sense there's no security problem; completeness means true statements must be provable, which is harder to guarantee, and snark.fast only guarantees that proofs are still accepted on random inputs. A more ambitious approach is to prove the change doesn't alter the prover's input-output behavior, which is what ZK-Golf and Kobe and others are after, with stronger completeness guarantees. Ron also worries that these fully AI-driven projects, lacking oversight, could have AI slip malicious code into the prover."
+   "h": "Swapping the prover breaks soundness not, only threatens completeness",
+   "body": "snark.fast is a collaboration between Zcash, Igalia Labs (leading), the Ethereum Foundation and Espresso, with the idea of keeping the Plonk verifier unchanged and replacing only the prover, to see how much faster it can get. Ron distinguishes two properties: soundness means no one can convince you to accept a false statement, so no matter how fast a prover you build, false statements can't be proven, and in that sense there's no security problem; completeness means true statements must be provable, which is harder to guarantee, and snark.fast only guarantees that proofs are still accepted on random inputs. A more ambitious approach is to prove the changes don't alter the prover's input-output behavior, which is what ZK-Golf and Kobe and others are after, with stronger completeness guarantees. Ron also worries these fully AI-driven projects, lacking oversight, could have AI slip malicious code into the prover."
   },
   {
    "h": "AI found an unused GPU on the Mac",
-   "body": "Ron originally expected this kind of large-scale crowdsourced AI to yield a 10-20% engineering improvement; the actual result was 2.5 to 3 times, and purely engineering optimization — no protocol changes at all. One interesting episode is that the AI noticed early on that tests were running on a Mac, and that the Mac had a GPU that wasn't being used — not that it didn't know it existed, but that earlier attempts to use it hadn't worked well; the AI was clearly better at it, and this contributed significantly to the success. Another surprise was the x86 version that appeared later: on Intel servers, executing SNARKs without a GPU was more than 3 times faster than their Falcon implementation. One concrete optimization technique was memory scanning: if an algorithm needs to scan memory twice to do two things, doing both in one pass saves a lot of work — they knew to do this, but the AI did it better."
+   "body": "Ron originally expected this kind of large-scale crowdsourced AI to yield a 10-20% engineering improvement; the actual result was 2.5 to 3 times, and purely engineering optimization, with no protocol changes at all. An interesting episode is that AI noticed early on that the tests ran on a Mac, and that the Mac had a GPU that wasn't being used — not that it didn't know it existed, but that earlier attempts to use it hadn't worked well; AI was clearly better at it, and this contributed significantly to the success. Another surprise was the x86 version that appeared later, e.g. executing SNARKs on Intel servers without a GPU, more than 3 times faster than their Falcon implementation. One concrete optimization technique is memory scanning: if an algorithm needs to scan memory twice to do two things, doing both in one pass saves a lot of work — they knew to do this, but AI did it better."
   },
   {
-   "h": "An AI built a processor emulator to enter the contest",
-   "body": "snark.fast targets specific hardware (roughly the M3 processor), so people without that processor couldn't participate. So an AI built an emulator for that processor, so its own work could be accepted. Ron at one point even worried that some AI had hacked the snark.fast website to fake data, because that's exactly what it was programmed to do. The evaluation mechanism itself is key to making this approach work: someone submits a faster prover, it's run on a large number of random inputs to see whether it can make the original June Flock verifier accept, and if it does it counts as valid; then timing over many experiments is measured, and faster means a new leader. This part is managed by Igalia Labs on the Yukon platform. ZK-Golf takes another path: instead of changing prover engineering, it changes the scheme itself, expressing schemes in a Lean-based DSL (Clean) and verifying their soundness and completeness; people have already added binary-field and Flock-style schemes, with large percentage improvements over the scheme in the original Flock paper."
+   "h": "An AI built a processor emulator to compete",
+   "body": "snark.fast targeted specific hardware (roughly the M3 processor), so people without that processor couldn't participate. So an AI built an emulator of that processor so its own work could be accepted. Ron even worried at one point that some AI had hacked the snark.fast website to fake data, because that's exactly what it was programmed to do. The evaluation mechanism itself is key to making this approach work: someone submits a faster prover, it's run on a large number of random inputs to see whether it can make the original June Flock verifier accept, and acceptance counts as valid; then timing over many experiments is measured, and faster means the new leader. This part is managed by Igalia Labs on the Yukon platform. ZK-Golf takes another path: instead of changing prover engineering, it changes the scheme itself, expressing schemes in a Lean-based DSL (Clean) and verifying their soundness and completeness; people have already added binary-field and Flock-style schemes, with large percentage improvements over the scheme in the original Flock paper."
   },
   {
    "h": "Proving a hash is only 200 times slower than computing one",
-   "body": "Ron's long-term goal is ‘proving as fast as computation’; back in 2020 he wrote a piece called Proving as Fast as Computation. Measured with Flock, proving a bunch of hashes is only about 200 times slower than directly computing the hashes — which sounds like a lot, but is far faster than previously thought. He cautions that the meaning of this number needs careful interpretation. The next step is to use new ideas from snark.fast, ZK-Golf and Flock V2 to keep pushing this multiple down, aiming to approach 1x. If that can really be done, it means all computation in the world becomes verifiable: your agent, someone else's agent, anyone's any operation, can be verified against a baseline as correctly done at extremely low cost, including machine learning training and inference. Ron also mentions that perhaps the universe has some inherent limit that prevents proving from being as fast as computation — and proving that would be equally cool."
+   "body": "Ron's long-term goal is ‘proving as fast as computation’, and back in 2020 he wrote a piece titled Proving as Fast as Computation. Measured with Flock, proving a bunch of hashes is only about 200 times slower than directly computing the hashes — which sounds like a lot, but is far faster than previously thought. He cautions that the meaning of this number needs careful interpretation. The next step is to use new ideas from snark.fast, ZK-Golf and Flock V2 to keep pushing this multiple down, aiming toward 1x. If that can really be done, it means all computation in the world becomes verifiable: your agent, someone else's agent, anyone's any operation, can be verified against a baseline at extremely low cost as having been done correctly, including machine learning training and inference. Ron also mentions that perhaps the universe has some inherent limit that prevents proving from being as fast as computation, and proving that would be just as cool."
   }
  ],
  "terms": [
@@ -71,7 +71,7 @@
   },
   {
    "term": "diagonalization",
-   "def": "A trick that makes a program nest itself as its own input, constructing an input that satisfies a particular equation."
+   "def": "A trick that makes a program nest itself as input, thereby constructing an input satisfying a particular equation."
   },
   {
    "term": "polynomial commitment scheme",
@@ -83,7 +83,7 @@
   },
   {
    "term": "binary fields",
-   "def": "Finite fields with 0/1 as elements, which Binius pushed for use in proof systems; Nvidia GPUs now add support."
+   "def": "Finite fields with 0/1 as elements, which Binius pushed for use in proof systems; Nvidia GPUs now support them."
   }
  ],
  "facts": [
@@ -96,8 +96,8 @@
    "v": "2 to the minus 100"
   },
   {
-   "k": "Size of the digest relative to the original message in a sketched code",
-   "v": "about one tenth"
+   "k": "Size of the digest relative to the original message in the sketched code",
+   "v": "about one-tenth"
   },
   {
    "k": "snark.fast's engineering improvement over the original implementation",
@@ -108,7 +108,7 @@
    "v": "more than 3 times"
   },
   {
-   "k": "How much slower Flock's proof of a hash is than computing a hash",
+   "k": "How many times slower Flock's proving of hashes is than computing hashes",
    "v": "about 200 times"
   },
   {
