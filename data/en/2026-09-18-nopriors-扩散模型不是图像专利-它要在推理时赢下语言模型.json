@@ -2,11 +2,11 @@
  "slug": "2026-09-18-nopriors-扩散模型不是图像专利-它要在推理时赢下语言模型",
  "of": "nopriors-3788766925",
  "source_lang": "en",
- "title": "Diffusion Isn't Just for Images — It's Going to Win at Inference for Language Models",
+ "title": "Diffusion Isn't Just for Images — It Will Win at Inference for Language Models",
  "dek": "Autoregressive inference must generate one token at a time sequentially, making it a memory-bandwidth bottleneck; diffusion models process multiple tokens in parallel, so the inference workload looks more like training — that's why Inception is betting on it.",
- "why": "A diffusion model pioneer explains clearly why parallelism at inference becomes the architectural battleground, and how a 50-person company finds differentiation in the cracks between giants.",
+ "why": "A diffusion-model pioneer explains why parallelism at inference becomes the architectural deciding factor, and how a 50-person company finds differentiation in the gap between giants.",
  "who": "Engineers and founders focused on inference cost and latency-sensitive applications (voice agents, coding), plus AI investors who want to understand the architectural competitive landscape.",
- "skip": "The academic reminiscing from 0:08–2:54 can be fast-forwarded; go straight to the architecture argument starting at 5:11.",
+ "skip": "The academic reminiscing from 0:08–2:54 can be fast-forwarded; start at 5:11 for the architecture argument.",
  "tags": [
   "Diffusion Models",
   "Inference Efficiency",
@@ -21,31 +21,31 @@
   },
   {
    "h": "The 2024 paper brought diffusion to text",
-   "body": "Ermon's team published a paper in 2024 that, for the first time, got a diffusion model to match autoregressive model quality at GPT-2 scale (under a billion parameters): same perplexity, same degree of data fit, but about 10x faster generation, because diffusion outputs multiple tokens at once. He says this is still academic, but it was enough for him to decide to start a company and scale the technology to commercial size."
+   "body": "Ermon's team published a paper in 2024 that, for the first time, got a diffusion model to match autoregressive model quality at GPT-2 scale (under a billion parameters): same perplexity, same degree of data fit, but about 10x faster generation, because diffusion outputs multiple tokens at once. He says this was still academic, but enough for him to decide to start a company and scale the technology to commercial scale."
   },
   {
    "h": "Autoregressive inference is a memory-bandwidth bottleneck",
-   "body": "Ermon draws an analogy from the 2017 RNN-to-transformer switch to the inference stage: during training, transformers won by processing multiple tokens in parallel, but at inference, autoregressive models are still sequential — before generating the 10th token, all previous tokens must be generated. This workload is extremely memory-bandwidth-bound, spending most of its time moving weights between memory hierarchies, with very little arithmetic, which is unfriendly to GPUs. Diffusion models' inference workload looks more like training — processing multiple tokens in parallel — so it naturally matches the computation patterns GPUs excel at."
+   "body": "Ermon analogizes the 2017 switch from RNNs to transformers to the inference stage: during training, transformers won by processing multiple tokens in parallel, but at inference, autoregressive models are still sequential — before generating the 10th token, all previous tokens must be generated. This workload is extremely memory-bandwidth-bound; most of the time is spent moving weights between memory hierarchies, with very little arithmetic, which is unfriendly to GPUs. Diffusion models' inference workload looks more like training — processing multiple tokens in parallel at once — so it naturally matches the compute pattern GPUs are good at."
   },
   {
    "h": "Inference efficiency also caps RL post-training",
-   "body": "Ermon points out that economics are determined by how much intelligence you get per watt and per dollar. Much of the progress in reasoning models comes from test-time compute scaling, and one bottleneck in RL post-training is generating rollouts — letting the model explore, scoring trajectories, then improving the model. So inference efficiency directly bottlenecks post-training efficiency: a model that scales better at inference will automatically scale better during post-training. This is the core logic behind his bet on diffusion LLMs, and what he calls ‘more parallel approaches will eventually win’."
+   "body": "Ermon points out that economics are determined by how much intelligence you get per watt and per dollar. Much of the progress in reasoning models comes from test-time compute scaling, and one bottleneck in RL post-training is generating rollouts — letting the model explore, scoring trajectories, then improving the model. So inference efficiency directly gates post-training efficiency: a model that scales better at inference will automatically scale better during post-training. This is the core logic of his bet on diffusion LLMs, and what he calls ‘more parallel approaches will eventually win’."
   },
   {
-   "h": "Mercury benchmarks against Haiku, Flash, mini series",
-   "body": "Ermon says Inception's Mercury model benchmarks against speed-optimized models like Haiku, Flash, mini nano, with comparable quality but significantly faster, and is already serving customers in production. He stresses that you can't just run a diffusion LLM on vLLM or SGLang; you must build your own serving engine to handle the complexity of real production workloads. This is both a barrier and a moat: even if someone else trains a diffusion LLM, without a corresponding serving engine they can't use it."
+   "h": "Mercury targets Haiku, Flash, mini series",
+   "body": "Ermon says Inception's Mercury model benchmarks against speed-optimized models like Haiku, Flash, and mini nano, with comparable quality but significantly faster, and is already serving customers in production. He stresses that you can't just run a diffusion LLM on vLLM or SGLang; you must build your own serving engine to handle the complexity of real production workloads. This is both a barrier and a moat: even if someone else trains a diffusion LLM, without a corresponding serving engine they can't use it."
   },
   {
-   "h": "Voice customer switched from custom chips back to Nvidia GPUs",
-   "body": "Ermon gives the example of voice agent company OpenCall: the voice pipeline includes ASR, an inference LLM for tool calls, and TTS, where speed is critical. OpenCall originally served the LLM on Cerebras custom chips to achieve the needed speed, then switched to Inception's diffusion LLM because they could get the same speed on Nvidia GPUs — higher availability, lower cost, better quality. Ermon says once you get used to fast models you can't go back, like broadband."
+   "h": "A voice customer switched from custom chips back to Nvidia GPUs",
+   "body": "Ermon gives the example of voice agent company OpenCall: the voice pipeline includes ASR, an inference LLM for tool calls, and TTS, and speed is critical. OpenCall originally served the LLM on Cerebras custom chips to achieve the required speed, then switched to Inception's diffusion LLM because it could get the same speed on Nvidia GPUs — higher availability, lower cost, better quality. Ermon says once you get used to fast models you can't go back, like broadband."
   },
   {
    "h": "Diffusion is inherently more controllable than autoregressive",
-   "body": "Ermon says diffusion models are generally easier to control than autoregressive models: autoregressive must wait until the entire object is generated before knowing whether it satisfies constraints, is aligned, or what score a reward function gives; diffusion is coarse-to-fine generation, so from early on you can judge whether the direction is right, and you can use external reward functions or constraint sets to guide generation. There is considerable evidence in the academic literature supporting this, and some guidance methods are simply impossible on autoregressive models. He sees this as a differentiation space for future product experiences."
+   "body": "Ermon says diffusion models are generally easier to control than autoregressive models: autoregressive must wait until the entire object is generated before knowing whether it satisfies constraints, is aligned, or what score a reward function gives; diffusion is coarse-to-fine generation, so you can judge early whether the direction is right, and can use external reward functions or constraint sets to guide generation. There is considerable evidence in the academic literature supporting this, and some guidance methods are simply impossible on autoregressive models. He sees this as the differentiation space for future product experiences."
   },
   {
    "h": "20% to 30% of tasks are extremely latency-sensitive",
-   "body": "Ermon estimates based on OpenRouter's task categories (research, chat, coding, software engineering, log processing, etc.) that about 20% to 30% of tasks are very latency-sensitive. As a lower bound, this portion of the workload can be served by the model that provides the highest quality within a given latency budget. He also acknowledges that we haven't yet reached frontier intelligence, and many workloads still require frontier-level intelligence, so the addressable market for diffusion models is layered."
+   "body": "Ermon estimates based on OpenRouter's task categories (research, chat, coding, software engineering, log processing, etc.) that about 20% to 30% of tasks are very latency-sensitive. As a lower bound, this portion of the workload can be served by the model that provides the highest quality within a given latency budget. He also acknowledges that we haven't yet reached frontier intelligence levels, and much of the workload still requires frontier-level intelligence, so the addressable market for diffusion models is layered."
   },
   {
    "h": "Flash Attention and DPO both came from his lab",
@@ -76,7 +76,7 @@
  ],
  "facts": [
   {
-   "k": "Diffusion model text generation speed improvement",
+   "k": "Diffusion model text generation speedup",
    "v": "About 10x that of an autoregressive model of the same scale"
   },
   {
@@ -84,7 +84,7 @@
    "v": "About 50 people, founded about two years ago"
   },
   {
-   "k": "Estimated share of tasks extremely sensitive to latency",
+   "k": "Estimated share of tasks extremely latency-sensitive",
    "v": "20% to 30%"
   }
  ],
