@@ -1,0 +1,193 @@
+{
+ "id": "crossing-2404ed1d4c",
+ "slug": "2026-09-20-crossing-机器人还在-gpt-1-阶段-真正的信号是成功率不是-loss",
+ "fingerprint": "2de27a786d40127d",
+ "source_id": "crossing",
+ "source": "十字路口Crossing",
+ "source_zh": "十字路口Crossing",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "具身智能模型训练机制与技术阶段",
+ "tier": 3,
+ "lang": "zh",
+ "title_original": "“我看到了 Scaling Law 的信号” | 对谈清华叉院助理教授徐梦迪：具身智能、世界模型、真正的泛化",
+ "published": "2026-09-20T23:30:01Z",
+ "duration": 4843,
+ "audio": "https://dts-api.xiaoyuzhoufm.com/track/60502e253c92d4f62c2a9577/6ab0504f0916f6f8b4466ece/media.xyzcdn.net/60502e253c92d4f62c2a9577/ltDn8TRgg55FlUENUlLokxDiz1Y5.m4a",
+ "link": "https://www.xiaoyuzhoufm.com/episode/6ab0504f0916f6f8b4466ece?utm_source=rss",
+ "image": "https://image.xyzcdn.net/FmiTogFmT3E7wYDZIp3xJOlAiLIr.png",
+ "youtube_id": "av2-xfRc2_E",
+ "video_len": 4836,
+ "transcript_url": "https://dts-api.xiaoyuzhoufm.com/track/60502e253c92d4f62c2a9577/6ab0504f0916f6f8b4466ece/media.xyzcdn.net/60502e253c92d4f62c2a9577/ltDn8TRgg55FlUENUlLokxDiz1Y5.m4a",
+ "digest": {
+  "title": "机器人还在 GPT-1 阶段，真正的信号是成功率不是 Loss",
+  "dek": "具身智能的 Scaling Law 信号已经出现，但测的指标错了：Loss 低不等于成功率低，中间 17 步不接触物体的拟合毫无意义。",
+  "why": "清华叉院助理教授徐梦迪讲具身智能的数据、世界模型与 In-Context Learning，中后段关于数据闭环和 Loss 陷阱的判断最值钱。",
+  "points": [
+   {
+    "t": 735,
+    "h": "预训练不是全部，适应才是",
+    "body": "徐梦迪的 CMU 最佳博士论文叫 Building Adaptable Generalist Robots，核心主张是：预训练非常有用，但不能寄希望于机器人只靠预训练就 100% 成功。开放世界的特点是任务不断变化——家里今天 20 个物体，一周后变 30 个且种类不同，人的偏好也在变。所以机器人必须能在部署环境里适应变化并提升自己。她探索了两条路：In-Context Learning 和 test-time training，后者只改 0.5% 的 adapter 参数，但改多了会遗忘预训练知识。",
+    "spk": "徐梦迪"
+   },
+   {
+    "t": 1162,
+    "h": "Adaptation 为什么现在才变重要",
+    "body": "人的泛化强有两个原因：极强的先验知识，以及学东西非常快。之前主流做法是 scale 数据和模型，让 multi-task 和 instruction following 能力变强，相当于先让模型有足够强的 prior。但徐梦迪指出，这不代表 adaptation 不重要——只是大家最近才意识到。而且 adaptation 对 base 模型有要求：不希望机器人到了实际场景自己学的过程非常可怕，比如把杯子打碎。所以从预训练做起是合理的。",
+    "spk": "徐梦迪"
+   },
+   {
+    "t": 2986,
+    "h": "Loss 低不等于成功率高",
+    "body": "这是全篇最反常识的技术判断。机器人里有一个很 tricky 的点：Loss 跟成功率不是直接挂钩的，Loss 很低但 Final Success Rate 不一定低，会有很多震荡。她举的例子是：一个任务可能一共花 20 个 step，前 17 步都跟物体没有接触，即使这 17 步 fit 得非常好，第 18 步真正接触物体时误差比较大，任务就很容易失败。这是时序上的不平衡。所以真正有意义的 Scaling Law 应该是：数据逐渐增多、模型逐渐变大，在没见过任务上的 success rate 逐渐升高。",
+    "spk": "徐梦迪"
+   },
+   {
+    "t": 3047,
+    "h": "机器人还在 GPT-1 时刻",
+    "body": "现在主流的具身模型还是「预训练 + 根据 target domain 做 fine-tuning」，这可以类比成 language model 的 GPT-1 阶段——GPT-1 本身也需要有针对性的后训练才能解决相应任务。徐梦迪真正希望做到的是 GPT-3 时刻：通过 ICL、通过 prompting 给模型任务信息，不需要 fine-tuning，只通过 context 告诉模型要做什么。这样 fine-tuning 的比重降得更弱，更容易 scale 到更多场景、完成更多任务，普通人也能用起来。",
+    "spk": "徐梦迪"
+   },
+   {
+    "t": 3529,
+    "h": "数据闭环是鸡生蛋难题",
+    "body": "最难的点是能不能让模型有一个稳定的数据闭环。这需要把机器人放到终端家庭或服务场景，有合适的 mentor 来教，并且机器人在被教了半小时之后要有显而易见的进展，终端用户才愿意用，数据闭环才能转起来。但这里有个鸡生蛋问题：base 模型需要足够好、学习速度足够快，可模型又需要先进入场景让用户开始用，才能把 base 能力激发出来。所以能不能跑通数据闭环是最 risky 的一个点。",
+    "spk": "徐梦迪"
+   },
+   {
+    "t": 3832,
+    "h": "数据定义靠模型能力反推",
+    "body": "数据本身会被喂给模型，但数据的定义不是凭空定出来的，是靠模型的能力定出来的。大家在定数据时，本身在做的事就是：模型到底需要什么样的能力，反推出来数据应该怎么采集。比如需要动作更平滑，数据就要是平滑类型的；需要 fail recovery 能力，数据就要采集有 fail、有修正的。而现在大家对模型能力的定义还比较模糊，所以数据需求也模糊。",
+    "spk": "徐梦迪"
+   },
+   {
+    "t": 3954,
+    "h": "四种数据各有各的位置",
+    "body": "徐梦迪的主张是融合派，因为不同数据让模型学到的东西不一样。遥操作数据最接近机器人本体，适合训练后阶段，让模型跟 target domain 更直接相关。仿真数据容易造出位置泛化和 texture 泛化，让模型对 visual 变化更鲁棒，适合预训练或 mid-training 前端。UMI 数据在中间，更像机器人数据但采集成本低。人类数据成本最低，可以大量铺到不同场景，学的是场景变化和任务相关信息，跟 morphology 具体形状不那么相关。",
+    "spk": "徐梦迪"
+   },
+   {
+    "t": 4742,
+    "h": "AI 写的论文一眼能看出来",
+    "body": "Robotics 论文最近在翻倍增长，徐梦迪的应对方式是刷自己关注的 researcher 宣传的文章，因为作者 list 本身已经做了一层筛选。她能明显看到有些文章 AI 写的成分非常多。她的判断是：AI 写的文章可能能通过审稿、真的中一些会议，但 quality 整体上还是不会有人写的更高，因为看起来相识，实际有很多论证漏洞百出，内容并没有很多。发现是 AI 写的，她对这篇文章的兴趣就会打折扣。",
+    "spk": "徐梦迪"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 3529,
+    "spk": "徐梦迪",
+    "raw": "最难的点其实是 嗯 能不能让这个模型 有一个稳定的数据的闭环",
+    "zh": "最难的点其实是，能不能让这个模型有一个稳定的数据闭环。"
+   },
+   {
+    "t": 3832,
+    "spk": "徐梦迪",
+    "raw": "数据本身它是会被喂给模型的对吧 但数据的定义其实不是凭空定出来的 数据定义是靠模型的能力定出来的",
+    "zh": "数据本身是会被喂给模型的，对吧？但数据的定义其实不是凭空定出来的，数据定义是靠模型的能力定出来的。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "adapter 参数占比",
+    "v": "0.5%",
+    "t": 916
+   },
+   {
+    "k": "机器人任务 step 数示例",
+    "v": "20 个 step",
+    "t": 2986
+   },
+   {
+    "k": "预训练数据规模信号",
+    "v": "10 万小时到 100 万小时",
+    "t": 2924
+   },
+   {
+    "k": "具身马拉松进度",
+    "v": "10 公里 / 四分之一",
+    "t": 4742
+   },
+   {
+    "k": "徐梦迪年龄",
+    "v": "30.5 岁",
+    "t": 0
+   }
+  ],
+  "terms": [
+   {
+    "term": "In-Context Learning",
+    "zh": "上下文学习",
+    "def": "不改模型参数，只通过 prompt 里的上下文让模型适应新任务。"
+   },
+   {
+    "term": "VLA",
+    "zh": "视觉-语言-动作模型",
+    "def": "把视觉、语言指令直接映射到机器人动作的模型。"
+   },
+   {
+    "term": "UMI",
+    "zh": "通用操作接口数据",
+    "def": "介于机器人数据和人类数据之间的采集方式，成本较低。"
+   },
+   {
+    "term": "MAML",
+    "zh": "模型无关元学习",
+    "def": "让模型学会快速适应没见过的任务，徐梦迪入行的契机。"
+   },
+   {
+    "term": "algorithm distillation",
+    "zh": "算法蒸馏",
+    "def": "DeepMind 工作，主张模型参数等价于一个 RL 算法。"
+   },
+   {
+    "term": "no free lunch",
+    "zh": "没有免费的午餐",
+    "def": "选了一个决定就要承担它较弱的层面。"
+   }
+  ],
+  "who": "做具身智能的创业者、研究员和投资人，尤其是正在纠结数据采集路线、世界模型 vs VLA、以及怎么评估模型进展的人。",
+  "skip": "开头快问快答和衡水中学经历可跳过，直接听 44 分后的具身创业与数据部分。",
+  "tags": [
+   "具身智能",
+   "机器人",
+   "世界模型",
+   "In-Context Learning",
+   "Scaling Law"
+  ],
+  "quality": {
+   "transcript_source": "asr",
+   "transcript_detail": "local:whisper-large-v3-turbo",
+   "words": 23452,
+   "wpm": 290.5,
+   "timed": true,
+   "verified_quotes": 2,
+   "grounded_facts": 5,
+   "points": 8,
+   "pruned": 5,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-09-21T15:38:19Z",
+ "triage": {
+  "score": 8.0,
+  "why": "具身智能一线研究者讲ICL、数据闭环、scaling信号与陷阱，细节密集可追问",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 7.0,
+  "dims": {
+   "density": 8,
+   "faithful": 6,
+   "selection": 8,
+   "concrete": 8,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点多为可反驳判断且具体，但 Loss 那条把原话「Loss 低但成功率不一定低」写反成「不一定低」，属严重歪曲。",
+  "worst": "[49:46] 要点与导语：「Loss 很低但 Final Success Rate 不一定低」应为「不一定高」；导语「Loss 低不等于成功率低」同样写反，须改为「Loss 低不等于成功率高」。"
+ },
+ "model": "openai:deepseek-chat"
+}
