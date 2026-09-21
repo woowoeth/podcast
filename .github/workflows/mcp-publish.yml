@@ -1,0 +1,61 @@
+name: publish mcp server
+
+# 往官方 MCP 注册表发布。
+#
+# **用 GitHub OIDC 认证，不需要任何 secret。** 注册表认的是「这个仓库」，
+# 而 server.json 里的命名空间是 io.github.woowoeth/ourword —— 和仓库主一致，
+# 所以它能证明这个名字归我们。换成个人 token 的话，token 要有人去建、
+# 去存、去轮换，而这三件事里任何一件没做，发布就会在某天静默停掉。
+#
+# 手动触发 + 打 tag 时触发：内容站每天都在提交，绑到 push 上会把注册表刷爆，
+# 而服务器本身几周才动一次。
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["mcp-v*"]
+
+permissions:
+  contents: read
+  id-token: write          # OIDC 要的就是这一条
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 发布前先自己跑一遍
+        run: |
+          # **不验就发等于把坏的推给所有人。** 注册表不会替你跑工具，
+          # 而这个服务器的四个工具全靠线上数据，线上挂了它就是个空壳。
+          python3 - <<'PY'
+          import json, subprocess, sys
+          msgs = [{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}},
+                  {"jsonrpc":"2.0","id":2,"method":"tools/list"},
+                  {"jsonrpc":"2.0","id":3,"method":"tools/call",
+                   "params":{"name":"latest_episodes","arguments":{"limit":1}}}]
+          inp = "\n".join(json.dumps(m) for m in msgs) + "\n"
+          r = subprocess.run([sys.executable, "mcp/ourword_mcp.py"], input=inp,
+                             capture_output=True, text=True, timeout=180)
+          out = [json.loads(l) for l in r.stdout.split("\n") if l.strip()]
+          assert out[0]["result"]["serverInfo"]["name"] == "ourword", "initialize 不对"
+          assert len(out[1]["result"]["tools"]) == 4, "工具数不对"
+          res = out[2]["result"]
+          assert not res.get("isError"), f"工具调用失败：{res}"
+          body = json.loads(res["content"][0]["text"])
+          assert body["episodes"], "线上取不到内容"
+          print(f"自测通过：{body['count']} 集可查")
+          PY
+
+      - name: 装 mcp-publisher
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/').tar.gz" \
+            | tar xz mcp-publisher
+          ./mcp-publisher --version
+
+      - name: 登录并发布
+        working-directory: mcp
+        run: |
+          ../mcp-publisher login github-oidc
+          ../mcp-publisher publish
