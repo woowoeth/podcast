@@ -1,0 +1,213 @@
+{
+ "id": "karpathy-1eeed2e53c",
+ "slug": "2026-09-18-karpathy-ai-解不出的最后一道-imo-题-价值不在答案",
+ "fingerprint": "85e334d4a03b645a",
+ "source_id": "karpathy",
+ "source": "Andrej Karpathy",
+ "source_zh": "Andrej Karpathy",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "讲AI在IMO题上的能力边界与强化学习机制",
+ "tier": 1,
+ "lang": "en",
+ "title_original": "The last IMO problem AI could not solve",
+ "published": "2026-09-18T17:12:53Z",
+ "duration": 3114,
+ "audio": "",
+ "link": "https://www.youtube.com/watch?v=Nbwv5wHQoj0",
+ "image": "https://i3.ytimg.com/vi/Nbwv5wHQoj0/hqdefault.jpg",
+ "youtube_id": "Nbwv5wHQoj0",
+ "video_len": 0,
+ "transcript_url": "https://www.youtube.com/watch?v=Nbwv5wHQoj0",
+ "digest": {
+  "title": "AI 解不出的最后一道 IMO 题，价值不在答案",
+  "dek": "2025 年 IMO 第六题只有不到 1% 的选手拿满分，所有 AI 都卡在这题上。它难的不是计算，是必须先理解、先有审美，再动笔——而这恰恰是强化学习最难训练的东西。",
+  "why": "这集主体是一道数学题的完整解题过程，不是 AI 行业分析。只有最后 5 分钟谈 AI 与数学的关系，但那 5 分钟值得听。",
+  "points": [
+   {
+    "t": 0,
+    "h": "AI 卡住的不是计算，是耐心",
+    "body": "2025 年 IMO 第六题，全球 600 多名顶尖选手，拿满分的不到 1%。到 2025 年，多个机构的模型已经能答对所有其他题目，唯独卡在这一题。DeepMind 研究总监 Thang Luong 给的解释是：模型没有耐心，它不肯花时间去理解问题、去对问题产生感觉，而是直接开始解。Karpathy 补充了第二个原因：模型对「什么让一个问题或一个策略漂亮」没有感觉，而这道题的解法恰恰依赖审美判断。",
+    "spk": ""
+   },
+   {
+    "t": 371,
+    "h": "天才其实是经验的残留物",
+    "body": "面对这道题，最直观的构造是把所有 X 放在对角线上，用水平瓷砖覆盖剩余区域，得到 2(n-1) 块。但这个构造太显然，不可能是 IMO 要的答案。Karpathy 在这里插入了一个看似无关的立方体切割脑筋急转弯：3x3x3 的立方体切成 27 个小立方体，允许每次切完重新排列，最少几刀？答案是 6 刀，理由是最中间那个小立方体的 6 个面，每一面都需要一刀单独切开。这个证明思路——盯住内部结构的一个面——正是后面瓷砖问题的关键。",
+    "spk": ""
+   },
+   {
+    "t": 737,
+    "h": "最有效的铺法让每块砖碰四个 X",
+    "body": "把每个 X 的四条边高亮，每放一块瓷砖就关掉它碰到的边。低效的铺法里，瓷砖只碰到 1 个甚至 0 个 X；高效的铺法里，每块瓷砖碰到 4 个 X。由此得到一个猜想：最优铺法应该让尽可能多的瓷砖碰到 4 个不同的 X。但进一步看，X 不能落在瓷砖边的中间——那样上下两块瓷砖会在左边产生冲突，因为同一列不能有两个 X。X 必须落在瓷砖的角上，四块瓷砖像风车一样围着它。用边长 k 的正方形瓷砖，可以铺出边长 k² 的大网格。2025 恰好是 45²，这个巧合让构造显得极有希望。",
+    "spk": ""
+   },
+   {
+    "t": 1167,
+    "h": "只高亮一个方向，证明会漏掉一侧的砖",
+    "body": "把所有 X 的边高亮，共 4k² 条，每块瓷砖最多碰 4 条，减去边界上不需要被碰的 4 条，得到下界 k²-1。但目标下界是 k²+2k-3，差了一个正比于 k 的项。问题出在只高亮右边缘：这样得到的对应关系在图的右侧很紧，但会漏掉大量集中在左侧的瓷砖。换任何一个单一方向都一样，漏掉的瓷砖总是聚在一侧。Karpathy 说，数学奖励你尊重对称性，也会惩罚你不尊重它——选一个任意方向，弱点就体现在不等式里。",
+    "spk": ""
+   },
+   {
+    "t": 1658,
+    "h": "把网格切成四块，每条边只高亮一次",
+    "body": "解法是画两条路径：一条沿 X 向右上走，一条向右下走，把整个图分成四个区域。X 在右侧区域就高亮它的右边缘，在上方区域就高亮上边缘，左右上下各管一块。落在边界上的 X 高亮两条边。这样既补上了缺失的那些高亮边，又保证每块瓷砖最多只碰到一条高亮边——因为一块瓷砖坐在左侧区域时，它上方的 X 不可能高亮下边缘，下方的 X 不可能高亮上边缘，左侧的 X 不可能高亮右边缘。这个图就是整个证明的核心。",
+    "spk": ""
+   },
+   {
+    "t": 1908,
+    "h": "问题化归成一个纯排列问题",
+    "body": "给每个 X 标上它所在的行号，因为每行恰好一个 X，这些标号构成 1 到 k² 的一个排列。向右上的路径对应一个递增子序列，向右下的路径对应一个递减子序列。设最长递增子序列长度为 LIS，最长递减子序列长度为 LDS，高亮边总数就是 k² + LIS + LDS - 4（两条路径相交时再 +1，变成 -3）。要证明目标下界 k²+2k-3，只需证明 LIS + LDS ≥ 2k，也就是两者的平均值至少是 k。到这里，网格已经完全消失，剩下的是一个关于排列的纯事实。",
+    "spk": ""
+   },
+   {
+    "t": 2399,
+    "h": "Erdős-Szekeres 定理的证明本身就是个宝石",
+    "body": "这个纯排列事实就是 Erdős-Szekeres 定理：任何排列中，最长递增子序列与最长递减子序列的长度之积至少等于排列长度 n。IMO 选手可以直接引用定理收尾，但 Karpathy 选择把证明也讲完。做法是给每个位置标注一对数：以它结尾的最长递增子序列长度，和以它结尾的最长递减子序列长度。因为排列中数字互不相同，任意两个位置的这两对标签必然不同——如果后一个数更大，第一个标签至少加一；如果更小，第二个标签至少加一。把这些标签对画成坐标点，最长递增子序列就是包围盒的宽，最长递减子序列就是高，宽乘高等于格点数，也就是排列长度。",
+    "spk": ""
+   },
+   {
+    "t": 2888,
+    "h": "证明之外还有一层：让人感觉证明是显然的",
+    "body": "Karpathy 说，知道一个证明只是深度理解数学的很小一部分。他和 Nishad Dulkhar 做这个视频时，看原证明的第一反应是「我知道它成立，但怎么会有人想出这个」。他们想贡献的不是新证明，而是一种叙事，让观众在走到证明时不再觉得它是凭空冒出来的。他给这种东西起了个名字：motivated explanation。这直接关系到 AI 与数学：如果机器能生成证明但不带来人类理解，那就完全失去了意义。而学术界一直用「证明」作为衡量进步的代理指标，这暴露出一个迫切需求——需要一种新的、独立的方式来衡量一份发表物是否真的推进了人类理解。",
+    "spk": ""
+   }
+  ],
+  "quotes": [
+   {
+    "t": 0,
+    "spk": "",
+    "raw": "It also seems likely to be the last IMO problem to be solved. No problem that AI could not solve.",
+    "zh": "它很可能也是最后一道被解出的 IMO 题——最后一道 AI 解不出的题。"
+   },
+   {
+    "t": 186,
+    "spk": "Thang Luong",
+    "raw": "we didn't really have a way to teach the model to be patient. It didn't take the time to understand the problem, to get a feel for the problem, to not try to solve the problem.",
+    "zh": "我们其实没有办法教模型变得有耐心。它不肯花时间去理解问题、去对问题产生感觉、去先别急着解题。"
+   },
+   {
+    "t": 371,
+    "spk": "",
+    "raw": "what can look like genius is usually the residue of experience.",
+    "zh": "看起来像天才的东西，通常只是经验的残留物。"
+   },
+   {
+    "t": 1350,
+    "spk": "",
+    "raw": "math rewards you when your respected symmetries, and what we're seeing right now is how it punishes you if you don't.",
+    "zh": "数学会在你尊重对称性时奖励你，而我们现在看到的，是你不尊重它时它怎么惩罚你。"
+   },
+   {
+    "t": 2582,
+    "spk": "",
+    "raw": "I just think that's really lovely, too beautiful not to share.",
+    "zh": "我就是觉得这太美了，美到不能不分享。"
+   },
+   {
+    "t": 2951,
+    "spk": "",
+    "raw": "if you're able to generate proofs that don't necessarily come with human understanding, that kind of completely defeats the point.",
+    "zh": "如果你能生成证明，但这些证明不必然带来人类的理解，那基本上就完全失去了意义。"
+   },
+   {
+    "t": 3071,
+    "spk": "",
+    "raw": "the value of this question lies in the fact that it warmed my heart when I solved it, and it still warms my heart more than a year later; like a good book or a touching song the value here is human.",
+    "zh": "这道题的价值在于，我解出它时它温暖了我的心，一年多以后它依然温暖着我的心；就像一本好书或一首动人的歌，它的价值是人的价值。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "2025 年 IMO 参赛人数",
+    "v": "600 多名青少年",
+    "t": 0
+   },
+   {
+    "k": "IMO 第六题满分率",
+    "v": "不到 1%",
+    "t": 0
+   },
+   {
+    "k": "2025 年 IMO 第六题满分人数",
+    "v": "6 人",
+    "t": 1412
+   },
+   {
+    "k": "2024 年 AlphaProof 答对题数",
+    "v": "6 题中的 4 题",
+    "t": 60
+   },
+   {
+    "k": "2025 网格边长",
+    "v": "2025，即 45²",
+    "t": 983
+   }
+  ],
+  "terms": [
+   {
+    "term": "Lean",
+    "zh": "Lean",
+    "def": "一种编程语言，数学证明在其中被写成程序，可被机器验证。"
+   },
+   {
+    "term": "Erdős-Szekeres theorem",
+    "zh": "Erdős-Szekeres 定理",
+    "def": "任何排列中，最长递增子序列与最长递减子序列长度之积至少等于排列长度。"
+   },
+   {
+    "term": "motivated explanation",
+    "zh": "有动机的解释",
+    "def": "Karpathy 造的词：一种叙事，让读者觉得一个证明几乎是显然的，而不只是能跟着步骤走。"
+   },
+   {
+    "term": "LIS / LDS",
+    "zh": "最长递增子序列 / 最长递减子序列",
+    "def": "排列中长度最大的递增（递减）子序列的长度。"
+   }
+  ],
+  "who": "对 AI 与数学交叉、以及「理解」这件事本身感兴趣的工程师和研究者；想看清模型能力边界的人。",
+  "skip": "06:11 到 45:06 的完整解题过程，除非你真想跟着做一遍这道题。",
+  "tags": [
+   "AI 与数学",
+   "IMO",
+   "强化学习",
+   "可解释性",
+   "数学证明"
+  ],
+  "quality": {
+   "transcript_source": "youtube",
+   "transcript_detail": "en",
+   "words": 10424,
+   "wpm": 200.8,
+   "timed": true,
+   "verified_quotes": 7,
+   "grounded_facts": 5,
+   "points": 8,
+   "pruned": 1,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-09-19T14:35:51Z",
+ "triage": {
+  "score": 8.0,
+  "why": "3Blue1Brown讲透IMO难题的完整证明推导，含AI未解背景与直觉来源，可复现",
+  "kind": "机制拆解",
+  "basis": "captions",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 7.0,
+  "dims": {
+   "density": 8,
+   "faithful": 7,
+   "selection": 8,
+   "concrete": 8,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点是判断与机制，数字具体，中文干净；但开头把「2026 年公开推理模型可答对全部六题」写成「到 2025 年已能答对所有其他题目」，时间线有偏差。",
+  "worst": "[0:00] 要点「到 2025 年，多个机构的模型已经能答对所有其他题目」——原文说的是 by 2026，且是「公开可用的推理模型简单提示即可答对全部六题」，成稿把年份提前并改写了条件。"
+ },
+ "model": "openai:deepseek-chat"
+}

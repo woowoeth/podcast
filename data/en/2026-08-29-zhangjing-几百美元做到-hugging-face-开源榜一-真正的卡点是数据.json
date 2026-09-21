@@ -1,0 +1,151 @@
+{
+ "slug": "2026-08-29-zhangjing-几百美元做到-hugging-face-开源榜一-真正的卡点是数据",
+ "of": "zhangjing-d3f4d715b9",
+ "source_lang": "zh",
+ "title": "A few hundred dollars to top the Hugging Face open-source leaderboard — the real bottleneck is data",
+ "dek": "One person, one 5090, a few hundred dollars is enough to put a model at the top of the Hugging Face open-source leaderboard, but he spent 95% of his time on data — the real barrier isn't compute, it's insight into data.",
+ "why": "If you're weighing whether to fine-tune a model yourself, this episode hands you a ledger with concrete numbers: cost, data mix, the distillation route, and the pitfalls on the serving side, all of it.",
+ "who": "Engineers at application companies who want to fine-tune their own models, technical leads deciding whether to build an in-house model team, and investors watching how the division of labor between AI Labs and application companies is shifting.",
+ "skip": "The roughly two minutes of career-change backstory at the start is just setup; you can jump straight to the part about cost.",
+ "tags": [
+  "Model fine-tuning",
+  "Synthetic data",
+  "Distillation",
+  "Local AI",
+  "Open-source models",
+  "AI Lab"
+ ],
+ "points": [
+  {
+   "h": "A few hundred dollars is enough to train a leaderboard-topping model",
+   "body": "Lu Yuxin has no PhD and has never worked at an AI Lab; at the time he was a graduate student in AI, and the model he fine-tuned on his own ranked first on the Hugging Face open-source leaderboard. The outlay was one 5090, QLoRA, plus a $200 Claude Max subscription for synthesizing data; renting a card costs one or two dollars an hour, actual training took only a dozen or so hours, hardware cost no more than $100, a few hundred dollars in total. The first generation took about 5 days, the second two to three weeks. His judgment: industry has only two paths, SFT and RL; once you shore up the fundamentals, anyone can get there eventually."
+  },
+  {
+   "h": "Synthetic data can't cure what ails a model",
+   "body": "In his experience there is only one bottleneck: data. Infra, scripts, environments — you can solve those by reading a book; 95% of the time goes into making data. Synthetic data ‘is actually not very good’, and can only be used to target specific problems — for instance, the small model he fine-tuned had a habit of overconfidence, declaring a task done without completing it, and he had to build data specifically for that disease; and you can't get that right by just telling the AI one sentence, you have to review it item by item yourself. The project reached nearly ten thousand data points, and he had to review about 500 himself; real data made up 60% to 70%, and what was actually usable was on the order of a few thousand."
+  },
+  {
+   "h": "When the teacher is too strong, the student can't catch it",
+   "body": "Capacity gap means the teacher model is too strong and the student model too weak: the teacher is over 3T, and distilling its real trajectories and answers into a 12B small model leaves a very large capability gap in between, so the student simply can't learn it. So the data can look fine, have been checked by AI, and have been sampled by you yourself, and the trained model can still come out broken. His approach is to test version by version, see whether there's an obvious improvement, and if not, go back and ask whether the teacher is too strong and the model too weak. What people doing data need most is exactly this patience — a first version that falls short of expectations doesn't mean the direction is wrong."
+  },
+  {
+   "h": "Distillation is strongest; RL is just the icing",
+   "body": "He ran a large number of experiments on several H200s (one machine is eight cards), and concluded that on-policy distillation is strongest, while OPD and reinforcement learning are just icing on the cake, not a real solution to the problem, which is why he ultimately chose only SFT. As for what counts as ‘distilling smartly’, his criterion isn't the method but the anchor: if the anchor and the goal don't match, it's bad distillation — for example distilling a pile of derivative variants to game a benchmark when what you actually want to improve is something else. His positioning for himself is clear too: players outside the top few AGI companies don't bear the responsibility of AGI, and being more usable is enough. He anchors on Agentic and Coding, and downloads follow naturally."
+  },
+  {
+   "h": "The real pitfall isn't training, it's serving",
+   "body": "On cost accounting: for an application company training a small model, a few thousand to under ten thousand RMB gets you a model you more or less want; training a large model requires more cards, roughly under a hundred and something thousand to two hundred thousand. But the real expense comes later: when users actually call it and burn tokens, it gets expensive, and the serving side has more pitfalls — SGLang and vLLM architectures, for instance — you have to work it out based on what model you're deploying and how many users you have. One reference point he gives: if the demand is only a few concurrent requests, a dozen or so, one H200 at a few tens of thousands of RMB can cover a dozen-plus employees."
+  },
+  {
+   "h": "Application companies are the next Neo Lab",
+   "body": "He cites Sequoia's judgment: leading application companies may in fact become the new labs. By analogy with the recommendation-algorithm era, in the end it was companies that already had scenarios, a commercial closed loop and user data that built better algorithms; no third-party neutral company did recommendation algorithms alone. The reversal takes the form of AI Labs moving up to do research and pre-training, with post-training delegated to application companies, because application companies don't want to share their data out. For companies like Kimi and Zhipu, the greatest value is pre-training — pre-training a model may take 128 to 264 B300 cards and several months. That's also why he understands AI Labs spending money on data now: like ByteDance buying users in the early mobile internet days, user acquisition cost was actually lowest at the start and only gets higher later, and data may be the same."
+  },
+  {
+   "h": "The driver of local AI is distrust of upstream",
+   "body": "His starting logic is blunt: when you call an API, your data can be seen by your upstream. Relay stations at a few tens of RMB a month look cheap, but they're not just a gray area — they sell data too; friends around him and AIs he's seen have run into data leaks and hacker threats. So fields that are especially sensitive about data (cyber security, biology) can only consider local AI. He also admits his own local AI usage rate isn't high at present, because there are still errors, and for everyday chat people prefer large models; but once phones can run 27B the logic changes — you've already bought the phone, asking locally is free, while calling an API still costs $20 to $30 a month. He also mentions that in 2027 and 2028 Apple is going to put out computers with 2T of unified memory."
+  },
+  {
+   "h": "Privacy may not be everyone's real need",
+   "body": "Chen Pi pushed back on the spot: privacy sounds like a real need, but people use plenty of apps and stop caring soon enough; and couldn't a cyber security company plus a SOTA model substitute for everyone deploying locally? Lu Yuxin's answer is that many people indeed don't care about privacy, but many do, and his example is that when Hugging Face was attacked, it was ultimately solved with a Chinese domestic model deployed locally. The host's addition: Doubao has more users, what you're describing is still a niche group, and most people ultimately look at cost-performance; and what drives local AI may not be individual users' choices but companies like Apple pushing it, because application companies and model companies are inherently in a competitive, opposed relationship."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Capacity Gap",
+   "def": "The teacher model is too strong and the student model too weak, so during distillation the student can't catch the teacher's capability."
+  },
+  {
+   "term": "OPD (on-policy distillation)",
+   "def": "After running a large number of experiments on several H200s, Lu Yuxin considers it the strongest distillation method."
+  },
+  {
+   "term": "Local AI",
+   "def": "The model runs on your own computer or phone, and data never leaves the local device."
+  },
+  {
+   "term": "Neo Lab",
+   "def": "Teams that grow out of the application side and train their own models; the original phrasing is that application companies are the next new lab."
+  },
+  {
+   "term": "Sovereign AI",
+   "def": "Training your own model on your own data, rather than directly using an AI Lab's model."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Training duration",
+   "v": "First generation about 5 days, second two to three weeks"
+  },
+  {
+   "k": "Training setup",
+   "v": "One 5090 + QLoRA + a $200 Claude Max subscription"
+  },
+  {
+   "k": "Hardware cost",
+   "v": "No more than $100"
+  },
+  {
+   "k": "Agentic benchmark score",
+   "v": "From 15 up to 55-60"
+  },
+  {
+   "k": "Time split between data and training",
+   "v": "First version: 3 days on data, about 1 day training; second version: 12 days of two weeks on data"
+  },
+  {
+   "k": "Share of real data",
+   "v": "60% to 70%"
+  },
+  {
+   "k": "Data volume",
+   "v": "Nearly ten thousand made in total, a few thousand actually used"
+  },
+  {
+   "k": "Cost for an application company to train its own",
+   "v": "Small model: a few thousand to under ten thousand RMB; large model: under a hundred and something thousand to two hundred thousand"
+  },
+  {
+   "k": "What one H200 can carry",
+   "v": "A dozen-plus employees' usage"
+  },
+  {
+   "k": "Compute and cycle to pre-train a model",
+   "v": "128 to 264 B300 cards, several months"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "It was hyped up as something amazing, but I actually think the results aren't as good as SFT, so in the end I only chose SFT.",
+   "translated": true
+  },
+  {
+   "text": "I think data — actually one of my biggest lessons — is that synthetic data really isn't very good.",
+   "translated": true
+  },
+  {
+   "text": "This reviewing of data, basically, say my data volume is 5000 items, then I probably have to review 500 myself, because AI's synthetic data right now is still very poor.",
+   "translated": true
+  },
+  {
+   "text": "This brings you to a very key piece of knowledge called capacity gap — the so-called teacher is too strong and the student is too weak.",
+   "translated": true
+  },
+  {
+   "text": "I used several H200s — one machine is eight cards — and ran a large number of experiments that way: distillation is the strongest, and the rest, including OPD and reinforcement learning, are all icing on the cake rather than a real solution to the problem.",
+   "translated": true
+  },
+  {
+   "text": "I think only when, say, you want to do something and you really pull the model's distribution in that direction — I think that's good distillation, no matter whether its benchmark score drops or whatever else, as long as it's consistent with your direction, I think it's good distillation.",
+   "translated": true
+  },
+  {
+   "text": "Because simply put, when you call an API, your data can be seen by your upstream.",
+   "translated": true
+  },
+  {
+   "text": "As for local AI, my own usage rate is actually not high at present, because local AI still makes some errors.",
+   "translated": true
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}
