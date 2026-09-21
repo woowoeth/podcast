@@ -993,6 +993,58 @@ def card(ep: dict, *, hero: bool, is_new: bool = False) -> str:
 </div></div></a>"""
 
 
+def api_index(eps: list[dict]) -> str:
+    """一份紧凑的全站索引，给程序用（MCP 服务器、agent、第三方）。
+
+    **为什么单独出一份。** 站上已有的三份机器可读文件各有各的用途，
+    但没有一份适合被程序按条取：
+      · search.json  只有 slug 和检索文本，拿不到结构（6.4 MB）
+      · llms-full.txt 是给模型整篇读的纯文本（6.9 MB），不能按条查
+      · data/episodes/*.json 结构最全，但要拿全站得下 726 个文件
+    这份只放筛选和定位需要的字段，够小到一次拉完，
+    要细节再按 url 去取那一集的 JSON。
+
+    **不放正文。** 要点、金句、数字都在每集自己的 JSON 里，
+    这里只给指针 —— 索引膨胀成正文的话，它就变成第二份 llms-full.txt 了。
+    逐字稿任何一份文件里都没有（第三方版权），只给原音频/视频的链接。
+    """
+    rows = []
+    for x in eps:
+        d = D(x)
+        rows.append({
+            "slug": x["slug"],
+            "title": d.get("title"),
+            "dek": d.get("dek"),
+            "url": f"{SITE}/p/{x['slug']}/",
+            "json": f"{SITE}/data/episodes/{x['slug']}.json",
+            "show": x.get("source"),
+            "show_id": x.get("source_id"),
+            "show_url": f"{SITE}/s/{x.get('source_id')}/",
+            "original_title": x.get("title_original"),
+            "published": (x.get("published") or "")[:10],
+            "cat": x.get("cat"),
+            "minutes": int((x.get("duration") or 0) // 60) or None,
+            "lang": x.get("lang"),
+            "tags": d.get("tags") or [],
+            "score": (x.get("review") or {}).get("score"),
+            "listen": x.get("audio") or x.get("link"),
+        })
+    rows.sort(key=lambda r: r["published"] or "", reverse=True)
+    return json.dumps({
+        "site": SITE,
+        "generated": now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "count": len(rows),
+        "about": ("Chinese deep-reads of Chinese and English podcasts. "
+                  "Each entry is our own written analysis: argued points, "
+                  "verbatim quotes and numbers, every one carrying a timestamp "
+                  "back to the moment it was said in the original audio. "
+                  "Full transcripts are never redistributed."),
+        "episode_json_fields": ["digest.points", "digest.quotes", "digest.facts",
+                                "digest.terms", "review.score"],
+        "episodes": rows,
+    }, ensure_ascii=False, separators=(",", ":")) + "\n"
+
+
 def search_index(eps: list[dict]) -> str:
     """Everything worth searching, in one lazily-fetched file.
 
@@ -2150,6 +2202,7 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
     (out / "feed.xml").write_text(rss(eps))
     (out / "sitemap.xml").write_text(sitemap(eps))
     (out / "search.json").write_text(search_index(eps))
+    (out / "api.json").write_text(api_index(eps))
     n_pages = write_card_pages(eps, out)
     (out / "log").mkdir(exist_ok=True)
     (out / "log" / "index.html").write_text(log_page(eps, srcs))

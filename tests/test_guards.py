@@ -6511,6 +6511,74 @@ class EveryUiStringMustBeRegisteredBeforePush(unittest.TestCase):
             f"{missing[:3]}")
 
 
+class TheMcpServerMustNotHandOutTranscripts(unittest.TestCase):
+    """MCP 服务器给出去的必须只有我们自己写的那部分。
+
+    逐字稿是各播客的版权内容 —— 这个仓库从一开始就不存它（只在本机 .cache/tr/
+    下，gitignore 掉），站上任何一份文件里也没有。开一个接口把数据端出去的时候，
+    这条最容易被顺手破掉：`data/episodes/*.json` 里没有逐字稿，但只要有人
+    图省事把整个 JSON 原样返回，`transcript_url` 这类字段就跟着出去了。
+
+    给出去的是：我们写的判断、可核对的数字、带署名的短引用，
+    以及**回到原音频那一秒的链接** —— 引用的人自己去核，而不是我们替他转发原文。
+    """
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "mcp"))
+        import importlib
+        self.m = importlib.import_module("ourword_mcp")
+
+    def test_episode_payload_has_no_transcript_field(self):
+        """按真实数据走一遍：返回的键里不许出现 transcript。"""
+        import json as _j, pathlib as _p, os
+        eps = sorted((ROOT / "data" / "episodes").glob("*.json"))
+        if not eps:
+            self.skipTest("本地还没有集")
+        os.environ["OURWORD_SITE"] = str(ROOT)
+        importlib = __import__("importlib")
+        importlib.reload(self.m)
+        slug = _j.loads(eps[-1].read_text()).get("slug")
+        out = self.m.t_get_episode(slug)
+        bad = [k for k in out if "transcript" in k.lower()]
+        self.assertFalse(bad, f"返回里带了逐字稿相关字段：{bad}")
+        blob = _j.dumps(out, ensure_ascii=False).lower()
+        self.assertNotIn("transcript_url", blob,
+                         "把原始 JSON 整个端出去了 —— 要挑字段，不要原样转发")
+
+    def test_it_returns_timestamps_so_claims_can_be_checked(self):
+        import json as _j, os
+        eps = sorted((ROOT / "data" / "episodes").glob("*.json"))
+        if not eps:
+            self.skipTest("本地还没有集")
+        os.environ["OURWORD_SITE"] = str(ROOT)
+        __import__("importlib").reload(self.m)
+        slug = _j.loads(eps[-1].read_text()).get("slug")
+        out = self.m.t_get_episode(slug)
+        self.assertTrue(out.get("listen"), "没给回原声的链接 —— 那就没法核")
+        for k in ("points", "quotes", "facts"):
+            for row in out.get(k) or []:
+                self.assertIn("at", row, f"{k} 里有条目没有时间戳")
+
+    def test_every_tool_is_declared_and_callable(self):
+        names = {t["name"] for t in self.m.TOOLS}
+        self.assertEqual(names, {"search_episodes", "get_episode",
+                                 "list_shows", "latest_episodes"})
+        for t in self.m.TOOLS:
+            self.assertTrue(callable(t["fn"]), f"{t['name']} 没有实现")
+            self.assertIn("inputSchema", t, f"{t['name']} 没有入参 schema")
+
+    def test_notifications_get_no_reply(self):
+        """通知没有 id，回它会让对面报协议错误。"""
+        self.assertIsNone(self.m.handle({"jsonrpc": "2.0",
+                                         "method": "notifications/initialized"}))
+
+    def test_the_registry_manifest_is_valid(self):
+        import json as _j
+        d = _j.loads((ROOT / "mcp" / "server.json").read_text())
+        for k in ("name", "description", "repository", "version", "packages"):
+            self.assertIn(k, d, f"server.json 缺 {k} —— 注册表会拒")
+
+
 class APublishedEpisodeMustNotVanishSilently(unittest.TestCase):
     """已发布的集不许凭空消失。
 
