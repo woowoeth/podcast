@@ -2,10 +2,10 @@
  "slug": "2026-09-17-a16z-视频生成不缺速度了-缺的是导演手里的控制权",
  "of": "a16z-ea9e8e7fed",
  "source_lang": "en",
- "title": "Video generation doesn't lack speed anymore — it lacks the director's control",
- "dek": "FAL post-trains open-source video models to be an order of magnitude faster and an order of magnitude cheaper than the originals, then concludes: speed is no longer the bottleneck — what's next is control over camera, lighting, characters and motion.",
+ "title": "Video generation no longer lacks speed — it lacks the director's control",
+ "dek": "FAL post-trains open-source video models to be an order of magnitude faster and cheaper than the originals, then concludes: speed is no longer the bottleneck; what comes next is control over camera, lighting, characters and motion.",
  "why": "The first half is hardcore inference-system optimization detail, the second half is Hollywood workflows and a controllability roadmap — high information density, good for forming a judgment.",
- "who": "Engineers and founders working on video generation, inference infrastructure or AI tooling, plus investors watching the intersection of Hollywood and generative media.",
+ "who": "Engineers and founders working on video generation, inference infrastructure or AI tooling, and investors watching the intersection of Hollywood and generative media.",
  "skip": "The first two minutes of host introductions and the podcast promo at the end can be skipped.",
  "tags": [
   "Video generation",
@@ -17,49 +17,49 @@
  "points": [
   {
    "h": "Open weights are the precondition for post-training",
-   "body": "FAL had run inference for other model labs before, but never had permission to layer capabilities onto the model. Minimax H3 was the first video model that was genuinely open-source and belonged to the latest generation, could accept reference images, and had an architecture similar to other video models — that's what made FAL decide to go all in on post-training. Gorka said the biggest reason all these optimizations could come together this time is that H3 was the first genuinely next-generation open-source video model — no weights, no post-training business."
+   "body": "FAL had run inference for other model labs before, but never had permission to layer capabilities onto the model. Minimax H3 is the first truly open-source video model that is also current-generation, accepts reference images, and has an architecture similar to other video models — that is what made FAL decide to go all in on post-training. Gorka says the biggest reason all these optimizations could come together this time is that H3 is the first truly next-generation open-source video model — no weights, no post-training business."
   },
   {
    "h": "The whole industry has been compute-constrained since April",
-   "body": "Gorka offers a criterion he calls token market fit: whether a person can productively consume a large amount of tokens, on the order of 10K. Demand for video generation is large enough that people in this line of work sit at their computers generating all day and spend thousands of dollars. But since April, the whole industry and FAL itself have been constrained by compute — add however much compute and you grow by that much. So FAL has been chasing efficiency constantly, releasing the compute it saves to other models, or letting H3 Max generate more tokens."
+   "body": "Gorka offers a criterion he calls token market fit: whether a person can productively consume a large amount of tokens, on the order of 10K. Demand for video generation is large enough — people in this field sit at their computers generating all day and spend thousands of dollars. But since April, the whole industry and FAL itself have been compute-constrained: add more compute, grow by that much. So FAL keeps hunting for efficiency, releasing saved compute to other models, or letting H3 Max generate more tokens."
   },
   {
-   "h": "System optimization hits a roofline; post-training punches through it",
-   "body": "Batuan says the system-level optimization of the past three or four years can at most make the same model 2 to 3 times faster, because the architecture and constraints haven't changed — you're just squeezing the chip harder, and that roofline exists. New post-training plus system-and-model co-design can go an order of magnitude past that roofline. FAL had practiced on open-source image models before, doing versions of ideogram and flux, and built up post-training infrastructure experience; this time, adding a frontier video model, speed improved by an order of magnitude."
+   "h": "System optimization hits the roofline; post-training punches through it",
+   "body": "Batuan says the system-level optimizations of the past three or four years can at best make the same model 2 to 3 times faster, because the architecture and constraints haven't changed — you're just squeezing the chip harder, and that roofline exists. New post-training plus system-model co-design can cross that roofline by an order of magnitude. FAL had practiced on open-source image models before, doing versions of ideogram and flux, and built up post-training infrastructure experience; this time, adding a frontier video model, speed improved by an order of magnitude."
   },
   {
-   "h": "Raise quality first, then cut steps — the order can't be reversed",
-   "body": "Compressing a diffusion model from 50 steps to 20 loses quality, so FAL's approach is to first run post-training and the L pipeline to raise model quality, then layer on the optimization stack so the final result is equal or better in quality while being an order of magnitude faster. Beyond post-training, there are kernels and systems engineering pulling hardware utilization from the 30-40% typical of inference workloads up to a theoretical MFU of 70-80%. And a video model isn't a single call — underneath is a pipeline: first a large LLM expands the prompt, then generation happens in latent space, then decoding back to pixels, plus possibly upscaling depending on the load, and by default none of these components is optimized."
+   "h": "Improve quality first, then cut steps — the order cannot be reversed",
+   "body": "Compressing a diffusion model from 50 steps to 20 loses quality, so FAL's approach is to first run post-training and the L pipeline to raise model quality, then layer on the optimization stack so the final result is equal or better in quality while being an order of magnitude faster. Beyond post-training, there are kernels and systems engineering that push hardware utilization from the 30-40% typical of inference workloads to a theoretical MFU of 70-80%. And a video model is not a single call — underneath is a pipeline: first a large LLM expands the prompt, then generation in latent space, then decoding back to pixels, plus possibly upscaling depending on load, and every component is unoptimized by default."
   },
   {
-   "h": "The Turbo version puts out a five-second video in 1.5 seconds",
-   "body": "A week after H3 Max launched, the team found it could run at 2x speed with quality still in the 97th percentile, so they released H3 Max Turbo: generating a five-second video takes just 1.5 seconds, at half the cost. Gorka's judgment is that today these models are already cheap enough and fast enough — an order of magnitude cheaper than frontier models and more than an order of magnitude faster — and users don't need faster or cheaper. His bet is that what comes next is raising quality, and controllability — which is exactly the direction they've been pushing for the past two or three weeks."
+   "h": "Turbo version: a five-second video in 1.5 seconds",
+   "body": "A week after H3 Max launched, the team found it could run at 2x speed with quality still in the 97th percentile, so they released H3 Max Turbo: generating a five-second video takes just 1.5 seconds, at half the cost. Gorka's judgment is that these models today are already cheap enough and fast enough — an order of magnitude cheaper than frontier models and more than an order of magnitude faster — and users don't need faster or cheaper. His bet is that what comes next is improving quality, and controllability — which is the direction of the past two or three weeks."
   },
   {
-   "h": "Continuous video runs on two minutes of memory, not the last frame",
-   "body": "The livestreams Rehan and levels io each made are essentially independent clips: one segment ends, the last frame is fed into the next segment, and the second segment remembers nothing but that last frame. FAL's internal ML team built something else: transitions are more seamless, there are two minutes of memory, when someone walks into the room everyone looks at him, and the scene is continuous. What it remembers is a highly compressed representation of the original video; beyond two minutes it maintains overall coherence via a continuously evolving system prompt, so it can remember the last four to eight scenes and stream indefinitely."
+   "h": "Continuous video relies on two minutes of memory, not the last frame",
+   "body": "The live streams Rehan and levels io each made are essentially independent clips: one segment ends, its last frame is fed to the next segment, and the second segment remembers nothing but that last frame. FAL's internal ML team did something different: transitions are more seamless, there are two minutes of memory, everyone looks at a person when they walk into the room, and the scene is continuous. It remembers a highly compressed representation of the original video, and beyond two minutes a continuously evolving system prompt maintains overall coherence, so it can remember the last four to eight scenes and stream indefinitely."
   },
   {
    "h": "Blender plus a video model equals near-100% controllability",
-   "body": "The most popular approach in professional workflows: first render a low-resolution scene with a non-AI technology like Blender, then feed that video as a reference to the AI model, and you basically get close to 100% controllability. A week after H3 Max launched, people started using GPT Astra to generate scenes in Blender and hand them to H3 Max, because it's fast enough to try many in parallel, opening up an entirely new pipeline. Gorka says the next month or two will be all-in on controllability, so studios and professional creators can get content that fits their use case exactly."
+   "body": "One of the most popular professional workflows: first render a low-resolution scene with non-AI technology like Blender, then feed that video as a reference to an AI model, and you basically get near-100% controllability. A week after H3 Max launched, people started using GPT Astra to generate scenes in Blender and hand them to H3 Max, because it is fast enough to try many in parallel, opening a whole new pipeline. Gorka says the next month or two will be all about controllability, so studios and professional creators can get content that fits their use case exactly."
   },
   {
    "h": "Hollywood wants small point solutions, not generation from scratch",
-   "body": "Gorka says Hollywood is FAL's fastest-growing segment, with usage a year ago at nearly zero. The NARA tool Amazon MGM Studios released runs mainly on FAL's infrastructure. What Hollywood wants isn't to generate everything from scratch, but to extend a video a bit, change camera control, change lighting — these small point solutions. There's a disconnect between what research labs are building and what creators actually need, and FAL wants to close that gap with post-training projects. The other half of the problem is legal and data residency; Seedance now has US hosting too, and Gorka believes Hollywood's AI usage will grow 10x, 100x in the coming months."
+   "body": "Gorka says Hollywood is FAL's fastest-growing segment, with usage a year ago near zero. Amazon MGM Studios' NARA tool is mainly powered by FAL's infrastructure. What Hollywood wants is not to generate everything from scratch, but to extend a video a bit, change camera control, change lighting — these small point solutions. There is a disconnect between what research labs are building and what creators actually need, and FAL wants to close that gap with post-training projects. The other half of the problem is legal and data residency; Seedance now has US hosting too, and Gorka believes Hollywood's AI usage will grow 10x, 100x in the coming months."
   }
  ],
  "terms": [
   {
    "term": "token market fit",
-   "def": "FAL's definition: whether a person can productively consume a large amount of tokens, on the order of about 10K."
+   "def": "FAL's definition: whether a person can productively consume a large amount of tokens, on the order of 10K."
   },
   {
    "term": "MFU",
-   "def": "A metric for how much of a chip's compute is actually utilized; 70-80% is already near the theoretical ceiling."
+   "def": "A metric for how much of a chip's compute is actually utilized; 70-80% is near the theoretical ceiling."
   },
   {
    "term": "roofline",
-   "def": "Under the same model architecture, the performance ceiling that system optimization can squeeze out."
+   "def": "The performance ceiling that system optimization can squeeze out of a given model architecture."
   },
   {
    "term": "LoRa",
@@ -72,7 +72,7 @@
  ],
  "facts": [
   {
-   "k": "H3 Max speedup over the original Minimax H3 endpoint",
+   "k": "Speedup of H3 Max over the original Minimax H3 endpoint",
    "v": "35x"
   },
   {
@@ -84,19 +84,19 @@
    "v": "1.5 seconds"
   },
   {
-   "k": "H3 Max Turbo cost reduction",
+   "k": "Cost reduction of H3 Max Turbo",
    "v": "2x less"
   },
   {
-   "k": "Continuous video length H3 Max Director can generate",
+   "k": "Maximum continuous video length for H3 Max Director",
    "v": "up to 60 minutes"
   },
   {
-   "k": "H3 Max Director memory window",
+   "k": "Memory window of H3 Max Director",
    "v": "2 minutes"
   },
   {
-   "k": "H3 Max usage lead on the FAL platform",
+   "k": "H3 Max's usage lead on the FAL platform",
    "v": "more than twice the second place"
   },
   {
