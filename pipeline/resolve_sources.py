@@ -232,6 +232,31 @@ def replacement_is_better(st: dict, alt: dict) -> bool:
     return (alt.get("age_days") or 9e9) < (st.get("age_days") or 9e9)
 
 
+# 被拒的形状：403/401/429、要登录、要验证码。这些是「不让你取」，
+# 不是「这个 feed 没了」。
+_BLOCKED = re.compile(r"\b(401|403|429)\b|forbidden|unauthorized|too many requests|"
+                      r"captcha|sign in|bot", re.I)
+
+
+def blocked_residential(s: dict, st: dict) -> bool:
+    """residential 源被拒 —— 这条探测结果没有信息量，不该记成 DEAD。
+
+    **residential 的定义就是「这个 feed 拒机房 IP」。**
+    那么从机房去探它、被 403 挡回来，正是预期之内的事，它说明不了
+    「这档节目还在不在」。而 curate 有一条「feed 连续 3 次体检失败 → 移除」
+    会把这个结论当成事实用。
+
+    实测：goodfight（Substack）被云端探成 `HTTPError: HTTP Error 403`，
+    同一时刻本机住宅 IP 取到 20 集、最新就是当天。
+    这和「整类同时死」是同一个形状 —— 判据对、数据错 —— 只是它一档就能触发，
+    够不着 keep_class_wide_deaths_out 的 ≥3 档门槛。
+
+    取不到就保留上一轮的结论，留下痕迹给人查；真失效了，本机线那边会探出来。
+    """
+    return bool(s.get("residential")) and not st.get("ok") \
+        and bool(_BLOCKED.search(str(st.get("error") or "")))
+
+
 CLASS_WIDE_MIN = 3          # 同一个取稿端点上这么多档源同时翻红，就先怀疑尺子
 
 
@@ -690,6 +715,21 @@ def main() -> int:
             prev[r["id"]] = r
     except Exception:
         pass
+    # residential 源被拒 = 没信息量，保留上一轮结论（详见 blocked_residential）
+    n_res = 0
+    for srec in out:
+        st = srec.get("status")
+        if isinstance(st, dict) and blocked_residential(srec, st):
+            old_st = (prev.get(srec["id"]) or {}).get("status")
+            if old_st:
+                srec["status"] = dict(old_st, residential_block=st.get("error"))
+            else:
+                srec.pop("status", None)
+            n_res += 1
+    if n_res:
+        log(f"  {n_res} 档 residential 源被拒（机房 IP），不记 DEAD —— "
+            f"它们本来就只有本机线取得到")
+
     keep_class_wide_deaths_out(out, prev)
     n_keep = carry_forward(out, prev)
     if n_keep:

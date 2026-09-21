@@ -7363,6 +7363,35 @@ class AWholeClassDyingAtOnceIsTheRulerNotTheSources(unittest.TestCase):
         self.assertFalse(self.R.keep_class_wide_deaths_out(out, prev),
                          "两档也当成一类 —— 那会把真的双双失效也兜住")
 
+    def test_a_blocked_residential_source_is_not_recorded_dead(self):
+        """residential 的定义就是「这个 feed 拒机房 IP」——
+        从机房探它被 403 挡回来，按定义就没有信息量，不该记成 DEAD。
+
+        实测：goodfight（Substack）被云端探成 HTTP 403，同一时刻本机住宅 IP
+        取到 20 集、最新就是当天。而 curate 有一条「feed 连续 3 次失败 → 移除」
+        会把这个结论当事实用。和「整类同时死」同一形状（判据对、数据错），
+        只是它**一档就能触发**，够不着那条 ≥3 档的门槛。
+        """
+        R = self.R
+        self.assertTrue(
+            R.blocked_residential({"residential": True},
+                                  {"ok": False, "error": "HTTPError: HTTP Error 403"}),
+            "residential 源被 403 挡回来，却当成了它真失效")
+        self.assertFalse(
+            R.blocked_residential({"residential": True},
+                                  {"ok": False, "error": "feed parsed but empty"}),
+            "feed 真的空了也被当成「只是被拒」—— 那就永远发现不了它死了")
+        self.assertFalse(
+            R.blocked_residential({}, {"ok": False, "error": "403"}),
+            "非 residential 源被 403 也放过 —— 那是真该查的")
+
+    def test_the_caller_applies_the_residential_rule(self):
+        src = (ROOT / "pipeline" / "resolve_sources.py").read_text()
+        i = src.index("def main(")
+        body = src[i:]
+        self.assertIn("blocked_residential(srec, st)", body,
+                      "写了规则没人调 —— 又一个静默失效的判据")
+
     def test_the_registry_has_no_source_left_for_dead(self):
         """真实清单：别留着已经判死、又没人处理的源。"""
         rows = json.loads((ROOT / "data" / "sources.json").read_text())["sources"]

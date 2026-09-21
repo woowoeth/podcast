@@ -1,0 +1,106 @@
+{
+ "slug": "2024-09-18-zhangxiaojun-o1-不是路线转弯-是-agi-梯子又多了几节",
+ "of": "zhangxiaojun-652bb7cd77",
+ "source_lang": "zh",
+ "title": "o1 Is Not a Change of Route — It's a Few More Rungs on the AGI Ladder",
+ "dek": "The pretraining gold mine is nearly dug out; reinforcement learning is the second mine. o1's preview looks more like a GPT-3 moment — whether it becomes a ChatGPT moment depends on the official release.",
+ "why": "A former OpenAI researcher explains the three elements of reinforcement learning behind o1, why the reward model is so hard, and how OpenAI dug the mine with its eyes closed back then.",
+ "who": "Engineers, investors and founders watching large-model technical routes, reinforcement learning and AI startup opportunities — especially those who want to understand the mechanism behind o1 rather than just look at benchmark scores.",
+ "skip": "The first 3 minutes of guest self-introduction and the chit-chat about choosing between offers can be skipped.",
+ "tags": [
+  "Reinforcement Learning",
+  "o1",
+  "Post-training",
+  "AGI",
+  "OpenAI"
+ ],
+ "points": [
+  {
+   "h": "The pretraining gold mine is nearly dug out",
+   "body": "Wu Yi likens AGI to mining and building ladders: pretraining is the first big gold mine, and after all these years of digging, there is less and less left to extract. Post-training is the second big gold mine, where you can do reinforcement learning, exploration, search and generate synthetic data — and it will very likely feed back into pretraining in turn. So o1 is not a change of route; it is that ‘stage one is over, the pure-pretraining stage is over’, and we have entered a post-training stage built on reinforcement learning, adding a few more rungs to the ladder toward AGI."
+  },
+  {
+   "h": "o1's preview looks more like a GPT-3 moment",
+   "body": "Wu Yi thinks a direct analogy is hard, but he leans toward the preview version possibly being the GPT-3 moment, with the ChatGPT moment waiting for the official release. The reason: ChatGPT and GPT-3 had no essential difference in underlying capability — it was just that RLHF and instruction following were done better, making the model usable and productized, so it suddenly took off. o1 has already moved up a notch in capability, but whether it can, as a product, make people who previously found it unusable find it usable is still unknown."
+  },
+  {
+   "h": "Every one of the three elements of RL is hard",
+   "body": "Wu Yi breaks reinforcement learning into three parts: the reward model, search and exploration, and the prompt. He uses the analogy of coaching a middle-schooler for competitions: the teacher's feedback is the reward model, what difficulty of problem is set is the prompt, and whether the student can generalize from one case to others and figure out on their own how to get it right is exploration. All three matter, and they must all be done right simultaneously to achieve a capability gain. A good reward model alone cannot guarantee a capability gain — this is why reinforcement learning has such a high barrier."
+  },
+  {
+   "h": "PPO is only useful when you have enough compute",
+   "body": "DQN learns a value network and infers the Agent from it; the optimization is indirect and has a gap, but its mathematical properties are good and its demands on compute and data are small. PPO trains the policy network directly, letting the policy explore and evolve on its own — more intuitive, but with worse mathematical properties, and it needs enough exploration, so ‘PPO is useful if and only if you have enough compute’. With insufficient compute, running PPO has no effect at all, which is also why academia more often uses Offline RL algorithms like DQN and DPO."
+  },
+  {
+   "h": "A reward model cannot be trained alone with eyes closed",
+   "body": "Wu Yi draws an analogy to P and NP in theoretical computer science: the reward model is an NP-class problem — judging whether an answer is good is indeed easier than writing the answer, but not by much. And many problems may have no universal reward model, because human preferences have no consensus. His suggestion: it is unlikely that a separate team can train a reward model with its eyes closed; it must be coupled — progress in the model's reasoning ability produces higher-quality data, which yields a better reward model, and the better reward model in turn drives the model forward."
+  },
+  {
+   "h": "Hallucination comes from models knowing correlation, not causation",
+   "body": "Wu Yi sees two causes of hallucination. First, the model does not know causality, only correlation, so it does not know whether it actually knows the answer — ask it who won the World Cup and it says Brazil. Pretraining and SFT have no counterfactual reasoning process, so they easily overfit to correlations. Second, many reasoning problems have a great many intermediate steps, and the traditional AI paradigm demands outputting the correct answer in one shot, with no allowance for revision. o1 gives the model a buffer of 10 or 20 seconds, allowing it to explore and to revise — which by itself can greatly improve reasoning performance."
+  },
+  {
+   "h": "o1 does not mean vertical models will rise",
+   "body": "Wu Yi firmly believes a general, unified model will emerge. The reason: when the parameter count is very large, many vertical models are easily orthogonal in high-dimensional space, and orthogonal parameters are easily merged. But he stresses the premise is that the vertical method is coupled with the pretraining paradigm — a customized mathematical method like Alpha Geometry cannot feed back into the large model's underlying capability, whereas if OpenAI is doing domain-specific training on general methods, then a better vertical model must mean a better general model. He expects the RL paradigm to become common in 2 to 4 years, but within a 2-year horizon there will not be very many vertical models."
+  },
+  {
+   "h": "OpenAI's KPI back then was blog views",
+   "body": "Wu Yi describes early OpenAI as a bizarre organization that was ‘product-driven yet had no product’: each group's KPI was to make a big news item, and the big news item was publishing a blog post. The multi-agent team worked on hide and seek for over a year and published one blog post, and that blog post may have been worth tens of millions of dollars. He thinks this model fit the Scaling Law path — betting on the Scaling Law, a project cannot be done by one or two excellent researchers plus one or two helpers; it requires heavy engineering investment, and the paper cycle is too short to serve as an evaluation. This model was not actually invented by OpenAI either — DeepMind did it this way when it built AlphaGo."
+  }
+ ],
+ "terms": [
+  {
+   "term": "PPO / Proximal Policy Optimization",
+   "def": "A reinforcement learning algorithm proposed by OpenAI in 2017 that trains the policy network directly and is only effective with enough compute."
+  },
+  {
+   "term": "DQN / Deep Q-Network",
+   "def": "An algorithm proposed by DeepMind in 2014 that trains a value network and then infers the Agent, with low compute requirements."
+  },
+  {
+   "term": "RLHF / Reinforcement Learning from Human Feedback",
+   "def": "A method that uses human feedback to train a reward model and then aligns the large model's behavior."
+  },
+  {
+   "term": "self-play",
+   "def": "Having the model play against itself to improve, applicable to problems with a symmetric structure such as Go."
+  },
+  {
+   "term": "Scaling Law",
+   "def": "The regularity that increasing compute, data and parameter scale brings improvements in model capability."
+  }
+ ],
+ "facts": [
+  {
+   "k": "o1 reasoning chain length",
+   "v": "several thousand tokens"
+  },
+  {
+   "k": "o1 reasoning time",
+   "v": "about 10 seconds"
+  },
+  {
+   "k": "Wu Yi's time at OpenAI",
+   "v": "February 2019 to the end of July 2020"
+  },
+  {
+   "k": "OpenAI headcount inflection point",
+   "v": "under 100 people before 2021"
+  },
+  {
+   "k": "Number of people on Wu Yi's team doing algorithms",
+   "v": "five or six people"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "It's pretty unlikely that there's a separate team that, regardless of the model's own capability, trains a reward model with its eyes closed — that seems quite unlikely.",
+   "translated": true
+  },
+  {
+   "text": "The traditional AI chain of thought, or this output mode, doesn't allow you to revise — this is actually one cause of hallucination. A lot of the time the model could revise to the right answer, but you simply never gave it the chance to revise.",
+   "translated": true
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}
