@@ -1151,6 +1151,48 @@ def check_duplicate_episodes(r: Report) -> None:
                + "、".join(x[:34] for x in v))
 
 
+def check_timestamps_fit_the_audio(r: Report) -> None:
+    """时间戳必须落在我们链接的那段音频里。
+
+    **这个站的全部价值就是「点一下回到它被说出的那一秒」。**
+    时间戳指到音频结束之后，那条链接就是坏的 —— 而页面上看不出来，
+    读者点了才知道。
+
+    实测（2026-09-21）：734 篇里 14 篇（1.9%）最大时间戳超出音频长度，
+    最严重的两篇超 801s 和 477s。真因是文稿来自 YouTube 版而那一版比
+    feed 里的音频长（Macro Musings 实测差 +33s 到 +260s 不等，
+    多出来的是片头片尾），字幕时间轴因此整体偏移。
+    机械闸有上界 `dur + 180`，但那是**逐条裁剪**，不是判断整份文稿对不对齐 ——
+    而且 176s 的偏移恰好从 180s 的宽限里溜了过去。
+
+    这里只报，不删：偏移多少要看逐集，删掉时间戳等于把这一页的价值删掉。
+    """
+    bad = []
+    for f in (DATA / "episodes").glob("*.json"):
+        try:
+            e = json.loads(f.read_text())
+        except Exception:
+            continue
+        dur = int(e.get("duration") or 0)
+        if not dur:
+            continue
+        d = e.get("digest") or {}
+        ts = [x.get("t") or 0 for k in ("points", "quotes", "facts")
+              for x in (d.get(k) or [])]
+        if ts and max(ts) > dur:
+            bad.append((max(ts) - dur, e.get("source_id"), f.stem))
+    if not bad:
+        r.good("时间戳都落在音频里")
+        return
+    bad.sort(reverse=True)
+    worst = bad[0]
+    # 小幅超出多半是 feed 少报了几秒，不值得报硬伤；大幅超出是文稿配错了版本。
+    big = [x for x in bad if x[0] > 120]
+    line = (f"{len(bad)} 篇的时间戳超出音频长度，最严重超 {worst[0]}s"
+            f"（{worst[1]}）—— 点过去会落在音频结束之后")
+    (r.fail if big else r.note)(line)
+
+
 def check_vanished_episodes(r: Report) -> None:
     """已发布的集不许凭空消失。
 
@@ -1175,18 +1217,59 @@ def check_vanished_episodes(r: Report) -> None:
                              capture_output=True, timeout=30)
         if out.returncode != 0:
             return
-        was = {f.split("/")[-1] for f in out.stdout.decode().split("\0") if f}
+        paths = [f for f in out.stdout.decode().split("\0") if f]
     except Exception:
         return                       # 不是 git 仓库或 git 不可用：不判，别把整轮卡住
+    if not paths:
+        return
+
+    # **按「这一集是哪一集」比，不按文件名比。**
+    # 第一版比的是文件名，于是**重做后换了标题**的集全被报成丢失 ——
+    # 实测修完时间戳错位那一轮，6 篇以新 slug 重新上站，旧文件名不在了，
+    # 闸就喊「丢了 6 篇」。文件名会变，集的身份不会：用 title_original。
+    # 判据钉在会变的东西上，就会把正常的事报成事故 —— 喊过一次狼，下次没人看。
+    def _ids(blobs):
+        out = set()
+        for b in blobs:
+            try:
+                d = json.loads(b)
+            except Exception:
+                continue
+            k = d.get("title_original") or d.get("id")
+            if k:
+                out.add((d.get("source_id"), k))
+        return out
+
+    try:
+        show = subprocess.run(["git", "-C", str(ROOT), "cat-file", "--batch"],
+                              input="\n".join(f"HEAD:{p}" for p in paths),
+                              capture_output=True, text=True, timeout=120)
+    except Exception:
+        return
+    blobs, buf = [], show.stdout.split("\n")
+    cur = []
+    for line in buf:
+        if line.endswith(" blob " + line.rsplit(" ", 1)[-1]) and " blob " in line:
+            if cur:
+                blobs.append("\n".join(cur)); cur = []
+            continue
+        cur.append(line)
+    if cur:
+        blobs.append("\n".join(cur))
+    was = _ids(blobs)
+    now = _ids([p.read_text(errors="ignore")
+                for p in (DATA / "episodes").glob("*.json")])
     if not was:
         return
-    now = {p.name for p in (DATA / "episodes").glob("*.json")}
-    gone = was - now
+    gone_ids = was - now
+    retired_ids = _ids([p.read_text(errors="ignore")
+                        for p in (DATA / "retired").glob("*.json")]) \
+        if (DATA / "retired").exists() else set()
+    gone = {f"{a}｜{b}"[:60] for a, b in gone_ids}
+    retired = {f"{a}｜{b}"[:60] for a, b in retired_ids}
     if not gone:
         r.good(f"没有集凭空消失（HEAD {len(was)} 篇都还在）")
         return
-    retired = {p.name for p in (DATA / "retired").glob("*.json")} \
-        if (DATA / "retired").exists() else set()
     unexplained = sorted(gone - retired)
     if unexplained:
         r.fail(f"{len(unexplained)} 篇已发布的集从 data/episodes 消失了，"
@@ -1262,6 +1345,7 @@ def main(argv: list[str] | None = None) -> int:
     check_source_coverage(r)
     check_language_parity(r)
     check_asr_only_routing(r)
+    check_timestamps_fit_the_audio(r)
     check_vanished_episodes(r)
     check_dead_episodes(r)
     check_duplicate_episodes(r)

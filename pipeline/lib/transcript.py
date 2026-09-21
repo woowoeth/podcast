@@ -1207,6 +1207,24 @@ def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
             log(f"    tier {tier}: only {words} words — too short to be an episode "
                 f"transcript, rejected")
             continue
+        # **文稿整体比音频长 = 它不是这一版。**
+        # YouTube 上的版本常带片头片尾，比 feed 里的音频长（Macro Musings 实测
+        # +33s 到 +260s 不等）。字幕时间轴因此整体偏移，而这个站的全部价值就是
+        # 「点一下回到它被说出的那一秒」—— 偏移几分钟，每条链接都落在别处。
+        # 实测全站 734 篇里 14 篇中招，最严重的超出 801s。
+        # 机械闸有 `dur + 180` 的上界，但那是**逐条裁剪**，不判断整份对不对齐，
+        # 176s 的偏移正好从宽限里溜过去。
+        # 这里在取稿层就拦：对不齐就别用这一层，落到下一层（ASR 按定义对齐）。
+        if (tier in ("youtube", "page") and ep.get("duration")
+                and got["segments"]):
+            span = int(got["segments"][-1].get("t") or 0)
+            over = span - int(ep["duration"])
+            if over > ALIGN_TOLERANCE:
+                attempts.append(f"{tier}:misaligned(+{over}s)")
+                log(f"    tier {tier}: 文稿跨度比音频长 {over}s —— "
+                    f"不是这一版，时间戳会整体偏移，改用下一层")
+                continue
+
         # A timed transcript knows the runtime better than a feed that omits it.
         if not ep.get("duration") and got["segments"] and not got["segments"][-1].get("approx"):
             ep["duration"] = int(got["segments"][-1]["t"]) + 30
@@ -1316,7 +1334,17 @@ def yt_length(vid: str) -> int:
 # 3：belongs_to 加了两字专名兜底。**改判据就要换代号** —— 香港那一集是
 # 被旧的 belongs_to 判死的（正确的 24206 字转写因为「香港」是两字而被丢），
 # 判据修好了，旧的「取不到文稿」结论就不算数，账本里那些要能被捞回来。
-TRANSCRIPT_GEN = 3
+# 文稿跨度比音频长多少就算「不是这一版」。
+# **这个值是量出来的，不是估的。** 全站 753 篇的「最大时间戳 − 音频长度」：
+# 中位 -203s、90% 分位 -57s、98% 分位 -9s —— 时间戳落在音频内是绝对常态，
+# 超出 0 的只有 13 篇（1.7%）。所以 20 秒不会误伤正常集。
+# 第一版定的 90 秒太松：修好之后新生成的集里仍有 +87s、+84s、+72s 溜过去，
+# 等于没修。容差要贴着数据定，不要贴着「感觉安全」定。
+ALIGN_TOLERANCE = 20
+
+# 4：取稿层加了对齐核对（文稿跨度比音频长就换一层）。判据变了就要换代号，
+# 否则被旧判据放过去的集捞不回来。
+TRANSCRIPT_GEN = 4
 
 
 def pipeline_id() -> str:
@@ -1328,7 +1356,8 @@ def pipeline_id() -> str:
     knobs = "|".join(str(x) for x in
                      (TRANSCRIPT_GEN, ORDER, CHUNK_SEC, LOCAL_MODEL,
                       ASR_MAX_MB, sorted(MIN_WORDS.items()),
-                      _TWO_CHAR_MIN, sorted(_TITLE_FURNITURE)))
+                      _TWO_CHAR_MIN, sorted(_TITLE_FURNITURE),
+                      ALIGN_TOLERANCE))
     return hashlib.sha1(knobs.encode("utf-8")).hexdigest()[:10]
 
 

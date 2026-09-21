@@ -6655,13 +6655,34 @@ class APublishedEpisodeMustNotVanishSilently(unittest.TestCase):
                              capture_output=True)
         if out.returncode != 0:
             self.skipTest("不是 git 仓库")
-        was = {f.split("/")[-1] for f in out.stdout.decode().split("\0") if f}
-        if not was:
+        paths = [f for f in out.stdout.decode().split("\0") if f]
+        if not paths:
             self.skipTest("HEAD 里还没有集")
-        now = {p.name for p in (ROOT / "data" / "episodes").glob("*.json")}
-        retired = {p.name for p in (ROOT / "data" / "retired").glob("*.json")} \
+
+        # **按「这一集是哪一集」比，不按文件名比。**
+        # 第一版这里比的是文件名，于是重做后换了标题的集全被报成丢失 ——
+        # 实测 6 篇以新 slug 重新上站，闸就喊「丢了 6 篇」。
+        # 文件名会变，集的身份不会。
+        def ident(blob):
+            try:
+                d = json.loads(blob)
+            except Exception:
+                return None
+            k = d.get("title_original") or d.get("id")
+            return (d.get("source_id"), k) if k else None
+
+        was = set()
+        for path in paths:
+            b = subprocess.run(["git", "-C", str(ROOT), "show", f"HEAD:{path}"],
+                               capture_output=True)
+            i = ident(b.stdout)
+            if i:
+                was.add(i)
+        now = {ident(p.read_bytes()) for p in (ROOT / "data" / "episodes").glob("*.json")}
+        retired = {ident(p.read_bytes())
+                   for p in (ROOT / "data" / "retired").glob("*.json")} \
             if (ROOT / "data" / "retired").exists() else set()
-        lost = sorted(was - now - retired)
+        lost = sorted(x for x in (was - now - retired) if x)
         self.assertFalse(
             lost, f"{len(lost)} 篇已发布的集不见了，又没有下站记录：{lost[:3]}")
 

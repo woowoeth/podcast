@@ -43,6 +43,8 @@ MAX_WORDS = int(os.environ.get("MAX_WORDS", "0"))          # 0 = no ceiling
 # 同样的机时能多出好几倍篇数（实测张小珺：≤120 分钟的 107 集要 10.7 小时 GPU，
 # 而做满 142 集要 19.1 小时 —— 最后那 14 集长访谈吃掉 4.3 小时）。
 _ceiling = {"words": MAX_WORDS, "minutes": 0}
+# --episode 钉死的那一集。修一集坏稿时，「有资格被选」和「会被选中」是两件事。
+_pin: dict = {"slug": ""}
 _tiers = {"allow": T.ORDER}
 _triage = {"on": True, "min": triage.MIN_SCORE}
 _last_triage: dict[str, dict] = {}
@@ -371,11 +373,24 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
         for ep in eps[:max(25, days * 2)]:
             if not ep["published"] or ep["published"] < cutoff:
                 continue
+            if _pin["slug"]:
+                # 钉死一集：slug 或原标题里带这个片段才要，别的一概不碰。
+                hay = f"{ep.get('title') or ''} {slugify(ep.get('title') or '')}"
+                if _pin["slug"].lower() not in hay.lower():
+                    continue
             cap_m = _ceiling["minutes"]
             if cap_m and (ep.get("duration") or 0) > cap_m * 60:
                 continue               # 太长，这一轮不碰，一分钟机时都不花
             key = eid(s["id"], ep["guid"])
             prior = state["done"].get(key)
+            if prior is not None and _pin["slug"]:
+                # **钉住一集 = 明确要求重做它。**
+                # 光清 done 不管用：--reconcile 会从磁盘上还在的那份稿把记录
+                # 重建回来，于是「清掉 → 重跑」下一秒就被撤销了，实测 0 picked。
+                # 而先删稿再重做是更坏的做法 —— 实测删 14 篇只回来 7 篇。
+                # 所以钉住时直接忽略旧结论，跑成功了再替换旧稿。
+                state["done"].pop(key, None)
+                prior = None
             if prior is not None:
                 if not _verdict_is_stale(prior, s, triage.rubric_id()):
                     continue
@@ -909,6 +924,11 @@ def main() -> int:
     ap.add_argument("--max-words", type=int, default=MAX_WORDS,
                     help="skip episodes whose transcript is longer than this "
                          "(cost scales with length; 0 = no limit)")
+    ap.add_argument("--episode", metavar="SLUG_OR_TITLE",
+                    help="只做这一集（按 slug 或原标题的片段匹配），绕过按分数挑选。"
+                         "修一集坏稿时用：清掉 done 只是让它**有资格**被选，"
+                         "而选集器按新鲜度打分，永远先挑最新的 —— "
+                         "实测连着三次想重做一篇 8 月的集，每次跑出来的都是最新两集")
     ap.add_argument("--max-minutes", type=int, default=0, metavar="M",
                     help="只挑时长不超过 M 分钟的集（0 = 不限）。"
                          "和 --max-words 不同：这个在选集时就生效，"
@@ -946,6 +966,7 @@ def main() -> int:
 
     _ceiling["words"] = a.max_words
     _ceiling["minutes"] = a.max_minutes
+    _pin["slug"] = (a.episode or "").strip()
     _triage["on"] = not a.no_triage
     _triage["min"] = a.triage_min
     _cat["v"] = a.cat

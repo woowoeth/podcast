@@ -1,0 +1,110 @@
+{
+ "slug": "2025-11-18-zhangxiaojun-小鹏拆掉语言模型-language-是毒药-简单即美",
+ "of": "zhangxiaojun-9b6f8d396d",
+ "source_lang": "zh",
+ "title": "Xpeng Tears Out the Language Model: Language Is Poison, Simple Is Beautiful",
+ "dek": "Xpeng's new autonomous driving lead Liu Xianming (刘先明) tore the Language out of VLA, using 270,000 to 300,000 hours of pure vision data to output control signals directly, because Language is discrete and inefficient and becomes the bottleneck for scaling data.",
+ "why": "A technical lead who went from Meta and Cruise to Xpeng explains why tearing out Language is a counter-consensus but effective path, and how a carmaker transforms into a physical AI company.",
+ "who": "Founders and engineers watching autonomous driving technical routes and AI strategic transformation, especially those who need to form a judgment on VLA, world models and end-to-end architectures.",
+ "skip": "The rapid-fire Q&A and closing chit-chat after 1:46:07 can be skipped.",
+ "tags": [
+  "Autonomous Driving",
+  "VLA",
+  "World Model",
+  "Xpeng",
+  "Physical AI"
+ ],
+ "points": [
+  {
+   "h": "Only by tearing out Language can the data flow",
+   "body": "Liu Xianming argues that if Language is kept in VLA as an intermediate supervision signal, it necessarily brings in human labeling or quality inspection, and data usage efficiency becomes extremely low. He compares the model to a machine and data to fuel: once Language is mixed into the fuel, it stops flowing. So Xpeng's approach is to tear Language out directly, using Vision and Language together as input and outputting Action directly, without passing through a Language token in between."
+  },
+  {
+   "h": "Language is a discrete space, the physical world is continuous",
+   "body": "Liu Xianming explains that Language is inherently discrete and needs tokenization, whereas the physical world's model input is continuous visual or sensor signals and the output is continuous control quantities, such as longitudinal acceleration and steering wheel angle. Using Language to generate discrete tokens and then translate them back into continuous control quantities is an inefficient process. After tearing out Language, the model no longer depends on human supervision signals and can keep taking in data like a machine."
+  },
+  {
+   "h": "After tearing out Language, use a world model to solve the curse of dimensionality",
+   "body": "After tearing out Language, the input dimension is very high but the output space is very small — only a few dozen control quantities for the next few seconds — which Liu Xianming calls the curse of dimensionality. Xpeng's solution is to build a world model, letting the model first understand how the world runs and then output actions. He compares this to COT in text models, except that instead of using text for COT, it uses Latent COT, and even lets COT serve directly as the latent space, seeing the model's understanding of the world by generating video or Bird Eye images."
+  },
+  {
+   "h": "The decision to tear out Language took only a brief discussion",
+   "body": "Liu Xianming says everyone discussed tearing out Language a bit, didn't discuss it for long, and felt it should be done. He explains why: Language itself is discretized, physical AI's input is continuous signals and its output is continuous actions, and inserting a Language in between as a representation is unnecessary. This decision was made roughly from the first half to the middle of this year; from VLA 1.0 to 2.0, tearing out the L is the most important change."
+  },
+  {
+   "h": "Lidar, rules, language — basically everything has been torn out",
+   "body": "Liu Xianming says that from last year to this year, Xpeng tore out lidar, tore out planning-and-control rules, tore out end-to-end, and then tore out language — basically everything. He explains why progress in AI always means constantly tearing out redundant things, because good things must be simple. Tearing out rules was the hardest, because the traditional approach is to add a loss function or rule when the model performs poorly, but Xpeng chose to hold the line and not add them, insisting on scaling and extreme simplification."
+  },
+  {
+   "h": "The bottleneck only became visible when adding data stopped working",
+   "body": "Liu Xianming says that only when adding data hit a bottleneck and could no longer move did they realize Language was a bottleneck. He explains that Language's output is too slow and too inefficient: adding very little signal requires adding several hundred tokens, which makes no sense at all. He also mentions that DeepSeek's OCR paper is likewise counter-consensus, showing there is no need to align images into the token space of text."
+  },
+  {
+   "h": "After tearing out Language there was no obvious regression, just gains",
+   "body": "Liu Xianming says that after tearing out Language there was basically not much obvious regression, and clear scaling and result improvements appeared right away, because the data volume is large enough: training a model now uses roughly 270,000 to 300,000 hours of pure vision data. They originally worried that scenarios like traffic lights and turn lanes would not work, but found they simply didn't occur — it went through very naturally."
+  },
+  {
+   "h": "The core logic for an OEM doing autonomous driving is data",
+   "body": "Responding to Yu Kai's (于凯) view that OEMs won't develop autonomous driving in-house, Liu Xianming says to look again in five years. He thinks it makes sense for an OEM to do this, and the core logic is data: an OEM can automatically find the missing points in the data distribution and quickly have the fleet collect that data the next day, forming a closed loop, which is very hard for a third party to scale. He says that next year they will roll out L4 in Guangzhou, based on the same architecture."
+  }
+ ],
+ "terms": [
+  {
+   "term": "VLA / Vision-Language-Action model",
+   "def": "An end-to-end model architecture that takes vision and language as input and outputs actions directly."
+  },
+  {
+   "term": "Latent COT / latent-space chain of thought",
+   "def": "A chain-of-thought approach that reasons in latent space rather than generating text."
+  },
+  {
+   "term": "scaling",
+   "def": "Improving model capability by increasing model parameters, data volume and compute."
+  },
+  {
+   "term": "Physical AI",
+   "def": "AI that interacts with the physical world, taking continuous sensor signals as input and outputting continuous actions."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Pure vision data volume used to train the model",
+   "v": "270,000 to 300,000 hours"
+  },
+  {
+   "k": "Data scale growth rate",
+   "v": "30% to 40% per quarter"
+  },
+  {
+   "k": "Size of Cruise's infra team",
+   "v": "700 people"
+  },
+  {
+   "k": "Xpeng's 2025 investment in AI and total value",
+   "v": "4.5 billion"
+  },
+  {
+   "k": "Vimo's weekly order volume in San Francisco",
+   "v": "250,000"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "This is the simplest, most direct path, but in practice it will inevitably act like a kind of poison — you will depend on it more and more heavily.",
+   "translated": true
+  },
+  {
+   "text": "So once we thought this through, we made an attempt: I'll just tear it all out, tear it all out.",
+   "translated": true
+  },
+  {
+   "text": "Simple is beautiful — all the good things in the world are necessarily simple, so the process of discovery is often simple too.",
+   "translated": true
+  },
+  {
+   "text": "If you tear this thing out, there will definitely be regression, or after going fully AI there may be regression, but you can keep pulling it back and making it better through constant data iteration and OTA iteration — the ceiling may be higher.",
+   "translated": true
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}

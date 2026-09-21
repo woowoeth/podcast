@@ -1,0 +1,134 @@
+{
+ "slug": "2025-11-03-zhangxiaojun-纯线性注意力不-work-3-比-1-混合才是共识",
+ "of": "zhangxiaojun-9f17db8356",
+ "source_lang": "zh",
+ "title": "Pure linear attention doesn't work; a 3-to-1 mix is the emerging consensus",
+ "dek": "Pure Linear Attention has a fundamental flaw: no guaranteed floor. Kimi and Qwen have both converged on inserting 1 global attention layer for every 3 linear layers, while MiniMax retreated from M1 to Full Attention because its evaluation pipeline missed multi-hop reasoning.",
+ "why": "Hardcore architecture talk. It explains Kimi Linear's KDA module, where the 3-to-1 ratio comes from, why MiniMax went back to Full Attention, and how linear and sparse attention can be combined.",
+ "who": "Engineers, researchers and investors watching LLM architecture and inference efficiency, especially anyone trying to sort out the Linear Attention vs. Sparse Attention route debate.",
+ "skip": "After 1:15, the chat about personal PhD experience and archaeological method can be fast-forwarded.",
+ "tags": [
+  "Linear Attention",
+  "Model Architecture",
+  "Kimi",
+  "DeepSeek",
+  "Inference Efficiency"
+ ],
+ "points": [
+  {
+   "h": "Long chains of thought are blowing up decoding cost",
+   "body": "The direct trigger for Kimi redoing its attention mechanism early this year was the long chains of thought brought by the RL wave around DeepSeek R1 and Kimi 1.5, which often run to tens of thousands of tokens. If every layer is quadratic attention, decoding has to store a large KV cache per layer, and the time complexity of decoding L tokens is also quadratic — far too expensive. Hybrid attention can push inference cost down a lot, which is very useful in the context of long chains of thought and agentic AI."
+  },
+  {
+   "h": "KDA swaps coarse-grained decay for fine-grained decay",
+   "body": "The linear module Kimi Linear chose is called KDA (Kimi Delta Attention), an improvement on Yang Songlin's Gated DeltaNet from last year. Gated DeltaNet was limited by efficiency at the time and used coarse-grained gating similar to Mamba2 — all dimensions under one attention head shared the same decay rate. KDA replaces that with an independent decay rate per dimension, so the RNN hidden state corresponding to each dimension has its own update-like frequency. Intuitively this makes better use of the limited hidden state and improves performance."
+  },
+  {
+   "h": "Kimi clears levels internally with a Scaling Ladder",
+   "body": "Kimi has an internal mechanism called Scaling Ladder: if it performs well at one scale, it has to keep scaling at the next scale, clearing levels one by one against Full Attention like beating a game. Zhang Yu first tried a whole bunch of ways to mix Gated DeltaNet and found that mixing Gated DeltaNet was better than the alternatives, but in some places it still fell short of Full Softmax Attention; later, swapping in finer-grained decay brought a fairly large improvement."
+  },
+  {
+   "h": "Why MiniMax retreated to Full Attention",
+   "body": "MiniMax M1 was a very large-scale hybrid attention deployment. On the monitored metrics Lightning Attention performed well and was more efficient, so they shipped it. But they later found that on multi-hop reasoning tasks the drop was very large — the original evaluation pipeline only looked at capabilities like MMLU and did not test multi-hop reasoning. Yang Songlin thinks Lightning Attention is a relatively weak linear attention whose mechanism looks like it stalled two years ago. M2 retreated to full Softmax Full Attention, but they say they are still exploring hybrid attention, and the next version, M3, might switch back again."
+  },
+  {
+   "h": "Pure linear doesn't work; only a hybrid has a floor",
+   "body": "The current consensus is that pure Linear Attention doesn't work, and has a fairly fundamental flaw on long text: the number of RNN states is constant, so as context length grows it will eventually fail to hold everything and lose precision. Hybrid attention keeps a certain number of global attention layers, so the floor is guaranteed, and handling long text is guaranteed too. Kimi Linear and Qwen 3 Next showed no drop on tasks like ruler. But Yang Songlin also says he doesn't know whether this counts as consensus, because DeepSeek is still trying sparse attention approaches."
+  },
+  {
+   "h": "3-to-1 is fast becoming the consensus mixing ratio",
+   "body": "Kimi Linear inserts 1 full attention layer for every 3 KDA layers. Yang Songlin says 3-to-1 is now almost becoming a formula: MiniMax was previously 7-to-1, with too few softmax layers, so the long-text guarantee wasn't as good; ByteDance published a paper studying how much softmax ratio a hybrid architecture needs, ran many pre-train-from-scratch experiments, and also concluded that 3-to-1 is best and the Gated DeltaNet module is better than other candidates. Qwen 3 Next also uses 3-to-1 with Gated DeltaNet."
+  },
+  {
+   "h": "The ideal architecture replaces global layers with sparse ones",
+   "body": "Yang Songlin wrote on Zhihu: why not combine the two approaches? Let sparse attention replace the global attention layers in hybrid attention, so you no longer need the complexity of global attention, but you still have to store KV cache, and the KV cache of the many remaining layers can be shrunk via linear attention. He thinks linear attention's competitor is more Sliding Window Attention than sparse. As far as he knows, no one in industry has combined sparse and linear at the same time; there is some exploration in academia."
+  },
+  {
+   "h": "China's algorithmic innovation is stronger because it has fewer GPUs",
+   "body": "Yang Songlin judges that China's algorithmic innovation is definitely stronger, and on infra architecture China is stronger too. The reason is a different position in the ecosystem: China doesn't have that many GPUs, so the demand for efficiency is higher and there is more incentive to try efficient Linear Attention variants; some Silicon Valley companies have too many GPUs and buy them at high prices. He also says US companies put more into optimizers (optimization), and Kimi was one of the first places to eat the Muon crab."
+  },
+  {
+   "h": "Hardware is racing toward ever-faster matrix multiplication",
+   "body": "Yang Songlin says hardware and the Transformer are co-evolving, and hardware is turning into a shape the Transformer likes better: Tensor Core, TMA, and the separate memory for matrix multiplication on Blackwell are all there to optimize matrix multiplication. Even FA4, because matrix multiplication got so fast, made the exp module the bottleneck, and they use an approximate method to compute exp. So algorithm design must satisfy general hardware principles, otherwise in today's scalability scenarios it has basically no practical value."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Linear Attention",
+   "def": "An attention mechanism that drops softmax and cuts complexity from quadratic to linear, and can be written in an RNN inference form."
+  },
+  {
+   "term": "KDA / Kimi Delta Attention",
+   "def": "The linear attention module used by Kimi Linear, based on Gated DeltaNet, replacing coarse-grained decay with per-dimension independent decay."
+  },
+  {
+   "term": "Delta Rule",
+   "def": "Use the key to retrieve the old value, linearly combine it with the input value, and write it back to the memory network, including a subtractive erase operation."
+  },
+  {
+   "term": "Sparse Attention",
+   "def": "Only the Top-K tokens participate in attention computation, reducing the cost of generating each token, but it does not save KV cache."
+  },
+  {
+   "term": "Sliding Window Attention",
+   "def": "Attention that only looks at a local window, with the KV cache upper bound bounded by the window size."
+  },
+  {
+   "term": "Scaling Ladder",
+   "def": "An internal Kimi mechanism: if it performs well at one scale, it goes to the next scale and keeps scaling, like clearing levels."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Kimi Linear mixing ratio",
+   "v": "1 full attention layer inserted for every 3 KDA layers"
+  },
+  {
+   "k": "MiniMax M1 mixing ratio",
+   "v": "7 to 1"
+  },
+  {
+   "k": "Qwen 3 Next RoPE ratio",
+   "v": "25% RoPE, 75% NoPE"
+  },
+  {
+   "k": "Kimi's RoPE ratio",
+   "v": "cut by 100%"
+  },
+  {
+   "k": "Long chain-of-thought length",
+   "v": "tens of thousands of tokens"
+  },
+  {
+   "k": "Training length in the BERT era",
+   "v": "512"
+  },
+  {
+   "k": "Long text as seen at the time",
+   "v": "8192"
+  },
+  {
+   "k": "Example forget rate for input-independent decay",
+   "v": "0.99"
+  },
+  {
+   "k": "Earliest year DeltaNet appeared",
+   "v": "2021"
+  },
+  {
+   "k": "Fine-grained decay can be traced back to",
+   "v": "2016"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "I think the consensus now is that pure linear attention doesn't work.",
+   "translated": true
+  },
+  {
+   "text": "So you definitely have to — first you have to make your algorithm satisfy some very general principles.",
+   "translated": true
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}

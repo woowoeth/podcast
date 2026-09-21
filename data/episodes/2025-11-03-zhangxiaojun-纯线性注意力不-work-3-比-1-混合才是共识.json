@@ -1,0 +1,224 @@
+{
+ "id": "zhangxiaojun-9f17db8356",
+ "slug": "2025-11-03-zhangxiaojun-纯线性注意力不-work-3-比-1-混合才是共识",
+ "fingerprint": "5015849761c9d87a",
+ "source_id": "zhangxiaojun",
+ "source": "张小珺·商业访谈录",
+ "source_zh": "张小珺·商业访谈录",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "讲线性注意力模型架构与推理效率",
+ "tier": 1,
+ "lang": "zh",
+ "title_original": "119. Kimi Linear、Minimax M2？和杨松琳考古算法变种史，并预演未来架构改进方案",
+ "published": "2025-11-03T23:00:00Z",
+ "duration": 6205,
+ "audio": "https://dts-api.xiaoyuzhoufm.com/track/626b46ea9cbbf0451cf5a962/6908b9c80ceab2a71c48668c/media.xyzcdn.net/626b46ea9cbbf0451cf5a962/lhtjpe2wxQ9y6YAKuwKxTMVg1Jyn.m4a",
+ "link": "https://www.xiaoyuzhoufm.com/episode/6908b9c80ceab2a71c48668c?utm_source=rss",
+ "image": "https://image.xyzcdn.net/FoH62JagasBwvZVKsXACfpq8Rp30.png",
+ "youtube_id": "858HR43pegk",
+ "video_len": 6206,
+ "transcript_url": "https://dts-api.xiaoyuzhoufm.com/track/626b46ea9cbbf0451cf5a962/6908b9c80ceab2a71c48668c/media.xyzcdn.net/626b46ea9cbbf0451cf5a962/lhtjpe2wxQ9y6YAKuwKxTMVg1Jyn.m4a",
+ "digest": {
+  "title": "纯线性注意力不 work，3 比 1 混合才是共识",
+  "dek": "纯 Linear Attention 有根本缺陷，下限无保证；Kimi、千问都收敛到每 3 层线性插 1 层全局注意力，而 MiniMax 从 M1 退回 Full Attention 是因为评测漏了多跳推理。",
+  "why": "硬核架构向，讲清了 Kimi Linear 的 KDA 模块、3 比 1 比例由来、MiniMax 退回 Full Attention 的原因，以及线性与稀疏注意力如何结合。",
+  "points": [
+   {
+    "t": 734,
+    "h": "长思维链把 decoding 成本逼爆",
+    "body": "Kimi 年初重做注意力机制的直接动因是 DeepSeek R1 和 Kimi 1.5 那波 RL 带来的长思维链，长度常到几万 token。如果每层都是平方注意力，decoding 时每层要存大量 KV cache，且 decode L 个 token 的时间复杂度也是平方的，太贵。混合注意力能把 inference cost 打低很多，这在长思维链和 agentic AI 背景下非常有用。",
+    "spk": "杨松琳"
+   },
+   {
+    "t": 914,
+    "h": "KDA 把粗粒度衰减换成细粒度",
+    "body": "Kimi Linear 选的线性模块叫 KDA（Kimi Delta Attention），基于杨松琳去年的 Gated DeltaNet 改进。Gated DeltaNet 当时受限于效率，用了类似 Mamba2 的粗粒度 gating——一个 attention head 下所有维度共享同一个衰减率。KDA 把它换成每个维度有自己独立的衰减率，每个维度对应的 RNN 隐藏状态有独立的类更新频率，直觉上能更好利用有限的 hidden state，提高 performance。",
+    "spk": "杨松琳"
+   },
+   {
+    "t": 1105,
+    "h": "Kimi 内部用规模阶梯通关",
+    "body": "Kimi 内部有个叫 Scaling Ladder 的机制：在一个规模下表现好，就要到下一个规模继续 scale，像通关一样一关关跟 Full Attention 比。张宇先试了一大堆混合 Gated DeltaNet 的混法，发现混 Gated DeltaNet 比其他好，但有些地方仍不如 Full Softmax Attention；后来把 decay 换成更细粒度的，提升就挺大。",
+    "spk": "杨松琳"
+   },
+   {
+    "t": 1408,
+    "h": "MiniMax 退回 Full Attention 的原因",
+    "body": "MiniMax M1 是很大规模的混合注意力实践，监控指标上 Lightning Attention 表现好且效率更高，就上了。但后来发现多跳推理（multi-hop reasoning）任务上掉点非常大——最初评测 pipeline 只看 MMLU 这类能力，没检测多跳推理。杨松琳认为 Lightning Attention 是比较弱的线性注意力，机制像停留在两年前。M2 退回全 Softmax 的 Full Attention，但他们说还在继续探索混合注意力，下一版 M3 说不定又变回来。",
+    "spk": "杨松琳"
+   },
+   {
+    "t": 2335,
+    "h": "纯线性不 work，混合才有下限",
+    "body": "现在共识是纯 Linear Attention 不 work，在长文本下有比较根本的缺陷：RNN 状态数目恒定，context 长度增加早晚存不下、损失精度。混合注意力保留一定数目的全局注意力层，下限有保证，处理长文本也有保证。Kimi Linear 和千问 3 Next 在 ruler 等任务上表现没掉点。但杨松琳也说不知道这算不算共识，因为 DeepSeek 还在试稀疏注意力方案。",
+    "spk": "杨松琳"
+   },
+   {
+    "t": 2456,
+    "h": "3 比 1 快变成混合比例的共识",
+    "body": "Kimi Linear 每 3 层 KDA 插 1 层全注意力。杨松琳说 3 比 1 现在快变成一个公式：MiniMax 之前是 7 比 1，softmax 层数不够，长文本保证没那么好；字节发过 paper 研究 hybrid 架构需要多少比例 softmax，做了很多 pre-train from scratch 实验，结论也是 3 比 1 最好、Gated DeltaNet 模块比其他候选好。千问 3 Next 也用 3 比 1 加 Gated DeltaNet。",
+    "spk": "杨松琳"
+   },
+   {
+    "t": 2941,
+    "h": "理想架构是稀疏替换全局层",
+    "body": "杨松琳在知乎写过：为什么不能把两种方案结合？让 sparse attention 去取代混合注意力里的全局注意力层，这样就不需要全局注意力的复杂度，但还是要存 KV cache，剩下很多层的 KV cache 可以通过线性注意力把 size 打下来。他认为线性注意力的竞争对手更多是 Sliding Window Attention，而不是 sparse。工业界据他所知还没人同时结合 sparse 和线性，学界有一些探索。",
+    "spk": "杨松琳"
+   },
+   {
+    "t": 4044,
+    "h": "国内算法创新更强是因为卡少",
+    "body": "杨松琳判断国内算法创新肯定更强，infra 架构上国内更强。原因是生态地位不同：国内没那么多卡，对 efficiency 要求更高，更有动力尝试高效的 Linear Attention 变种；硅谷有些公司卡太多，买得高。他还说美国公司更注重优化器（optimization）的投入，Kimi 是最早吃 Muon 这只螃蟹的地方之一。",
+    "spk": "杨松琳"
+   },
+   {
+    "t": 5977,
+    "h": "硬件奔着矩阵乘法越来越快",
+    "body": "杨松琳说硬件和 Transformer 在协同演进，硬件变成 Transformer 更喜欢的模样：Tensor Core、TMA、Blackwell 上针对矩阵乘单独的内存，都是为优化矩阵乘。甚至 FA4 因为矩阵乘太快，导致 exp 那个模块变成瓶颈，他们用 approximate 方法来做 exp。所以设计算法必须满足硬件通用原则，否则在当今 scalability 场景下基本没有实际价值。",
+    "spk": "杨松琳"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 2335,
+    "spk": "杨松琳",
+    "raw": "我觉得现在共识的时候就是说 纯linear attention是不work的",
+    "zh": "我觉得现在的共识是：纯 Linear Attention 是不 work 的。"
+   },
+   {
+    "t": 5677,
+    "spk": "杨松琳",
+    "raw": "那你肯定你要 首先你要 啊 让你的算法 先去 满足一些 非常通用的原则嘛",
+    "zh": "那你肯定首先要让你的算法先去满足一些非常通用的原则。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "Kimi Linear 混合比例",
+    "v": "每 3 层 KDA 插 1 层全注意力",
+    "t": 2456
+   },
+   {
+    "k": "MiniMax M1 混合比例",
+    "v": "7 比 1",
+    "t": 2456
+   },
+   {
+    "k": "千问 3 Next 的 RoPE 比例",
+    "v": "25% RoPE，75% NoPE",
+    "t": 4287
+   },
+   {
+    "k": "Kimi 的 RoPE 比例",
+    "v": "砍了 100%",
+    "t": 4287
+   },
+   {
+    "k": "长思维链长度",
+    "v": "几万 token",
+    "t": 734
+   },
+   {
+    "k": "BERT 年代训练长度",
+    "v": "512",
+    "t": 2091
+   },
+   {
+    "k": "当时视角的长文本",
+    "v": "8192",
+    "t": 2091
+   },
+   {
+    "k": "输入无关衰减的遗忘率举例",
+    "v": "0.99",
+    "t": 1719
+   },
+   {
+    "k": "DeltaNet 最早出现年份",
+    "v": "2021 年",
+    "t": 4648
+   },
+   {
+    "k": "细粒度 decay 最早可考古到",
+    "v": "2016 年",
+    "t": 5133
+   }
+  ],
+  "terms": [
+   {
+    "term": "Linear Attention",
+    "zh": "线性注意力",
+    "def": "去掉 softmax、把复杂度从平方降到线性的注意力机制，可写成 RNN 推理形式。"
+   },
+   {
+    "term": "KDA",
+    "zh": "Kimi Delta Attention",
+    "def": "Kimi Linear 用的线性注意力模块，基于 Gated DeltaNet，把粗粒度衰减换成每维度独立衰减。"
+   },
+   {
+    "term": "Delta Rule",
+    "zh": "增量更新规则",
+    "def": "用 key 取出旧 value，与输入 value 做线性组合后写回记忆网络，含减法删除操作。"
+   },
+   {
+    "term": "Sparse Attention",
+    "zh": "稀疏注意力",
+    "def": "只选 Top-K 的 token 参与注意力计算，减少每 token 生成花费，但不省 KV cache。"
+   },
+   {
+    "term": "Sliding Window Attention",
+    "zh": "滑窗注意力",
+    "def": "只关注局部窗口的注意力，KV cache 上限被窗口大小 bound 住。"
+   },
+   {
+    "term": "Scaling Ladder",
+    "zh": "规模阶梯",
+    "def": "Kimi 内部机制，一个规模表现好就到下一个规模继续 scale，像通关。"
+   }
+  ],
+  "who": "关注大模型架构与推理效率的工程师、研究员和投资人，尤其是想搞清 Linear Attention 与 Sparse Attention 路线之争的人。",
+  "skip": "1:15 之后关于个人读博经历和考古方法的闲聊可快进。",
+  "tags": [
+   "线性注意力",
+   "模型架构",
+   "Kimi",
+   "DeepSeek",
+   "推理效率"
+  ],
+  "quality": {
+   "transcript_source": "asr",
+   "transcript_detail": "local:whisper-large-v3-turbo",
+   "words": 24248,
+   "wpm": 234.5,
+   "timed": true,
+   "verified_quotes": 2,
+   "grounded_facts": 10,
+   "points": 9,
+   "pruned": 5,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-09-21T15:20:52Z",
+ "triage": {
+  "score": 8.0,
+  "why": "Kimi Linear论文作者亲述KDA模块、三比一混合比例与各公司注意力路线取舍，机制与一手细节密集",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 8,
+   "faithful": 8,
+   "selection": 8,
+   "concrete": 8,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点多为机制与判断（KDA 细粒度衰减、3比1比例由来、MiniMax 退回原因），数字与术语具体，未见歪曲原意。",
+  "worst": "金句 [1:34:37] 只截了半句「先满足通用原则」，原文更硬的是「你设计一个算法，硬件公司凭什么天天帮你优化」这一反驳，可换成完整论断。"
+ },
+ "model": "openai:deepseek-chat"
+}
