@@ -6511,6 +6511,93 @@ class EveryUiStringMustBeRegisteredBeforePush(unittest.TestCase):
             f"{missing[:3]}")
 
 
+class APublishedEpisodeMustNotVanishSilently(unittest.TestCase):
+    """已发布的集不许凭空消失。
+
+    **实测事故（2026-09-21）**：合并时三方一比才发现，上游相对共同祖先
+    **删了 50 篇已发布的集** —— 全是补齐发出去的张小珺存量（2022 年那批）。
+    不是正当下站：rescore.py 删集前必写 data/retired/，而那个目录当时本地和
+    部署副本都只有 1 个文件，50 篇一条记录都没有。真因是部署副本那一轮从一个
+    落后的状态（670 集）开始构建，却把它当成真相提交了。
+
+    **当时没有任何检查会为此变红。** 我是靠手动三方比对撞见的，纯属运气。
+    「悄悄发不出去」这个站防了一整套（giveup、dead-episodes、coverage），
+    「悄悄没了」反而是空的 —— 而后者更难发现：站上少一篇，外面看不出来。
+
+    判据落在 git 上，因为磁盘只知道现在、不知道刚才。
+    """
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.hc = importlib.import_module("healthcheck")
+
+    def test_the_check_exists_and_is_wired_in(self):
+        src = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        self.assertIn("def check_vanished_episodes(", src, "没有这道检查")
+        i = src.index("def main(")
+        self.assertIn("check_vanished_episodes(r)", src[i:],
+                      "写了检查但没人调 —— 又一个静默失效的判据")
+
+    def test_a_retired_episode_is_not_a_loss(self):
+        """下站是正当动作，不该报硬伤 —— 否则每次 rescore 都会喊狼。"""
+        src = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        i = src.index("def check_vanished_episodes(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        self.assertIn("retired", body, "没有区分「下站」和「丢了」")
+        self.assertIn("r.note(", body, "把正当下站也报成硬伤了")
+        self.assertIn("r.fail(", body, "丢了却只报提醒")
+
+    def test_it_compares_against_git_not_just_disk(self):
+        """磁盘只知道现在。少掉了什么，只有和 HEAD 比才看得出来。"""
+        src = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        i = src.index("def check_vanished_episodes(")
+        body = src[i:src.index("\ndef ", i + 1)]
+        self.assertIn("ls-tree", body, "没和 git 比 —— 那就永远发现不了少了什么")
+        # 只断言「调了 ls-tree」不够：把路径改成别的目录，它照样绿。
+        # 反向注入当场验出来的。判据要落在**比的是哪一份**上。
+        self.assertRegex(
+            body, r'"--name-only",\s*"HEAD",\s*"data/episodes"',
+            "和 git 比的不是 data/episodes —— 那比出来的东西说明不了任何事")
+
+    def test_the_local_line_refuses_to_commit_a_tree_thats_behind(self):
+        """检测之外还要拦住源头：落后的树不许提交。
+
+        事故里那一整套同步恢复逻辑跑完，工作区仍落后 origin 56 篇
+        （那份副本堆了 20 个 stash，autostash 反复失败留下的），
+        而提交那一步照样 add、照样 commit ——
+        于是把 50 篇已发布的集的**删除**推了上去，
+        外面只看到一句 "digest: N new (local)"。
+        """
+        sh = (ROOT / "scripts" / "local-daily.sh").read_text()
+        i = sh.index("git add data/episodes data/en data/state.json")
+        before = sh[:i]
+        self.assertIn("origin/main", before[-2000:],
+                      "提交前没和 origin 核对过树的完整性")
+        self.assertRegex(before[-2000:], r'missing.*-gt 0|"\$\{missing:-0\}" -gt 0',
+                         "算了缺口却没据此停手")
+        self.assertIn("exit 1", before[-1200:],
+                      "发现落后却继续提交 —— 那正是把删除推上去的那一步")
+
+    def test_the_real_tree_has_lost_nothing(self):
+        """拿真仓库对一遍。"""
+        import subprocess
+        out = subprocess.run(["git", "-C", str(ROOT), "ls-tree", "-r", "-z",
+                              "--name-only", "HEAD", "data/episodes"],
+                             capture_output=True)
+        if out.returncode != 0:
+            self.skipTest("不是 git 仓库")
+        was = {f.split("/")[-1] for f in out.stdout.decode().split("\0") if f}
+        if not was:
+            self.skipTest("HEAD 里还没有集")
+        now = {p.name for p in (ROOT / "data" / "episodes").glob("*.json")}
+        retired = {p.name for p in (ROOT / "data" / "retired").glob("*.json")} \
+            if (ROOT / "data" / "retired").exists() else set()
+        lost = sorted(was - now - retired)
+        self.assertFalse(
+            lost, f"{len(lost)} 篇已发布的集不见了，又没有下站记录：{lost[:3]}")
+
+
 class AQuoteMustNotCarrySpeechToTextGarbage(unittest.TestCase):
     """逐字引用里不能留语音转写的残渣。
 

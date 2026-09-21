@@ -1151,6 +1151,51 @@ def check_duplicate_episodes(r: Report) -> None:
                + "、".join(x[:34] for x in v))
 
 
+def check_vanished_episodes(r: Report) -> None:
+    """已发布的集不许凭空消失。
+
+    **实测事故（2026-09-21）**：合并时三方一比才发现，上游相对共同祖先
+    **删了 50 篇已发布的集** —— 全是补齐发出去的张小珺存量。
+    不是正当下站：rescore.py 删集前必写 data/retired/，而那个目录当时
+    本地和部署副本都只有 1 个文件，50 篇一条记录都没有。
+    真因是部署副本那一轮从一个落后的状态（670 集）开始构建，
+    却把它当成真相提交了。
+
+    **而当时没有任何检查会为此变红。** 我是靠手动三方比对撞见的，纯属运气。
+    「悄悄发不出去」这个站防了一整套，「悄悄没了」反而是空的。
+
+    判据落在 git 上，因为磁盘只知道现在、不知道刚才：
+    拿 HEAD 里的集清单和工作区比，少掉的每一篇都必须在 data/retired/
+    有对应记录，否则是硬伤。
+    """
+    import subprocess
+    try:
+        out = subprocess.run(["git", "-C", str(ROOT), "ls-tree", "-r", "-z",
+                              "--name-only", "HEAD", "data/episodes"],
+                             capture_output=True, timeout=30)
+        if out.returncode != 0:
+            return
+        was = {f.split("/")[-1] for f in out.stdout.decode().split("\0") if f}
+    except Exception:
+        return                       # 不是 git 仓库或 git 不可用：不判，别把整轮卡住
+    if not was:
+        return
+    now = {p.name for p in (DATA / "episodes").glob("*.json")}
+    gone = was - now
+    if not gone:
+        r.good(f"没有集凭空消失（HEAD {len(was)} 篇都还在）")
+        return
+    retired = {p.name for p in (DATA / "retired").glob("*.json")} \
+        if (DATA / "retired").exists() else set()
+    unexplained = sorted(gone - retired)
+    if unexplained:
+        r.fail(f"{len(unexplained)} 篇已发布的集从 data/episodes 消失了，"
+               f"而 data/retired/ 里没有对应记录 —— 这不是下站，是丢了："
+               + "、".join(x[:34] for x in unexplained[:3]))
+    else:
+        r.note(f"{len(gone)} 篇下站（data/retired/ 有记录），不是丢失")
+
+
 def check_dead_episodes(r: Report) -> None:
     """再也不会被尝试的集，每一篇都要有人看过。
 
@@ -1217,6 +1262,7 @@ def main(argv: list[str] | None = None) -> int:
     check_source_coverage(r)
     check_language_parity(r)
     check_asr_only_routing(r)
+    check_vanished_episodes(r)
     check_dead_episodes(r)
     check_duplicate_episodes(r)
     check_token_usage(r)

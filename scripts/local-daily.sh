@@ -216,6 +216,35 @@ PYEOF
 
   # 只加数据。原来这里是 git add -A，会把工作区里未提交的源码改动一起扫进
   # bot 的提交，历史就变成误导性的（"build: regenerate site" 里躺着 run.py 的改动）。
+  # **提交前核一遍：树里有没有少掉 origin 已经有的集。**
+  #
+  # 实测事故（2026-09-21）：上面那一整套同步恢复逻辑跑完，工作区仍然落后
+  # origin 56 篇 —— 这份副本堆了 20 个 stash（autostash 反复失败留下的），
+  # 树早就和远端漂开了。而这里照样 add、照样 commit，于是**把 50 篇已发布的集
+  # 删除推了上去**。查的时候发现它们不在 data/retired/，不是下站，是丢了。
+  #
+  # 少了就停手。少几篇不发是小事；把别人发过的删掉、还带着一句
+  # "digest: N new (local)" 推上去，外面看不出任何异样，那才是大事。
+  missing=$(python3 - <<'PYEOF'
+import subprocess, pathlib
+def names(ref):
+    o = subprocess.run(["git","ls-tree","-r","-z","--name-only",ref,"data/episodes"],
+                       capture_output=True).stdout.decode()
+    return {f.split("/")[-1] for f in o.split("\0") if f}
+try:
+    disk = {p.name for p in pathlib.Path("data/episodes").glob("*.json")}
+    print(len(names("origin/main") - disk))
+except Exception:
+    print(0)
+PYEOF
+)
+  if [ "${missing:-0}" -gt 0 ]; then
+    echo "同步没真正完成：树里缺 $missing 篇 origin 已有的集，本轮不提交" >&2
+    echo "（提交等于把这些集删掉推上去 —— 见 check_vanished_episodes）" >&2
+    python3 pipeline/heartbeat.py local 1 --why "落后 origin $missing 篇，未提交" || true
+    exit 1
+  fi
+
   git add data/episodes data/en data/state.json data/sources.json data/heartbeat-local.json 2>/dev/null || true
   n=$(git diff --cached --name-only | grep -c 'data/episodes/' || true)
   git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
