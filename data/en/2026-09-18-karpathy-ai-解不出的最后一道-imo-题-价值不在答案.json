@@ -2,11 +2,11 @@
  "slug": "2026-09-18-karpathy-ai-解不出的最后一道-imo-题-价值不在答案",
  "of": "karpathy-1eeed2e53c",
  "source_lang": "en",
- "title": "The last IMO problem AI could not solve, and its value is not in the answer",
- "dek": "In 2025, fewer than 1% of IMO contestants scored full marks on Problem 6, and every AI got stuck on it. What makes it hard is not computation — it is that you must first understand, first have taste, and only then put pen to paper. And that is exactly what reinforcement learning has the hardest time training.",
+ "title": "The last IMO problem AI could not solve — and why the answer isn't the point",
+ "dek": "In 2025, fewer than 1% of IMO contestants scored full marks on Problem 6, and every AI got stuck on it. What makes it hard isn't computation — it's that you have to understand first, have taste first, and only then start writing. And that is exactly what reinforcement learning struggles most to train.",
  "why": "The bulk of this episode is a complete walkthrough of one math problem, not AI industry analysis. Only the last 5 minutes discuss the relationship between AI and math, but those 5 minutes are worth hearing.",
- "who": "Engineers and researchers interested in the intersection of AI and math, and in the act of \"understanding\" itself; anyone who wants to see clearly where the boundary of model capability lies.",
- "skip": "The full solution walkthrough from 06:11 to 45:06, unless you really want to work through the problem yourself.",
+ "who": "Engineers and researchers interested in the intersection of AI and math, and in the act of understanding itself; anyone who wants to see clearly where the boundary of model capability lies.",
+ "skip": "The full solution walkthrough from 06:11 to 45:06, unless you actually want to work through the problem yourself.",
  "tags": [
   "AI and math",
   "IMO",
@@ -16,36 +16,36 @@
  ],
  "points": [
   {
-   "h": "What blocks AI is not computation, it is patience",
-   "body": "On 2025 IMO Problem 6, of more than 600 top contestants worldwide, fewer than 1% scored full marks. By 2025, models from several institutions could already answer every other problem correctly, and got stuck only on this one. DeepMind research director Thang Luong's explanation: the model has no patience — it will not spend time understanding the problem or developing a feel for it, but starts solving immediately. Karpathy adds a second reason: the model has no sense of \"what makes a problem or a strategy beautiful,\" and the solution to this problem depends precisely on aesthetic judgment."
+   "h": "What blocks AI isn't computation, it's patience",
+   "body": "On 2025 IMO Problem 6, of more than 600 top contestants worldwide, fewer than 1% scored full marks. By 2025, models from several institutions could answer every other problem correctly, and got stuck only on this one. DeepMind research director Thang Luong's explanation: the model has no patience — it won't spend time understanding the problem or developing a feel for it, it just starts solving. Karpathy adds a second reason: the model has no sense of what makes a problem or a strategy beautiful, and this problem's solution depends precisely on aesthetic judgment."
   },
   {
    "h": "Genius is really the residue of experience",
-   "body": "Facing this problem, the most obvious construction is to put all the X's on the diagonal and cover the remaining region with horizontal tiles, giving 2(n-1) pieces. But this construction is too obvious to be the answer IMO wants. Karpathy inserts a seemingly unrelated cube-cutting brain teaser here: a 3x3x3 cube cut into 27 small cubes, where you may rearrange the pieces after each cut — what is the minimum number of cuts? The answer is 6, because each of the 6 faces of the very center small cube needs its own separate cut. This proof idea — fix your attention on one face of the internal structure — is exactly the key to the tiling problem that follows."
+   "body": "Facing this problem, the most obvious construction is to put all the X's on the diagonal, cover the remaining region with horizontal tiles, and get 2(n-1) tiles. But that construction is too obvious to be the answer IMO wants. Karpathy inserts a seemingly unrelated cube-cutting brainteaser here: a 3x3x3 cube cut into 27 small cubes, where you're allowed to rearrange the pieces after each cut — what's the minimum number of cuts? The answer is 6, because each of the 6 faces of the very center cube needs its own separate cut. That proof idea — fix your attention on one face of the internal structure — is exactly the key to the tiling problem later."
   },
   {
    "h": "The most efficient tiling has every tile touching four X's",
-   "body": "Highlight all four edges of every X, and each time you place a tile, switch off the edges it touches. In an inefficient tiling, a tile touches only 1 or even 0 X's; in an efficient tiling, every tile touches 4 X's. This yields a conjecture: the optimal tiling should make as many tiles as possible touch 4 distinct X's. But look further: an X cannot fall in the middle of a tile's edge — that would make the two tiles above and below conflict on the left, since a single column cannot contain two X's. The X must fall on a corner of the tiles, with four tiles pinwheeling around it. Using square tiles of side length k, you can tile a large grid of side length k². And 2025 happens to be 45², a coincidence that makes the construction look extremely promising."
+   "body": "Highlight all four edges of every X, and each time you place a tile, switch off the edges it touches. In an inefficient tiling, a tile touches only 1 or even 0 X's; in an efficient tiling, every tile touches 4 X's. This yields a conjecture: the optimal tiling should make as many tiles as possible touch 4 distinct X's. But look further: an X cannot sit in the middle of a tile's edge — that would make the two tiles above and below conflict on the left, since a column can't contain two X's. The X must sit at a corner of tiles, with four tiles pinwheeling around it. With square tiles of side length k, you can tile a large grid of side length k². 2025 happens to be 45², and this coincidence makes the construction look extremely promising."
   },
   {
    "h": "Highlight only one direction and the proof misses the tiles on one side",
-   "body": "Highlight the edges of all X's, 4k² in total, each tile touches at most 4, subtract the 4 on the boundary that need not be touched, and you get the lower bound k²-1. But the target lower bound is k²+2k-3, off by a term proportional to k. The problem is that only the right edges are highlighted: the correspondence you get this way is tight on the right side of the diagram, but misses a large number of tiles concentrated on the left. Switching to any other single direction is the same — the missed tiles always cluster on one side. Karpathy says mathematics rewards you for respecting symmetry and punishes you for not respecting it — pick an arbitrary direction, and the weakness shows up in the inequality."
+   "body": "Highlight the edges of all X's: 4k² edges in total, each tile touches at most 4, subtract the 4 on the boundary that don't need to be touched, and you get the lower bound k²-1. But the target lower bound is k²+2k-3, off by a term proportional to k. The problem is highlighting only the right edge: the correspondence you get this way is tight on the right side of the diagram, but misses a large number of tiles concentrated on the left. Switching to any other single direction is the same — the missed tiles always cluster on one side. Karpathy says math rewards you for respecting symmetry and punishes you for not respecting it — pick an arbitrary direction and the weakness shows up in the inequality."
   },
   {
    "h": "Cut the grid into four regions, highlight each edge only once",
-   "body": "The solution is to draw two paths: one going up-right along the X's, one going down-right, dividing the whole diagram into four regions. If an X is in the right region, highlight its right edge; if in the top region, highlight its top edge; left, right, top and bottom each govern one region. An X lying on a boundary highlights two edges. This both supplies the missing highlighted edges and guarantees that each tile touches at most one highlighted edge — because when a tile sits in the left region, the X above it cannot highlight its bottom edge, the X below it cannot highlight its top edge, and the X to its left cannot highlight its right edge. This diagram is the core of the entire proof."
+   "body": "The solution is to draw two paths: one going up-right along the X's, one going down-right, dividing the whole diagram into four regions. If an X is in the right region, highlight its right edge; if in the top region, highlight its top edge — left, right, top, bottom each govern one region. An X lying on a boundary highlights two edges. This both fills in the missing highlighted edges and guarantees that every tile touches at most one highlighted edge — because when a tile sits in the left region, the X above it cannot highlight a bottom edge, the X below it cannot highlight a top edge, and the X to its left cannot highlight a right edge. This diagram is the core of the entire proof."
   },
   {
    "h": "The problem reduces to a pure permutation problem",
-   "body": "Label each X with the number of the row it sits in; since each row contains exactly one X, these labels form a permutation of 1 to k². The up-right path corresponds to an increasing subsequence, the down-right path to a decreasing subsequence. Let LIS be the length of the longest increasing subsequence and LDS the length of the longest decreasing subsequence; the total number of highlighted edges is then k² + LIS + LDS - 4 (plus 1 more when the two paths intersect, making it -3). To prove the target lower bound k²+2k-3, it suffices to prove LIS + LDS ≥ 2k, that is, that the average of the two is at least k. At this point the grid has completely disappeared, and what remains is a pure fact about permutations."
+   "body": "Label each X with its row number; since each row has exactly one X, these labels form a permutation of 1 to k². The up-right path corresponds to an increasing subsequence, the down-right path to a decreasing subsequence. Let LIS be the length of the longest increasing subsequence and LDS the longest decreasing subsequence; the total number of highlighted edges is k² + LIS + LDS - 4 (or -3 when the two paths intersect, adding 1 back). To prove the target lower bound k²+2k-3, it suffices to prove LIS + LDS ≥ 2k, i.e. that the average of the two is at least k. At this point the grid has completely vanished, and what remains is a pure fact about permutations."
   },
   {
    "h": "The proof of Erdős-Szekeres is itself a gem",
-   "body": "This pure permutation fact is the Erdős-Szekeres theorem: in any permutation, the product of the lengths of the longest increasing subsequence and the longest decreasing subsequence is at least the length n of the permutation. An IMO contestant can simply cite the theorem and finish, but Karpathy chooses to give the proof as well. The method is to label each position with a pair of numbers: the length of the longest increasing subsequence ending there, and the length of the longest decreasing subsequence ending there. Because the numbers in a permutation are all distinct, the two label pairs at any two positions must differ — if the later number is larger, the first label increases by at least one; if smaller, the second label increases by at least one. Plot these label pairs as coordinate points: the longest increasing subsequence is the width of the bounding box, the longest decreasing subsequence is the height, and width times height equals the number of lattice points, which is the length of the permutation."
+   "body": "This pure permutation fact is the Erdős-Szekeres theorem: in any permutation, the product of the lengths of the longest increasing subsequence and the longest decreasing subsequence is at least the length n of the permutation. An IMO contestant could just cite the theorem and finish, but Karpathy chooses to give the proof too. The approach is to label each position with a pair of numbers: the length of the longest increasing subsequence ending there, and the length of the longest decreasing subsequence ending there. Because the numbers in a permutation are all distinct, the two label pairs at any two positions must differ — if the later number is larger, the first label increases by at least one; if smaller, the second label increases by at least one. Plot these label pairs as coordinate points: the longest increasing subsequence is the width of the bounding box, the longest decreasing subsequence is the height, and width times height equals the number of lattice points, which is the length of the permutation."
   },
   {
-   "h": "Beyond the proof there is another layer: making the proof feel obvious",
-   "body": "Karpathy says knowing a proof is only a very small part of deeply understanding mathematics. When he and Nishad Dulkhar made this video, their first reaction on seeing the original proof was \"I know it's true, but how would anyone come up with this.\" What they wanted to contribute was not a new proof but a narrative, so that when viewers arrive at the proof it no longer feels like it came out of nowhere. He has a name for this: motivated explanation. This bears directly on AI and mathematics: if a machine can generate proofs but does not bring human understanding, then it has completely lost its meaning. And academia has long used \"proof\" as a proxy metric for progress, which exposes an urgent need — for a new, independent way to measure whether a publication actually advances human understanding."
+   "h": "Beyond the proof there's another layer: making the proof feel obvious",
+   "body": "Karpathy says knowing a proof is only a very small part of deeply understanding mathematics. When he and Nishad Dulkhar made this video, their first reaction on seeing the original proof was ‘I know it's true, but how would anyone come up with this’. What they wanted to contribute wasn't a new proof but a narrative, so that when viewers reach the proof it no longer feels like it appeared out of nowhere. He has a name for this: motivated explanation. This bears directly on AI and math: if a machine can generate proofs but doesn't bring human understanding, then it has completely lost its meaning. And academia has long used ‘proof’ as a proxy metric for progress, which exposes an urgent need — for a new, independent way to measure whether a publication actually advances human understanding."
   }
  ],
  "terms": [
@@ -59,7 +59,7 @@
   },
   {
    "term": "motivated explanation",
-   "def": "A term coined by Karpathy: a narrative that makes a proof feel almost obvious to the reader, rather than merely followable step by step."
+   "def": "Karpathy's coinage: a narrative that makes a proof feel almost obvious to the reader, rather than merely followable step by step."
   },
   {
    "term": "LIS / LDS",
@@ -72,7 +72,7 @@
    "v": "more than 600 teenagers"
   },
   {
-   "k": "Full-mark rate on IMO Problem 6",
+   "k": "Full-marks rate on IMO Problem 6",
    "v": "fewer than 1%"
   },
   {
