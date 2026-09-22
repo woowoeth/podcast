@@ -1,0 +1,138 @@
+{
+ "slug": "2026-09-16-oxideandfriend-一颗三美元的时钟缓冲器-差点让整家计算机公司停摆",
+ "of": "oxideandfriend-596da943bd",
+ "source_lang": "en",
+ "title": "A $3 Clock Buffer Nearly Brought an Entire Computer Company to a Standstill",
+ "dek": "After AI demand exploded, ninth-generation PCIe clock buffers were swept off the shelves, and the substitute part tripped over a hidden difference in HCSL termination. What saved the line in the end wasn't a chip — it was a single 0201 resistor.",
+ "why": "A complete post-mortem of a hardware supply-chain incident: from part selection to the probe effect to a rework fiasco, dense with detail, and worth hearing for anyone who does hardware.",
+ "who": "Engineers and founders working in hardware, supply chain, or data center infrastructure — especially anyone currently selecting parts, hunting for substitutes, or stuck behind lead times.",
+ "skip": "The first ten minutes or so of internet gossip and AI-hallucination chit-chat can be skipped.",
+ "tags": [
+  "Hardware supply chain",
+  "PCIe",
+  "Data centers",
+  "Part substitution",
+  "AI demand"
+ ],
+ "points": [
+  {
+   "h": "Fix the problem and you're further behind than before",
+   "body": "The time spent troubleshooting was time that should have gone into building boards. By the time the fix was validated and the contract manufacturer could run the normal process again, the backlog of lost capacity hadn't disappeared — it had just been compressed into a shorter window. Bryan's words were \"Now you're behind\": every board that should have been produced still has to be built, but the cycle time is drastically compressed. This is the second-order cost of a hardware incident that's easy to overlook: not the fix, but the debt you owe after the fix."
+  },
+  {
+   "h": "The oscilloscope did the chip's termination for it",
+   "body": "When Eric measured clock jitter he used an 8 GHz oscilloscope, and the scope itself terminates to ground at 50 ohms — which meant it supplied the termination this driver chip needed. So the waveform looked fantastic, performance was excellent. RFK nailed it in one line: this is the probe effect in the literal sense — the act of measuring made the thing being measured look normal."
+  },
+  {
+   "h": "Switching to ninth-gen parts ran straight into the AI demand explosion",
+   "body": "Steve Tuck took the timeline back to the summer over a year earlier: a power electronics component supplier, taking advantage of a demand trough, switched a ninth-generation part to a tenth-generation one, sent the switch signal up to its wafer fab, and then relied mainly on inventory to bridge until the new part went into production. Less than thirty days after the switch, AI infrastructure demand exploded, ninth-generation parts were bought up, and the already-thin inventory overlap period drained fast. This PCIe clock buffer was one of those parts; the supplier later sold its entire timing business to another company, and during the handover supply information got even messier."
+  },
+  {
+   "h": "The clock was stuck high, and then he remembered HCSL is pull-up only",
+   "body": "On the Winona line, a great production colleague looked at the waveform on an 8 GHz scope and found the clock was stuck high the whole time. Eric said this triggered a memory: HCSL is pull-up only. He realized on the spot that what had looked normal before was entirely the probe effect, and with that came a huge sinking feeling. Then the scramble began for 0402 resistors around 49.9 ohms."
+  },
+  {
+   "h": "Two kinds of output driver decide whether a substitute works at all",
+   "body": "Robert pointed out the real trap in this part: the difference between a low power HCSL driver and an ordinary HCSL driver. Some output drivers need a ground reference, some don't — fundamentally a difference in how the line is terminated. These are 100-ohm signals, corresponding to 50-ohm differential termination; one kind requires you to provide the termination, the other doesn't. This difference wasn't spotted at selection time, and Bryan said \"therein lies a critical small difference that God you wish you saw.\" It's the most hidden technical constraint along the entire substitution path."
+  },
+  {
+   "h": "Rework 30 boards, and the resistance is off by three orders of magnitude",
+   "body": "The supplier's inventory only had 45.3-ohm 0201s, so they reworked. The boards went into the programming station and didn't work at all, same as before. RFK measured that tiny resistor with a multimeter and read 25.6 k; he swapped in another one, switched to another clock output, still 25.6 k. The cause was a missing letter K in a copied description: they wanted 45 ohms, they installed 44 k ohms, and 30 boards had already been reworked that way over the weekend."
+  },
+  {
+   "h": "The screening criteria for a substitute are harsher than you'd think",
+   "body": "Eric laid out the hard constraints on finding a substitute: first, footprint compatibility, because building an interposer board is painful, and this part sits in a narrow gap between fans — a low-clearance space. Second, the input and output counts have to match: they needed one input and four outputs, and each output had to be individually enableable. Worse was the lead time — the boards themselves take six months, six months of supply was already queued in the supply chain, and changing the design meant not getting anything until next year. Even if they were willing to switch to an incompatible new-technology part, there was none to buy, because hyperscalers and big PC makers had swept the market clean."
+  },
+  {
+   "h": "Change the stencil so the 0201s can go through normal reflow",
+   "body": "They didn't want to hand-rework every board, so they changed the CAD and sent it to the factory, where the factory's quick-turn prototype shop made a new stencil with the 0201 resistor positions opened precisely. Because the resistors can sit directly on the vias, this batch of boards could go through the normal reflow process instead of having someone place each one by hand — doing that 30 times was already absurd enough, let alone for thousands of boards."
+  }
+ ],
+ "terms": [
+  {
+   "term": "clock buffer",
+   "def": "An analog chip that copies one reference clock into multiple outputs and distributes them, with almost no programmability."
+  },
+  {
+   "term": "HCSL",
+   "def": "High-speed current steering logic, a differential clock signaling standard commonly used for PCIe; output drivers come in two kinds, one requiring termination and one not."
+  },
+  {
+   "term": "probe effect",
+   "def": "The act of measuring itself changes the state of the thing being measured, making the measurement look normal."
+  },
+  {
+   "term": "0201",
+   "def": "An imperial-size surface-mount component package, roughly 0.02 inches by 0.01 inches, smaller than 0402."
+  },
+  {
+   "term": "stencil",
+   "def": "A template used during SMT reflow to print solder paste precisely, determining where components are placed."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Part unit price",
+   "v": "About $3"
+  },
+  {
+   "k": "Number of substitutes found",
+   "v": "About 3000"
+  },
+  {
+   "k": "Board lead time",
+   "v": "About 6 months"
+  },
+  {
+   "k": "Normal price of the clock buffer",
+   "v": "About $34"
+  },
+  {
+   "k": "Price of the part before it went out of stock",
+   "v": "About $70"
+  },
+  {
+   "k": "Size of the microchip that failed",
+   "v": "4 mm × 4 mm"
+  },
+  {
+   "k": "Microchip part number",
+   "v": "ZL4264"
+  },
+  {
+   "k": "Team's firefighting period",
+   "v": "Five days"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "It's the I mean, it is truly for want of a resistor. You do not have a computer company.",
+   "translated": false
+  },
+  {
+   "text": "we keep thinking we're kinda like past the point of like, oh, a resistor is actually standing between us and death. But we we were definitely on the operating table seeing the light on this one.",
+   "translated": false
+  },
+  {
+   "text": "It was like, buy every part you can get on the planet.",
+   "translated": false
+  },
+  {
+   "text": "And then Google is like, what happened here is a classic AI hallucination that it puts in quotes and bolds.",
+   "translated": false
+  },
+  {
+   "text": "And that like, know, end number of months of overlap of inventory until next gen is online. It was already starting to look extremely, extremely thin.",
+   "translated": false
+  },
+  {
+   "text": "So, this largely simple part, they can have different types of output drivers.",
+   "translated": false
+  },
+  {
+   "text": "It was like a cacophony of failures on all sides, The description was copied incorrectly, but the part number that was shown right above the description was correct and had the K in it.",
+   "translated": false
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}

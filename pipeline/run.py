@@ -422,7 +422,12 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
                 # 软失败撞满之后隔了足够久 —— 那一阵的抖动早过去了，清零重来。
                 f = dict(f, soft=0)
                 state["fail"][key] = f
-            if f and (f.get("n", 0) >= MAX_FAILS or f.get("soft", 0) >= MAX_SOFT_FAILS):
+            if f and (f.get("n", 0) >= MAX_FAILS or f.get("soft", 0) >= MAX_SOFT_FAILS) \
+                    and not _pin["slug"]:
+                # **--episode 是「我明确点名要这一集」，重试预算不该再挡它。**
+                # 只绕过 done 不够：撞满上限的集卡在这里，实测点名重试
+                # 仍然 0 picked。修一集坏稿时要绕的是**两本账**——
+                # 已完成的那本和失败计数那本。
                 continue
             low = ep["title"].lower()
             if any(w in low for w in SKIP_TITLE):

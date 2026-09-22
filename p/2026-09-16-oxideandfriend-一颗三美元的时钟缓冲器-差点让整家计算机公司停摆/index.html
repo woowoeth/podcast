@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>一颗三美元的时钟缓冲器，差点让整家计算机公司停摆 — Oxide and Friends · 原声</title>
+<meta name="description" content="AI 需求爆发后，第九代 PCIe 时钟缓冲器被扫空，替代品又踩中 HCSL 端接的隐蔽差异。最后救回产线的不是芯片，是一颗 0201 电阻。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/p/2026-09-16-oxideandfriend-一颗三美元的时钟缓冲器-差点让整家计算机公司停摆/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原声">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="一颗三美元的时钟缓冲器，差点让整家计算机公司停摆 — Oxide and Friends · 原声">
+<meta property="og:description" content="AI 需求爆发后，第九代 PCIe 时钟缓冲器被扫空，替代品又踩中 HCSL 端接的隐蔽差异。最后救回产线的不是芯片，是一颗 0201 电阻。">
+<meta property="og:url" content="https://ourword.ai/podcast/p/2026-09-16-oxideandfriend-一颗三美元的时钟缓冲器-差点让整家计算机公司停摆/">
+<meta property="og:image" content="https://img.transistorcdn.com/TmRCVKlYs2wYJhxA4OEP-faXG_11cViDraGiqwLG2Co/rs:fill:0:0:1/w:1400/h:1400/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS84Mjlh/MDlmOTIwZDg5M2U5/NDcyOTIzYWUwNDAy/N2M4MS5wbmc.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-09-16T14:00:00Z">
+<meta property="article:modified_time" content="2026-09-22T08:43:15Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="一颗三美元的时钟缓冲器，差点让整家计算机公司停摆 — Oxide and Friends · 原声">
+<meta name="twitter:description" content="AI 需求爆发后，第九代 PCIe 时钟缓冲器被扫空，替代品又踩中 HCSL 端接的隐蔽差异。最后救回产线的不是芯片，是一颗 0201 电阻。">
+<meta name="twitter:image" content="https://img.transistorcdn.com/TmRCVKlYs2wYJhxA4OEP-faXG_11cViDraGiqwLG2Co/rs:fill:0:0:1/w:1400/h:1400/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS84Mjlh/MDlmOTIwZDg5M2U5/NDcyOTIzYWUwNDAy/N2M4MS5wbmc.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原声" href="/podcast/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-09-16-oxideandfriend-一颗三美元的时钟缓冲器-差点让整家计算机公司停摆/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-09-16-oxideandfriend-一颗三美元的时钟缓冲器-差点让整家计算机公司停摆/">
+<link rel="alternate" hreflang="en" href="https://ourword.ai/podcast/en/p/2026-09-16-oxideandfriend-一颗三美元的时钟缓冲器-差点让整家计算机公司停摆/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-09-16-oxideandfriend-一颗三美元的时钟缓冲器-差点让整家计算机公司停摆/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=9bca03c30e">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-09-16-oxideandfriend-一颗三美元的时钟缓冲器-差点让整家计算机公司停摆/#episode", "name": "一颗三美元的时钟缓冲器，差点让整家计算机公司停摆", "headline": "一颗三美元的时钟缓冲器，差点让整家计算机公司停摆", "description": "AI 需求爆发后，第九代 PCIe 时钟缓冲器被扫空，替代品又踩中 HCSL 端接的隐蔽差异。最后救回产线的不是芯片，是一颗 0201 电阻。", "abstract": "AI 需求爆发后，第九代 PCIe 时钟缓冲器被扫空，替代品又踩中 HCSL 端接的隐蔽差异。最后救回产线的不是芯片，是一颗 0201 电阻。", "datePublished": "2026-09-16T14:00:00Z", "dateModified": "2026-09-22T08:43:15Z", "url": "https://ourword.ai/podcast/p/2026-09-16-oxideandfriend-一颗三美元的时钟缓冲器-差点让整家计算机公司停摆/", "timeRequired": "PT83M", "partOfSeries": {"@type": "PodcastSeries", "name": "Oxide and Friends", "url": "https://ourword.ai/podcast/s/oxideandfriend/"}, "inLanguage": "zh-CN", "isBasedOn": "https://share.transistor.fm/s/27f44a32", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "硬件供应链, PCIe, 数据中心, 元器件替代, AI 需求, clock buffer, HCSL, probe effect, 0201, stencil, 零件单价, 找到的替代品数量, 电路板交期, 时钟缓冲器正常价, 该零件断货前价格, 出问题的微芯片尺寸", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}, "associatedMedia": {"@type": "AudioObject", "contentUrl": "https://media.transistor.fm/27f44a32/c648798d.mp3"}}, {"@type": "Article", "@id": "https://ourword.ai/podcast/p/2026-09-16-oxideandfriend-一颗三美元的时钟缓冲器-差点让整家计算机公司停摆/#deepread", "headline": "一颗三美元的时钟缓冲器，差点让整家计算机公司停摆", "description": "AI 需求爆发后，第九代 PCIe 时钟缓冲器被扫空，替代品又踩中 HCSL 端接的隐蔽差异。最后救回产线的不是芯片，是一颗 0201 电阻。", "articleBody": "AI 需求爆发后，第九代 PCIe 时钟缓冲器被扫空，替代品又踩中 HCSL 端接的隐蔽差异。最后救回产线的不是芯片，是一颗 0201 电阻。\n[0:00] 修好问题后你反而落后了。故障排查花掉的时间，本来该用来做板子。等修复方案验证通过、代工厂可以按正常流程跑的时候，积压的产能缺口并没有消失——只是被压缩到更短的时间里补回来。Bryan 的原话是「Now you're behind」，所有原本该产出的板子还得做，但周期被大幅压缩。这是硬件事故里容易被忽略的第二段成本：不是修，是修完之后要还的债。\n[6:00] 示波器替芯片做了端接。Eric 测时钟抖动时用的是 8 GHz 示波器，而示波器本身就以 50 欧姆接地端接，等于替这颗驱动芯片提供了它需要的端接。所以波形漂亮得不得了，性能极佳。RFK 一句话点破：这是字面意义上的探针效应（probe effect）——测量行为本身让被测对象看起来正常。\n[12:00] 切换第九代零件，撞上 AI 需求爆发。Steve Tuck 把时间线拉回一年多前的夏天：某家功率电子器件供应商趁需求低谷，把第九代零件切换到第十代，向上游晶圆厂发出切换信号，之后主要靠库存撑到新零件量产。结果切换后不到三十天，AI 基础设施需求爆发，第九代零件被抢购一空，原本就薄的库存重叠期迅速见底。这颗 PCIe clock buffer 就是那批零件之一，供应商后来还把整个 timing 业务卖给了另一家公司，交接期间供货信息更加混乱。\n[12:00] 时钟一直挂高，想起 HCSL 只上拉。在 Winona 的产线上，一位很棒的产线同事用 8 GHz 示波器看波形，发现时钟一直停在高位。Eric 说这触发了一段记忆：HCSL 只上拉。他当场意识到，之前看起来正常完全是探针效应造成的，随之而来的是巨大的下沉感。于是开始抢 49.9 欧姆左右的 0402 电阻。\n[20:00] 两种输出驱动器，决定能不能替换。Robert 指出这颗零件真正的坑：low power HSCL 驱动器和普通 HSCL 驱动器的区别。有些输出驱动器需要地参考，有些不需要，本质上是终端匹配方式不同——这些是 100 欧姆信号，对应 50 欧姆差分终端，一种需要你提供终端，另一种不需要。这个差别在选型时没被看出来，Bryan 说「therein lies a critical small difference that God you wish you saw」。这是整条替代路径上最隐蔽的技术约束。\n[20:00] 返工 30 颗，阻值差三个数量级。供应商库存里只有 45.3 欧姆的 0201，于是返工。板子放进编程工位后完全不工作，和之前一样。RFK 用万用表量那颗极小的电阻，读到 25.6 k，换一颗、换一路时钟输出，还是 25.6 k。原因是复制过来的描述里漏了一个字母 K：要的是 45 欧姆，装上去的是 44 k 欧姆，周末已经这样返工了 30 颗。\n[26:00] 替代品的筛选条件比想象中苛刻。Eric 列出了找替代品的硬约束：首先要 footprint 兼容，因为做 interposer 板很痛苦，而且这颗零件藏在风扇之间的小缝隙里，是低矮空间；其次要输入输出数量对得上，他们需要一路输入四路输出，而且每个输出要能单独 enable。更麻烦的是交期——电路板本身要六个月，供应链里已经排了六个月的货，改设计等于明年才能拿到。即便愿意换不兼容的新技术零件，市面上也买不到，因为全被 hyperscaler 和大 PC 厂商扫光了。\n[26:00] 改钢网，让 0201 走正常回流焊。他们不想每块板都手工返工，于是改 CAD 发到工厂，由工厂的快速打样店做一张新钢网，把 0201 电阻的位置精确开出来。因为电阻可以直接压在过孔上，这批板子能走正常回流焊流程，不必让人手工一颗颗放——之前那样做 30 次已经够荒唐，何况要造几千块板。\n[0:00] Bryan Cantrill：「我的意思是，真的就是差一个电阻。你就没有一家计算机公司了。」\n[0:00] Bryan Cantrill：「我们一直以为已经过了那个阶段，觉得一个电阻怎么可能真的挡在我们和死亡之间。但这一次我们绝对是躺在手术台上看见那道光了。」\n[2:00] Steve Tuck：「原话是，买下地球上你能买到的每一个零件。」\n[6:30] Bryan Cantrill：「然后 Google 说，这里发生的是一个典型的 AI 幻觉——它还把这句话加了引号并加粗。」\n[12:00] Steve Tuck：「本来有若干个月的库存重叠期，用来撑到下一代零件上线。那时候它就已经开始显得极其、极其单薄了。」\n[20:00] Robert \"RFK\" Keith：「所以，这个大体上很简单的零件，可以有不同类型的输出驱动器。」\n[20:00] Eric Aasen：「这就像各方失败凑成的一场杂音：描述被复制错了，但描述正上方显示的料号是对的，里面带着那个 K。」\n[32:00] 零件单价：约 3 美元\n[32:00] 找到的替代品数量：约 3000 颗\n[26:00] 电路板交期：约 6 个月\n[0:00] 时钟缓冲器正常价：约 34 美元\n[0:00] 该零件断货前价格：约 70 美元\n[0:00] 出问题的微芯片尺寸：4 毫米 × 4 毫米\n[0:00] 微芯片型号：ZL4264\n[0:00] 团队抢修周期：五天", "wordCount": 1439, "inLanguage": "zh-CN", "datePublished": "2026-09-16T14:00:00Z", "dateModified": "2026-09-22T08:43:15Z", "url": "https://ourword.ai/podcast/p/2026-09-16-oxideandfriend-一颗三美元的时钟缓冲器-差点让整家计算机公司停摆/", "about": {"@id": "https://ourword.ai/podcast/p/2026-09-16-oxideandfriend-一颗三美元的时钟缓冲器-差点让整家计算机公司停摆/#episode"}, "isBasedOn": "https://share.transistor.fm/s/27f44a32", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "isAccessibleForFree": true}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首页", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "Oxide and Friends", "item": "https://ourword.ai/podcast/s/oxideandfriend/"}, {"@type": "ListItem", "position": 3, "name": "一颗三美元的时钟缓冲器，差点让整家计算机公司停摆"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/"><span class="wordmark">原声<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<button class="pill ghost" id="lang-toggle" type="button" data-en="1" data-sc="繁體" data-tw="简体"></button>
+<button class="icon-btn" data-theme-toggle aria-label="切换深浅色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，来原声听播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/">首页</a><span class="sep">/</span>
+<a href="/podcast/c/ai/">AI / 技术</a><span class="sep">/</span><a href="/podcast/s/oxideandfriend/">Oxide and Friends</a>
+<span class="sep">/</span><span>2026-09-16</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">Oxide and Friends</span>
+<time class="date" datetime="2026-09-16T14:00:00Z">2026-09-16</time>
+<button class="share-btn" type="button" data-share data-share-title="一颗三美元的时钟缓冲器，差点让整家计算机公司停摆" data-share-url="https://ourword.ai/podcast/e/oxideandfriend-596da943bd/" data-share-desc="AI 需求爆发后，第九代 PCIe 时钟缓冲器被扫空，替代品又踩中 HCSL 端接的隐蔽差异。最后救回产线的不是芯片，是一颗 0201 电阻。" data-share-text="一颗三美元的时钟缓冲器，差点让整家计算机公司停摆&#10;Oxide and Friends · 83 分钟 · 原声深读&#10;&#10;AI 需求爆发后，第九代 PCIe 时钟缓冲器被扫空，替代品又踩中 HCSL 端接的隐蔽差异。最后救回产线的不是芯片，是一颗 0201 电阻。&#10;&#10;https://ourword.ai/podcast/e/oxideandfriend-596da943bd/" aria-label="复制分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>一颗三美元的时钟缓冲器，差点让整家计算机公司停摆</h1>
+<p class="dek-lead">AI 需求爆发后，第九代 PCIe 时钟缓冲器被扫空，替代品又踩中 HCSL 端接的隐蔽差异。最后救回产线的不是芯片，是一颗 0201 电阻。</p>
+<div class="ep-meta"><span class="tag">硬件供应链</span><span class="tag">PCIe</span><span class="tag">数据中心</span><span class="tag">元器件替代</span><span class="tag">AI 需求</span></div>
+</div>
+<div class="player" data-player-box>
+  <div class="strip" data-audio-strip>
+    <p class="afallback">原视频在 YouTube 上放不出来，用音频听：</p>
+    <audio data-player controls preload="none" src="https://media.transistor.fm/27f44a32/c648798d.mp3"></audio>
+    <div class="aui" data-audio-ui data-dur="5030" hidden>
+      <button class="aplay" type="button" aria-label="播放"></button>
+      <div class="abar" role="slider" tabindex="0" aria-label="播放进度"
+           aria-valuemin="0" aria-valuemax="100"><div class="afill"></div></div>
+      <span class="atime"><span class="acur">0:00</span><span class="asep">/</span><span class="atot">--:--</span></span>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="why">硬件供应链事故的完整复盘：从选型、探针效应到返工翻车，细节密度高，适合做硬件的人听。</div></section>
+
+<section class="section"><h2>核心论点 · 点时间戳可跳到原声</h2><div class="point" id="p0"><a class="ts" data-t="0" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=0" target="_blank" rel="noopener">0:00</a><div><h4>修好问题后你反而落后了</h4>
+<p class="body">故障排查花掉的时间，本来该用来做板子。等修复方案验证通过、代工厂可以按正常流程跑的时候，积压的产能缺口并没有消失——只是被压缩到更短的时间里补回来。Bryan 的原话是「Now you&#x27;re behind」，所有原本该产出的板子还得做，但周期被大幅压缩。这是硬件事故里容易被忽略的第二段成本：不是修，是修完之后要还的债。</p>
+<span class="spk">— Bryan Cantrill</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="360" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=360" target="_blank" rel="noopener">6:00</a><div><h4>示波器替芯片做了端接</h4>
+<p class="body">Eric 测时钟抖动时用的是 8 GHz 示波器，而示波器本身就以 50 欧姆接地端接，等于替这颗驱动芯片提供了它需要的端接。所以波形漂亮得不得了，性能极佳。RFK 一句话点破：这是字面意义上的探针效应（probe effect）——测量行为本身让被测对象看起来正常。</p>
+<span class="spk">— Eric Aasen</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="720" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=720" target="_blank" rel="noopener">12:00</a><div><h4>切换第九代零件，撞上 AI 需求爆发</h4>
+<p class="body">Steve Tuck 把时间线拉回一年多前的夏天：某家功率电子器件供应商趁需求低谷，把第九代零件切换到第十代，向上游晶圆厂发出切换信号，之后主要靠库存撑到新零件量产。结果切换后不到三十天，AI 基础设施需求爆发，第九代零件被抢购一空，原本就薄的库存重叠期迅速见底。这颗 PCIe clock buffer 就是那批零件之一，供应商后来还把整个 timing 业务卖给了另一家公司，交接期间供货信息更加混乱。</p>
+<span class="spk">— Steve Tuck</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="720" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=720" target="_blank" rel="noopener">12:00</a><div><h4>时钟一直挂高，想起 HCSL 只上拉</h4>
+<p class="body">在 Winona 的产线上，一位很棒的产线同事用 8 GHz 示波器看波形，发现时钟一直停在高位。Eric 说这触发了一段记忆：HCSL 只上拉。他当场意识到，之前看起来正常完全是探针效应造成的，随之而来的是巨大的下沉感。于是开始抢 49.9 欧姆左右的 0402 电阻。</p>
+<span class="spk">— Eric Aasen</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="1200" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=1200" target="_blank" rel="noopener">20:00</a><div><h4>两种输出驱动器，决定能不能替换</h4>
+<p class="body">Robert 指出这颗零件真正的坑：low power HSCL 驱动器和普通 HSCL 驱动器的区别。有些输出驱动器需要地参考，有些不需要，本质上是终端匹配方式不同——这些是 100 欧姆信号，对应 50 欧姆差分终端，一种需要你提供终端，另一种不需要。这个差别在选型时没被看出来，Bryan 说「therein lies a critical small difference that God you wish you saw」。这是整条替代路径上最隐蔽的技术约束。</p>
+<span class="spk">— Robert &quot;RFK&quot; Keith</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="1200" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=1200" target="_blank" rel="noopener">20:00</a><div><h4>返工 30 颗，阻值差三个数量级</h4>
+<p class="body">供应商库存里只有 45.3 欧姆的 0201，于是返工。板子放进编程工位后完全不工作，和之前一样。RFK 用万用表量那颗极小的电阻，读到 25.6 k，换一颗、换一路时钟输出，还是 25.6 k。原因是复制过来的描述里漏了一个字母 K：要的是 45 欧姆，装上去的是 44 k 欧姆，周末已经这样返工了 30 颗。</p>
+<span class="spk">— Robert &quot;RFK&quot; Keith</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="1560" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=1560" target="_blank" rel="noopener">26:00</a><div><h4>替代品的筛选条件比想象中苛刻</h4>
+<p class="body">Eric 列出了找替代品的硬约束：首先要 footprint 兼容，因为做 interposer 板很痛苦，而且这颗零件藏在风扇之间的小缝隙里，是低矮空间；其次要输入输出数量对得上，他们需要一路输入四路输出，而且每个输出要能单独 enable。更麻烦的是交期——电路板本身要六个月，供应链里已经排了六个月的货，改设计等于明年才能拿到。即便愿意换不兼容的新技术零件，市面上也买不到，因为全被 hyperscaler 和大 PC 厂商扫光了。</p>
+<span class="spk">— Eric Aasen</span></div></div>
+<div class="point" id="p7"><a class="ts" data-t="1560" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=1560" target="_blank" rel="noopener">26:00</a><div><h4>改钢网，让 0201 走正常回流焊</h4>
+<p class="body">他们不想每块板都手工返工，于是改 CAD 发到工厂，由工厂的快速打样店做一张新钢网，把 0201 电阻的位置精确开出来。因为电阻可以直接压在过孔上，这批板子能走正常回流焊流程，不必让人手工一颗颗放——之前那样做 30 次已经够荒唐，何况要造几千块板。</p>
+<span class="spk">— Robert &quot;RFK&quot; Keith</span></div></div></section>
+<section class="section"><h2>原话 · 已逐字校验</h2><blockquote class="quote"><p class="raw">It&#x27;s the I mean, it is truly for want of a resistor. You do not have a computer company.</p>
+<p class="zh">我的意思是，真的就是差一个电阻。你就没有一家计算机公司了。</p>
+<div class="attrib"><b>Bryan Cantrill</b><a class="ts" data-t="0" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=0" target="_blank" rel="noopener">0:00</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">we keep thinking we&#x27;re kinda like past the point of like, oh, a resistor is actually standing between us and death. But we we were definitely on the operating table seeing the light on this one.</p>
+<p class="zh">我们一直以为已经过了那个阶段，觉得一个电阻怎么可能真的挡在我们和死亡之间。但这一次我们绝对是躺在手术台上看见那道光了。</p>
+<div class="attrib"><b>Bryan Cantrill</b><a class="ts" data-t="0" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=0" target="_blank" rel="noopener">0:00</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">It was like, buy every part you can get on the planet.</p>
+<p class="zh">原话是，买下地球上你能买到的每一个零件。</p>
+<div class="attrib"><b>Steve Tuck</b><a class="ts" data-t="120" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=120" target="_blank" rel="noopener">2:00</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">And then Google is like, what happened here is a classic AI hallucination that it puts in quotes and bolds.</p>
+<p class="zh">然后 Google 说，这里发生的是一个典型的 AI 幻觉——它还把这句话加了引号并加粗。</p>
+<div class="attrib"><b>Bryan Cantrill</b><a class="ts" data-t="390" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=390" target="_blank" rel="noopener">6:30</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">And that like, know, end number of months of overlap of inventory until next gen is online. It was already starting to look extremely, extremely thin.</p>
+<p class="zh">本来有若干个月的库存重叠期，用来撑到下一代零件上线。那时候它就已经开始显得极其、极其单薄了。</p>
+<div class="attrib"><b>Steve Tuck</b><a class="ts" data-t="720" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=720" target="_blank" rel="noopener">12:00</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">So, this largely simple part, they can have different types of output drivers.</p>
+<p class="zh">所以，这个大体上很简单的零件，可以有不同类型的输出驱动器。</p>
+<div class="attrib"><b>Robert &quot;RFK&quot; Keith</b><a class="ts" data-t="1200" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=1200" target="_blank" rel="noopener">20:00</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">It was like a cacophony of failures on all sides, The description was copied incorrectly, but the part number that was shown right above the description was correct and had the K in it.</p>
+<p class="zh">这就像各方失败凑成的一场杂音：描述被复制错了，但描述正上方显示的料号是对的，里面带着那个 K。</p>
+<div class="attrib"><b>Eric Aasen</b><a class="ts" data-t="1200" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=1200" target="_blank" rel="noopener">20:00</a></div>
+</blockquote></section>
+<section class="section"><h2>数字与实体</h2><table class="facts"><tr><td class="k">零件单价</td><td class="v">约 3 美元</td><td class="t"><a class="ts" data-t="1920" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=1920" target="_blank" rel="noopener">32:00</a></td></tr>
+<tr><td class="k">找到的替代品数量</td><td class="v">约 3000 颗</td><td class="t"><a class="ts" data-t="1920" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=1920" target="_blank" rel="noopener">32:00</a></td></tr>
+<tr><td class="k">电路板交期</td><td class="v">约 6 个月</td><td class="t"><a class="ts" data-t="1560" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=1560" target="_blank" rel="noopener">26:00</a></td></tr>
+<tr><td class="k">时钟缓冲器正常价</td><td class="v">约 34 美元</td><td class="t"><a class="ts" data-t="0" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=0" target="_blank" rel="noopener">0:00</a></td></tr>
+<tr><td class="k">该零件断货前价格</td><td class="v">约 70 美元</td><td class="t"><a class="ts" data-t="0" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=0" target="_blank" rel="noopener">0:00</a></td></tr>
+<tr><td class="k">出问题的微芯片尺寸</td><td class="v">4 毫米 × 4 毫米</td><td class="t"><a class="ts" data-t="0" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=0" target="_blank" rel="noopener">0:00</a></td></tr>
+<tr><td class="k">微芯片型号</td><td class="v">ZL4264</td><td class="t"><a class="ts" data-t="0" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=0" target="_blank" rel="noopener">0:00</a></td></tr>
+<tr><td class="k">团队抢修周期</td><td class="v">五天</td><td class="t"><a class="ts" data-t="0" href="https://media.transistor.fm/27f44a32/c648798d.mp3#t=0" target="_blank" rel="noopener">0:00</a></td></tr></table></section>
+<section class="section"><h2>术语</h2><dl class="terms"><div><dt>clock buffer<span>时钟缓冲器</span></dt><dd>把一路参考时钟复制成多路输出并分发的模拟芯片，几乎没有可编程性。</dd></div>
+<div><dt>HCSL<span>高速电流控制逻辑</span></dt><dd>PCIe 常用的差分时钟信号标准，输出驱动器分需要端接和不需要端接两种。</dd></div>
+<div><dt>probe effect<span>探针效应</span></dt><dd>测量行为本身改变了被测对象的状态，使测量结果看起来正常。</dd></div>
+<div><dt>0201<span>0201 封装</span></dt><dd>英制尺寸的贴片元件封装，约 0.02 英寸乘 0.01 英寸，比 0402 更小。</dd></div>
+<div><dt>stencil<span>钢网</span></dt><dd>SMT 回流焊时用来精确印刷锡膏的模板，决定元件贴装位置。</dd></div></dl></section>
+<section class="section"><h2>收听指南</h2>
+<div class="panel guide">
+<div><span class="k">谁该听</span><p>做硬件、供应链或数据中心基础设施的工程师和创业者，尤其是正在选型、找替代料、被交期卡住的人。</p></div>
+<div><span class="k">可跳过</span><p>开头约十分钟的互联网八卦与 AI 幻觉闲聊，可跳过。</p></div>
+</div></section>
+<section class="related"><h2 class="sec-title">顺着这个话题</h2><ul class="rel-list"><li><a href="/podcast/p/2026-09-20-asianometry-intel-的-optane-死于-3d-nand-太便宜-不是技术不行/"><span class="rel-t">Intel 的 Optane 死于 3D NAND 太便宜，不是技术不行</span><span class="rel-s">Asianometry</span></a></li><li><a href="/podcast/p/2026-09-19-twentyvc-反数据中心几乎全是中国的心理战/"><span class="rel-t">反数据中心几乎全是中国的心理战</span><span class="rel-s">20VC</span></a></li><li><a href="/podcast/p/2026-09-18-mastersinbiz-ai-需求仍跑在供给前面-但算力瓶颈正在变成政治问题/"><span class="rel-t">AI 需求仍跑在供给前面，但算力瓶颈正在变成政治问题</span><span class="rel-s">Masters in Business</span></a></li><li><a href="/podcast/p/2026-09-17-allin-数据中心挨骂的解药-是把税收写进教师工资/"><span class="rel-t">数据中心挨骂的解药，是把税收写进教师工资</span><span class="rel-s">All-In</span></a></li><li><a href="/podcast/p/2026-09-15-allin-ai-前沿公司造了弗兰肯斯坦-却找政府要监管/"><span class="rel-t">AI 前沿公司造了弗兰肯斯坦，却找政府要监管</span><span class="rel-s">All-In</span></a></li></ul></section>
+<nav class="prevnext"><a href="/podcast/p/2026-09-16-naturepod-人脑类器官移植进小鼠-长出了四百万人类神经元/"><span class="lbl">← 更新</span><strong>人脑类器官移植进小鼠，长出了四百万人类神经元</strong></a><a class="r" href="/podcast/p/2026-09-16-nejmaigrandrou-ai-评估的混乱不是技术问题-是透明度问题/"><span class="lbl">更早 →</span><strong>AI 评估的混乱不是技术问题，是透明度问题</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原节目</h4>
+<div class="row"><span>节目</span><span>Oxide and Friends</span></div>
+<div class="row"><span>原标题</span><span>For Want of a Resistor</span></div>
+<div class="row"><span>发布</span><span>2026-09-16</span></div>
+<div class="row"><span>时长</span><span>1:23:50</span></div>
+<a class="row" href="https://share.transistor.fm/s/27f44a32" target="_blank" rel="noopener"><span>原页面</span><span>打开 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇结构</h4><nav class="toc"><a href="#p0"><span class="t">0:00</span><span>修好问题后你反而落后了</span></a>
+<a href="#p1"><span class="t">6:00</span><span>示波器替芯片做了端接</span></a>
+<a href="#p2"><span class="t">12:00</span><span>切换第九代零件，撞上 AI 需求爆发</span></a>
+<a href="#p3"><span class="t">12:00</span><span>时钟一直挂高，想起 HCSL 只上拉</span></a>
+<a href="#p4"><span class="t">20:00</span><span>两种输出驱动器，决定能不能替换</span></a>
+<a href="#p5"><span class="t">20:00</span><span>返工 30 颗，阻值差三个数量级</span></a>
+<a href="#p6"><span class="t">26:00</span><span>替代品的筛选条件比想象中苛刻</span></a>
+<a href="#p7"><span class="t">26:00</span><span>改钢网，让 0201 走正常回流焊</span></a></nav></div>
+
+<div class="panel"><h4>这篇是怎么来的</h4>
+<div class="row"><span>成稿评分</span><span>7 / 10</span></div>
+<div class="row"><span>文稿来源</span><span>官方逐字稿</span></div>
+<div class="row"><span>文稿字数</span><span>14842</span></div>
+<div class="row"><span>语速核验</span><span>177.0 wpm</span></div>
+<div class="row"><span>逐字校验金句</span><span>7 条</span></div>
+<div class="row"><span>回溯校验数字</span><span>8 条</span></div>
+<div class="row"><span>质检剔除</span><span>2 处</span></div>
+<p class="note">金句在逐字稿里逐字比对过，数字回原文核对过；对不上的当场删掉，不上站。
+成稿另经一道独立评审（信息密度／忠实度／选择力／具体性／中文），低于 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原声 · <a href="https://ourword.ai">OurWord.ai</a>的播客线。内容为原播客的中文深读，
+版权归各节目所有；每篇都附原节目链接，请去支持原作者。</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/" lang="zh">人类世界生存法则</a> · <a href="/podcast/">原声</a></div>
+<div class="links"><a href="/podcast/">首页</a><a href="/podcast/sources/">信源</a>
+<a href="/podcast/log/">更新日志</a><a href="/podcast/feed.xml">RSS</a>
+<a href="/podcast/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源码</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=d235129544" defer></script>
+</body></html>
