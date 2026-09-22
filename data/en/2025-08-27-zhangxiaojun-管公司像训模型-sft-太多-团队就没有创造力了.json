@@ -1,0 +1,110 @@
+{
+ "slug": "2025-08-27-zhangxiaojun-管公司像训模型-sft-太多-团队就没有创造力了",
+ "of": "zhangxiaojun-dd9e13b711",
+ "source_lang": "zh",
+ "title": "Running a company like training a model: too much SFT and the team loses its creativity",
+ "dek": "Tim tells Yang Zhilin every day: manage with RL, not SFT. SFT is telling people directly what to do — too much of it and people lose their initiative; RL only gives a reward, but if the reward is badly defined, the whole team will hack it.",
+ "why": "High information density, but the second half is clearly worth more: Muon's 2x improvement, why the data flywheel never took off, and using RL to manage a company are all in the last forty minutes.",
+ "who": "Engineers doing post-training and Agents on large models, and founders and investors who care about the business and organizational playbook of model companies.",
+ "skip": "The rapid-fire Q&A after 1:38 mostly restates earlier points and can be skipped.",
+ "tags": [
+  "Large models",
+  "Agent",
+  "Reinforcement learning",
+  "Open source",
+  "Organization management"
+ ],
+ "points": [
+  {
+   "h": "This snow mountain may have no summit",
+   "body": "Yang Zhilin uses The Beginning of Infinity to explain AI R&D. The book says two sentences should be carved in stone: problems are inevitable, but problems are soluble. Before the Enlightenment society was static — thunder in the sky was the Thunder God, snow in winter meant some god was in a bad mood, and bad explanations filled the gaps; after the Enlightenment society became dynamic, new knowledge is constantly created, and every problem solved produces new problems, because the boundary of knowledge keeps expanding. So this snow mountain may have no end, ‘I hope it never ends’, and that way it is an infinite mountain. He also says that after climbing for a while it may not be you climbing — you might use K2 for data processing, model analysis, even training, treating the model as an amplifier."
+  },
+  {
+   "h": "Reasoning is a brain in a vat; an Agent has to reach out",
+   "body": "A strong-thinking reasoning model is a ‘brain in a vat’: imagine a fish tank, put the brain inside, it has no connection to the outside world, it just thinks inside its own brain, and it can solve a problem without any interaction with the outside. The agentic reinforcement learning paradigm is the opposite — think while acting, now using search, now a browser, now writing code, solving the problem over multiple turns, where the next action depends on the external feedback from the interaction. Both point to test time scaling, but they scale different dimensions: one scales the thinking tokens within each turn, the other scales the number of turns. Yang Zhilin thinks Cloud is betting on the agent route — its reasoning performance is not very high, but its performance on agents is high."
+  },
+  {
+   "h": "Muon makes one copy of data do the work of two",
+   "body": "K2's base model bets on token efficiency. Yang Zhilin says high-quality data grows very slowly, multimodal data cannot raise the intelligence of text itself, high-quality data is close to a constant, so you have to make each piece of data deliver more value — training faster itself does not raise the intelligence ceiling, because there are still only so many tokens. Optimizers like Adam have been used for 10 years; it treats matrix parameters as independent elements; Muon considers the dependency between parameters, and in early compute optimal experiments it gave a 2x improvement: learning one copy of data equals someone else learning two copies with Adam, so 30T high-quality tokens are equivalent to 60T. Muon was proposed by Keller, and his team did a lot of optimization on top of it, using it for the first time to train a language model at a certain scale — the cost was hitting max logit explosion, a problem that cannot be reproduced in small-scale experiments."
+  },
+  {
+   "h": "What Agents lack most is not capability, it is generalization",
+   "body": "Yang Zhilin thinks the biggest challenge for agentic models right now is generalization. The limitation of RL is that the training tasks and the evaluation metrics are both single points: you train on swe-bench, the swe-bench score goes up, but a higher metric does not mean better generalization. What he worries about is the model overfitting to certain tools, certain environments, certain specific tasks — these tasks can be very good observations, but you do not want to overfit to them. This problem is more serious in agent training than in dialogue models. And there are not many benchmarks available for agents right now; the scores seen on those benchmarks often do not reflect capability, they are one-sided. He thinks overall evaluation is still the bottleneck, an important reason holding agent models back from becoming more general."
+  },
+  {
+   "h": "Use L4 technology to solve an L3 problem",
+   "body": "ChatGPT's L1 to L5 are Chat, Reasoning, Agent, Innovation, Organization, but Yang Zhilin thinks they are not necessarily serial. The reason: today's agents are not general enough, so you have to go the other way and use technology from the Innovation layer to solve an L3 problem — use AI to train AI, to align AI, let the model participate in more of the training process, rather than only optimizing a few single-point tasks. If you only manually define some tasks and then fit that task, performance on other unseen tasks may be poor; if you only chase the score on those few tasks, users will feel worse in more OOD scenarios. He also says a key part of Innovation is when a model can participate in the R&D of its own next generation — he hopes K2 can participate in the development of K3."
+  },
+  {
+   "h": "Open source can help you serve, but you cannot change the base model",
+   "body": "How many open-source and closed-source players will be left in the end? Yang Zhilin judges the market will gradually concentrate and converge: a few hundred at the start, down to a few dozen, and the final few may be a fairly stable number. A year ago he said open source would lag behind closed source, because open source is centralized and contributions are not validated by compute, while closed source has talent concentration and market consolidation. Now his position has changed: after a model comes out the community can indeed contribute things, the inference side can do a lot, more people can serve it for you for free; but to make the base model itself better, only the original factory can do it. Still, doing agentic post-training on top of an open-source model may create new opportunities — for example, a startup that wants to build a legal agent can take K2 and train a specialized agent under its own toolset."
+  },
+  {
+   "h": "The data flywheel lost to compute scaling",
+   "body": "Why have AI products not formed a data flywheel? Yang Zhilin's first reason is that compute-based scaling is too powerful. RL's scaling efficiency is much higher than pre-training, because it is on-policy training with gradients, so directly scaling compute and scaling flops brings very large improvements, making other paths look small. The second is that the data flywheel depends on feedback from the external environment, and that feedback cannot have too much noise — large model learning is sensitive to noise, unlike recommender systems. He also does not think user data is completely useless: you need a certain number of users to know the distribution of overall demand, what is used well and what is not, and then abstract it into evaluation to optimize the model; and now there is a new watershed, where professional users of agents are themselves generating commercial value."
+  },
+  {
+   "h": "Manage the team with RL, not SFT",
+   "body": "This is what Tim tells Yang Zhilin every day: manage the team with RL, not SFT. SFT is directly telling people ‘you should do it this way’; RL gives a reward from above, and most of the time it only reflects the goal. He is practicing this too, and it seems to have some effect; the core is mastering the balance between SFT and RL — RL as the main thing, with a portion of SFT to keep from flying too far and to prevent forgetting. The biggest problem with managing a team with RL is that it is easy to hack: everyone's results look good, but in reality you have not reached what you ultimately want; the risk of managing a team with SFT is that everyone loses creativity. So his latest understanding as CEO is to grasp the balance between RL, SFT and reward hacking."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Muon optimizer",
+   "def": "An optimizer that considers the dependencies between matrix parameters and has higher token efficiency than Adam."
+  },
+  {
+   "term": "test time scaling",
+   "def": "Investing more tokens or turns at inference time to improve performance."
+  },
+  {
+   "term": "brain in a vat",
+   "def": "A model form that reasons only inside itself and does not interact with the outside world."
+  },
+  {
+   "term": "reward hacking",
+   "def": "The optimized object exploits a loophole in the reward definition, so the metric looks good but the goal is not achieved."
+  },
+  {
+   "term": "curriculum learning",
+   "def": "A training arrangement that starts at an appropriate difficulty and gradually increases it."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Token efficiency improvement from the Muon optimizer",
+   "v": "Early experiments under compute optimal gave about 2x; 30T high-quality tokens are equivalent to 60T"
+  },
+  {
+   "k": "ARR of leading large model companies",
+   "v": "Several billion to 30 billion US dollars, doubling or tripling every one or two quarters"
+  },
+  {
+   "k": "Convergence path of the large model market",
+   "v": "A few hundred → a few dozen → a few"
+  },
+  {
+   "k": "Accumulation period for K2-related technology",
+   "v": "Started accumulating technology about a year ago, decided to train K2 in the last few months"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "One sentence is that the problem is inevitable, but the second sentence is that the problem is soluble",
+   "translated": true
+  },
+  {
+   "text": "But it is still a brain in a vat, meaning it does not need to interact with the outside world",
+   "translated": true
+  },
+  {
+   "text": "Because today your agent is not general enough, so you have to use the Innovation way, that is, you have to use L4 technology to solve an L3 problem",
+   "translated": true
+  },
+  {
+   "text": "That is, you cannot have too much SFT; with too much SFT, these colleagues of yours will lose their initiative, and then they cannot innovate",
+   "translated": true
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}

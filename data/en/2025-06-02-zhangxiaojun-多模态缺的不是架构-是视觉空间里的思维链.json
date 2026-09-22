@@ -1,0 +1,122 @@
+{
+ "slug": "2025-06-02-zhangxiaojun-多模态缺的不是架构-是视觉空间里的思维链",
+ "of": "zhangxiaojun-9a1148acd3",
+ "source_lang": "zh",
+ "title": "What Multimodality Lacks Isn't Architecture, It's a Chain of Thought in Visual Space",
+ "dek": "Image understanding, generation and human alignment are inherently split, because images come from nature and carry no human understanding of themselves; generative models are still stuck at the language model's primitive one-shot form, without even a CoT.",
+ "why": "Zhang Xiangyu's first public interview lays out ten years of multimodal struggle, failure, and his judgment on two GPT-4 moments very concretely; the second half, on long context and self-directed learning, has the highest information density.",
+ "who": "Researchers and engineers working on large-model pretraining, multimodality, post-training and RL; founders and investors trying to gauge the timeline for multimodality and self-directed learning.",
+ "skip": "The first 12 minutes of personal history on ResNet and the history of CV learning; you can just listen to the conclusions.",
+ "tags": [
+  "Multimodality",
+  "Chain of Thought",
+  "Reinforcement Learning",
+  "Long Context",
+  "Self-directed Learning"
+ ],
+ "points": [
+  {
+   "h": "Contrastive learning learns human-designed invariances",
+   "body": "By the end of 2021 Zhang Xiangyu had figured out why neither contrastive learning nor MIM has scaling properties: what they learn is not the invariance the data confers, but handcrafted invariance. Contrastive learning depends heavily on augmentation; the numerator is learning an invariance you designed by hand, and the denominator acts as a regularizer preventing information collapse. MIM learns occlusion invariance, and occlusion invariance is only a necessary condition, not a sufficient one. The reason NLP works is that it genuinely achieves compression learning where ‘the better the corpus, the stronger the model’; on the CV side, you design a few invariances and the model only learns those few, and no matter how much more data you add there is no information gain."
+  },
+  {
+   "h": "Image understanding, generation and alignment are split apart",
+   "body": "Zhang Xiangyu breaks it down along three dimensions: an autoregressive model like GPT models the joint probability, and so simultaneously possesses generation, understanding and human alignment — earlier text changes the conditional probability of later text, and that is understanding; the corpus comes from humans, so modeling its distribution completes alignment. But static images are not autoregressive: you can build a generative model that perfectly models the joint distribution of image pixels, but that joint distribution has countless ways of being modeled, and nothing constrains it to match how humans understand images. Images are nature's creation; they don't care how humans understand them. So no matter how much you do on static images, it is very hard to form intelligence in the human sense."
+  },
+  {
+   "h": "Put generation and understanding together and removing one leaves the other untouched",
+   "body": "In 2023 Step1 already organized all data into interleaved image-text, tokenized images and text into the same space, and bolted on a pretrained diffusion for image generation. The text part turned out well, image understanding especially good — asking a question with text written on an image and asking it after OCR gave almost the same result — but generation was terrible. More discouraging still: at a certain stage of training they removed the generation part and the understanding part was completely unaffected. He worked on it for over half a year and ended up with an ever-stronger understanding model and an ever-stronger generation model; put together they had no one-plus-one-greater-than-two effect, and removing either one left the other neither stronger nor weaker. The generation branch's controllability remained extremely poor, producing videos with distorted limbs, violated geometric constraints, violated physical common sense — while the understanding model itself could accurately point out all these violations of common sense."
+  },
+  {
+   "h": "The bigger the model, the more math reasoning first rises then falls",
+   "body": "Step2 was a giant with a trillion parameters and over 200B activated, trained for more than nine months. The result: this model was extremely strong in the humanities, extremely strong at writing, but in the sciences, especially math, worse than a smaller model. They ran a rigorous series of tests from 1B to 7B to 30B to 70B and confirmed: general conversational ability, emotional intelligence and amount of knowledge really do get stronger with size, but reasoning ability, especially math, first rises, then plateaus, then actually declines as it scales further. Zhang Xiangyu says that at that point last year this was still a non-consensus view in the industry, because very few people had actually built something that big and drawn the second half of the growth curve."
+  },
+  {
+   "h": "Maximizing compression rate and computing correctly are two different objectives",
+   "body": "He offers a thought experiment: the dataset is 50% internet corpus, where a dozen numbers are added and the result given directly with no process; and 50% carefully cleaned process data where the addition is done step by step. The theoretical optimum is for the model to output the result directly with 50% probability and compute step by step with 50% probability. But a small model has limited parameters and cannot fit the complex function of ‘output the result directly’, so it can only learn the right-hand path of computing step by step — this is feature collapse in generative models. A large model is different: Step2 with over 200B activated really can add a dozen two-digit numbers and blurt out the answer in one shot, correct about 90% of the time. The problem is: if you judge by compression rate, the large model has the higher compression rate; but a math problem demands computing correctly, not a distribution closer to the pretraining corpus. Large models always tend to skip steps once they ‘feel it's got it’ — 90% right, 10% wrong, and one wrong step ruins the whole problem."
+  },
+  {
+   "h": "A critical decision cannot be made within one token",
+   "body": "Why didn't RL work before? Zhang Xiangyu says the key is the critical decision: the model reaches some step with a left and a right branch in front of it — can this be resolved within one token? He thinks for many problems it is impossible. Take large-number multiplication: the complexity of a Transformer doing a dot product in a single step is O(n), while multiplication is at least O(n²); once the complexity exceeds the single-step ceiling it cannot get it right. Math problems also depend on clever construction, and at the moment of construction you can only go on feel — you don't know if it works until you've finished computing. More troublesome is that the data contains two kinds of problems at once: at this point, 60% of the time the left branch is correct; in another problem with a few numbers changed, 40% of the time left is correct. The model cannot simultaneously maximize accuracy on both kinds, so it can never reach 100%. The solution is to allow both branches to be taken — introduce reflection."
+  },
+  {
+   "h": "The reflection pattern already exists in the pretraining corpus",
+   "body": "The reflection patterns o1 elicits — wait, recheck, verify, big loops, re-reading the problem — are not conjured from nothing. Zhang Xiangyu found that these patterns all have a distribution in the pretraining corpus, though a very sparse one — typically a highly upvoted answer on Stack Overflow where the author first tries to solve it, partway through realizes something is off, writes ‘wait, I missed a factor’, adds it and finds the previous method completely fails, gets stuck, and finally presents the result in another form. Domestic forums are the opposite: they like to use ‘note that’ to cut away all the scaffolding and look clever, and a model that reads too much of this corpus is in trouble, because it hides the real thinking process. The patterns in pretraining are sparse, but they are generated by different people and institutions, cover different domains, and form full connections with other data, so eliciting them with a cold start and then reinforcing with RL incidentally elicits the vast connected domains as well."
+  },
+  {
+   "h": "Circling and annotating on images doesn't exist in pretraining at all",
+   "body": "Why does Long CoT in visual space work poorly? Because circling, dotting and annotating are all human-synthesized data, the patterns are too fixed, and they simply don't exist in the pretraining corpus — who solving a power formula really goes one step from the first image and another step from the second image? o3's handling of images looks more primitive, doing only simple edits like crop and resize, yet it generalizes strongly. The reason is that this pattern exists in large quantities in interleaved image-text corpora: on an electronics repair forum someone uploads an image asking where the radio is broken, and someone below zooms in on a part and says look, this capacitor is number 12, that resistor has such-and-such a fault. So this RL step cannot conjure from nothing either — all the knowledge and abilities are already in the distribution."
+  },
+  {
+   "h": "Long context isn't intelligence, it's the squandering of intelligence",
+   "body": "Zhang Xiangyu has a different view on long context. A standard Transformer's context grows in equal proportion with the data, without any compression, which is completely unlike human memory — after a meeting a person remembers only the most important details, not how many water cups were on the table at what minute. Humans have layered memory: short-term memory of two to four seconds, mid-term memory ranging from minutes to weeks that forgets, grabs the key points, and is strengthened by repeated stimulation, and long-term memory that gets consolidated. A Transformer has only short-term memory, and it is already too long. More troublesome is that as context grows, model performance actually declines: have it do a hundred problems in a row and performance drops sharply the further it goes, attention visibly scatters, because too much similar context hasn't been cleared and the model has to spend enormous effort avoiding interference. He says these training runs are not a manifestation of intelligence, but the squandering of intelligence."
+  },
+  {
+   "h": "RL's bottleneck is that environments can't scale",
+   "body": "Zhang Xiangyu says the biggest problem with Rubase RL is that environments can't scale: to solve a programming problem you have to build an environment, configure Docker, inputs and outputs, test data, and the result is only one data point — far too inefficient. Big companies now hire many engineers to write Rubase one by one, but this is unlike humans — humans are self-driven, reading articles themselves, building environments themselves, learning from environmental feedback. He gives a very small example: a teacher evaluating an essay will say the first paragraph is good, the second is a bit stiff, the third doesn't connect well, the fourth has typos, overall a bit dry, and too short — evaluating along multiple dimensions; but today's RL adds a separate weight to each comment, 0.1 points for this, 0.5 for that, and finally says the score is 7, completely losing the evaluation dimensions, so the model can only guess the scoring rules from a large number of samples."
+  }
+ ],
+ "terms": [
+  {
+   "term": "next token prediction",
+   "def": "GPT's core paradigm, essentially joint probability modeling, equivalent to lossless compression of the data."
+  },
+  {
+   "term": "critical decision",
+   "def": "The fork points in a long chain of thought that genuinely affect the final result; there are very few of them, and they are what RL actually needs to search."
+  },
+  {
+   "term": "Meta-CoT",
+   "def": "The essence of the o1 paradigm: letting the model freely switch between and combine multiple CoTs to solve complex networked problems."
+  },
+  {
+   "term": "feature collapse",
+   "def": "When model capacity or training is insufficient, only the simplest pattern in the distribution is modeled and the complex function cannot be fit."
+  },
+  {
+   "term": "environment scaling",
+   "def": "The new bottleneck of the RL era: building environments to produce training data is too inefficient to scale the way data does."
+  },
+  {
+   "term": "Linear Transformer",
+   "def": "An architectural variant that reduces attention complexity to linear; Zhang Xiangyu considers it non-essential, because architecture serves the algorithm."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Step2 training duration",
+   "v": "more than nine months"
+  },
+  {
+   "k": "Accuracy of a large model directly outputting the result of adding multi-digit numbers",
+   "v": "about 90%"
+  },
+  {
+   "k": "Number of critical decisions in a math sequence",
+   "v": "in a math sequence four to five thousand long, no more than ten critical decisions"
+  },
+  {
+   "k": "Human short-term memory duration",
+   "v": "two to four seconds"
+  },
+  {
+   "k": "Token count of a visual signal estimated by bitrate",
+   "v": "two to four hundred, about three hundred thousand"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "In our line of work, many people say, OE, doing OE, or doing thinking, is essentially PAT, is OE.",
+   "translated": true
+  },
+  {
+   "text": "You don't have a critical point, or you don't know whether to go left or right — it doesn't matter, you just pick one at random, go all the way, and once you realize it's wrong, you can take it back.",
+   "translated": true
+  },
+  {
+   "text": "I've always stressed one view: architecture doesn't matter, architecture serves the algorithm and the system.",
+   "translated": true
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}

@@ -1,0 +1,134 @@
+{
+ "slug": "2025-07-15-zhangxiaojun-仿真不等于仿真器-机器人数据荒里最赚钱的是原料商",
+ "of": "zhangxiaojun-baa8dfa899",
+ "source_lang": "zh",
+ "title": "Simulation Is Not the Simulator: In the Robot Data Famine, the Ones Making Money Are the Raw-Material Suppliers",
+ "dek": "Embodied AI is still at the GPT-1 stage and hasn't found the recipe for a scaling law. What's actually blocking the industry is high-quality physical assets and scenarios, not simulators — which is why the people building simulators are the ones making the least money.",
+ "why": "High information density and lots of hands-on detail: synthetic data ratios, the real2sim workflow, the global industry chain's stratification, and the underlying logic of Meta's acquisition of Scale AI. Suited to anyone trying to understand the data bottleneck in embodied AI.",
+ "who": "Founders and engineers working on embodied AI and autonomous driving, and investors watching for opportunities in the robot data layer.",
+ "skip": "The rapid-fire Q&A at 2:00 and the final rapid-fire Q&A at 1:37:37 can be skipped.",
+ "tags": [
+  "Embodied AI",
+  "Synthetic Data",
+  "Simulation",
+  "Robotics",
+  "Meta Acquisition"
+ ],
+ "points": [
+  {
+   "h": "Synthetic data ratios for long-tail scenarios can reach 1:1000",
+   "body": "Xie Chen's experience from doing simulation at Cruise: there is no fixed answer for the ratio of synthetic to real data — it depends on the scenario. Across the whole data pool, roughly 30% was synthetic at the time; but for long-tail scenarios, each one ideally needs 1000 to 10,000 synthetic samples, far beyond the 1:99 or 1:100 Wang He mentioned. The reason is that long-tail scenarios are too rare — you might not encounter one a few times in a year — so you can only amplify them through simulation. The reason real data still dominates in autonomous driving is that the car was invented over a hundred years ago, and carmakers like Tesla, Li Auto and Xiaomi have huge numbers of cars on the road; the drivers are essentially uploading data for them for free, and the cost is just compute and bandwidth."
+  },
+  {
+   "h": "The ratio for embodied AI is the exact opposite of autonomous driving",
+   "body": "The largest share of data in autonomous driving is bound to be real, because the car platform has millions of units running on the road. But the robot platform wasn't invented a hundred years ago, and there aren't millions of humanoid robots running around people's homes generating data. So Xie Chen's judgment is: to push embodied AI forward, you must first rely on a large amount of synthetic data, and only then on a relatively small amount of real data — otherwise the business model can't succeed. He also responded to the counter-question of whether the industry must have that much real data to succeed: the teleoperation route is hard to justify unless the robot can be sold and make money, and Tesla may be the only company with a chance of making cross-state teleoperation work."
+  },
+  {
+   "h": "The real difficulty is physical real2sim",
+   "body": "real2sim is not visual real-to-simulation, it's physical real-to-simulation. Take a refrigerator: it has a pivot, hinges, magnetic force; when you pull the door, it takes a fair amount of force at first, and as the hinge angle increases the force needed gets smaller and smaller; the door and drawers are all collision bodies that can interact with the hand through force. These hinges, collision bodies and mechanical parameters all need to be captured — how much force it takes to pull a fridge door at different angles, how the hinge structures differ across fridge types, how the collision bodies should be set up. Xie Chen says that in the simulation assets commonly available in the world today, the fridge door simply can't be opened; and even if it can, the hinge, weight and required pulling force are wrong, and there's usually only a single variant, with no diversity that matches the distribution."
+  },
+  {
+   "h": "The simulation model of the robot body itself is often wrong",
+   "body": "An overlooked point: robots like Unitree have models that are good enough in the real world, but in simulation the model has many problems. Xie Chen's clients have run into this: a robot's hand can pick up one or two kilograms in the real world, but in simulation it can only pick up 0.1 kilograms, and they spent more than six months and still hadn't tuned that hand. So a good simulation must align not only with the physical environment but also with the robot itself. When you go further up and do RL fine-tuning based on a foundation model, if the environment requires perception in the loop, the number of environments a single GPU can run in parallel is very small, and total fps is low enough that parallel efficiency and the evaluation loop both become bottlenecks."
+  },
+  {
+   "h": "Physical Intelligence says it doesn't believe in simulation, but internally it strongly does",
+   "body": "Xie Chen considers Physical Intelligence the best embodied algorithm company in the world — the pi-zero model is especially good, and Sergey and Chelsea come from Berkeley and Stanford respectively. But this company says externally that it doesn't believe in simulation, while internally it strongly believes in simulation, which has left it searching for a simulation lead for a long time without finding one. Xie Chen says everyone they made offers to is a good friend of his, and he advised them all not to join — because as a top simulation talent, it's hard to accept going to a company that publicly declares it doesn't believe in simulation. Many of these people later went to OpenAI, DeepMind, Nvidia and Tesla. Xie Chen judges this will be PI's most core problem for scaling later on, because simulation is fundamentally about helping with scale."
+  },
+  {
+   "h": "What Meta bought with Scale AI is a ticket to a ten-trillion-dollar company",
+   "body": "Xie Chen says the deal was nominally $30 billion, but Meta actually paid around $15 billion; it's essentially an acquihire, buying core talent rather than the whole team. He thinks what Zuckerberg saw is this: the ticket to a future ten-trillion-dollar company is the ability to control AI data. By analogy, ten years ago, if you were Microsoft's CEO and had a time machine to see today's AI development, you would definitely want to buy Nvidia, because compute is the core critical capability; now Zuckerberg is looking ten years ahead and what's missing is data. Another detail is that Meta was not among Scale's top 3 customers, so it couldn't get the best data, and couldn't train the best models. Xie Chen also predicts that ten years from now, when Zuckerberg retires, Alexandr Wang will most likely take over, because he is an extremely aggressive person who extremely pursues personal impact."
+  },
+  {
+   "h": "Jensen said internally that NVIDIA is a simulation company",
+   "body": "When Xie Chen was at Nvidia, Jensen said internally that NVIDIA is a simulation company. Nvidia started out doing graphics for games, and games are essentially simulation too, just with a different goal: games serve people's cool experiences, while now it serves physical AI, robots and autonomous driving, which need to be accurate enough. Jensen has long talked about the three computer problem: the first is the data center computer, which Nvidia has already won; the second is the edge computer, i.e. physical AI, the chips needed for cars, robots and drones; the third is simulation. Since Jensen lists simulation as one of the three computers, it shows he believes the simulation computing market will be comparable to the first two — a trillion- to ten-trillion-dollar market."
+  },
+  {
+   "h": "Embodied AI is still at the GPT-1 stage and hasn't found the scaling law recipe",
+   "body": "Xie Chen judges that the embodied industry as a whole is still at the GPT-1 stage and hasn't yet found a recipe that can scale. The definition of a scaling law moment is similar to Tesla FSD: before end-to-end was achieved, adding data didn't keep improving the algorithm and it hit a bottleneck; after it was achieved, more data meant a better algorithm. Embodied AI hasn't reached that point yet. But he doesn't think it's a bubble, because the founding teams in embodied AI today are far more outstanding than the founding teams at Waymo and Cruise back then — PI's Sergey and Chelsea, Nvidia's Zhu Yuke and Jim Fan, Skild's Deepak and Abhinav are all top scientists. Add to that higher capital attention and the insights from GPT about scaling transformers and scaling data and compute, and he optimistically estimates that finding an embodied scaling law within one or two years is entirely possible."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Sim2Real",
+   "def": "Training robot algorithms in simulation, then deploying them to real robots and scenarios."
+  },
+  {
+   "term": "Real2Sim",
+   "def": "Mapping real-world scenarios, assets and physical parameters into simulation."
+  },
+  {
+   "term": "data pyramid",
+   "def": "A layered structure: internet data at the bottom, synthetic/simulated data in the middle, real data at the top."
+  },
+  {
+   "term": "cross embodiment",
+   "def": "The same set of models can be used across different robot bodies."
+  },
+  {
+   "term": "acquihire",
+   "def": "An acquisition whose main purpose is to obtain core talent rather than the whole team or product."
+  },
+  {
+   "term": "scaling law moment",
+   "def": "The threshold point at which adding data and compute continuously improves algorithm performance."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Meta's nominal acquisition price for Scale AI",
+   "v": "$30 billion"
+  },
+  {
+   "k": "Meta's actual payment amount",
+   "v": "about $15 billion"
+  },
+  {
+   "k": "Scale AI's current valuation",
+   "v": "$30 billion"
+  },
+  {
+   "k": "Figure's valuation in its previous round",
+   "v": "$30 billion"
+  },
+  {
+   "k": "Tesla's autonomous driving team size",
+   "v": "240 people"
+  },
+  {
+   "k": "Share of synthetic data in Cruise's overall data",
+   "v": "about 30%"
+  },
+  {
+   "k": "Xie Chen's age",
+   "v": "38"
+  },
+  {
+   "k": "Guanglun Intelligence's founding year",
+   "v": "2023"
+  },
+  {
+   "k": "Guanglun Intelligence's funding round",
+   "v": "Series A"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "Because they say externally that they don't believe in simulation, but internally they strongly believe in simulation. As a top simulation talent, why would you go to a company that publicly declares it doesn't believe in simulation?",
+   "translated": true
+  },
+  {
+   "text": "I think Meta saw a very interesting point: it believes the ticket to a future ten-trillion-dollar company is the ability to control AI data.",
+   "translated": true
+  },
+  {
+   "text": "Actually, when I was at Nvidia, Jensen said internally that NVIDIA is a simulation company.",
+   "translated": true
+  },
+  {
+   "text": "You'll find that simulator companies are all not that successful. Simulation is not the simulator.",
+   "translated": true
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}

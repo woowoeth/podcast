@@ -1,0 +1,216 @@
+{
+ "id": "zhangxiaojun-81bfcaef03",
+ "slug": "2025-04-06-zhangxiaojun-机器人不需要等到-aha-moment-才落地",
+ "fingerprint": "25f173bd626c11ac",
+ "source_id": "zhangxiaojun",
+ "source": "张小珺·商业访谈录",
+ "source_zh": "张小珺·商业访谈录",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "机器人VLA与具身智能技术机制",
+ "tier": 1,
+ "lang": "zh",
+ "title_original": "98. 逐篇讲解机器人基座模型和VLA经典论文——“人就是最智能的VLA”",
+ "published": "2025-04-06T23:00:00Z",
+ "duration": 8981,
+ "audio": "https://dts-api.xiaoyuzhoufm.com/track/626b46ea9cbbf0451cf5a962/67f28c6e0decaeb0943fb14a/media.xyzcdn.net/626b46ea9cbbf0451cf5a962/lqi4NGfX-65ZwWUnKXBWTyWnkWMT.m4a",
+ "link": "https://www.xiaoyuzhoufm.com/episode/67f28c6e0decaeb0943fb14a?utm_source=rss",
+ "image": "https://image.xyzcdn.net/Fvr4e4Jq_azfNI5T0DFTUM8XnZpl.png",
+ "youtube_id": "3jI6F3M2ocU",
+ "video_len": 8981,
+ "transcript_url": "https://dts-api.xiaoyuzhoufm.com/track/626b46ea9cbbf0451cf5a962/67f28c6e0decaeb0943fb14a/media.xyzcdn.net/626b46ea9cbbf0451cf5a962/lqi4NGfX-65ZwWUnKXBWTyWnkWMT.m4a",
+ "digest": {
+  "title": "机器人不需要等到 aha moment 才落地",
+  "dek": "机器人领域还没出现大模型那种 aha moment，但能力提升的斜率已经起来了，每一年每一个月的能力增长都会沿途解锁新的商业机会，不用等通用智能成熟再找应用。",
+  "why": "两小时半逐篇讲 VLA 论文，信息密度高但偏学术；想搞清机器人基座模型技术脉络的人值得听，只关心商业结论的可以只听开头和结尾。",
+  "points": [
+   {
+    "t": 304,
+    "h": "这轮机器人热的最大变量是大模型",
+    "body": "陈建宇把这一轮和过去十年的机器人热潮区分开：真正的变量是大模型的出现。23 年上半年大模型火了半年之后，开始辐射到机器人。此前 AI for Robotics 的脉络是 Deep Learning 先进入 Computer Vision 做感知，AlphaGo 代表深度强化学习让神经网络能做连续空间的行为决策，但都不够通用。直到 ChatGPT 出现，大家才看到「有某种 AI 方法能够做到足够的通用」，于是不用再为 100 种场景开发 100 种专用模型——那种做法完全没法 scale。",
+    "spk": "陈建宇"
+   },
+   {
+    "t": 788,
+    "h": "最棘手的问题是能 scale 的架构还没找到",
+    "body": "被问到通用机器人最棘手、一旦解决就可能爆发的问题，陈建宇的答案是「能够去 scale 的这样的一个模型的架构」。他认为整个行业正在往这个方向快速进展，但暂时还没找到。这个问题既是科学问题也是工程问题：架构本身很大程度是科学问题，因为做具身要思考人是怎么思考、怎么学习的——「人就是一个标准的通用的 VOA 模型大佬，人就是一个 AGI」。他还判断未来 AGI 的最终形态就是具身的，语言、自动驾驶、机器人这些大模型最终都会 unify 起来。",
+    "spk": "陈建宇"
+   },
+   {
+    "t": 1454,
+    "h": "Say Can 把「可以做」和「能做的」匹配起来",
+    "body": "Google 22 年的 Say Can 解决的是语言模型规划与机器人实际能力不吻合的问题。方法是一边让语言模型给出完成目标需要做哪些事并打分，另一边用单独训练的 Value Function 判断当前机器人状态下哪些事真的能做，两边做匹配，最终规划出既有助于完成目标、机器人又能达成的任务。陈建宇指出它的局限：一开始就规划完 12345 步，中间如果失败，没有重新规划和纠正的机制。",
+    "spk": "陈建宇"
+   },
+   {
+    "t": 1791,
+    "h": "Inner Monologue 之后，反馈要更及时",
+    "body": "Inner Monologue 的改进是让机器人执行动作后获得环境反馈再推理修正，比如钥匙插不进去就换一把。但陈建宇团队 23 年的工作指出它的问题：如果中间某个子任务执行时间较长，要等任务做完才给高层反馈，中间这段时间就被浪费了。他们的做法是用 VLM 做实时 detector，大约 10 赫兹的频率观测当前任务有没有异常，比如搬箱子途中箱子掉了能立刻发现并重规划，而 Inner Monologue 可能要走到目的地才发现箱子没了。",
+    "spk": "陈建宇"
+   },
+   {
+    "t": 3383,
+    "h": "数据多样性比数据量重要得多",
+    "body": "RT-1 用 130k episode、700 个任务、13 台机器人、17 个月收集的数据训练，在见过的任务上接近百分之百成功率，没见过的任务也有约百分之五十。它给出的重要 insight 是 diversity is all：横轴是数据量、纵轴是成功率，单纯加量是平滑提升，但把多样性去掉，performance 会下降得很厉害。陈建宇用自动驾驶类比：人类司机大多开在道路中间，数据趋同，corner case 数据极少，diversity 不够就很难 generalize。",
+    "spk": "陈建宇"
+   },
+   {
+    "t": 5601,
+    "h": "VLM 直接输出动作太慢，缺动作处理",
+    "body": "陈建宇团队复现 RT-2 后发现这类 VLA 的局限：本质是拿一个 VLM 直接 decode token 成动作，太缺少对 Action 层面的专门处理，而且 VLM 运行慢，RT-2 基本只有 1 到 3 赫兹，对机器人来说频率非常低，动态任务上效果和精度都受影响。他们的 HiRT 加了一个专门的 Action Policy 模块做动作解码，并做分频处理：VLM 低频运行，参数只有几十 M 的 Action Policy 高频运行，同时接收视觉反馈形成闭环。结果是 performance 与 RT-2 相当甚至略好，推理速度明显更高。",
+    "spk": "陈建宇"
+   },
+   {
+    "t": 6513,
+    "h": "统一动作空间不如分开加小脑",
+    "body": "RDT 把 Diffusion Policy scale 到 B 量级，预训练量大概 1M，大量用到 RT-X 数据。它的一个创新是 Unified Action Space：所有本体共用一个统一向量，把向量不同区段分配给单臂、双臂、轮式等。陈建宇明确表示自己更倾向 CrossFormer 那种不同 Action Head 的方式，因为很难预判未来会有多少种本体，统一向量可能长到没法准备，或者训练完发现向量不够用。他的判断是「加小脑更好」，共享大部分大脑，小脑部分只需较少数据去 finetune。",
+    "spk": "陈建宇"
+   },
+   {
+    "t": 7609,
+    "h": "强化学习直接训整个 VLA 会越训越差",
+    "body": "陈建宇团队尝试用强化学习增强 VLA，发现标准 PPO 直接训练整个网络不 work，甚至会越训越差。他们找到的间接办法是分两步：第一步冻结 VLM，只训练 action head，强化学习能训上去；然后把成功的 trajectory 存下来，再放开 VLM，用监督学习的方式去训。效果上纯模仿学习不到 50 分，他们的方法能接近 100 分，在没见过的任务上优势更明显。他认为未来还是希望强化学习能直接端到端训练整个模型。",
+    "spk": "陈建宇"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 486,
+    "spk": "陈建宇",
+    "raw": "之前的机器人是什么 是100种场景 100个任务 我要重新开发100种机器人",
+    "zh": "之前的机器人是什么？是 100 种场景、100 个任务，我要重新开发 100 种机器人。"
+   },
+   {
+    "t": 849,
+    "spk": "陈建宇",
+    "raw": "人就是一个标准的通用的VOA模型大佬 人就是一个AGI",
+    "zh": "人就是一个标准的、通用的 VLA 模型大佬，人就是一个 AGI。"
+   },
+   {
+    "t": 3445,
+    "spk": "陈建宇",
+    "raw": "diversity is only 就是说对数据来说它的diversity 会比数据的size要重要很多",
+    "zh": "diversity is all，就是说对数据来说，它的 diversity 会比数据的 size 重要很多。"
+   },
+   {
+    "t": 8699,
+    "spk": "陈建宇",
+    "raw": "我明显是找到了这样一种方式 可以持续快速的提升机器人的能力 这个能力的提升可以会持续好几年",
+    "zh": "我明显是找到了这样一种方式，可以持续快速地提升机器人的能力，这个能力的提升会持续好几年。"
+   },
+   {
+    "t": 8759,
+    "spk": "陈建宇",
+    "raw": "现在用起来的机器 包括工业里面的工业机械臂 或者等等它的智能几乎为零 但是也有万台级别这些出货量",
+    "zh": "现在用起来的机器，包括工业里面的工业机械臂等等，它的智能几乎为零，但也有万台级别的出货量。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "RT-1 见过任务成功率",
+    "v": "接近百分之百",
+    "t": 3383
+   },
+   {
+    "k": "RT-1 未见任务成功率",
+    "v": "约百分之五十",
+    "t": 3383
+   },
+   {
+    "k": "RT-2 推理频率",
+    "v": "1 到 3 赫兹",
+    "t": 5601
+   },
+   {
+    "k": "HiRT 中 Action Policy 参数量",
+    "v": "几十个 M",
+    "t": 5723
+   },
+   {
+    "k": "陈建宇团队实时 detector 频率",
+    "v": "约 10 赫兹",
+    "t": 1815
+   },
+   {
+    "k": "陈建宇团队强化学习效果对比",
+    "v": "纯模仿学习不到 50 分，其方法接近 100 分",
+    "t": 7548
+   }
+  ],
+  "terms": [
+   {
+    "term": "VLA",
+    "zh": "视觉-语言-动作模型",
+    "def": "端到端处理 Vision、Language、Action 三种模态的机器人模型。"
+   },
+   {
+    "term": "Action Chunking Transformer",
+    "zh": "动作分块 Transformer",
+    "def": "Aloha 提出的架构，一次输出未来一段动作序列，并对历史规划做加权平均使轨迹更平滑。"
+   },
+   {
+    "term": "Model Predictive Control",
+    "zh": "模型预测控制",
+    "def": "每时刻规划未来一段动作轨迹，只执行第一步，下一步重新规划。"
+   },
+   {
+    "term": "Co-Fine Tuning",
+    "zh": "联合微调",
+    "def": "RT-2 在机器人数据微调时同时混入原 VLM 数据，避免过拟合到动作而丢失视觉语言理解。"
+   },
+   {
+    "term": "Diffusion Policy",
+    "zh": "扩散策略",
+    "def": "用扩散模型的加噪去噪方式生成机器人动作轨迹的训练方法。"
+   },
+   {
+    "term": "Unified Action Space",
+    "zh": "统一动作空间",
+    "def": "RDT 把不同本体的动作映射到同一个长向量，按区段分配给单臂、双臂、轮式等。"
+   }
+  ],
+  "who": "做机器人或具身智能的工程师、创业者，以及想搞清 VLA 技术脉络和落地节奏的投资人。",
+  "skip": "1:15:02 到 1:20:02 的 PaLM-E 部分偏基础，可快进。",
+  "tags": [
+   "机器人",
+   "VLA",
+   "具身智能",
+   "论文精读",
+   "人形机器人"
+  ],
+  "quality": {
+   "transcript_source": "asr",
+   "transcript_detail": "local:whisper-large-v3-turbo",
+   "words": 41629,
+   "wpm": 278.1,
+   "timed": true,
+   "verified_quotes": 5,
+   "grounded_facts": 6,
+   "points": 8,
+   "pruned": 6,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-09-22T00:50:51Z",
+ "triage": {
+  "score": 8.0,
+  "why": "逐篇讲解VLA经典论文，含机制、论文出处与失效边界，可复现推导链完整",
+  "kind": "机制拆解",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 8,
+   "faithful": 8,
+   "selection": 8,
+   "concrete": 9,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点多为判断与机制，数字具体，忠实度无实质歪曲；仅个别要点偏转述，未发现更值钱内容被丢。",
+  "worst": "金句 [57:25] 原文口误为「diversity is only」，成稿直接改成「diversity is all」，虽合原意但属替作者改口，宜标注原文如此。"
+ },
+ "model": "openai:deepseek-chat"
+}

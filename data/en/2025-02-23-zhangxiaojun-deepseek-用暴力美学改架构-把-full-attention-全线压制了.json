@@ -1,0 +1,115 @@
+{
+ "slug": "2025-02-23-zhangxiaojun-deepseek-用暴力美学改架构-把-full-attention-全线压制了",
+ "of": "zhangxiaojun-ea449d5940",
+ "source_lang": "zh",
+ "title": "DeepSeek rewrites the architecture with brute-force aesthetics, pushing Full Attention below the line",
+ "dek": "Dynamic sparse attention used to only accelerate inference. DeepSeek is the first to pretrain with it from scratch, and its loss curve and downstream evals beat Full Attention across the board — sparse attention is no longer just a cost-saving patch.",
+ "why": "Three attention papers dissected paragraph by paragraph, including kernel design, GQA constraints, and SFT gradient sparsity. High technical density; non-technical listeners can just listen to the conclusion sections.",
+ "who": "Engineers, researchers, and investors watching large-model architecture and inference costs, and anyone wanting to understand the differences among the three technical routes of DeepSeek, Kimi, and MiniMax.",
+ "skip": "The show intro and guest positioning from 0:00 to 4:00 can be skipped; go straight to the paper walkthrough.",
+ "tags": [
+  "Attention Mechanisms",
+  "DeepSeek",
+  "Kimi",
+  "MiniMax",
+  "Linear Attention",
+  "Architecture Innovation"
+ ],
+ "points": [
+  {
+   "h": "Dynamic sparsity and linear attention are two different paths",
+   "body": "Kimi and DeepSeek take dynamic sparse attention: the sparsity pattern is not hard-coded in advance but dynamically determined by each token's query to decide which key/value blocks to attend. MiniMax takes another path — a hybrid architecture that replaces the vast majority of layers with linear attention, keeping only a small number of softmax attention layers, thereby greatly shortening time overhead during inference decoding and being friendlier to test time scaling. Songlin judges that the Kimi and DeepSeek papers have more in common, while MiniMax is a different line of thinking."
+  },
+  {
+   "h": "Previous dynamic sparsity could only accelerate inference",
+   "body": "Why couldn't previous dynamic sparse attention be used for pretraining? Songlin says it is mainly because it is not very aligned with current hardware, so mainstream work only used it to accelerate inference rather than pretraining from scratch. The DeepSeek paper is the first to use dynamic sparse attention for very large-scale pretraining. Mechanistically it is mainly based on Quest — a 2024 work from MIT Han Song's group — whose core is that each token dynamically decides which key/value blocks to attend, and the block is a contiguous segment, convenient for contiguous hardware reads."
+  },
+  {
+   "h": "GQA forces all heads to pick the same block",
+   "body": "This is the core disagreement between NSA and Kimi MoBA. Under MHA, each attention head has its own key/value, and each selects its own block with the same read/write volume, so different heads can freely select different blocks, giving greater diversity. But under GQA, a group shares one copy of key/value; if different heads select different blocks, multiple KV caches must be read, bringing extra overhead. To reduce this overhead under GQA, NSA forcibly restricts all heads in the same group to select the same KV block, by summing the attention scores of all heads and then taking top-k, ensuring consistent behavior."
+  },
+  {
+   "h": "To fit matrix multiplication, the head count is forcibly raised",
+   "body": "Tensor cores have minimum size requirements for matrix multiplication; in Triton, h, dk, and bk must be at least 16. But the number of heads under each GQA query group is usually less than 16, while also needing to guarantee 4 groups to maintain selection diversity among different heads. DeepSeek simply increases the overall head count: dq is 192, and after multiplying by 64 and storing it, it is nearly 12000, while the hidden dimension is only 2560, equivalent to doing a very large up projection. Songlin says this is very DeepSeek-like; MLA is similar, and since it is trained from scratch, as long as both training and inference stages are hardware-efficient, the up projection does not matter."
+  },
+  {
+   "h": "Sparse attention can be better than Full Attention",
+   "body": "Making sparse on top of Full Attention (e.g., Quest) loses points, because that is an approximation process always constrained by the performance ceiling of Full Attention. Songlin says the only way to make sparse attention even better than Full Attention is to train from scratch. DeepSeek's result is that the loss curve stays below Full Attention throughout, and on downstream benchmarks NSA is even better than Full Attention; on long bench, sparse attention is better than Full Attention. Songlin believes this is the path DeepSeek points to: do not just make sparse on top of Full Attention, but design a sparse mechanism that performs well during training."
+  },
+  {
+   "h": "MoBA's block size cannot be too small",
+   "body": "For each KV block, MoBA must extract all query tokens that selected it, doing various indexing and reindexing; this overhead is not free. When the number of KV blocks is sufficiently large, this step may become a bottleneck, so Kimi uses a block size of 512, while DeepSeek uses 64, with top-k of 3 and 16 respectively. Songlin says too large a block size means too coarse a granularity; selecting only 3 blocks can easily miss important information; DeepSeek selecting 16 blocks has greater fault tolerance. This is one of the costs behind Kimi's simplicity."
+  },
+  {
+   "h": "Kimi cuts the compression branch, and gradients are sparse during SFT",
+   "body": "MoBA cuts both DeepSeek's compressed attention branch and sliding window branch, keeping only the middle branch, using mean pooling for block representation without introducing any extra parameters, which many find more elegant than NSA. But the cost is suboptimal performance during SFT: the SFT prompt does not enter loss computation, only the loss of a small number of subsequent tokens is computed. If these loss tokens do not cover certain blocks, those blocks have no gradient information, causing sparse training signals. Their solution is to switch the last three layers back to full attention, ensuring every token has a gradient."
+  },
+  {
+   "h": "RN is like the brain, Attention is like flipping through a book",
+   "body": "MiniMax's hybrid architecture combines linear attention and softmax attention, with scaling behavior better than pure softmax attention. Songlin explains the complementary benefits: RN has a fixed-size hidden state, forcing the model to learn compressible patterns, possibly related to compression being intelligence; softmax attention retains the full KV cache and excels at retrieval. He gives an analogy — attention is like flipping through a book, RN is like the human brain, with fixed capacity, going to the book when needed, and relying on fixed-capacity memory normally. Pure linear attention is a weak point on retrieval tasks, but after mixing it becomes better."
+  }
+ ],
+ "terms": [
+  {
+   "term": "NSA (Native Sparse Attention)",
+   "def": "Dynamic sparse attention proposed by DeepSeek, first used for large-scale pretraining."
+  },
+  {
+   "term": "MoBA (Mixture of Block Attention)",
+   "def": "Dynamic sparse attention proposed by Kimi, where each head can select its own KV block."
+  },
+  {
+   "term": "GQA (Group Query Attention)",
+   "def": "Multiple attention heads share one copy of key/value, reducing KV cache reads."
+  },
+  {
+   "term": "Lightning Attention",
+   "def": "A linear attention variant adopted by MiniMax-01, with constant complexity during inference."
+  },
+  {
+   "term": "trunkwise",
+   "def": "A block algorithm that splits the sequence into several blocks, parallel within blocks and recurrent between blocks, to fit matrix multiplication."
+  },
+  {
+   "term": "tensor core",
+   "def": "A compute unit on GPUs specialized for half-precision matrix multiplication, far faster than ALUs."
+  }
+ ],
+ "facts": [
+  {
+   "k": "NSA speedup at 64k sequence length",
+   "v": "10x faster"
+  },
+  {
+   "k": "MiniMax-01 linear attention to softmax attention layer ratio",
+   "v": "1 softmax attention layer per 7 linear attention layers, 80 layers total, repeated 10 times"
+  },
+  {
+   "k": "MoBA long-context evaluation length",
+   "v": "tested up to the 1 million level"
+  },
+  {
+   "k": "Half-precision matrix multiplication speedup over ALU on A100",
+   "v": "about 16x"
+  },
+  {
+   "k": "DeepSeek NSA dq and hidden dimension",
+   "v": "dq 192, hidden dimension 2560"
+  },
+  {
+   "k": "Token ratio of sparse attention to full attention in MoBA pretraining",
+   "v": "90% use sparse attention, 10% use full attention"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "It is under this kind of hardware limitation that he can, on the knife's edge — he can, like licking blood off a knife tip — still hold to his big principles.",
+   "translated": true
+  },
+  {
+   "text": "But I think from the perspective of hardware brute-force aesthetics, this is also defensible; as long as it is fast enough, the speed is fast enough and the performance is good enough, then I think it is beautiful.",
+   "translated": true
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}

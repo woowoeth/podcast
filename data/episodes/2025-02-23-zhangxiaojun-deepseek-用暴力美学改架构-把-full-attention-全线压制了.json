@@ -1,0 +1,199 @@
+{
+ "id": "zhangxiaojun-ea449d5940",
+ "slug": "2025-02-23-zhangxiaojun-deepseek-用暴力美学改架构-把-full-attention-全线压制了",
+ "fingerprint": "9e96b076f21361b5",
+ "source_id": "zhangxiaojun",
+ "source": "张小珺·商业访谈录",
+ "source_zh": "张小珺·商业访谈录",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "讲DeepSeek注意力架构与预训练技术",
+ "tier": 1,
+ "lang": "zh",
+ "title_original": "94. 逐篇讲解DeepSeek、Kimi、MiniMax注意力机制新论文——“硬件上的暴力美学”",
+ "published": "2025-02-23T23:00:00Z",
+ "duration": 9372,
+ "audio": "https://dts-api.xiaoyuzhoufm.com/track/626b46ea9cbbf0451cf5a962/67bb3696606e5c5940533ef4/media.xyzcdn.net/626b46ea9cbbf0451cf5a962/lqyo-JyWn3Mw0yr1x6rq86eePyXk.m4a",
+ "link": "https://www.xiaoyuzhoufm.com/episode/67bb3696606e5c5940533ef4?utm_source=rss",
+ "image": "https://image.xyzcdn.net/FoAW9cKkGkjFJKrRxghi46_Mtt4-.png",
+ "youtube_id": "",
+ "video_len": 0,
+ "transcript_url": "https://dts-api.xiaoyuzhoufm.com/track/626b46ea9cbbf0451cf5a962/67bb3696606e5c5940533ef4/media.xyzcdn.net/626b46ea9cbbf0451cf5a962/lqyo-JyWn3Mw0yr1x6rq86eePyXk.m4a",
+ "digest": {
+  "title": "DeepSeek 用暴力美学改架构，把 Full Attention 全线压制了",
+  "dek": "动态稀疏注意力过去只能加速推理，DeepSeek 第一次拿它从头预训练，损失曲线和下游评测全线压过 Full Attention——稀疏注意力不再只是省钱的补丁。",
+  "why": "三篇注意力论文逐段拆解，含 kernel 设计、GQA 约束、SFT 梯度稀疏等工程细节，技术密度高，非技术听众可只听结论段。",
+  "points": [
+   {
+    "t": 306,
+    "h": "动态稀疏和线性注意力是两条路",
+    "body": "Kimi 和 DeepSeek 走的是动态稀疏注意力：稀疏模式不预先写死，由每个 token 的 query 动态决定要 attend 哪些 key/value block。MiniMax 走的是另一条路——混合架构，把绝大多数层换成线性注意力，只保留少量 softmax 注意力层，从而在推理解码阶段大幅缩短时间开销，对 test time scaling 更友好。松林判断 Kimi 和 DeepSeek 两篇共性更多，MiniMax 是另一套思路。",
+    "spk": "杨松林"
+   },
+   {
+    "t": 981,
+    "h": "之前的动态稀疏只能加速推理",
+    "body": "为什么之前的动态稀疏注意力不能做预训练？松林说主要是它跟当前硬件不是非常对齐，所以主流工作都只用来加速 inference，而不是从头预训练。DeepSeek 这篇是第一次拿动态稀疏注意力做非常大规模的预训练，机制上主要基于 Quest——MIT 韩松老师组 2024 年的一篇工作，核心是每个 token 动态决定要 attend 的 key/value block，且 block 是连续的一段，方便硬件连续读取。",
+    "spk": "杨松林"
+   },
+   {
+    "t": 2142,
+    "h": "GQA 逼它让所有头选同一个 block",
+    "body": "这是 NSA 和 Kimi MoBA 的核心分歧。在 MHA 下每个注意力头有自己的 key/value，各选各的 block 读写量相同，可以尽情让不同头选不同 block，多样性更强。但 GQA 下一个 group 共享一份 key/value，如果不同头选不同 block 就要读多份 KV cache，带来额外开销。NSA 为了在 GQA 下减少这个开销，强行限制同一个 group 下所有头选同样的 KV block，做法是对所有头的注意力分数求和再取 top-k，保证行为一致。",
+    "spk": "杨松林"
+   },
+   {
+    "t": 3059,
+    "h": "为了凑矩阵乘法把 head 数硬拉上去",
+    "body": "Tensor core 对矩阵乘法的最小尺寸有要求，在 Triton 里要求 h、dk、bk 至少为 16。但 GQA 每个 query group 下的 head 数通常不到 16，同时又要保证 4 个 group 来维持不同头之间的选择多样性。DeepSeek 干脆把整体 head 数量增大：dq 是 192，乘以 64 后存起来将近 12000，而 hidden dimension 只有 2560，等于做了一次非常大的向上投影。松林说这很有 DeepSeek 特色，MLA 也是类似做法，反正从头训练，只要训练和推理两个阶段都硬件高效，up projection 也无所谓。",
+    "spk": "杨松林"
+   },
+   {
+    "t": 3549,
+    "h": "稀疏注意力可以比 Full Attention 更好",
+    "body": "在 Full Attention 基础上做稀疏（比如 Quest）会掉点，因为那是一个逼近过程，始终受 Full Attention 性能上限约束。松林说想让稀疏注意力甚至比 Full Attention 好，只有一个出路：train from scratch。DeepSeek 的结果是损失曲线全程压在 Full Attention 下面，下游 benchmark 上 NSA 甚至比 Full Attention 更好，long bench 上稀疏注意力比 Full Attention 还要好。松林认为这是 DeepSeek 指出的道路：不要只在 Full Attention 上做稀疏，干脆设计训练时就表现好的稀疏机制。",
+    "spk": "杨松林"
+   },
+   {
+    "t": 5194,
+    "h": "MoBA 的 block size 开不了太小",
+    "body": "MoBA 每个 KV block 要把所有选到它的 query token 提出来，做各种 indexing 和 reindexing，这个 overhead 不是免费的。当 KV block 数量足够多时这一步可能成为 bottleneck，所以 Kimi 用了 512 的 block size，而 DeepSeek 用 64，top-k 分别是 3 和 16。松林说 block size 太大意味着粒度太粗，只选 3 个 block 一不小心就会漏掉重要信息；DeepSeek 选 16 个 block 容错率更大。这是 Kimi 简约背后付出的代价之一。",
+    "spk": "杨松林"
+   },
+   {
+    "t": 5501,
+    "h": "Kimi 砍掉压缩分支，SFT 时梯度稀疏",
+    "body": "MoBA 把 DeepSeek 的压缩注意力分支和滑窗分支都砍掉，只保留中间分支，用 mean pooling 做 block 表示，不引入任何多余参数，很多人觉得比 NSA 更优雅。但代价是 SFT 时出现 suboptimal performance：SFT 的 prompt 不进入损失计算，只算后面少部分 token 的 loss，如果这些 loss token 没覆盖到某些 block，那些 block 就没有任何梯度信息，造成训练信号稀疏。他们的解法是把最后三层切回 full attention，保证每个 token 都有梯度。",
+    "spk": "杨松林"
+   },
+   {
+    "t": 7824,
+    "h": "RN 像大脑，Attention 像翻书",
+    "body": "MiniMax 的混合架构把线性注意力和 softmax 注意力结合，scaling behavior 比纯 softmax attention 更好。松林解释两者好处互补：RN 有固定大小的 hidden state，强迫模型学出可压缩的 pattern，可能跟压缩即智能有关；softmax attention 保留全部 KV cache，擅长检索。他打了个比方——attention 像翻书，RN 像人的大脑，脑容量固定，需要时去翻书，平时靠固定容量的记忆就够用。纯线性注意力在 retrieval 类任务上是短板，混合后反而更好。",
+    "spk": "杨松林"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 4645,
+    "spk": "杨松林",
+    "raw": "就是在这种硬件上面的限制下面 他能在 刀刃 就是他 他能 他能 就是 像刀尖舔血一样 就是能够 同时还能还能坚守他的大原则",
+    "zh": "就是在硬件的限制下，他能像刀尖舔血一样，同时还能坚守他的大原则。"
+   },
+   {
+    "t": 6184,
+    "spk": "杨松林",
+    "raw": "但是我觉得从硬件暴力美学来看呢 这个我觉得也无可厚非吧 只要它够快 速度够 速度够快 performance够好 那我觉得它就是美的",
+    "zh": "但从硬件暴力美学的角度看，这也无可厚非——只要它够快、性能够好，那它就是美的。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "NSA 在 64k 序列长度上的加速比",
+    "v": "快 10 倍",
+    "t": 3851
+   },
+   {
+    "k": "MiniMax-01 的线性注意力与 softmax 注意力层数配比",
+    "v": "每 7 层线性注意力配 1 层 softmax 注意力，共 80 层，重复 10 遍",
+    "t": 6369
+   },
+   {
+    "k": "MoBA 长文本评测长度",
+    "v": "测到 100 万级别",
+    "t": 5873
+   },
+   {
+    "k": "A100 上半精度矩阵乘法相对 ALU 的加速",
+    "v": "约 16 倍",
+    "t": 2875
+   },
+   {
+    "k": "DeepSeek NSA 的 dq 与 hidden dimension",
+    "v": "dq 192，hidden dimension 2560",
+    "t": 3180
+   },
+   {
+    "k": "MoBA 预训练中稀疏注意力与 full attention 的 token 比例",
+    "v": "90% 用稀疏注意力，10% 用 full attention",
+    "t": 5813
+   }
+  ],
+  "terms": [
+   {
+    "term": "NSA (Native Sparse Attention)",
+    "zh": "原生稀疏注意力",
+    "def": "DeepSeek 提出的动态稀疏注意力，首次用于大规模预训练。"
+   },
+   {
+    "term": "MoBA (Mixture of Block Attention)",
+    "zh": "块注意力混合架构",
+    "def": "Kimi 提出的动态稀疏注意力，每个头可自选 KV block。"
+   },
+   {
+    "term": "GQA (Group Query Attention)",
+    "zh": "分组查询注意力",
+    "def": "多个注意力头共享一份 key/value，减少 KV cache 读取。"
+   },
+   {
+    "term": "Lightning Attention",
+    "zh": "闪电注意力",
+    "def": "MiniMax-01 采用的线性注意力变体，推理为常数复杂度。"
+   },
+   {
+    "term": "trunkwise",
+    "zh": "分块算法",
+    "def": "把序列分成若干块，块内并行、块间循环，凑出矩阵乘法。"
+   },
+   {
+    "term": "tensor core",
+    "zh": "张量核心",
+    "def": "GPU 上专门做半精度矩阵乘法的计算单元，速度远快于 ALU。"
+   }
+  ],
+  "who": "关注大模型架构与推理成本的工程师、研究员和投资人，想搞清 DeepSeek、Kimi、MiniMax 三条技术路线差异的人。",
+  "skip": "开头 0:00-4:00 的节目介绍和嘉宾定位可跳过，直接进论文讲解。",
+  "tags": [
+   "注意力机制",
+   "DeepSeek",
+   "Kimi",
+   "MiniMax",
+   "线性注意力",
+   "架构创新"
+  ],
+  "quality": {
+   "transcript_source": "asr",
+   "transcript_detail": "local:whisper-large-v3-turbo",
+   "words": 31777,
+   "wpm": 203.4,
+   "timed": true,
+   "verified_quotes": 2,
+   "grounded_facts": 6,
+   "points": 8,
+   "pruned": 3,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-09-22T01:36:01Z",
+ "triage": {
+  "score": 8.0,
+  "why": "逐篇拆解三篇注意力机制论文，讲清路线取舍与硬件对齐机制，可复现推导链完整",
+  "kind": "机制拆解",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 8,
+   "faithful": 8,
+   "selection": 8,
+   "concrete": 9,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点多为机制与取舍判断，数字具体，忠实度基本过关；个别处把原文的推测语气写成了确定结论。",
+  "worst": "[1:26:34] 那条把松林的推测「我不确定这是不是 block size 带来的负面作用」写成了「这是 Kimi 简约背后付出的代价之一」，语气强度被拔高。"
+ },
+ "model": "openai:deepseek-chat"
+}

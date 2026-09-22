@@ -1,0 +1,138 @@
+{
+ "slug": "2025-02-04-zhangxiaojun-r1-最值钱的不是模型-是那个-aha-moment",
+ "of": "zhangxiaojun-dfd8caa7a6",
+ "source_lang": "zh",
+ "title": "R1's most valuable output isn't the model, it's the aha moment",
+ "dek": "DeepSeek was the first to solve the riddle O1 posed: without being taught, the model learns reflection and error correction on its own through reinforcement learning. R1-Zero is cleaner than R1, but R1 is the one that works.",
+ "why": "A sentence-by-sentence close read of three technical reports, explaining GRPO, reward functions, distillation and cost estimation thoroughly. High information density, but you need a bit of patience to follow along.",
+ "who": "Engineers and researchers who want to understand the technical details of R1 and K1.5, especially those working on post-training and reinforcement learning.",
+ "skip": "The first 15 minutes of background setup and the chit-chat at the end can be skipped; the core content starts at 35 minutes.",
+ "tags": [
+  "Reinforcement Learning",
+  "Post-training",
+  "DeepSeek",
+  "Reasoning Models",
+  "GRPO"
+ ],
+ "points": [
+  {
+   "h": "The aha moment wasn't written into the model by humans",
+   "body": "The R1 paper uses the word incentivizing in its title, behind which is OpenAI researcher Hongi's talk at MIT, ‘Don't teach, incentivize’—don't teach the model how to do it, but tell it what's good and what's bad, and let it figure it out itself. The self-correction in the paper, ‘Wait, wait, there's an aha moment I can fly here’, wasn't written into the model by the researchers; it emerged on its own during reinforcement learning. This is like the divine move in Go—a behavioral pattern human developers never thought of."
+  },
+  {
+   "h": "Post-training compute is just a drizzle compared to pre-training",
+   "body": "DeepSeek V3 pre-training cost 5.3M USD, mid-training used 0.2M to extend the context from 8k to 128k, and post-training cost only 0.01M—less than 0.2% of the pre-training cost. This number shows that post-training and reinforcement learning scaling is still in a very early stage, with an extremely high return on investment. For the entire R1 training, if optimized well, it might cost just 100k USD; at the absolute most, 1M USD."
+  },
+  {
+   "h": "GRPO drops the value function because it's inaccurate",
+   "body": "PPO requires training an additional value model to finely judge whether each step is right or wrong, but in long chain-of-thought scenarios this assumption doesn't hold: the supervision signal only exists at the last step, the sequence is thousands of tokens long, and the model has learned to correct itself—whether the 3 in ‘1+1=3’ is right or wrong becomes unclear, because it can fix it later. The value function cannot be precise, and it consumes enormous compute, so DeepSeek simply discards it and only does policy gradients. This is the starting point of GRPO."
+  },
+  {
+   "h": "The reward function uses only rules, not neural networks",
+   "body": "R1-Zero's reward has two parts: accuracy reward checks whether the answer is correct, format reward checks whether the format is correct—requiring the model to put the thinking process in a think tag and the answer in an answer tag. They deliberately avoid process reward models or outcome reward models, because a neural network reward model will be reward hacked: the model will find loopholes in the reward function, for example discovering that outputting many emojis gets a high score, and then output emojis like crazy. Using ground truth reward avoids any possibility of reward hacking."
+  },
+  {
+   "h": "The performance gain comes from output getting 20 times longer",
+   "body": "Figure 2 shows R1's accuracy on AIME rising from the teens all the way to around 70%, and after pausing for 10,000 steps it roughly reaches O1's range. But Figure 3 explains why: during reinforcement learning the model discovers on its own that if it thinks more at inference time, generates more tokens, and uses more compute, performance improves. At step 0 the output is only a few hundred tokens; after 8,000 steps the average response length reaches about 10,000 tokens, an increase of nearly 20 times. This is the source of inference-time scaling."
+  },
+  {
+   "h": "Distillation beats small models doing their own reinforcement learning",
+   "body": "DeepSeek open-sourced a series of distilled models from 1.5B to 70B in one go. The 1.5B distilled model already beats GPT-4o or Claude Sonnet by 10 to 20 percentage points on AIME. More critically, the comparison in Table 6: distilling R1 into Qwen 32B far exceeds Qwen 32B doing reinforcement learning itself in the R1-Zero way. The reason is that large models are more likely to explore complex and beneficial reasoning patterns, and handing that exploration to a small model is much better than having the small model explore from scratch."
+  },
+  {
+   "h": "Both PRM and MCTS paths are dead ends",
+   "body": "DeepSeek publicly disclosed its failed attempts. Problems with process reward models: on general tasks it's hard to define which step is the first and which is the second; evaluating whether the current step is correct is also difficult, and becomes even more ambiguous once the model can correct itself; automatic training results are unsatisfactory, and manual annotation is too expensive and doesn't scale; and as long as there is a reward model, it will inevitably bring reward hacking. Problems with MCTS: the search space at each step of a language model is about 10,000 words, the tree can have 10,000 layers, the search space is too large and the cost too high; the value function is unstable and hard to estimate. AlphaGo's success is hard to reproduce in general language model reasoning scenarios."
+  },
+  {
+   "h": "R1 training cost might be only 100k USD",
+   "body": "Rough estimate: the entire training used about 10,000 steps of reinforcement learning, each step about 1,000 responses, each response at most 10,000 tokens, generating about 100 billion tokens in total. At R1's API price of 2.2 USD per million tokens, these tokens cost just over 200k USD. Considering that DeepSeek has a large margin, and ignoring part of the model training overhead, the order of magnitude should be about right. The conclusion is that if optimized well enough it might cost just 100k USD, and at the absolute most 1M USD."
+  },
+  {
+   "h": "Chain-of-thought reward models cut error rate from 15% to 1.5%",
+   "body": "K1.5 tried two methods for math rewards. The traditional reward model connects the model's activations to a small MLP to directly predict right or wrong, with accuracy around 84.4%. The chain-of-thought reward model takes the question, the standard answer, and the model's answer together as input, and lets the reward model output a chain of thought to reason about right or wrong, fine-tuned with 800k labeled samples. Accuracy directly reaches 98.5%, and the error rate drops from 15% to 1.5%. This is not in the DeepSeek report, and everyone should move in this direction going forward."
+  },
+  {
+   "h": "Without negative gradients, reinforcement learning can't get off the ground",
+   "body": "K1.5 compared a simpler REST algorithm: sample 100 times, pick out the correct ones for fine-tuning, done. Its difference from GRPO is: it doesn't require staying close enough to the original policy, and it doesn't tell the model not to learn bad things—missing the negative gradient step. The result is that REST's performance is considerably worse, the entire test time scaling completely fails to take off, maybe only rising three or four points; while using K1.5 or R1's reinforcement learning algorithm can rise ten or twenty points, a world of difference."
+  }
+ ],
+ "terms": [
+  {
+   "term": "GRPO / Group Relative Policy Optimization",
+   "def": "A PPO variant proposed by DeepSeek that drops the value function, only does policy gradients, and normalizes using relative goodness within a group."
+  },
+  {
+   "term": "reward hacking",
+   "def": "The model finds loopholes in the reward function and behaves in ways that get high scores but that humans don't want, such as outputting emojis like crazy."
+  },
+  {
+   "term": "PRM / Process Reward Model",
+   "def": "Scores each step of reasoning rather than only the final result, but on general tasks it's hard to define steps and it's easily hacked."
+  },
+  {
+   "term": "MCTS / Monte Carlo Tree Search",
+   "def": "Succeeded in AlphaGo, but in language model reasoning the search space is too large and the value function is hard to estimate."
+  },
+  {
+   "term": "distillation",
+   "def": "Fine-tuning a small model with data generated by a large model, giving the small model reasoning ability, with better results than the small model doing its own reinforcement learning."
+  },
+  {
+   "term": "curriculum sampling",
+   "def": "A K1.5 technique that gives the model problems whose difficulty matches its ability, letting it learn faster and better."
+  }
+ ],
+ "facts": [
+  {
+   "k": "DeepSeek V3 pre-training cost",
+   "v": "5.3M USD"
+  },
+  {
+   "k": "DeepSeek V3 post-training cost",
+   "v": "0.01M USD"
+  },
+  {
+   "k": "R1 API price",
+   "v": "2.2 USD per million tokens"
+  },
+  {
+   "k": "R1 training cost estimate",
+   "v": "100k to 1M USD"
+  },
+  {
+   "k": "R1 output length growth",
+   "v": "from a few hundred tokens to about 10,000 tokens, an increase of nearly 20 times"
+  },
+  {
+   "k": "Traditional reward model accuracy",
+   "v": "84.4%"
+  },
+  {
+   "k": "Chain-of-thought reward model accuracy",
+   "v": "98.5%"
+  },
+  {
+   "k": "Chain-of-thought reward model training samples",
+   "v": "800k"
+  },
+  {
+   "k": "R1 distillation data volume",
+   "v": "reasoning 600k + non-reasoning 200k = 800k"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "This is actually the only method we currently know of that can achieve superhuman performance.",
+   "translated": true
+  },
+  {
+   "text": "A large model, compared to a small model, has better performance and is more likely to explore those complex, or some powerful, more beneficial, more complex [patterns].",
+   "translated": true
+  },
+  {
+   "text": "So elegant algorithms or elegant techniques are often the simplest and cleanest techniques, right? Yes, yes.",
+   "translated": true
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}

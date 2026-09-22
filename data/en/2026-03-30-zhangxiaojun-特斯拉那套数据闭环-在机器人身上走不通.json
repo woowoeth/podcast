@@ -1,0 +1,139 @@
+{
+ "slug": "2026-03-30-zhangxiaojun-特斯拉那套数据闭环-在机器人身上走不通",
+ "of": "zhangxiaojun-1cc87c7a38",
+ "source_lang": "zh",
+ "title": "Tesla's data flywheel doesn't work on robots",
+ "dek": "Tesla collects the most data because it has deployed the most of its own cars — the advantage is the body. But embodied AI has no million-robot fleet, so the most data must come from simulation and human first-person footage. A body maker cannot be the best brain maker.",
+ "why": "Data has been called oil for a long time; this episode gives you a mechanism you can actually make a call on: who produces data, who evaluates it, who prices it, and why the foundation-model camp and the real-robot camp are parting ways.",
+ "who": "Founders building embodied AI and AI data infrastructure, investors watching the robotics sector, and the people managing data inside foundation-model and robotics teams.",
+ "skip": "The first 12 minutes of schooling and early startup history can be skipped; start at the 20-minute data overview.",
+ "tags": [
+  "Data",
+  "Embodied AI",
+  "Simulation",
+  "Robotics",
+  "Foundation Models",
+  "Data Pricing"
+ ],
+ "points": [
+  {
+   "h": "Data is not a dataset, it is an education system",
+   "body": "Xie Chen's definition of data is not a dataset but ‘the signals that help you learn, and the corresponding transmission of that experience.’ He compares the three stages of the data industry to education: ImageNet was a static dataset, the equivalent of one-off force-feeding — buy a batch of textbooks and hand them out to students; Scale AI turned data into a factory-style process, the equivalent of mass-market education; by the foundation-model era, pretraining had eaten the internet and the focus shifted to post-training and evaluation, which requires highly capable engineers, physicists, math gold medalists, lawyers and doctors to write the questions and set the grading criteria, and then to teach to that assessment — only then do you reach ‘the teacher who transmits the way, imparts knowledge, and resolves doubt.’ So data is slowly turning from a static dataset into an education system."
+  },
+  {
+   "h": "The most effective data is fail first, then succeed",
+   "body": "The earliest request customers gave Guanglun Intelligence was for perfectly correct, flawless simulated long-horizon task data — a robot making a pizza, say: take the crust out of the fridge, add toppings, put it in the oven, press the button, with no action allowed to go wrong. But after iterating together with customers, they found the most effective data is data where you fail first and then succeed — the mushroom isn't gripped firmly and falls on the table, you pick it up and put it back on the pizza. These samples, called negative samples or correction data, are actually more expensive and more valuable. Xie Chen's explanation: once a model's generalization improves, it can learn the cognition back from its mistakes, which is closer to how humans learn — the experience of failing and then succeeding is often the most precious."
+  },
+  {
+   "h": "They use robot arms precisely because they don't want to touch hardware",
+   "body": "When foundation-model teams build VLA, they pick the simplest robot arm rather than a humanoid or wheeled base, and the reason is precisely that they don't want to do hardware-related work — humanoid maintenance and debugging every single body is far more complex. What they want is zero-shot generalization: trained on ten or a hundred tasks, and able to do five other tasks it has never seen. At the same time the two sides' infrastructure differs by an order of magnitude: a robotics company with a few thousand GPUs already counts as a lot, while foundation-model teams typically have tens of thousands; large-scale parallel reinforcement learning infrastructure is very hard to build in-house for embodied models, whereas foundation-model teams already have it and only need to migrate it from the LLM setting to fine-tune a VLA."
+  },
+  {
+   "h": "Tesla's data flywheel does not hold in embodied AI",
+   "body": "Tesla's data engine is essentially body-dependent logic: it has deployed the most cars in the world, gets back the most data, trains the best brain, so the OEM itself is the biggest brain maker. Xie Chen argues this logic gets overturned in embodied AI — the world does not have a million robots deployed at the edge executing tasks, and relying on human teleoperation is too costly and cannot scale. So the embodied data architecture must follow the data pyramid: the most expensive real-robot data is the smallest in volume and hardest to scale, simulation sits in the middle, and at the bottom is internet and human first-person data. This means the most embodied data will definitely not be provided by the body maker, and there will not be a body maker that is both the most widely deployed hardware and the best brain in the world — Optimus's brain is being provided by xAI."
+  },
+  {
+   "h": "Top real-robot camp turned around collectively in the past three months",
+   "body": "Guanglun Intelligence's earliest customers were all strong simulation believers, while the top frontier labs and top foundation-model teams used to be of the real-robot school, absolutely unwilling to try any simulation. But over the past three months, these teams have basically all become customers. The problem they all hit is that they cannot scale their own evaluation: real-robot data or academic benchmarks cannot produce anything with real industry meaning, because they are too simple and not scalable enough. Brain teams working on home scenarios already fold laundry and do chores well, but they need a thousand different home environments and tens of thousands of tasks to evaluate themselves against at any moment, and that can only be obtained through simulation."
+  },
+  {
+   "h": "Real-robot data is overrated, simulation evaluation is underrated",
+   "body": "Xie Chen's judgment: real robot data is definitely overrated, and over the past few months even companies and foundation-model teams that were originally of the real-robot school have been buying simulation data, simulation evaluation and human data at scale. Simulation as a whole is still underrated, and the most underrated part is simulation evaluation — foundation-model teams have seen this completely, because without simulation you cannot do large-scale evaluation; many robotics companies, because their scale isn't that big yet, will feel this pain more and more as task counts and open scenarios grow, and they cannot get around simulation. Human data is likewise underrated: it supplements and strengthens this simulation-centered loop rather than replacing it."
+  },
+  {
+   "h": "Bickering solves nothing; only symbiosis does",
+   "body": "The classic bickering between data companies and model companies — the data side says your model isn't trained well, the model side says your data is collected badly — Xie Chen acknowledges objectively exists, and likens it to the situation of Scale AI and OpenAI at the GPT stage: everyone is actually searching together for the data recipe, the general direction is already clear, the difference is in the details, such as going from wanting perfect data at first, to later wanting negative samples and correction data, to then requiring a broader distribution — you can't hold the bottle the same way every time. The solution is symbiotic iteration with the most leading customers. He says there are extremely few teams in the world that can genuinely form a cognition about large-scale pretraining-grade data, maybe only about five, and Guanglun basically works with all of them."
+  },
+  {
+   "h": "If you could solve only one data problem, it would be evaluation",
+   "body": "If solving only one critical problem in data could produce a big leap, Xie Chen's answer is evaluation. The reason: the pretraining pathway and scaling law for body-agnostic data have already emerged, and evaluation has become the real bottleneck — without solving it, it is hard for anyone to measure their own intelligence gains. For embodied AI, you must build truly scalable simulation evaluation; this is a capability everyone will need. The foundation-model side is likewise stuck on evaluation and post-training, and it is an arms race: as model capability improves, you need even stronger people to provide better feedback, set harder exam questions and more effective evaluation metrics."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Sim-to-Real",
+   "def": "The performance gap when a capability trained in simulation is transferred to a real robot — the core objection the simulation camp gets challenged on"
+  },
+  {
+   "term": "Shadow Mode",
+   "def": "The algorithm only outputs signals on the vehicle and does not execute actions, comparing against human operation; the difference is a free evaluation signal"
+  },
+  {
+   "term": "Data Engine",
+   "def": "An evaluation-feedback-driven data production loop centered on systems rather than human labor, as distinct from a pipeline-style Data Factory"
+  },
+  {
+   "term": "Behavior",
+   "def": "Fei-Fei Li's team's simulation-based embodied evaluation set, all hard long-horizon tasks; later came Enact, which uses the same system to evaluate world models"
+  },
+  {
+   "term": "VLA",
+   "def": "A robot action model built on a foundation model as its base, taking in vision and language and outputting actions"
+  },
+  {
+   "term": "Zero-shot",
+   "def": "Being able to do a task it has never seen; Xie Chen argues a model without this generalization ability is not a model on the path to general intelligence"
+  }
+ ],
+ "facts": [
+  {
+   "k": "Scale of the autonomous driving manual annotation workforce",
+   "v": "estimated at 100,000 to several hundred thousand people"
+  },
+  {
+   "k": "Hourly rate for foundation-model post-training data experts",
+   "v": "over 100 USD"
+  },
+  {
+   "k": "GPU count gap between foundation-model teams and robotics companies",
+   "v": "a few thousand GPUs already counts as a lot for a robotics company; foundation-model teams have tens of thousands"
+  },
+  {
+   "k": "Data maturity scores for foundation models vs. embodied AI",
+   "v": "foundation models 60 points, embodied AI not even 0.6 points"
+  },
+  {
+   "k": "Highest success rate on the Behavior evaluation set",
+   "v": "100 tasks, highest 26%"
+  },
+  {
+   "k": "Amount of gripper data used by Generalist",
+   "v": "270,000 hours"
+  },
+  {
+   "k": "Embodied data pricing range",
+   "v": "from a few dozen RMB to over a thousand RMB per hour; pizza-making-type data ranges from a few dozen to a few thousand RMB, high-quality data in the hundreds to over a thousand RMB"
+  },
+  {
+   "k": "Guanglun Intelligence full-time headcount",
+   "v": "about a hundred, mostly in engineering and technical roles"
+  },
+  {
+   "k": "Compute needed to validate the data pyramid",
+   "v": "tens of thousands of GPUs"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "But later, our customers and we, through iteration, discovered that the most effective data is actually data that fails first and then succeeds.",
+   "translated": true
+  },
+  {
+   "text": "For example, autonomous driving or large models — why do their models improve so fast? Autonomous driving, essentially, is because its evaluation is free.",
+   "translated": true
+  },
+  {
+   "text": "They were of the real-robot school, absolutely unwilling to try any simulation. But if we look again, over the past three months, basically all of them have become our customers.",
+   "translated": true
+  },
+  {
+   "text": "I think simulation, I think it more needs to be in a sufficiently physically accurate environment, one that is reproducible and can be corrected, to produce the corresponding actions and observe their results. I think that is what needs to be a simulation.",
+   "translated": true
+  },
+  {
+   "text": "My current view is that the stronger the intelligence, the higher its hunger for knowledge, the higher its hunger for data. But it may not want to learn outward — it may be self-learning.",
+   "translated": true
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}

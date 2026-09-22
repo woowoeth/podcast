@@ -1,0 +1,126 @@
+{
+ "slug": "2025-04-06-zhangxiaojun-机器人不需要等到-aha-moment-才落地",
+ "of": "zhangxiaojun-81bfcaef03",
+ "source_lang": "zh",
+ "title": "Robots don't need to wait for an aha moment to land",
+ "dek": "The robotics field hasn't had an aha moment like large models did, but the slope of capability improvement is already rising. Every year, every month of capability growth unlocks new commercial opportunities along the way — you don't need to wait for general intelligence to mature before finding applications.",
+ "why": "Two and a half hours going through VLA papers one by one; high information density but on the academic side. Worth listening to for anyone who wants to understand the technical lineage of robot foundation models; those who only care about commercial conclusions can just listen to the beginning and the end.",
+ "who": "Engineers and founders working on robotics or embodied intelligence, and investors who want to understand the VLA technical lineage and the pace of deployment.",
+ "skip": "The PaLM-E section from 1:15:02 to 1:20:02 is basic; you can fast-forward.",
+ "tags": [
+  "Robotics",
+  "VLA",
+  "Embodied AI",
+  "Paper Deep-Read",
+  "Humanoid Robots"
+ ],
+ "points": [
+  {
+   "h": "The biggest variable in this robotics wave is large models",
+   "body": "Chen Jianyu distinguishes this wave from the robotics booms of the past decade: the real variable is the emergence of large models. After large models caught fire in the first half of 2023, they began to radiate into robotics. Previously, the thread of AI for Robotics was that Deep Learning first entered Computer Vision for perception, and AlphaGo represented deep reinforcement learning enabling neural networks to make behavioral decisions in continuous spaces, but neither was general enough. It was only with the arrival of ChatGPT that people saw ‘there is some AI method that can be general enough’, so there was no longer a need to develop 100 specialized models for 100 scenarios — that approach simply cannot scale."
+  },
+  {
+   "h": "The toughest problem is that a scalable architecture hasn't been found yet",
+   "body": "Asked what the toughest problem in general robotics is, one that could explode once solved, Chen Jianyu's answer is ‘an architecture that can scale’. He believes the entire industry is progressing rapidly in this direction, but it hasn't been found yet. This problem is both scientific and engineering: the architecture itself is largely a scientific question, because doing embodied intelligence requires thinking about how humans think and learn — ‘a human is a standard general VOA model boss, a human is an AGI’. He also judges that the final form of future AGI will be embodied, and that large models for language, autonomous driving, and robotics will all eventually unify."
+  },
+  {
+   "h": "Say Can matches ‘what can be done’ with ‘what is doable’",
+   "body": "Google's Say Can from 2022 solves the problem of mismatch between language model planning and the robot's actual capabilities. The method is to have the language model give the steps needed to complete the goal and score them, while a separately trained Value Function judges which things can actually be done in the current robot state; the two sides are matched, ultimately planning tasks that both help complete the goal and can be achieved by the robot. Chen Jianyu points out its limitation: it plans all 12345 steps at the start, and if something fails midway, there is no mechanism for replanning and correction."
+  },
+  {
+   "h": "After Inner Monologue, feedback needs to be more timely",
+   "body": "Inner Monologue's improvement is to let the robot get environmental feedback after executing an action and then reason and correct, for example if the key doesn't go in, try another one. But Chen Jianyu's team's 2023 work points out its problem: if some subtask in the middle takes a long time to execute, high-level feedback only comes after the task is done, and the time in between is wasted. Their approach uses a VLM as a real-time detector, observing at about 10 Hz whether the current task has anomalies, for example if a box falls while being carried, it can be immediately detected and replanned, whereas Inner Monologue might only discover the box is gone upon reaching the destination."
+  },
+  {
+   "h": "Data diversity matters far more than data volume",
+   "body": "RT-1 was trained on 130k episodes, 700 tasks, 13 robots, and 17 months of collected data, achieving near 100% success on seen tasks and about 50% on unseen tasks. Its important insight is diversity is all: with data volume on the x-axis and success rate on the y-axis, simply adding volume gives a smooth improvement, but removing diversity causes performance to drop sharply. Chen Jianyu uses autonomous driving as an analogy: human drivers mostly drive in the middle of the road, data converges, corner case data is extremely rare, and without enough diversity it's hard to generalize."
+  },
+  {
+   "h": "VLM directly outputting actions is too slow and lacks action processing",
+   "body": "After reproducing RT-2, Chen Jianyu's team found the limitations of this type of VLA: it essentially takes a VLM and directly decodes tokens into actions, lacking specialized processing at the Action level, and the VLM runs slowly — RT-2 is basically only 1 to 3 Hz, which is very low for a robot, affecting both effectiveness and precision on dynamic tasks. Their HiRT adds a dedicated Action Policy module for action decoding and does frequency splitting: the VLM runs at low frequency, while the Action Policy with only tens of M parameters runs at high frequency, simultaneously receiving visual feedback to form a closed loop. The result is performance comparable to or even slightly better than RT-2, with significantly higher inference speed."
+  },
+  {
+   "h": "A unified action space is worse than separating and adding a cerebellum",
+   "body": "RDT scales Diffusion Policy to the B level, with pretraining volume around 1M, heavily using RT-X data. One of its innovations is a Unified Action Space: all embodiments share a single unified vector, with different segments of the vector assigned to single-arm, dual-arm, wheeled, etc. Chen Jianyu explicitly states he prefers the CrossFormer approach with different Action Heads, because it's hard to predict how many embodiments there will be in the future; the unified vector might grow too long to prepare, or after training you might find the vector is insufficient. His judgment is ‘adding a cerebellum is better’: share most of the brain, and the cerebellum part only needs less data to finetune."
+  },
+  {
+   "h": "Reinforcement learning directly training the whole VLA gets worse the more you train",
+   "body": "Chen Jianyu's team tried using reinforcement learning to enhance VLA and found that standard PPO directly training the entire network doesn't work, and can even get worse the more you train. The indirect method they found is two steps: first freeze the VLM and only train the action head, and reinforcement learning can improve it; then save the successful trajectories, unfreeze the VLM, and train it with supervised learning. In terms of results, pure imitation learning scores less than 50, while their method can approach 100, with an even more obvious advantage on unseen tasks. He believes that in the future he still hopes reinforcement learning can directly train the entire model end-to-end."
+  }
+ ],
+ "terms": [
+  {
+   "term": "VLA / Vision-Language-Action Model",
+   "def": "A robot model that end-to-end processes the three modalities of Vision, Language, and Action."
+  },
+  {
+   "term": "Action Chunking Transformer",
+   "def": "An architecture proposed by Aloha that outputs a future sequence of actions at once and performs a weighted average over historical plans to make trajectories smoother."
+  },
+  {
+   "term": "Model Predictive Control",
+   "def": "At each moment, plan a future trajectory of actions, execute only the first step, and replan at the next step."
+  },
+  {
+   "term": "Co-Fine Tuning",
+   "def": "RT-2 mixes in the original VLM data while fine-tuning on robot data, to avoid overfitting to actions and losing vision-language understanding."
+  },
+  {
+   "term": "Diffusion Policy",
+   "def": "A training method that generates robot action trajectories using the noise-adding and denoising approach of diffusion models."
+  },
+  {
+   "term": "Unified Action Space",
+   "def": "RDT maps actions from different embodiments into the same long vector, assigning segments to single-arm, dual-arm, wheeled, etc."
+  }
+ ],
+ "facts": [
+  {
+   "k": "RT-1 success rate on seen tasks",
+   "v": "near 100%"
+  },
+  {
+   "k": "RT-1 success rate on unseen tasks",
+   "v": "about 50%"
+  },
+  {
+   "k": "RT-2 inference frequency",
+   "v": "1 to 3 Hz"
+  },
+  {
+   "k": "Parameter count of Action Policy in HiRT",
+   "v": "tens of M"
+  },
+  {
+   "k": "Frequency of Chen Jianyu's team's real-time detector",
+   "v": "about 10 Hz"
+  },
+  {
+   "k": "Comparison of Chen Jianyu's team's reinforcement learning results",
+   "v": "pure imitation learning scores less than 50, their method approaches 100"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "What were robots before? 100 scenarios, 100 tasks, I have to redevelop 100 kinds of robots.",
+   "translated": true
+  },
+  {
+   "text": "A human is a standard general VOA model boss, a human is an AGI.",
+   "translated": true
+  },
+  {
+   "text": "diversity is only, that is, for data, its diversity is much more important than the size of the data.",
+   "translated": true
+  },
+  {
+   "text": "I have clearly found a way to continuously and rapidly improve robot capabilities, and this capability improvement can last for several years.",
+   "translated": true
+  },
+  {
+   "text": "The machines in use now, including industrial robotic arms in industry or whatever, have almost zero intelligence, but there are also shipments at the tens of thousands level.",
+   "translated": true
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}

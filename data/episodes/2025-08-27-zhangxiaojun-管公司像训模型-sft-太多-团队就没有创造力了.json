@@ -1,0 +1,195 @@
+{
+ "id": "zhangxiaojun-dd9e13b711",
+ "slug": "2025-08-27-zhangxiaojun-管公司像训模型-sft-太多-团队就没有创造力了",
+ "fingerprint": "ae12d9ead352b4e9",
+ "source_id": "zhangxiaojun",
+ "source": "张小珺·商业访谈录",
+ "source_zh": "张小珺·商业访谈录",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "用模型训练比喻公司管理，核心是AI机制",
+ "tier": 1,
+ "lang": "zh",
+ "title_original": "113. 和杨植麟时隔1年的对话：K2、Agentic LLM、缸中之脑和“站在无限的开端”",
+ "published": "2025-08-27T04:21:01Z",
+ "duration": 6073,
+ "audio": "https://dts-api.xiaoyuzhoufm.com/track/626b46ea9cbbf0451cf5a962/68ae86d18ce45d46d49c4d50/media.xyzcdn.net/626b46ea9cbbf0451cf5a962/liW7qgxAt8UFB4_sEptGTXmH1NAe.m4a",
+ "link": "https://www.xiaoyuzhoufm.com/episode/68ae86d18ce45d46d49c4d50?utm_source=rss",
+ "image": "https://image.xyzcdn.net/FqG5ImlQwJSq1ab8AAsqaL29ngtr.png",
+ "youtube_id": "ouG6jrkECrc",
+ "video_len": 6074,
+ "transcript_url": "https://dts-api.xiaoyuzhoufm.com/track/626b46ea9cbbf0451cf5a962/68ae86d18ce45d46d49c4d50/media.xyzcdn.net/626b46ea9cbbf0451cf5a962/liW7qgxAt8UFB4_sEptGTXmH1NAe.m4a",
+ "digest": {
+  "title": "管公司像训模型：SFT 太多，团队就没有创造力了",
+  "dek": "Tim 天天跟杨植麟讲：管理要用 RL 的方式，不是 SFT。SFT 是直接告诉人该怎么做，太多，人就没有主观能动性；RL 只给奖励，但奖励定义不好，全队都会去 hack 它。",
+  "why": "信息密度高，但后半段明显更值钱：Muon 优化器的两倍提升、数据飞轮为什么没起来、用 RL 管公司，都在最后四十分钟。",
+  "points": [
+   {
+    "t": 366,
+    "h": "这座雪山可能没有山顶",
+    "body": "杨植麟用 The Beginning of Infinity 解释 AI 研发。书里说要刻在石头上的两句话：问题是不可避免的，但问题是可以解决的。启蒙运动之前社会是静态的——天上打雷就是雷公，冬天下雪就是某个神心情不好，用不好的解释去填补；启蒙运动之后社会变成动态的，新的知识不断被创造，每解决一个问题就产生新的问题，因为知识边界在拓展。所以这座雪山可能没有尽头，「我希望它一直没有尽头」，这样它就是一座无限的山。他还说，爬到一段之后不一定是自己在爬，可能是用 K2 去做数据处理、模型分析甚至训练，把模型当放大器。",
+    "spk": "杨植麟"
+   },
+   {
+    "t": 734,
+    "h": "推理是缸中之脑，Agent 要伸手",
+    "body": "强思考的推理模型是「缸中之脑」：想象一个鱼缸，把脑子放在里面，它跟外界没有联系，只在自己大脑里一直想，不需要跟外界产生任何交互就能解一道题。Agentic 的强化学习范式相反——边思考边操作，一会儿用搜索、一会儿用浏览器、一会儿写代码，多轮解决问题，下一步行为取决于交互得到的外界反馈。两者都指向 test time scaling，但 scale 的维度不同：一个 scale 每一轮里的思考 token，一个 scale 轮数。杨植麟认为 Cloud 就是 bet 在 agent 这条路线——它的 reasoning 表现并不非常高，但 agent 上的表现很高。",
+    "spk": "杨植麟"
+   },
+   {
+    "t": 1704,
+    "h": "Muon 让一份数据当两份用",
+    "body": "K2 的 base model 押在 token efficiency 上。杨植麟说高质量数据增长很缓慢，多模态数据也没法提升文本本身的智商，高质量数据接近一个常数，所以要让每一份数据发挥更大价值——训练更快本身不提升智能上限，因为 token 还是只有这么多。Adam 这种优化器已经用了 10 年，它把矩阵参数当成独立元素；Muon 考虑参数之间的 dependency，早期在 compute optimal 的实验里有 2 倍提升：学一份数据等于别人用 Adam 学两份，所以 30T 高质量 token 相当于 60T。Muon 是 Keller 提出来的，他的团队在上面做了很多优化，第一次把它用到一定规模的语言模型上训练——代价是遇到 max logit 爆炸，这个问题小规模实验复现不出来。",
+    "spk": "杨植麟"
+   },
+   {
+    "t": 2011,
+    "h": "Agent 最缺的不是能力，是泛化",
+    "body": "杨植麟认为 agentic 模型现在最大的挑战是泛化。RL 的局限在于训练任务和评价指标都是单点的：你训 swe-bench，swe-bench 分数就涨，但指标涨上去并不意味着泛化变好。他担心的是模型过拟合到某些工具、某些环境、某些具体任务上——这些任务可以是很好的观测，但不希望被过拟合。这个问题在 agent 训练里比对话模型更严重。而且现在 agent 能用的 benchmark 不多，在那些 benchmark 上看到的分数很多时候并不是对能力的反映，比较片面。他认为整体评估还是瓶颈，是阻碍 agent 模型变得更泛化的一个重要原因。",
+    "spk": "杨植麟"
+   },
+   {
+    "t": 2738,
+    "h": "用 L4 的技术去解决 L3 的问题",
+    "body": "ChatGPT 的 L1 到 L5 是 Chat、Reasoning、Agent、Innovation、Organization，但杨植麟认为它们不一定是串行的。理由：今天 agent 的泛化不够，所以要反过来用 Innovation 这一层的技术去解决一个 L3 的问题——用 AI 去训练 AI、去对齐 AI，让模型参与到更多训练过程里，而不是只优化几个单点任务。如果只人工定义一些 task 然后去 fit 那个 task，在别的看不见的 task 上表现可能就不好；只刷那几个 task 的分，用户在更 OOD 的场景里体感就没那么好。他还说，Innovation 的一个关键是模型什么时候能参与到自己下一代的研发里——希望 K2 能参与 K3 的开发。",
+    "spk": "杨植麟"
+   },
+   {
+    "t": 3224,
+    "h": "开源能帮你 serve，改不动 base model",
+    "body": "开源和闭源最终会剩下几家？杨植麟判断市场会逐渐集中、收敛：一开始几百个，到几十个，最后几个可能是比较稳定的数。他一年前说开源会落后于闭源，理由是开源是中心化的、贡献没经过算力验证，闭源有人才聚集和市场整合。现在的说法变了：模型出来之后社区确实能贡献东西，推理侧可以做很多事情，可以让更多人免费给你 serve；但要把 base model 本身变得更好，还只能原厂自己做。不过基于开源模型做 agentic 的 post training 可能产生新机会——比如创业公司想做一个法律相关的 agent，可以拿 K2 在自己的工具集下训出 specialized agent。",
+    "spk": "杨植麟"
+   },
+   {
+    "t": 3954,
+    "h": "数据飞轮输给了算力 scaling",
+    "body": "AI 产品为什么没形成数据飞轮？杨植麟的第一条原因是基于算力的 scaling 太强大。RL 的 scaling 效率比 pre-training 高很多，因为它是 on-policy 带梯度的训练，所以直接 scale compute、scale flops 带来的提升非常大，显得其他路径的提升很小。第二条是数据飞轮依赖外界环境的 feedback，而这个反馈的噪声不能太多——大模型的学习对噪声比较敏感，跟推荐系统不太一样。他也不认为用户数据完全没用：你需要一定用户量来知道整体需求的分布，哪些用得好、哪些不好，再抽象成 evaluation 去优化模型；而且现在又到了一个新的分水岭，agent 的专业用户本身就在产生商业价值。",
+    "spk": "杨植麟"
+   },
+   {
+    "t": 5107,
+    "h": "用 RL 管团队，别用 SFT",
+    "body": "这是 Tim 天天跟杨植麟讲的：管理团队要用 RL 的方式，而不是 SFT。SFT 是直接告诉人「应该这样做」，RL 是从上面给一个奖励，更多时候只反映在目标上。他也在做这样的实践，看起来有一些效果，核心是掌握 SFT 和 RL 的平衡——以 RL 为主，通过一部分 SFT 防止飞太远、防止遗忘。用 RL 管团队最大的问题是容易被 hack：大家看起来各种结果都很好，但实际并没有达到你最终想要的；用 SFT 管团队的风险则是大家失去创造力。所以他当 CEO 最新的理解，就是把握 RL、SFT 和 reward hacking 之间的平衡。",
+    "spk": "杨植麟"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 306,
+    "spk": "杨植麟",
+    "raw": "一句话叫那个问题是不可避免的 但是第二句话是说问题是可以解决",
+    "zh": "一句话是「问题是不可避免的」，但第二句话是「问题是可以解决的」。"
+   },
+   {
+    "t": 734,
+    "spk": "杨植麟",
+    "raw": "但它还是一个就是刚中之脑 就是说它并不需要跟外界交互",
+    "zh": "但它还是一个缸中之脑，就是说它并不需要跟外界交互。"
+   },
+   {
+    "t": 2738,
+    "spk": "杨植麟",
+    "raw": "因为今天你的agent算话不够 所以你要用Innovation的方式 就是你要用L4的技术去解决一个L3",
+    "zh": "因为今天你的 agent 泛化不够，所以你要用 Innovation 的方式，就是你要用 L4 的技术去解决一个 L3。"
+   },
+   {
+    "t": 5168,
+    "spk": "杨植麟",
+    "raw": "就是说你不能SFT太多 SFT太多 这个你的这些同学 他就会失去这个主观能动性 然后就没有办法创新了",
+    "zh": "就是说你不能 SFT 太多，SFT 太多，你的这些同学就会失去主观能动性，然后就没有办法创新了。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "Muon 优化器带来的 token efficiency 提升",
+    "v": "早期实验在 compute optimal 下约 2 倍；30T 高质量 token 相当于 60T",
+    "t": 1704
+   },
+   {
+    "k": "头部大模型公司的 ARR",
+    "v": "几十亿到三百亿美元，每一两个季度翻两三倍",
+    "t": 4198
+   },
+   {
+    "k": "大模型市场的收敛路径",
+    "v": "几百个 → 几十个 → 几个",
+    "t": 3405
+   },
+   {
+    "k": "K2 相关技术的积累周期",
+    "v": "约一年前开始积累技术，最近几个月决定训 K2",
+    "t": 2313
+   }
+  ],
+  "terms": [
+   {
+    "term": "Muon optimizer",
+    "zh": "Muon 优化器",
+    "def": "考虑矩阵参数之间依赖关系的优化器，比 Adam 有更高 token 效率。"
+   },
+   {
+    "term": "test time scaling",
+    "zh": "测试时规模化",
+    "def": "在推理阶段投入更多 token 或轮数来提升表现。"
+   },
+   {
+    "term": "brain in a vat",
+    "zh": "缸中之脑",
+    "def": "只在自己内部推理、不与外界交互的模型形态。"
+   },
+   {
+    "term": "reward hacking",
+    "zh": "奖励黑客",
+    "def": "被优化对象钻了奖励定义的空子，指标好看但目标没达成。"
+   },
+   {
+    "term": "curriculum learning",
+    "zh": "课程学习",
+    "def": "从合适难度开始、逐步提升难度的训练安排。"
+   }
+  ],
+  "who": "做大模型 post-training 和 Agent 的工程师，以及关心模型公司商业与组织打法的创业者、投资人。",
+  "skip": "1:38 之后的快问快答多是重申前面的观点，可跳过。",
+  "tags": [
+   "大模型",
+   "Agent",
+   "强化学习",
+   "开源",
+   "组织管理"
+  ],
+  "quality": {
+   "transcript_source": "asr",
+   "transcript_detail": "local:whisper-large-v3-turbo",
+   "words": 31464,
+   "wpm": 310.9,
+   "timed": true,
+   "verified_quotes": 4,
+   "grounded_facts": 4,
+   "points": 8,
+   "pruned": 4,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-09-21T20:51:32Z",
+ "triage": {
+  "score": 8.0,
+  "why": "创始人一手讲K2的MoE、Muon优化器、token efficiency与Agent泛化取舍，含失败与边界",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 8,
+   "faithful": 8,
+   "selection": 8,
+   "concrete": 8,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点多为判断与机制（Muon 两倍、数据飞轮输给算力 scaling、RL 管团队被 hack），数字与术语具体，忠实度无实质歪曲。",
+  "worst": "金句 [45:38] 原文为「agent 泛化不够」，成稿金句行误录成「agent 算话不够」，属转录错字，应改回「泛化」。"
+ },
+ "model": "openai:deepseek-chat"
+}

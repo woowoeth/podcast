@@ -1,0 +1,130 @@
+{
+ "slug": "2025-07-30-zhangxiaojun-kimi-k2-把配方全公开了-但复现它仍是手艺活",
+ "of": "zhangxiaojun-202b8d5328",
+ "source_lang": "zh",
+ "title": "Kimi K2 Published the Whole Recipe, but Reproducing It Is Still a Craft",
+ "dek": "The Kimi K2 report lays out the full recipe for data synthesis, verifiable rewards and RL infrastructure, but every prompt and every parameter has to be tuned to hold steady — it is systems engineering, not an idea.",
+ "why": "Two hours of close, section-by-section reading of four Agent technical reports; high information density, suited to anyone trying to understand the engineering details of Agent training.",
+ "who": "Engineers working on Agent training and RL infrastructure, researchers who want to reproduce the Kimi K2 data synthesis pipeline, and investors evaluating the technical roadmaps of Agent startups.",
+ "skip": "The opening 2:00-14:50, which defines and classifies Agents, can be fast-forwarded; the section-by-section close readings that follow are the real substance.",
+ "tags": [
+  "Agent",
+  "Kimi K2",
+  "Reinforcement Learning",
+  "Data Synthesis",
+  "Context Engineering"
+ ],
+ "points": [
+  {
+   "h": "An Agent and a model differ by one environment",
+   "body": "Zheng Boyuan (郑博园) defines a Language Agent this way: the core difference is whether an environment exists. A Language Model takes input and produces output, and that is the end of it; a Language Agent must first take an observation from the environment, then generate an action and execute it, the environment state changes accordingly, and the loop repeats. The type of observation varies by scenario — a coding agent sees the entire codebase and execution records, a computer use agent sees GUI screenshots of a browser or computer screen or the corresponding HTML. He divides Agents by application into four categories: coding, search, tool use and computer use, which differ mainly in observation space and action space."
+  },
+  {
+   "h": "End-to-end training cannot do multi-agent",
+   "body": "The biggest difference between Manus and several other models is whether it exploits the model's in-context learning ability or retrains an agent end-to-end from scratch. Manus involves no model training; it relies on tuning prompts and designing a multi-agent system to iterate a product quickly, with different models playing different roles inside it — for example a product manager designing the site's appearance, an agent writing code, an agent dedicated to debugging. But end-to-end training is stronger in specific scenarios, at the cost that data for multi-agent scenarios is extremely hard to obtain: training needs data in which agent actions and environment feedback interleave, and under multi-agent that data is very hard to generate, while the execution trajectories are extremely long, making it hard to tell which agent the final reward should belong to and how the training signal propagates back."
+  },
+  {
+   "h": "A thousand agents is a DDoS",
+   "body": "Zheng Boyuan gives a personal example: a year and a half ago, the CACT he built was relatively the earliest work on the market to actually run a web agent on a live website; the demo task was to book him a test drive at a Tesla store, the agent actually did it, and at Christmas it kept emailing him to say it was time to pick up the car. That example had little impact, but if you spin up a thousand agents doing similar things repeatedly — say all booking test drives or sending requests to the same store — it could amount to an intelligent agent DDoS attack. He therefore proposes judging, before an action is executed, how large its impact on the world is, and if it is large enough, stopping to prompt the user for confirmation; this both preserves safety and hands ethical responsibility back to the user."
+  },
+  {
+   "h": "Environment interaction is so expensive your IP gets banned",
+   "body": "Academia tends to underestimate the cost of an agent interacting with the environment. A deep research agent calling the Google search API is billed, and one deep research run may involve one hundred to one hundred fifty search calls; training requires large numbers of rollouts, so the cost is high. Computer use is more expensive still: running a web agent directly on websites, run it enough and your IP gets banned — Zheng Boyuan has had the hardware IPs of his own apartment and his lab's computers banned, and running experiments in the lab got the school cluster's IP banned too; many people working on web agents have reported the same. Using a cloud browser comes with its own set of IPs and anti-ban engineering, but it is especially expensive: interaction alone, 100k rollouts, may cost a few thousand dollars. So Kimi uses a hybrid approach, combining simulated data with real data."
+  },
+  {
+   "h": "Reward hacking is like guessing the answer",
+   "body": "In the complex instruction following section, Kimi first uses a code interpreter to verify the output's length, style and constraints, then uses LM judge evaluation as a new reward source; this layer exists to prevent reward hacking. Zheng Boyuan's analogy is doing problems in high school: you guess an answer at the end, the answer is right, but the reasoning in between is scribbled nonsense, and you can still get it right. Once a language agent is powerful it becomes cunning, finds whatever is wrong with the reward and hacks it, overfitting to it continuously, and training results become terrible. So a layer of mechanism is needed to stop it from reward hacking."
+  },
+  {
+   "h": "An Agent goes online to find its own reward",
+   "body": "Kimi collects large numbers of pull requests and issues on GitHub and uses the current checkpoint to build a software development environment: pick a repo at random, someone has submitted a pull request, take the codebase at that point in time and build a sandbox, treat the pull request content and the final solution as verifiable reward, plus unit tests, and in this way scale up coding and debugging tasks. From this Zheng Boyuan extends a brainstorm: a web agent can crawl and explore the web on its own, and perhaps it stumbles into a GitHub repo like this, discovers verifiable reward and tasks, automatically takes the data and automatically builds a sandbox, achieving agent self-improvement. He stresses this is currently more of a brainstorm, and possibly no one is doing it yet."
+  },
+  {
+   "h": "Agent training leaves GPUs stuck waiting",
+   "body": "Traditional RLHF or rollout scheduling assumes latency is stable each round and the number of interaction rounds is small, so the GPU is running most of the time. But the delay of an agent interacting with the environment is unstable — the browser may suddenly hang, the network may be unstable, or it may crash outright — and without optimization the GPU just sits there stuck, with low utilization. Another problem is that under multi-turn the number of task steps varies widely: in one batch, 250 rollouts may finish within five steps in three minutes, while the remaining six take ten minutes, and most of the GPU time is wasted waiting on those six. Kimi K2's approach includes wrapping the compute-hungry environment separately as a service behind an API, ending a rollout of 640 as soon as 64 complete, and cutting long-tail trajectories outright and leaving them to be resumed in the next RL iteration."
+  },
+  {
+   "h": "KV Cache makes a tenfold cost difference",
+   "body": "The overall idea of Manus's context engineering blog post is to optimize for KV Cache. When a Transformer takes input it generates three matrices, Q, K and V; if the context or preceding text is consistent and unchanged, the KV matrices can be reused without recomputing each time, making inference faster and cheaper. The numbers given in the blog post are: with KV Cache it costs 0.3, that is three mao, without Cache it costs three yuan — a big gap. Specific techniques include keeping the preceding prompt text consistent, not touching content in the middle of the context and only pasting new content on, and not deleting middle content that is no longer used but masking it, so that the KV Cache can be reused."
+  }
+ ],
+ "terms": [
+  {
+   "term": "MCP / Model Context Protocol",
+   "def": "A standard protocol proposed by Anthropic that lets a model or Agent call tools in a unified,规范 way."
+  },
+  {
+   "term": "KV Cache",
+   "def": "Caching the already-computed KV matrices during Transformer inference; reusable as long as the preceding text is unchanged, saving time and money."
+  },
+  {
+   "term": "verifiable reward",
+   "def": "A reward signal that uses a program or function to objectively judge whether a task result is right or wrong, such as a math answer or a code unit test."
+  },
+  {
+   "term": "reward hacking",
+   "def": "The model finds loopholes in the reward mechanism and exploits them, degrading training results."
+  },
+  {
+   "term": "persona",
+   "def": "A passage of text describing a person's personality or attributes, used to simulate downstream users and improve data diversity."
+  },
+  {
+   "term": "partial rollout",
+   "def": "Cutting an overly long execution trajectory outright and resuming it in the next RL iteration, to improve GPU utilization."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Number of MCP tools collected by Kimi K2",
+   "v": "3000+"
+  },
+  {
+   "k": "Number of tools generated in Kimi K2's second step",
+   "v": "20,000+"
+  },
+  {
+   "k": "Cost comparison in the Manus blog between KV Cache and no Cache",
+   "v": "0.3 vs 3"
+  },
+  {
+   "k": "Number of parallel environments Qwen3-Coder built on Alibaba Cloud",
+   "v": "20,000"
+  },
+  {
+   "k": "Estimated number of search calls in one deep research run",
+   "v": "100 to 150"
+  },
+  {
+   "k": "Estimated cloud browser interaction cost for 100k rollouts",
+   "v": "a few thousand dollars"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "Although Kimi was very honest and put all of this — a lot of the recipes, or these little tricks — right there, I think if we really want to build it, and build it at high volume in a very efficient way, that in itself is probably still very hard.",
+   "translated": true
+  },
+  {
+   "text": "So researchers are all master craftsmen — yes, like a master craftsman — yes, so this is systems engineering greater than the idea, right? — yes, I think you can certainly say that from the top down.",
+   "translated": true
+  },
+  {
+   "text": "It's a bit like writing problems in high school: we guess an answer at the end, the answer is right, but the reasoning in between is scribbled nonsense — and in that process, you can still get it right.",
+   "translated": true
+  },
+  {
+   "text": "Sometimes I feel the agent is another brain of mine, an extended brain, so everyone will have an avatar in the future — yes, maybe, or a group of avatars.",
+   "translated": true
+  },
+  {
+   "text": "So I feel like in the future every person may have a whole string of these agents, a family of agents, helping everyone do all kinds of things in daily life.",
+   "translated": true
+  },
+  {
+   "text": "I think DeepSeek is rather special — it has a really foul mouth — and I think that actually makes it kind of cute, probably because there's a lot of Tieba data in its training data.",
+   "translated": true
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}

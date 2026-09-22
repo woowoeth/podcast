@@ -1,0 +1,222 @@
+{
+ "id": "zhangxiaojun-202b8d5328",
+ "slug": "2025-07-30-zhangxiaojun-kimi-k2-把配方全公开了-但复现它仍是手艺活",
+ "fingerprint": "afc7988400b9f314",
+ "source_id": "zhangxiaojun",
+ "source": "张小珺·商业访谈录",
+ "source_zh": "张小珺·商业访谈录",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "Kimi K2模型训练与RL技术机制",
+ "tier": 1,
+ "lang": "zh",
+ "title_original": "110. 逐段讲解Kimi K2报告并对照ChatGPT Agent、Qwen3-Coder等：“系统工程的力量”",
+ "published": "2025-07-30T08:42:36Z",
+ "duration": 8445,
+ "audio": "https://dts-api.xiaoyuzhoufm.com/track/626b46ea9cbbf0451cf5a962/6889da698e06fe8de77116a9/media.xyzcdn.net/626b46ea9cbbf0451cf5a962/lmPsWiJp6-hqPoFKrgtPxhcvrVJb.m4a",
+ "link": "https://www.xiaoyuzhoufm.com/episode/6889da698e06fe8de77116a9?utm_source=rss",
+ "image": "https://image.xyzcdn.net/FnWHeAR0BLNLjZyWj7fMh-URGhlV.png",
+ "youtube_id": "8dKBH4x0D9o",
+ "video_len": 8445,
+ "transcript_url": "https://dts-api.xiaoyuzhoufm.com/track/626b46ea9cbbf0451cf5a962/6889da698e06fe8de77116a9/media.xyzcdn.net/626b46ea9cbbf0451cf5a962/lmPsWiJp6-hqPoFKrgtPxhcvrVJb.m4a",
+ "digest": {
+  "title": "Kimi K2 把配方全公开了，但复现它仍是手艺活",
+  "dek": "Kimi K2 报告把数据合成、可验证奖励、RL 基础设施的 recipe 全写出来了，但每个 prompt、每个参数都要调稳，本质是系统工程而非 idea。",
+  "why": "两小时逐段精读四篇 Agent 技术报告，信息密度高，适合想搞清 Agent 训练工程细节的人。",
+  "points": [
+   {
+    "t": 425,
+    "h": "Agent 和模型差在一个环境",
+    "body": "郑博园给 Language Agent 下的定义是：核心区别在于是否存在一个环境。Language Model 是 input 进 output 出就结束；Language Agent 要先从环境拿 observation，再生成 action 并执行，环境状态随之变化，然后循环。observation 的类型随场景不同——coding agent 看到的是整个 codebase 和执行记录，computer use agent 看到的是浏览器或电脑屏幕的 GUI 截图或对应 HTML。他把 Agent 按应用分成 coding、search、tool use、computer use 四类，区别主要在 observation space 和 action space。",
+    "spk": "郑博园"
+   },
+   {
+    "t": 1098,
+    "h": "端到端训练做不了 multi-agent",
+    "body": "Manus 和其他几个模型的最大差异，在于是否利用模型的 in-context learning 能力，还是从头端到端重新训一个 agent。Manus 不涉及模型训练，靠调 prompt 和设计 multi-agent 系统快速迭代出产品，不同模型在里面扮演不同角色，比如产品经理设计网站外观、写代码的 agent、专门 debug 的 agent。但端到端训练在特定场景下更强，代价是 multi-agent 场景的数据极难获得：训练需要 agent action 和环境反馈相互交叠的数据，multi-agent 下这种数据非常难生成，而且执行轨迹极长，很难分清最后 reward 该属于哪个 agent、训练信号怎么传导回去。",
+    "spk": "郑博园"
+   },
+   {
+    "t": 1523,
+    "h": "一千个 agent 就是一次 DDoS",
+    "body": "郑博园讲了一个亲身例子：一年半前他做的 CACT 是当时市面上相对最早把 web agent 真跑在 live website 上的工作，demo 任务是帮他在特斯拉某家门店定一个试驾，agent 真做成了，圣诞节时就不停给他发邮件说该来提车了。这个例子影响不大，但假如开一千个 agent 重复做类似的事，比如都给同一家门店定试驾或发请求，就可能是一种智能化的 agent DDoS attack。他因此提出在 action 执行前先判断它对世界的影响有多大，足够大就停下来提醒 user 确认，这既保安全，也把伦理责任交回 user 这边。",
+    "spk": "郑博园"
+   },
+   {
+    "t": 3716,
+    "h": "环境交互贵到 IP 被封",
+    "body": "学界容易低估 agent 跟环境交互的成本。deep research 类 agent 调 Google search API 是收费的，一次 deep research 可能有一百到一百五十次 search call，做 training 要大量 rollout，成本很高。computer use 更贵：直接把 web agent 在网站上跑，跑多了 IP 会被封，郑博园自己公寓和实验室的电脑硬件 IP 被封过，实验室跑实验把学校 cluster 的 IP 也跑封过，很多做 web agent 的人都反映过。用 cloud browser 有自己一套 IP 和防封工程，但收费特别贵，光交互 100k rollout 可能就要小几千美元。所以 Kimi 用 hybrid 方案，仿真数据和真实数据结合。",
+    "spk": "郑博园"
+   },
+   {
+    "t": 4745,
+    "h": "Reward hacking 像猜答案",
+    "body": "complex instruction following 部分，Kimi 先用 code interpreter 对 output 做长度、风格、constraint 的 verification，再用 LM judge evaluation 作为新的 reward source，这一层是用来防止 reward hacking 的。郑博园打的比方是高中做题：最后猜一个答案，答案是对的，但中间推理过程乱写，还是能写对。language agent 强大之后会变得狡猾，发现 reward 有什么问题就去 hack 它，不断往上面 overfit，training 效果就会变得很糟糕。所以需要加一层机制防止它做 reward hacking。",
+    "spk": "郑博园"
+   },
+   {
+    "t": 5106,
+    "h": "Agent 自己上网找 reward",
+    "body": "Kimi 在 GitHub 上收集大量 pull request 和 issue，用当前 checkpoint 搭 software development 环境：随机找一个 repo，有人发了 pull request，把当前时间点的 codebase 拿下来搭沙盒，把 pull request 内容和最后的 solution 当作 verifiable reward，还有 unit tests，用这种办法 scale up coding 和 debugging 的 task。郑博园由此延伸出一个 brainstorm：web agent 能在网上自己爬、自己探索，也许一不小心进了这样的 GitHub repo，发现有 verifiable reward 和 task，就自动把数据拿过来、自动搭 sandbox，实现 agent 的 self-improvement。他强调这目前更像 brainstorm，可能还没人在做。",
+    "spk": "郑博园"
+   },
+   {
+    "t": 5721,
+    "h": "Agent 训练把 GPU 卡在等待上",
+    "body": "传统 RLHF 或 rollout 的 scheduling 假设每轮 latency 平稳、交互轮数不多，GPU 大部分时间在跑。但 agent 跟环境交互的 delay 不稳定，browser 可能突然卡住、网络不稳、甚至直接崩掉，不优化的话 GPU 就一直卡在那，utilization 不高。另一个问题是 multi-turn 下任务步数差异大：一个 batch 里 250 条 rollout 可能五步内三分钟完成，剩下六条要十分钟，大部分 GPU 时间浪费在等那六条。Kimi K2 的方案包括把吃算力的环境单独包成 service 走 API、一次 rollout 640 条只要完成 64 条就结束、以及把长尾 trajectory 直接 cut 掉留到下一轮 RL iteration 恢复。",
+    "spk": "郑博园"
+   },
+   {
+    "t": 7257,
+    "h": "KV Cache 让成本差十倍",
+    "body": "Manus 那篇 context engineering 博客的整体思路是针对 KV Cache 做优化。Transformer 把 input 放进去会生成 QKV 三个矩阵，如果 context 或前文一致没有变动，KV 矩阵就可以重用，不用每次重算，inference 更快也更省钱。博客里给的数字是：用 KV Cache 花 0.3，也就是三毛钱，不 Cache 花三块钱，差距很大。具体技巧包括让 prompt 前文保持一致、不要动 context 中间的内容只把新内容粘上去、以及中间内容不用了不要删掉而是 mask 掉，这样 KV Cache 都能重用。",
+    "spk": "郑博园"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 4078,
+    "spk": "郑博园",
+    "raw": "虽然虽然 kimi kimi kimi kimi 就非常实在把这个所有的这个 呃 很多recipe啊 或者这个小技巧都已经在这放了 但是我觉得 假如我们真的要把它做出来 呃 以这种很高效的方式 把它高数量做出来 本身可能还是很难的",
+    "zh": "虽然 Kimi 非常实在，把所有的 recipe 和小技巧都已经放在这了，但假如我们真的要把它做出来，以很高效的方式高数量做出来，本身可能还是很难的。"
+   },
+   {
+    "t": 4138,
+    "spk": "郑博园",
+    "raw": "所以研究员都是老师傅 啊对 像是一个老师傅 对 呃 所以他这个是系统工程大于idea 对吧 呃 对 我觉得一定从上可以这么说",
+    "zh": "所以研究员都是老师傅，像是一个老师傅。所以这是系统工程大于 idea，对吧？对，我觉得一定程度上可以这么说。"
+   },
+   {
+    "t": 4745,
+    "spk": "郑博园",
+    "raw": "就有点像 高中写些题 就是我们最后猜一个答案 答案是对的 但是中间推理过程就乱写 就是 然后在这个过程中 可能还是能写对",
+    "zh": "就有点像高中做题，我们最后猜一个答案，答案是对的，但中间推理过程就乱写，在这个过程中可能还是能写对。"
+   },
+   {
+    "t": 8104,
+    "spk": "郑博园",
+    "raw": "就是我有时候感觉 agent是我的另外一个大脑 就是一个拓展的大脑 所以每个人以后会有一个分身 对可能或者是一群分身",
+    "zh": "我有时候感觉 agent 是我的另外一个大脑，就是一个拓展的大脑，所以每个人以后会有一个分身，或者是一群分身。"
+   },
+   {
+    "t": 8164,
+    "spk": "郑博园",
+    "raw": "所以我感觉像是以后每一个人都可能会有一大串的这种agent of family of agents 然后帮助大家做日常生活中各种各样的事情",
+    "zh": "所以我感觉以后每一个人都可能会有一大串的 agent，a family of agents，帮助大家做日常生活中各种各样的事情。"
+   },
+   {
+    "t": 8224,
+    "spk": "郑博园",
+    "raw": "那我觉得deep seek比较特殊 就是他他嘴特别臭 那我觉得这个还就一定可能让他还挺可爱的 就是可能是因为 呃他的训练数据中有很多贴吧 的数据吧",
+    "zh": "我觉得 DeepSeek 比较特殊，它嘴特别臭，这可能让它还挺可爱的，可能是因为它的训练数据中有很多贴吧的数据吧。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "Kimi K2 收集的 MCP 工具数",
+    "v": "3000 多个",
+    "t": 2985
+   },
+   {
+    "k": "Kimi K2 第二步生成的工具数",
+    "v": "两万多个",
+    "t": 3106
+   },
+   {
+    "k": "Manus 博客中 KV Cache 与不 Cache 的成本对比",
+    "v": "0.3 对 3",
+    "t": 7257
+   },
+   {
+    "k": "Qwen3-Coder 在阿里云上建立的并行环境数",
+    "v": "两万个",
+    "t": 7012
+   },
+   {
+    "k": "一次 deep research 的 search call 次数估计",
+    "v": "100 到 150 次",
+    "t": 3776
+   },
+   {
+    "k": "100k rollout 的 cloud browser 交互成本估计",
+    "v": "小几千美元",
+    "t": 3836
+   }
+  ],
+  "terms": [
+   {
+    "term": "MCP",
+    "zh": "模型上下文协议",
+    "def": "Anthropic 提出的标准协议，让模型或 Agent 以统一规范的方式调用工具。"
+   },
+   {
+    "term": "KV Cache",
+    "zh": "键值缓存",
+    "def": "Transformer 推理时缓存已算过的 KV 矩阵，前文不变即可重用，省时省钱。"
+   },
+   {
+    "term": "verifiable reward",
+    "zh": "可验证奖励",
+    "def": "用程序或函数客观判断任务结果对错的奖励信号，如数学答案、代码单测。"
+   },
+   {
+    "term": "reward hacking",
+    "zh": "奖励作弊",
+    "def": "模型发现奖励机制的漏洞并加以利用，导致训练效果变差。"
+   },
+   {
+    "term": "persona",
+    "zh": "用户画像",
+    "def": "一段描述人的性格或属性的文字，用于模拟下游用户来提升数据多样性。"
+   },
+   {
+    "term": "partial rollout",
+    "zh": "部分 rollout",
+    "def": "把过长的执行轨迹直接截断，留到下一轮 RL 迭代再恢复，以提高 GPU 利用率。"
+   }
+  ],
+  "who": "做 Agent 训练和 RL 基础设施的工程师、想复现 Kimi K2 数据合成 pipeline 的研究者、评估 Agent 创业公司技术路线的投资人。",
+  "skip": "开头给 Agent 下定义和分类的 2:00-14:50 可快进，后面逐篇精读才是重点。",
+  "tags": [
+   "Agent",
+   "Kimi K2",
+   "强化学习",
+   "数据合成",
+   "上下文工程"
+  ],
+  "quality": {
+   "transcript_source": "asr",
+   "transcript_detail": "local:whisper-large-v3-turbo",
+   "words": 35591,
+   "wpm": 252.9,
+   "timed": true,
+   "verified_quotes": 6,
+   "grounded_facts": 6,
+   "points": 8,
+   "pruned": 1,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-09-21T21:53:37Z",
+ "triage": {
+  "score": 8.0,
+  "why": "逐段拆解四份Agent技术报告，讲清训练机制、数据合成与路线取舍，可复现密度高",
+  "kind": "机制拆解",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 7.0,
+  "dims": {
+   "density": 8,
+   "faithful": 8,
+   "selection": 7,
+   "concrete": 8,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点多为机制与具体数字，忠实度好；但金句区混入贴吧玩笑，且抽样中「不能太难也不能太容易」等训练信号设计被漏。",
+  "worst": "金句最后一条 [2:17:04] 郑博园谈 DeepSeek「嘴特别臭」是玩笑闲聊，不构成该集值钱内容，应删；另 [1:15:29] 抽样里「不能太难也不能太容易」的难度控制原则未进要点。"
+ },
+ "model": "openai:deepseek-chat"
+}

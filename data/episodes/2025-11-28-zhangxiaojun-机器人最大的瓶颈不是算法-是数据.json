@@ -1,0 +1,236 @@
+{
+ "id": "zhangxiaojun-031d85dc3b",
+ "slug": "2025-11-28-zhangxiaojun-机器人最大的瓶颈不是算法-是数据",
+ "fingerprint": "2251dd0ad912fa93",
+ "source_id": "zhangxiaojun",
+ "source": "张小珺·商业访谈录",
+ "source_zh": "张小珺·商业访谈录",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "机器人基座模型与数据瓶颈属AI技术机制",
+ "tier": 1,
+ "lang": "zh",
+ "title_original": "121. 对DeepMind谭捷的访谈：机器人、跨本体、世界模型、Gemini Robotics 1.5和Google",
+ "published": "2025-11-28T09:17:21Z",
+ "duration": 7575,
+ "audio": "https://dts-api.xiaoyuzhoufm.com/track/626b46ea9cbbf0451cf5a962/692965c0ba2292550f3551f7/media.xyzcdn.net/626b46ea9cbbf0451cf5a962/lpZ3Gpi6rsvxUOt1HLD3I3UAGFkV.m4a",
+ "link": "https://www.xiaoyuzhoufm.com/episode/692965c0ba2292550f3551f7?utm_source=rss",
+ "image": "https://image.xyzcdn.net/FlGQIUX-pRp4y3PRoay2stuTu-uW.png",
+ "youtube_id": "2o281Zy5aZE",
+ "video_len": 7576,
+ "transcript_url": "https://dts-api.xiaoyuzhoufm.com/track/626b46ea9cbbf0451cf5a962/692965c0ba2292550f3551f7/media.xyzcdn.net/626b46ea9cbbf0451cf5a962/lpZ3Gpi6rsvxUOt1HLD3I3UAGFkV.m4a",
+ "digest": {
+  "title": "机器人最大的瓶颈不是算法，是数据",
+  "dek": "谭捷在 Google DeepMind 做了十年机器人，他的判断是：机器人基座模型至今还不是独立学科，只是多模态大模型的微调；真正的瓶颈是数据，而摇操采数据不是终局。",
+  "why": "信息密度高，中后段关于数据金字塔、motion transfer、世界模型定义和硅谷 996 的部分最值钱。前 20 分钟嘉宾小传可快进。",
+  "points": [
+   {
+    "t": 786,
+    "h": "机器人基座模型还不是独立学科",
+    "body": "国内有观点认为聚生智能基座模型不该被视作大模型的延伸，而是一个独立方向。谭捷的回应很直接：so far not yet。他的理由是，现在绝大多数做 VLA、做机器人大模型的，本质上还是在多模态大模型上做 finetuning——多模态模型能输入图像和语言，输出文本，但缺 robot action 的输出，所以大家做的事就是补全这个输出能力。他认为只有当碰到各种瓶颈、需要不一样的 data format、需要更完善的 world model 时，它才可能变成更独立的学科，但至今没有质的改变。",
+    "spk": "谭捷"
+   },
+   {
+    "t": 1424,
+    "h": "语言模型撞数据墙，机器人是没有数据",
+    "body": "谭捷把机器人最大的问题定为数据。语言模型的数据是 free 的，网上已有海量语言数据，wikipedia、书本都可以 digitalize，而且语言相对 robotics 是一个 narrow domain。但 robotics 是在非常复杂的 unstructured environment 里，可以发生任何事情，需要极大量、非常 diverse 的数据，而这个数据现在不存在。他确信现在的数据量完全没有办法 saturate 模型的能力，所以第二个瓶颈——比如模型 architecture——还没被发现。他描述了一个数据金字塔：最底层是互联网数据，往上是 egocentric video，再往上是 simulation 数据，最顶端是 robot specific 数据；预训练需要大量低质数据学物理直觉，后训练才需要少量高质量数据。",
+    "spk": "谭捷"
+   },
+   {
+    "t": 1761,
+    "h": "跨本体迁移解决的是数据量不够",
+    "body": "Gemini Robotics 1.5 的第二个突破是 cross embodiment transfer。谭捷说机器人数据稀缺，机器人 A 采的数据只能学 A 上的 task，A 升级换了 camera 位置或多一个自由度，之前采的就都没用了；不同构型的机器人数据也不能互用。他们测了三个机器人——简单的双臂 Aloha、更工业级的 Biarm Franca、Optimus 人形——把数据放在一起，又开发了 motion transfer 技术，使得在机器人 A 上见过的任务机器人 B 也能执行。他举的例子是：假设你学会了开车，我从来没学过，但我也学会了开车。这从根本上解决数据量不够的问题，因为任何机器人采的数据都能被其他机器人利用。",
+    "spk": "谭捷"
+   },
+   {
+    "t": 2062,
+    "h": "快慢双模型是过渡，不是终局",
+    "body": "Gemini Robotics 1.5 把系统拆成一个 ER（embody reasoning，慢思考）和一个 VLA（快思考、出 robot action）。谭捷认为这是过渡方式，不是终极方式。原因是现在受制于算力和模型大小：慢思考要做 reasoning、要 web search，需要非常大的模型，很难在每秒做五到十次决策；小模型才能做五到十次决策。要 unify 成一个模型，它必须非常大，因为要做 reasoning，而现在算力不足以支持。他还指出两个模型之间现在用语言交流，而语言不是 high bandwidth 的交流方式，会丢掉很多信息，所以理想是一个模型内部不需要额外 interface，没有信息损失。",
+    "spk": "谭捷"
+   },
+   {
+    "t": 3161,
+    "h": "仿真数据的定义正在被生成模型改写",
+    "body": "谭捷说仿真的定义越来越模糊。以前仿真指物理仿真，Bullet、MojoCo、Isaac Gym，在计算机里解物理方程算运动轨迹。现在因为 Video Generation Model 兴起，很多人认为仿真就是生成一段视频，只要看上去物理正确，也是一种新意义上的仿真。他判断不远的将来，传统物理模拟的仿真会慢慢被生成式模型的仿真取代。经济性上他反而说生成视频可能更贵，因为需要算力成本，但它解决了场景生成问题：传统仿真要 500 个家庭场景得一个个手建，生成模型只要 500 个不同 prompt。他也指出当前瓶颈是幻觉和非物理现象，比如人生成做体操时不知道会生成出多少条腿。",
+    "spk": "谭捷"
+   },
+   {
+    "t": 3405,
+    "h": "能玩的才是世界模型，静态视频不是",
+    "body": "谭捷给出世界模型的定义：如果给上前一帧，再给上机器人的动作，你可以预测下一帧。按这个标准，现在绝大多数视频生成模型都不是世界模型，因为它们不能通过输入一个机器人动作或人的动作来改变下一帧结果。他举了对比：VIO 是一个视频生成模型，但 Genie 更像世界模型，因为 Genie 是可以玩的，你可以通过按键改变生成的下一帧，可以驾驶一只龙左转右转，每一帧都有输入改变下一帧。他说这个方向 Google DeepMind 做得最好，Sora 做得也不错，OpenAI 也不错，还有很多小公司在做。",
+    "spk": "谭捷"
+   },
+   {
+    "t": 4197,
+    "h": "灵巧手出现后触觉才变得必要",
+    "body": "谭捷讲了自己对触觉判断的心路历程。他一直相信 tactile sensing 重要，因为人每天有皮肤感受触摸。但 Stanford 的 Aloha 论文让他第一次看到人可以通过纯视觉遥操机器人做非常复杂的事，包括从皮包里拿出很薄的信用卡，他以为这种事只有触觉才能做成，Aloha 狠狠打了他的脸，于是他 hold 住这个 believe 一段时间，觉得视觉能做 95% 的事。直到灵巧手普及，他去用遥操控制灵巧手用剪刀——手往两个环里一套就能用剪刀，但没有触觉反馈时他不知道什么时候开什么时候关，因为环很大，不恰当的时间开关只是手在环里动，并没有控制剪刀。他才意识到有灵巧手时触觉非常重要，之前觉得不重要是受限于当时的硬件。",
+    "spk": "谭捷"
+   },
+   {
+    "t": 5054,
+    "h": "Google Robotics 从十人松散到集团军",
+    "body": "谭捷九年前加入时团队只有十个人，Google Brain 也就几十个人，管理非常松散，每个进来的 researcher 独当一面，想做什么就做什么，资源分配不是问题。他形容那时候自己像一个 very well paid 的 PhD 或 assistant professor，有自主权，但个人 impact 非常有限，很难聚一拨人做一件大事。现在 Robotics 有 150 个人，Gemini Robotics 第一代 3 月版本 author list 上可能已经 120 人，这次可能 160 到 180 人。他说 Google 意识到不想只是一个 academic lab but very costly，于是从 promotion、performance review、incentive、structure 上创造环境，让更多人一起解决更大的事。他自己是随着团队变化，所以没有 culture shock。",
+    "spk": "谭捷"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 786,
+    "spk": "谭捷",
+    "raw": "它到底是不是一个非常独立的单独的学科 so far not yet",
+    "zh": "它到底是不是一个非常独立的单独的学科，so far not yet。"
+   },
+   {
+    "t": 1821,
+    "spk": "谭捷",
+    "raw": "就举个例子 就是说假设你学会了开车 我从来没有学过开车这个任务 但我也学会了开车 它可以跨本体",
+    "zh": "举个例子，假设你学会了开车，我从来没有学过开车这个任务，但我也学会了开车，它可以跨本体。"
+   },
+   {
+    "t": 5784,
+    "spk": "谭捷",
+    "raw": "他们相信在机器人行业 很快会有一个质的变革 巨大的变革 如果这个变革发生 I'm on a wrong ship 我一定要at the right ship",
+    "zh": "他们相信在机器人行业很快会有一个质的变革、巨大的变革，如果这个变革发生，I'm on a wrong ship，我一定要 at the right ship。"
+   },
+   {
+    "t": 6393,
+    "spk": "谭捷",
+    "raw": "但是我觉得这个在大模型时代 你真的需要烧很多钱 你才能看到结果",
+    "zh": "但是我觉得这个在大模型时代，你真的需要烧很多钱，你才能看到结果。"
+   },
+   {
+    "t": 7246,
+    "spk": "谭捷",
+    "raw": "我觉得绝大数的绝大多数的人 尤其是不是在机器人行业里的人 对机器人的发展是overestimate的",
+    "zh": "我觉得绝大多数的、绝大多数的人，尤其是不是在机器人行业里的人，对机器人的发展是 overestimate 的。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "Google Robotics 团队人数（九年前）",
+    "v": "10 人",
+    "t": 5054
+   },
+   {
+    "k": "Google Robotics 团队人数（现在）",
+    "v": "150 人",
+    "t": 5054
+   },
+   {
+    "k": "Gemini Robotics 第一代 3 月版本 author list 人数",
+    "v": "约 120 人",
+    "t": 5174
+   },
+   {
+    "k": "Gemini Robotics 1.5 author list 人数",
+    "v": "160 到 180 人",
+    "t": 5174
+   },
+   {
+    "k": "谭捷每周工作时长",
+    "v": "70 到 80 小时",
+    "t": 5355
+   },
+   {
+    "k": "精细操作任务（拉拉链）成功率",
+    "v": "30% 到 40%",
+    "t": 966
+   },
+   {
+    "k": "简单 pick and place 成功率",
+    "v": "90% 几到 100%",
+    "t": 966
+   },
+   {
+    "k": "机器人达到 GPT-3/GPT-4 水平预计时间",
+    "v": "两三年",
+    "t": 1028
+   },
+   {
+    "k": "机器人真正落地预计时间",
+    "v": "额外的五到十年",
+    "t": 1028
+   },
+   {
+    "k": "MSR researcher 带来的未见设备任务完成数",
+    "v": "25 个任务完成 10 个",
+    "t": 6877
+   }
+  ],
+  "terms": [
+   {
+    "term": "VLA",
+    "zh": "视觉-语言-动作模型",
+    "def": "输入图像和语言、直接输出机器人动作的模型，是当前机器人大脑的主流形态。"
+   },
+   {
+    "term": "cross embodiment transfer",
+    "zh": "跨本体迁移",
+    "def": "把一个机器人上采的数据和学到的技能迁移到构型不同的另一个机器人上。"
+   },
+   {
+    "term": "motion transfer",
+    "zh": "动作迁移",
+    "def": "Gemini Robotics 1.5 中让不同本体数据互用的技术，谭捷称其为 secret sauce。"
+   },
+   {
+    "term": "sim to real",
+    "zh": "仿真到真实",
+    "def": "在仿真里训练策略再部署到真实机器人，谭捷第一篇 Google 论文即用此方法。"
+   },
+   {
+    "term": "egocentric video",
+    "zh": "第一人称视频",
+    "def": "从人的视角拍摄的操作视频，戴眼镜或相机即可采集，量大但与机器人形态有 gap。"
+   },
+   {
+    "term": "embodiment gap",
+    "zh": "本体差距",
+    "def": "两个机器人形态差异的程度，差距越大跨构型迁移越难。"
+   }
+  ],
+  "who": "做机器人或具身智能的创业者、工程师和投资人；想知道 Google DeepMind 内部对数据、架构、世界模型真实判断的人。",
+  "skip": "前 20 分钟嘉宾小传和图形学转机器人经历，可快进到 23:44 数据部分。",
+  "tags": [
+   "机器人",
+   "具身智能",
+   "世界模型",
+   "数据",
+   "Google DeepMind"
+  ],
+  "quality": {
+   "transcript_source": "asr",
+   "transcript_detail": "local:whisper-large-v3-turbo",
+   "words": 35560,
+   "wpm": 281.7,
+   "timed": true,
+   "verified_quotes": 5,
+   "grounded_facts": 10,
+   "points": 8,
+   "pruned": 0,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-09-21T20:30:13Z",
+ "triage": {
+  "score": 8.0,
+  "why": "DeepMind机器人负责人讲数据金字塔、motion transfer、跨本体迁移等一手机制与取舍，密度高",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 9,
+   "faithful": 8,
+   "selection": 8,
+   "concrete": 9,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点多为可反驳判断与机制（数据金字塔、世界模型定义、快慢模型为何是过渡），数字与时间线齐备，无空话；仅个别处压缩了原文的限定语。",
+  "worst": "[23:44] 一条把「语言是 narrow domain」与「数据 free」并列时未保留原文「相对 robotics」的限定，读起来像绝对判断，建议补回限定语。"
+ },
+ "model": "openai:deepseek-chat"
+}

@@ -1,0 +1,142 @@
+{
+ "slug": "2025-11-28-zhangxiaojun-机器人最大的瓶颈不是算法-是数据",
+ "of": "zhangxiaojun-031d85dc3b",
+ "source_lang": "zh",
+ "title": "The biggest bottleneck for robots isn't the algorithm, it's the data",
+ "dek": "Tan Jie has spent ten years doing robotics at Google DeepMind, and his judgment is: the robot foundation model is still not an independent discipline, just a finetune of a multimodal large model; the real bottleneck is data, and collecting data by teleoperation is not the endgame.",
+ "why": "High information density; the middle and later sections on the data pyramid, motion transfer, the definition of a world model, and Silicon Valley 996 are the most valuable. The first 20 minutes of guest bio can be fast-forwarded.",
+ "who": "Founders, engineers and investors working on robotics or embodied intelligence; anyone who wants to know Google DeepMind's real internal judgment on data, architecture and world models.",
+ "skip": "The first 20 minutes of guest bio and the graphics-to-robotics backstory; fast-forward to the data section at 23:44.",
+ "tags": [
+  "Robotics",
+  "Embodied AI",
+  "World Models",
+  "Data",
+  "Google DeepMind"
+ ],
+ "points": [
+  {
+   "h": "The robot foundation model is not yet an independent discipline",
+   "body": "There is a view in China that the embodied intelligence foundation model should not be seen as an extension of large models but as an independent direction. Tan Jie's response is direct: so far not yet. His reasoning is that the vast majority of people doing VLA and robot large models are essentially doing finetuning on multimodal large models — a multimodal model can take in images and language and output text, but it lacks robot action output, so what everyone is doing is completing that output capability. He thinks it could become a more independent discipline only when it hits various bottlenecks, needs a different data format, and needs a more complete world model — but so far there has been no qualitative change."
+  },
+  {
+   "h": "Language models hit a data wall; robots have no data",
+   "body": "Tan Jie identifies data as the biggest problem for robots. Language model data is free: there is already a massive amount of language data online, Wikipedia and books can all be digitalized, and language is a narrow domain relative to robotics. But robotics operates in a very complex, unstructured environment where anything can happen, and it needs an extremely large and very diverse amount of data — and that data does not exist today. He is certain that the current data volume is nowhere near enough to saturate the model's capability, so the second bottleneck — say, model architecture — has not even been discovered yet. He describes a data pyramid: at the bottom is internet data, above that egocentric video, above that simulation data, and at the very top robot-specific data; pretraining needs a large amount of low-quality data to learn physical intuition, and only post-training needs a small amount of high-quality data."
+  },
+  {
+   "h": "Cross-embodiment transfer solves the shortage of data",
+   "body": "The second breakthrough in Gemini Robotics 1.5 is cross embodiment transfer. Tan Jie says robot data is scarce: data collected on robot A can only be used to learn tasks on A, and if A is upgraded with a different camera position or one more degree of freedom, the previously collected data is useless; data from robots with different configurations cannot be used interchangeably either. They tested three robots — the simple dual-arm Aloha, the more industrial Biarm Franca, and the Optimus humanoid — put the data together, and developed motion transfer technology so that a task seen on robot A can also be executed by robot B. His example: suppose you learned to drive, I never learned, but I also learned to drive. This fundamentally solves the problem of insufficient data, because data collected by any robot can be used by other robots."
+  },
+  {
+   "h": "The fast-slow dual model is a transition, not the endgame",
+   "body": "Gemini Robotics 1.5 splits the system into an ER (embody reasoning, slow thinking) and a VLA (fast thinking, producing robot action). Tan Jie sees this as a transitional approach, not the ultimate one. The reason is that it is currently constrained by compute and model size: slow thinking has to do reasoning and web search, requiring a very large model, which makes it hard to make decisions five to ten times per second; only a small model can make decisions five to ten times per second. To unify into one model, it would have to be very large because it has to do reasoning, and current compute is not enough to support that. He also points out that the two models currently communicate in language, and language is not a high-bandwidth communication method — it loses a lot of information — so the ideal is a single model with no extra interface inside and no information loss."
+  },
+  {
+   "h": "The definition of simulation data is being rewritten by generative models",
+   "body": "Tan Jie says the definition of simulation is becoming increasingly blurry. Simulation used to mean physics simulation — Bullet, MojoCo, Isaac Gym — solving physics equations in a computer to compute motion trajectories. Now, with the rise of video generation models, many people think simulation is just generating a video, and as long as it looks physically correct, that is also simulation in a new sense. He judges that in the not-too-distant future, traditional physics-simulation will gradually be replaced by generative-model simulation. On economics, he actually says generating video may be more expensive because it requires compute cost, but it solves the scene generation problem: traditional simulation requires hand-building 500 home scenes one by one, while a generative model just needs 500 different prompts. He also points out that the current bottleneck is hallucination and non-physical phenomena — for example, when a person is generated doing gymnastics, you don't know how many legs will come out."
+  },
+  {
+   "h": "Only what can be played is a world model; static video is not",
+   "body": "Tan Jie gives his definition of a world model: if you are given the previous frame and then the robot's action, you can predict the next frame. By this standard, the vast majority of current video generation models are not world models, because they cannot change the next frame by inputting a robot action or a human action. He gives a comparison: VIO is a video generation model, but Genie is more like a world model, because Genie can be played — you can change the generated next frame by pressing keys, you can drive a dragon to turn left and right, and every frame has an input that changes the next frame. He says Google DeepMind is the best in this direction, Sora is also good, OpenAI is also good, and many small companies are working on it too."
+  },
+  {
+   "h": "Tactile sensing only became necessary once dexterous hands appeared",
+   "body": "Tan Jie recounts his own journey of judgment on touch. He had always believed tactile sensing was important, because humans feel touch through their skin every day. But the Aloha paper from Stanford showed him for the first time that a person could teleoperate a robot with pure vision to do very complex things, including taking a very thin credit card out of a leather bag — he thought such a thing could only be done with touch, and Aloha slapped him hard in the face, so he held that belief for a while, thinking vision could do 95% of things. It was only when dexterous hands became widespread that he went to use teleoperation to control a dexterous hand using scissors — you put your hand through the two loops and you can use the scissors, but without tactile feedback he didn't know when to open and when to close, because the loops are large, and opening and closing at the wrong time just means the hand moves inside the loops without actually controlling the scissors. Only then did he realize that with dexterous hands touch is very important, and that his earlier view that it wasn't important was limited by the hardware of the time."
+  },
+  {
+   "h": "Google Robotics went from ten loose people to an army",
+   "body": "When Tan Jie joined nine years ago, the team had only ten people, Google Brain had only a few dozen, management was very loose, and every researcher who came in was a one-man show who did whatever they wanted, and resource allocation was not a problem. He describes himself then as like a very well paid PhD or assistant professor, with autonomy, but personal impact was very limited, and it was hard to gather a group of people to do something big. Now Robotics has 150 people, the March version of the first generation of Gemini Robotics may already have 120 people on the author list, and this time it may be 160 to 180. He says Google realized it did not want to be just an academic lab but very costly, so it created an environment through promotion, performance review, incentives and structure to let more people solve bigger things together. He himself changed along with the team, so he did not have culture shock."
+  }
+ ],
+ "terms": [
+  {
+   "term": "VLA / vision-language-action model",
+   "def": "A model that takes in images and language and directly outputs robot actions; it is the mainstream form of the robot brain today."
+  },
+  {
+   "term": "cross embodiment transfer",
+   "def": "Transferring data collected and skills learned on one robot to another robot with a different configuration."
+  },
+  {
+   "term": "motion transfer",
+   "def": "The technology in Gemini Robotics 1.5 that lets data from different embodiments be used interchangeably; Tan Jie calls it the secret sauce."
+  },
+  {
+   "term": "sim to real",
+   "def": "Training a policy in simulation and then deploying it to a real robot; Tan Jie's first Google paper used this method."
+  },
+  {
+   "term": "egocentric video",
+   "def": "Manipulation video shot from a person's point of view, collectable by wearing glasses or a camera; large in volume but with a gap relative to robot morphology."
+  },
+  {
+   "term": "embodiment gap",
+   "def": "The degree of morphological difference between two robots; the larger the gap, the harder cross-embodiment transfer is."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Google Robotics team size (nine years ago)",
+   "v": "10 people"
+  },
+  {
+   "k": "Google Robotics team size (now)",
+   "v": "150 people"
+  },
+  {
+   "k": "Gemini Robotics first generation March version author list size",
+   "v": "about 120 people"
+  },
+  {
+   "k": "Gemini Robotics 1.5 author list size",
+   "v": "160 to 180 people"
+  },
+  {
+   "k": "Tan Jie's weekly working hours",
+   "v": "70 to 80 hours"
+  },
+  {
+   "k": "Success rate on fine manipulation task (zipping a zipper)",
+   "v": "30% to 40%"
+  },
+  {
+   "k": "Success rate on simple pick and place",
+   "v": "90-something percent to 100%"
+  },
+  {
+   "k": "Expected time for robots to reach GPT-3/GPT-4 level",
+   "v": "two to three years"
+  },
+  {
+   "k": "Expected time for robots to truly land",
+   "v": "an additional five to ten years"
+  },
+  {
+   "k": "Unseen-device task completions brought by MSR researcher",
+   "v": "10 of 25 tasks completed"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "Whether it is really a very independent, separate discipline — so far not yet",
+   "translated": true
+  },
+  {
+   "text": "Just to give an example, that is, suppose you learned to drive, I have never learned this task of driving, but I also learned to drive — it can transfer across embodiments",
+   "translated": true
+  },
+  {
+   "text": "They believe that in the robotics industry there will soon be a qualitative change, a huge change; if that change happens, I'm on a wrong ship, I must be at the right ship",
+   "translated": true
+  },
+  {
+   "text": "But I think in the era of large models, you really need to burn a lot of money before you can see results",
+   "translated": true
+  },
+  {
+   "text": "I think the vast, vast majority of people, especially those not in the robotics industry, overestimate the development of robots",
+   "translated": true
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}
