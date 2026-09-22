@@ -4,9 +4,9 @@
  "source_lang": "en",
  "title": "Anti-Data Centres Is Almost Entirely a Chinese Psyop",
  "dek": "The American left and right are both fighting new data centres, and Thomas Sohmers thinks it is almost entirely a Chinese psyop — China is building flat out while the West slows itself down with regulation.",
- "why": "The first half is macro judgment on anti-data-centre sentiment, energy and debt; the second half is hard mechanics on KV cache, quantization and context length. High information density, but it asks for a little patience.",
+ "why": "The first half is macro judgment on anti-data-centre sentiment, energy and debt; the second half is hard mechanics on KV cache, quantization and context length. High information density, but it takes a little patience.",
  "who": "Founders and investors watching AI infrastructure, inference economics and geopolitics — especially teams building chips, cloud services or agent products.",
- "skip": "The first 4 minutes of host intro and ads are skippable.",
+ "skip": "The first 4 minutes of host intro and ads can be skipped.",
  "tags": [
   "AI infrastructure",
   "Inference economics",
@@ -17,35 +17,35 @@
  "points": [
   {
    "h": "Training is compute-bound, inference is memory-bound",
-   "body": "Thomas lays out the fundamental difference between training and inference clearly: in training you already have the whole corpus, so you can feed tokens in massively parallel — it is essentially a compute-bound problem, which is why export-control frameworks mostly target FLOPS. But inference is generative: you do not know the token five words ahead, so you have to generate one at a time in sequence, and every token generated means reading the weights again. That turns it into an extremely memory-bound problem that cannot be parallelised the way training is. This difference dictates that inference hardware has to be designed on completely different logic from training chips."
+   "body": "Thomas lays out the fundamental difference between training and inference clearly: in training you already have the entire corpus, so you can feed tokens in massively parallel — it is essentially a compute-bound problem, which is why export-control frameworks mostly target FLOPS. But inference is generative: you do not know what the token five words out is, so you have to generate one at a time in sequence, and every token generated means reading the weights again. That turns it into an extremely memory-bound problem that cannot be parallelised the way training can. This difference dictates that inference hardware is designed on completely different logic from training chips."
   },
   {
-   "h": "Compute grew 120x, memory bandwidth only 17x",
-   "body": "Over the decade from 2014 to 2024, the FLOPS of a single NVIDIA GPU rose about 120x, but memory bandwidth rose only 17x. Thomas says this is the real manifestation of the memory wall: the ratio between compute and memory bandwidth has diverged enormously, and the further out you go, the worse the memory-bound problem gets. One reason is that SRAM cells have scaled far more slowly than ordinary transistors over the past fifteen years, and the architecture has barely changed in thirty or forty years. Another reason is incentive — in the CNN era of the 2010s, models were essentially compute-bound, so you just threw more FLOPS at them, and nobody had any incentive to solve memory bandwidth."
+   "h": "Compute is up 120x, memory bandwidth only 17x",
+   "body": "Over the decade from 2014 to 2024, the FLOPS of a single NVIDIA GPU rose about 120x, but memory bandwidth rose only 17x. Thomas says this is the real manifestation of the memory wall: the ratio of compute to memory bandwidth has diverged enormously, and the further you go, the worse the memory-bound problem gets. One reason is that SRAM cells have scaled far more slowly than ordinary transistors over the past fifteen years, and the architecture has barely changed in thirty or forty years. Another reason is incentives — in the CNN era of the 2010s, models were essentially compute-bound, so you just threw more FLOPS at them, and nobody had any incentive to solve memory bandwidth."
   },
   {
    "h": "The margin on selling cached tokens is ‘obscene’",
-   "body": "Thomas says the cost of processing a cached token is roughly one-thousandth of recomputing and generating that token, so the margin on selling cached tokens is absurdly high. Almost every provider charges a higher rate for cache than for ordinary input tokens and then a lower rate on reads; users feel it is cheap, but providers are earning an ‘obscene margin’ on cache reads. He notes Anthropic's API business has been reported at 80 points of gross margin, and he is not surprised — getting 80 points in any industry is hard. He thinks those margins will compress as competition arrives, and that if OpenAI and Anthropic stopped training, they would be hugely profitable overnight."
+   "body": "Thomas says the cost of processing a cached token is roughly one-thousandth of recomputing and generating that token, so the margin on selling cached tokens is absurdly high. Almost every provider charges a higher rate for cache than for ordinary input tokens, then a lower rate on reads; users feel it is cheap, but providers are earning an ‘obscene margin’ on cache reads. He mentions that Anthropic's API business has been reported at 80 points of gross margin, and he is not surprised — getting 80 points in any industry is hard. He thinks those margins will compress as competition arrives, and that if OpenAI and Anthropic stopped training, they would be hugely profitable overnight."
   },
   {
    "h": "Anti-data-centre sentiment is almost entirely a Chinese psyop",
-   "body": "Thomas says the left and right have now reached near-consensus against data centres, which in his eyes is the most terrifying thing in politics, and he thinks it is almost entirely a Chinese psyop. He rebuts the water-consumption argument: an in-and-out burger uses more water than the largest data centre in the US, golf courses are orders of magnitude higher still, and these data centres are closed-loop liquid-cooled systems that in many cases do not want to use water at all. His argument: China itself is building flat out, adding gigawatts of generation capacity, and flattening homes and cutting power to make room for training capacity, while the West slows itself down on the basis of false information."
+   "body": "Thomas says the left and right have now reached near-consensus against data centres, which in his eyes is the most frightening political development, and he thinks it is almost entirely a Chinese psyop. He rebuts the water-consumption argument: an in-and-out burger uses more water than the largest data centre in America, golf courses are orders of magnitude higher still, and these data centres are closed-loop liquid-cooled systems that in many cases do not want to use water at all. His argument: China itself is building flat out, adding multiple gigawatts of generation capacity, and displacing homes and forcing blackouts for training capacity, while the West slows itself down on the basis of false information."
   },
   {
    "h": "Data centres will not take residents' electricity",
-   "body": "Thomas says utilities have to provide an offer of energy availability, and that offer is already baked into everyone's costs and capabilities, so a data centre cannot possibly pull power out of electricity already allocated to residents — it is impossible. What is more, the data centres being built today come with their own generation capacity covering their own use and even more, but they are not allowed to connect to the grid — if they were, it would actually lower everyone's electricity prices. He also points out that utilities are lobbying against new generation capacity, because market forces would let more capacity push prices down, which is good for consumers but not for utilities."
+   "body": "Thomas says utilities have to provide an energy-availability quote, and that quote is already baked into everyone's costs and capabilities, so a data centre cannot pull power from electricity already allocated to residents — it is impossible. Moreover, the data centres being built today come with generation capacity covering their own use and more, but are simply not allowed to connect to the grid — and if they were, it would actually lower everyone's electricity prices. He also points out that utilities are lobbying against new generation capacity, because market forces would let more capacity push prices down, which is good for consumers but not for utilities."
   },
   {
    "h": "KV cache turns quadratic cost into linear storage",
-   "body": "Thomas explains the mechanics of KV cache: the Transformer originally recomputed all previous tokens for every token generated, until it was realised you do not need to redo the parts already processed, so the K and V matrices are stored. The key point is that under attention, the compute per token grows quadratically with sequence length, while storing K and V grows only linearly. So KV cache trades storage for compute that gets expensive fast. But storage is itself a complexity: every user has a unique KV cache, and you have to decide how long to keep it and how to manage it across a large system."
+   "body": "Thomas explains the mechanics of KV cache: the Transformer originally recomputed all previous tokens for every token generated, until it was realised you do not need to redo the parts already processed, so the K and V matrices are stored. The key point is that under attention, the compute per token grows quadratically with sequence length, while storing K and V grows only linearly. So KV cache trades storage for computation that gets expensive fast. But storage is itself a complexity: every user has a unique KV cache, and you have to decide how long to keep it and how to manage it across a large system."
   },
   {
    "h": "96% of agentic coding tokens are cache hits",
-   "body": "Thomas mentions SemiAnalysis's agent X benchmark, based on a large number of cloud code sessions with dozens to hundreds of turns, plus sub-agents. They found that in these real traced code-generation, agentic coding sessions, roughly 96% of tokens are cache hits. That means if you know a workload has an extremely high cache rate, the importance of cache retrieval rises sharply, because those caches become very large. He gives an example: GPT-4 was leaked as a 1.8 trillion parameter model, about 900 GB of model weights after quantization; if Claude is 10 trillion parameters, that is about 5 TB of weights. But under long context, a single user session can reach the 100 GB order of magnitude, so 50 users' context exceeds the model weights themselves."
+   "body": "Thomas mentions SemiAnalysis's agent X benchmark, based on a large number of cloud code sessions with dozens to hundreds of turns, plus sub-agents. They found that in these real traced code-generation, agentic coding sessions, roughly 96% of tokens are cache hits. That means if you know a workload has an extremely high cache rate, the importance of cache retrieval rises sharply, because those caches become very large. He gives an example: GPT-4 was leaked as a 1.8 trillion parameter model, about 900 GB of model weights after quantization; if Claude is 10 trillion parameters, that is about 5 TB of weights. But under long context, a single user session can reach the 100 GB scale, so 50 users' contexts exceed the model weights themselves."
   },
   {
    "h": "Chinese labs routed around memory export controls with algorithms",
-   "body": "Thomas says context length going from today's million tokens to 10x or more is very hard under quadratic memory cost. Algorithmic progress over the past year is interesting, able to further cut the storage and compute context requires, and Chinese model labs have innovated a lot here. He cites DeepSeek V3: because export controls limit chips with the highest memory capacity and FLOPS, they innovated methods that do not need those chips, using multi-head latent attention to shrink KV cache size substantially, at the cost of spending more FLOPS. He says the major US labs, as far as he knows, have not used MLA, but that will change in the future."
+   "body": "Thomas says context length is heading from today's million tokens toward 10x or more, which is very hard under quadratic memory cost. Algorithmic progress over the past year has been interesting, able to further cut the storage and compute context requires, and Chinese model labs have innovated a lot here. He cites DeepSeek V3: because export controls limit chips with the highest memory capacity and FLOPS, they innovated methods that do not need those chips, using multi-head latent attention to shrink KV cache size substantially, at the cost of spending more FLOPS. He says the major US labs, as far as he knows, have not used MLA, but that will change in the future."
   }
  ],
  "terms": [
@@ -67,7 +67,7 @@
   },
   {
    "term": "Ruler",
-   "def": "A benchmark testing a model's ability to retrieve randomly inserted information from long context."
+   "def": "A benchmark testing a model's ability to retrieve randomly inserted information in long contexts."
   }
  ],
  "facts": [
@@ -80,11 +80,11 @@
    "v": "$5 billion"
   },
   {
-   "k": "2014-2024 FLOPS gain per NVIDIA GPU",
+   "k": "2014-2024 FLOPS improvement per NVIDIA GPU",
    "v": "about 120x"
   },
   {
-   "k": "2014-2024 memory bandwidth gain",
+   "k": "2014-2024 memory bandwidth improvement",
    "v": "17x"
   },
   {
