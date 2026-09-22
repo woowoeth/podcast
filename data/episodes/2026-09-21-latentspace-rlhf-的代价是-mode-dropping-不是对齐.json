@@ -1,0 +1,229 @@
+{
+ "id": "latentspace-a5ad0126c3",
+ "slug": "2026-09-21-latentspace-rlhf-的代价是-mode-dropping-不是对齐",
+ "fingerprint": "52c86d88ade4eceb",
+ "source_id": "latentspace",
+ "source": "Latent Space",
+ "source_zh": "Latent Space",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "讨论RLHF训练机制与模型对齐技术",
+ "tier": 1,
+ "lang": "en",
+ "title_original": "Jev: System One models for Prod, not God — with Diogo Almeida, CEO, TypeSafe AI",
+ "published": "2026-09-21T22:13:49Z",
+ "duration": 8453,
+ "audio": "https://api.substack.com/feed/podcast/216783460/c2acac966e67afb7e71574f68a44a662.mp3",
+ "link": "https://www.latent.space/p/jev",
+ "image": "https://substackcdn.com/feed/podcast/1084089/post/216783460/fa337026fcc21a2157c61a69e00ee378.jpg",
+ "youtube_id": "cJ0EOzey--o",
+ "video_len": 0,
+ "transcript_url": "https://www.latent.space/p/jev",
+ "digest": {
+  "title": "RLHF 的代价是 mode dropping，不是对齐",
+  "dek": "RLHF 为了不出错逼模型极度保守，把字符串概率分布整体毒化；TypeSafe 的 Jev 走另一条路，只优化 intelligence per dollar。",
+  "why": "信息密度高，Diogo 把 RLHF、RLVR、RLCD 的取舍讲得很细，适合对模型训练路线有判断需求的人。",
+  "points": [
+   {
+    "t": 363,
+    "h": "RLHF 的代价是 mode dropping",
+    "body": "Diogo 认为没人注意 RLHF 的 downsides，尤其是 mode dropping。机制是：为了生成很长的字符串而不出错，模型必须极度保守，因为错误一眼可见，而看起来正确但微妙出错的地方很难发现；这种校准对字符串的概率分布是「total poison」。他借此解释为什么 Yann LeCun 那张「LLM 随序列变长必然出错」的图数学上显然、经验上不成立——覆盖分布时不会被离群值过度惩罚，mode drop 才会丢掉少数类。",
+    "spk": "Diogo Almeida"
+   },
+   {
+    "t": 672,
+    "h": "拒绝回答是类型错误，不是安全问题",
+    "body": "Diogo 区分 safety alignment 和 capability alignment：后者是「做用户想做的事」，前者是「跟随别人的指令」，比如 OpenAI 和 Anthropic。他认为 safety alignment 对 ChatGPT、Claude 这类产品合理，但在 API 里「nuts」「completely unacceptable」——如果依赖在后台跑，用户发一条奇怪消息就让软件随机崩掉，是 insanity。他反对在技术层加限制，理由是每 overfit 一次就多 fracturing 一次智能，而现在的模型已经够 fractured 了。",
+    "spk": "Diogo Almeida"
+   },
+   {
+    "t": 1095,
+    "h": "公开 benchmark 是信任的替代品",
+    "body": "Diogo 说自己 extremely anti-public benchmarks，因为极其 gameable：早年每个 lab 都有团队专门收集像 MMLU 的数据来刷分，本质是「benchmarking with extra steps」。他承认智能有 je ne sais quoi（good model smell），所以人们需要 benchmark 来建立信任，但长期只能靠 vibes and trust，直到把模型放进具体 workflow 里评估。他还说如果想让 Jev 变笨，一年半前就能发。",
+    "spk": "Diogo Almeida"
+   },
+   {
+    "t": 1654,
+    "h": "RLCD 是新的 North Star，不是新算法",
+    "body": "Diogo 说 RLHF 这个词被混用了：原始工作是 Paul Christiano 教机器人后空翻，后来是 learning to summarize，再后来才是 instruction following。他真正称之为 RLHF 的是「instruction following 这个 North Star」，跟 PPO 算法无关——就像 DPO 及其后代不用那篇论文的算法，也算 RLHF。RLCD 同理，是新的任务方向：programs in the loop，把 human 从循环里拿掉。",
+    "spk": "Diogo Almeida"
+   },
+   {
+    "t": 2438,
+    "h": "可靠性是 catchall，北极星是鲁棒性",
+    "body": "Diogo 把 reliability 定义成一个 catchall：AI 不能自动化某件事，归根结底都是某种可靠性问题——可能是 type safety，可能是 determinism，也可能只是模型太 jagged。他明确反对把 determinism（同输入同输出）当北极星，认为它只对单元测试略有价值；真正重要的是 robustness——相似输入得到相似输出。测试方法是往 prompt 里塞 UUID 之类的 nonce，看语义相同的问题是否给出相似答案。他说人们被 AI 决策坑到，就发生在 robustness 这一层。",
+    "spk": "Diogo Almeida"
+   },
+   {
+    "t": 4632,
+    "h": "可靠性比速度和成本更被低估",
+    "body": "Diogo 认为行业把注意力放错了地方：「people focus too much on speed and cost and not enough on reliability」。他的判断是可靠性才让人愉悦、才让人敢信任。他把这个和 TFP 增长挂钩——他期待五年内 TFP 增长超过 3%，并说这才是经济革命的标志，也才是 OpenAI 章程原本想表达的东西。他估计现在所有模型在世界经济有价值工作上大致都还停在零附近，可能还没到 1%。",
+    "spk": "Diogo Almeida"
+   },
+   {
+    "t": 6250,
+    "h": "RLVR 的最优剂量是零",
+    "body": "Diogo 直接说，对 TypeSafe 这种形态的模型，RLVR 的最优量是零。他的论证不是「RLVR 没用」，而是「pacing the frontier」这个讨论偷换了前提：它假设所有人都必须做更多 RLVR，而 RLVR 之所以看起来危险，是因为它让模型在训练中间可以「do anything they want」——你越不限制，模型在外部就越强。所以危险不是副作用，是设计目标。他称之为一种「disillusion of responsibility」：把「我们必须做更多 RLVR」当成公理，再推出「我们正走向危险世界」的结论。",
+    "spk": "Diogo Almeida"
+   },
+   {
+    "t": 7753,
+    "h": "KV cache 是编码智能体的暴政",
+    "body": "Diogo 想探索「free from the tyranny of the KV cache」的编码智能体。KV cache 把你锁进一个模型，为了效率必须不断 append，于是你没法做状态管理、抽象、分解这些正常软件实践。他由此解释了几个现象：为什么 routing 很难、为什么 sub-agent 看起来不 work、为什么 compaction 是难题——因为传递状态需要比读状态便宜得多的智能。他设想的方向包括：给子任务显式标注状态、在子任务树里搜索相关上下文、并行子智能体互相读状态、用智能锁而非 basic-ass locks 协调。",
+    "spk": "Diogo Almeida"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 363,
+    "spk": "Diogo Almeida",
+    "raw": "One of the things that no one paid attention to was the downsides of RLHF, in particular mode dropping.",
+    "zh": "没人注意到的一件事是 RLHF 的缺点，尤其是 mode dropping。"
+   },
+   {
+    "t": 502,
+    "spk": "Diogo Almeida",
+    "raw": "And that calibration is, like, total poison into, like, the probability distributions of strings.",
+    "zh": "而这种校准，对字符串的概率分布来说就是彻底的毒药。"
+   },
+   {
+    "t": 1383,
+    "spk": "Diogo Almeida",
+    "raw": "I would like to think of our model, like, kind of like, UDP as LLMs and TCP as our models.",
+    "zh": "我愿意把我们的模型想成——LLM 是 UDP，我们的模型是 TCP。"
+   },
+   {
+    "t": 3681,
+    "spk": "Diogo Almeida",
+    "raw": "System messages are, like, disgusting global variables where you just put everything in there",
+    "zh": "system message 就像恶心的全局变量，你把所有东西都塞进去。"
+   },
+   {
+    "t": 4632,
+    "spk": "Diogo Almeida",
+    "raw": "And like, I really think that people focus too much on speed and cost and not enough on reliability.",
+    "zh": "我真的觉得人们太关注速度和成本，而对可靠性关注不够。"
+   },
+   {
+    "t": 6250,
+    "spk": "Diogo Almeida",
+    "raw": "I think zero is the optimal amount for our shape.",
+    "zh": "我认为对我们的形态来说，零是最优的量。"
+   },
+   {
+    "t": 6560,
+    "spk": "Diogo Almeida",
+    "raw": "if you gave me a billion dollars, I wouldn’t pre-train.",
+    "zh": "如果你给我十亿美金，我不会去预训练。"
+   },
+   {
+    "t": 8320,
+    "spk": "Diogo Almeida",
+    "raw": "I don’t like weird hierarchies and I think one of the things I’m most proud about in the company is that they don’t respect me that much or they don’t show that. They troll me and like, joke with me and they treat me poorly sometimes and all of that. And I think that’s a good sign of a culture.",
+    "zh": "我不喜欢奇怪的层级，公司里我最自豪的一点是，他们不怎么尊重我，或者说他们不表现出来。他们 troll 我、跟我开玩笑，有时候对我态度很差，所有这些。我觉得这是文化的好信号。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "TFP 增长目标",
+    "v": "五年内超过 3%",
+    "t": 4632
+   },
+   {
+    "k": "模型在世界经济有价值工作上的占比估计",
+    "v": "可能还没到 1%",
+    "t": 4708
+   },
+   {
+    "k": "发布前试用者中没看懂的比例",
+    "v": "超过一半",
+    "t": 5414
+   },
+   {
+    "k": "RLVR 相对 LLM 本身的研究价值倍数（Diogo 估计）",
+    "v": "0.2（他说 0.5 或 1 也行，不在乎）",
+    "t": 6337
+   },
+   {
+    "k": "LLM 本身（RLHF、RLCD）的研究价值倍数（Diogo 估计）",
+    "v": "2.2",
+    "t": 6337
+   },
+   {
+    "k": "欧洲用户相对加速倍数",
+    "v": "3 倍（而非 100 倍）",
+    "t": 8320
+   }
+  ],
+  "terms": [
+   {
+    "term": "mode dropping",
+    "zh": "模式丢弃",
+    "def": "模型为求稳而放弃生成某些合理但少见的输出，导致多样性丧失。"
+   },
+   {
+    "term": "RLCD",
+    "zh": "程序在环的强化学习",
+    "def": "把人类从反馈循环中拿掉，用程序化信号做强化学习的新方向。"
+   },
+   {
+    "term": "RLVR",
+    "zh": "可验证奖励的强化学习",
+    "def": "用可自动验证的答案（如数学题）作为奖励信号来训练模型。"
+   },
+   {
+    "term": "Noulli",
+    "zh": "Noulli 原语",
+    "def": "TypeSafe 的 API 原语之一，名字来自 Bernoulli，对应编程里的 if 语句。"
+   },
+   {
+    "term": "intelligence per dollar",
+    "zh": "每美元智能",
+    "def": "衡量单位成本能买到多少模型智能的指标，TypeSafe 的核心优化目标。"
+   }
+  ],
+  "who": "关注模型训练路线、RLHF/RLVR 取舍、以及 AI 基础设施形态的工程师和创业者。",
+  "skip": "2:18:40 之后关于欧洲服务器和招聘的闲聊可跳过。",
+  "tags": [
+   "模型训练",
+   "RLHF",
+   "RLVR",
+   "开发者工具",
+   "推理优化"
+  ],
+  "quality": {
+   "transcript_source": "notes",
+   "transcript_detail": "feed item full text",
+   "words": 28339,
+   "wpm": 201.2,
+   "timed": true,
+   "verified_quotes": 8,
+   "grounded_facts": 6,
+   "points": 8,
+   "pruned": 2,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-09-22T13:31:31Z",
+ "triage": {
+  "score": 7.0,
+  "why": "InstructGPT作者亲述非自回归系统一路线取舍，含KV cache与工程细节，可追问",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 7.0,
+  "dims": {
+   "density": 8,
+   "faithful": 6,
+   "selection": 8,
+   "concrete": 8,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点多为可反驳判断与机制，密度高；但 [11:12] 一条把 safety alignment 与 capability alignment 的区分写歪，且原文片段中找不到对应内容",
+  "worst": "[11:12] 那条：原文片段里 Diogo 只说 safety alignment 与用户错位、refusal 是 type error，成稿却写成他区分 safety alignment 与 capability alignment 并"
+ },
+ "model": "openai:deepseek-chat"
+}

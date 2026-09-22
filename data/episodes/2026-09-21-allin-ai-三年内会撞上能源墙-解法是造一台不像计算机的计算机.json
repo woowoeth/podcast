@@ -1,0 +1,243 @@
+{
+ "id": "allin-193920002b",
+ "slug": "2026-09-21-allin-ai-三年内会撞上能源墙-解法是造一台不像计算机的计算机",
+ "fingerprint": "fcbb04c64ed88ca3",
+ "source_id": "allin",
+ "source": "All-In Podcast",
+ "source_zh": "All-In",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "算力能耗与芯片架构范式",
+ "tier": 1,
+ "lang": "en",
+ "title_original": "Naveen Rao: 4D Computing, AI's Energy Wall & Beating Biology",
+ "published": "2026-09-21T21:03:00Z",
+ "duration": 1355,
+ "audio": "https://dts.podtrac.com/redirect.mp3/traffic.libsyn.com/secure/allinchamathjason/Naveen_Rao_AIS26_AUDIO_v100.mp3?dest-id=1928300",
+ "link": "https://allinchamathjason.libsyn.com/naveen-rao-4d-computing-ais-energy-wall-beating-biology",
+ "image": "https://static.libsyn.com/p/assets/8/0/d/f/80dfa9286a3a8956e5bbc093207a2619/signal-2026-09-21-15-08-09-760.jpg",
+ "youtube_id": "",
+ "video_len": 0,
+ "transcript_url": "https://www.youtube.com/watch?v=yAsrMA_ADPc",
+ "digest": {
+  "title": "AI 三年内会撞上能源墙，解法是造一台不像计算机的计算机",
+  "dek": "Google 一家公司每月消耗 3.2 千万亿 token，按每 token 10 焦耳算就是 12 吉瓦，而全美数据中心总功率约 40 吉瓦。Naveen Rao 认为这个缺口只能靠换掉计算机的底层范式来填。",
+  "why": "前半段是能源账，后半段是他首次公开的物理动力学计算机原型和实测能效数据，属于少见的硬信息。中间一段生物学类比可以快进。",
+  "points": [
+   {
+    "t": 285,
+    "h": "能源不是成本项，是入场券",
+    "body": "Naveen 给出的账是：Google 每月跨过 3.2 千万亿 token，按每 token 10 焦耳这个偏低值算，就是 12 吉瓦。美国今天投进数据中心的能源约 40 吉瓦，全球不到 100 吉瓦。也就是说一家公司的 AI 服务就吃掉全球数据中心能源的十分之一以上。他的判断是三年左右就会撞上能源上限。更关键的是数据中心的稀缺资源排序变了：过去是地板面积、机架、网络设备、GPU，今天是能源——先拿到电力合同，再想怎么把它填满。而能源占服务一个 token 成本的 50%，剩下才是硬件 capex 和场地。",
+    "spk": "Naveen Rao"
+   },
+   {
+    "t": 424,
+    "h": "松鼠用 8 毫瓦完成的事，GPU 要几瓦",
+    "body": "人脑约 20 瓦。按神经元数量线性缩到猴子脑是一瓦，正好等于你口袋里的手机。再往下，老鼠和蝙蝠是毫瓦级。松鼠在树枝间跳跃，一千次里一千次精准，靠的是 8 毫瓦的脑。也就是说你手机的电量能跑一百多个松鼠脑。Naveen 的结论是生物学已经造出了适合智能的物理基底，而合成系统走的是另一条路：人脑皮层每秒只搬约 160 亿比特，一块高端 GPU 每秒进出内存接近 30 万亿比特，芯片内部还要再高 10 到 100 倍。能量几乎全花在搬信息上，而不是算上。",
+    "spk": "Naveen Rao"
+   },
+   {
+    "t": 606,
+    "h": "摩尔定律停了，抽象层还在收税",
+    "body": "晶体管数量还在涨，但频率早就不能跟着涨，单线程性能也不能，现在连能效都不再随制程缩小而改善——Naveen 直接说摩尔定律基本结束了。他的诊断是抽象层的问题：数字本身就是对物理世界的抽象，晶体管实际有中间态，是被工程成 0 和 1 的。每一层抽象都是有损的，都不考虑底下的复杂度。所以他们的做法是把半导体的物理抽象直接接到神经网络上，跳过中间那些层。他举的直觉例子是鸟群和蚁群：个体只做极简单的动作，整体涌现出复杂行为，这门学问叫 dynamical systems theory。",
+    "spk": "Naveen Rao"
+   },
+   {
+    "t": 727,
+    "h": "节拍器放在木板上会自己同步",
+    "body": "把多个节拍器放在一块能前后滚动的刚性木板上，它们会自己同步到完全相同的相位，只因为每个节拍器都轻轻推了木板一下。这是纯物理的动力学系统。他们问的是：这种系统能不能拿来做计算。答案是能——他们开源了一个叫 UNO 的图像生成模型，建立在这样一组振荡器上，可以训练、可以出图。把系统状态定义为所有振荡器的相位，再按输出做条件，生成飞机、汽车、鸟时会走不同的 state space trajectory。这是第一次证明这类系统能规模化训练并产出有用结果。",
+    "spk": "Naveen Rao"
+   },
+   {
+    "t": 848,
+    "h": "扔掉连接反而让系统更好训练",
+    "body": "全连接是 n 平方：10 个元素 100 条连接还行，1000 个元素就是 100 万条，根本不可扩展。他们提出的 sparsity 是主动扔掉一部分连接，然后看能不能把整体行为救回来。结果不只是能扔，扔掉之后系统行为更好、更可训练，而且这个结论在仿真和真实物理系统里都成立。Naveen 说这是罕见的「更高效、更可扩展、性能还更好」三件事同时成立的情况，是长期没人解开的 holy grail，前提是得先把问题框对。",
+    "spk": "Naveen Rao"
+   },
+   {
+    "t": 909,
+    "h": "第一台物理动力学计算机已经跑出图了",
+    "body": "这是 Naveen 首次公开：他们造出了第一台物理动力学计算机。公司今年一月才正式开始，当时连团队都没有，六月一日把设计送去流片，芯片已经回到实验室并跑出了结果——第一批由这种计算机生成的图像。能效上，生成一张图约 500 纳焦耳，而普通 GPU 是毫焦耳量级，纳焦耳是 10 的负 9 次方，差了好几个数量级。原因就是它根本不搬信息。架构上它和 CPU、GPU 都不同：那些都是 von Neumann 架构，内存和计算分离、来回搬数据；这台机器计算和存储是同一个东西，没有内存接口，每个计算单元本身就是存储器。",
+    "spk": "Naveen Rao"
+   },
+   {
+    "t": 1029,
+    "h": "4D 计算：三个空间维度加一个时间维度",
+    "body": "他们把这套东西叫 4D computing：物理上用 die stacking 在垂直和平面方向用满三个维度，第四个维度是动力学里的时间。目标函数是 intelligence per watt。存在一个热力学极限永远无法突破，动物脑距离这个极限只有一到两个数量级，而今天的计算系统离它大约差 100 亿倍。他们的计划是三年半内触到 2D 光刻的极限，公司的总目标是 beat biology。Naveen 预期结果是形态变化：从吉瓦级的大数据中心，转向散布各处的小数据中心，更本地、更自适应，并支撑起能动态组合解决问题的数十亿机器人。",
+    "spk": "Naveen Rao"
+   },
+   {
+    "t": 1152,
+    "h": "便宜一千倍，消耗会超过一千倍",
+    "body": "Naveen 用 Jevons paradox 收尾：当一项资产的底层成本下降，消费量的增长会超过价格下降的幅度。价格减半，消费增长超过两倍；价格降到千分之一，消费增长超过一千倍。所以他不认为能效提升会让市场缩小，反而会造出人类历史上最大的市场。Chamath 随后追问生态问题——流片、封装这些环节需要一整套人配合。Naveen 的回答是两年内做到完整产品，形态是一整个机架，作为新的数据中心产品，tokens in、tokens out 走网线，但内部结构和现有计算机完全不同。",
+    "spk": "Naveen Rao"
+   },
+   {
+    "t": 1212,
+    "h": "移植的是模型层，不是算子层",
+    "body": "Chamath 问现有模型家族和架构能不能搬过来，毕竟整个行业都围着 KV cache 这类机制建起来的。Naveen 说存在一个滑动尺度：一样东西好多少，决定别人愿意忍受多少迁移痛苦，他的策略是让迁移的收益足够大。移植发生在模型层而不是算子层，现有模型能用，但迁移本身需要相当多算力。他特别指出像 matmul 这种基本元素在这台机器上并不存在——你可以把它刻画成矩阵乘法，但它不是以矩阵乘法的形式实现的，而是以随时间变化的行为实现的，每个时间步可以分析成当前状态矩阵乘以转移矩阵。团队构成上，动力学系统理论已经存在一百年，他们从那个圈子招人，也招真正做芯片的人，而这两拨人彼此不说话，协调是这家公司最难的部分。",
+    "spk": "Naveen Rao"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 304,
+    "spk": "Naveen Rao",
+    "raw": "So, you can imagine if models get bigger that that energy goes up and if demand grows, which it is, that energy goes up. So, we're going to run out of energy pretty fast in like 3 years or so is my estimate.",
+    "zh": "所以你可以想象，如果模型变大，能源消耗就上升；如果需求增长——它确实在增长——能源消耗也上升。我的估计是我们会很快耗尽能源，大概三年左右。"
+   },
+   {
+    "t": 424,
+    "spk": "Naveen Rao",
+    "raw": "Their brain runs on 8 mill of energy. You could run over a 100 squirrel brains on your phone and it it has very precise and accurate behavior.",
+    "zh": "它们的脑只消耗 8 毫瓦。你手机的电量能跑一百多个松鼠脑，而它有着非常精确准确的行为。"
+   },
+   {
+    "t": 606,
+    "spk": "Naveen Rao",
+    "raw": "Moore's law, if you may have heard of this, it's like making transistors smaller has largely ended.",
+    "zh": "摩尔定律，你可能听说过，也就是把晶体管做小这件事，基本上已经结束了。"
+   },
+   {
+    "t": 909,
+    "spk": "Naveen Rao",
+    "raw": "This is actually the first physical dynamical computer ever built.",
+    "zh": "这实际上是有史以来第一台物理动力学计算机。"
+   },
+   {
+    "t": 969,
+    "spk": "Naveen Rao",
+    "raw": "So it's many orders of magnitude more efficient than a standard computer and it's because it just doesn't move information around.",
+    "zh": "所以它的能效比标准计算机高出好几个数量级，原因就是它根本不搬运信息。"
+   },
+   {
+    "t": 1152,
+    "spk": "Naveen Rao",
+    "raw": "So, if you make something half the price, you'll consume more than 2x. If you cons you make something 1,000th the price, you'll consume more than 1/ 1,000th of it.",
+    "zh": "所以，如果你把某样东西的价格减半，你的消费会增长超过两倍。如果你把价格降到千分之一，你的消费会增长超过一千倍。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "按每 token 10 焦耳折算的 Google AI 服务功率",
+    "v": "12 吉瓦",
+    "t": 304
+   },
+   {
+    "k": "美国数据中心总功率",
+    "v": "约 40 吉瓦",
+    "t": 304
+   },
+   {
+    "k": "全球数据中心总功率",
+    "v": "不到 100 吉瓦",
+    "t": 304
+   },
+   {
+    "k": "能源占服务一个 token 成本的比例",
+    "v": "约 50%",
+    "t": 364
+   },
+   {
+    "k": "人脑功率",
+    "v": "约 20 瓦",
+    "t": 424
+   },
+   {
+    "k": "松鼠脑功率",
+    "v": "8 毫瓦",
+    "t": 424
+   },
+   {
+    "k": "人脑皮层信息传输速率",
+    "v": "约每秒 160 亿比特",
+    "t": 485
+   },
+   {
+    "k": "高端 GPU 每秒进出内存的比特数",
+    "v": "接近 30 万亿",
+    "t": 485
+   },
+   {
+    "k": "动力学计算机生成一张图像的能耗",
+    "v": "约 500 纳焦耳",
+    "t": 969
+   }
+  ],
+  "terms": [
+   {
+    "term": "dynamical systems theory",
+    "zh": "动力系统理论",
+    "def": "研究简单个体规则如何涌现出整体复杂行为的数学框架，已存在约一百年。"
+   },
+   {
+    "term": "von Neumann architecture",
+    "zh": "冯·诺依曼架构",
+    "def": "内存与计算分离、数据在两者间来回搬运的计算机结构，CPU 和 GPU 都属此类。"
+   },
+   {
+    "term": "sparsity",
+    "zh": "稀疏化",
+    "def": "主动丢弃系统中部分连接，反而让整体行为更好、更可训练、更可扩展。"
+   },
+   {
+    "term": "Jevons paradox",
+    "zh": "杰文斯悖论",
+    "def": "某项资源的使用效率提高后，总消费量不降反升。"
+   },
+   {
+    "term": "4D computing",
+    "zh": "4D 计算",
+    "def": "Naveen 提出的概念：物理上用满三个空间维度，第四个维度是动力学中的时间。"
+   },
+   {
+    "term": "state space trajectory",
+    "zh": "状态空间轨迹",
+    "def": "把系统所有振荡器的相位定义为状态，观察它随时间演化出的路径。"
+   }
+  ],
+  "who": "关注 AI 算力成本、数据中心电力约束和新型芯片架构的创业者、投资人与硬件工程师。",
+  "skip": "07:04 到 10:06 的生物学与计算机史类比，信息密度偏低，可跳到 12:07。",
+  "tags": [
+   "算力",
+   "芯片架构",
+   "能源",
+   "数据中心",
+   "动力学系统"
+  ],
+  "quality": {
+   "transcript_source": "youtube",
+   "transcript_detail": "en",
+   "words": 4638,
+   "wpm": 205.4,
+   "timed": true,
+   "verified_quotes": 6,
+   "grounded_facts": 9,
+   "points": 9,
+   "pruned": 1,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-09-22T13:31:08Z",
+ "triage": {
+  "score": 6.0,
+  "why": "Naveen Rao讲4D计算与能耗墙，有具体机制与取舍，但时长偏短、密度中等，未到深读线",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 9,
+   "faithful": 8,
+   "selection": 8,
+   "concrete": 9,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点几乎全是判断加数字：12 吉瓦对 40 吉瓦、8 毫瓦松鼠脑、500 纳焦耳出图、Jevons 千分之一价格。信息密度高，无空话。",
+  "worst": "金句 [19:12] 原文「consume more than 1/1000th of it」应为「超过一千倍」，成稿译文写对了但英文引文本身有笔误，建议核对原句；另 [4:45] 要点把「能源占 token 成本 50%」归到该时间戳，原"
+ },
+ "model": "openai:deepseek-chat"
+}

@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RLHF 的代價是 mode dropping，不是對齊 — Latent Space · 原聲</title>
+<meta name="description" content="RLHF 為了不出錯逼模型極度保守，把字符串概率分布整體毒化；TypeSafe 的 Jev 走另一條路，只優化 intelligence per dollar。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/tw/p/2026-09-21-latentspace-rlhf-的代价是-mode-dropping-不是对齐/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原聲">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:title" content="RLHF 的代價是 mode dropping，不是對齊 — Latent Space · 原聲">
+<meta property="og:description" content="RLHF 為了不出錯逼模型極度保守，把字符串概率分布整體毒化；TypeSafe 的 Jev 走另一條路，只優化 intelligence per dollar。">
+<meta property="og:url" content="https://ourword.ai/podcast/tw/p/2026-09-21-latentspace-rlhf-的代价是-mode-dropping-不是对齐/">
+<meta property="og:image" content="https://ourword.ai/podcast/assets/cover/d147c8ceaf2daa17.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-09-21T22:13:49Z">
+<meta property="article:modified_time" content="2026-09-22T13:31:31Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="RLHF 的代價是 mode dropping，不是對齊 — Latent Space · 原聲">
+<meta name="twitter:description" content="RLHF 為了不出錯逼模型極度保守，把字符串概率分布整體毒化；TypeSafe 的 Jev 走另一條路，只優化 intelligence per dollar。">
+<meta name="twitter:image" content="https://substackcdn.com/feed/podcast/1084089/post/216783460/fa337026fcc21a2157c61a69e00ee378.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/tw/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/tw/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原聲" href="/podcast/tw/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-09-21-latentspace-rlhf-的代价是-mode-dropping-不是对齐/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-09-21-latentspace-rlhf-的代价是-mode-dropping-不是对齐/">
+<link rel="alternate" hreflang="en" href="https://ourword.ai/podcast/en/p/2026-09-21-latentspace-rlhf-的代价是-mode-dropping-不是对齐/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-09-21-latentspace-rlhf-的代价是-mode-dropping-不是对齐/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=9bca03c30e">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-09-21-latentspace-rlhf-的代价是-mode-dropping-不是对齐/#episode", "name": "RLHF 的代價是 mode dropping，不是對齊", "headline": "RLHF 的代價是 mode dropping，不是對齊", "description": "RLHF 為了不出錯逼模型極度保守，把字符串概率分布整體毒化；TypeSafe 的 Jev 走另一條路，只優化 intelligence per dollar。", "abstract": "RLHF 為了不出錯逼模型極度保守，把字符串概率分布整體毒化；TypeSafe 的 Jev 走另一條路，只優化 intelligence per dollar。", "datePublished": "2026-09-21T22:13:49Z", "dateModified": "2026-09-22T13:31:31Z", "url": "https://ourword.ai/podcast/p/2026-09-21-latentspace-rlhf-的代价是-mode-dropping-不是对齐/", "timeRequired": "PT140M", "partOfSeries": {"@type": "PodcastSeries", "name": "Latent Space", "url": "https://ourword.ai/podcast/s/latentspace/"}, "inLanguage": "zh-TW", "isBasedOn": "https://www.latent.space/p/jev", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "模型訓練, RLHF, RLVR, 開發者工具, 推理優化, mode dropping, RLCD, RLVR, Noulli, intelligence per dollar, TFP 增長目標, 模型在世界經濟有價值工作上的佔比估計, 發布前試用者中沒看懂的比例, RLVR 相對 LLM 本身的研究價值倍數（Diogo 估計）, LLM 本身（RLHF、RLCD）的研究價值倍數（Diogo 估計）, 歐洲用戶相對加速倍數", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}, "associatedMedia": {"@type": "AudioObject", "contentUrl": "https://api.substack.com/feed/podcast/216783460/c2acac966e67afb7e71574f68a44a662.mp3"}}, {"@type": "Article", "@id": "https://ourword.ai/podcast/p/2026-09-21-latentspace-rlhf-的代价是-mode-dropping-不是对齐/#deepread", "headline": "RLHF 的代價是 mode dropping，不是對齊", "description": "RLHF 為了不出錯逼模型極度保守，把字符串概率分布整體毒化；TypeSafe 的 Jev 走另一條路，只優化 intelligence per dollar。", "articleBody": "RLHF 為了不出錯逼模型極度保守，把字符串概率分布整體毒化；TypeSafe 的 Jev 走另一條路，只優化 intelligence per dollar。\n[6:03] RLHF 的代價是 mode dropping。Diogo 認為沒人注意 RLHF 的 downsides，尤其是 mode dropping。機制是：為了生成很長的字符串而不出錯，模型必須極度保守，因為錯誤一眼可見，而看起來正確但微妙出錯的地方很難發現；這種校準對字符串的概率分布是「total poison」。他藉此解釋為什麼 Yann LeCun 那張「LLM 隨序列變長必然出錯」的圖數學上顯然、經驗上不成立——覆蓋分布時不會被離群值過度懲罰，mode drop 才會丟掉少數類。\n[11:12] 拒絕回答是類型錯誤，不是安全問題。Diogo 區分 safety alignment 和 capability alignment：後者是「做用戶想做的事」，前者是「跟隨別人的指令」，比如 OpenAI 和 Anthropic。他認為 safety alignment 對 ChatGPT、Claude 這類產品合理，但在 API 裡「nuts」「completely unacceptable」——如果依賴在後臺跑，用戶發一條奇怪消息就讓軟件隨機崩掉，是 insanity。他反對在技術層加限制，理由是每 overfit 一次就多 fracturing 一次智能，而現在的模型已經夠 fractured 了。\n[18:15] 公開 benchmark 是信任的替代品。Diogo 說自己 extremely anti-public benchmarks，因為極其 gameable：早年每個 lab 都有團隊專門收集像 MMLU 的數據來刷分，本質是「benchmarking with extra steps」。他承認智能有 je ne sais quoi（good model smell），所以人們需要 benchmark 來建立信任，但長期只能靠 vibes and trust，直到把模型放進具體 workflow 裡評估。他還說如果想讓 Jev 變笨，一年半前就能發。\n[27:34] RLCD 是新的 North Star，不是新算法。Diogo 說 RLHF 這個詞被混用了：原始工作是 Paul Christiano 教機器人後空翻，後來是 learning to summarize，再後來才是 instruction following。他真正稱之為 RLHF 的是「instruction following 這個 North Star」，跟 PPO 算法無關——就像 DPO 及其後代不用那篇論文的算法，也算 RLHF。RLCD 同理，是新的任務方向：programs in the loop，把 human 從循環裡拿掉。\n[40:38] 可靠性是 catchall，北極星是魯棒性。Diogo 把 reliability 定義成一個 catchall：AI 不能自動化某件事，歸根結底都是某種可靠性問題——可能是 type safety，可能是 determinism，也可能只是模型太 jagged。他明確反對把 determinism（同輸入同輸出）當北極星，認為它只對單元測試略有價值；真正重要的是 robustness——相似輸入得到相似輸出。測試方法是往 prompt 裡塞 UUID 之類的 nonce，看語義相同的問題是否給出相似答案。他說人們被 AI 決策坑到，就發生在 robustness 這一層。\n[1:17:12] 可靠性比速度和成本更被低估。Diogo 認為行業把注意力放錯了地方：「people focus too much on speed and cost and not enough on reliability」。他的判斷是可靠性才讓人愉悅、才讓人敢信任。他把這個和 TFP 增長掛鉤——他期待五年內 TFP 增長超過 3%，並說這才是經濟革命的標誌，也才是 OpenAI 章程原本想表達的東西。他估計現在所有模型在世界經濟有價值工作上大致都還停在零附近，可能還沒到 1%。\n[1:44:10] RLVR 的最優劑量是零。Diogo 直接說，對 TypeSafe 這種形態的模型，RLVR 的最優量是零。他的論證不是「RLVR 沒用」，而是「pacing the frontier」這個討論偷換了前提：它假設所有人都必須做更多 RLVR，而 RLVR 之所以看起來危險，是因為它讓模型在訓練中間可以「do anything they want」——你越不限制，模型在外部就越強。所以危險不是副作用，是設計目標。他稱之為一種「disillusion of responsibility」：把「我們必須做更多 RLVR」當成公理，再推出「我們正走向危險世界」的結論。\n[2:09:13] KV cache 是編碼智能體的暴政。Diogo 想探索「free from the tyranny of the KV cache」的編碼智能體。KV cache 把你鎖進一個模型，為了效率必須不斷 append，於是你沒法做狀態管理、抽象、分解這些正常軟件實踐。他由此解釋了幾個現象：為什麼 routing 很難、為什麼 sub-agent 看起來不 work、為什麼 compaction 是難題——因為傳遞狀態需要比讀狀態便宜得多的智能。他設想的方向包括：給子任務顯式標註狀態、在子任務樹裡搜索相關上下文、並行子智能體互相讀狀態、用智能鎖而非 basic-ass locks 協調。\n[6:03] Diogo Almeida：「沒人注意到的一件事是 RLHF 的缺點，尤其是 mode dropping。」\n[8:22] Diogo Almeida：「而這種校準，對字符串的概率分布來說就是徹底的毒藥。」\n[23:03] Diogo Almeida：「我願意把我們的模型想成——LLM 是 UDP，我們的模型是 TCP。」\n[1:01:21] Diogo Almeida：「system message 就像噁心的全局變量，你把所有東西都塞進去。」\n[1:17:12] Diogo Almeida：「我真的覺得人們太關注速度和成本，而對可靠性關注不夠。」\n[1:44:10] Diogo Almeida：「我認為對我們的形態來說，零是最優的量。」\n[1:49:20] Diogo Almeida：「如果你給我十億美金，我不會去預訓練。」\n[2:18:40] Diogo Almeida：「我不喜歡奇怪的層級，公司裡我最自豪的一點是，他們不怎麼尊重我，或者說他們不表現出來。他們 troll 我、跟我開玩笑，有時候對我態度很差，所有這些。我覺得這是文化的好信號。」\n[1:17:12] TFP 增長目標：五年內超過 3%\n[1:18:28] 模型在世界經濟有價值工作上的佔比估計：可能還沒到 1%\n[1:30:14] 發布前試用者中沒看懂的比例：超過一半\n[1:45:37] RLVR 相對 LLM 本身的研究價值倍數（Diogo 估計）：0.2（他說 0.5 或 1 也行，不在乎）\n[1:45:37] LLM 本身（RLHF、RLCD）的研究價值倍數（Diogo 估計）：2.2\n[2:18:40] 歐洲用戶相對加速倍數：3 倍（而非 100 倍）", "wordCount": 1498, "inLanguage": "zh-TW", "datePublished": "2026-09-21T22:13:49Z", "dateModified": "2026-09-22T13:31:31Z", "url": "https://ourword.ai/podcast/p/2026-09-21-latentspace-rlhf-的代价是-mode-dropping-不是对齐/", "about": {"@id": "https://ourword.ai/podcast/p/2026-09-21-latentspace-rlhf-的代价是-mode-dropping-不是对齐/#episode"}, "isBasedOn": "https://www.latent.space/p/jev", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "isAccessibleForFree": true}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首頁", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "Latent Space", "item": "https://ourword.ai/podcast/s/latentspace/"}, {"@type": "ListItem", "position": 3, "name": "RLHF 的代價是 mode dropping，不是對齊"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/tw/"><span class="wordmark">原聲<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<button class="pill ghost" id="lang-toggle" type="button" data-en="1" data-sc="繁體" data-tw="簡體"></button>
+<button class="icon-btn" data-theme-toggle aria-label="切換深淺色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，來原聲聽播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/tw/">首頁</a><span class="sep">/</span>
+<a href="/podcast/tw/c/ai/">AI / 技術</a><span class="sep">/</span><a href="/podcast/tw/s/latentspace/">Latent Space</a>
+<span class="sep">/</span><span>2026-09-21</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">Latent Space</span>
+<time class="date" datetime="2026-09-21T22:13:49Z">2026-09-21</time>
+<button class="share-btn" type="button" data-share data-share-title="RLHF 的代價是 mode dropping，不是對齊" data-share-url="https://ourword.ai/podcast/tw/e/latentspace-a5ad0126c3/" data-share-desc="RLHF 為了不出錯逼模型極度保守，把字符串概率分布整體毒化；TypeSafe 的 Jev 走另一條路，只優化 intelligence per dollar。" data-share-text="RLHF 的代價是 mode dropping，不是對齊&#10;Latent Space · 140 分鐘 · 原聲深讀&#10;&#10;RLHF 為了不出錯逼模型極度保守，把字符串概率分布整體毒化；TypeSafe 的 Jev 走另一條路，只優化 intelligence per dollar。&#10;&#10;https://ourword.ai/podcast/e/latentspace-a5ad0126c3/" aria-label="複製分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>RLHF 的代價是 mode dropping，不是對齊</h1>
+<p class="dek-lead">RLHF 為了不出錯逼模型極度保守，把字符串概率分布整體毒化；TypeSafe 的 Jev 走另一條路，只優化 intelligence per dollar。</p>
+<div class="ep-meta"><span class="tag">模型訓練</span><span class="tag">RLHF</span><span class="tag">RLVR</span><span class="tag">開發者工具</span><span class="tag">推理優化</span></div>
+</div>
+<div class="player" data-player-box>
+  <button class="video-facade" data-yt="cJ0EOzey--o" type="button"
+          aria-label="播放原節目視頻">
+    <span class="frame">
+      <img src="https://i.ytimg.com/vi/cJ0EOzey--o/hq720.jpg" alt="" loading="lazy" width="1280"
+           onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/cJ0EOzey--o/hqdefault.jpg'">
+      <span class="play" aria-hidden="true"><svg viewBox="0 0 44 44" width="44" height="44" focusable="false"><circle cx="22" cy="22" r="21" fill="rgba(18,16,13,.55)" stroke="rgba(255,255,255,.92)" stroke-width="1.5"/><path d="M17 14.5 32 22 17 29.5Z" fill="#fff"/></svg></span>
+    </span>
+  </button>
+  <div class="strip" data-audio-strip hidden>
+    <p class="afallback">原視頻在 YouTube 上放不出來，用音頻聽：</p>
+    <audio data-player controls preload="none" src="https://api.substack.com/feed/podcast/216783460/c2acac966e67afb7e71574f68a44a662.mp3"></audio>
+    <div class="aui" data-audio-ui data-dur="8453" hidden>
+      <button class="aplay" type="button" aria-label="播放"></button>
+      <div class="abar" role="slider" tabindex="0" aria-label="播放進度"
+           aria-valuemin="0" aria-valuemax="100"><div class="afill"></div></div>
+      <span class="atime"><span class="acur">0:00</span><span class="asep">/</span><span class="atot">--:--</span></span>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="why">信息密度高，Diogo 把 RLHF、RLVR、RLCD 的取捨講得很細，適合對模型訓練路線有判斷需求的人。</div></section>
+
+<section class="section"><h2>核心論點 · 點時間戳可跳到原聲</h2><div class="point" id="p0"><a class="ts" data-t="363" href="https://www.youtube.com/watch?v=cJ0EOzey--o&amp;t=363s" target="_blank" rel="noopener">6:03</a><div><h4>RLHF 的代價是 mode dropping</h4>
+<p class="body">Diogo 認為沒人注意 RLHF 的 downsides，尤其是 mode dropping。機制是：為了生成很長的字符串而不出錯，模型必須極度保守，因為錯誤一眼可見，而看起來正確但微妙出錯的地方很難發現；這種校準對字符串的概率分布是「total poison」。他藉此解釋為什麼 Yann LeCun 那張「LLM 隨序列變長必然出錯」的圖數學上顯然、經驗上不成立——覆蓋分布時不會被離群值過度懲罰，mode drop 才會丟掉少數類。</p>
+<span class="spk">— Diogo Almeida</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="672" href="https://www.youtube.com/watch?v=cJ0EOzey--o&amp;t=672s" target="_blank" rel="noopener">11:12</a><div><h4>拒絕回答是類型錯誤，不是安全問題</h4>
+<p class="body">Diogo 區分 safety alignment 和 capability alignment：後者是「做用戶想做的事」，前者是「跟隨別人的指令」，比如 OpenAI 和 Anthropic。他認為 safety alignment 對 ChatGPT、Claude 這類產品合理，但在 API 裡「nuts」「completely unacceptable」——如果依賴在後臺跑，用戶發一條奇怪消息就讓軟件隨機崩掉，是 insanity。他反對在技術層加限制，理由是每 overfit 一次就多 fracturing 一次智能，而現在的模型已經夠 fractured 了。</p>
+<span class="spk">— Diogo Almeida</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="1095" href="https://www.youtube.com/watch?v=cJ0EOzey--o&amp;t=1095s" target="_blank" rel="noopener">18:15</a><div><h4>公開 benchmark 是信任的替代品</h4>
+<p class="body">Diogo 說自己 extremely anti-public benchmarks，因為極其 gameable：早年每個 lab 都有團隊專門收集像 MMLU 的數據來刷分，本質是「benchmarking with extra steps」。他承認智能有 je ne sais quoi（good model smell），所以人們需要 benchmark 來建立信任，但長期只能靠 vibes and trust，直到把模型放進具體 workflow 裡評估。他還說如果想讓 Jev 變笨，一年半前就能發。</p>
+<span class="spk">— Diogo Almeida</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="1654" href="https://www.youtube.com/watch?v=cJ0EOzey--o&amp;t=1654s" target="_blank" rel="noopener">27:34</a><div><h4>RLCD 是新的 North Star，不是新算法</h4>
+<p class="body">Diogo 說 RLHF 這個詞被混用了：原始工作是 Paul Christiano 教機器人後空翻，後來是 learning to summarize，再後來才是 instruction following。他真正稱之為 RLHF 的是「instruction following 這個 North Star」，跟 PPO 算法無關——就像 DPO 及其後代不用那篇論文的算法，也算 RLHF。RLCD 同理，是新的任務方向：programs in the loop，把 human 從循環裡拿掉。</p>
+<span class="spk">— Diogo Almeida</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="2438" href="https://www.youtube.com/watch?v=cJ0EOzey--o&amp;t=2438s" target="_blank" rel="noopener">40:38</a><div><h4>可靠性是 catchall，北極星是魯棒性</h4>
+<p class="body">Diogo 把 reliability 定義成一個 catchall：AI 不能自動化某件事，歸根結底都是某種可靠性問題——可能是 type safety，可能是 determinism，也可能只是模型太 jagged。他明確反對把 determinism（同輸入同輸出）當北極星，認為它只對單元測試略有價值；真正重要的是 robustness——相似輸入得到相似輸出。測試方法是往 prompt 裡塞 UUID 之類的 nonce，看語義相同的問題是否給出相似答案。他說人們被 AI 決策坑到，就發生在 robustness 這一層。</p>
+<span class="spk">— Diogo Almeida</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="4632" href="https://www.youtube.com/watch?v=cJ0EOzey--o&amp;t=4632s" target="_blank" rel="noopener">1:17:12</a><div><h4>可靠性比速度和成本更被低估</h4>
+<p class="body">Diogo 認為行業把注意力放錯了地方：「people focus too much on speed and cost and not enough on reliability」。他的判斷是可靠性才讓人愉悅、才讓人敢信任。他把這個和 TFP 增長掛鉤——他期待五年內 TFP 增長超過 3%，並說這才是經濟革命的標誌，也才是 OpenAI 章程原本想表達的東西。他估計現在所有模型在世界經濟有價值工作上大致都還停在零附近，可能還沒到 1%。</p>
+<span class="spk">— Diogo Almeida</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="6250" href="https://www.youtube.com/watch?v=cJ0EOzey--o&amp;t=6250s" target="_blank" rel="noopener">1:44:10</a><div><h4>RLVR 的最優劑量是零</h4>
+<p class="body">Diogo 直接說，對 TypeSafe 這種形態的模型，RLVR 的最優量是零。他的論證不是「RLVR 沒用」，而是「pacing the frontier」這個討論偷換了前提：它假設所有人都必須做更多 RLVR，而 RLVR 之所以看起來危險，是因為它讓模型在訓練中間可以「do anything they want」——你越不限制，模型在外部就越強。所以危險不是副作用，是設計目標。他稱之為一種「disillusion of responsibility」：把「我們必須做更多 RLVR」當成公理，再推出「我們正走向危險世界」的結論。</p>
+<span class="spk">— Diogo Almeida</span></div></div>
+<div class="point" id="p7"><a class="ts" data-t="7753" href="https://www.youtube.com/watch?v=cJ0EOzey--o&amp;t=7753s" target="_blank" rel="noopener">2:09:13</a><div><h4>KV cache 是編碼智能體的暴政</h4>
+<p class="body">Diogo 想探索「free from the tyranny of the KV cache」的編碼智能體。KV cache 把你鎖進一個模型，為了效率必須不斷 append，於是你沒法做狀態管理、抽象、分解這些正常軟件實踐。他由此解釋了幾個現象：為什麼 routing 很難、為什麼 sub-agent 看起來不 work、為什麼 compaction 是難題——因為傳遞狀態需要比讀狀態便宜得多的智能。他設想的方向包括：給子任務顯式標註狀態、在子任務樹裡搜索相關上下文、並行子智能體互相讀狀態、用智能鎖而非 basic-ass locks 協調。</p>
+<span class="spk">— Diogo Almeida</span></div></div></section>
+<section class="section"><h2>原話 · 已逐字校驗</h2><blockquote class="quote"><p class="raw">One of the things that no one paid attention to was the downsides of RLHF, in particular mode dropping.</p>
+<p class="zh">沒人注意到的一件事是 RLHF 的缺點，尤其是 mode dropping。</p>
+<div class="attrib"><b>Diogo Almeida</b><a class="ts" data-t="363" href="https://www.youtube.com/watch?v=cJ0EOzey--o&amp;t=363s" target="_blank" rel="noopener">6:03</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">And that calibration is, like, total poison into, like, the probability distributions of strings.</p>
+<p class="zh">而這種校準，對字符串的概率分布來說就是徹底的毒藥。</p>
+<div class="attrib"><b>Diogo Almeida</b><a class="ts" data-t="502" href="https://www.youtube.com/watch?v=cJ0EOzey--o&amp;t=502s" target="_blank" rel="noopener">8:22</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">I would like to think of our model, like, kind of like, UDP as LLMs and TCP as our models.</p>
+<p class="zh">我願意把我們的模型想成——LLM 是 UDP，我們的模型是 TCP。</p>
+<div class="attrib"><b>Diogo Almeida</b><a class="ts" data-t="1383" href="https://www.youtube.com/watch?v=cJ0EOzey--o&amp;t=1383s" target="_blank" rel="noopener">23:03</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">System messages are, like, disgusting global variables where you just put everything in there</p>
+<p class="zh">system message 就像噁心的全局變量，你把所有東西都塞進去。</p>
+<div class="attrib"><b>Diogo Almeida</b><a class="ts" data-t="3681" href="https://www.youtube.com/watch?v=cJ0EOzey--o&amp;t=3681s" target="_blank" rel="noopener">1:01:21</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">And like, I really think that people focus too much on speed and cost and not enough on reliability.</p>
+<p class="zh">我真的覺得人們太關注速度和成本，而對可靠性關注不夠。</p>
+<div class="attrib"><b>Diogo Almeida</b><a class="ts" data-t="4632" href="https://www.youtube.com/watch?v=cJ0EOzey--o&amp;t=4632s" target="_blank" rel="noopener">1:17:12</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">I think zero is the optimal amount for our shape.</p>
+<p class="zh">我認為對我們的形態來說，零是最優的量。</p>
+<div class="attrib"><b>Diogo Almeida</b><a class="ts" data-t="6250" href="https://www.youtube.com/watch?v=cJ0EOzey--o&amp;t=6250s" target="_blank" rel="noopener">1:44:10</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">if you gave me a billion dollars, I wouldn’t pre-train.</p>
+<p class="zh">如果你給我十億美金，我不會去預訓練。</p>
+<div class="attrib"><b>Diogo Almeida</b><a class="ts" data-t="6560" href="https://www.youtube.com/watch?v=cJ0EOzey--o&amp;t=6560s" target="_blank" rel="noopener">1:49:20</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">I don’t like weird hierarchies and I think one of the things I’m most proud about in the company is that they don’t respect me that much or they don’t show that. They troll me and like, joke with me and they treat me poorly sometimes and all of that. And I think that’s a good sign of a culture.</p>
+<p class="zh">我不喜歡奇怪的層級，公司裡我最自豪的一點是，他們不怎麼尊重我，或者說他們不表現出來。他們 troll 我、跟我開玩笑，有時候對我態度很差，所有這些。我覺得這是文化的好信號。</p>
+<div class="attrib"><b>Diogo Almeida</b><a class="ts" data-t="8320" href="https://www.youtube.com/watch?v=cJ0EOzey--o&amp;t=8320s" target="_blank" rel="noopener">2:18:40</a></div>
+</blockquote></section>
+<section class="section"><h2>數字與實體</h2><table class="facts"><tr><td class="k">TFP 增長目標</td><td class="v">五年內超過 3%</td><td class="t"><a class="ts" data-t="4632" href="https://www.youtube.com/watch?v=cJ0EOzey--o&amp;t=4632s" target="_blank" rel="noopener">1:17:12</a></td></tr>
+<tr><td class="k">模型在世界經濟有價值工作上的佔比估計</td><td class="v">可能還沒到 1%</td><td class="t"><a class="ts" data-t="4708" href="https://www.youtube.com/watch?v=cJ0EOzey--o&amp;t=4708s" target="_blank" rel="noopener">1:18:28</a></td></tr>
+<tr><td class="k">發布前試用者中沒看懂的比例</td><td class="v">超過一半</td><td class="t"><a class="ts" data-t="5414" href="https://www.youtube.com/watch?v=cJ0EOzey--o&amp;t=5414s" target="_blank" rel="noopener">1:30:14</a></td></tr>
+<tr><td class="k">RLVR 相對 LLM 本身的研究價值倍數（Diogo 估計）</td><td class="v">0.2（他說 0.5 或 1 也行，不在乎）</td><td class="t"><a class="ts" data-t="6337" href="https://www.youtube.com/watch?v=cJ0EOzey--o&amp;t=6337s" target="_blank" rel="noopener">1:45:37</a></td></tr>
+<tr><td class="k">LLM 本身（RLHF、RLCD）的研究價值倍數（Diogo 估計）</td><td class="v">2.2</td><td class="t"><a class="ts" data-t="6337" href="https://www.youtube.com/watch?v=cJ0EOzey--o&amp;t=6337s" target="_blank" rel="noopener">1:45:37</a></td></tr>
+<tr><td class="k">歐洲用戶相對加速倍數</td><td class="v">3 倍（而非 100 倍）</td><td class="t"><a class="ts" data-t="8320" href="https://www.youtube.com/watch?v=cJ0EOzey--o&amp;t=8320s" target="_blank" rel="noopener">2:18:40</a></td></tr></table></section>
+<section class="section"><h2>術語</h2><dl class="terms"><div><dt>mode dropping<span>模式丟棄</span></dt><dd>模型為求穩而放棄生成某些合理但少見的輸出，導致多樣性喪失。</dd></div>
+<div><dt>RLCD<span>程序在環的強化學習</span></dt><dd>把人類從反饋循環中拿掉，用程序化信號做強化學習的新方向。</dd></div>
+<div><dt>RLVR<span>可驗證獎勵的強化學習</span></dt><dd>用可自動驗證的答案（如數學題）作為獎勵信號來訓練模型。</dd></div>
+<div><dt>Noulli<span>Noulli 原語</span></dt><dd>TypeSafe 的 API 原語之一，名字來自 Bernoulli，對應編程裡的 if 語句。</dd></div>
+<div><dt>intelligence per dollar<span>每美元智能</span></dt><dd>衡量單位成本能買到多少模型智能的指標，TypeSafe 的核心優化目標。</dd></div></dl></section>
+<section class="section"><h2>收聽指南</h2>
+<div class="panel guide">
+<div><span class="k">誰該聽</span><p>關注模型訓練路線、RLHF/RLVR 取捨、以及 AI 基礎設施形態的工程師和創業者。</p></div>
+<div><span class="k">可跳過</span><p>2:18:40 之後關於歐洲服務器和招聘的閒聊可跳過。</p></div>
+</div></section>
+<section class="related"><h2 class="sec-title">順著這個話題</h2><ul class="rel-list"><li><a href="/podcast/tw/p/2026-07-23-latentspace-poolside-小模型的持久性-比参数量更重要/"><span class="rel-t">小模型死磕8周，能打破基礎模型寡頭壟斷嗎</span><span class="rel-s">Latent Space</span></a></li><li><a href="/podcast/tw/p/2026-06-26-dwarkesh-ai-的下一个突破-在工作中学习-而非仅靠训练/"><span class="rel-t">AI 下一個突破不是訓練，是讓 AI 在工作中學習</span><span class="rel-s">Dwarkesh</span></a></li><li><a href="/podcast/tw/p/2026-08-03-latentspace-量化更多层反而更准-因为误差会互相抵消/"><span class="rel-t">量化更多層反而更準：誤差會互相抵消</span><span class="rel-s">Latent Space</span></a></li><li><a href="/podcast/tw/p/2026-08-21-huggingface-小模型指挥大模型-ai-科学家复现论文超过-claude/"><span class="rel-t">小模型指揮大模型：AI 科學家復現論文超過 Claude</span><span class="rel-s">Hugging Face</span></a></li><li><a href="/podcast/tw/p/2026-08-12-interconnects-ai写作停滞-长文非虚构是模型能力的试金石/"><span class="rel-t">AI寫作停滯：長文非虛構是模型能力的試金石</span><span class="rel-s">Interconnects</span></a></li></ul></section>
+<nav class="prevnext"><a href="/podcast/tw/p/2026-09-21-clearerthink-拖延不是意志力问题-下次你还会用同一个计划失败/"><span class="lbl">← 更新</span><strong>拖延不是意志力問題：下次你還會用同一個計劃失敗</strong></a><a class="r" href="/podcast/tw/p/2026-09-21-allin-ai-三年内会撞上能源墙-解法是造一台不像计算机的计算机/"><span class="lbl">更早 →</span><strong>AI 三年內會撞上能源牆，解法是造一臺不像計算機的計算機</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原節目</h4>
+<div class="row"><span>節目</span><span>Latent Space</span></div>
+<div class="row"><span>原標題</span><span>Jev: System One models for Prod, not God — with Diogo Almeida, CEO, TypeSafe AI</span></div>
+<div class="row"><span>發布</span><span>2026-09-21</span></div>
+<div class="row"><span>時長</span><span>2:20:53</span></div>
+<a class="row" href="https://www.latent.space/p/jev" target="_blank" rel="noopener"><span>原頁面</span><span>打開 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇結構</h4><nav class="toc"><a href="#p0"><span class="t">6:03</span><span>RLHF 的代價是 mode dropping</span></a>
+<a href="#p1"><span class="t">11:12</span><span>拒絕回答是類型錯誤，不是安全問題</span></a>
+<a href="#p2"><span class="t">18:15</span><span>公開 benchmark 是信任的替代品</span></a>
+<a href="#p3"><span class="t">27:34</span><span>RLCD 是新的 North Star，不是新算法</span></a>
+<a href="#p4"><span class="t">40:38</span><span>可靠性是 catchall，北極星是魯棒性</span></a>
+<a href="#p5"><span class="t">1:17:12</span><span>可靠性比速度和成本更被低估</span></a>
+<a href="#p6"><span class="t">1:44:10</span><span>RLVR 的最優劑量是零</span></a>
+<a href="#p7"><span class="t">2:09:13</span><span>KV cache 是編碼智能體的暴政</span></a></nav></div>
+
+<div class="panel"><h4>這篇是怎麼來的</h4>
+<div class="row"><span>成稿評分</span><span>7 / 10</span></div>
+<div class="row"><span>文稿來源</span><span>官方全文</span></div>
+<div class="row"><span>文稿字數</span><span>28339</span></div>
+<div class="row"><span>語速核驗</span><span>201.2 wpm</span></div>
+<div class="row"><span>逐字校驗金句</span><span>8 條</span></div>
+<div class="row"><span>回溯校驗數字</span><span>6 條</span></div>
+<div class="row"><span>質檢剔除</span><span>2 處</span></div>
+<p class="note">金句在逐字稿裡逐字比對過，數字回原文核對過；對不上的當場刪掉，不上站。
+成稿另經一道獨立評審（信息密度／忠實度／選擇力／具體性／中文），低於 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原聲 · <a href="https://ourword.ai">OurWord.ai</a>的播客線。內容為原播客的中文深讀，
+版權歸各節目所有；每篇都附原節目鏈接，請去支持原作者。</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/tw/" lang="zh">人類世界生存法則</a> · <a href="/podcast/tw/">原聲</a></div>
+<div class="links"><a href="/podcast/tw/">首頁</a><a href="/podcast/tw/sources/">信源</a>
+<a href="/podcast/tw/log/">更新日誌</a><a href="/podcast/tw/feed.xml">RSS</a>
+<a href="/podcast/tw/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源碼</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=d235129544" defer></script>
+</body></html>
