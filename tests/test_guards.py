@@ -9470,3 +9470,60 @@ class JudgingASourceNeedsEnoughEvidence(unittest.TestCase):
         rv = importlib.import_module("lib.review")
         self.assertGreaterEqual(c.MIN_REVIEW_MEDIAN, rv.MIN_SCORE,
                                 "降级线低于评审及格线 —— 发得出来的稿不可能低于它")
+
+
+class UsageLedgerMergesByAddingWhatEachSideAdded(unittest.TestCase):
+    """两条部署线同一天写同一份账本，合并规则是 ours + theirs - base。
+
+    到装上驱动为止，这个三方加法手工做过 5 次，每次结论都一样 ——
+    所以它不该继续留在脑子里。手工做的风险不是麻烦，是**算错了没人看得出来**：
+    账本合完永远是一份合法 JSON，数目少算一截也照样跑。
+    """
+
+    def _merge(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return importlib.import_module("merge_usage")
+
+    def test_both_sides_additions_survive(self):
+        m = self._merge()
+        base = '{"2026-09-20": {"asr": {"calls": 10}}}'
+        ours = '{"2026-09-20": {"asr": {"calls": 14}}}'      # 本地 +4
+        theirs = '{"2026-09-20": {"asr": {"calls": 13}}}'    # 云端 +3
+        got = json.loads(m.merge(base, ours, theirs))
+        self.assertEqual(17, got["2026-09-20"]["asr"]["calls"],
+                         "同一天同一角色两边各加各的，合完必须两笔都在")
+
+    def test_the_shared_history_is_not_counted_twice(self):
+        """最容易错的是这条：只有一边动过时，base 那份不能再加一遍。"""
+        m = self._merge()
+        base = '{"d": {"r": {"calls": 100}}}'
+        ours = '{"d": {"r": {"calls": 100}}}'
+        theirs = '{"d": {"r": {"calls": 105}}}'
+        got = json.loads(m.merge(base, ours, theirs))
+        self.assertEqual(105, got["d"]["r"]["calls"],
+                         "把 base 重复计了 —— 200 开头的账就是这么来的")
+
+    def test_a_date_only_one_side_has_is_kept(self):
+        m = self._merge()
+        got = json.loads(m.merge('{}', '{"a": {"r": {"calls": 1}}}',
+                                 '{"b": {"r": {"calls": 2}}}'))
+        self.assertEqual({"a", "b"}, set(got), "只有一边有的日期被丢了")
+
+    def test_a_shape_it_does_not_understand_stays_a_conflict(self):
+        """账目宁可停下来让人看，不要悄悄算出一个错数。"""
+        m = self._merge()
+        with self.assertRaises(TypeError,
+                               msg="值不是数还照算 —— 该退回冲突"):
+            m.merge('{}', '{"d": {"r": {"model": "opus"}}}', '{}')
+
+    def test_the_driver_is_actually_wired_up(self):
+        """**闸自己会跳过。** 光有脚本没登记，合并时根本不会被调到。"""
+        attrs = (ROOT / ".gitattributes").read_text()
+        self.assertRegex(attrs, r"(?m)^data/usage\.json\s+merge=usage$",
+                         ".gitattributes 里没登记，驱动永远不会被 git 调用")
+        cfg = subprocess.run(["git", "config", "--get", "merge.usage.driver"],
+                             cwd=ROOT, capture_output=True, text=True).stdout
+        self.assertIn("merge_usage.py", cfg,
+                      "merge.usage.driver 没配 —— 换台机器 clone 下来就失效了，"
+                      "所以 scripts/preflight.sh 每次都会补登记")

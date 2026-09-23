@@ -22,6 +22,18 @@ step() { printf '\n\033[1m▸ %s\033[0m\n' "$1"; }
 bad()  { printf '  \033[31m✗ %s\033[0m\n' "$1"; fail=1; }
 good() { printf '  \033[32m✓ %s\033[0m\n' "$1"; }
 
+step "合并驱动"
+# usage.json 的三方加法是**按 clone 配置**的，不跟着仓库走。
+# 我们有三个检出（这台、launchd 那份、CI），只在一台配过等于没配 ——
+# 另外两台照样判冲突，然后照样有人手算，然后总有一次算错。
+if [ "$(git config --get merge.usage.driver)" != "python3 pipeline/merge_usage.py %O %A %B" ]; then
+  git config merge.usage.name "逐日逐角色累加，ours+theirs-base"
+  git config merge.usage.driver "python3 pipeline/merge_usage.py %O %A %B"
+  good "已登记（这个检出之前没配）"
+else
+  good "已登记"
+fi
+
 step "守护检查与单元测试"
 if $PY -m unittest discover -s tests -q 2>&1 | tail -3 | grep -q '^OK'; then
   good "$($PY -m unittest discover -s tests 2>&1 | grep -o 'Ran [0-9]* tests') 全过"

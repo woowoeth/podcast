@@ -2,11 +2,11 @@
  "slug": "2026-09-20-crossing-机器人还在-gpt-1-阶段-真正的信号是成功率不是-loss",
  "of": "crossing-2404ed1d4c",
  "source_lang": "zh",
- "title": "Robots Are Still at the GPT-1 Stage — the Real Signal Is Success Rate, Not Loss",
- "dek": "The Scaling Law signal for embodied intelligence has arrived, but we're measuring the wrong metric: low loss doesn't mean high success rate, and fitting the 17 steps that never touch the object is meaningless.",
- "why": "Xu Mengdi, assistant professor at Tsinghua's Institute for Interdisciplinary Information Sciences, on data, world models and In-Context Learning for embodied intelligence — the mid-to-late section on the data flywheel and the loss trap is the most valuable part.",
- "who": "Founders, researchers and investors working on embodied intelligence, especially anyone agonizing over data collection routes, world models vs. VLA, and how to evaluate model progress.",
- "skip": "The opening rapid-fire Q&A and the Hengshui High School story can be skipped; go straight to the embodied-startup and data section after the 44-minute mark.",
+ "title": "Robots Are Still at GPT-1, and the Real Signal Is Success Rate, Not Loss",
+ "dek": "The Scaling Law signal for embodied intelligence has already appeared, but the metric being measured is wrong: low loss does not mean low success rate, and fitting the 17 steps in the middle where nothing touches the object is meaningless.",
+ "why": "Xu Mengdi, assistant professor at Tsinghua's Institute for Interdisciplinary Information Sciences, on data, world models and In-Context Learning for embodied intelligence; the middle and later sections on the data loop and the loss trap are the most valuable.",
+ "who": "Founders, researchers and investors working on embodied intelligence, especially anyone agonizing over data collection routes, world models vs VLA, and how to evaluate model progress.",
+ "skip": "The opening rapid-fire Q&A and the Hengshui High School story can be skipped; go straight to the embodied startup and data section after 44 minutes.",
  "tags": [
   "Embodied AI",
   "Robotics",
@@ -16,42 +16,42 @@
  ],
  "points": [
   {
-   "h": "Pretraining isn't everything — adaptation is what matters",
-   "body": "Xu Mengdi's CMU best doctoral thesis is titled Building Adaptable Generalist Robots, and its core claim is: pretraining is extremely useful, but you can't hope a robot will succeed 100% of the time on pretraining alone. The defining feature of the open world is that tasks keep changing — a home has 20 objects today, a week later it has 30 of different kinds, and people's preferences shift too. So the robot has to be able to adapt to change in its deployment environment and improve itself. She explored two paths: In-Context Learning and test-time training, the latter changing only 0.5% of the adapter parameters — but change too many and it forgets its pretrained knowledge."
+   "h": "Pretraining is not everything; adaptation is what matters",
+   "body": "Xu Mengdi's CMU best doctoral thesis is called Building Adaptable Generalist Robots, and its core claim is: pretraining is extremely useful, but you cannot hope a robot will succeed 100% of the time on pretraining alone. The defining feature of the open world is that tasks keep changing — at home there are 20 objects today, a week later 30 of different kinds, and people's preferences change too. So the robot must be able to adapt to change in its deployment environment and improve itself. She explored two paths: In-Context Learning and test-time training, the latter changing only 0.5% of the adapter parameters, though changing more causes it to forget pretrained knowledge."
   },
   {
    "h": "Why adaptation only became important now",
-   "body": "Humans generalize well for two reasons: an extremely strong prior, and the ability to learn things very fast. The mainstream approach until now has been to scale data and models so that multi-task and instruction-following abilities get stronger — essentially giving the model a strong enough prior first. But Xu Mengdi points out this doesn't mean adaptation is unimportant — it's just that people only recently realized it. And adaptation places demands on the base model: you don't want the robot's self-learning process in a real setting to be terrifying, like smashing a cup. So starting from pretraining is reasonable."
+   "body": "Human generalization is strong for two reasons: extremely strong priors, and learning things very fast. The mainstream approach until now has been to scale data and models so that multi-task and instruction-following abilities get stronger — essentially giving the model a sufficiently strong prior first. But Xu Mengdi points out this does not mean adaptation is unimportant — it is just that people only recently realized it. And adaptation places demands on the base model: you do not want the robot's self-learning process in a real scenario to be terrifying, like smashing a cup. So starting from pretraining is reasonable."
   },
   {
-   "h": "Low loss does not equal high success rate",
-   "body": "This is the most counterintuitive technical judgment in the whole piece. There's a very tricky point in robotics: loss is not directly tied to success rate. Loss can be very low while the final success rate is not necessarily low — there's a lot of oscillation. Her example: a task might take 20 steps in total, and the first 17 steps make no contact with the object. Even if those 17 steps fit extremely well, if step 18, when contact actually happens, has a relatively large error, the task fails easily. This is an imbalance in the time sequence. So a Scaling Law that actually means something should be: as data gradually increases and the model gradually grows, success rate on unseen tasks gradually rises."
+   "h": "Low loss does not mean high success rate",
+   "body": "This is the most counterintuitive technical judgment in the whole piece. There is a very tricky point in robotics: loss is not directly tied to success rate; loss can be very low while the final success rate is not necessarily low, and there will be a lot of oscillation. Her example: a task might take 20 steps in total, and the first 17 steps involve no contact with the object. Even if those 17 steps fit extremely well, if step 18, when contact actually happens, has a relatively large error, the task fails easily. This is a temporal imbalance. So a meaningful Scaling Law should be: as data gradually increases and the model gradually grows, success rate on unseen tasks gradually rises."
   },
   {
    "h": "Robots are still at the GPT-1 moment",
-   "body": "Today's mainstream embodied models are still ‘pretraining + fine-tuning on the target domain’, which can be compared to the GPT-1 stage of language models — GPT-1 itself also needed targeted post-training to solve the corresponding tasks. What Xu Mengdi really wants to reach is the GPT-3 moment: giving the model task information through ICL, through prompting, with no fine-tuning needed — telling the model what to do purely through context. That way fine-tuning's share drops even lower, it scales more easily to more scenarios and more tasks, and ordinary people can use it too."
+   "body": "The mainstream embodied models today are still ‘pretraining + fine-tuning on the target domain’, which can be compared to the GPT-1 stage of language models — GPT-1 itself also needed targeted post-training to solve the corresponding tasks. What Xu Mengdi really wants to achieve is the GPT-3 moment: giving the model task information through ICL, through prompting, without fine-tuning, telling the model what to do only through context. That way the weight of fine-tuning becomes weaker, it is easier to scale to more scenarios and complete more tasks, and ordinary people can use it too."
   },
   {
-   "h": "The data flywheel is a chicken-and-egg problem",
-   "body": "The hardest point is whether you can give the model a stable data flywheel. That requires putting the robot into end-user homes or service scenarios, having a suitable mentor to teach it, and the robot showing obvious progress after half an hour of teaching — only then will end users be willing to use it, and only then does the data flywheel start turning. But there's a chicken-and-egg problem here: the base model needs to be good enough and learn fast enough, yet the model also needs to get into the scenario first so users start using it, in order to draw out that base capability. So whether the data flywheel can be made to work is the riskiest point of all."
+   "h": "The data loop is a chicken-and-egg problem",
+   "body": "The hardest point is whether the model can have a stable data loop. This requires putting the robot into end-user homes or service scenarios, having a suitable mentor to teach it, and the robot must show obvious progress after being taught for half an hour before end users are willing to use it, so the data loop can start turning. But there is a chicken-and-egg problem here: the base model needs to be good enough and learn fast enough, yet the model also needs to enter the scenario first so users start using it, in order to bring out the base capability. So whether the data loop can be made to work is the riskiest point."
   },
   {
    "h": "Data is defined by working backward from model capability",
-   "body": "Data itself gets fed to the model, but the definition of data isn't conjured out of thin air — it's defined by the model's capabilities. When people define data, what they're actually doing is: figuring out what capabilities the model needs, and working backward to how the data should be collected. If you need smoother motion, the data has to be of the smooth kind; if you need fail-recovery ability, the data has to be collected with failures and corrections in it. And right now people's definition of model capability is still fairly vague, so the data requirements are vague too."
+   "body": "Data itself gets fed to the model, but the definition of data is not invented out of thin air — it is defined by the model's capability. When people define data, what they are actually doing is: figuring out what capability the model needs, and working backward to how the data should be collected. For example, if you need smoother motions, the data should be of the smooth type; if you need fail-recovery capability, the data should be collected with failures and corrections. And right now people's definition of model capability is still fairly vague, so the data requirements are vague too."
   },
   {
    "h": "Each of the four data types has its own place",
-   "body": "Xu Mengdi's position is that of a fusionist, because different data teaches the model different things. Teleoperation data is closest to the robot body itself, suited to the post-training stage, making the model more directly relevant to the target domain. Simulation data easily produces position generalization and texture generalization, making the model more robust to visual change, and suits pretraining or the front end of mid-training. UMI data sits in the middle, more like robot data but cheaper to collect. Human data is the cheapest, can be spread widely across different scenarios, and what it teaches is scene variation and task-relevant information, less tied to the specific shape of the morphology."
+   "body": "Xu Mengdi's position is fusion, because different data teaches the model different things. Teleoperation data is closest to the robot body, suitable for the post-training stage, making the model more directly relevant to the target domain. Simulation data easily creates position generalization and texture generalization, making the model more robust to visual changes, suitable for pretraining or the front end of mid-training. UMI data sits in the middle, more like robot data but cheaper to collect. Human data is the cheapest, can be spread widely across different scenarios, and what is learned is scene variation and task-related information, less related to the specific shape of the morphology."
   },
   {
    "h": "AI-written papers are obvious at a glance",
-   "body": "Robotics papers have been doubling recently, and Xu Mengdi's way of coping is to scroll through articles promoted by the researchers she follows, because the author list itself has already done a layer of filtering. She can clearly see that some articles have a very large AI-written component. Her judgment: AI-written articles may pass review and genuinely get into some conferences, but overall the quality still won't be higher than human-written ones, because they look familiar while in fact many arguments are riddled with holes and there isn't much content. Once she finds out a paper was AI-written, her interest in it is discounted."
+   "body": "Robotics papers have recently been doubling in growth, and Xu Mengdi's way of coping is to scroll through articles promoted by researchers she follows, because the author list itself has already done a layer of filtering. She can clearly see that some articles have a very large AI-written component. Her judgment: AI-written articles may pass review and actually get into some conferences, but overall the quality still will not be higher than human-written ones, because they look familiar but actually have many holes in the arguments and do not contain much. If she finds out an article was AI-written, her interest in it drops."
   }
  ],
  "terms": [
   {
    "term": "In-Context Learning",
-   "def": "Adapting a model to a new task purely through context in the prompt, without changing model parameters."
+   "def": "Adapting a model to a new task through context in the prompt without changing model parameters."
   },
   {
    "term": "VLA",
@@ -59,11 +59,11 @@
   },
   {
    "term": "UMI",
-   "def": "A data collection method sitting between robot data and human data, at lower cost."
+   "def": "A data collection method between robot data and human data, with lower cost."
   },
   {
    "term": "MAML",
-   "def": "Model-agnostic meta-learning: teaching a model to adapt quickly to unseen tasks — the occasion that brought Xu Mengdi into the field."
+   "def": "Model-agnostic meta-learning, which lets a model learn to quickly adapt to unseen tasks; the occasion that got Xu Mengdi into the field."
   },
   {
    "term": "algorithm distillation",
@@ -71,24 +71,24 @@
   },
   {
    "term": "no free lunch",
-   "def": "Once you make a choice, you have to accept the dimension on which it is weaker."
+   "def": "Once you choose a decision, you have to bear its weaker aspects."
   }
  ],
  "facts": [
   {
-   "k": "Share of adapter parameters",
+   "k": "adapter parameter share",
    "v": "0.5%"
   },
   {
-   "k": "Example robot task step count",
+   "k": "example robot task step count",
    "v": "20 steps"
   },
   {
-   "k": "Pretraining data scale signal",
+   "k": "pretraining data scale signal",
    "v": "100,000 hours to 1,000,000 hours"
   },
   {
-   "k": "Embodied marathon progress",
+   "k": "embodied marathon progress",
    "v": "10 km / one quarter"
   },
   {
@@ -98,13 +98,13 @@
  ],
  "quotes": [
   {
-   "text": "The hardest point is, um, whether you can give this model a stable data flywheel.",
+   "text": "The hardest point is actually, um, whether you can give this model a stable data loop.",
    "translated": true
   },
   {
-   "text": "Data itself gets fed to the model, right? But the definition of data isn't conjured out of thin air — the definition of data is defined by the model's capabilities.",
+   "text": "Data itself gets fed to the model, right? But the definition of data is not invented out of thin air — the definition of data is defined by the model's capability.",
    "translated": true
   }
  ],
- "model": "openai:deepseek-chat"
+ "model": "openai:gpt-4o-mini"
 }
