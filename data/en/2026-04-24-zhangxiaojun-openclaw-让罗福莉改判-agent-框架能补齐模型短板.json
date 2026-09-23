@@ -1,0 +1,146 @@
+{
+ "slug": "2026-04-24-zhangxiaojun-openclaw-让罗福莉改判-agent-框架能补齐模型短板",
+ "of": "zhangxiaojun-3e0311b6c1",
+ "source_lang": "zh",
+ "title": "OpenClaw made Luo Fuli reverse her call: an agent framework can cover a model's weak spots",
+ "dek": "She first thought it was just an operations-flavored shell. After installing it late one night during Spring Festival, it took over her life and her research within two days. Her conclusion: a full agent orchestration can lift a mid-tier model's weak spots to near the top.",
+ "why": "If you want to know how model companies will array their forces in 2026, this episode gives concrete judgments on compute allocation, model architecture trade-offs and organizational playbooks. There is a lot of spoken repetition; you can listen at higher speed.",
+ "who": "AI engineers and model team leads, plus investors trying to read the 2026 Agent race and where compute is flowing.",
+ "skip": "2:19–2:22, the TTS details are mostly product teasers and can be skipped.",
+ "tags": [
+  "Agent",
+  "Post-training",
+  "Model architecture",
+  "Compute",
+  "Org management"
+ ],
+ "points": [
+  {
+   "h": "It made a skeptic reverse her call within three days",
+   "body": "Luo Fuli initially thought OpenClaw was just ‘Claude Code plus an IM UI’, and combined with the founder's operational push, she was strongly averse to it. She installed it late one night during Spring Festival and talked to it from 2 a.m. until dawn at 6: the first day she felt it had warmth and a soul, that it would remind her to go to bed early; the second day she handed it the hard problems in her life and work, and it did all of them; the third day she handed it a research task — building a user agent that simulates multi-turn user interaction — and it was done in an hour or two. That is how she saw its product logic: use a whole agent orchestration to cover the model's weak spots, and once it is hooked up you no longer have to worry about whether the model has video understanding. In those few days she burned nearly a thousand dollars on the first day alone."
+  },
+  {
+   "h": "A crowd editing the framework only made it stronger",
+   "body": "She pulled her team into a group chat to edit OpenClaw's framework together. In a group of over a hundred people with wildly different backgrounds, all editing frantically, nobody broke the model and nobody broke the agent framework — it actually got smarter. She says if she were editing alone, the framework would progress very slowly; with a crowd editing, it might iterate a round in a few hours. She connects this with OpenClaw's soaring star count and thinks it is something that must happen as a precursor to AGI. The accompanying move was concrete too: she told the team that the next day, anyone with fewer than 100 OpenClaw conversations could just quit — but she does not actually evaluate on it, she just wanted to say ‘if you don't use it you may fall behind’."
+  },
+  {
+   "h": "MLA is so perfect there is no room left to play",
+   "body": "Kimi and GLM, trained in the same period, both chose MLA. Luo Fuli says MLA is excellent for the Chat era and good for long text too, because it sharply reduces KV Cache. But it does not suit the Agent paradigm: MLA was designed from the start to push the ratio of memory access to compute to a perfect critical point, leaving no room to play — if you want to speed it up with speculative decoding like MTP, it gets stuck on compute bound again, so MLA-family models probably all skipped MTP and are somewhat slower. They therefore chose the Hybrid-Tension architecture; the Pro generation pushed the ratio of full-attention layers to sliding-window layers to 7:1, using sliding windows to save KV Cache and MTP to fill the saved compute back in."
+  },
+  {
+   "h": "Research needs more cards than training does",
+   "body": "Her compute allocation is roughly 3:1:1 for research, pre-training and post-training — pre-training and post-training get comparable compute, while research must at least exceed the total cards used for formal training; you have to set aside more cards for research. The real bottleneck is exactly here: ideas are born and code is written too fast, and you get stuck on cards, having to launch many experiments in parallel to validate one idea. She says a 1T model is the ticket to getting close to the frontier, training such a model takes several thousand cards, and the cards actually spent on research are 3 to 5 times that. In the old Chat era the ratio of pre-training to post-training was 3:1 or even 5:1; this year top teams should all be at 1:1."
+  },
+  {
+   "h": "Having a hierarchy means assuming the boss is smarter",
+   "body": "Luo Fuli's team is 100 people, with no groups and no job levels; only twenty to thirty or thirty to forty people are actually committed to iterating one model generation, and the intern ratio is high. She explains why they do not split into groups: first, many people are interested in both pre-training and post-training, and too-clear group boundaries kill creativity; second, people doing pre-training naturally care more about data diversity, and moving to post-training is a good complement. She thinks the value of flatness is letting everyone contribute creativity and intelligence equally, that any hierarchy is to some degree regulation and constraint, and that regulation and constraint themselves suppress creativity; hierarchy also assumes by default that the person at that level should be smarter than everyone else, which is a very strange definition."
+  },
+  {
+   "h": "No survival crisis, so large models evolve more freely",
+   "body": "She puts human evolution and large-model evolution into two environments: humans evolved for survival as nature changed, and language came only at the very top, so it is an upright triangle; a large model amplifies language enormously from the start, so it is an inverted triangle. The difference is that large models have no survival crisis — if they do not replace anyone, they will not die. She judges that without a survival crisis it will instead evolve more freely, more loosely, more creatively, because it has so much compute available, all of humanity's knowledge as a starting point, and so many people helping it improve. This is also why she thinks AI's evolutionary path will not be the same as humanity's."
+  },
+  {
+   "h": "China and the US have almost no generation gap in pre-training",
+   "body": "She thinks several domestic companies already have a 1T base, including KIMI, MIMO and others. At the current level, if reaction speed is fast enough, the generation gap with the top models is only two or three months — not catching up to the model of two or three months later, but catching up to the contemporary model. The premise of this judgment is that at the pre-training level there is almost no generation gap, and China may even have an architectural advantage. She also comments on MiniMax: achieving the current agent capability with a model ten times smaller is impressive, and its post-training agility is very high, but without a 1T base it has not truly matched that level; no domestic company currently has both a base and agility."
+  },
+  {
+   "h": "Environment buys you capability better than experience does",
+   "body": "Only about a third to a quarter of her team has any training experience at all, and most have only trained 7B or 14B scale models; large-model experience basically cannot be reused. Her judgment is that these capabilities can all be washed away quickly, a month or two at most, three or four months at the slow end; what matters is whether you put people into an environment and drive them with a higher standard. So she says environment matters more than experience, and what she cares about is not hiring experienced people but whether she has built an environment where everyone improves faster and learns from each other. That is also why she had a group of people with no large-model background build Flash: to let this group complete their own evolution in the process of doing the work."
+  }
+ ],
+ "terms": [
+  {
+   "term": "OpenClaw / open-source agent framework",
+   "def": "What Luo Fuli calls an epoch-making agent framework, open-source and modifiable, using orchestration to cover a model's weak spots"
+  },
+  {
+   "term": "MTP / multi-token prediction",
+   "def": "Added during pre-training to raise base capability, and used at inference to fill idle compute and speed up generation"
+  },
+  {
+   "term": "MLA / multi-head latent attention",
+   "def": "Written as MA/MIA in the transcript; compresses KV Cache to serve long text, and is said to have no room left for optimization"
+  },
+  {
+   "term": "Hybrid-Tension / hybrid attention architecture",
+   "def": "Full-attention layers and sliding-window layers at a 7:1 ratio, saving KV Cache while keeping long-text capability"
+  },
+  {
+   "term": "Non-Colice / long context (transcript rendering)",
+   "def": "Refers to the efficiency and cost of long context, the core design goal of this generation of model architectures"
+  },
+  {
+   "term": "Skills",
+   "def": "Task experience co-accumulated by people and agents, readable by agents, turning tacit experience into reusable assets"
+  }
+ ],
+ "facts": [
+  {
+   "k": "Single-day Opus 4.6 API spend",
+   "v": "nearly $1000"
+  },
+  {
+   "k": "Model inference speed",
+   "v": "Flash 100–150 TPS, Pro 60–100 TPS"
+  },
+  {
+   "k": "Ratio of full-attention layers to sliding-window layers",
+   "v": "7:1"
+  },
+  {
+   "k": "Research : pre-training : post-training compute allocation",
+   "v": "about 3:1:1"
+  },
+  {
+   "k": "Research cards relative to training cards",
+   "v": "3–5x"
+  },
+  {
+   "k": "Card scale for training a 1T model",
+   "v": "several thousand cards"
+  },
+  {
+   "k": "Team size and people actually committed to iterating one model generation",
+   "v": "100 people / twenty to thirty to thirty to forty people"
+  },
+  {
+   "k": "Progress along the AGI journey and this year's expectation",
+   "v": "20% done, could reach sixty or seventy this year"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "It's essentially a middle layer, like a middle layer between the person and the model, right, and this middle layer can be made very thick, and instead the front-end UI display is the thinnest layer, it's no longer very critical.",
+   "translated": true
+  },
+  {
+   "text": "I think this is also the first time I felt how you use a crowd's intelligence to lift a thing itself.",
+   "translated": true
+  },
+  {
+   "text": "Why hasn't it become mainstream? Everyone believes in MA too much, I think. Everyone believes in MA too much.",
+   "translated": true
+  },
+  {
+   "text": "Because the birth of an idea and, um, getting your hands moving and writing the code out, is too fast, and now what are you stuck on? Stuck on cards.",
+   "translated": true
+  },
+  {
+   "text": "Any hierarchy should to some degree be regulation and constraint, and regulation and constraint themselves, I think, suppress creativity.",
+   "translated": true
+  },
+  {
+   "text": "When there is no survival crisis, it instead evolves more freely, and more loosely, more creatively.",
+   "translated": true
+  },
+  {
+   "text": "I think if the reaction speed is fast enough, there should be only a two or three month generation gap.",
+   "translated": true
+  },
+  {
+   "text": "I think a month or two at most, three or four months at the slow end, they really can all be washed away quickly, so environment matters more than today.",
+   "translated": true
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}

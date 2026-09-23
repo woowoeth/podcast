@@ -20,11 +20,36 @@ import unicodedata
 from .util import log, parse_ts, squeeze
 
 # Text that must never reach a reader: it is about our own plumbing.
+# **只有「我们的工具在说自己」才算泄漏，产品名本身不算。**
+# whisper / ffmpeg 既是我们的取稿工具，也是公开产品 —— 聊硅谷 AI 的节目当然会
+# 讨论 OpenAI 的 Whisper。而这条判据是**不可恢复**失败，整篇直接毙掉：
+# 实测张小珺那期「和美国科技界人士聊硅谷AI的冷与热」就是这么没的，
+# 站上另有一条金句里出现 whisper（金句不在扫描范围，漏了过来）—— 说明这个词
+# 真的出现在节目内容里。已发布的稿里 0 篇提到它，那是幸存者偏差：提到的都被毙了。
+#
+# 真正的泄漏总是带着故障语境（「由于本机 yt-dlp 字幕脚本环境异常，本篇根据
+# 公开信息整理」）。所以分两组：工具名本身无歧义的直接拦；
+# 同时是产品名的那几个，要和故障词同现才算。
 LEAK = re.compile(
-    r"(yt-dlp|youtube-transcript-api|whisper|ffmpeg|本机|脚本依赖|环境异常|"
+    r"(yt-dlp|youtube-transcript-api|脚本依赖|环境异常|"
     r"抓取失败|无法获取字幕|自动字幕|逐字稿(?:获取|抓取)|转写失败|"
     r"根据公开|备份整理|由于.{0,12}异常|作为(?:一个)?(?:AI|语言模型)|"
     r"as an ai language model|i (?:cannot|can't) access)", re.I)
+
+# 既是我们的工具、也是别人会讨论的产品。只有和故障／本机语境同现才算泄漏。
+AMBIGUOUS_TOOL = re.compile(r"(whisper|ffmpeg|本机)", re.I)
+TOOL_CONTEXT = re.compile(
+    r"(失败|异常|报错|超时|依赖|环境|脚本|未能|无法|取不到|降级|回退|"
+    r"fail|error|timeout|fallback)", re.I)
+
+
+def _tool_leak(blob: str):
+    """产品名旁边有没有故障语境。有才算我们的工具在说自己。"""
+    for m in AMBIGUOUS_TOOL.finditer(blob):
+        around = blob[max(0, m.start() - 40):m.end() + 40]
+        if TOOL_CONTEXT.search(around):
+            return m
+    return None
 
 # Sentences that occupy space without carrying information.
 FILLER = re.compile(
@@ -250,7 +275,7 @@ def check(d: dict, tr: dict, ep: dict) -> tuple[bool, list[str], dict]:
     blob = " ".join([d.get("title", ""), d.get("dek", ""), d.get("why", ""),
                      d.get("who", ""), d.get("skip", "")]
                     + [p.get("body", "") + p.get("h", "") for p in d.get("points", [])])
-    m = LEAK.search(blob)
+    m = LEAK.search(blob) or _tool_leak(blob)
     if m:
         return False, [f"meta/pipeline leakage: {m.group(0)!r}"], d
     m = FILLER.search(blob)

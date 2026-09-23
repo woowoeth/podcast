@@ -6687,6 +6687,53 @@ class APublishedEpisodeMustNotVanishSilently(unittest.TestCase):
             lost, f"{len(lost)} 篇已发布的集不见了，又没有下站记录：{lost[:3]}")
 
 
+class AProductNameIsNotPipelineLeakage(unittest.TestCase):
+    """工具名同时是别人的产品名 —— 只有「我们的工具在说自己」才算泄漏。
+
+    whisper / ffmpeg 既是我们的取稿工具，也是公开产品。泄漏判据把它们列成
+    无条件黑名单，而这条是**不可恢复**失败：整篇直接毙掉，连重试都不给。
+    实测张小珺那期「和美国科技界人士聊硅谷AI的冷与热」就是这么没的 ——
+    一档聊硅谷 AI 的节目讨论 OpenAI 的 Whisper，再正常不过。
+
+    「已发布的稿里 0 篇提到 whisper」不能用来证明没有误伤 —— 那是幸存者偏差，
+    提到的都被毙了。真正的证据是：金句区（不在扫描范围内）有一条出现了它。
+
+    真泄漏总带着故障语境：「由于本机 yt-dlp 字幕脚本环境异常，本篇根据公开信息整理」。
+    所以产品名要和故障词同现才算。
+    """
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.g = importlib.import_module("lib.gate")
+
+    def _leak(self, t):
+        return bool(self.g.LEAK.search(t) or self.g._tool_leak(t))
+
+    def test_discussing_the_product_is_not_leakage(self):
+        for t in ("OpenAI 的 Whisper 把语音转成文字，成本降了一个数量级。",
+                  "他们用 ffmpeg 处理了上百万小时音频。",
+                  "Whisper 开源之后，语音转写的门槛整体下移。"):
+            self.assertFalse(self._leak(t),
+                             f"正常讨论产品被判成泄漏，整篇会被毙掉：{t[:24]}")
+
+    def test_our_tooling_talking_about_itself_is_still_caught(self):
+        for t in ("由于本机 whisper 环境异常，本篇根据公开信息整理。",
+                  "ffmpeg 调用失败，转写没跑完。",
+                  "由于本机 yt-dlp 字幕脚本环境异常，本篇根据公开信息整理。"):
+            self.assertTrue(self._leak(t), f"真的泄漏没拦住：{t[:24]}")
+
+    def test_unambiguous_tool_names_need_no_context(self):
+        """yt-dlp 这种不会是别人的话题，单独出现就是泄漏。"""
+        self.assertTrue(self._leak("用 yt-dlp 取的"))
+        self.assertTrue(self._leak("as an AI language model"))
+
+    def test_the_caller_checks_both_lists(self):
+        src = (ROOT / "pipeline" / "lib" / "gate.py").read_text()
+        self.assertIn("LEAK.search(blob) or _tool_leak(blob)", src,
+                      "只查了一张表 —— 另一张写了没人用")
+
+
 class AQuoteMustNotCarrySpeechToTextGarbage(unittest.TestCase):
     """逐字引用里不能留语音转写的残渣。
 

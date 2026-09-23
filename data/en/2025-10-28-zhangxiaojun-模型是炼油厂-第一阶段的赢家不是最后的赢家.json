@@ -1,0 +1,126 @@
+{
+ "slug": "2025-10-28-zhangxiaojun-模型是炼油厂-第一阶段的赢家不是最后的赢家",
+ "of": "zhangxiaojun-57d8c4b0f9",
+ "source_lang": "zh",
+ "title": "The model is an oil refinery: the winner of the first stage is not the winner of the last",
+ "dek": "In business history, the companies that run out ahead in the first wave are almost never the winners of the next stage. Model companies are refineries that extract base oil; the value is in the chemical plants and the car companies.",
+ "why": "A four-hour paper walkthrough: high information density but a slow pace. Better for jumping around like a reference book than for listening straight through on a commute.",
+ "who": "Engineers and product managers who want to systematically catch up on AI papers but don't know where to start; suited to jumping around by chapter like a reference book.",
+ "skip": "The Infra and data section from 1:52:58 to 2:21:28 — the guest admits to knowing less about it, so you can fast-forward.",
+ "tags": [
+  "Paper deep-read",
+  "Model paradigms",
+  "Infra",
+  "Multimodal",
+  "AI history"
+ ],
+ "points": [
+  {
+   "h": "The GPU's victory was not foresight, it was persistence",
+   "body": "In 1999 the GeForce 256 pulled 3D computation out of the CPU, and in 2001 programmable shaders were introduced, which is what made the GPU programmable. In 2004 Brook for GPU abstracted away the underlying graphics hardware and became the predecessor of CUDA. The key judgment: Jensen Huang did not see AI coming. In Nvidia's 2012 vision for the GPU, modern AI was basically absent, and ATI had built something like CUDA at the time too — it just didn't stick with it and exited the market. In CUDA's early days, graphics cards saw no gain in gaming performance and BOM cost nearly doubled; Jensen Huang persisted for roughly a decade before scientific computing paid off."
+  },
+  {
+   "h": "Before ResNet, bigger models actually got worse",
+   "body": "In 2015 people found that stacking a model past 100 layers didn't make it better, it made it worse — this is called model degradation, meaning that what everyone now knows as scaling simply did not work at the time. ResNet introduced residuals, changing the learning target from \"turn X directly into Y\" to \"how much to add to or subtract from X to get Y\"; the latter is easier to learn, and it also alleviates vanishing and exploding gradients, essentially dissolving the degradation problem. Only after that could networks of hundreds or even thousands of layers be trained; before then they were usually limited to a few dozen layers. This paper has close to 300,000 citations, more than Transformer."
+  },
+  {
+   "h": "AlphaGo Zero inspired the thinking mode",
+   "body": "AlphaGo Zero used only reinforcement learning and gave the model no human prior knowledge at all: the model knew only the Go board and the rules, not game records, liberties or eyes. It used fewer cards than the version that beat Lee Sedol and surpassed it after training for only 36 hours. The more far-reaching impact was that it ran 1,600 MCTS searches for every move, which inspired OpenAI to do scaling at test time — that is, O1's thinking mode. A counterintuitive point: if a model does no test-time computing, its capabilities are actually not as strong as we imagine."
+  },
+  {
+   "h": "COT shifted the center of scaling from pretraining to post-training",
+   "body": "After 2017 everyone scaled models desperately, but the gains in arithmetic, common sense and symbolic reasoning were not obvious — not every domain has a scaling law. Meanwhile, using SFT to solve reasoning problems meant building reasoning datasets at very high cost, requiring many PhDs. COT found that simply showing the model the intermediate steps of a derivation greatly improves performance on reasoning tasks — this is the origin of \"please think step by step.\" It made the whole industry realize that many capabilities were already contained in the model, just not activated, and the center of scaling shifted from pretraining to post-training, which also influenced the birth of later thinking models."
+  },
+  {
+   "h": "OpenAI and DeepMind disagreed about scaling",
+   "body": "Two scaling law papers found a log-linear relationship between language model training and loss, so small-model experiments could predict the effect after scaling up and avoid spending three months opening a blind box. But the two reached different conclusions: OpenAI recommended training the largest possible model under a given compute budget, even if that meant stopping training early; DeepMind argued this would leave many models undertrained and advocated scaling model size and training token count in equal proportion — double the parameters, double the data. DeepMind also showed that training a smaller model on more data is better than training a larger model on less data, because small models have lower inference cost, which is why many small models today are trained on excessive data."
+  },
+  {
+   "h": "Only three companies in the world have 10,000-card training experience",
+   "body": "Between 2020 and 2022, only about three companies in the world had experience connecting 10,000 cards to train: OpenAI, Google and DeepSeek. When DeepSeek built Firefly No. 2 it was already a very large cluster, more than they could use, and they even let university teachers and students apply to use it on academic grounds. The challenge of using 10,000 cards as one card lies in training efficiency and training stability: more cards is not necessarily better, and if you get it wrong 10,000 cards can be less efficient than 1,000; GPUs fail at the 10,000-card scale, both physical damage and bit flips, requiring a deeply observable system to monitor, diagnose, attribute, automatically locate faults and automatically recover."
+  },
+  {
+   "h": "DeepSeek designed right up against the H800's bandwidth limit",
+   "body": "DeepSeek's cards are H800s, whose characteristic is relatively narrow bandwidth. With narrow bandwidth, tensor parallelism can't move the model: if bandwidth is only 80G and the model to be transferred is 20G, you can only split across 4 cards — try 5 and you're blocked. Their parallelism design sits right against the H800's limits, achieving an almost exact balance of computation and communication, so computation doesn't have to wait for communication. In training today MFU is only 50% or even less, meaning nearly half the GPU compute is left idle; in theory, if you could hit 100%, you could buy half as many cards."
+  },
+  {
+   "h": "A tuned 1.3B model is more obedient than 175B",
+   "body": "GPT-3 was powerful but not usable: it generated untrue, toxic and unhelpful content, and its instruction-following ability was poor. These problems did not improve as scaling improved — scaling up from GPT-1's 0.1B by a factor of ten thousand did not fully solve them either. InstructGPT used reinforcement learning from human feedback, hiring more than 40 contractors to build SFT data and ranking data, amplifying the good-versus-bad signal by one or two orders of magnitude. The result: a 1.3B GPT-3 tuned this way followed instructions better than the 175-billion-parameter GPT-3, a 100-fold reduction in parameter count. This made the industry realize that beyond simply enlarging the model, optimizing post-training methods yields very large gains too."
+  }
+ ],
+ "terms": [
+  {
+   "term": "MFU / Model FLOPs Utilization",
+   "def": "The proportion of GPU compute actually used; today it is usually only 50% or even less."
+  },
+  {
+   "term": "MOE / Mixture of Experts",
+   "def": "A very large-parameter model activates only a small subset of parameters per inference, lowering inference cost."
+  },
+  {
+   "term": "COT / Chain of Thought",
+   "def": "Having the model show the intermediate steps of a derivation, which greatly improves performance on reasoning tasks."
+  },
+  {
+   "term": "LoRA / Low-Rank Adaptation",
+   "def": "Fine-tuning by attaching a small matrix beside the model without changing the original model; it can be merged at inference time."
+  },
+  {
+   "term": "RLHF / Reinforcement Learning from Human Feedback",
+   "def": "Training a reward model on human ranking data, then adjusting model behavior with reinforcement learning."
+  },
+  {
+   "term": "Optical flow",
+   "def": "The motion shadow obtained by subtracting adjacent frames, containing the motion information in a video."
+  }
+ ],
+ "facts": [
+  {
+   "k": "AlphaGo Zero training time",
+   "v": "36 hours"
+  },
+  {
+   "k": "AlphaGo Zero MCTS searches per move",
+   "v": "1,600"
+  },
+  {
+   "k": "ResNet citations",
+   "v": "close to 300,000"
+  },
+  {
+   "k": "GPT-2 parameter count",
+   "v": "1.5 billion"
+  },
+  {
+   "k": "Number of contractors hired by InstructGPT",
+   "v": "more than 40"
+  },
+  {
+   "k": "Number of LAION-5B image-text pairs",
+   "v": "5B"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "Then Mai said we don't provide any explanation of the model, any explanation of why the model works. If it works, we attribute it to the grace of God.",
+   "translated": true
+  },
+  {
+   "text": "So finding a good question, a core question, is crucial. And you'll find — you'll find — that if we look back, these good questions don't seem that hard.",
+   "translated": true
+  },
+  {
+   "text": "He said that over the 70 years since we got intelligence, we found that general methods that exploit computation ultimately proved most effective, and by a significant margin. He said the root cause lies in a certain law, or more broadly, the continuous exponential decline in the cost per unit of computation.",
+   "translated": true
+  },
+  {
+   "text": "So AI researchers try to encode knowledge into their agents. This always works in the short term and is personally satisfying; it has payoffs, but in the long run it hits a plateau and even hinders progress. Breakthroughs ultimately come from the opposite path: scaling computation through searching and learning.",
+   "translated": true
+  },
+  {
+   "text": "You'll find that if you don't train with labeled data, the model loses its ability to understand human body structure.",
+   "translated": true
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}
