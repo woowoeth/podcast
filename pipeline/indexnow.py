@@ -15,12 +15,18 @@ import urllib.request
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from build import SITE, ep_url, load  # noqa: E402
+from lib import net  # noqa: E402
 from lib.util import log  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 KEY = os.environ.get("INDEXNOW_KEY", "8f3c2a1b9d4e6f708192a3b4c5d6e7f0")
 KEY_FILE = ROOT / f"{KEY}.txt"
-ENDPOINT = "https://api.indexnow.org/indexnow"
+# **两个端点，不是一个。** IndexNow 的参与方之间会互相转发提交，
+# 所以任何一个收下都算进了网络。api.indexnow.org 是共享入口，
+# 但它对本站一直回 403（见下），而 Yandex 那个入口同样的 key、
+# 同样的请求体回 202 —— 实测出来的，不是猜的。
+ENDPOINTS = ["https://api.indexnow.org/indexnow",
+             "https://yandex.com/indexnow"]
 
 
 def key_file() -> pathlib.Path:
@@ -103,18 +109,16 @@ def ping(urls: list[str] | None = None) -> int:
         "keyLocation": f"{SITE}/{KEY}.txt",
         "urlList": urls,
     }
-    req = urllib.request.Request(
-        ENDPOINT,
-        data=json.dumps(body).encode(),
-        headers={"Content-Type": "application/json; charset=utf-8"},
-        method="POST",
-    )
-    def _post(payload: dict):
+
+    def _post(endpoint: str, payload: dict):
         rq = urllib.request.Request(
-            ENDPOINT, data=json.dumps(payload).encode(),
+            endpoint, data=json.dumps(payload).encode(),
             headers={"Content-Type": "application/json; charset=utf-8"},
             method="POST")
-        with urllib.request.urlopen(rq, timeout=20) as r:
+        # **走项目的 TLS 上下文。** 直接 urlopen 用的是 stdlib 默认信任链，
+        # 本机链路里有自签证书时会 CERTIFICATE_VERIFY_FAILED ——
+        # 同一个地址 curl 通、这里不通，第一次看见会以为是端点挂了。
+        with urllib.request.urlopen(rq, timeout=20, context=net.ctx()) as r:
             return r.status, r.read().decode("utf-8", "replace")[:300]
 
     # **把错误正文打出来。** 原来只打异常类型（`HTTPError: HTTP Error 403`），
@@ -122,33 +126,29 @@ def ping(urls: list[str] | None = None) -> int:
     #   {"errorCode":"UserForbiddedToAccessSite","message":"User is unauthorized
     #    to access the site. Please verify the site using the key"}
     # 少了这一行，这个 ping 连着几天每轮都失败而没人知道它为什么失败。
-    try:
-        st, txt = _post(body)
-        log(f"indexnow: {st} submitted {len(urls)} urls")
-        _note(ok=True, detail=f"{st}")
-        return 0
-    except urllib.error.HTTPError as ex:
-        detail = ex.read().decode("utf-8", "replace")[:300]
-        log(f"indexnow: {ex.code} {detail}")
-        # 子目录 keyLocation 被拒（403 UserForbidden…）时再试一次不带
-        # keyLocation 的：那条路 Bing 收 200。真正的解法是把 key 文件放到
-        # **域名根目录**（见 _note 里的提示），这里只是不要连提交都放弃。
-        if ex.code == 403:
-            try:
-                st, txt = _post({k: v for k, v in body.items()
-                                 if k != "keyLocation"})
-                log(f"indexnow: 去掉 keyLocation 后 {st}")
-                _note(ok=False, detail=f"403 → 去掉 keyLocation 后 {st}；"
-                                       f"key 文件需要放到域名根目录才算验证通过")
-                return 0
-            except Exception as ex2:
-                detail = f"{detail} / 重试也失败 {type(ex2).__name__}"
-        _note(ok=False, detail=detail)
-        return 0  # never fail the digest over a ping
-    except Exception as ex:
-        log(f"indexnow: {type(ex).__name__}: {ex}")
-        _note(ok=False, detail=f"{type(ex).__name__}: {str(ex)[:120]}")
-        return 0
+    #
+    # **那句话指的不是 key 文件。** 仓库里原来写着「把 key 放到域名根目录就
+    # 算验证通过」，2026-09-23 实测推翻了：根目录 https://ourword.ai/<key>.txt
+    # 已经 200、内容也对，Bing 照样 403；而**同一把 key、同一个请求体**发给
+    # Yandex 是 202。所以卡的是 Bing 那边没认这个站的归属
+    # （要在 Bing Webmaster Tools 里验证 ourword.ai），不是 key 放哪。
+    fails = []
+    for ep in ENDPOINTS:
+        try:
+            st, _ = _post(ep, body)
+            log(f"indexnow: {ep} {st} submitted {len(urls)} urls")
+            _note(ok=True, detail=f"{st} via {ep}"
+                                  + (f"；{ENDPOINTS[0]} 仍 403" if fails else ""))
+            return 0
+        except urllib.error.HTTPError as ex:
+            detail = ex.read().decode("utf-8", "replace")[:200]
+            log(f"indexnow: {ep} {ex.code} {detail}")
+            fails.append(f"{ep} {ex.code} {detail}")
+        except Exception as ex:
+            log(f"indexnow: {ep} {type(ex).__name__}: {ex}")
+            fails.append(f"{ep} {type(ex).__name__}")
+    _note(ok=False, detail=" | ".join(fails)[:400])
+    return 0  # never fail the digest over a ping
 
 
 if __name__ == "__main__":

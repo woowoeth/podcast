@@ -4,6 +4,7 @@
 真实事故；纯文档防不住重犯，能断言的就断言。
 """
 import hashlib
+import io
 import json
 import os
 import pathlib
@@ -7958,12 +7959,41 @@ class IndexNowFailuresMustNotBeSilent(unittest.TestCase):
         # **判据要落在调用上，不是定义上。** 第一版只查文件里有没有
         # "indexnow.json" 这串 —— 而它在 _note 的定义里，
         # 把所有调用删光照样通过。
-        i = src.index("def ping(")
-        body = src[i:]
-        calls = body.count("_note(")
-        self.assertGreaterEqual(
-            calls, 3, f"ping 里只调了 {calls} 次 _note —— 成功、失败、"
-                      f"重试后失败三条路径都要留痕")
+        # **判据要落在行为上，不是调用点个数上。** 前两版都错过：
+        #   v1 只查文件里有没有 "indexnow.json" —— 那串在 _note 的定义里，
+        #      把所有调用删光照样绿；
+        #   v2 改成数 ping() 里 `_note(` 出现几次，要求 ≥3（当时正好三条分支）。
+        #      2026-09-23 把那三条分支合并成一个端点循环 —— 每条出口依然留痕，
+        #      判据却红了。**它锁的是当时的写法，不是「必须留痕」这件事。**
+        # 现在真跑一遍：成功和失败两种结局，各自都得写下记录。
+        import urllib.error
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        m = importlib.import_module("indexnow")
+
+        class _Resp:
+            status = 202
+            def read(self): return b"{}"
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+
+        for label, ok_expected, fake in (
+            ("全部端点都拒", False,
+             lambda rq, timeout=None, context=None: (_ for _ in ()).throw(
+                 urllib.error.HTTPError(rq.full_url, 403, "no", {}, io.BytesIO(b"{}")))),
+            ("有端点收下", True,
+             lambda rq, timeout=None, context=None: _Resp()),
+        ):
+            notes = []
+            real_open, m.urllib.request.urlopen = m.urllib.request.urlopen, fake
+            real_note, m._note = m._note, lambda ok, detail: notes.append(ok)
+            try:
+                m.ping(["https://ourword.ai/podcast/"])
+            finally:
+                m.urllib.request.urlopen = real_open
+                m._note = real_note
+            self.assertEqual([ok_expected], notes,
+                             f"「{label}」这条路径没留下记录（或记反了）")
         hc = (ROOT / "pipeline" / "healthcheck.py").read_text()
         self.assertIn("check_indexnow(r)", hc, "体检没挂上这一条")
         self.assertIn("indexnow.json", hc, "体检不读那份记录")
@@ -9527,3 +9557,73 @@ class UsageLedgerMergesByAddingWhatEachSideAdded(unittest.TestCase):
         self.assertIn("merge_usage.py", cfg,
                       "merge.usage.driver 没配 —— 换台机器 clone 下来就失效了，"
                       "所以 scripts/preflight.sh 每次都会补登记")
+
+
+class IndexNowDoesNotGiveUpOnTheFirstEndpoint(unittest.TestCase):
+    """一个端点拒了要接着试下一个，并且请求要走项目的 TLS 上下文。
+
+    2026-09-18～23 这个 ping 连着 **9 轮** 全废。两层原因，都很安静：
+      · 只发 api.indexnow.org 一家，它对本站回 403，于是一条都没投出去；
+      · 仓库里写着「把 key 文件放到域名根目录就算验证通过」—— 实测推翻了：
+        根目录那份已经 200、内容也对，Bing 照样 403，而**同一把 key、
+        同一个请求体**发给 Yandex 是 202。卡的是 Bing 没认站点归属。
+    IndexNow 参与方之间互相转发，所以任一家收下就算进了网络。
+
+    第三层更阴：换到 Yandex 后本机报 CERTIFICATE_VERIFY_FAILED，
+    而同一个地址 curl 是通的 —— stdlib 默认信任链遇到本机链路里的自签证书。
+    看起来像「端点也挂了」，其实是我们自己没走 lib.net 的上下文。
+    """
+
+    def _mod(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return importlib.import_module("indexnow")
+
+    def test_a_refusal_from_the_first_endpoint_is_not_the_end(self):
+        m = self._mod()
+        self.assertGreater(len(m.ENDPOINTS), 1,
+                           "只配了一个端点 —— 它一拒，整轮提交就全废了")
+        import urllib.error
+        import urllib.request
+        tried = []
+
+        class _Resp:
+            status = 202
+
+            def read(self):
+                return b'{"success":true}'
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+        def fake(rq, timeout=None, context=None):
+            tried.append(rq.full_url)
+            if rq.full_url == m.ENDPOINTS[0]:
+                raise urllib.error.HTTPError(rq.full_url, 403, "Forbidden", {},
+                                             io.BytesIO(b'{"errorCode":"x"}'))
+            return _Resp()
+
+        real, m.urllib.request.urlopen = m.urllib.request.urlopen, fake
+        notes = {}
+        real_note, m._note = m._note, lambda ok, detail: notes.update(ok=ok, detail=detail)
+        try:
+            m.ping(["https://ourword.ai/podcast/"])
+        finally:
+            m.urllib.request.urlopen = real
+            m._note = real_note
+        self.assertEqual(m.ENDPOINTS[:2], tried[:2],
+                         "第一个端点 403 之后没接着试第二个")
+        self.assertTrue(notes.get("ok"),
+                        "第二个端点收下了（202），却还是记成失败 —— "
+                        "体检会一直报警，报到没人看")
+
+    def test_the_request_uses_the_project_trust_store(self):
+        """本机链路里有自签证书时，stdlib 默认上下文会把好端点判成挂了。"""
+        src = (ROOT / "pipeline" / "indexnow.py").read_text()
+        i = src.index("urllib.request.urlopen(")
+        self.assertIn("context=net.ctx()", src[i:i + 120],
+                      "没走 lib.net 的 TLS 上下文 —— "
+                      "curl 通而这里 CERTIFICATE_VERIFY_FAILED，会被当成端点故障")
