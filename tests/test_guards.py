@@ -20,29 +20,45 @@ sys.path.insert(0, str(ROOT / "pipeline"))
 class PushLoopsMustFailLoudly(unittest.TestCase):
     """事故：推送重试 8 次全失败，步骤仍报 success，11 篇内容随 runner 销毁。"""
 
+    OK_CHECK = r'\[ "\$ok" = 1 \] \|\| \{|if \[ "\$ok" != 1 \]'
+
     def _steps(self, name):
         return (ROOT / ".github/workflows" / name).read_text()
 
-    def test_every_push_retry_loop_checks_its_result(self):
-        for wf in ("daily.yml", "backfill.yml", "rescore.yml"):
-            body = self._steps(wf)
-            # 不去匹配 do...done 的配对：循环体里一旦出现嵌套的 while/for，
-            # 非贪婪的 `done` 会提前收口，判据就自己失效了（真发生过）。
-            # 改成从 `for` 往后取一段窗口，看结果检查在不在里面。
-            for m in re.finditer(r"for i in \$\(seq 1 \d+\); do", body):
-                win = body[m.start():m.start() + 1800]
-                if "git push" not in win:
-                    continue
-                self.assertTrue(
-                    re.search(r'\$ok"?\s*!?=\s*1|exit 1|::error::', win),
-                    f"{wf} 里有个含 git push 的重试循环没有检查结果")
+    @classmethod
+    def unchecked_push_loops(cls, body: str) -> int:
+        """含 git push 的重试循环里，有几个在循环**结束之后**没检查 $ok。
 
-    def test_the_guard_survives_a_nested_loop(self):
-        """这条守护自己踩过的坑：判据去配 do…done，循环体里加了个嵌套 while 之后
-        非贪婪的 done 提前收口，含 git push 的循环被跳过，检查静默失效。"""
-        body = self._steps("daily.yml")
-        self.assertIn("while read -r f", body)          # 确实有嵌套循环
-        self.assertRegex(body, r'\[ "\$ok" = 1 \] \|\| \{|if \[ "\$ok" != 1 \]')
+        不去配 do…done：循环体里一旦有嵌套 while/for，非贪婪的 done 会提前收口（真发生过）。
+        从 for 往后取窗口。**只认 $ok 的结果检查**：原来 `exit 1` / `::error::` 也算，
+        可 2026-09-24 循环体里加了「提交前核缺集」那行，它本身就带 exit 1 和 ::error:: ——
+        于是删掉循环后的 `[ "$ok" = 1 ]` 这道闸照样绿。
+        """
+        n = 0
+        for m in re.finditer(r"for i in \$\(seq 1 \d+\); do", body):
+            win = body[m.start():m.start() + 4000]
+            # 两种合格写法：循环后检查 $ok；或成功就 `git push && exit 0`、循环跑完落到 `exit 1`
+            exits = re.search(r"git push && exit 0", win) and re.search(r"\n\s*done\s*\n\s*exit 1\b", win)
+            if "git push" in win and not (re.search(cls.OK_CHECK, win) or exits):
+                n += 1
+        return n
+
+    def test_every_push_retry_loop_checks_its_result(self):
+        for wf in ("daily.yml", "backfill.yml", "rescore.yml", "fast.yml"):
+            self.assertEqual(0, self.unchecked_push_loops(self._steps(wf)),
+                             f"{wf} 里有个含 git push 的重试循环，结束后没检查 $ok")
+
+    def test_the_ruler_itself(self):
+        """先验尺子：有嵌套循环、循环体里带 exit 1 的样本，缺了 $ok 检查必须被认出来。"""
+        loop = ('for i in $(seq 1 8); do\n  if git push; then ok=1; break; fi\n'
+                '  git diff -z | while read -r f; do :; done\n'
+                '  python x || { echo "::error::x"; exit 1; }\ndone\n')
+        self.assertEqual(1, self.unchecked_push_loops(loop), "缺了 $ok 检查却没认出来")
+        self.assertEqual(0, self.unchecked_push_loops(loop + '[ "$ok" = 1 ] || { exit 1; }\n'),
+                         "有 $ok 检查却报缺")
+        exits = 'for i in $(seq 1 8); do\n  git push && exit 0\n  sleep 3\ndone\nexit 1\n'
+        self.assertEqual(0, self.unchecked_push_loops(exits), "成功即退出、跑完落到 exit 1 也是合格写法")
+        self.assertEqual(1, self.unchecked_push_loops(exits.replace("exit 1", "echo done")), "跑完没失败却没认出来")
 
     def test_workflows_do_not_swallow_push_failure_with_bare_break(self):
         for wf in ("daily.yml", "backfill.yml"):
@@ -673,7 +689,7 @@ class BotPushMustNotRevertSourceCode(unittest.TestCase):
         for f in ("scripts/local-daily.sh", ".github/workflows/daily.yml",
                   ".github/workflows/backfill.yml"):
             src = (ROOT / f).read_text()
-            self.assertIn("--diff-filter=D", src, f"{f} 没取回被删的数据文件")
+            self.assertIn("gitsync.py restore-deleted", src, f"{f} 没取回被删的数据文件")
             self.assertIn("--reconcile", src, f"{f} 没从磁盘重建 state.json")
 
     def test_reconcile_flag_exists_and_needs_no_llm(self):
@@ -9627,3 +9643,90 @@ class IndexNowDoesNotGiveUpOnTheFirstEndpoint(unittest.TestCase):
         self.assertIn("context=net.ctx()", src[i:i + 120],
                       "没走 lib.net 的 TLS 上下文 —— "
                       "curl 通而这里 CERTIFICATE_VERIFY_FAILED，会被当成端点故障")
+
+
+class RetryPathMustNotDeleteNonAsciiEpisodes(unittest.TestCase):
+    """推送重试时取回「远端有、本机磁盘没有」的数据文件，必须对中文文件名成立。
+
+    2026-09-23 13:29，本机线推送被拒后走重试分支：reset 到 origin/main，再用
+    `git diff --name-only … | while read f; do git checkout -- "$f"; done` 取回。
+    git 把中文路径转义成 "\\350\\266…"，checkout 找不到，`|| true` 吞掉失败，
+    19 篇已发布的集（18 篇张小珺）被当成本机删除推上去，从站上消失。
+    同一段代码还抄在云端 daily / fast / backfill 里。
+    """
+
+    def _repo(self, tmp):
+        import shutil
+        git = lambda *a, cwd: subprocess.run(["git", *a], cwd=cwd, check=True, capture_output=True)
+        origin = pathlib.Path(tmp) / "origin.git"; a = pathlib.Path(tmp) / "a"
+        git("init", "-q", "--bare", str(origin), cwd=tmp)
+        git("clone", "-q", str(origin), str(a), cwd=tmp)
+        git("config", "user.email", "t@t", cwd=a); git("config", "user.name", "t", cwd=a)
+        (a / "data" / "episodes").mkdir(parents=True)
+        zh = a / "data" / "episodes" / "2022-10-18-zhangxiaojun-越南不会成为世界工厂.json"
+        zh.write_text("{}"); (a / "data" / "episodes" / "ascii.json").write_text("{}")
+        git("add", "-A", cwd=a); git("commit", "-qm", "init", cwd=a); git("push", "-q", "origin", "HEAD:main", cwd=a)
+        return a, zh, git
+
+    def test_the_helper_brings_back_chinese_named_files(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            a, zh, git = self._repo(tmp)
+            zh.unlink(); (a / "data" / "episodes" / "ascii.json").unlink()
+            git("fetch", "-q", "origin", cwd=a); git("reset", "-q", "--mixed", "origin/main", cwd=a)
+            r = subprocess.run([sys.executable, str(ROOT / "pipeline" / "gitsync.py"), "restore-deleted", "data"],
+                               cwd=a, capture_output=True, text=True)
+            self.assertEqual(0, r.returncode, r.stderr)
+            self.assertTrue(zh.exists(), "中文名的集没被取回 —— 下一步 git add 就会把它当删除推上去")
+
+    def test_the_missing_check_sees_chinese_named_files(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            a, zh, git = self._repo(tmp)
+            zh.unlink()
+            r = subprocess.run([sys.executable, str(ROOT / "pipeline" / "gitsync.py"), "missing", "origin/main", "data/episodes"],
+                               cwd=a, capture_output=True, text=True)
+            self.assertEqual(1, r.returncode, "缺了一篇中文名的集，检查却报没缺")
+            self.assertEqual("1", r.stdout.strip())
+
+    def test_every_publish_line_restores_with_the_helper_and_checks_before_committing(self):
+        lines = {"scripts/local-daily.sh": 'commit -q -m "digest + build (local)"',
+                 ".github/workflows/daily.yml": 'git commit -m "build: regenerate site"',
+                 ".github/workflows/fast.yml": 'git commit -m "build: regenerate site"',
+                 ".github/workflows/backfill.yml": 'git commit -m "build: regenerate site"'}
+        for f, commit in lines.items():
+            src = (ROOT / f).read_text()
+            self.assertNotRegex(src, r"diff --name-only --diff-filter=D[^\n]*\|\s*while read",
+                                f"{f} 还在用会被中文路径打断的取回写法")
+            i = src.rindex(commit)
+            block = src[max(0, i - 2500):i]
+            self.assertIn("gitsync.py restore-deleted", block, f"{f} 的重试分支没用 gitsync 取回")
+            self.assertIn("gitsync.py missing origin/main data/episodes", block,
+                          f"{f} 的重试分支提交前没核缺集 —— 取回再静默失败一次，就又删一批")
+
+
+class LocalRetryPathKeepsTreeAndTranslations(unittest.TestCase):
+    """本机线重试分支的两个洞（2026-09-24 查 09-23 事故时发现）：
+
+    1. `reset --mixed` 只挪索引，磁盘上的源码还是旧版 —— HEAD 最新、跑的是旧程序；
+    2. 重试的 `git add` 漏了 data/en —— 译稿成了未跟踪文件，别的线提交同名文件后，
+       下一次同步被挡住、autostash 冲突，整条事故链从这里开始。
+    """
+
+    def _retry_block(self):
+        src = (ROOT / "scripts" / "local-daily.sh").read_text()
+        i = src.index("git reset -q --mixed origin/main")
+        j = src.index('commit -q -m "digest + build (local)"', i)
+        return src[i:j]
+
+    def test_source_dirs_are_realigned_after_reset(self):
+        b = self._retry_block()
+        self.assertRegex(b, r"git checkout -q origin/main -- pipeline scripts",
+                         "reset --mixed 之后没把源码对齐远端 —— 本机线会一直跑旧程序")
+
+    def test_translations_are_committed_on_the_retry_path(self):
+        b = self._retry_block()
+        adds = [l for l in b.splitlines() if l.strip().startswith("git add ")]
+        self.assertTrue(adds, "重试分支里没有 git add")
+        self.assertTrue(all("data/en" in l for l in adds),
+                        "重试分支的 git add 漏了 data/en —— 译稿会留成未跟踪文件，挡住下一次同步")

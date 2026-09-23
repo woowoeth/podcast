@@ -162,14 +162,16 @@ jobs:
             # 否则 git add 会把别人刚发的内容当成删除提交上去；state.json 是索引
             # 不是真相，从磁盘重建而不是三方合并。
             git reset --mixed origin/main
-            git diff --name-only --diff-filter=D -- data | while read -r f; do
-              git checkout -- "$f" 2>/dev/null || true
-            done
+            # 取回必须走 -z：非 ASCII 路径会被 git 转义，checkout 找不到文件又被 || true 吞掉，
+            # 2026-09-23 就这样把 19 篇中文名的已发布集当成删除推了上去（见 pipeline/gitsync.py）。
+            python pipeline/gitsync.py restore-deleted data
             python pipeline/run.py --reconcile || true
             python pipeline/build.py
             git add index.html sources s p feed.xml sitemap.xml robots.txt 404.html \
                     search.json llms.txt llms-full.txt icon.svg .nojekyll 2>/dev/null || true
             git diff --cached --quiet && { echo "site unchanged after rebuild"; ok=1; break; }
+            # 提交前再核一次：树里少了 origin 已有的集，提交就等于把它们删掉。
+            python pipeline/gitsync.py missing origin/main data/episodes >/dev/null || { echo "::error::重试后树里仍缺 origin 已有的集，拒绝提交（提交等于删除它们）"; exit 1; }
             git commit -m "build: regenerate site"
             echo "push retry $i"; sleep $(( (RANDOM % 7) + 3 ))
           done

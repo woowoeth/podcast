@@ -359,13 +359,21 @@ PYEOF
     #            直接 git add 会把别人刚发的内容删掉。只取回缺失的，不覆盖我们改过的。
     #   reconcile state.json 是索引不是真相，从磁盘重建，不参与合并。
     git reset -q --mixed origin/main
-    git diff --name-only --diff-filter=D -- data | while read -r f; do
-      git checkout -q -- "$f" 2>/dev/null || true
-    done
+    # **源码也要对齐。** --mixed 只挪索引，磁盘上的 pipeline/ scripts/ 还是旧版本，
+    # 于是 HEAD 看着是最新的、跑的却是旧程序（2026-09-24 体检：本机线跑的是几轮前的代码）。
+    # bot 不该改源码，所以这里直接让它们等于远端。
+    git checkout -q origin/main -- pipeline scripts tests .github assets 2>/dev/null || true
+    # 取回必须走 -z：非 ASCII 路径会被 git 转义，checkout 找不到文件又被 || true 吞掉，
+    # 2026-09-23 就这样把 19 篇中文名的已发布集当成删除推了上去（见 pipeline/gitsync.py）。
+    python3 pipeline/gitsync.py restore-deleted data
     python3 pipeline/run.py --reconcile >/dev/null 2>&1 || true
     python3 pipeline/build.py >/dev/null
-    git add data/episodes data/state.json data/sources.json data/heartbeat-local.json $SITE_FILES 2>/dev/null || true
+    # **data/en 也要加。** 原来重试分支漏了它：译稿留成未跟踪文件，别的线提交同名文件后，
+    # 下一次同步被这些文件挡住、autostash 冲突——2026-09-23 那次事故就是从这里开始的。
+    git add data/episodes data/en data/state.json data/sources.json data/heartbeat-local.json $SITE_FILES 2>/dev/null || true
     if git diff --cached --quiet; then echo "已是最新，无需推送"; exit 0; fi
+    # 提交前再核一次：树里少了 origin 已有的集，提交就等于把它们删掉。
+    python3 pipeline/gitsync.py missing origin/main data/episodes >/dev/null || { echo "重试后树里仍缺 origin 已有的集，拒绝提交"; exit 1; }
     git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
         commit -q -m "digest + build (local)"
     sleep $((RANDOM % 5 + 3))
