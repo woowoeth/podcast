@@ -232,6 +232,39 @@ class TraditionalSite(unittest.TestCase):
                     break
         self.assertEqual([], bad[:3], "繁体页里有分词切错的组合")
 
+    def test_5_speaker_names_keep_their_surname(self):
+        """说话人姓氏不许被转成另一个字。
+
+        OpenCC 按词义转，不知道「余凯」「范卫锋」是人名，于是把姓改了：
+        余→餘、范→範。实测三个人被改姓、46 处，站上挂了很久 ——
+        **而且每一条单看都是合法繁体词**，歧义字白名单那道检查只让人看
+        三字上下文，「 餘凱」和「其餘」长得一模一样，看一百遍也看不出来。
+
+        判据落在**机制**上，不落在这三个名字上：人名在数据层是结构化的
+        （`digest.quotes[].spk`），逐个过一遍转换，转完还含歧义字的就报出来。
+        姓氏正常转形（谢→謝、张→張）不含歧义字，不会误伤。
+        """
+        import json as _json
+        import glob as _glob
+        names = set()
+        for f in _glob.glob(os.path.join(ROOT, "data", "episodes", "*.json")):
+            with open(f, encoding="utf-8") as fh:
+                d = _json.load(fh)
+            for q in (d.get("digest") or {}).get("quotes") or []:
+                spk = (q.get("spk") or "").strip()
+                if re.fullmatch(r"[\u4e00-\u9fa5]{2,4}", spk):
+                    names.add(spk)
+        # **先验尺子。** 取数通路一变（字段改名、结构调整），这条判据会
+        # 一声不响地变成「零个名字全都合格」—— 那正是它该拦的故障的样子。
+        self.assertGreater(len(names), 20,
+                           "一个说话人都没抓到 —— digest.quotes[].spk 取不到了，"
+                           "这条判据在空转")
+        bad = sorted(n for n in names
+                     if any(c in TW.AMBIGUOUS for c in TW.convert(n)))
+        self.assertEqual([], bad,
+                         "这些说话人的名字里出现了歧义字，多半是姓氏被转错了。"
+                         "确认是人名就往 tw.py 的 FIX 里加一对。")
+
 
 if __name__ == "__main__":
     unittest.main()
