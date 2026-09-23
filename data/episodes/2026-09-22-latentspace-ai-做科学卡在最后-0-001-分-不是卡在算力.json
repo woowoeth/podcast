@@ -1,0 +1,249 @@
+{
+ "id": "latentspace-7a32689f9e",
+ "slug": "2026-09-22-latentspace-ai-做科学卡在最后-0-001-分-不是卡在算力",
+ "fingerprint": "76b62893caf2905b",
+ "source_id": "latentspace",
+ "source": "Latent Space",
+ "source_zh": "Latent Space",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "讲AI做科学的机制与瓶颈",
+ "tier": 1,
+ "lang": "en",
+ "title_original": "🔬 An Oscar, Two Asteroids, and the Algorithm in Your sklearn: John Platt on AI for Science",
+ "published": "2026-09-22T21:07:39Z",
+ "duration": 7286,
+ "audio": "https://api.substack.com/feed/podcast/216845528/6eca91d6e6b9017b8cc853a8a8dd27b8.mp3",
+ "link": "https://www.latent.space/p/john-platt",
+ "image": "https://substackcdn.com/feed/podcast/1084089/post/216845528/a97fdd55a76d32d8c200c5c93a8d73e6.jpg",
+ "youtube_id": "",
+ "video_len": 0,
+ "transcript_url": "https://api.substack.com/feed/podcast/216845528/6eca91d6e6b9017b8cc853a8a8dd27b8.mp3",
+ "digest": {
+  "title": "AI 做科学卡在最后 0.001 分，不是卡在算力",
+  "dek": "ERA 能跑出成千上万个候选 notebook，却关不上最后 30 名的差距——因为内层是机器，外层还得靠人判断「这篇论文你搞错了」。",
+  "why": "信息密度高，但需要一点耐心：前半段讲 ERA 的机制，后半段讲凝结尾迹、野火和量子计算，都是第一手细节。",
+  "points": [
+   {
+    "t": 564,
+    "h": "ERA 的输入是聊天，输出是带分数的 notebook",
+    "body": "ERA 的产品形态不是让人写配置文件，而是直接开聊。因为把科学问题映射成 scorable task 这件事本身不显然，Michael Brenner 专门写了一个 agent 来对话式地帮你定义该优化什么分数。聊完之后底下生成一个 Python notebook，里面有一个产出分数的函数，然后系统开始「clever way」地变异这个 notebook，不断提出新代码去把分数推高。",
+    "spk": "John Platt"
+   },
+   {
+    "t": 624,
+    "h": "它不总挑最好的那个候选",
+    "body": "ERA 内部跑的是 Monte Carlo Tree Search，同时保留成百上千个 notebook 候选，候选池是树状的。选择用强化学习里的 upper confidence bound：估计一次变异的第 95 百分位结果，挑乐观上界最高的那个。所以它并不总是贪心地选当前表现最好的 notebook，有时会选第五好的，为的是更高效地探索。它还试过把两个候选的想法拼起来生成第三个。",
+    "spk": "John Platt"
+   },
+   {
+    "t": 1118,
+    "h": "进化式编程卡了几十年，卡在随机变异没用",
+    "body": "Platt 说 evolutionary coding 从 70 年代就有人做，mutate Lisp 代码之类，但一直没起飞，原因是代码空间里的随机变异基本没有价值，跟 DNA 一样，绝大多数变异是有害的。ERA 之所以能 work，是因为内循环本身是一个 AI，它知道往哪个方向试，相当于底下有一个有意义的梯度。代价是它也会过拟合、也会出现「精灵许愿」式的跑偏。",
+    "spk": "John Platt"
+   },
+   {
+    "t": 1364,
+    "h": "预测模型和描述模型是两回事",
+    "body": "John Platt 把科学建模拆成两类：predictive model 只求在某个数据集上错误率最低；descriptive model 才是科学真正想要的，它内部装着某种关于现实的描述，所以能外推。他的例子是牛顿：苹果落地可以拟合出来，但引力不是关于苹果的，拿一个只会拟合苹果的模型去问行星会怎样，它没有行星数据，什么都不知道。他承认这条界线是模糊的，因为科学家本人也是带着一堆已知事实和直觉去约束模型的。",
+    "spk": "John Platt"
+   },
+   {
+    "t": 1919,
+    "h": "这是电动工具，会切掉手指",
+    "body": "面对多重假设检验和过拟合，Platt 的答案不是新方法，而是更狠的旧方法：因为 ERA 是 power tool，所以你必须比过去更严格，要有藏得很深、自己绝不看的 holdout。他明确说目前还没做出能发现全新物理或全新科学的系统，科学家仍然负责判断结论是不是描述性的。",
+    "spk": "John Platt"
+   },
+   {
+    "t": 2358,
+    "h": "AI 卡在最后 0.001 分",
+    "body": "Ira 把分数推到很接近，但最后 30 名左右的位置没关上，原因是没有人去把最后那 0.001 分抠下来。这暴露了这套系统的真实结构：内层是机器跑几小时给出候选，外层是人来做「这篇论文你搞错了」这种判断。Platt 把它比作一个不睡觉、极度热心的研究生——你告诉它方向，它去试，但卡住时得靠人换思路。",
+    "spk": "John Platt"
+   },
+   {
+    "t": 2888,
+    "h": "反事实模型卡了团队两年",
+    "body": "要判断该躲开哪条尾迹，得知道它到底造成多少增温，而这是反事实问题：你无法进入「没有这条尾迹」的宇宙。团队做出了一版对 outgoing longwave radiation 可用的反事实模型，但对反射阳光那部分一直做不出来，卡了两年。他们甚至用人工注入尾迹的数据集自测，自己的尝试连自己的测试都过不了。最后是 ERA 找到一个搜索所有 confounder 的简单模型，通过了测试，把问题解开。",
+    "spk": "John Platt"
+   },
+   {
+    "t": 5067,
+    "h": "野火在烧成房间大小前最好灭",
+    "body": "Google 有一个 crisis resilience 方向，其中项目叫 Firesat：野火如果只烧到「这间屋子」那么大时极易扑灭，一旦到一英亩就难得多，而它从房间大小涨到一英亩可能是指数级的。方案是低轨卫星星座，用中波红外（mid-wave IR，对应黑体辐射，正是火的温度）探测，约 50 到 80 颗可覆盖全球，能发现约 5 米见方的火，并在 15 到 20 分钟内报警。合作方是 nonprofit Earth Fire Alliance，卫星由 Muon Space 制造，已发射一颗原型。",
+    "spk": "John Platt"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 1118,
+    "spk": "John Platt",
+    "raw": "But the reason why it just hasn't taken off is that random mutation in code space is pretty much worthless.",
+    "zh": "但它一直没起飞的原因是，代码空间里的随机变异基本毫无价值。"
+   },
+   {
+    "t": 1364,
+    "spk": "John Platt",
+    "raw": "A descriptive model is actually what science is trying to get to, which is, okay, it should be able to extrapolate because it has sort of the physics or the actual, some description of reality that's captured within it.",
+    "zh": "描述性模型才是科学真正想抵达的东西：它应该能外推，因为它内部装着某种物理，或者某种关于现实的描述。"
+   },
+   {
+    "t": 1919,
+    "spk": "John Platt",
+    "raw": "Because it's a power tool, it can, I shouldn't probably say, it can slice your fingers off.",
+    "zh": "因为它是电动工具，它可能——我大概不该这么说——它可能把你的手指切掉。"
+   },
+   {
+    "t": 2102,
+    "spk": "John Platt",
+    "raw": "any metric that becomes a target is no longer good as a metric",
+    "zh": "任何变成目标的指标，就不再是一个好指标。"
+   },
+   {
+    "t": 2423,
+    "spk": "John Platt",
+    "raw": "So it's almost like having a hyper eager grad student or something who doesn't sleep. And you sort of tell it things and you and you sort of guide it around.",
+    "zh": "所以这几乎就像有一个极度热心的研究生，他不睡觉。你告诉它一些事情，你引导它四处探索。"
+   },
+   {
+    "t": 2888,
+    "spk": "John Platt",
+    "raw": "But would have happened if there hadn't been a contrail there. That's a very difficult thing to estimate because you can't access the universe where that didn't happen.",
+    "zh": "但如果那里没有凝结尾迹，会发生什么？这是非常难估计的事情，因为你无法进入那个没有发生这件事的宇宙。"
+   },
+   {
+    "t": 4014,
+    "spk": "John Platt",
+    "raw": "But when it's like climate and it's open and it's non-stationary or you have to make these big extrapolations, you have to be much more cautious.",
+    "zh": "但当问题像气候这样开放且非平稳，或者你必须做很大的外推时，你就必须谨慎得多。"
+   },
+   {
+    "t": 5067,
+    "spk": "John Platt",
+    "raw": "it's very easy to put out a wildfire the size of this room. But even if it's like an acre, it gets much, much harder.",
+    "zh": "扑灭一场只有这间屋子那么大的野火非常容易。但哪怕它到了一英亩，难度就会大得多。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "ERA 默认并行搜索分支数",
+    "v": "10",
+    "t": 747
+   },
+   {
+    "k": "UCB 估计的分位数",
+    "v": "95th percentile",
+    "t": 624
+   },
+   {
+    "k": "凝结尾迹占人为全球变暖比例",
+    "v": "约 1%",
+    "t": 2611
+   },
+   {
+    "k": "欧洲局地凝结尾迹强迫",
+    "v": "约 1 瓦每平方米",
+    "t": 2687
+   },
+   {
+    "k": "全球平均人为变暖强迫",
+    "v": "约 3 瓦每平方米",
+    "t": 2687
+   },
+   {
+    "k": "AlphaFold 公开的蛋白质预测数",
+    "v": "约 60 亿",
+    "t": 4014
+   },
+   {
+    "k": "Firesat 所需低轨卫星数量",
+    "v": "约 50 到 80 颗",
+    "t": 5067
+   },
+   {
+    "k": "Firesat 可探测的最小火场尺寸",
+    "v": "约 5 米见方",
+    "t": 5067
+   },
+   {
+    "k": "Firesat 报警延迟",
+    "v": "15 到 20 分钟内（需约 80 颗卫星）",
+    "t": 5067
+   }
+  ],
+  "terms": [
+   {
+    "term": "ERA",
+    "zh": "ERA",
+    "def": "Google 的 AI for science 系统，用进化式搜索自动生成并优化科学 notebook。"
+   },
+   {
+    "term": "Monte Carlo Tree Search",
+    "zh": "蒙特卡洛树搜索",
+    "def": "一种在巨大搜索空间中平衡探索与利用的算法，常用于游戏和代码生成。"
+   },
+   {
+    "term": "upper confidence bound",
+    "zh": "置信上界",
+    "def": "强化学习中选择动作的策略，用乐观估计来驱动探索。"
+   },
+   {
+    "term": "contrail",
+    "zh": "凝结尾迹",
+    "def": "飞机在高空冰过饱和区飞行时留下的冰晶云，有增温效应。"
+   },
+   {
+    "term": "NISQ",
+    "zh": "含噪中等规模量子",
+    "def": "Noisy Intermediate-Scale Quantum，指当前量子计算所处的阶段。"
+   },
+   {
+    "term": "broom sensor",
+    "zh": "扫帚式传感器",
+    "def": "卫星移动时沿一个方向扫过光谱的传感器，不是快照相机。"
+   }
+  ],
+  "who": "适合做 AI for science、气候建模或量子计算的工程师和研究者，以及想了解 Google 内部工具链的创业者。",
+  "skip": "如果只关心 AI 应用，1:47 之后的小行星和奥斯卡轶事可以跳过。",
+  "tags": [
+   "AI for science",
+   "气候建模",
+   "量子计算",
+   "Google",
+   "进化式编程"
+  ],
+  "quality": {
+   "transcript_source": "asr",
+   "transcript_detail": "local:whisper-large-v3-turbo",
+   "words": 23050,
+   "wpm": 189.8,
+   "timed": true,
+   "verified_quotes": 8,
+   "grounded_facts": 9,
+   "points": 8,
+   "pruned": 1,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-09-23T03:07:22Z",
+ "triage": {
+  "score": 8.0,
+  "why": "ERA把科学问题化为可打分任务并自动求解，机制与一手经历具体，可追问",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 9,
+   "faithful": 9,
+   "selection": 8,
+   "concrete": 9,
+   "chinese": 9
+  },
+  "verdict": "上站",
+  "why": "要点多为机制与判断（UCB 取 95 分位、随机变异无梯度、预测/描述模型之分），数字与术语齐备，忠实原文，无空话。",
+  "worst": "「AI 卡在最后 0.001 分」这条要点里「最后 30 名左右的位置没关上」与「0.001 分」两个说法并列，读者难以判断是排名差距还是分数差距，建议统一为原文口径。"
+ },
+ "model": "openai:deepseek-chat"
+}
