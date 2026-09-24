@@ -9792,6 +9792,26 @@ class TopicPagesArePublishedLinkedAndClean(unittest.TestCase):
             self.assertFalse(any(re.search(r"\d{1,2}:\d{2}", re.sub(r"<[^>]+>", "", s)) for s in sups),
                              "出处里显示了时间 —— 读者说它像论文脚注")
 
+    def test_no_sentence_is_left_hanging(self):
+        """正文里的句子不能停在逗号或冒号上。
+
+        2026-09-24 重排引用时删掉了几张「接着上一句往下说」的卡片（「而是：」后面原本是
+        「错开 15 度」），8 句话断在冒号上、线上挂着。当时的把关只核「去掉引用行后正文没变」，
+        默认卡片和正文互不相干——恰好放过了这一种。冒号后面接卡片是正常的引出；逗号接卡片
+        是把一句话劈成两半，也算断。
+        """
+        for t in self.topics:
+            for f in sorted(t["dir"].glob("*.md")):
+                L = f.read_text(encoding="utf-8").split("\n")
+                for k, l in enumerate(L):
+                    if not l.strip() or l.startswith(("#", ">", "-", "!!")):
+                        continue
+                    if not re.search(r"[：:，,、]\s*$", l):
+                        continue
+                    nxt = next((x for x in L[k + 1:] if x.strip()), "")
+                    ok = nxt.startswith(">") and re.search(r"[：:]\s*$", l)
+                    self.assertTrue(ok, f"{f.name}:{k + 1} 句子停在「{l.strip()[-12:]}」，后面接的是「{nxt[:16]}」")
+
     def test_a_highlight_may_contain_a_citation(self):
         """标红是整句，句中常夹出处。先切出处再找 == 的话，一对 == 会被切开、原样漏出来。"""
         import tempfile
