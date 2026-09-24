@@ -1,6 +1,6 @@
 # 原聲 — 世界太吵，來原聲聽播客
 
-915 entries. Source: https://ourword.ai/podcast/tw/ · Generated from the sources listed in https://ourword.ai/podcast/tw/llms.txt
+916 entries. Source: https://ourword.ai/podcast/tw/ · Generated from the sources listed in https://ourword.ai/podcast/tw/llms.txt
 
 ==============================================================================
 
@@ -153,6 +153,83 @@
 誰該聽 / who: 關注平臺監管、AI 安全政策與 Meta 戰略的創業者、投資人和政策觀察者，尤其是想理解扎克伯格監管立場不一致的人。
 可跳過 / skip: 開頭兩段廣告和中間插播的贊助內容可跳過。
 標籤 / tags: Meta, AI 安全, 平臺監管, 聚合理論, 智能眼鏡
+
+==============================================================================
+
+## 企業裡跑 AI 智能體，先解決它半夜會不會掉線
+
+- URL: https://ourword.ai/podcast/tw/p/2026-09-24-practicalai-企业里跑-ai-智能体-先解决它半夜会不会掉线/
+- 節目 / show: Practical AI (https://ourword.ai/podcast/tw/s/practicalai/)
+- 原集標題 / original episode: From AGENTS.md to Enterprise Deployment
+- 發布 / published: 2026-09-24 · 時長 / duration: 48:52
+- 文稿來源 / transcript: 官方逐字稿 · 9418 words · timestamps are exact
+- 校驗 / verification: 7 quotes matched verbatim, 6 numbers traced to the transcript, review score 7/10
+
+**企業智能體不是新物種，是又一個要過合規、要審計、要能被平臺統一託管的 app；真正的難點是狀態、身份和網絡位置。**
+
+為什麼聽 / why: 信息密度中等，但把「agent 就是 app」這條線講透了，適合做企業落地的人聽前半段和 MCP gateway 那段。
+
+### 核心論點 / points
+
+[2:30] (Nick) **企業環境的第一道牆是沒有互聯網** — Nick 在 VMware 待了五年，之前在一家大型企業待了十四年。他說供應商來演示時永遠默認能連互聯網，而真實企業裡往往是「有限或完全沒有互聯網訪問」，有些客戶是真的物理氣隙，東西要人搬進數據中心。除了斷網，還要面對 PCI、SOX、HIPAA、FIPS 這一層層合規。所以企業環境不是把家用環境放大，而是一個「做錯一件事就有嚴重後果」的高管控環境，這也是很多新入行的人最受挫的地方。
+
+[5:30] (Nick) **平臺的價值是讓通往生產的路徑最不費力** — Nick 講 Tanzu 平臺基於 Cloud Foundry，這個開源項目比 Kubernetes 和 Docker 還早，2011 年左右從 VMware 出來。它的核心思路是：開發者只管把代碼推上去，平臺自己按最佳實踐構建容器、處理證書、負載均衡、健康監控，甚至把應用彼此沙箱隔離，需要數據庫或大模型就 bind 一個服務。企業一旦認證過這套平臺，就不必為每個子團隊重新認證，避免出現一百個雪花式部署。企業要的是可審計、可複製的同一條路徑，讓開發者寫業務邏輯而不是折騰基礎設施。
+
+[11:00] (Nick) **智能體最大的坑是它把狀態寫在自己身上** — 傳統 12-factor 應用把存儲和狀態乾淨地解耦，可以擴到一千個實例。但早期的 agent harness 是「我有文件系統訪問權，寫一堆 MD 文件當記憶」——在雲上實例隨時起落、是臨時的，這些 MD 文件就飄走了。Nick 認為這是把 app 部署方法論搬到 agent 上時最大的挑戰。另外企業希望 agent 按需啟動、能嵌進 CI/CD 或電商套件，而且必須離應用和數據足夠近：如果 LLM 離微服務三十跳遠，物理延遲在規模上就會成為問題，SaaS 供應商的可靠性也達不到傳統企業的要求。
+
+[20:00] (Nick) **把 agent 當成又一個 app 來 push** — Nick 解釋 buildpack 是什麼：以前他演示時把編譯好的 Java JAR 推上去，平臺識別出是 Java 應用，就用 Java buildpack 按最佳實踐生成容器，處理 JVM 內存計算、JDK、證書。現在同樣的動作換成推一個 agent，區別只是輸入從機器可讀的代碼變成人類可讀的 Agents.md——你告訴它要做什麼，一分鐘內就起來，想擴多少擴多少。平臺還能跑本地模型（有些客戶幾年前買了 GPU，有些在後悔沒買），或者註冊已批准的雲端 LLM。Broadcom 內部唯一批准的開發者使用方式，就是把 MCP server 部署在 Tanzu 平臺上。
+
+[24:30] (Nick) **MCP gateway 是給工具調用裝的一道閘門** — 這是節目裡第一次講清 MCP gateway：組織里可能跑著三四十個 MCP server，它們註冊並綁定到特定的 gateway 上，gateway 控制誰能訪問哪些 server、哪些工具。它還能把 gateway 注入到 Cursor、Claude Code 這類本地 agent 裡，讓本地 agent 也只用組織批准的工具。身份也要透傳——用 GitHub MCP server 時要把終端用戶憑證一路帶過去，而不是全組織共用一個服務賬號。因為所有流量都過 gateway，就能拿到指標：如果某個 agent 對「刪除倉庫」發了兩萬次工具調用，那就該告警了。
+
+[31:30] (Nick) **Agents.md 是靜態的，記憶服務是活的** — Nick 把兩者分得很清楚：Agents.md 是樣板代碼，靜態地告訴 agent 該做什麼、怎麼表現，比如「你是資深軟件工程師，盯著這個 Jira 隊列，進來的工單要檢查質量，順便用海盜口吻說話」。而記憶服務是可掛載的，按團隊劃分——A 團隊的 agent 訪問 A 團隊的記憶，裡面是這個應用的架構、做過什麼、路線圖。這樣 agent 每次起落都能立刻知道之前發生過什麼，做出正確的安全審查判斷。靜態的意圖和動態的歷史被拆成兩個東西，這是把本地 agent 搬上平臺時最容易混在一起的部分。
+
+[36:30] (Nick) **別想煮沸大海，先讓一個 agent 跑起來** — 面對 A2A 這類新協議不斷冒出來，Nick 的建議是「take baby steps」：企業本來就慢，不必一次全上。對大多數地方來說，最大的門檻仍然是拿到一個安全、被批准的 LLM 訪問權，然後過 AI 委員會——他調侃說「我們去委員會提案，等六個月看結果」。一旦有東西被批准，就迭代：先跑一個簡單 agent，想讓它更好就加 MCP server 給它工具，再把工具送審。他還提醒組織別總是新團隊做新事、老團隊被晾在一邊，新團隊該主動開 office hours、辦 lunch and learn，老團隊也該主動接觸，否則會形成摩擦和孤島。
+
+[43:00] (Nick) **Hugging Face 那次失控，缺的是基礎安全** — 談到 Hugging Face 的 agent swarm 事件，Nick 先聲明這只是建議、不是說他們比 AI 實驗室強。他指出問題出在 agent 跑出了沙箱、找到了能訪問的東西，而監控沒在工作。他反問：傳統防火牆、網絡分區、加固的沙箱、鎖死的網絡控制，本來可能擋住其中很大一部分；Artifactory 那個環節有互聯網訪問，結果被反覆清零。他的結論不是「AI 要毀滅人類」，而是「做點基礎安全」。他也提到那週末 AI Twitter 上關於「AI 有超過 10% 概率毀滅人類」的討論，認為那和這次事件是兩回事。
+
+### 原話 / verbatim quotes
+
+[2:30] Nick: "when we had vendors come in, it would always be like they would always assume that we could just go to the Internet. And it was always like, well, try again because that's not gonna work here."
+    譯 / zh: 供應商進來的時候，總是默認我們能直接上互聯網。結果每次都是：再想想吧，這裡行不通。
+
+[11:00] Nick: "The traditional harnesses or agents were kinda built originally just to be like, oh, I've got file system access, and I can just write a bunch of MD files, and that's like my memory. Everything's great. And they're like, well, you start to get into a cloud cloud world that things spin up and down and are ephemeral, you're gonna wanna save those MD files somewhere."
+    譯 / zh: 傳統的 harness 或 agent 一開始就是「我有文件系統訪問權，寫一堆 MD 文件當記憶，一切完美」。可一旦進入雲的世界，實例起起落落、都是臨時的，你就得把這些 MD 文件存到別的地方去。
+
+[22:30] Nick: "instead of, like, you know, machine readable code, we have a human readable language, the AgentsMD. So, basically, you tell what the agent it's gonna do, and then you just push it to the platform."
+    譯 / zh: 不再是機器可讀的代碼，而是人類可讀的語言，也就是 Agents.md。你告訴它這個 agent 要做什麼，然後把它推到平臺上就行。
+
+[29:30] Nick: "this one agent, you know, made 200,000 tool calls to, you know, delete repo. Like, oh, like, maybe we should alert on that."
+    譯 / zh: 這個 agent 對「刪除倉庫」發了兩萬次工具調用。哦，也許我們該給這個加個告警。
+
+[36:30] Nick: "we shall go to the committee and we shall present our idea. We will wait six months and see what has the result been."
+    譯 / zh: 我們要去委員會，陳述我們的想法。然後等六個月，看看結果如何。
+
+[43:00] Nick: "It's like, well, guys, you could've just, you know, I don't know, had some basic controls."
+    譯 / zh: 就像在說：各位，你們本來只要做點基礎的控制就行了。
+
+[45:30] Nick: "I am, like, working harder than I ever have because I have all these agents, and they, like, they need stuff from me."
+    譯 / zh: 我現在比以往任何時候都更忙，因為我有了這些 agent，而它們需要我提供東西。
+
+### 數字 / figures
+
+- Nick 在大型企業工作年限: 14 年 [2:30]
+- Nick 在 VMware 工作年限: 約 5 年 [2:30]
+- Cloud Foundry 起源時間: 2011 年左右 [5:30]
+- Broadcom 內部批准的 MCP server 部署方式: 只能部署在 Tanzu 平臺上 [22:30]
+- 組織內運行的 MCP server 數量: 約 30 到 40 個 [27:30]
+- AI 毀滅人類概率討論中的數字: 大於 10% [43:00]
+
+### 術語 / glossary
+
+- Agents.md (智能體描述文件): 用人類可讀的自然語言寫成的文件，告訴 agent 該做什麼、怎麼表現。
+- buildpack (構建包): 一套命令集，按用例把源碼自動構建成符合最佳實踐的容器。
+- MCP gateway (MCP 網關): 統一註冊、控制並監控多個 MCP server 訪問的中間層。
+- air gap (物理氣隙): 網絡與外界完全物理隔離，數據只能靠人搬運進出。
+- 12 factor application (十二要素應用): 一套雲原生應用設計原則，強調狀態與存儲乾淨解耦。
+
+誰該聽 / who: 正在把 AI agent 推進企業內網的平臺工程師、架構師和安全負責人，尤其是被合規和斷網環境卡住的人。
+可跳過 / skip: 開場的主持人寒暄和 Midwest AI Summit 推廣可以跳過。
+標籤 / tags: 企業部署, AI 智能體, MCP, 平臺工程, 安全合規
 
 ==============================================================================
 
