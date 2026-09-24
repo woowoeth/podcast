@@ -33,6 +33,8 @@ jobs:
         run: |
           git config user.name podcast-bot
           git config user.email podcast-bot@users.noreply.github.com
+          # usage.json 逐日累加的三方合并。驱动按检出配置、不跟仓库走，每个会合并的地方都得自己登记。
+          git config merge.usage.driver 'python pipeline/merge_usage.py %O %A %B'
           git add data/yt-watchlist.json
           if git diff --cached --quiet; then echo "watchlist unchanged"; exit 0; fi
           git commit -m "yt-scan: watchlist"

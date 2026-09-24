@@ -87,6 +87,8 @@ export LLM_MODEL
   # 留下标记，之后每次 git pull --rebase 都报 "unmerged files"，重试循环
   # 从此全撞在同一面墙上（真出过一次，那轮产出全废）。
   git config merge.podcast-state.driver 'python3 pipeline/mergestate.py %O %A %B'
+  # usage.json 同理（逐日逐角色累加）。这份检出从不跑 preflight.sh，只能在这里登记。
+  git config merge.usage.driver 'python3 pipeline/merge_usage.py %O %A %B'
 
   # 每轮开头先确认工作区没卡在未合并状态。今天真卡了一整天：heartbeat-cloud.json
   # 留了冲突标记，于是本机线照跑、心跳照写，但**提交和推送全被挡住**，日志里只有

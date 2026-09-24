@@ -35,24 +35,31 @@ else
 fi
 
 step "守护检查与单元测试"
-if $PY -m unittest discover -s tests -q 2>&1 | tail -3 | grep -q '^OK'; then
-  good "$($PY -m unittest discover -s tests 2>&1 | grep -o 'Ran [0-9]* tests') 全过"
+# 只跑一遍，看退出码，打印的也是这一遍的输出。原先跑三遍：一遍拿 `tail -3 | grep OK`
+# 判成败、一遍数条数、一遍打印 —— 2026-09-24 判的那遍撞上页面超时、打印的那遍却是
+# OK，日志上写着「OK」、结论写着「✗」；测试里 print 的行排在 OK 之后，tail -3 也会把它挤掉。
+out=$(mktemp)
+if $PY -m unittest discover -s tests -q >"$out" 2>&1; then
+  good "$(grep -o 'Ran [0-9]* tests' "$out") 全过"
 else
-  $PY -m unittest discover -s tests 2>&1 | tail -20
+  tail -20 "$out"
   bad "测试没全过"
 fi
+rm -f "$out"
 
 step "渲染层体检（真的打开页面）"
 # 这一层是补上来的：用户一轮报了 11 个问题，10 个在渲染层，而当时 300 多项守护
 # 里没有一项打开过真实页面。没装 playwright 就 skip，但**必须说出来**——
 # 静默 skip 的检查等于不存在。
 if $PY -c 'import playwright' 2>/dev/null; then
-  if $PY -m unittest tests.test_render -q 2>&1 | tail -3 | grep -q '^OK'; then
-    good "$($PY -m unittest tests.test_render 2>&1 | grep -o 'Ran [0-9]* tests') 全过"
+  out=$(mktemp)
+  if $PY -m unittest tests.test_render -q >"$out" 2>&1; then
+    good "$(grep -o 'Ran [0-9]* tests' "$out") 全过"
   else
+    tail -20 "$out"
     bad "渲染层有不通过的项"
-    $PY -m unittest tests.test_render 2>&1 | tail -20
   fi
+  rm -f "$out"
 else
   bad "没装 playwright —— 渲染层这一层没跑。装：
        python3 -m pip install playwright && python3 -m playwright install chromium

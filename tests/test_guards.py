@@ -9567,16 +9567,43 @@ class UsageLedgerMergesByAddingWhatEachSideAdded(unittest.TestCase):
                                msg="值不是数还照算 —— 该退回冲突"):
             m.merge('{}', '{"d": {"r": {"model": "opus"}}}', '{}')
 
+    REG = re.compile(r"git config merge\.usage\.driver\s+['\"]python3? pipeline/merge_usage\.py %O %A %B['\"]")
+
+    def _unregistered(self, places):
+        """会合并（pull/merge/rebase）、却没在第一次合并之前登记驱动的地方。"""
+        bad = []
+        for name, text in places.items():
+            first = re.search(r"(?m)^[^#\n]*\bgit (?:pull|merge|rebase)\b", text)
+            if not first:
+                continue
+            reg = self.REG.search(text)
+            if not reg or reg.start() > first.start():
+                bad.append(name)
+        return bad
+
     def test_the_driver_is_actually_wired_up(self):
-        """**闸自己会跳过。** 光有脚本没登记，合并时根本不会被调到。"""
+        """**闸自己会跳过。** 光有脚本没登记，合并时根本不会被调到。
+
+        驱动按检出配置、不跟仓库走。原先这里查的是「跑测试这台机器配没配」：
+        开发机跑过 preflight 所以绿，CI 从不跑 preflight 所以红 —— 两个结果都说明不了
+        真正会合并的地方。2026-09-24 实测：launchd 那份检出和八个云端工作流**一个都没登记**。
+        所以改查每个会合并的地方，是不是在第一次合并之前自己登记了。
+        """
         attrs = (ROOT / ".gitattributes").read_text()
         self.assertRegex(attrs, r"(?m)^data/usage\.json\s+merge=usage$",
                          ".gitattributes 里没登记，驱动永远不会被 git 调用")
-        cfg = subprocess.run(["git", "config", "--get", "merge.usage.driver"],
-                             cwd=ROOT, capture_output=True, text=True).stdout
-        self.assertIn("merge_usage.py", cfg,
-                      "merge.usage.driver 没配 —— 换台机器 clone 下来就失效了，"
-                      "所以 scripts/preflight.sh 每次都会补登记")
+        # 尺子先自检：没登记、登记在合并之后，都要抓到；注释里的 git pull 不算
+        self.assertEqual(["无", "晚"], self._unregistered({
+            "无": "git pull --rebase origin main\n",
+            "晚": "git pull origin main\ngit config merge.usage.driver 'python pipeline/merge_usage.py %O %A %B'\n",
+            "好": "git config merge.usage.driver 'python pipeline/merge_usage.py %O %A %B'\ngit pull\n",
+            "注释": "# 之后每次 git pull --rebase 都报\necho ok\n"}), "尺子坏了")
+        places = {p.name: p.read_text() for p in sorted((ROOT / ".github" / "workflows").glob("*.yml"))}
+        places["local-daily.sh"] = (ROOT / "scripts" / "local-daily.sh").read_text()
+        self.assertEqual([], self._unregistered(places),
+                         "这些地方会合并，却没在合并前登记 usage 驱动 —— 真冲突了照样判冲突、照样有人手算")
+        self.assertRegex((ROOT / "scripts" / "preflight.sh").read_text(), r"merge\.usage\.driver",
+                         "preflight 不再给开发检出补登记")
 
 
 class IndexNowDoesNotGiveUpOnTheFirstEndpoint(unittest.TestCase):
@@ -9811,6 +9838,34 @@ class TopicPagesArePublishedLinkedAndClean(unittest.TestCase):
                     nxt = next((x for x in L[k + 1:] if x.strip()), "")
                     ok = nxt.startswith(">") and re.search(r"[：:]\s*$", l)
                     self.assertTrue(ok, f"{f.name}:{k + 1} 句子停在「{l.strip()[-12:]}」，后面接的是「{nxt[:16]}」")
+
+    @staticmethod
+    def _repeated_cards(d):
+        """同一本读物里重复的原话卡片，半句也算：[(位置甲, 位置乙), …]。"""
+        norm = lambda s: re.sub(r"[\s，。、！？；：,.!?;:「」“”…—-]", "", s).lower()
+        cards = []
+        for f in sorted(pathlib.Path(d).glob("*.md")):
+            for k, l in enumerate(f.read_text(encoding="utf-8").split("\n"), 1):
+                m = re.match(r"^>\s*「([^」]+)」", l)
+                if m:
+                    cards.append((norm(m.group(1)), f"{f.name}:{k}"))
+        return [(a[1], b[1]) for i, a in enumerate(cards) for b in cards[i + 1:]
+                if a[0] in b[0] or b[0] in a[0]]
+
+    def test_no_quote_card_is_used_twice(self):
+        """一句原话在一本读物里只做一次卡片，半句也算重复。
+
+        2026-09-24 实测：两句原话各在两问里做了卡片（一处带句号一处不带，逐字比对没抓到），
+        还有一张卡片恰好是另一张的后半句。读者翻到后面，会以为排版出了错。
+        """
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:   # 尺子先自检：标点不同、半句重合都要抓到
+            (pathlib.Path(tmp) / "a.md").write_text("> 「你要能够给出 N+1 的赔偿，你不能让员工受委屈」——甲（甲，#001）\n")
+            (pathlib.Path(tmp) / "b.md").write_text("> 「你不能让员工受委屈。」——甲（甲，#001）\n> 「另一句」——乙（乙，#002）\n")
+            self.assertEqual(1, len(self._repeated_cards(tmp)), "尺子坏了：半句重合的卡片没抓到")
+        for t in self.topics:
+            dup = self._repeated_cards(t["dir"])
+            self.assertEqual([], dup[:5], f"专题 {t['slug']} 有 {len(dup)} 对原话卡片重复（含半句）")
 
     def test_a_highlight_may_contain_a_citation(self):
         """标红是整句，句中常夹出处。先切出处再找 == 的话，一对 == 会被切开、原样漏出来。"""

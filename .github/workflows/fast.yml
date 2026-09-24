@@ -69,6 +69,8 @@ jobs:
         run: |
           git config user.name  "podcast-bot"
           git config user.email "podcast-bot@users.noreply.github.com"
+          # usage.json 逐日累加的三方合并。驱动按检出配置、不跟仓库走，每个会合并的地方都得自己登记。
+          git config merge.usage.driver 'python pipeline/merge_usage.py %O %A %B'
           git config merge.podcast-state.driver 'python pipeline/mergestate.py %O %A %B'
           git clean -fdq p s e log 2>/dev/null || true
           git checkout -q -- index.html sources feed.xml sitemap.xml robots.txt 404.html \

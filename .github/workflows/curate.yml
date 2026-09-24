@@ -80,6 +80,8 @@ jobs:
           set -uo pipefail
           git config user.name  "podcast-bot"
           git config user.email "podcast-bot@users.noreply.github.com"
+          # usage.json 逐日累加的三方合并。驱动按检出配置、不跟仓库走，每个会合并的地方都得自己登记。
+          git config merge.usage.driver 'python pipeline/merge_usage.py %O %A %B'
           # state.json 是两条线唯一会真冲突的数据文件。没有这个驱动，
           # 冲突会在工作区留下标记，之后每次 git pull --rebase 都报
           # "unmerged files"，重试循环从此全撞在同一面墙上（真出过一次）。
