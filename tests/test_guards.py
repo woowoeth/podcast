@@ -9606,6 +9606,33 @@ class UsageLedgerMergesByAddingWhatEachSideAdded(unittest.TestCase):
                          "preflight 不再给开发检出补登记")
 
 
+class BuildOutputDoesNotDependOnTheClock(unittest.TestCase):
+    """同样的数据，什么时候构建都得一字不差。
+
+    2026-09-21 起 api.json 写着构建时刻：CI 重建后和仓库里的永远差一行，
+    「生成产物和仓库里的一致」那一步每次都红；而「构建是幂等的」那一步比的是 --stat，
+    两次都是「2 +-」，看不出来。这里直接拨两次钟，看输出变不变。
+    """
+
+    def test_api_index_is_the_same_at_two_different_times(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib, datetime as dt
+        build = importlib.import_module("build")
+        eps = [{"slug": "a", "published": "2026-01-01T00:00:00Z", "generated": "2026-01-02T00:00:00Z", "digest": {"title": "甲"}},
+               {"slug": "b", "published": "2026-02-01T00:00:00Z", "digest": {"title": "乙"}}]
+        real = build.now
+        try:
+            build.now = lambda: dt.datetime(2030, 1, 1, tzinfo=dt.timezone.utc)
+            one = build.api_index(eps)
+            build.now = lambda: dt.datetime(2031, 6, 6, 6, 6, 6, tzinfo=dt.timezone.utc)
+            two = build.api_index(eps)
+        finally:
+            build.now = real
+        self.assertEqual(one, two, "api.json 随构建时刻变了 —— CI 的一致性检查会每次都红")
+        self.assertEqual("2026-02-01T00:00:00Z", json.loads(one)["generated"],
+                         "generated 应是最新一集自己的时间")
+
+
 class IndexNowDoesNotGiveUpOnTheFirstEndpoint(unittest.TestCase):
     """一个端点拒了要接着试下一个，并且请求要走项目的 TLS 上下文。
 

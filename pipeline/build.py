@@ -1030,9 +1030,12 @@ def api_index(eps: list[dict]) -> str:
             "listen": x.get("audio") or x.get("link"),
         })
     rows.sort(key=lambda r: r["published"] or "", reverse=True)
+    # 「数据截至何时」取最新一集自己的时间，不取构建时刻。同样的数据构建两次必须一字不差：
+    # 用 now() 时，CI「生成产物和仓库里的一致」那一步每一次都红（2026-09-21 起，被前面的红挡着没露出来）。
+    asof = max((x.get("generated") or x.get("published") or "" for x in eps), default="")
     return json.dumps({
         "site": SITE,
-        "generated": now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "generated": asof,
         "count": len(rows),
         "about": ("Chinese deep-reads of Chinese and English podcasts. "
                   "Each entry is our own written analysis: argued points, "

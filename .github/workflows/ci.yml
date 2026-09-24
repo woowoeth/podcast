@@ -89,11 +89,13 @@ jobs:
         run: |
           # 同样的数据连续构建两次必须一字不差。不成立说明生成产物里混进了时间戳
           # 或随机顺序，而那会让每一轮跑批都在生成产物上冲突。
+          # 比完整 diff 的指纹，不比 --stat：时间戳这种「行数不变、内容变了」的差异 --stat 看不见，
+          # api.json 里的构建时刻就这样两次都是「2 +-」、每次都放过去了。
           python pipeline/build.py >/dev/null
-          git diff --stat > /tmp/a.txt
+          git diff | shasum > /tmp/a.txt
           git status --porcelain | sort > /tmp/a2.txt
           python pipeline/build.py >/dev/null
-          git diff --stat > /tmp/b.txt
+          git diff | shasum > /tmp/b.txt
           git status --porcelain | sort > /tmp/b2.txt
           diff /tmp/a.txt /tmp/b.txt && diff /tmp/a2.txt /tmp/b2.txt \
             || { echo "::error::构建不幂等，两次结果不同"; exit 1; }
