@@ -68,6 +68,9 @@ def render(topic: dict, base: str, live_slugs: set[str]) -> dict:
     def inline(s: str) -> str:
         s = re.sub(r"\*\*(.+?)\*\*", r"\1", s)
         s = re.sub(r"__(.+?)__", r"\1", s)
+        # **标红要在切出处之前定下范围。** 标红是整句，句子中间常夹着一个出处；
+        # 先按出处切段、再分段找 ==，一对 == 会被切到两段里、原样漏到页面上。
+        s = re.sub(r"==(.+?)==", "\x02\\1\x03", s)
         out, last = [], 0
         for m in CITE.finditer(s):
             out.append(_mark(html.escape(s[last:m.start()], quote=False), src))
@@ -77,7 +80,7 @@ def render(topic: dict, base: str, live_slugs: set[str]) -> dict:
             out.append('<sup class="zt-sup">' + "、".join(src(i) for i in ids) + "</sup>")
             last = m.end()
         out.append(_mark(html.escape(s[last:], quote=False), src))
-        return "".join(out)
+        return "".join(out).replace("\x02", '<mark class="zt-hot">').replace("\x03", "</mark>")
 
     files = [d / "00_open.md"] + sorted(d.glob("ch[0-9][0-9].md")) + [d / "99_close.md"]
     title = subtitle = ""
@@ -178,5 +181,4 @@ def render(topic: dict, base: str, live_slugs: set[str]) -> dict:
 
 
 def _mark(escaped: str, src) -> str:
-    escaped = re.sub(r"==(.+?)==", r'<mark class="zt-hot">\1</mark>', escaped)
     return BARE.sub(lambda m: src(m.group(1)), escaped)

@@ -9789,6 +9789,18 @@ class TopicPagesArePublishedLinkedAndClean(unittest.TestCase):
             self.assertFalse(any(re.search(r"\d{1,2}:\d{2}", re.sub(r"<[^>]+>", "", s)) for s in sups),
                              "出处里显示了时间 —— 读者说它像论文脚注")
 
+    def test_a_highlight_may_contain_a_citation(self):
+        """标红是整句，句中常夹出处。先切出处再找 == 的话，一对 == 会被切开、原样漏出来。"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            d = pathlib.Path(tmp) / "x"; d.mkdir()
+            (d / "episodes.json").write_text('{"001": {"slug": "real", "no": "1期", "title": "t"}}')
+            (d / "00_open.md").write_text("# 标题\n副标题\n==前半句（某人，#001），后半句。==\n")
+            (d / "99_close.md").write_text("## 结尾\n好\n")
+            r = self.zt.render({"dir": d, "slug": "x"}, "/podcast", {"real"})
+            self.assertNotIn("==", re.sub(r"<[^>]+>", "", r["body_html"]), "标红记号漏到了页面上")
+            self.assertRegex(r["body_html"], r'<mark class="zt-hot">前半句<sup class="zt-sup">.*</sup>，后半句。</mark>')
+
     def test_an_unknown_episode_fails_the_build(self):
         import tempfile, shutil
         with tempfile.TemporaryDirectory() as tmp:
