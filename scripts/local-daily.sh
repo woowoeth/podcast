@@ -315,8 +315,10 @@ PYEOF
   # 而云端用 git add -A 所以看不出问题，只有本机线在悄悄少推东西。
   # 体检脚本的"数据／正文页／短链三个数字必须相等"就是为了抓这种漏。
   # tw 和 en 也在清单里：三棵树都是产物，漏一棵就是"本机线永远不推它"。
-  SITE_FILES="index.html sources s p e log feed.xml sitemap.xml robots.txt 404.html
-              search.json llms.txt llms-full.txt icon.svg .nojekyll
+  # c（分类页）、api.json、zt（专题）原来也不在清单里——本机线从没提交过它们，
+  # 靠云端的 git add -A 兜着。清单现在由守护从 build.py 实际写出的路径推导着核对。
+  SITE_FILES="index.html sources s p e c zt log feed.xml sitemap.xml robots.txt 404.html
+              search.json api.json llms.txt llms-full.txt icon.svg .nojekyll
               assets tw en"
   # 分页文件是动态数量（cards-1.json … cards-N.json），不能写死一个。
   SITE_FILES="$SITE_FILES $(ls cards-*.json 2>/dev/null | tr '\n' ' ')"

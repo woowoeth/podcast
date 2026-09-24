@@ -840,14 +840,17 @@ class LocalLineCommitsEverythingItBuilds(unittest.TestCase):
     云端用 git add -A 所以完全看不出来，只有本机线在悄悄少推东西。"""
 
     def test_site_files_covers_every_built_directory(self):
+        """清单从 build.py 实际写出的路径推导，不再手写。
+
+        手写那版漏过 e、log（第一次），后来又漏了 c、api.json（从没被发现：
+        手写清单只能核到写清单的人记得的东西）；2026-09-24 加专题时 zt 也不在里面。
+        """
         sh = (ROOT / "scripts" / "local-daily.sh").read_text()
-        i = sh.index("SITE_FILES=")
-        decl = sh[i:i + 400]
-        # build.py 会写这些目录，清单里必须都有
-        for d in ("index.html", "sources", "s", "p", "e", "log",
-                  "feed.xml", "sitemap.xml", "search.json",
-                  "llms.txt", "llms-full.txt"):
-            self.assertIn(d, decl, f"SITE_FILES 漏了 {d}")
+        decl = re.search(r'SITE_FILES="([^"]*)"', sh).group(1).split()
+        written = set(re.findall(r'\bout / "([^"]+)"', (ROOT / "pipeline" / "build.py").read_text()))
+        self.assertGreater(len(written), 10, "从 build.py 一个输出路径都没推出来 —— 这道闸在空转")
+        missing = sorted(written - set(decl))
+        self.assertEqual([], missing, f"build.py 会写、本机线却不提交：{missing}")
 
     def test_heartbeat_is_a_script_not_a_heredoc(self):
         # heredoc 版嵌在被管道接走的花括号块里，单独跑正常、真跑批一声不响没写出来
@@ -9797,16 +9800,27 @@ class TopicPagesArePublishedLinkedAndClean(unittest.TestCase):
             (d / "episodes.json").write_text('{"001": {"slug": "real", "no": "1期", "title": "t"}}')
             (d / "00_open.md").write_text("# 标题\n副标题\n==前半句（某人，#001），后半句。==\n")
             (d / "99_close.md").write_text("## 结尾\n好\n")
-            r = self.zt.render({"dir": d, "slug": "x"}, "/podcast", {"real"})
+            r = self.zt.render({"dir": d, "slug": "x"}, "/podcast", {"t": "real"})
             self.assertNotIn("==", re.sub(r"<[^>]+>", "", r["body_html"]), "标红记号漏到了页面上")
             self.assertRegex(r["body_html"], r'<mark class="zt-hot">前半句<sup class="zt-sup">.*</sup>，后半句。</mark>')
 
-    def test_an_unknown_episode_fails_the_build(self):
-        import tempfile, shutil
+    def test_a_vanished_episode_is_reported_not_fatal(self):
+        """集下站了：只显示期号不挂链接、记进 missing；不许抛异常拦住整站构建。"""
+        import tempfile
         with tempfile.TemporaryDirectory() as tmp:
             d = pathlib.Path(tmp) / "x"; d.mkdir()
-            (d / "episodes.json").write_text('{"001": {"slug": "real", "no": "1期", "title": "t"}}')
-            (d / "00_open.md").write_text("# 标题\n副标题\n开篇（某人，#999）\n")
+            (d / "episodes.json").write_text('{"001": {"slug": "old-slug", "no": "1期", "title": "原标题"}, '
+                                             '"002": {"slug": "gone", "no": "2期", "title": "下站了"}}')
+            (d / "00_open.md").write_text("# 标题\n副标题\n改过地址的（某人，#001）；下站了的（某人，#002）\n")
             (d / "99_close.md").write_text("## 结尾\n好\n")
-            with self.assertRaises(self.zt.ZtError):
-                self.zt.render({"dir": d, "slug": "x"}, "/podcast", {"real"})
+            r = self.zt.render({"dir": d, "slug": "x"}, "/podcast", {"原标题": "new-slug"})
+            self.assertIn('/p/new-slug/', r["body_html"], "改过地址的集没按标题找到新地址")
+            self.assertNotIn('/p/old-slug/', r["body_html"])
+            self.assertEqual(["002"], r["missing"], "下站的集没记进 missing")
+            self.assertIn("zt-src-dead", r["body_html"])
+
+    def test_the_built_page_has_no_dead_sources(self):
+        """构建不因坏出处失败，所以要由这里变红。"""
+        for t in self.topics:
+            self.assertNotIn("zt-src-dead", self._page(t).read_text(),
+                             "专题里有出处找不到已发布的集 —— 看构建日志里的 ⚠ 专题 那一行")

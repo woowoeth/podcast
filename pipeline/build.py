@@ -2247,12 +2247,19 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
     n_pages = write_card_pages(eps, out)
     (out / "log").mkdir(exist_ok=True)
     (out / "log" / "index.html").write_text(log_page(eps, srcs))
-    # 专题：出处映射不到已发布的集就直接失败，不许生成指向 404 的链接
+    # 专题：出处按原节目标题查当前地址；查不到的只显示期号并报警，不拦住整站构建
     if zt_topics():
         import zt as _zt
-        live = {x["slug"] for x in eps}
+        live = {x["title_original"]: x["slug"] for x in eps if x.get("title_original")}
         for t in zt_topics():
-            r = _zt.render(t, BASE, live)
+            try:
+                r = _zt.render(t, BASE, live)
+            except _zt.ZtError as ex:
+                log(f"  ⚠ 专题 /zt/{t['slug']}/ 跳过：{ex}")   # 编写错误不拦住整站；守护会因页面缺失变红
+                continue
+            if r["missing"]:
+                log(f"  ⚠ 专题 /zt/{t['slug']}/：{len(r['missing'])} 处出处找不到已发布的集，"
+                    f"只显示期号、不挂链接：{r['missing'][:8]}")
             zout = out / "zt" / t["slug"]
             zout.mkdir(parents=True, exist_ok=True)
             (zout / "index.html").write_text(zt_page(t, r, len(eps)))

@@ -15,8 +15,10 @@
   （人名，#集号）   出处：链到那一集，显示节目期号，不显示时间
 
 **集号是专题写作时的内部编号**（按日期排的 001–150），不是节目期号，也不是 slug。
-映射表 data/zt/<slug>/episodes.json 把它对到 slug；映射不到的出处直接报错，
-不许生成一个指向 404 的链接。
+映射表 data/zt/<slug>/episodes.json 把它对到**原节目标题**，构建时再按标题查当前 slug：
+集重新生成后 slug 会变（2026-09-24 实测 18 集一夜之间换了地址），按 slug 写死就全成 404。
+标题也查不到的（集下站了）：只显示期号、不挂链接，记进 missing 由构建日志报警、由守护变红，
+**不让整站构建失败**——一个专题的出处坏了，不该拦住每天的发布。
 """
 from __future__ import annotations
 
@@ -51,18 +53,24 @@ CITE = re.compile(r"[（(]([^（）()]{1,40}?)[，,]\s*#(\d{3})(?:\s*\d{1,2}:\d{
 BARE = re.compile(r"(?<![\w#&])#(\d{3})(?:\s*\d{1,2}:\d{2}(?::\d{2})?)?")
 
 
-def render(topic: dict, base: str, live_slugs: set[str]) -> dict:
-    """返回 {title, subtitle, toc:[(n,q)], body_html, n_src}。"""
+def render(topic: dict, base: str, live: dict[str, str]) -> dict:
+    """live：已发布的集，{原节目标题: 当前 slug}。
+
+    返回 {title, subtitle, toc:[(n,q)], body_html, n_src, missing}；
+    missing 是找不到已发布的集的内部集号（只显示期号、不挂链接）。
+    """
     d: pathlib.Path = topic["dir"]
     epmap = json.loads((d / "episodes.json").read_text())   # 内部集号 → {slug, no, title}
-    bad: list[str] = []
+    missing: list[str] = []
 
     def src(eid: str) -> str:
         x = epmap.get(eid)
-        if not x or x["slug"] not in live_slugs:
-            bad.append(eid)
-            return html.escape("#" + eid)
-        return (f'<a class="zt-src" href="{base}/p/{html.escape(x["slug"], quote=True)}/" '
+        slug = live.get(x["title"]) if x else None
+        if not slug:
+            missing.append(eid)
+            label = html.escape(x["no"]) if x else html.escape("#" + eid)
+            return f'<span class="zt-src zt-src-dead" title="这一集找不到了">{label}</span>'
+        return (f'<a class="zt-src" href="{base}/p/{html.escape(slug, quote=True)}/" '
                 f'title="{html.escape(x["title"], quote=True)}">{html.escape(x["no"])}</a>')
 
     def inline(s: str) -> str:
@@ -171,13 +179,11 @@ def render(topic: dict, base: str, live_slugs: set[str]) -> dict:
             body.append("\0TOC\0")
     if state["in_q"]:
         body.append("</section>")
-    if bad:
-        raise ZtError(f"专题 {topic['slug']} 的出处指向不存在的集：{sorted(set(bad))}")
     toc_html = (f'<nav class="zt-toc" aria-label="目录"><p class="zt-lbl">这本读物回答的 {len(toc)} 个问题</p><ol>'
                 + "".join(f'<li><a href="#q{n}">{inline(q)}</a></li>' for n, q in toc) + "</ol></nav>")
     body_html = "\n".join(body).replace("\0TOC\0", toc_html)
     return {"title": title, "subtitle": subtitle, "toc": toc, "body_html": body_html,
-            "n_src": body_html.count('class="zt-src"')}
+            "n_src": body_html.count('class="zt-src"'), "missing": sorted(set(missing))}
 
 
 def _mark(escaped: str, src) -> str:
