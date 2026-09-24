@@ -11,7 +11,8 @@
 标记只有这几种（写法与页面样式一一对应，别的都不认）：
   ==标红==   唯一的强调
   > 「原话」——人名（人名，#集号）   嘉宾原话卡片
-  #### 带走这三句 / #### 这本读物怎么来的   + 「- 」列表
+  #### 带走：一句金句 / #### 带走这十句 / #### 这本读物怎么来的   + 「- 」列表
+  （带走框里的条目写成「处境：做法」，冒号前那几个字单独着色）
   （人名，#集号）   出处：链到那一集，显示节目期号，不显示时间
 
 **集号是专题写作时的内部编号**（按日期排的 001–150），不是节目期号，也不是 slug。
@@ -105,7 +106,7 @@ def render(topic: dict, base: str, live: dict[str, str]) -> dict:
             lines = lines[2:]
         para: list[str] = []
         lst: list[str] = []
-        box = [None, ""]
+        box = [None, "", ""]                     # 类型、标签、金句（「#### 带走：……」冒号后那句）
 
         def flush() -> None:
             if para:
@@ -113,11 +114,16 @@ def render(topic: dict, base: str, live: dict[str, str]) -> dict:
                 state["first"] = False
                 body.append(f"<p{cls}>{inline(''.join(para))}</p>")
                 para.clear()
-            if lst:
-                items = "".join(f"<li>{inline(x)}</li>" for x in lst)
+            if lst or (box[0] == "take" and box[2]):
                 if box[0] == "take":
-                    body.append(f'<div class="zt-take"><p class="zt-lbl">{html.escape(box[1])}</p><ul>{items}</ul></div>')
-                elif box[0] == "about":
+                    items = "".join(f"<li>{take_item(x, inline)}</li>" for x in lst)
+                    gold = f'<p class="zt-gold">{inline(box[2])}</p>' if box[2] else ""
+                    ul = f"<ul>{items}</ul>" if items else ""
+                    body.append(f'<div class="zt-take"><p class="zt-lbl">{html.escape(box[1])}</p>{gold}{ul}</div>')
+                    lst.clear(); box[0] = None; box[2] = ""
+                    return
+                items = "".join(f"<li>{inline(x)}</li>" for x in lst)
+                if box[0] == "about":
                     body.append(f'<div class="zt-about"><p class="zt-lbl">{html.escape(box[1])}</p><ul>{items}</ul></div>')
                 else:
                     body.append(f'<ul class="zt-list">{items}</ul>')
@@ -148,7 +154,10 @@ def render(topic: dict, base: str, live: dict[str, str]) -> dict:
                 flush()
                 lab = s[5:].strip()
                 box[0] = "take" if "带走" in lab else ("about" if "怎么来的" in lab else None)
-                box[1] = lab                         # 标签照稿子写的显示（「带走这三句」「带走这十句」）
+                box[1] = lab                         # 标签照稿子写的显示（「带走这十句」）
+                mg = re.match(r"^带走[：:]\s*(.+)$", lab)
+                if mg:                               # 「#### 带走：金句」：标签只留「带走」，金句放大另起一行
+                    box[1], box[2] = "带走", mg.group(1).strip()
                 continue
             if s.startswith("### "):
                 flush(); body.append(f"<h3>{inline(s[4:].strip())}</h3>"); continue
@@ -185,6 +194,12 @@ def render(topic: dict, base: str, live: dict[str, str]) -> dict:
     return {"title": title, "subtitle": subtitle, "toc": toc, "body_html": body_html,
             "n_src": body_html.count('class="zt-src"'), "missing": sorted(set(missing))}
 
+
+
+def take_item(x: str, inline) -> str:
+    """带走框的一条：「处境：做法」—— 冒号前的处境单独着色，读者一眼找到自己那一行。"""
+    m = re.match(r"^([^：]{1,16})：(.+)$", x)
+    return f'<span class="zt-if">{inline(m.group(1))}</span>：{inline(m.group(2))}' if m else inline(x)
 
 def _mark(escaped: str, src) -> str:
     return BARE.sub(lambda m: src(m.group(1)), escaped)

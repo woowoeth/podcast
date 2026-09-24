@@ -9906,6 +9906,42 @@ class TopicPagesArePublishedLinkedAndClean(unittest.TestCase):
             self.assertNotIn("==", re.sub(r"<[^>]+>", "", r["body_html"]), "标红记号漏到了页面上")
             self.assertRegex(r["body_html"], r'<mark class="zt-hot">前半句<sup class="zt-sup">.*</sup>，后半句。</mark>')
 
+    def test_a_takeaway_box_shows_its_line_and_situations(self):
+        """每问结尾：「#### 带走：金句」放大成一行，下面「处境：做法」的处境单独着色。"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            d = pathlib.Path(tmp) / "x"; d.mkdir()
+            (d / "episodes.json").write_text('{"001": {"slug": "real", "no": "1期", "title": "t"}}')
+            (d / "00_open.md").write_text("# 标题\n副标题\n开头\n")
+            (d / "ch01.md").write_text("## 第1问　问\n!! 答\n\n#### 带走：一句金句。\n- 处境甲：做法（某人，#001）\n")
+            (d / "99_close.md").write_text("## 结尾\n好\n")
+            r = self.zt.render({"dir": d, "slug": "x"}, "/podcast", {"t": "real"})
+            self.assertIn('<p class="zt-gold">一句金句。</p>', r["body_html"])
+            self.assertIn('<span class="zt-if">处境甲</span>：做法<sup class="zt-sup">', r["body_html"])
+            self.assertNotIn("带走：", re.sub(r"<[^>]+>", "", r["body_html"]), "金句的标记漏到了页面上")
+
+    def test_every_question_ends_with_a_line_and_three_situations(self):
+        """每问结尾是一句金句 + 三行「处境：做法（人名，#集号）」。
+
+        原来是「带走这三句」三条作业：和开头的答案、正文的标红重复，也是全书唯一没出处的
+        地方（「算现金还能撑几个月」在 6 问里各出现一次）。现在每行都要带出处。
+        """
+        cite = re.compile(r"[（(][^（）()]{1,40}?[，,]\s*#\d{3}")
+        for t in self.topics:
+            for f in sorted(t["dir"].glob("ch*.md")):
+                txt = f.read_text(encoding="utf-8")
+                golds = re.findall(r"(?m)^#### 带走[：:]\s*(.+)$", txt)
+                self.assertEqual(1, len(golds), f"{f.name} 结尾没有「#### 带走：金句」（或不止一个）")
+                han = len(re.findall(r"[\u4e00-\u9fff]", golds[0]))
+                self.assertLessEqual(han, 20, f"{f.name} 的金句 {han} 个字，放大显示时会折成好几行")
+                tail = txt.split(golds[0], 1)[1]
+                items = re.findall(r"(?m)^- (.+)$", tail)
+                self.assertEqual(3, len(items), f"{f.name} 金句下面应恰好 3 行处境")
+                for it in items:
+                    self.assertRegex(it, r"^[^：]{1,16}：", f"{f.name} 这一行没写「处境：」：{it[:20]}")
+                    self.assertRegex(it, cite, f"{f.name} 这一行没带出处：{it[:20]}")
+                self.assertNotIn("带走这三句", txt, f"{f.name} 还留着旧的「带走这三句」")
+
     def test_a_vanished_episode_is_reported_not_fatal(self):
         """集下站了：只显示期号不挂链接、记进 missing；不许抛异常拦住整站构建。"""
         import tempfile
