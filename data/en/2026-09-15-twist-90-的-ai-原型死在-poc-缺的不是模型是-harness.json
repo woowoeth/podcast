@@ -1,0 +1,102 @@
+{
+ "slug": "2026-09-15-twist-90-的-ai-原型死在-poc-缺的不是模型是-harness",
+ "of": "twist-2df18f38e7",
+ "source_lang": "en",
+ "title": "90% of AI prototypes die at POC: what's missing isn't the model, it's the harness",
+ "dek": "No matter how strong the model is, it can't survive a mid-run crash — the process dies halfway through issuing a refund and the customer gets paid twice. Pulling state out of the agent and handing it to a harness is the line between the laptop and production.",
+ "why": "19 minutes to explain an overlooked engineering truth: the bottleneck for putting agents into production isn't model capability, it's durable execution. For teams pushing a demo toward production.",
+ "who": "Engineering leads pushing an AI demo toward production, platform architects, and CTOs who need to put guardrails on agents.",
+ "skip": "0:00-1:00 opening intro and guest background, skippable.",
+ "tags": [
+  "AI agents",
+  "durable execution",
+  "productionization",
+  "distributed systems",
+  "enterprise security"
+ ],
+ "points": [
+  {
+   "h": "90% of AI prototypes die after POC",
+   "body": "Samar says anyone can now turn an idea into an app with a coding agent, but 90% of ideas die after POC and never see the light of day. The cause of death isn't that the model isn't smart enough — it's that they're \"unstable, brittle, unreproducible.\" Jason says he sees this play out in organizations every day: someone excitedly demos something, he asks \"can it go to production,\" and the answer is always \"I don't know, I feel like no, but maybe.\" That gap between POC and production-grade software is what this episode takes apart."
+  },
+  {
+   "h": "The more valuable the agent, the more it looks like a distributed system",
+   "body": "Samar's observation: once an AI application goes to production, it runs longer and longer, gets more and more asynchronous, takes more and more actions in the real world, and creates more value. But the moment you get there, you run into infrastructure-level challenges — reliability, scalability, durability — exactly like the cloud platform migration era. His judgment: these problems are fundamentally distributed, not brand-new AI problems. Once an agent graduates from the laptop into a genuinely distributed environment, the nature of the problem changes."
+  },
+  {
+   "h": "The refund crashes halfway through — do you send a second one?",
+   "body": "Samar's picture is concrete: an agent is processing a refund, has just finished the refund but hasn't yet notified the customer, and the machine restarts or the process crashes. Now you have only two options — either rerun it, or send another refund. Jason chimes in: that could get expensive. Samar says handling this class of failure is exactly where every production system gets stuck, because AI is starting to take actions in the real world. What Temporal provides is called durable execution: when a failure happens during code execution, the platform remembers all the state for you, the developer doesn't write a single line of code, and the application still moves forward through all kinds of failures."
+  },
+  {
+   "h": "Show the agent's HUD to a human",
+   "body": "After looking at Temporal's interface, Jason says the top left is the workflow code, the right is the runtime event timeline where you can watch the agent execute tools, call the LLM, get responses back, and move forward step by step in real time, and the bottom is the output the application actually produces. He says he's never seen anyone expose the behind-the-scenes process, and he wishes every consumer product had a HUD like this so he'd have more confidence about \"where did I get to last time.\" Samar adds: Temporal isn't just a transaction engine, it also gives you full visibility into agentic applications — an agent is just picking an LLM, giving it a prompt, and configuring a set of tools, with the LLM deciding how to proceed on its own."
+  },
+  {
+   "h": "Code mode keeps security teams up at night",
+   "body": "Samar raises an underrated risk: there's now a code mode where the agent generates more code on the fly while solving a problem and executes it. Imagine a large enterprise handing a big business process to this kind of code mode agent — you're effectively running code the LLM spits out at runtime straight into the business environment, which from a security standpoint is deeply unsettling. Temporal addresses this with two constructs, workflows and activities: workflows are responsible for generating commands, and the platform can intercept those commands and add the necessary guardrails before they actually enter the sandbox or runtime."
+  },
+  {
+   "h": "The harness is the step from MS-DOS to the cloud",
+   "body": "Samar uses an analogy: we're now transitioning from the MS-DOS era of agents to a genuine cloud environment. The way most people run agents today is to install a coding agent on a laptop and run it. But people have already started building loops, and terms like loop engineering and graph engineering have even appeared, meaning agents will run more independently and for longer, and will necessarily move off the laptop into a distributed environment. At that point the harness becomes the core component — it's the \"brain\" that gets pulled out and placed outside the agentic loop, so that when the agent goes down the wrong path it doesn't crash the whole process."
+  },
+  {
+   "h": "Enterprises will never allow agents to run on a laptop",
+   "body": "Jason asks: how do you decide it's time to move the agent you're playing with on your desktop into the production loop? Samar's answer is hard: enterprises simply cannot adopt these agent architectures unless they can run business processes under the required guardrails, so no enterprise will allow agents to run on a laptop — for an enterprise this is table stakes. He offers a more general graduation signal: when you go from one person solving a problem to a team solving a complex business problem, the only viable path is to run the agent in a distributed environment. At that point a forward deployed engineer has to be embedded in the business unit, building it right with the right tools so it isn't brittle."
+  }
+ ],
+ "terms": [
+  {
+   "term": "harness",
+   "def": "The \"brain\" pulled out of the agent loop, responsible for coordination, durability and fault tolerance."
+  },
+  {
+   "term": "durable execution",
+   "def": "When a failure happens during code execution, all state is saved automatically so the application keeps moving forward."
+  },
+  {
+   "term": "code mode",
+   "def": "A way of working where the agent generates and executes new code on the fly while solving a problem."
+  },
+  {
+   "term": "forward deployed engineer",
+   "def": "An engineer embedded in a business unit who builds the agent system to production standards with the right tools."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Share of AI ideas that die after POC",
+   "v": "90%"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "But 90% of those ideas die after a POC, essentially. They never see light of the day.",
+   "translated": false
+  },
+  {
+   "text": "these problems start to look more and more similar to like distributed in nature rather than a completely new AI problem",
+   "translated": false
+  },
+  {
+   "text": "Imagine an agent which is kind of building, processing a refund and literally, immediately after processing a refund, a failure happens.",
+   "translated": false
+  },
+  {
+   "text": "Where during an execution of a code, if a failure happens, we remember all of that state. Without you as a software developer writing a single line of code for it.",
+   "translated": false
+  },
+  {
+   "text": "i feel right now we are transitioning from an ms dos era of agents to a real cloud environment essentially",
+   "translated": false
+  },
+  {
+   "text": "which means like none of the enterprises will ever allow these agents to run on a laptop, essentially. So for them, it's core table stakes, in my opinion.",
+   "translated": false
+  },
+  {
+   "text": "I think at this point, running agents on your laptop is no longer even an option.",
+   "translated": false
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}
