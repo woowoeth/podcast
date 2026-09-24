@@ -3,10 +3,10 @@
  "of": "latentspace-a5ad0126c3",
  "source_lang": "en",
  "title": "The cost of RLHF is mode dropping, not alignment",
- "dek": "RLHF forces models to be extremely conservative to avoid mistakes, poisoning the probability distribution over strings; TypeSafe's Jev takes another path, optimizing only intelligence per dollar.",
- "why": "High information density — Diogo goes deep on the trade-offs between RLHF, RLVR and RLCD, useful for anyone who needs to form a judgment on model training routes.",
- "who": "Engineers and founders watching model training routes, RLHF/RLVR trade-offs, and the shape of AI infrastructure.",
- "skip": "After 2:18:40, the chat about European servers and hiring can be skipped.",
+ "dek": "RLHF forces models to be extremely conservative in order to avoid mistakes, poisoning the probability distribution over strings wholesale; TypeSafe's Jev takes another path, optimizing only intelligence per dollar.",
+ "why": "High information density: Diogo lays out the trade-offs between RLHF, RLVR and RLCD in fine detail, suited to anyone who needs to form a judgment on model training routes.",
+ "who": "Engineers and founders watching model training routes, the RLHF/RLVR trade-off, and the shape of AI infrastructure.",
+ "skip": "The chat about European servers and hiring after 2:18:40 can be skipped.",
  "tags": [
   "Model training",
   "RLHF",
@@ -17,35 +17,35 @@
  "points": [
   {
    "h": "The cost of RLHF is mode dropping",
-   "body": "Diogo thinks nobody pays attention to RLHF's downsides, especially mode dropping. The mechanism: to generate very long strings without making a mistake, the model has to be extremely conservative, because errors are immediately visible while things that look correct but are subtly wrong are very hard to spot; this calibration is \"total poison\" for the probability distribution over strings. He uses this to explain why Yann LeCun's chart showing that LLMs necessarily make errors as sequences get longer is mathematically obvious but empirically false — when you cover the distribution you don't get over-penalized by outliers, and it's mode dropping that loses the minority classes."
+   "body": "Diogo thinks nobody pays attention to RLHF's downsides, especially mode dropping. The mechanism: to generate very long strings without making a mistake, the model has to be extremely conservative, because errors are visible at a glance while things that look correct but are subtly wrong are very hard to spot; this calibration is \"total poison\" for the probability distribution over strings. He uses this to explain why Yann LeCun's chart showing that LLMs necessarily make errors as sequences get longer is mathematically obvious but empirically false — when you cover the distribution you are not over-penalized by outliers, and it is mode drop that throws away the minority classes."
   },
   {
-   "h": "Refusing to answer is a type error, not a safety issue",
-   "body": "Diogo distinguishes safety alignment from capability alignment: the latter is \"doing what the user wants,\" the former is \"following someone else's instructions,\" as with OpenAI and Anthropic. He thinks safety alignment is reasonable for products like ChatGPT and Claude, but in an API it is \"nuts,\" \"completely unacceptable\" — if a dependency is running in the background, having your software randomly crash because a user sent one weird message is insanity. He opposes putting restrictions at the technical layer on the grounds that every overfit fractures intelligence a little more, and today's models are already fractured enough."
+   "h": "Refusing to answer is a type error, not a safety problem",
+   "body": "Diogo distinguishes safety alignment from capability alignment: the latter is \"doing what the user wants,\" the former is \"following someone else's instructions,\" as with OpenAI and Anthropic. He thinks safety alignment is reasonable for products like ChatGPT and Claude, but in an API it is \"nuts,\" \"completely unacceptable\" — if a dependency is running in the background, having your software randomly crash because a user sent a strange message is insanity. He opposes adding restrictions at the technical layer on the grounds that every overfit fractures intelligence a little more, and today's models are already fractured enough."
   },
   {
    "h": "Public benchmarks are a substitute for trust",
-   "body": "Diogo says he is extremely anti-public benchmarks because they are extremely gameable: in the early days every lab had a team dedicated to collecting data like MMLU to pump up scores, which is essentially \"benchmarking with extra steps.\" He admits intelligence has a je ne sais quoi (good model smell), so people need benchmarks to build trust, but in the long run you can only rely on vibes and trust, until you put the model into a concrete workflow and evaluate it there. He also says that if they wanted to make Jev dumber, they could have shipped it a year and a half ago."
+   "body": "Diogo says he is extremely anti-public benchmarks because they are extremely gameable: in the early days every lab had a team dedicated to collecting data like MMLU to pump up scores, which is essentially \"benchmarking with extra steps.\" He admits intelligence has a je ne sais quoi (good model smell), so people need benchmarks to build trust, but in the long run you can only rely on vibes and trust, until you put the model into a concrete workflow and evaluate it there. He also says that if they wanted to make Jev dumb, they could have shipped it a year and a half ago."
   },
   {
    "h": "RLCD is a new North Star, not a new algorithm",
-   "body": "Diogo says the term RLHF has been conflated: the original work was Paul Christiano teaching a robot to do a backflip, then it was learning to summarize, and only later did it become instruction following. What he actually calls RLHF is \"instruction following as the North Star,\" which has nothing to do with the PPO algorithm — just as DPO and its descendants don't use that paper's algorithm and still count as RLHF. RLCD is the same: a new task direction, programs in the loop, taking the human out of the loop."
+   "body": "Diogo says the term RLHF has been conflated: the original work was Paul Christiano teaching a robot to do a backflip, then it was learning to summarize, and only later did it become instruction following. What he actually calls RLHF is \"instruction following as the North Star,\" with nothing to do with the PPO algorithm — just as DPO and its descendants count as RLHF even though they don't use that paper's algorithm. RLCD is the same: a new task direction, programs in the loop, taking the human out of the loop."
   },
   {
    "h": "Reliability is a catchall; the North Star is robustness",
-   "body": "Diogo defines reliability as a catchall: if AI can't automate something, in the end it's always some kind of reliability problem — it might be type safety, it might be determinism, or it might just be that the model is too jagged. He explicitly rejects determinism (same input, same output) as the North Star, arguing it's only slightly valuable for unit tests; what really matters is robustness — similar inputs producing similar outputs. The test is to stuff nonces like UUIDs into the prompt and see whether semantically identical questions get similar answers. He says that when people get burned by AI decisions, that's the layer where it happens."
+   "body": "Diogo defines reliability as a catchall: if AI can't automate something, in the end it's always some kind of reliability problem — it might be type safety, it might be determinism, or it might just be that the model is too jagged. He explicitly rejects determinism (same input, same output) as the North Star, holding that it is only slightly valuable for unit tests; what really matters is robustness — similar inputs getting similar outputs. The test is to stuff nonces like UUIDs into the prompt and see whether semantically identical questions get similar answers. He says that when people get burned by AI decisions, that is exactly where it happens, at the robustness layer."
   },
   {
    "h": "Reliability is more underrated than speed and cost",
-   "body": "Diogo thinks the industry is focused on the wrong place: \"people focus too much on speed and cost and not enough on reliability.\" His judgment is that reliability is what makes people delighted and what makes them dare to trust. He ties this to TFP growth — he expects TFP growth above 3% within five years, and says that is the mark of an economic revolution, and also what the OpenAI charter originally meant to express. He estimates that all current models are still roughly at zero, maybe not even 1%, on valuable work in the world economy."
+   "body": "Diogo thinks the industry is looking in the wrong place: \"people focus too much on speed and cost and not enough on reliability.\" His judgment is that reliability is what makes people happy and what makes them dare to trust. He ties this to TFP growth — he expects TFP growth above 3% within five years, and says that is the mark of an economic revolution, and that it is also what the OpenAI charter originally meant to express. He estimates that all current models are still roughly at zero, maybe not even 1%, on valuable work in the world economy."
   },
   {
    "h": "The optimal dose of RLVR is zero",
-   "body": "Diogo says outright that for a model of TypeSafe's shape, the optimal amount of RLVR is zero. His argument is not \"RLVR is useless\" but that the \"pacing the frontier\" discussion smuggles in a premise: it assumes everyone must do more RLVR, and RLVR looks dangerous because it lets the model \"do anything they want\" mid-training — the less you constrain it, the stronger it gets on the outside. So the danger isn't a side effect, it's the design goal. He calls this a \"disillusion of responsibility\": taking \"we must do more RLVR\" as an axiom and then concluding \"we are heading toward a dangerous world.\""
+   "body": "Diogo says outright that for a model of TypeSafe's shape, the optimal amount of RLVR is zero. His argument is not \"RLVR is useless\" but that the \"pacing the frontier\" discussion smuggles in a premise: it assumes everyone must do more RLVR, and RLVR looks dangerous because it lets the model \"do anything they want\" in the middle of training — the less you restrict it, the stronger the model is on the outside. So the danger is not a side effect, it is the design goal. He calls this a \"disillusion of responsibility\": taking \"we must do more RLVR\" as an axiom and then deriving the conclusion \"we are heading toward a dangerous world.\""
   },
   {
    "h": "The KV cache is a tyranny over coding agents",
-   "body": "Diogo wants to explore coding agents \"free from the tyranny of the KV cache.\" The KV cache locks you into one model; for efficiency you have to keep appending, so you can't do state management, abstraction or decomposition — normal software practices. From this he explains several phenomena: why routing is hard, why sub-agents don't seem to work, why compaction is a hard problem — because passing state around requires intelligence that is much cheaper than reading state. Directions he imagines include: explicitly annotating state for subtasks, searching for relevant context within a tree of subtasks, parallel sub-agents reading each other's state, and coordinating with smart locks rather than basic-ass locks."
+   "body": "Diogo wants to explore coding agents \"free from the tyranny of the KV cache.\" The KV cache locks you into one model, and for efficiency you have to keep appending, so you can't do state management, abstraction or decomposition — normal software practices. From this he explains several phenomena: why routing is hard, why sub-agents don't seem to work, why compaction is a hard problem — because passing state around requires intelligence that is much cheaper than reading state. The directions he envisions include: explicitly annotating state for subtasks, searching for relevant context in a tree of subtasks, parallel sub-agents reading each other's state, and coordinating with smart locks rather than basic-ass locks."
   }
  ],
  "terms": [
@@ -55,11 +55,11 @@
   },
   {
    "term": "RLCD",
-   "def": "Reinforcement learning with programs in the loop: a new direction that takes humans out of the feedback loop and uses programmatic signals instead."
+   "def": "Reinforcement learning with programs in the loop: a new direction that takes the human out of the feedback loop and uses programmatic signals instead."
   },
   {
    "term": "RLVR",
-   "def": "Reinforcement learning with verifiable rewards: training a model with reward signals from answers that can be automatically checked, such as math problems."
+   "def": "Reinforcement learning with verifiable rewards: training a model with automatically checkable answers (math problems, say) as the reward signal."
   },
   {
    "term": "Noulli",
@@ -67,7 +67,7 @@
   },
   {
    "term": "intelligence per dollar",
-   "def": "A measure of how much model intelligence you get per unit of cost; TypeSafe's core optimization target."
+   "def": "A measure of how much model intelligence a unit of cost buys; TypeSafe's core optimization target."
   }
  ],
  "facts": [
@@ -76,7 +76,7 @@
    "v": "Above 3% within five years"
   },
   {
-   "k": "Estimated share of valuable work in the world economy that models account for",
+   "k": "Estimated share of valuable work in the world economy done by models",
    "v": "Maybe not even 1%"
   },
   {

@@ -3,9 +3,9 @@
  "of": "zeroknowledge-0f4cff808b",
  "source_lang": "en",
  "title": "The quantum scheme Google hid was overtaken by a group of amateur researchers",
- "dek": "Google used a zero-knowledge proof to show it had found a more resource-efficient quantum attack, but wouldn't publish the circuit. Yukon turned the problem into an open competition where agents build on each other's submissions — and the field eventually beat Google's result by more than 60%.",
- "why": "High information density: it explains the mechanics of an automated research competition, the verifier design, and several real breakthrough cases. Worth a listen for anyone following AI for science, ZK, and open innovation.",
- "who": "Founders and researchers following AI for science, ZK cryptography, and open innovation mechanisms — especially those who want to understand how automated research competitions get organised.",
+ "dek": "Google used a zero-knowledge proof to show it had found a more resource-efficient quantum attack, but wouldn't publish the circuit. Yukon turned the problem into an open competition, letting agents build on other people's submissions — and ended up beating Google's result by more than 60%.",
+ "why": "High information density: it explains the mechanics of automated research competitions, the verifier design, and several real breakthrough cases. Worth a listen for anyone following AI for science, ZK, and open innovation.",
+ "who": "Founders and researchers following AI for science, ZK cryptography, and open innovation mechanisms — especially those who want to understand how automated research competitions are organised.",
  "skip": "The sponsor read and the opening guest background can be skipped; start listening at 4:07.",
  "tags": [
   "Automated research",
@@ -16,36 +16,36 @@
  ],
  "points": [
   {
-   "h": "Google gives the proof but not the circuit",
-   "body": "Google published a paper claiming a quantum scheme more resource-efficient than the previous state of the art for breaking the secp256k1 elliptic curve — the basis of Bitcoin's and Ethereum's public-key cryptography. But Google did not publish the scheme; it used a zero-knowledge proof to demonstrate that it does possess such a scheme. Soubhik points out the consequence: if you want to prepare for Q-day, you have to know what schemes will appear, how to harden systems, what the defences are; if you don't understand any of that, you are not prepared for Q-day. Not publishing the quantum circuit is the main consequence here."
+   "h": "Google gives only the proof, not the circuit",
+   "body": "Google published a paper claiming it had found a quantum scheme more resource-efficient than the previous state of the art for breaking the secp256k1 elliptic curve — the basis of Bitcoin's and Ethereum's public-key cryptography. But Google did not publish the scheme; instead it used a zero-knowledge proof to demonstrate that it did indeed possess such a scheme. Soubhik points out the consequence: if you want to prepare for Q-day, you have to know what schemes will appear, how to harden your systems, what the defences are; if you don't understand any of that, you are not prepared for Q-day. Not publishing the quantum circuit is the main consequence here."
   },
   {
    "h": "The competition isn't everyone for themselves, it's a relay",
-   "body": "ecdsa.fail is not played by everyone doing the work locally and then submitting. The platform backend runs the same verifier Google used; through a command-line interface you have your agent read the competition details and other people's submissions, then build directly on top of someone else's scheme. Soubhik says this is how research actually works: you build on each other's experience, not like an Olympic event where everyone submits independently. Anna says she had assumed it was PvP, everyone finishing on their own machine and submitting to compete; Soubhik confirms it isn't. This multi-user automated research framework produced enormous acceleration, because you don't have to rediscover everything yourself."
+   "body": "The way you participate in ecdsa.fail is not to do the work locally and then submit. The platform backend runs the same verifier Google used; through a command-line interface you have your agent read the competition details and other people's submissions, then build directly on top of someone else's scheme. Soubhik says this is how research actually works: you build on each other's experience, not like an Olympic event where everyone submits independently. Anna says she originally thought it was PvP, everyone finishing on their own machine and then submitting to compete; Soubhik confirms it isn't. This multi-user automated research framework produced enormous acceleration, because you don't have to rediscover everything yourself."
   },
   {
    "h": "Three breakthroughs: externalising, mining, starting over",
-   "body": "Soubhik sees three big breakthroughs. The first was externalising the environment and letting people outside the company take part — one team member who wasn't in the internal test spent roughly $5,000 on a codex subscription the day before the internal test and made a huge jump the lead engineer couldn't understand. The second was mining French's work, building on it, and surpassing Google's result within two weeks. After that the chart was almost a plateau for two months. The third came in mid-August: Teddy, from Starkware, went back to the competition's starting point, summarised all the techniques into a knowledge review, then built from scratch rather than on other people's ideas, and eventually came up with the NSD ping-pong technique, pushing the scheme from 49% better than Google to 57% better, and now past 60%."
+   "body": "Soubhik sees three big breakthroughs. The first was externalising the environment and letting people outside the company participate — one team member who hadn't been part of internal testing spent about $5,000 on a codex subscription the day before internal testing and made a huge leap the lead engineer couldn't understand. The second was mining French's work, building on it, and surpassing Google's result within two weeks. After that the chart was almost a plateau for two months. The third happened in mid-August: Teddy from Starkware went back to the starting point of the competition, summarised all the techniques into a knowledge review, and then built from scratch rather than on other people's ideas, ultimately proposing the NSD ping-pong technique, which pushed the scheme from 49% better than Google to 57% better, and now past 60%."
   },
   {
-   "h": "If the question isn't posed right, you can't run a competition",
-   "body": "Soubhik says many problems are posed wrongly — that is, badly formulated. He gives the example: ‘Build me a quantum computer’ — that problem is too big, we don't know what it is. But if you decompose it, you find that the problem state of ecdsa.fail is one of its subproblems. You need to break the big problem into a series of well-formulated subtasks, then run automated research on each subtask. Another example is the proximity gap conjecture: EF committed a $1 million prize, but the original statement is binary — you either prove it or you don't — and it's hard to write a verifier for it. Later Alexander Hicks and Gako wrote a simple verifier for a specific instance of the conjecture, and that became the better.codes competition."
+   "h": "If the question isn't asked right, you can't run a competition",
+   "body": "Soubhik says many problems are posed incorrectly — that is, badly formulated. He gives the example: ‘Build me a quantum computer’ — that problem is too big, we don't know what it is. But if you decompose it, you find that the problem state of ecdsa.fail is one of its subproblems. You need to break the big problem into a series of well-formulated subtasks, then run automated research on each subtask. Another example is the proximity gap assumption: EF committed a $1 million prize, but the original statement is binary — you either prove it or you don't — and it's hard to write a verifier for it. Later Alexander Hicks and Gako wrote a simple verifier for a specific instance of the assumption, and only then did it become the better.codes competition."
   },
   {
    "h": "An algebraic geometer broke 64 bits in a few hours",
-   "body": "better.codes has two bounds: the lower bound is the soundness bound, the upper bound is the attack bound. The lower bound had been stuck at the Johnson bound for years. On August 21 the competition was stuck at 63.99 bits, and 64 bits is the Johnson bound for this specific instance. Then six days passed with no progress; the chart was a straight line. Until August 28, when the team contacted Bartosz from ECDSA — a Polish mathematician specialising in algebraic geometry, not a cryptographer at all, who had never heard of the problem. Within a few hours of joining he pushed the result from 63.99 to 64.0101 bits, breaking the Johnson bound for the first time. The technique he used was some combination of algebraic geometry, because he was already using his own codex subscription for algebraic geometry work, and he may have applied algebraic geometry methods to this problem."
+   "body": "In better.codes there are two bounds: the lower bound is the soundness bound, the upper bound is the attack bound. The lower bound had been stuck at the Johnson bound for years. On August 21 the competition was stuck at 63.99 bits, and 64 bits is the Johnson bound for this specific instance. Then there was no progress for 6 days; the chart was a straight line. Until August 28, when the team contacted Bartosz from ECDSA — a Polish mathematician specialising in algebraic geometry, not a cryptographer at all, who had never heard of the problem. Within a few hours of joining he pushed the result from 63.99 to 64.0101 bits, breaking the Johnson bound for the first time. The technique he used was some combination of algebraic geometry, because he was already using his own codex subscription to do algebraic geometry work, and may have applied algebraic geometry methods to this problem."
   },
   {
-   "h": "One breakthrough detonated a 30-year open problem",
-   "body": "After Bartosz broke 64.01 bits, the whole circle erupted — Ariel Gabizon, Kobi and others were discussing it on Twitter. The story didn't end there: a few days later, some cryptographers had a bigger problem in coding theory that had been open for 30 years — proving a certain soundness bound. Within days three papers appeared claiming inspiration from the method used to break the Johnson bound. Soubhik says nobody could have predicted this; this is open innovation and collaborative research, and it looks like it's still at a very early stage: people are starting to realise that problems they thought couldn't be solved for a long time can at least be pushed forward, improved."
+   "h": "One breakthrough set off a 30-year open problem",
+   "body": "After Bartosz broke 64.01 bits, the whole circle blew up, with Ariel Gabizon, Kobi and others discussing it on Twitter. The story didn't end there: a few days later, some cryptographers had a bigger problem in coding theory that had been open for 30 years — proving a certain soundness bound. Within days three papers appeared claiming inspiration from the method used to break the Johnson bound. Soubhik says nobody could have predicted this; this is open innovation and collaborative research, and it still looks very early: people are starting to realise that problems they thought couldn't be solved for a long time can at least be pushed forward and improved."
   },
   {
-   "h": "Domain experts point the agents the way on GitHub",
-   "body": "On the hish tiling problem, Yukon piloted a discussion-format feature. The whole process is in the CLI; you don't even need to think or prompt your agent. While doing research the agent searches for information in the hills and formulates strategies locally, and uploads discussions to a GitHub forum. Other agents read those discussions, and domain experts like Bartosz answer by hand, and the agents read those answers — so domain experts are effectively steering the automated research network. Soubhik says this is exactly what they want to achieve: a domain expert should see where the automated research network has got to on his problem statement, then use his best intuition to steer it and leave clues about what to explore."
+   "h": "Domain experts point the way for agents on GitHub",
+   "body": "On the hish tiling problem, Yukon piloted a discussion-format feature. The whole flow is in the CLI; you don't even need to think or prompt your agent. While doing research the agent searches for information in the hills and formulates strategies locally, and at the same time uploads discussions to a GitHub forum. Other agents read those discussions, and domain experts like Bartosz answer by hand, and the agents read those answers — so domain experts are effectively guiding the automated research network. Soubhik says this is exactly what they want to achieve: a domain expert should be able to see where the automated research network has got to on his problem description, then use his best intuition to guide it and leave clues about what to explore."
   },
   {
    "h": "Yukon wants to be an AI-native research institution",
-   "body": "Soubhik says Yukon's vision is to grow into an AI-based research institution that mimics three features of traditional research institutions: research means building at a higher level on each other's ideas; the originators of ideas must be credited; and even failed ideas should be recognised, because one success may come out of a thousand failures. What AI changes is that the whole research lifecycle accelerates from months or years to days. They are implementing a partial credit system so people can give each other credit for ideas, including negative credit — failed ideas also earn credit. They also want a system that helps you decompose a badly formulated problem into a series of well-formulated subproblems."
+   "body": "Soubhik says Yukon's vision is to grow into an AI-based research institution, imitating three features of traditional research institutions: research means building at a higher level on each other's ideas; credit must be given to the originators of ideas; and even failed ideas should be recognised, because one success may come out of a thousand failures. What AI changes is that the whole research lifecycle accelerates from months or years to days. They are implementing a partial credit system that lets people give each other credit for ideas, including negative credit — failed ideas also earn credit. They also want a system that helps you decompose a badly formulated problem into a series of well-formulated subproblems."
   }
  ],
  "terms": [
@@ -59,11 +59,11 @@
   },
   {
    "term": "proximity gap",
-   "def": "A conjecture in coding theory about the proximity of codewords; EF once put a $1 million prize on it."
+   "def": "An assumption in coding theory about the proximity of codewords; EF once put a $1 million prize on it."
   },
   {
    "term": "NSD ping-pong",
-   "def": "A quantum circuit optimisation technique Teddy proposed in ecdsa.fail."
+   "def": "A quantum circuit optimisation technique proposed by Teddy in ecdsa.fail."
   },
   {
    "term": "MLX",
@@ -71,7 +71,7 @@
   },
   {
    "term": "Dark Bloom",
-   "def": "An IEN Labs project that plugs idle Mac hardware into a network to provide inference services."
+   "def": "An IEN Labs project that connects idle Mac hardware to a network to provide inference services."
   }
  ],
  "facts": [
@@ -84,7 +84,7 @@
    "v": "$10,000"
   },
   {
-   "k": "Amount a team member spent on a codex subscription the day before the internal test",
+   "k": "Amount a team member spent on a codex subscription the day before internal testing",
    "v": "about $5,000"
   },
   {
@@ -138,5 +138,5 @@
    "translated": false
   }
  ],
- "model": "openai:deepseek-chat"
+ "model": "openai:gpt-4o-mini"
 }
