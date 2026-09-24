@@ -2,10 +2,10 @@
  "slug": "2026-09-22-latentspace-ai-做科学卡在最后-0-001-分-不是卡在算力",
  "of": "latentspace-7a32689f9e",
  "source_lang": "en",
- "title": "AI for Science Is Stuck on the Last 0.001 Points, Not on Compute",
- "dek": "ERA can churn out thousands of candidate notebooks, but it can't close the gap on the last 30 places — because the inner loop is a machine, and the outer loop still needs a human to decide ‘you got this paper wrong’.",
+ "title": "AI for science is stuck on the last 0.001 points, not on compute",
+ "dek": "ERA can churn out thousands of candidate notebooks, but it can't close the gap on the last 30 places — because the inner loop is a machine, and the outer loop still needs a human to judge ‘this paper, you got it wrong’.",
  "why": "High information density, but it takes some patience: the first half covers ERA's mechanics, the second half covers contrails, wildfires and quantum computing, all first-hand detail.",
- "who": "Engineers and researchers working on AI for science, climate modeling or quantum computing, plus founders who want a look inside Google's internal toolchain.",
+ "who": "For engineers and researchers working on AI for science, climate modeling or quantum computing, and for founders who want a look inside Google's internal toolchain.",
  "skip": "If you only care about AI applications, the asteroid and Oscar anecdotes after 1:47 can be skipped.",
  "tags": [
   "AI for science",
@@ -16,36 +16,36 @@
  ],
  "points": [
   {
-   "h": "ERA takes chat as input and outputs a scored notebook",
-   "body": "ERA's product form isn't having people write config files — you just start chatting. Because mapping a scientific problem onto a scorable task is itself non-obvious, Michael Brenner wrote a dedicated agent that conversationally helps you define which score to optimize. When the conversation ends, it generates a Python notebook underneath containing a function that produces a score, and then the system starts mutating that notebook in a ‘clever way’, continually proposing new code to push the score higher."
+   "h": "ERA's input is a chat, its output is a scored notebook",
+   "body": "ERA's product form isn't having people write config files — you just start chatting. Because mapping a scientific problem onto a scorable task is itself non-obvious, Michael Brenner wrote a dedicated agent to conversationally help you define which score to optimize. When the chat is done, it generates a Python notebook underneath, containing a function that produces a score, and then the system starts mutating that notebook in a ‘clever way’, continually proposing new code to push the score higher."
   },
   {
    "h": "It doesn't always pick the best candidate",
-   "body": "ERA runs Monte Carlo Tree Search internally, keeping hundreds or thousands of notebook candidates at once, with the candidate pool structured as a tree. Selection uses the upper confidence bound from reinforcement learning: it estimates the 95th percentile outcome of a mutation and picks the one with the highest optimistic upper bound. So it isn't always greedily choosing the currently best-performing notebook — sometimes it picks the fifth best, in order to explore more efficiently. It has also tried combining the ideas of two candidates to generate a third."
+   "body": "ERA runs Monte Carlo Tree Search internally, keeping hundreds or thousands of notebook candidates at once, with the candidate pool structured as a tree. Selection uses the upper confidence bound from reinforcement learning: it estimates the 95th percentile outcome of a mutation and picks the one with the highest optimistic upper bound. So it doesn't always greedily pick the currently best-performing notebook — sometimes it picks the fifth best, in order to explore more efficiently. It has also tried combining the ideas of two candidates to generate a third."
   },
   {
    "h": "Evolutionary coding was stuck for decades because random mutation is useless",
-   "body": "Platt says people have been doing evolutionary coding since the 1970s — mutating Lisp code and the like — but it never took off, because random mutation in code space is basically worthless: just like DNA, the vast majority of mutations are harmful. ERA works because the inner loop is itself an AI that knows which direction to try, which amounts to having a meaningful gradient underneath. The price is that it also overfits, and it also goes off the rails in ‘genie wish’ fashion."
+   "body": "Platt says evolutionary coding has been tried since the 1970s — mutating Lisp code and the like — but it never took off, because random mutation in code space is basically worthless: just like DNA, the vast majority of mutations are harmful. ERA works because the inner loop is itself an AI that knows which direction to try, which amounts to having a meaningful gradient underneath. The price is that it also overfits, and it also goes off the rails in ‘genie wish’ fashion."
   },
   {
-   "h": "Predictive models and descriptive models are two different things",
-   "body": "John Platt splits scientific modeling into two kinds: a predictive model only seeks the lowest error rate on some dataset; a descriptive model is what science actually wants — it contains some internal description of reality, so it can extrapolate. His example is Newton: an apple falling can be fitted, but gravity isn't about apples, and if you take a model that only fits apples and ask it about planets, it has no planetary data and knows nothing. He admits the line is blurry, because the scientist themself also brings a pile of known facts and intuitions to constrain the model."
+   "h": "A predictive model and a descriptive model are two different things",
+   "body": "John Platt splits scientific modeling into two kinds: a predictive model just seeks the lowest error rate on some dataset; a descriptive model is what science actually wants — it contains some internal description of reality, so it can extrapolate. His example is Newton: an apple falling can be fitted, but gravity isn't about apples, and if you take a model that only fits apples and ask it about planets, it has no planetary data and knows nothing. He admits the line is blurry, because the scientist themself also brings a pile of known facts and intuitions to constrain the model."
   },
   {
    "h": "This is a power tool, and it will cut your fingers off",
-   "body": "Faced with multiple hypothesis testing and overfitting, Platt's answer isn't a new method but a harsher old one: because ERA is a power tool, you have to be stricter than before, with a holdout buried deep that you never look at yourself. He states plainly that no system yet exists that can discover entirely new physics or entirely new science, and that scientists are still responsible for judging whether a conclusion is descriptive."
+   "body": "Faced with multiple hypothesis testing and overfitting, Platt's answer isn't a new method but a harsher old one: because ERA is a power tool, you have to be stricter than before, with a holdout hidden so deep you never look at it yourself. He states plainly that no system yet discovers entirely new physics or entirely new science, and that scientists are still responsible for judging whether a conclusion is descriptive."
   },
   {
    "h": "AI is stuck on the last 0.001 points",
-   "body": "Ira pushed the score very close, but it didn't close the gap on the last 30 places or so, because nobody goes and scrapes out that final 0.001 points. This exposes the system's real structure: the inner layer is a machine running for hours to produce candidates, and the outer layer is a human making judgments like ‘you got this paper wrong’. Platt compares it to a graduate student who never sleeps and is extremely eager — you tell it a direction, it goes and tries, but when it gets stuck a human has to change the approach."
+   "body": "Ira pushed the score very close, but it didn't close the gap on roughly the last 30 places, because nobody goes and scrapes off that last 0.001 points. This exposes the system's real structure: the inner layer is a machine running for hours to produce candidates, and the outer layer is a human making judgments like ‘this paper, you got it wrong’. Platt compares it to a graduate student who never sleeps and is extremely eager — you tell it a direction, it goes and tries, but when it gets stuck a human has to change the approach."
   },
   {
    "h": "The counterfactual model stalled the team for two years",
-   "body": "To judge which contrail to avoid, you need to know how much warming it actually causes, and that's a counterfactual problem: you can't enter the universe where the contrail doesn't exist. The team produced a counterfactual model that worked for outgoing longwave radiation, but they could never build one for the part that reflects sunlight, and it stalled them for two years. They even self-tested with a dataset where contrails were artificially injected, and their own attempt couldn't pass their own test. In the end ERA found a simple model that searches over all confounders, passed the test, and cracked the problem."
+   "body": "To judge which contrail to avoid, you need to know how much warming it actually causes, and that's a counterfactual problem: you can't enter the universe where that contrail never existed. The team produced a version of a counterfactual model that worked for outgoing longwave radiation, but they could never build one for the part that reflects sunlight, and it stalled them for two years. They even self-tested with a dataset where contrails were artificially injected, and their own attempt couldn't pass their own test. In the end ERA found a simple model that searches over all confounders, passed the test, and cracked the problem."
   },
   {
    "h": "A wildfire is best put out before it's room-sized",
-   "body": "Google has a crisis resilience direction, and one project in it is called Firesat: a wildfire is extremely easy to extinguish when it's only as big as ‘this room’, and once it reaches an acre it's far harder, while the growth from room size to an acre may be exponential. The plan is a low-Earth-orbit satellite constellation using mid-wave IR (which corresponds to blackbody radiation, exactly the temperature of fire) for detection; about 50 to 80 satellites could cover the globe, spot a fire roughly 5 meters square, and raise an alarm within 15 to 20 minutes. The partner is the nonprofit Earth Fire Alliance, the satellites are built by Muon Space, and one prototype has already launched."
+   "body": "Google has a crisis resilience direction, and one project in it is called Firesat: a wildfire is extremely easy to extinguish when it's only as big as ‘this room’, and once it reaches an acre it's far harder, and the growth from room size to an acre may be exponential. The plan is a low-Earth-orbit satellite constellation using mid-wave IR (which corresponds to blackbody radiation, exactly the temperature of fire) for detection; about 50 to 80 satellites could cover the globe, spot a fire about 5 meters across, and raise an alarm within 15 to 20 minutes. The partner is the nonprofit Earth Fire Alliance, the satellites are built by Muon Space, and one prototype has already launched."
   }
  ],
  "terms": [
@@ -71,7 +71,7 @@
   },
   {
    "term": "broom sensor",
-   "def": "A sensor that sweeps across the spectrum in one direction as the satellite moves, rather than being a snapshot camera."
+   "def": "A sensor that sweeps across a spectrum in one direction as the satellite moves, rather than being a snapshot camera."
   }
  ],
  "facts": [
@@ -88,7 +88,7 @@
    "v": "about 1%"
   },
   {
-   "k": "European regional contrail forcing",
+   "k": "Local contrail forcing over Europe",
    "v": "about 1 watt per square meter"
   },
   {
@@ -100,16 +100,16 @@
    "v": "about 6 billion"
   },
   {
-   "k": "Low-orbit satellites needed for Firesat",
+   "k": "Low-Earth-orbit satellites needed for Firesat",
    "v": "about 50 to 80"
   },
   {
    "k": "Smallest fire Firesat can detect",
-   "v": "about 5 meters square"
+   "v": "about 5 meters across"
   },
   {
    "k": "Firesat alarm latency",
-   "v": "within 15 to 20 minutes (needs about 80 satellites)"
+   "v": "within 15 to 20 minutes (requires about 80 satellites)"
   }
  ],
  "quotes": [
