@@ -819,7 +819,7 @@ def foot() -> str:
 {T("版权归各节目所有；每篇都附原节目链接，请去支持原作者。")}</div>
 <div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72">\
 <a href="{FAM[0][1]}"{FAM[0][2]}>{FAM[0][0]}</a> · <a href="{BASE}/">{NAME}</a></div>
-<div class="links"><a href="{BASE}/">{T("首页")}</a><a href="{BASE}/sources/">{T("信源")}</a>
+<div class="links"><a href="{BASE}/">{T("首页")}</a>{"".join(f'<a href="{BASE}/zt/{e(t["slug"])}/">专题</a>' for t in zt_topics()[:1])}<a href="{BASE}/sources/">{T("信源")}</a>
 <a href="{BASE}/log/">{T("更新日志")}</a><a href="{BASE}/feed.xml">RSS</a>
 <a href="{BASE}/llms.txt">llms.txt</a>
 <a href="https://github.com/woowoeth/podcast">{T("源码")}</a></div>
@@ -1212,7 +1212,7 @@ def index_page(eps: list[dict], srcs: dict) -> str:
 <div class="chips">{''.join(chips)}</div>
 {share_button(site_share_text(eps), url=SITE + "/", title=f"{NAME} · {TAGLINE}", label=T("分享本站"))}
 </div></div></div>
-
+{zt_banner()}
 <main class="wrap"><div class="feed" data-feed data-total="{len(eps)}"
      data-page-size="{FIRST_PAGE}" data-head="{head_n}"
      data-pages="{max(0, (len(eps) - head_n + FIRST_PAGE - 1) // FIRST_PAGE)}">
@@ -1829,6 +1829,43 @@ KIND_LABEL = {"added": "收录", "removed": "移除", "demoted": "降级", "dorm
 KIND_TONE = {"added": "add", "removed": "drop", "demoted": "down", "dormant": "down"}
 
 
+def zt_topics() -> list[dict]:
+    """专题只在简体站出：它是编辑写的中文读物，英文站没有译文，繁体由 tw.py 转出来。"""
+    if i18n.LANG != "zh":
+        return []
+    import zt as _zt
+    return _zt.topics()
+
+
+def zt_banner() -> str:
+    """首页横幅。专题是跨很多集的读物，信息流里没有它的位置；不挂入口就是孤儿页。"""
+    ts = zt_topics()
+    if not ts:
+        return ""
+    t = ts[0]
+    return (f'<div class="wrap"><a class="zt-banner" href="{BASE}/zt/{e(t["slug"])}/">'
+            f'<span class="zt-banner-k">专题</span><span class="zt-banner-t">{e(t["title"])}</span>'
+            f'<span class="zt-banner-go" aria-hidden="true">读 →</span></a></div>')
+
+
+def zt_page(t: dict, r: dict, n_eps: int) -> str:
+    path = f"/zt/{t['slug']}/"
+    ld = _ld({"@context": "https://schema.org", "@type": "Article",
+              "headline": r["title"], "description": t.get("desc") or r["subtitle"],
+              "url": SITE + path, "inLanguage": in_language(),
+              "datePublished": t.get("date", ""), "isPartOf": {"@id": SITE + "/#site"},
+              "author": _publisher(), "publisher": _publisher()})
+    return (head(f'{r["title"]} — {NAME}', t.get("desc") or r["subtitle"], path=path, extra=ld)
+            + masthead(n_eps, home=False, path=path)
+            + f"""<main class="wrap zt">
+<nav class="crumb" style="margin-top:26px"><a href="{BASE}/">{T("首页")}</a><span class="sep">/</span><span>专题</span></nav>
+<header class="zt-head"><h1>{e(r["title"])}</h1><p class="zt-sub">{e(r["subtitle"])}</p></header>
+<article class="zt-doc">
+{r["body_html"]}
+</article>
+</main>""" + foot())
+
+
 def log_page(eps: list[dict], srcs: dict) -> str:
     """信源的增删记录。
 
@@ -2131,6 +2168,10 @@ def sitemap(eps: list[dict]) -> str:
             + "<changefreq>daily</changefreq><priority>1.0</priority></url>",
             f"<url><loc>{xesc(SITE)}/log/</loc><changefreq>weekly</changefreq>"
             f"<priority>0.5</priority></url>",
+            *[f"<url><loc>{xesc(SITE)}/zt/{xesc(t['slug'])}/</loc>"
+              + (f"<lastmod>{xesc(t['date'])}</lastmod>" if t.get("date") else "")
+              + "<changefreq>monthly</changefreq><priority>0.9</priority></url>"
+              for t in zt_topics()],
             f"<url><loc>{xesc(SITE)}/sources/</loc>"
             + (f"<lastmod>{xesc(newest)}</lastmod>" if newest else "")
             + "<changefreq>weekly</changefreq><priority>0.6</priority></url>"]
@@ -2206,6 +2247,16 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
     n_pages = write_card_pages(eps, out)
     (out / "log").mkdir(exist_ok=True)
     (out / "log" / "index.html").write_text(log_page(eps, srcs))
+    # 专题：出处映射不到已发布的集就直接失败，不许生成指向 404 的链接
+    if zt_topics():
+        import zt as _zt
+        live = {x["slug"] for x in eps}
+        for t in zt_topics():
+            r = _zt.render(t, BASE, live)
+            zout = out / "zt" / t["slug"]
+            zout.mkdir(parents=True, exist_ok=True)
+            (zout / "index.html").write_text(zt_page(t, r, len(eps)))
+            log(f"  专题 /zt/{t['slug']}/：{len(r['toc'])} 问，出处 {r['n_src']} 处")
 
     sdir = out / "s"
     by_src: dict[str, list[dict]] = {}

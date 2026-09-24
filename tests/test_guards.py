@@ -12,6 +12,7 @@ import re
 import subprocess
 import sys
 import unittest
+import urllib.parse
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "pipeline"))
@@ -9730,3 +9731,70 @@ class LocalRetryPathKeepsTreeAndTranslations(unittest.TestCase):
         self.assertTrue(adds, "重试分支里没有 git add")
         self.assertTrue(all("data/en" in l for l in adds),
                         "重试分支的 git add 漏了 data/en —— 译稿会留成未跟踪文件，挡住下一次同步")
+
+
+class TopicPagesArePublishedLinkedAndClean(unittest.TestCase):
+    """专题（data/zt/）是编辑写的长读物，不走单集管线，所以单集页的那些守护都管不到它。
+
+    它最容易坏在三处：没有入口（孤儿页，所有闸顺着链接走都走不到它）、出处指向改过
+    地址的集（2026-09-24 实测：18 集的 slug 在补齐后变了，旧链接全 404）、排版标记漏渲染。
+    """
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.zt = importlib.import_module("zt")
+        self.topics = self.zt.topics()
+        if not self.topics:
+            self.skipTest("没有专题")
+
+    def _page(self, t, pre=""):
+        return (ROOT / pre / "zt" / t["slug"] / "index.html")
+
+    def test_every_topic_is_built_and_reachable(self):
+        home = (ROOT / "index.html").read_text()
+        smap = (ROOT / "sitemap.xml").read_text()
+        for t in self.topics:
+            self.assertTrue(self._page(t).exists(), f"专题 {t['slug']} 没生成")
+            self.assertTrue(self._page(t, "tw").exists(), f"专题 {t['slug']} 没有繁体版")
+            self.assertIn(f'/zt/{t["slug"]}/', home, "首页没有专题入口 —— 孤儿页")
+            self.assertIn(f'/zt/{t["slug"]}/', smap, "sitemap 没收专题")
+
+    def test_english_site_has_no_topic_and_no_banner(self):
+        """专题只有中文，英文站挂入口就是一个点进去全是中文的链接。"""
+        en_home = ROOT / "en" / "index.html"
+        if en_home.exists():
+            self.assertNotIn("zt-banner", en_home.read_text())
+        for t in self.topics:
+            self.assertFalse(self._page(t, "en").exists(), "英文站不该有专题页")
+
+    def test_every_source_link_resolves_to_a_live_episode(self):
+        for t in self.topics:
+            html = self._page(t).read_text()
+            hrefs = re.findall(r'class="zt-src" href="([^"]+)"', html)
+            self.assertGreater(len(hrefs), 20, "一个出处链接都没有 —— 渲染在空转")
+            dead = [h for h in hrefs if not (ROOT / urllib.parse.unquote(h).replace("/podcast/", "", 1).lstrip("/") / "index.html").exists()]
+            self.assertEqual([], dead[:5], f"专题里有 {len(dead)} 个出处指向不存在的集")
+
+    def test_no_markup_or_timestamps_leak_into_the_page(self):
+        for t in self.topics:
+            html = self._page(t).read_text()
+            body = html[html.index('<article class="zt-doc">'):html.index("</article>")]
+            text = re.sub(r"<[^>]+>", "", body)
+            for mark in ("==", "!! ", "**", "__", "#### "):
+                self.assertNotIn(mark, text, f"排版标记 {mark!r} 漏到了页面上")
+            self.assertIsNone(re.search(r"#\d{3}", text), "内部集号漏到了页面上")
+            sups = re.findall(r'<sup class="zt-sup">(.*?)</sup>', body)
+            self.assertTrue(sups)
+            self.assertFalse(any(re.search(r"\d{1,2}:\d{2}", re.sub(r"<[^>]+>", "", s)) for s in sups),
+                             "出处里显示了时间 —— 读者说它像论文脚注")
+
+    def test_an_unknown_episode_fails_the_build(self):
+        import tempfile, shutil
+        with tempfile.TemporaryDirectory() as tmp:
+            d = pathlib.Path(tmp) / "x"; d.mkdir()
+            (d / "episodes.json").write_text('{"001": {"slug": "real", "no": "1期", "title": "t"}}')
+            (d / "00_open.md").write_text("# 标题\n副标题\n开篇（某人，#999）\n")
+            (d / "99_close.md").write_text("## 结尾\n好\n")
+            with self.assertRaises(self.zt.ZtError):
+                self.zt.render({"dir": d, "slug": "x"}, "/podcast", {"real"})
