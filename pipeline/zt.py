@@ -170,8 +170,16 @@ def render(topic: dict, base: str, live: dict[str, str]) -> dict:
                 if mq:
                     ids = re.findall(r"#(\d{3})", mq.group(3) or "")
                     tail = (" · " + "、".join(src(i) for i in ids)) if ids else ""
+                    who = mq.group(2).strip()
+                    name = re.split(r"[，,]", (mq.group(3) or "").strip("（()）"))[0].strip()
+                    # 「——妙鸭创始人 张月光（张月光，#127）」：人名前面那段是身份，浅色；人名加粗
+                    if name and who.endswith(name) and who != name:
+                        role = who[:-len(name)].strip()
+                        who_html = f'<span class="role">{html.escape(role, quote=False)}</span> <b>{html.escape(name, quote=False)}</b>'
+                    else:
+                        who_html = f"<b>{html.escape(who, quote=False)}</b>"
                     body.append(f'<figure class="zt-quote"><p class="raw">{inline(mq.group(1))}</p>'
-                                f'<figcaption class="attrib"><b>{html.escape(mq.group(2).strip(), quote=False)}</b>{tail}</figcaption></figure>')
+                                f'<figcaption class="attrib">{who_html}{tail}</figcaption></figure>')
                 else:
                     body.append(f'<figure class="zt-quote"><p class="raw">{inline(q)}</p></figure>')
                 continue

@@ -9942,6 +9942,28 @@ class TopicPagesArePublishedLinkedAndClean(unittest.TestCase):
                     self.assertRegex(it, cite, f"{f.name} 这一行没带出处：{it[:20]}")
                 self.assertNotIn("带走这三句", txt, f"{f.name} 还留着旧的「带走这三句」")
 
+    def test_a_quote_card_shows_the_speakers_role_before_the_name(self):
+        """「——妙鸭创始人 张月光（张月光，#127）」：身份浅色、人名加粗，都在期号前面。"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            d = pathlib.Path(tmp) / "x"; d.mkdir()
+            (d / "episodes.json").write_text('{"127": {"slug": "real", "no": "130期", "title": "t"}}')
+            (d / "00_open.md").write_text("# 标题\n副标题\n> 「一句原话」——妙鸭创始人 张月光（张月光，#127）\n")
+            (d / "99_close.md").write_text("## 结尾\n好\n")
+            r = self.zt.render({"dir": d, "slug": "x"}, "/podcast", {"t": "real"})
+            self.assertRegex(r["body_html"], r'<span class="role">妙鸭创始人</span> <b>张月光</b> · <a class="zt-src"[^>]*>130期</a>')
+
+    def test_every_quote_card_says_who_the_speaker_is(self):
+        """只写名字，读者不知道张月光是谁；卡片上要写身份（2026-09-24 用户要求）。"""
+        for t in self.topics:
+            bare = []
+            for f in sorted(t["dir"].glob("*.md")):
+                for l in f.read_text(encoding="utf-8").split("\n"):
+                    m = re.match(r"^>\s*「[^」]+」\s*[—–-]+\s*([^（(]+?)\s*[（(]([^，,）)]+)", l)
+                    if m and m.group(1).strip() == m.group(2).strip():
+                        bare.append(f"{f.name}：{m.group(1)}")
+            self.assertEqual([], bare[:5], f"这些原话卡片只写了名字、没写身份（共 {len(bare)} 张）")
+
     def test_a_vanished_episode_is_reported_not_fatal(self):
         """集下站了：只显示期号不挂链接、记进 missing；不许抛异常拦住整站构建。"""
         import tempfile
