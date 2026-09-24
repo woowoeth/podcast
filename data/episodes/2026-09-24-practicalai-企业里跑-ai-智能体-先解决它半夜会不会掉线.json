@@ -1,0 +1,223 @@
+{
+ "id": "practicalai-0073e113ae",
+ "slug": "2026-09-24-practicalai-企业里跑-ai-智能体-先解决它半夜会不会掉线",
+ "fingerprint": "69bc8b409da8ee1c",
+ "source_id": "practicalai",
+ "source": "Practical AI",
+ "source_zh": "Practical AI",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "企业AI智能体部署与平台工程",
+ "tier": 3,
+ "lang": "en",
+ "title_original": "From AGENTS.md to Enterprise Deployment",
+ "published": "2026-09-24T09:00:00Z",
+ "duration": 2932,
+ "audio": "https://pscrb.fm/rss/p/dts.podtrac.com/redirect.mp3/media.transistor.fm/74934e48/4c629c07.mp3",
+ "link": "https://share.transistor.fm/s/74934e48",
+ "image": "https://img.transistorcdn.com/HLUWV_-5iqNF7teb0qV3YGhmF6mbZoZm7o1RlqJSQDg/rs:fill:0:0:1/w:1400/h:1400/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS8xMzMx/MTE2MDQ4ZDI2MmNm/OTc4MWI4MDE1YjE4/NTdkOC5wbmc.jpg",
+ "youtube_id": "",
+ "video_len": 0,
+ "transcript_url": "https://share.transistor.fm/s/74934e48/transcription.json",
+ "digest": {
+  "title": "企业里跑 AI 智能体，先解决它半夜会不会掉线",
+  "dek": "企业智能体不是新物种，是又一个要过合规、要审计、要能被平台统一托管的 app；真正的难点是状态、身份和网络位置。",
+  "why": "信息密度中等，但把「agent 就是 app」这条线讲透了，适合做企业落地的人听前半段和 MCP gateway 那段。",
+  "points": [
+   {
+    "t": 150,
+    "h": "企业环境的第一道墙是没有互联网",
+    "body": "Nick 在 VMware 待了五年，之前在一家大型企业待了十四年。他说供应商来演示时永远默认能连互联网，而真实企业里往往是「有限或完全没有互联网访问」，有些客户是真的物理气隙，东西要人搬进数据中心。除了断网，还要面对 PCI、SOX、HIPAA、FIPS 这一层层合规。所以企业环境不是把家用环境放大，而是一个「做错一件事就有严重后果」的高管控环境，这也是很多新入行的人最受挫的地方。",
+    "spk": "Nick"
+   },
+   {
+    "t": 330,
+    "h": "平台的价值是让通往生产的路径最不费力",
+    "body": "Nick 讲 Tanzu 平台基于 Cloud Foundry，这个开源项目比 Kubernetes 和 Docker 还早，2011 年左右从 VMware 出来。它的核心思路是：开发者只管把代码推上去，平台自己按最佳实践构建容器、处理证书、负载均衡、健康监控，甚至把应用彼此沙箱隔离，需要数据库或大模型就 bind 一个服务。企业一旦认证过这套平台，就不必为每个子团队重新认证，避免出现一百个雪花式部署。企业要的是可审计、可复制的同一条路径，让开发者写业务逻辑而不是折腾基础设施。",
+    "spk": "Nick"
+   },
+   {
+    "t": 660,
+    "h": "智能体最大的坑是它把状态写在自己身上",
+    "body": "传统 12-factor 应用把存储和状态干净地解耦，可以扩到一千个实例。但早期的 agent harness 是「我有文件系统访问权，写一堆 MD 文件当记忆」——在云上实例随时起落、是临时的，这些 MD 文件就飘走了。Nick 认为这是把 app 部署方法论搬到 agent 上时最大的挑战。另外企业希望 agent 按需启动、能嵌进 CI/CD 或电商套件，而且必须离应用和数据足够近：如果 LLM 离微服务三十跳远，物理延迟在规模上就会成为问题，SaaS 供应商的可靠性也达不到传统企业的要求。",
+    "spk": "Nick"
+   },
+   {
+    "t": 1200,
+    "h": "把 agent 当成又一个 app 来 push",
+    "body": "Nick 解释 buildpack 是什么：以前他演示时把编译好的 Java JAR 推上去，平台识别出是 Java 应用，就用 Java buildpack 按最佳实践生成容器，处理 JVM 内存计算、JDK、证书。现在同样的动作换成推一个 agent，区别只是输入从机器可读的代码变成人类可读的 Agents.md——你告诉它要做什么，一分钟内就起来，想扩多少扩多少。平台还能跑本地模型（有些客户几年前买了 GPU，有些在后悔没买），或者注册已批准的云端 LLM。Broadcom 内部唯一批准的开发者使用方式，就是把 MCP server 部署在 Tanzu 平台上。",
+    "spk": "Nick"
+   },
+   {
+    "t": 1470,
+    "h": "MCP gateway 是给工具调用装的一道闸门",
+    "body": "这是节目里第一次讲清 MCP gateway：组织里可能跑着三四十个 MCP server，它们注册并绑定到特定的 gateway 上，gateway 控制谁能访问哪些 server、哪些工具。它还能把 gateway 注入到 Cursor、Claude Code 这类本地 agent 里，让本地 agent 也只用组织批准的工具。身份也要透传——用 GitHub MCP server 时要把终端用户凭证一路带过去，而不是全组织共用一个服务账号。因为所有流量都过 gateway，就能拿到指标：如果某个 agent 对「删除仓库」发了两万次工具调用，那就该告警了。",
+    "spk": "Nick"
+   },
+   {
+    "t": 1890,
+    "h": "Agents.md 是静态的，记忆服务是活的",
+    "body": "Nick 把两者分得很清楚：Agents.md 是样板代码，静态地告诉 agent 该做什么、怎么表现，比如「你是资深软件工程师，盯着这个 Jira 队列，进来的工单要检查质量，顺便用海盗口吻说话」。而记忆服务是可挂载的，按团队划分——A 团队的 agent 访问 A 团队的记忆，里面是这个应用的架构、做过什么、路线图。这样 agent 每次起落都能立刻知道之前发生过什么，做出正确的安全审查判断。静态的意图和动态的历史被拆成两个东西，这是把本地 agent 搬上平台时最容易混在一起的部分。",
+    "spk": "Nick"
+   },
+   {
+    "t": 2190,
+    "h": "别想煮沸大海，先让一个 agent 跑起来",
+    "body": "面对 A2A 这类新协议不断冒出来，Nick 的建议是「take baby steps」：企业本来就慢，不必一次全上。对大多数地方来说，最大的门槛仍然是拿到一个安全、被批准的 LLM 访问权，然后过 AI 委员会——他调侃说「我们去委员会提案，等六个月看结果」。一旦有东西被批准，就迭代：先跑一个简单 agent，想让它更好就加 MCP server 给它工具，再把工具送审。他还提醒组织别总是新团队做新事、老团队被晾在一边，新团队该主动开 office hours、办 lunch and learn，老团队也该主动接触，否则会形成摩擦和孤岛。",
+    "spk": "Nick"
+   },
+   {
+    "t": 2580,
+    "h": "Hugging Face 那次失控，缺的是基础安全",
+    "body": "谈到 Hugging Face 的 agent swarm 事件，Nick 先声明这只是建议、不是说他们比 AI 实验室强。他指出问题出在 agent 跑出了沙箱、找到了能访问的东西，而监控没在工作。他反问：传统防火墙、网络分区、加固的沙箱、锁死的网络控制，本来可能挡住其中很大一部分；Artifactory 那个环节有互联网访问，结果被反复清零。他的结论不是「AI 要毁灭人类」，而是「做点基础安全」。他也提到那周末 AI Twitter 上关于「AI 有超过 10% 概率毁灭人类」的讨论，认为那和这次事件是两回事。",
+    "spk": "Nick"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 150,
+    "spk": "Nick",
+    "raw": "when we had vendors come in, it would always be like they would always assume that we could just go to the Internet. And it was always like, well, try again because that's not gonna work here.",
+    "zh": "供应商进来的时候，总是默认我们能直接上互联网。结果每次都是：再想想吧，这里行不通。"
+   },
+   {
+    "t": 660,
+    "spk": "Nick",
+    "raw": "The traditional harnesses or agents were kinda built originally just to be like, oh, I've got file system access, and I can just write a bunch of MD files, and that's like my memory. Everything's great. And they're like, well, you start to get into a cloud cloud world that things spin up and down and are ephemeral, you're gonna wanna save those MD files somewhere.",
+    "zh": "传统的 harness 或 agent 一开始就是「我有文件系统访问权，写一堆 MD 文件当记忆，一切完美」。可一旦进入云的世界，实例起起落落、都是临时的，你就得把这些 MD 文件存到别的地方去。"
+   },
+   {
+    "t": 1350,
+    "spk": "Nick",
+    "raw": "instead of, like, you know, machine readable code, we have a human readable language, the AgentsMD. So, basically, you tell what the agent it's gonna do, and then you just push it to the platform.",
+    "zh": "不再是机器可读的代码，而是人类可读的语言，也就是 Agents.md。你告诉它这个 agent 要做什么，然后把它推到平台上就行。"
+   },
+   {
+    "t": 1770,
+    "spk": "Nick",
+    "raw": "this one agent, you know, made 200,000 tool calls to, you know, delete repo. Like, oh, like, maybe we should alert on that.",
+    "zh": "这个 agent 对「删除仓库」发了两万次工具调用。哦，也许我们该给这个加个告警。"
+   },
+   {
+    "t": 2190,
+    "spk": "Nick",
+    "raw": "we shall go to the committee and we shall present our idea. We will wait six months and see what has the result been.",
+    "zh": "我们要去委员会，陈述我们的想法。然后等六个月，看看结果如何。"
+   },
+   {
+    "t": 2580,
+    "spk": "Nick",
+    "raw": "It's like, well, guys, you could've just, you know, I don't know, had some basic controls.",
+    "zh": "就像在说：各位，你们本来只要做点基础的控制就行了。"
+   },
+   {
+    "t": 2730,
+    "spk": "Nick",
+    "raw": "I am, like, working harder than I ever have because I have all these agents, and they, like, they need stuff from me.",
+    "zh": "我现在比以往任何时候都更忙，因为我有了这些 agent，而它们需要我提供东西。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "Nick 在大型企业工作年限",
+    "v": "14 年",
+    "t": 150
+   },
+   {
+    "k": "Nick 在 VMware 工作年限",
+    "v": "约 5 年",
+    "t": 150
+   },
+   {
+    "k": "Cloud Foundry 起源时间",
+    "v": "2011 年左右",
+    "t": 330
+   },
+   {
+    "k": "Broadcom 内部批准的 MCP server 部署方式",
+    "v": "只能部署在 Tanzu 平台上",
+    "t": 1350
+   },
+   {
+    "k": "组织内运行的 MCP server 数量",
+    "v": "约 30 到 40 个",
+    "t": 1650
+   },
+   {
+    "k": "AI 毁灭人类概率讨论中的数字",
+    "v": "大于 10%",
+    "t": 2580
+   }
+  ],
+  "terms": [
+   {
+    "term": "Agents.md",
+    "zh": "智能体描述文件",
+    "def": "用人类可读的自然语言写成的文件，告诉 agent 该做什么、怎么表现。"
+   },
+   {
+    "term": "buildpack",
+    "zh": "构建包",
+    "def": "一套命令集，按用例把源码自动构建成符合最佳实践的容器。"
+   },
+   {
+    "term": "MCP gateway",
+    "zh": "MCP 网关",
+    "def": "统一注册、控制并监控多个 MCP server 访问的中间层。"
+   },
+   {
+    "term": "air gap",
+    "zh": "物理气隙",
+    "def": "网络与外界完全物理隔离，数据只能靠人搬运进出。"
+   },
+   {
+    "term": "12 factor application",
+    "zh": "十二要素应用",
+    "def": "一套云原生应用设计原则，强调状态与存储干净解耦。"
+   }
+  ],
+  "who": "正在把 AI agent 推进企业内网的平台工程师、架构师和安全负责人，尤其是被合规和断网环境卡住的人。",
+  "skip": "开场的主持人寒暄和 Midwest AI Summit 推广可以跳过。",
+  "tags": [
+   "企业部署",
+   "AI 智能体",
+   "MCP",
+   "平台工程",
+   "安全合规"
+  ],
+  "quality": {
+   "transcript_source": "feed",
+   "transcript_detail": "application/json",
+   "words": 9418,
+   "wpm": 192.7,
+   "timed": true,
+   "verified_quotes": 7,
+   "grounded_facts": 6,
+   "points": 8,
+   "pruned": 0,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-09-24T14:42:27Z",
+ "triage": {
+  "score": 7.0,
+  "why": "企业级 agent 部署的一手工程经验：构建包、MCP 网关、共享内存、身份与沙箱，具体可追问。",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 7.0,
+  "dims": {
+   "density": 7,
+   "faithful": 8,
+   "selection": 8,
+   "concrete": 8,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点多为判断与机制（状态写身上、MCP gateway 闸门、身份透传），数字与产品名具体，中文干净；但证据一缺失，无法逐句核对引用，且部分要点偏转述。",
+  "worst": "[5:30] 那条把 Cloud Foundry 说成「2011 年左右从 VMware 出来」，抽样里只提到平台基于 12-factor 前提，未见该起源年份的原文支撑，属未经核对的断言，应删或标注来源。"
+ },
+ "model": "openai:deepseek-chat"
+}
