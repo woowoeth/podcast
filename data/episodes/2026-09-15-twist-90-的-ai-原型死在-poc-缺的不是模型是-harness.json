@@ -1,0 +1,187 @@
+{
+ "id": "twist-2df18f38e7",
+ "slug": "2026-09-15-twist-90-的-ai-原型死在-poc-缺的不是模型是-harness",
+ "fingerprint": "a65853f077d9e4ae",
+ "source_id": "twist",
+ "source": "This Week in Startups",
+ "source_zh": "This Week in Startups",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "讲AI agent生产化与持久化执行机制",
+ "tier": 2,
+ "lang": "en",
+ "title_original": "90% of AI prototypes never reach production (w/ Temporal's Samar Abbas) | AI Basics",
+ "published": "2026-09-15T23:00:00Z",
+ "duration": 1162,
+ "audio": "https://rss.podscribe.ai/p/traffic.megaphone.fm/LTANT7419234216.mp3",
+ "link": "https://4a885955-6823-4b22-a3e1-a526c25516a5.libsyn.com/90-of-ai-prototypes-never-reach-production-w-temporals-samar-abbas-ai-basics",
+ "image": "https://megaphone.imgix.net/podcasts/4ddd56a6-b15b-11f1-a58f-17848d50a8d2/image/9cd305fc512d26f1f21aed072f56b0ae.png?ixlib=rails-4.3.1&max-w=3000&max-h=3000&fit=crop&auto=format,compress",
+ "youtube_id": "",
+ "video_len": 3983,
+ "transcript_url": "https://rss.podscribe.ai/p/traffic.megaphone.fm/LTANT7419234216.mp3",
+ "digest": {
+  "title": "90% 的 AI 原型死在 POC：缺的不是模型是 harness",
+  "dek": "模型再强也扛不住中途崩溃——退款发到一半进程挂了，客户收到两笔钱。把状态从 agent 里抽出来、交给 harness 托管，才是从笔记本走进生产的分界线。",
+  "why": "19 分钟讲清一个被忽略的工程真相：agent 上生产的瓶颈不是模型能力，而是持久化执行。适合正在把 demo 推向生产的团队。",
+  "points": [
+   {
+    "t": 125,
+    "h": "90% 的 AI 原型死在 POC 之后",
+    "body": "Samar 说，现在人人都能靠 coding agent 把想法变成应用，但 90% 的想法在 POC 之后就死了，永远见不到天日。死因不是模型不够聪明，而是「不稳定、脆弱、不可复制」。Jason 说他天天在组织里看到这一幕：有人兴奋地演示一个东西，他问「能上生产吗」，答案永远是「我不知道，感觉不行，但也许吧」。POC 和生产级软件之间那道鸿沟，就是这一集要拆的东西。",
+    "spk": "Samar Abbas"
+   },
+   {
+    "t": 188,
+    "h": "agent 越值钱，就越像分布式系统",
+    "body": "Samar 的观察是：AI 应用一旦上生产，运行时间就越来越长、越来越异步、在真实世界里做的动作越来越多，创造的价值也越大。但一走到这一步，撞上的就是可靠性、可扩展性、持久性这些基础设施级挑战——和当年云平台迁移时一模一样。他的判断是：这些问题本质上是分布式的，而不是全新的 AI 问题。agent 从笔记本毕业进入真正的分布式环境，问题就换了性质。",
+    "spk": "Samar Abbas"
+   },
+   {
+    "t": 321,
+    "h": "退款发到一半崩了，你要发第二笔吗",
+    "body": "Samar 给的画面很具体：一个 agent 正在处理退款，刚处理完退款、还没通知客户，机器重启或进程崩溃了。这时候你只有两个选项——要么重跑，要么再发一笔退款。Jason 接话：那可能会很贵。Samar 说，处理这类失败正是所有生产系统卡住的地方，因为 AI 开始在真实世界里采取行动。Temporal 提供的叫 durable execution：代码执行过程中发生失败，平台替你记住全部状态，开发者一行代码都不用写，应用仍能在各种失败下继续向前推进。",
+    "spk": "Samar Abbas"
+   },
+   {
+    "t": 450,
+    "h": "把 agent 的 HUD 显示出来给人看",
+    "body": "Jason 看了 Temporal 的界面后说，左上角是工作流代码，右边是运行时事件时间线，能实时看到 agent 在执行工具、调用 LLM、拿回响应、一步步向前推进，底部是应用实际产出的输出。他说自己从没见过有人把幕后过程展示出来，希望每个消费级产品都有这样一个 HUD，让他对「我上次做到哪了」更有信心。Samar 补充：Temporal 不只是事务引擎，还给你对 agentic 应用的完整可见性——agent 就是选一个 LLM、给个 prompt、配一组工具，由 LLM 自己决定怎么推进。",
+    "spk": "Jason Calacanis"
+   },
+   {
+    "t": 712,
+    "h": "code mode 让安全团队睡不着觉",
+    "body": "Samar 提出一个被低估的风险：现在有一种 code mode，agent 在解题过程中会现场生成更多代码并执行它。想象一家大企业把大型业务流程交给这种 code mode agent——你等于把 LLM 在运行时吐出来的代码直接跑进业务环境，从安全视角看非常令人不安。Temporal 用 workflows 和 activities 两个构造来应对：workflows 负责生成命令，平台可以拦截这些命令，在真正进入沙箱或运行时之前加上必要的护栏。",
+    "spk": "Samar Abbas"
+   },
+   {
+    "t": 782,
+    "h": "harness 是从 MS-DOS 走向云的那一步",
+    "body": "Samar 用了一个比喻：现在正从 agent 的 MS-DOS 时代过渡到真正的云环境。今天大多数人跑 agent 的方式，就是在笔记本上装个 coding agent 然后跑起来。但人们已经开始构建 loop，甚至出现了 loop engineering、graph engineering 这些说法，意味着 agent 要更独立、更长时间地运行，也就必然从笔记本搬到分布式环境。这时 harness 成为核心组件——它是被抽出来的「大脑」，放在 agentic loop 之外，这样 agent 走错路时不会把整个流程搞崩。",
+    "spk": "Samar Abbas"
+   },
+   {
+    "t": 961,
+    "h": "企业永远不会允许 agent 跑在笔记本上",
+    "body": "Jason 问：怎么判断该把桌面上玩的那个 agent 挪进生产循环？Samar 的回答很硬：企业根本不可能采用这些 agent 架构，除非能在所需护栏下运行业务流程，所以没有企业会允许 agent 跑在笔记本上——对企业来说这是 table stakes。他给出一条更普适的毕业信号：当你从一个人解决问题，变成一支团队在解决复杂业务问题，唯一可行的路径就是让 agent 跑在分布式环境里。这时候 forward deployed engineer 必须嵌入业务单元，用对的工具把它建对，让它不脆弱。",
+    "spk": "Samar Abbas"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 125,
+    "spk": "Samar Abbas",
+    "raw": "But 90% of those ideas die after a POC, essentially. They never see light of the day.",
+    "zh": "但 90% 的想法在 POC 之后就死了，永远见不到天日。"
+   },
+   {
+    "t": 188,
+    "spk": "Samar Abbas",
+    "raw": "these problems start to look more and more similar to like distributed in nature rather than a completely new AI problem",
+    "zh": "这些问题开始越来越像是分布式性质的问题，而不是一个全新的 AI 问题。"
+   },
+   {
+    "t": 321,
+    "spk": "Samar Abbas",
+    "raw": "Imagine an agent which is kind of building, processing a refund and literally, immediately after processing a refund, a failure happens.",
+    "zh": "想象一个 agent 正在处理退款，就在处理完退款之后，失败立刻发生了。"
+   },
+   {
+    "t": 386,
+    "spk": "Samar Abbas",
+    "raw": "Where during an execution of a code, if a failure happens, we remember all of that state. Without you as a software developer writing a single line of code for it.",
+    "zh": "在代码执行过程中，如果发生失败，我们会记住全部状态，而你作为软件开发者一行代码都不用写。"
+   },
+   {
+    "t": 782,
+    "spk": "Samar Abbas",
+    "raw": "i feel right now we are transitioning from an ms dos era of agents to a real cloud environment essentially",
+    "zh": "我觉得现在我们正从 agent 的 MS-DOS 时代过渡到真正的云环境。"
+   },
+   {
+    "t": 961,
+    "spk": "Samar Abbas",
+    "raw": "which means like none of the enterprises will ever allow these agents to run on a laptop, essentially. So for them, it's core table stakes, in my opinion.",
+    "zh": "这意味着没有企业会允许这些 agent 跑在笔记本上。所以对他们来说，这是核心的入场门槛。"
+   },
+   {
+    "t": 1023,
+    "spk": "Samar Abbas",
+    "raw": "I think at this point, running agents on your laptop is no longer even an option.",
+    "zh": "我认为到了这个阶段，在笔记本上跑 agent 已经不再是一个选项了。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "POC 后死掉的 AI 想法比例",
+    "v": "90%",
+    "t": 125
+   }
+  ],
+  "terms": [
+   {
+    "term": "harness",
+    "zh": "执行框架",
+    "def": "抽离在 agent 循环之外的「大脑」，负责协调、持久化和容错。"
+   },
+   {
+    "term": "durable execution",
+    "zh": "持久化执行",
+    "def": "代码执行中发生失败时自动保存全部状态，让应用继续向前推进。"
+   },
+   {
+    "term": "code mode",
+    "zh": "代码模式",
+    "def": "agent 在解题过程中现场生成并执行新代码的工作方式。"
+   },
+   {
+    "term": "forward deployed engineer",
+    "zh": "前置部署工程师",
+    "def": "嵌入业务单元、用对的工具把 agent 系统建到生产标准的工程师。"
+   }
+  ],
+  "who": "正在把 AI demo 推向生产的工程负责人、平台架构师，以及要给 agent 上护栏的 CTO。",
+  "skip": "0:00-1:00 开场介绍和嘉宾履历，可跳过。",
+  "tags": [
+   "AI Agent",
+   "持久化执行",
+   "生产化",
+   "分布式系统",
+   "企业安全"
+  ],
+  "quality": {
+   "transcript_source": "asr",
+   "transcript_detail": "local:whisper-large-v3-turbo",
+   "words": 3318,
+   "wpm": 171.3,
+   "timed": true,
+   "verified_quotes": 7,
+   "grounded_facts": 1,
+   "points": 7,
+   "pruned": 0,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-09-24T04:43:12Z",
+ "triage": {
+  "score": 6.0,
+  "why": "创始人讲AI原型难上生产的机制与harness概念，含现场演示，但密度一般、偏产品介绍",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 8,
+   "faithful": 9,
+   "selection": 8,
+   "concrete": 8,
+   "chinese": 9
+  },
+  "verdict": "上站",
+  "why": "要点多为判断与机制（durable execution、harness 抽离、code mode 风险），数字与术语具体，忠实度好，中文干净。",
+  "worst": "[7:30] 那条 HUD 要点偏转述，只写了 Jason 的观感，未给出可核对的机制或取舍，是全文最弱的一条。"
+ },
+ "model": "openai:deepseek-chat"
+}

@@ -2,11 +2,11 @@
  "slug": "2025-02-11-zhangxiaojun-deepseek-用-2000-张卡训出-671b-模型-靠的是敢赌没人做过的技",
  "of": "zhangxiaojun-6b4e3acc9c",
  "source_lang": "zh",
- "title": "DeepSeek Trained a 671B Model on 2,000 GPUs by Betting on Techniques No One Dared Try",
- "dek": "Every DeepSeek innovation was forced out by cost: from MoE to MLA to FP8 training, they tried what others wouldn't risk at scale — and finished a single training run with no rollback.",
- "why": "A paper-by-paper breakdown of nine DeepSeek papers, laying out the technical motives and engineering details behind MoE, MLA, FP8, MTP and R1's reward design. High information density, suited to anyone who wants to understand DeepSeek's technical路线.",
- "who": "AI engineers and researchers who want to understand DeepSeek's technical roadmap and engineering decisions, plus founders watching large-model cost and efficiency.",
- "skip": "Listeners uninterested in the mathematical details of MoE and MLA can skip the architecture discussion from 1:00:00 to 1:30:00.",
+ "title": "DeepSeek trained a 671B model on 2000 GPUs by betting on techniques no one dared try",
+ "dek": "Every DeepSeek innovation was forced out by cost: from MoE to MLA to FP8 training, they tried what others wouldn't at scale — and finished a single training run with no rollback.",
+ "why": "A paper-by-paper breakdown of DeepSeek's nine papers, explaining the technical motivations and engineering details behind MoE, MLA, FP8, MTP and R1's reward design. High information density, suited to anyone who wants to understand DeepSeek's technical路线.",
+ "who": "AI engineers and researchers who want to understand DeepSeek's technical路线 and engineering decisions, plus founders watching large-model cost and efficiency.",
+ "skip": "Listeners uninterested in the math of MoE and MLA can skip the architecture section from 1:00:00 to 1:30:00.",
  "tags": [
   "DeepSeek",
   "Large Models",
@@ -17,71 +17,71 @@
  "points": [
   {
    "h": "Innovation was forced out by cost",
-   "body": "He Junxian argues DeepSeek stopped purely following others' practice very early on — Llama and Mistral were both authoritative, but starting with DeepSeek MoE they explored more experts, not for innovation's sake but because they genuinely wanted to push down cost and make the whole thing more efficient, and from there they diverged, growing more and more different. This thread runs through the whole piece: from MoE to V2's MLA, every innovation is driven by cost."
+   "body": "He Junxian argues DeepSeek stopped purely following others' practice very early on — Llama and Mistral were both authoritative, but starting with DeepSeek MoE they explored more experts. Not innovation for its own sake, but a real desire to push down cost and make the whole thing more efficient, which then diverged from others and grew increasingly different. This thread runs through the whole piece: from MoE to V2's MLA, every innovation has a cost motive behind it."
   },
   {
-   "h": "The reward model path cost them half a year of detours",
-   "body": "He Junxian's own team was doing similar work more than two months before R1's release, tried many complicated things that didn't work, including using a reward model for reinforcement learning, with results that were never satisfactory and repeated setbacks. In the end they found the simplest thing worked best: only rule-based reward, checking whether the final answer to a math problem is correct, running unit tests for coding, no need for another model to judge whether the generation is right. He thinks this detour had a lot to do with OpenAI's early paper on process supervision reward models — the whole community followed it, but it turns out what OpenAI itself ultimately did may not have been this at all."
+   "h": "The reward-model path took a half-year detour",
+   "body": "He Junxian's own team was doing similar work more than two months before R1's release, tried many complicated things that didn't work, including using a reward model for reinforcement learning, with results that were never ideal and repeated setbacks. In the end they found the simplest thing worked best: only rule-based reward, checking whether the final answer to a math problem is correct, running unit tests for coding, no need for another model to judge whether the generation is right. He thinks this detour had a lot to do with OpenAI's early paper on process-supervision reward models, which the whole community followed, but turns out what OpenAI itself ended up doing may not have been that."
   },
   {
-   "h": "High-Flyer opened 5,000 A100s to universities for free",
-   "body": "He Junxian was already watching High-Flyer (幻方) in 2022, before DeepSeek was founded. High-Flyer advertised 5,000 Nvidia A100s at the time, a huge number back then, because ChatGPT didn't exist yet and no one had the concept of large models. High-Flyer couldn't use that much compute itself, so it built a cluster and a scheduling software system and opened it free to university researchers. He Junxian later went to try it and found it very impressive: High-Flyer itself was tiny, maybe just over 100 people, yet with 5,000 cards it built a very mature supercomputing system, whose Chinese name is the Firefly cluster (萤火集群)."
+   "h": "High-Flyer opened 5000 A100s to universities for free",
+   "body": "He Junxian was already watching High-Flyer in 2022, before DeepSeek was founded. High-Flyer advertised 5000 Nvidia A100s at the time, a huge number then, because ChatGPT didn't exist yet and no one had the concept of large models. High-Flyer couldn't use that much compute itself, so it built a cluster and a scheduling software system and opened it free to university researchers. He Junxian later tried it and found it very impressive: High-Flyer itself was tiny, maybe just over 100 people, yet used 5000 cards to build a very mature supercomputing system, called in Chinese the Firefly cluster."
   },
   {
-   "h": "DeepSeek publicly admitted it could game the benchmarks",
-   "body": "The C-Eval He Junxian's team built was the first Chinese benchmark for large models in May 2023, and benchmark gaming went wild almost immediately, followed by the high-score-low-ability phenomenon; every company gamed the benchmarks to some degree but no one said so. DeepSeek instead wrote it into a paper with a rigorous controlled experiment: just train on a lot of multiple-choice questions and the benchmark score can jump by more than 20 points instantly — 47 could be gamed up to 71. He Junxian says that although this table sits on page 21, near the back of the paper, at the time it was a very important result for understanding benchmark gaming. Later, doing new evaluation, he found DeepSeek's released base model had not gamed the benchmarks, while quite a few domestic models with high scores actually had. Kunlun Wanwei's Skywork wrote a similar controlled experiment around the same time."
+   "h": "DeepSeek publicly admitted it could game benchmarks",
+   "body": "The C-Eval He Junxian's team built was the first Chinese benchmark for large models in May 2023. Crazy benchmark gaming appeared quickly, followed by high scores with low ability; companies gamed benchmarks more or less but no one talked about it. DeepSeek instead wrote it into a paper with a rigorous controlled experiment: just train on lots of multiple-choice questions and the benchmark can jump 20-plus points instantly, e.g. from 47 to 71. He Junxian says this table, though on page 21 near the back of the paper, was an important result for understanding benchmark gaming at the time. He later did new evaluation and found DeepSeek's released base model hadn't gamed benchmarks, while quite a few domestic models with high scores actually had. Kunlun Wanwei's Skywork also wrote a similar controlled experiment around the same time."
   },
   {
    "h": "MLA is the first thing DeepSeek proposed itself",
-   "body": "He Junxian distinguishes two kinds of innovation: adding shared experts, increasing the number of experts — those are still improvements on others' work; but Multi-head Latent Attention was the first thing DeepSeek proposed itself, not a modification of prior work. It jointly compresses K and V into a low-dimensional latent vector, and at deployment only this compressed latent is stored, not K and V directly, cutting KVCache by 93%, roughly one tenth of before. The cost is that it's more aggressive than GQA, but the results are much better than GQA with only 2.25 groups. He Junxian says when it first came out people didn't yet see it as so fundamental; only after DeepSeek became hot did many people abroad start reading these papers and paying attention."
+   "body": "He Junxian distinguishes two kinds of innovation: adding shared experts, increasing the number of experts — still improvements on others' work; but Multi-head Latent Attention was first proposed by DeepSeek, not a modification of prior work. It jointly compresses K and V into a low-dimensional latent vector; at deployment only this compressed latent is stored, not K and V directly, cutting KVCache by 93%, roughly one-tenth of before. The cost is that it's more aggressive than GQA, but the effect is much better than GQA with only 2.25 groups. He Junxian says when it first came out people didn't yet see it as so fundamental; only after DeepSeek became hot did many people abroad start reading these papers and paying attention."
   },
   {
    "h": "The V2 price war: not losing money, but making it",
-   "body": "He Junxian recalls that after DeepSeek V2 launched in May 2024 it triggered a price war in China, when one yuan or a few yuan per million tokens was far lower than OpenAI and several times lower than other domestic vendors, possibly not even the same order of magnitude. The key point is he heard DeepSeek was not even deploying at a loss — it was actually still profitable, just not very. He was shocked at the time: deploying a very large model on relatively poor GPUs at a very cheap price, and still making a profit. He remembers people starting to call DeepSeek the Pinduoduo of large models."
+   "body": "He Junxian recalls that after DeepSeek V2 launched in May 2024 it triggered a price war in China, with one yuan or a few yuan per million tokens, far below OpenAI and several times below other domestic vendors, possibly not even the same order of magnitude. The key is he heard DeepSeek wasn't deploying at a loss — it was actually still profitable, just not by much. He was shocked: deploying a very large model on relatively poor GPUs at a very cheap price, and still making a profit. He remembers people starting to call DeepSeek the Pinduoduo of large models."
   },
   {
    "h": "V3 finished in one training run, never rolled back",
-   "body": "DeepSeek V3 specifically wrote a line in its abstract: the entire training process saw no loss spike, it trained through in one go, with no rollback of any kind. This is extremely rare in pretraining — in the past, GPU failures and unknown causes would make the loss suddenly spike, forcing a stop, rollback and retrain. So V3's paper devotes a lot of space to engineering implementation, a different style from earlier papers; the author sees this as flexing muscle, showing DeepSeek's infra was exceptionally good."
+   "body": "DeepSeek V3 specifically wrote a line in its abstract: the entire training process saw no loss spike, it trained through in one go, without any rollback. This is extremely rare in pretraining — in the past GPU failures and unknown causes would make loss suddenly spike, forcing a stop and rollback to retrain. So V3's paper devotes a lot of space to engineering implementation, a different style from earlier papers; the author sees this as flexing muscle, showing DeepSeek's infra is exceptionally good."
   },
   {
-   "h": "671B model trained on 2,000 H800s",
-   "body": "V3 is 671B parameters, 14.8T tokens, using only 2,000 H800s, not H100s. The author stresses this scale isn't large for a 600-plus-B model — at the time many companies at home and abroad already had over ten thousand cards, and abroad some had hundreds of thousands of H100s or even better cards. The equivalent price was 5.57M USD, over five million dollars, which was shocking at the time. Compared with Llama 3's 400B model, which the author remembers cost 30 million dollars, that's roughly a 6x gap, and possibly more than 30 million."
+   "h": "2000 H800s trained a 671B model",
+   "body": "V3 is 671B parameters, 14.8T tokens, using only 2000 H800s, not H100s. The author stresses this scale isn't large for a 600-plus-B model; at the time many companies at home and abroad already had over ten thousand cards, and abroad even hundreds of thousands of H100s or better. The equivalent price was 5.57M USD, over five million dollars, shocking at the time. Compared with Llama 3's 400B model, which the author remembers cost 30 million dollars, that's roughly a 6x gap, and possibly not even 30 million."
   },
   {
    "h": "MTP is a technique no one dared use at scale",
-   "body": "V3 newly added multi token prediction: during training it predicts not just the next word but the next three words at once, the benefit being a denser training signal, so the model may learn to plan further ahead for tokens. The idea came from a not particularly famous paper, and no one had really used it at very large scale before; DeepSeek itself hadn't used it in V2 either. The author considers this still a very brave act, because once training becomes unstable or an unexpected issue appears, the whole thing changes, and an ordinary team might not have the atmosphere to do it."
+   "body": "V3 added multi token prediction: during training it predicts not just the next word but the next three words at once, the benefit being a denser training signal, and the model may learn to plan further ahead for tokens. The idea comes from a not particularly famous paper; no one had really used it at very large scale before, and DeepSeek itself hadn't used it in V2. The author considers this still a very brave act, because once training becomes unstable or an unexpected issue appears, the whole thing changes; an ordinary team might not have the atmosphere to do it."
   },
   {
    "h": "FP8 training: almost no one had done it successfully",
-   "body": "V3 used fp8 training, i.e. low precision training, where many intermediate vectors aren't represented in 32-bit or 16-bit floating point, making training faster and more efficient. But the challenge is big: decimals aren't represented precisely, training may not work, may be unstable, or may get worse results. The author says that although many people do quantization and low precision at deployment, almost no one had successfully done it in real large-scale training; DeepSeek V3 may be the first or one of the earliest to actually validate and successfully do mixed-precision training on a large-scale language model. They ran very careful controlled experiments and found some intermediate variables still had to use the original precision for training to work."
+   "body": "V3 used fp8 training, i.e. low precision training, where many intermediate vectors aren't represented in 32-bit or 16-bit floating point, making training faster and more efficient. But the challenge is big: decimals are imprecise, training may not work, may be unstable, or the effect may worsen. The author says that although many people do quantization and low precision at deployment, almost no one had successfully done it in real large-scale training; DeepSeek V3 may be the first or among the earliest to really validate and successfully do mixed-precision training on a large-scale language model. They did very careful controlled experiments and found some intermediate variables still had to use original precision for training to work."
   },
   {
-   "h": "30B activated parameters vs 400B: a tenfold deployment cost gap",
-   "body": "Apart from its first large model, DeepSeek has been MoE all the way from DeepSeek MoE to V2 to V3; Llama 3 carried such a large Dense model from Llama 1 to Llama 3, with 400B still not MoE, making training cost especially high and activated parameters especially many. DeepSeek V3's activated parameters are only 30B, meaning deployment cost is more than 10x lower than Llama 3's 400B model. On results, English is comparable to Llama 3, while on reasoning, Code, Math and Chinese it substantially exceeds Llama 3's 400B Base."
+   "h": "30B active params vs 400B: 10x deployment cost gap",
+   "body": "Except for its first large model, DeepSeek has been MoE from DeepSeek MOE to V2 to V3; Llama 3 went from Llama 1 to Llama 3 wearing such a large Dense model, 400B still not MoE, leading to particularly high training cost and particularly many active parameters. DeepSeek V3 has only 30B active parameters, meaning deployment cost is more than 10x less than Llama 3's 400B model. On effect, English is comparable to Llama 3, while on reasoning, Code, Math and Chinese it greatly exceeds Llama 3's 400B Base."
   },
   {
-   "h": "RL may just be ranking the correct answer to the front",
-   "body": "Figure 7 of DeepSeek Math gives a negative signal: when k equals 1, the blue line with RL is several points higher than the green line without RL, so RL looks like it works; but as k grows and multiple responses are sampled, on simple math problems the green line even ends up higher, showing that after RL the model's exploration ability actually declined. Their own bolded conclusion is that the improvement is attributed to boosting the correct response, not enhancement of fundamental ability. The author says no one made this observation at the time — DeepSeek, despite clearly having much better results, poured cold water on itself, which is very rigorous."
+   "h": "RL may just rank the correct answer first",
+   "body": "Figure 7 of DeepSeek Math gives a negative signal: when k equals 1, the blue line with RL is several points higher than the green line without RL, looking like RL works well; but as k increases and multiple responses are sampled, on simple math levels the green line even ends up higher, showing that after RL the model's exploration ability actually declined. Their own bolded conclusion is the improvement is attributed to boosting the correct response, not enhancement of fundamental ability. The author says no one made this observation at the time; DeepSeek, despite its own results being much better, poured cold water on itself, very rigorous."
   },
   {
    "h": "Rule-based reward is more robust than a reward model",
-   "body": "When DeepSeek Math discussed how to implement more effective RL, it mentioned improving the reward model's generalization, but the author thinks from today's vantage there's another path: don't use a reward model, only rules, and it's the most robust. Because the rule of whether a math final answer is right or wrong is universal — whether it's a high school, elementary, middle school or university problem, if the standard answer is matched the response is basically considered correct; whereas a reward model trained on elementary and middle school data judges those accurately but may suddenly judge university math problems inaccurately. Still, for open-ended domains and problems with no concept of right or wrong, a reward model is still needed."
+   "body": "DeepSeek Math discusses how to achieve more effective RL and mentions improving the reward model's generalization, but the author thinks from today's view there's another path: don't use a reward model, only rules, and it's the most robust. Because the rule of whether a math final answer is right or wrong is universal — whether high school, elementary, middle school or university problems, if the standard answer is matched the response is basically considered correct; whereas a reward model trained on elementary and middle school data judges those accurately but may suddenly judge university math problems inaccurately. However, open-ended domains, problems without a concept of right or wrong, still need a reward model."
   },
   {
-   "h": "R1 dropped the reward model, contradicting Coder V2's conclusion",
-   "body": "R1's reward has only two parts: accuracy reward for whether it's right, format reward for whether the output follows the desired format, both rule-based, no reward model. The author points out this contradicts earlier results: in DeepSeek Coder V2 they still had experiments saying a Reward Model was better for Code and a Compiler was worse, but R1 on LiveCode uses only the Compiler, no Reward Model. From DeepSeek Prover onward the reward model was dropped, and by R1 the reward model was gone."
+   "h": "R1 dropped the reward model, contradicting Coder V2",
+   "body": "R1's reward has only two: accuracy reward checking correctness, format reward checking whether the output follows the desired format, both rule-based, no reward model. The author points out this contradicts earlier results: in DeepSeek Coder V2 they still had experiments saying using a Reward Model for Code was better and Compiler worse, but R1 on LiveCode only uses Compiler, not Reward Model. From DeepSeek Prover onward no reward model was used, and by R1 the reward model was gone."
   },
   {
-   "h": "Process supervision reward model PPO couldn't be tuned after two or three months",
-   "body": "The first time they did long-chain reasoning, the team directly took DeepSeek's open-source process supervision reward model (similar to the DeepSeek Math setup) for online PPO, worked on it for a long time, tuned it for two or three months, results were never good, and they finally gave up on reinforcement learning and turned to iterative self-evolution, which worked instead. After the project was done they still judged it insufficient and decided they had to do it online, so at the end of last year they restarted PPO."
+   "h": "Process-supervision reward model PPO tuned for two or three months without success",
+   "body": "The first time doing long-chain reasoning, the team directly took DeepSeek's open-source process-supervision reward model (similar to the DeepSeek Math set) to do online PPO, worked for a long time, tuned for two or three months, results were never good, and finally gave up reinforcement learning to do iterative self-evolution, which instead worked. After the project finished they still judged it wasn't enough, still needed to do online, so at the end of last year they restarted PPO."
   },
   {
    "h": "Only after dropping the reward model did PPO work easily",
-   "body": "The key difference that made the redo of PPO work at the end of last year was: no reward model. The guest says this matches the route everyone converged on — people found using a reward model made things somewhat difficult, then stopped using it, and DeepSeek and R1 both converged here in the end. In between they first did a version of rejection sampling SFT that was easier to get working, which went fairly smoothly, but the team believed that on the self-evolution path the online approach was the one with a future."
+   "body": "The key difference that made the redo of PPO work at the end of last year was: no reward model. The guest says this matches the route everyone converged on — people found using a reward model made things somewhat difficult, then stopped using it, and DeepSeek and R1 both converged here. In between they first did a version of rejection-sampling SFT that was easier to make work, which went relatively smoothly, but the team believed the self-evolution path should still be online to be more promising."
   },
   {
-   "h": "DeepSeek's papers read like school papers, but use industry resources",
-   "body": "The guest assesses DeepSeek's paper style: very much like a school's paper, low-key, not flashy, not promoting everywhere, but schools generally can't build such large models — they write school-style work using company industry-level resources, very different from other industry players. He adds this may relate to the team model — they were incubated in-house, naturally a somewhat unusual team."
+   "h": "DeepSeek's papers read like school papers but use industry resources",
+   "body": "The guest evaluates DeepSeek's paper style: very much like a school paper, low-key, not flashy, not promoting everywhere, but schools generally can't do such large models; they write school-style things with company industry-level resources, very different from other industry players. He adds this may relate to the team model — they incubated themselves, naturally a somewhat special team."
   }
  ],
  "terms": [
@@ -103,25 +103,25 @@
   },
   {
    "term": "PPO / Proximal Policy Optimization",
-   "def": "A reinforcement learning algorithm commonly used for large-model alignment training."
+   "def": "A reinforcement learning algorithm often used for large-model alignment training."
   },
   {
    "term": "rule-based reward",
-   "def": "Using fixed rules (such as whether an answer is right or code compiles) as the reward signal, without relying on a reward model."
+   "def": "Using fixed rules (such as answer correctness, code compilation passing) as the reward signal, not relying on a reward model."
   }
  ],
  "facts": [
   {
    "k": "High-Flyer A100 card count",
-   "v": "5,000"
+   "v": "5000"
   },
   {
    "k": "DeepSeek MoE proprietary expert count",
    "v": "64"
   },
   {
-   "k": "MLA's KVCache compression",
-   "v": "reduced by 93%"
+   "k": "MLA compression of KVCache",
+   "v": "93% reduction"
   },
   {
    "k": "DeepSeek V3 training token count",
@@ -129,28 +129,28 @@
   },
   {
    "k": "DeepSeek V3 training card count",
-   "v": "2,000 H800"
+   "v": "2000 H800"
   },
   {
-   "k": "Process supervision reward model PPO debugging duration",
+   "k": "Process-supervision reward model PPO debugging duration",
    "v": "two or three months"
   }
  ],
  "quotes": [
   {
-   "text": "But for a long time before that, not just us — I think this community, including DeepSeek itself, and today's relevant papers will cover this too, including DeepSeek itself — actually everyone previously assumed by default that we need another model, what we call a reward model, to help judge whether my model's generation is correct, and then use that setup to do reinforcement learning.",
+   "text": "But for a long time before, not just us — I think this community, including DeepSeek itself, and today's related papers will cover this too, including DeepSeek itself — actually everyone previously默认 we need another model, commonly called a reward model, to help judge whether my model's generation is correct, and then use this set to do reinforcement learning.",
    "translated": true
   },
   {
-   "text": "So I think we were also misled by OpenAI to some extent.",
+   "text": "So I think, also got misled by OpenAI to some extent.",
    "translated": true
   },
   {
-   "text": "But actually making this attempt is still very brave, because you have to spend a lot of compute at a very large scale, such as this kind of investment, to explore this kind of thing that no one had really done before. MoE had been done before by others, for example bug expert, just a small number of experts without shared ones, and the results were okay, so you could just follow that; the simplest thing might also carry lower risk, so why insist on doing something different yourself?",
+   "text": "But actually making this attempt is still very brave, because you have to spend a lot of compute at a very large scale, for example this kind of investment to explore something that, say, no one had really done before. MoE had been done by people before, for example bug expert, a small number of experts without shared, had been done and the effect was okay, so you could just follow that; the simplest thing might also be lower risk. Why insist on doing something different yourself?",
    "translated": true
   },
   {
-   "text": "Their training was extremely stable — throughout the whole training they didn't experience any loss spike.",
+   "text": "Their train was very stable, the whole train, they didn't experience any loss spike.",
    "translated": true
   },
   {
@@ -166,7 +166,7 @@
    "translated": true
   },
   {
-   "text": "I think their papers are very much like a school's, very much like a school's papers. Of course they have a lot of resources; schools generally can't build such large models. But they're using company industry-level resources to write these things.",
+   "text": "I think their papers are very much like school, very much like school papers. Their resources are of course many; schools generally can't do such large models. But they write these things with company industry-level resources.",
    "translated": true
   }
  ],
