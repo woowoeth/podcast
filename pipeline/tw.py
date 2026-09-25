@@ -20,6 +20,7 @@
 用 s2tw 不用 s2twp：后者会替换词汇（信息→資訊、对象→物件、支持→支援），
 这个站的正文是播客摘要，混着技术词和日常叙述，词汇替换误伤面比收益大。
 """
+import json as _json
 import os
 import re
 import shutil
@@ -130,6 +131,9 @@ FIX = [
     ("有多少隻是因為", "有多少只是因為"),  # 「有多少只是因为它让我们能应对」
     # 冲洗照片、冲洗胶卷在台湾写「沖洗」；「衝洗」不成词，不会误伤。
     ("衝洗", "沖洗"),
+    # 2026-09-25：「势头发展」被切成「头发」；「一出现」被当成量词「一出（戏）」。
+    ("勢頭髮展", "勢頭發展"),
+    ("一齣現", "一出現"),
     ("有隻做", "有只做"),     # 「没有只做管理的人」
     ("般隻影", "般只影"),     # 「一般只影响新机型」
     # 「谷歌」是牌子名，繁体照写谷歌；穀 是谷物。NEVER 表里早就列着「穀歌」，
@@ -458,7 +462,13 @@ def build(base="/podcast"):
                 s = re.sub("(\\d+)", lambda m: keep[int(m.group(1))], kept)
                 if f == "search.json":
                     s = _retw_index(s)
-                s = _retarget(s, base)
+                if f == "hot.json" or re.match(r"cards-\d+\.json$", f):
+                    # JSON 包着的卡片 HTML：引号转义成了 \"，ATTR 正则一个都匹配不上 ——
+                    # 繁体站滑下来补进的卡片、「热门」名单，原来全链回简体站（2026-09-25 查出）。
+                    # 解开、逐条改链接、再包回去。
+                    s = _json.dumps([_retarget(x, base) for x in _json.loads(s)], ensure_ascii=False)
+                else:
+                    s = _retarget(s, base)
                 if f in URLFILE:
                     # **跨版本链接不许被改。** 这里是一记无条件全局替换，
                     # 它把 llms.txt 里「Other editions」段落也改了：

@@ -2004,7 +2004,9 @@ class HomepageMustNotShipEveryCard(unittest.TestCase):
                       "已经装完了还会再触发补齐")
         # 反面：滚动加载也不许在「最新」档触发
         j = js.index("function maybeLoad()")
-        self.assertIn("cat === 'new'", js[j:j + 400],
+        # 按整个函数截，不按字数截：分批露出加进来之后，这条判断落在第 400 字之后，
+        # 尺子红了而行为没变（2026-09-25）
+        self.assertIn("cat === 'new'", js[j:js.index("\n    function ", j + 20)],
                       "maybeLoad() 没有在「最新」档停手 —— 滚到底会静默"
                       "把整个存档拉下来")
         self.assertIn("loadAll()", run_body,
@@ -2076,7 +2078,7 @@ class PaginationMustLoadOnePageAtATime(unittest.TestCase):
     def test_search_still_loads_every_page(self):
         js = (ROOT / "assets" / "site.js").read_text()
         i = js.index("function run()")
-        self.assertIn("loadAll()", js[i:i + 600])
+        self.assertIn("loadAll()", js[i:js.index("\n    function ", i + 20)])
 
 
 class InlinePlayerServesTheTimestamps(unittest.TestCase):
@@ -3838,15 +3840,39 @@ class RuntimeStringsMustGoThroughTheTable(unittest.TestCase):
         block = s[s.index("var STR = {"):s.index("function T(k)")]
         keys = re.findall(r"^\s*(\w+):\s*\[", block, re.M)
         self.assertGreaterEqual(len(keys), 8, f"文案表只有 {len(keys)} 条，是不是被改小了")
-        # 英文列不许有汉字
+        # 按列解析（引号外的逗号分列，'+' 拼接的算一列）。原来「第一个逗号之后全算英文」，
+        # 2026-09-25 加了繁体第三列就误报。英文列不许有汉字；繁体列必须是简体列转出来的。
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        tw = importlib.import_module("tw")
+
+        def cols(body):
+            out, cur, q, i = [], [], None, 0
+            while i < len(body):
+                c = body[i]
+                if q:
+                    if c == "\\":
+                        cur.append(body[i + 1]); i += 2; continue
+                    if c == q:
+                        q = None
+                    else:
+                        cur.append(c)
+                elif c in "'\"":
+                    q = c
+                elif c == ",":
+                    out.append("".join(cur)); cur = []
+                i += 1
+            out.append("".join(cur))
+            return [x for x in out if x.strip()]
+
         for m in re.finditer(r"^\s*(\w+):\s*\[(.*?)\],?\s*$", block, re.M | re.S):
-            k, body = m.group(1), m.group(2)
-            parts = body.split("],")[0]
-            # 粗切成两列：第一个逗号之后（跨行拼接的也算在内）
-            zh, _, en = parts.partition(",")
-            self.assertTrue(en.strip(), f"文案表 {k} 只有一列，缺英文")
-            self.assertFalse(re.search(r"[一-鿿]", en),
-                             f"文案表 {k} 的英文列里有汉字：{en.strip()[:50]}")
+            k, parts = m.group(1), cols(m.group(2))
+            self.assertGreaterEqual(len(parts), 2, f"文案表 {k} 只有一列，缺英文")
+            self.assertFalse(re.search(r"[一-鿿]", parts[1]),
+                             f"文案表 {k} 的英文列里有汉字：{parts[1][:50]}")
+            if len(parts) > 2:
+                self.assertEqual(tw.convert(parts[0]), parts[2],
+                                 f"文案表 {k} 的繁体列不是简体列转出来的（改了简体没同步？）")
 
     def test_the_table_keys_are_all_used(self):
         s = self.source()
@@ -9631,6 +9657,76 @@ class BuildOutputDoesNotDependOnTheClock(unittest.TestCase):
         self.assertEqual(one, two, "api.json 随构建时刻变了 —— CI 的一致性检查会每次都红")
         self.assertEqual("2026-02-01T00:00:00Z", json.loads(one)["generated"],
                          "generated 应是最新一集自己的时间")
+
+
+class TheHotTabListsTheCoreShows(unittest.TestCase):
+    """首页「热门」：当前必看（tier 1）的信源名单，每个都点得进去，写明有没有更新。
+
+    名单不在首屏里（首屏体积有上限），在 hot.json 里；三棵树各一份。
+    """
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.b = importlib.import_module("build")
+
+    def _links(self, tree):
+        f = ROOT / tree / "hot.json"
+        self.assertTrue(f.exists(), f"{tree or '简体'} 没有 hot.json —— 点「热门」会一直转")
+        html = "".join(json.loads(f.read_text()))
+        return html, re.findall(r'class="hot-src" href="([^"]+)"', html)
+
+    def test_every_tree_has_the_list_and_every_link_opens(self):
+        for tree, pre in (("", "/podcast/"), ("tw", "/podcast/tw/"), ("en", "/podcast/en/")):
+            _, links = self._links(tree)
+            self.assertGreater(len(links), 5, f"{tree or '简体'} 的热门名单几乎是空的")
+            self.assertIn('data-cat-chip="hot"', (ROOT / tree / "index.html").read_text(),
+                          f"{tree or '简体'} 首页没有「热门」")
+            html, _ = self._links(tree)
+            note = re.search(r'class="hot-note">[^<]*?(\d+)', html)
+            self.assertTrue(note and int(note.group(1)) == len(links),
+                            "名单上方说的节目数和名单对不上")
+            for h in links:
+                self.assertTrue(h.startswith(pre + "s/"), f"{tree or '简体'} 的名单链到了别的站：{h}")
+                page = ROOT / h.replace("/podcast/", "", 1) / "index.html"
+                self.assertTrue(page.exists(), f"热门里的 {h} 点进去是 404")
+
+    def test_the_update_marks_follow_the_newest_window(self):
+        """「近 7 天 +N 篇」和「最新」同一个窗口；没更新的写绝对日期，不写「3 天前」。"""
+        import datetime as dt
+        eps, srcs = self.b.load()
+        self.b.set_core(srcs)
+        cut = (self.b.now() - dt.timedelta(days=self.b.NEW_DAYS)).date().isoformat()
+        rows = self.b.hot_sources(eps, srcs)
+        self.assertTrue(rows)
+        for r in rows:
+            sid = r["src"]["id"]
+            self.assertIn(sid, self.b.CORE_IDS, f"{sid} 不是必看的源，却进了热门")
+            want = sum(1 for x in eps if x.get("source_id") == sid and (x.get("published") or "")[:10] >= cut)
+            self.assertEqual(want, r["recent"], f"{sid} 的「近 7 天」算错了")
+        key = [(r["recent"], r["latest"]) for r in rows]
+        self.assertEqual(key, sorted(key, reverse=True),
+                         "热门没按「近 7 天更新多少」排 —— 读者看到的顺序会像没排过")
+        html, _ = self._links("")
+        self.assertNotRegex(html, r"\d+ 天前", "写了相对日期 —— 页面放几天就说错了")
+
+
+class TraditionalJsonKeepsLinksInItsTree(unittest.TestCase):
+    """繁体站从 JSON 补进来的卡片和热门名单，链接要留在 /tw/ 里。
+
+    JSON 里的 HTML 引号被转义成 \\"，tw.py 改链接的正则一个都匹配不上：
+    繁体站滑下来补进的卡片原来全链回简体站（2026-09-25 查出）。
+    """
+
+    def test_card_pages_and_hot_list_point_into_tw(self):
+        files = sorted((ROOT / "tw").glob("cards-*.json")) + [ROOT / "tw" / "hot.json"]
+        self.assertGreater(len(files), 1)
+        bad = []
+        for f in files:
+            html = "".join(json.loads(f.read_text()))
+            bad += [(f.name, h) for h in re.findall(r'href="(/podcast/[^"]*)"', html)
+                    if not h.startswith(("/podcast/tw/", "/podcast/assets/"))]
+        self.assertEqual([], bad[:5], f"繁体 JSON 里有 {len(bad)} 个链接链回了简体站")
 
 
 class IndexNowDoesNotGiveUpOnTheFirstEndpoint(unittest.TestCase):

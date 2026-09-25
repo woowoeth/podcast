@@ -45,8 +45,8 @@ class Walkthrough(Harness):
         for w, h in ((390, 844), (1280, 900)):
             p = self.page(width=w, height=h)
             p.goto(self.url("/"), wait_until="load")
-            vis = ("() => [...document.querySelectorAll('[data-card]')]"
-                   ".filter(e => e.offsetParent).length")
+            # 分批露出之后，看得见的永远是一批；比「这一档一共匹配多少」
+            vis = "() => +document.querySelector('[data-feed]').getAttribute('data-matched')"
             before = p.evaluate(vis)
             p.fill(".search input", "半导体")
             p.wait_for_timeout(500)
@@ -84,8 +84,7 @@ class Walkthrough(Harness):
                            ".getAttribute('data-total')")
         p.fill(".search input", "的")          # 中文里最常见的字，必然横跨全站
         p.wait_for_timeout(9000)
-        shown = p.evaluate("() => [...document.querySelectorAll('[data-card]')]"
-                           ".filter(e => e.style.display !== 'none').length")
+        shown = p.evaluate("() => +document.querySelector('[data-feed]').getAttribute('data-matched')")
         loaded = p.evaluate("() => document.querySelectorAll('[data-card]').length")
         p.context.close()
         self.assertGreater(total, newest,
@@ -118,7 +117,7 @@ class Walkthrough(Harness):
     def test_category_filter_selects_exactly_one_and_changes_the_set(self):
         p = self.page(width=1280, height=900)
         p.goto(self.url("/"), wait_until="load")
-        chips = p.locator(".chip[aria-pressed=false]")
+        chips = p.locator("[data-cat-chip]:not([data-cat-chip='new']):not([data-cat-chip='hot'])")
         n = chips.count()
         if not n:
             p.context.close()
@@ -129,6 +128,7 @@ class Walkthrough(Harness):
         want = re.search(r"(\d+)\s*$", label)
         chips.first.click()
         p.wait_for_timeout(600)
+        p.evaluate("() => document.querySelector('[data-feed]')._reveal(1e6)")
         vis = p.evaluate("() => [...document.querySelectorAll('[data-card]')]"
                          ".filter(e => e.offsetParent).length")
         pressed = p.evaluate("() => document.querySelectorAll("
@@ -145,26 +145,32 @@ class Walkthrough(Harness):
     def test_the_default_view_does_not_fetch_the_whole_archive(self):
         """默认档滚到底**不许**把整个存档拉下来，而且要给出口。
 
-        「最新」就是内联的那一批（近七天）。原来滚到底会一页页拉 cards-N.json
-        ——那正是"每次打开网站太慢"的来源。判据两面都要：不许多拉，
-        也不许静默 dead-end。
+        「最新」是近七天那一档。原来滚到底会一页页拉 cards-N.json，一直拉到存档尽头
+        ——那正是"每次打开网站太慢"的来源。2026-09-25 起首页分批露出，内联只放两批，
+        「最新」超出的那些**要**从分页文件取（不然按钮写 131、读者只看得到 60）——
+        判据因此从「一页都不许取」改成「只取到这一档的最后一篇」。两面都要：
+        不许多拉，也不许静默 dead-end。
         """
         p = self.page(width=390, height=844)
         p.goto(self.url("/"), wait_until="load")
-        n0 = p.evaluate("() => document.querySelectorAll('[data-card]').length")
+        f = p.evaluate("""() => { const f = document.querySelector('[data-feed]');
+            return {n: +f.getAttribute('data-new-total'), head: +f.getAttribute('data-head'),
+                    step: +f.getAttribute('data-page-size')}; }""")
         got = []
         p.on("request", lambda r: got.append(r.url) if "cards-" in r.url else None)
-        for _ in range(3):
+        for _ in range(60):
             p.evaluate("() => window.scrollTo(0, document.body.scrollHeight)")
-            p.wait_for_timeout(800)
-        n1 = p.evaluate("() => document.querySelectorAll('[data-card]').length")
+            p.wait_for_timeout(300)
+            if p.evaluate("() => !document.querySelector('[data-feed-end]').hidden"):
+                break
         end = p.evaluate("""() => { const e=document.querySelector('[data-feed-end]');
             if (!e) return null;
             const cs=getComputedStyle(e);
             return cs.display!=='none' ? e.textContent.trim() : null; }""")
         p.context.close()
-        self.assertEqual(n1, n0, f"默认档滚到底又加载了卡片（{n0} → {n1}）")
-        self.assertFalse(got, f"默认档滚到底去拉了分页文件：{got[:2]}")
+        need = max(0, -(-(f["n"] - f["head"]) // f["step"]))   # 这一档超出内联要几页
+        self.assertLessEqual(len(set(got)), need,
+                             f"「最新」只需要 {need} 页，却拉了 {len(set(got))} 页：{sorted(set(got))[-2:]}")
         self.assertTrue(end, "默认档到底了没有出口提示——读者会以为站还在转")
 
     def test_a_category_loads_the_whole_archive(self):
@@ -172,7 +178,7 @@ class Walkthrough(Harness):
         p = self.page(width=390, height=844)
         p.goto(self.url("/"), wait_until="load")
         n0 = p.evaluate("() => document.querySelectorAll('[data-card]').length")
-        p.click(".chip[aria-pressed='false']")
+        p.click("[data-cat-chip]:not([data-cat-chip='new']):not([data-cat-chip='hot'])")
         p.wait_for_timeout(2500)
         n1 = p.evaluate("() => document.querySelectorAll('[data-card]').length")
         p.context.close()

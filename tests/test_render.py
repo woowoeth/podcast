@@ -490,7 +490,7 @@ class Render(Harness):
         p = self.page()
         p.goto(self.url("/"), wait_until="load")
         first = p.evaluate("() => document.querySelectorAll('[data-card]').length")
-        p.click(".chip[aria-pressed='false']")
+        p.click("[data-cat-chip]:not([data-cat-chip='new']):not([data-cat-chip='hot'])")
         p.wait_for_timeout(2000)
         after = p.evaluate("() => document.querySelectorAll('[data-card]').length")
         p.context.close()
@@ -657,6 +657,8 @@ class SearchMatchesWhatTheCardSays(Harness):
     def _visible_after(self, p, term):
         p.fill("[data-search]", term)
         p.wait_for_timeout(350)
+        # 分批露出：匹配的卡可能排在第二批之后，先全部露出来再看
+        p.evaluate("() => document.querySelector('[data-feed]')._reveal(1e6)")
         return p.evaluate("""() => Array.from(document.querySelectorAll('[data-card]'))
             .filter(c => c.offsetParent !== null).map(c => c.getAttribute('href'))""")
 
@@ -718,6 +720,7 @@ class TheEssentialTabShowsOnlyCoreSources(Harness):
     def _click(self, p, chip):
         p.click(f'[data-cat-chip="{chip}"]')
         p.wait_for_timeout(1200)
+        p.evaluate("() => document.querySelector('[data-feed]')._reveal(1e6)")
         return p.evaluate("""() => {
           const v = Array.from(document.querySelectorAll('[data-card]'))
             .filter(c => c.offsetParent !== null);
@@ -749,3 +752,89 @@ class TheEssentialTabShowsOnlyCoreSources(Harness):
         got = self._click(p, "core")
         self.assertEqual(said, got["n"],
                          f"chip 上写 {said}，筛出来 {got['n']} —— 数对不上")
+
+
+class TabsRevealInBatches(Harness):
+    """每一档先露一批，滑到底再露下一批（2026-09-25 用户：「每个 tab 下面都要滑动好久」）。
+
+    三件事都得真滑一遍：一开始只露一批；滑到底会露下一批、最后能露完；
+    「最新」只取到这一档的最后一篇，不借机把整个存档拉下来。
+    """
+
+    VIS = """() => Array.from(document.querySelectorAll('[data-card]'))
+               .filter(c => c.offsetParent !== null).length"""
+
+    def _scroll_until_done(self, p, rounds=40):
+        for _ in range(rounds):
+            p.evaluate("() => window.scrollTo(0, document.body.scrollHeight)")
+            p.wait_for_timeout(250)
+            left = p.evaluate("""() => { const b = document.querySelector('[data-more-left]');
+                return b && !b.hidden ? +b.querySelector('[data-left]').textContent : 0; }""")
+            if not left:
+                return True
+        return False
+
+    def test_a_tab_starts_with_one_batch_and_says_how_many_are_left(self):
+        p = self.page(width=390, height=844)
+        p.goto(self.url("/"), wait_until="load")
+        p.click('[data-cat-chip="core"]')
+        p.wait_for_timeout(1500)
+        step = p.evaluate("() => +document.querySelector('[data-feed]').getAttribute('data-page-size')")
+        vis = p.evaluate(self.VIS)
+        matched = p.evaluate("() => +document.querySelector('[data-feed]').getAttribute('data-matched')")
+        left = p.evaluate("() => document.querySelector('[data-more-left]').innerText")
+        p.context.close()
+        self.assertGreater(matched, step, "必看不到一批，这条判据此刻无效")
+        self.assertLessEqual(vis, step, f"一点进来就露了 {vis} 张 —— 没有分批")
+        self.assertIn(str(matched - vis), left, f"底下没说还剩几篇：{left!r}")
+
+    def test_scrolling_reveals_every_batch_until_the_chip_count(self):
+        p = self.page(width=390, height=844)
+        p.goto(self.url("/"), wait_until="load")
+        said = int(p.inner_text('[data-cat-chip="core"] .n'))
+        p.click('[data-cat-chip="core"]')
+        p.wait_for_timeout(1500)
+        first = p.evaluate(self.VIS)
+        done = self._scroll_until_done(p)
+        last = p.evaluate(self.VIS)
+        p.context.close()
+        self.assertTrue(done, "滑了 40 次还没露完 —— 滑到底不露下一批")
+        self.assertGreater(last, first, "滑到底没有露出下一批")
+        self.assertEqual(said, last, f"chip 上写 {said}，全露完是 {last}")
+
+    def test_the_newest_tab_pages_only_its_own_window(self):
+        """「最新」超出内联的那些从分页文件取 —— 取到这一档最后一篇为止，不多拉。"""
+        p = self.page(width=390, height=844)
+        p.goto(self.url("/"), wait_until="load")
+        feed = p.evaluate("""() => { const f = document.querySelector('[data-feed]');
+            return {n: +f.getAttribute('data-new-total'), head: +f.getAttribute('data-head'),
+                    step: +f.getAttribute('data-page-size')}; }""")
+        done = self._scroll_until_done(p, rounds=60)
+        got = p.evaluate("""() => ({loaded: document.querySelectorAll('[data-card]').length,
+            shownNew: Array.from(document.querySelectorAll('[data-card][data-new]'))
+                        .filter(c => c.offsetParent !== null).length,
+            end: !document.querySelector('[data-feed-end]').hidden})""")
+        p.context.close()
+        self.assertTrue(done, "「最新」滑到底露不完")
+        self.assertEqual(feed["n"], got["shownNew"], f"「最新」写 {feed['n']} 篇，只露出 {got['shownNew']}")
+        self.assertLessEqual(got["loaded"], max(feed["head"], feed["n"]) + feed["step"],
+                             f"「最新」借机拉了存档：装了 {got['loaded']} 张，这一档只有 {feed['n']}")
+        self.assertTrue(got["end"], "「最新」露完了没说「以上是最近七天」")
+
+    def test_the_hot_tab_lists_shows_you_can_open(self):
+        p = self.page(width=390, height=844)
+        p.goto(self.url("/"), wait_until="load")
+        p.click('[data-cat-chip="hot"]')
+        p.wait_for_selector(".hot-src", timeout=5000)
+        n = int(re.search(r"\d+", p.inner_text(".hot-note")).group(0))
+        got = p.evaluate("""() => ({links: Array.from(document.querySelectorAll('.hot-src')).map(a => a.getAttribute('href')),
+            feedHidden: document.querySelector('[data-feed]').offsetParent === null,
+            marks: document.querySelectorAll('.hot-src .hot-up').length})""")
+        p.click(".hot-src")
+        p.wait_for_load_state("load")
+        landed = p.url
+        p.context.close()
+        self.assertEqual(n, len(got["links"]), f"「热门」写 {n} 个，名单里 {len(got['links'])} 个")
+        self.assertTrue(got["feedHidden"], "切到「热门」卡片还摆着")
+        self.assertEqual(n, got["marks"], "有的信源没写有没有更新")
+        self.assertIn("/s/", landed, f"点名单里的信源没进信源页：{landed}")

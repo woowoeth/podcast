@@ -388,7 +388,9 @@ NEW_DAYS = 7
 MIN_NEW = 12
 # 首屏最多内联几张。首屏预算 56 KB（gzip）是硬约束，60 张实测 ~55 KB。
 # 没有这个上限，发得多的一周首页就自己胀破预算 —— 而那是读者第一眼的加载量。
-MAX_INLINE = 60
+MAX_INLINE = 48
+# 2026-09-25 从 60 降到 48（两批）：首页改成分批露出，首屏只露第一批 24 张，
+# 「最新」超出内联的那些滑到了再从分页文件取。60 张时首屏已经 55 KB，没有余量。
 
 GA_ID = os.environ.get("GA_ID", "G-DHD3WEXQ8T")   # 与 ourword.ai 其他站同一个属性
 
@@ -1112,12 +1114,16 @@ def write_card_pages(eps: list[dict], out: pathlib.Path | None = None) -> int:
     # 全跳到英文站去了。凡是写文件的函数都不许再自己决定往哪写。
     out = out or ROOT
     head_n = inline_count(eps)
+    n_new = new_window(eps)
     rest = eps[head_n:]
     pages = 0
     for i in range(0, len(rest), FIRST_PAGE):
         pages += 1
+        # 超出内联的「最新」也要带 data-new：原来这里不打，于是那些卡进不了「最新」——
+        # 按钮写 131 篇，读者只看得到内联的 60（2026-09-25 分批露出时查出）。
         (out / f"cards-{pages}.json").write_text(
-            json.dumps([card(x, hero=False) for x in rest[i:i + FIRST_PAGE]],
+            json.dumps([card(x, hero=False, is_new=(head_n + i + k < n_new))
+                        for k, x in enumerate(rest[i:i + FIRST_PAGE])],
                        ensure_ascii=False))
     # 页数变少时把多出来的旧文件删掉，否则前端会取到过期的卡片
     n = pages + 1
@@ -1160,6 +1166,55 @@ def new_window(eps: list[dict]) -> int:
     return max(MIN_NEW, min(n, len(eps)))
 
 
+def hot_sources(eps: list[dict], srcs: dict) -> list[dict]:
+    """首页「热门」这一档：当前 tier 1（必看）的源，本站至少有一篇的，按最近一篇排。
+
+    「有没有更新」用和「最新」同一个窗口（近 NEW_DAYS 天，构建期算）——两处各算一次，
+    迟早算出两个答案。没更新的给绝对日期「上次更新 9月16日」，页面放几天也不会说错。
+    """
+    import datetime as _dt
+    cut = (now() - _dt.timedelta(days=NEW_DAYS)).date().isoformat()
+    per: dict[str, dict] = {}
+    for x in eps:
+        sid, d = x.get("source_id"), (x.get("published") or "")[:10]
+        if not sid or not d:
+            continue
+        r = per.setdefault(sid, {"n": 0, "recent": 0, "latest": ""})
+        r["n"] += 1
+        r["recent"] += d >= cut
+        r["latest"] = max(r["latest"], d)
+    rows = []
+    for src in srcs.get("sources") or []:
+        if src["id"] in CORE_IDS and per.get(src["id"]):
+            rows.append({"src": src, **per[src["id"]]})
+    # 读者看得见的是「近 7 天更新 N 篇」，就按它排；同篇数按最近一篇。
+    # 原来按日期排，+7 的排在两个 +1 后面，看上去像没排序（审查查出）。
+    rows.sort(key=lambda r: (r["recent"], r["latest"]), reverse=True)
+    return rows
+
+
+def hot_panel(rows: list[dict]) -> str:
+    items = []
+    for r in rows:
+        s = r["src"]
+        nm = src_display(s)
+        up = (f'<span class="hot-up on">{e(i18n.recent(r["recent"]))}</span>' if r["recent"]
+              else f'<span class="hot-up">{e(T("上次更新"))} {e(i18n.md(r["latest"]))}</span>')
+        items.append(f'<li><a class="hot-src" href="{BASE}/s/{e(s["id"])}/">'
+                     f'<span class="hot-name"{zh_attr(nm)}>{e(nm)}</span>'
+                     f'<span class="hot-meta">{e(T(CAT_LABEL.get(s.get("cat"), "")))} · {e(i18n.here_n(r["n"]))}</span>'
+                     f'{up}</a></li>')
+    return (f'<p class="hot-note">{e(T("HOT_NOTE").replace("{n}", str(len(rows))))}</p>'
+            f'<ol class="hot-list">{"".join(items)}</ol>')
+
+
+# 名单本身不进首屏：首屏 gzip 上限 56 KB，60 张内联卡片已经吃到 55 KB，
+# 23 个信源的名单一进来就是 57（2026-09-25 实测）。点「热门」才去取 hot.json，
+# 和 cards-N.json 一样存 HTML、一样由 tw.py 转出繁体。
+def hot_json(eps: list[dict], srcs: dict) -> str:
+    return json.dumps([hot_panel(hot_sources(eps, srcs))], ensure_ascii=False)
+
+
 def index_page(eps: list[dict], srcs: dict) -> str:
     counts = {c: sum(1 for x in eps if x.get("cat") == c) for c in CAT_ORDER}
     n_new = new_window(eps)
@@ -1167,10 +1222,14 @@ def index_page(eps: list[dict], srcs: dict) -> str:
     # 载入整个存档。去掉「全部」不会让任何内容不可达——每一集都有分类
     # （实测 0 例外），另有搜索、信源页和 sitemap。
     n_core = sum(1 for x in eps if x.get("source_id") in CORE_IDS)
+    hot = hot_sources(eps, srcs)
     chips = [f'<button class="chip" data-cat-chip="new" aria-pressed="true">'
-             f'{T("最新")}<span class="n">{n_new}</span></button>',
-             f'<button class="chip" data-cat-chip="core" aria-pressed="false">'
-             f'{T("必看")}<span class="n">{n_core}</span></button>']
+             f'{T("最新")}<span class="n">{n_new}</span></button>']
+    if hot:
+        # 不挂数字：别的 chip 数的是篇，这里是节目，挨着放会被读成「热门只有 23 篇」
+        chips.append(f'<button class="chip" data-cat-chip="hot" aria-pressed="false">{T("热门")}</button>')
+    chips.append(f'<button class="chip" data-cat-chip="core" aria-pressed="false">'
+                 f'{T("必看")}<span class="n">{n_core}</span></button>')
     for c in CAT_ORDER:
         chips.append(f'<button class="chip" data-cat-chip="{c}" aria-pressed="false">'
                      f'{T(CAT_LABEL[c])}<span class="n">{counts.get(c, 0)}</span></button>')
@@ -1216,7 +1275,7 @@ def index_page(eps: list[dict], srcs: dict) -> str:
 {share_button(site_share_text(eps), url=SITE + "/", title=f"{NAME} · {TAGLINE}", label=T("分享本站"))}
 </div></div></div>
 {zt_banner()}
-<main class="wrap"><div class="feed" data-feed data-total="{len(eps)}"
+<main class="wrap">{f'<section class="hot" data-hot hidden aria-label="{e(T("热门信源"))}"><p class="hot-note">{T("正在载入…")}</p></section>' if hot else ""}<div class="feed" data-feed data-total="{len(eps)}" data-new-total="{n_new}"
      data-page-size="{FIRST_PAGE}" data-head="{head_n}"
      data-pages="{max(0, (len(eps) - head_n + FIRST_PAGE - 1) // FIRST_PAGE)}">
 {cards}
@@ -1227,9 +1286,11 @@ def index_page(eps: list[dict], srcs: dict) -> str:
 <p class="feed-end" data-feed-end>{T("以上是最近七天。想看更早的，点上面的分类。")}</p>
 {f'''<div class="more" data-sentinel>
 <span class="more-count" data-more-count>{n_new}</span>
+<span class="more-left" data-more-left hidden>{T("还有")} <b data-left></b> {T("MORE_LEFT_UNIT")}</span>
+<button class="more-btn" data-reveal type="button" hidden>{T("再看一批")}</button>
 <button class="more-btn" data-more type="button" hidden>{T("继续加载")}</button>
-<noscript><p class="note">{T("没有 JavaScript 时只显示最新 N 篇，完整清单见 sitemap 或 llms.txt。").replace("N", str(FIRST_PAGE))}</p></noscript>
-</div>''' if len(eps) > head_n else ""}
+<noscript><p class="note">{T("没有 JavaScript 时只显示最新 N 篇，完整清单见 sitemap 或 llms.txt。").replace("N", str(head_n))}</p></noscript>
+</div>'''}
 </main>
 """ + foot())
 
@@ -2240,6 +2301,7 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
         eps = [x for x in eps if x.get("slug") in _EN]
     log(f"building {len(eps)} episodes, {len(srcs.get('sources') or [])} sources")
     (out / "index.html").write_text(index_page(eps, srcs))
+    (out / "hot.json").write_text(hot_json(eps, srcs))
     (out / "sources").mkdir(exist_ok=True)
     (out / "sources" / "index.html").write_text(sources_page(srcs, eps))
     (out / "404.html").write_text(not_found())

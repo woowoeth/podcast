@@ -160,6 +160,13 @@ UI: dict[str, str] = {
     '搜正文、金句、数字、术语、节目…': 'Search points, quotes, figures, glossary, shows…',
     '搜索': 'Search',
     '继续加载': 'Load more',
+    '热门': 'Top shows',
+    '热门信源': 'Popular shows',
+    '上次更新': 'Last updated',
+    'HOT_NOTE': '{n} essential shows picked by our editors, most active this past week first. Tap a show for all its deep-reads here; for their newest episodes, tap “Essential”.',
+    '还有': '',
+    'MORE_LEFT_UNIT': 'more',
+    '再看一批': 'Show more',
     '换个词，或者清掉筛选再试。搜索会搜进每条要点的正文、金句的中英文原文、数字和术语表——不只是标题。': 'Try another word, or clear the filters. Search covers the body of every point, quotes in both languages, the figures and the glossary — not just titles.',
     '没有 JavaScript 时只显示最新 N 篇，完整清单见 sitemap 或 llms.txt。': 'Without JavaScript only the latest N are shown; the full list is in the sitemap or llms.txt.',
     '这一页不在了': 'This page is gone',
@@ -236,6 +243,25 @@ def covered(here, total) -> str:
     return f"{here} of {total} episodes"
 
 
+_MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+
+def md(iso: str) -> str:
+    """2026-09-16 → 9月16日 / Sep 16。热门信源「上次更新」用；绝对日期，页面放几天也不会说错。"""
+    y, m, d = (int(x) for x in iso[:10].split("-"))
+    return f"{m}月{d}日" if LANG == "zh" else f"{_MON[m - 1]} {d}"
+
+
+def recent(k: int) -> str:
+    """近 7 天更新 2 篇 / 2 new in the past week —— 窗口是滚动的 7 天，不是自然周"""
+    return f"近 7 天更新 {k} 篇" if LANG == "zh" else f"{k} new in the past week"
+
+
+def here_n(k: int) -> str:
+    """本站 37 篇 / 37 deep reads —— 是本站写的深读篇数，不是节目的总集数"""
+    return f"本站 {k} 篇" if LANG == "zh" else f"{k} deep read{'s' if k != 1 else ''}"
+
+
 def name() -> str:
     return NAMES.get(LANG, NAMES["zh"])
 
@@ -257,6 +283,9 @@ _missed: set[str] = set()
 # 直接印到页面上——线上真出过：日志页显示 "LOG_LEDE_1"，首页显示
 # "BLURB_HEADBLURB_TAIL"。是同伴写的一条守护测试抓到的。
 ZH: dict[str, str] = {
+    "HOT_NOTE": "编辑挑的 {n} 个必看节目，按近 7 天更新多少排。点节目名，看它在本站的全部深读；"
+                "想直接看这些节目的新稿，点「必看」。",
+    "MORE_LEFT_UNIT": "篇",
     "BLURB_HEAD": "每天从 {n} 档中英文播客里挑出值得记住的判断。",
     "BLURB_HEAD_NONE": "每天从中英文播客里挑出值得记住的判断。",
     "BLURB_TAIL": "要点和金句都带时间戳，点一下就回到它在原声里被说出的那一秒；"

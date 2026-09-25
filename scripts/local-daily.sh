@@ -320,7 +320,7 @@ PYEOF
   # c（分类页）、api.json、zt（专题）原来也不在清单里——本机线从没提交过它们，
   # 靠云端的 git add -A 兜着。清单现在由守护从 build.py 实际写出的路径推导着核对。
   SITE_FILES="index.html sources s p e c zt log feed.xml sitemap.xml robots.txt 404.html
-              search.json api.json llms.txt llms-full.txt icon.svg .nojekyll
+              search.json api.json hot.json llms.txt llms-full.txt icon.svg .nojekyll
               assets tw en"
   # 分页文件是动态数量（cards-1.json … cards-N.json），不能写死一个。
   SITE_FILES="$SITE_FILES $(ls cards-*.json 2>/dev/null | tr '\n' ' ')"

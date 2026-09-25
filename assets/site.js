@@ -10,31 +10,36 @@
      全文索引提示、播放/暂停、去 YouTube、三条分享提示。英文读者点一下分享
      就弹一句中文，这正是"半成品"的样子。
 
-     繁体不用管：tw.py 会把这个文件里的中文一并转成繁体（.js 在它的
-     TEXT_EXT 里），所以这张表只需要 zh 和 en 两列。 */
+     繁体要自己带一列：assets/ 三棵树共用一份，tw.py **不转**这个目录
+     （原来这里写着「tw.py 会一并转成繁体」，2026-09-25 查出是错的，繁体站的
+     加载提示一直是简体）。第三列由 pipeline/tw.py 的 convert() 生成。 */
   var EN = document.documentElement.lang.slice(0, 2).toLowerCase() === 'en';
+  var HANT = document.documentElement.lang === 'zh-Hant';
   var STR = {
-    loading:      ['正在载入…', 'Loading\u2026'],
-    loadFailed:   ['加载失败，点一下重试', 'Could not load. Tap to retry.'],
+    loading:      ['正在载入…', 'Loading\u2026', '正在載入…'],
+    loadFailed:   ['加载失败，点一下重试', 'Could not load. Tap to retry.', '加載失敗，點一下重試'],
     idxLoading:   ['正在载入全文索引，稍后会把正文和金句一起搜进来…',
                    'Loading the full-text index \u2014 points and quotes will be '
-                   + 'searchable in a moment\u2026'],
+                   + 'searchable in a moment\u2026',
+                   '正在載入全文索引，稍後會把正文和金句一起搜進來…'],
     idxFailed:    ['全文索引没载入成功，现在只搜了标题、结论和标签。',
                    'The full-text index did not load; searching titles, '
-                   + 'summaries and tags only.'],
-    videoTitle:   ['原节目视频', 'Episode video'],
-    openOnYT:     ['去 YouTube 打开原视频', 'Open the video on YouTube'],
-    pause:        ['暂停', 'Pause'],
-    play:         ['播放', 'Play'],
+                   + 'summaries and tags only.',
+                   '全文索引沒載入成功，現在只搜了標題、結論和標籤。'],
+    videoTitle:   ['原节目视频', 'Episode video', '原節目視頻'],
+    openOnYT:     ['去 YouTube 打开原视频', 'Open the video on YouTube', '去 YouTube 打開原視頻'],
+    pause:        ['暂停', 'Pause', '暫停'],
+    play:         ['播放', 'Play', '播放'],
     copiedWeChat: ['已复制，长按粘贴发给朋友；发朋友圈点右上角 ···',
                    'Copied. Long-press to paste; for Moments use the \u00b7\u00b7\u00b7 '
-                   + 'menu at the top right.'],
+                   + 'menu at the top right.',
+                   '已複製，長按粘貼發給朋友；發朋友圈點右上角 ···'],
     copied:       ['已复制，粘到微信、朋友圈或任何地方',
-                   'Copied \u2014 paste it anywhere.'],
+                   'Copied \u2014 paste it anywhere.', '已複製，粘到微信、朋友圈或任何地方'],
     copyFailed:   ['复制没成功，长按选中下面的链接：',
-                   'Copy did not work. Select this link by hand: ']
+                   'Copy did not work. Select this link by hand: ', '複製沒成功，長按選中下面的鏈接：']
   };
-  function T(k) { var v = STR[k]; return v ? (EN ? v[1] : v[0]) : k; }
+  function T(k) { var v = STR[k]; return v ? (EN ? v[1] : (HANT && v[2]) || v[0]) : k; }
 
   /* ---------------------------------------------------------------- theme */
   var KEY = 'podcast-theme';
@@ -64,7 +69,10 @@
      所以连筛选和搜索一起记：回来先把状态还原，再放位置。
      只有「返回」才恢复，重新打开首页不该跳到半截 —— 存完就清。 */
   (function () {
-    var KEY = 'pod_feed_pos';
+    // 只在首页记和恢复：单集页也加载这份 js，原来一打开就把首页刚存的位置读走删掉、
+    // 离开时再用自己的覆盖 —— 从单集返回首页永远恢复不到（2026-09-25 查出）
+    if (!document.querySelector('[data-feed]')) return;
+    var KEY = 'pod_feed_pos:' + location.pathname;
     addEventListener('pagehide', function () {
       try {
         var input = document.querySelector('[data-search]');
@@ -72,7 +80,9 @@
         sessionStorage.setItem(KEY, JSON.stringify({
           y: scrollY,
           cat: on ? on.getAttribute('data-cat-chip') : '',
-          q: input ? input.value : ''
+          q: input ? input.value : '',
+          lim: (function () { var f = document.querySelector('[data-feed]');
+                              return f && f._limit ? f._limit() : 0; })()
         }));
       } catch (e) {}
     });
@@ -88,16 +98,11 @@
     if (!back) return;
     addEventListener('load', function () {
       setTimeout(function () {
-        var input = document.querySelector('[data-search]');
-        if (st.q && input && input.value !== st.q) {
-          input.value = st.q;
-          input.dispatchEvent(new Event('input'));
-        }
-        if (st.cat) {
-          var b = document.querySelector('[data-cat-chip="' + st.cat + '"]');
-          if (b && b.getAttribute('aria-pressed') !== 'true') b.click();
-        }
-        scrollTo(0, st.y);
+        var f = document.querySelector('[data-feed]');
+        // 档位、搜索词、露到第几张一次设好，装够了再滚 —— 分开设的话，搜索框的防抖
+        // 会在滚完之后把露出数收回一批
+        if (f && f._restore) f._restore(st, function () { scrollTo(0, st.y); });
+        else scrollTo(0, st.y);
       }, 60);
     });
   })();
@@ -158,6 +163,63 @@
     var moreBtn = document.querySelector('[data-more]');
     var moreCount = document.querySelector('[data-more-count]');
     var pageSize = parseInt(feed.getAttribute('data-page-size'), 10) || 24;
+    /* 分批露出：先露 STEP 张，滑到底再露一批。筛选和计数仍按全站。
+       文案在 HTML 里（三棵树共用这份 js），这里只填数字。 */
+    var STEP = pageSize;
+    var limit = STEP, leftN = 0, hiddenN = 0;
+    var newTotal = parseInt(feed.getAttribute('data-new-total'), 10) || 0;
+    // 「最新」超出内联的那些还在分页文件里，没装进来
+    function pendingNew() {
+      if (cat !== 'new' || (input && input.value.trim())) return 0;
+      // 卡片按日期倒序，前 newTotal 张就是「最新」；按装了几张算，不靠标记
+      return Math.max(0, newTotal - cards.length);
+    }
+    var revealBtn = document.querySelector('[data-reveal]');
+    var leftBox = document.querySelector('[data-more-left]');
+    var leftNum = leftBox && leftBox.querySelector('[data-left]');
+    var hot = document.querySelector('[data-hot]');
+    // 「热门」名单不进首屏（体积上限），切过去才取
+    var hotState = 'idle';
+    function loadHot() {
+      if (!hot || hotState === 'loading' || hotState === 'done') return;
+      hotState = 'loading';
+      var n0 = hot.querySelector('.hot-note');
+      if (n0) n0.textContent = T('loading');
+      fetch(base ? base.replace(/feed\.xml$/, 'hot.json') : 'hot.json')
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (a) {
+          if (!a) throw new Error('bad payload');
+          hot.innerHTML = a.join(''); hotState = 'done';
+        })
+        .catch(function () {
+          hotState = 'idle';
+          var n = hot.querySelector('.hot-note');
+          if (n) n.textContent = T('loadFailed');
+        });
+    }
+    if (hot) hot.addEventListener('click', function (e) {
+      if (hotState === 'idle' && e.target.closest('.hot-note')) loadHot();
+    });
+    feed._limit = function () { return limit; };
+    feed._reveal = function (n) { if (n > limit) { limit = n; run(); } };
+    feed._restore = function (st, done) {
+      if (input && typeof st.q === 'string') input.value = st.q;
+      if (st.cat) chips.forEach(function (o) {
+        var on = o.getAttribute('data-cat-chip') === st.cat;
+        o.setAttribute('aria-pressed', String(on));
+        if (on) cat = st.cat;
+      });
+      limit = Math.max(STEP, st.lim || 0);
+      run();
+      // 离开时露到第几张，就先装够那么多；装不进来（网络断了）就不再试
+      (function more(tries) {
+        var had = cards.length;
+        if (tries < 40 && cards.length < limit && pageState !== 'done'
+            && (pendingNew() > 0 || wantsEverything())) {
+          loadPage(function () { if (cards.length > had) more(tries + 1); else { run(); done && done(); } });
+        } else { run(); done && done(); }
+      })(0);
+    };
     var totalPages = parseInt(feed.getAttribute('data-pages'), 10) || 0;
     var nextPage = 1;
     var pageState = totalPages ? 'idle' : 'done';
@@ -169,14 +231,11 @@
     }
 
     function showCount() {
+      // N = 这一档还没露出来的
+      if (leftBox) { leftBox.hidden = !(leftN > 0); if (leftNum) leftNum.textContent = leftN; }
+      if (revealBtn) revealBtn.hidden = !(leftN > 0);
       if (!moreCount) return;
-      if (pageState === 'loading') { moreCount.textContent = T('loading'); return; }
-      // 计数要跟着**当前档位**。默认档是「最新」，而它就是内联的这一批，
-      // 显示「41 / 274」会让人以为还有 233 篇没载入、催他往下滚。
-      var shown = cards.filter(function (c) { return c.style.display !== 'none'; }).length;
-      var total = feed.getAttribute('data-total');
-      // 「最新」档底下那句提示已经把话说完了，再挂一个孤零零的数字只是噪音。
-      moreCount.textContent = (cat === 'new') ? '' : shown + ' / ' + total;
+      moreCount.textContent = pageState === 'loading' ? T('loading') : '';
     }
 
     function loadPage(then) {
@@ -199,7 +258,6 @@
           });
           nextPage++;
           pageState = nextPage > totalPages ? 'done' : 'idle';
-          if (pageState === 'done' && sentinel) sentinel.remove();
           showCount();
           run();
           var fs = [then].concat(waiting); waiting = [];
@@ -222,7 +280,7 @@
     function pageJson(n) {
       if (!pending[n]) {
         pending[n] = fetch(pageUrl(n))
-          .then(function (r) { return r.ok ? r.json() : null; });
+          .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('http ' + r.status)); });
         // 失败要能重试：留着一个 rejected 的 promise 会让后续每次取都立刻失败。
         pending[n].catch(function () { delete pending[n]; });
       }
@@ -242,8 +300,25 @@
       return pageState === 'loading' || wantsEverything() && pageState !== 'done';
     }
 
+    function nearEnd() {
+      var r = sentinel.getBoundingClientRect();
+      return r.top - window.innerHeight < 800;
+    }
+
     function maybeLoad() {
-      if (pageState !== 'idle' || !sentinel) return;
+      // 藏着的哨兵位置是 0，会被当成到底
+      if (!sentinel || sentinel.hidden) return;
+      if (hiddenN > 0) {
+        // 一批填不满一屏就接着露
+        if (nearEnd()) { limit += STEP; run(); setTimeout(maybeLoad, 0); }
+        return;
+      }
+      if (pageState !== 'idle') return;
+      // 「最新」只取到这一档的最后一篇，不往存档里多拉
+      if (pendingNew() > 0) {
+        if (nearEnd()) loadPage();   // 装完 loadPage 会再调 maybeLoad，那时才露
+        return;
+      }
       // 「最新」这一档就是内联的这一批，往下没有更多了——滚到底不该悄悄把
       // 整个存档拉下来。想看更多的读者点分类，那时才补齐（run() 里那条）。
       if (cat === 'new') return;
@@ -252,6 +327,10 @@
     }
 
     if (moreBtn) moreBtn.addEventListener('click', function () { loadPage(); });
+    if (revealBtn) revealBtn.addEventListener('click', function () {
+      if (hiddenN > 0) { limit += STEP; run(); return; }
+      loadPage(function () { if (hiddenN > 0) { limit += STEP; run(); } });
+    });
     if (sentinel) {
       /* 节流用时间戳，不用 requestAnimationFrame。**隐藏或后台的标签页里 rAF
          回调不执行**，滚动就永远不触发加载——我在浏览器面板里查这个 bug 时，
@@ -271,8 +350,6 @@
       document.addEventListener('visibilitychange', function () {
         if (!document.hidden) maybeLoad();
       });
-      maybeLoad();          // 首屏可能就已经到底了（窄屏、卡片少）
-      showCount();
     }
 
     function loadDeep() {
@@ -294,18 +371,30 @@
        「最新」这一档例外：它就是内联的这一批（构建期保证 data-new 全部内联）。 */
     function wantsEverything() {
       var q = (input && input.value || '').trim();
-      return !!q || (cat !== 'new' && cat !== 'all');
+      return !!q || (cat !== 'new' && cat !== 'all' && cat !== 'hot');
     }
 
     function run() {
       var q = (input && input.value || '').trim().toLowerCase();
       var terms = q ? q.split(/\s+/) : [];
+      // 「热门」是名单不是筛子；在这一档里搜，就换回卡片搜全站
+      var hotView = cat === 'hot' && !q;
+      if (hot) hot.hidden = !hotView;
+      feed.hidden = hotView;
+      if (sentinel) sentinel.hidden = hotView;
+      if (hotView) {
+        loadHot();
+        var fe = document.querySelector('[data-feed-end]');
+        if (fe) fe.hidden = true;
+        sync(q);
+        return;
+      }
       // 补齐存档是异步的，**这里不能 return**：return 掉的话每装一页都会把
       // 一批未筛选的卡片留在屏幕上，读者搜一个词会看到不匹配的卡片涌进来。
       // 发起补齐之后照常筛已经装好的那些，每页装完 loadPage 会再调一次 run。
       if (wantsEverything() && pageState !== 'done') loadAll();
       if (terms.length) loadDeep();
-      var shown = 0;
+      var shown = 0, matched = 0;
       cards.forEach(function (c) {
         // 「最新」认的是构建期打的 data-new，客户端不自己算日期——
         // 两边各算一次，迟早算出两个答案。
@@ -318,7 +407,7 @@
         // 和「最新」一样，构建期算好、客户端只认标记。
         // 它是筛子不是时间视图，所以要看全站：wantsEverything() 里
         // cat !== 'new' && cat !== 'all' 已经把它算进去了。
-        var okCat = (cat === 'all' || (cat === 'new' && terms.length)) ? true
+        var okCat = (cat === 'all' || cat === 'hot' || (cat === 'new' && terms.length)) ? true
                   : cat === 'new' ? c.hasAttribute('data-new')
                   : cat === 'core' ? c.hasAttribute('data-core')
                   : c.getAttribute('data-cat') === cat;
@@ -329,12 +418,17 @@
           if (hay.indexOf(terms[i]) === -1) { okQ = false; break; }
         }
         var on = okCat && okQ;
+        if (on) matched++;
+        var vis = on && matched <= limit;
         // The hero card can only span two columns while it is the first shown.
-        c.style.display = on ? '' : 'none';
-        if (on) shown++;
+        c.style.display = vis ? '' : 'none';
+        if (vis) shown++;
       });
+      hiddenN = matched - shown;
+      leftN = hiddenN + pendingNew();
+      feed.setAttribute('data-matched', matched);
       if (empty) {
-        empty.hidden = shown !== 0 || stillArriving();
+        empty.hidden = matched !== 0 || stillArriving();
         var note = empty.querySelector('[data-deep-note]');
         if (note) {
           note.hidden = deepState === 'ready' || deepState === 'idle';
@@ -343,7 +437,7 @@
             : T('idxFailed');
         }
       }
-      if (count) count.textContent = shown;
+      if (count) count.textContent = matched;
       showCount();
       tailNote();
       var hero = cards.filter(function (c) { return c.style.display !== 'none'; })[0];
@@ -366,7 +460,7 @@
     function tailNote() {
       var end = document.querySelector('[data-feed-end]');
       if (!end) return;
-      end.hidden = cat !== 'new';
+      end.hidden = cat !== 'new' || leftN > 0 || !!(input && input.value.trim());
       if (moreBtn) moreBtn.hidden = moreBtn.hidden || cat === 'new';
       if (sentinel) sentinel.classList.toggle('at-end', cat === 'new');
     }
@@ -375,6 +469,7 @@
       ch.addEventListener('click', function () {
         cat = ch.getAttribute('data-cat-chip');
         chips.forEach(function (o) { o.setAttribute('aria-pressed', String(o === ch)); });
+        limit = STEP;
         run();
         /* 换筛选要把列表带回开头。原来不动：读者往下翻了几屏，一换分类
            内容整个换掉、位置却留在原地，落在新一批卡片的中间，前面那些
@@ -391,10 +486,10 @@
     if (input) {
       var timer;
       input.addEventListener('input', function () {
-        clearTimeout(timer); timer = setTimeout(run, 60);
+        clearTimeout(timer); timer = setTimeout(function () { limit = STEP; run(); }, 60);
       });
       input.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') { input.value = ''; run(); input.blur(); }
+        if (e.key === 'Escape') { input.value = ''; limit = STEP; run(); input.blur(); }
       });
     }
     document.addEventListener('keydown', function (e) {
@@ -415,7 +510,8 @@
       });
     }
     if (qs.get('q') && input) input.value = qs.get('q');
-    if (qs.get('c') || qs.get('q')) run();
+    run();
+    maybeLoad();          // 首屏可能就已经到底了（窄屏、卡片少）
   }
 
   /* --------------------------------------- 时间戳 → 页内播放器（音频或视频） */
