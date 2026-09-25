@@ -1,0 +1,239 @@
+{
+ "id": "latentspace-bf561bbaa4",
+ "slug": "2026-09-25-latentspace-runway-赌上-1000-张-a100-世界模型绕开数字孪生",
+ "fingerprint": "7131510c51c9d871",
+ "source_id": "latentspace",
+ "source": "Latent Space",
+ "source_zh": "Latent Space",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "世界模型、视频生成与算力技术机制",
+ "tier": 1,
+ "lang": "en",
+ "title_original": "Runway’s WorldPrompt and the Engineering of Real-Time Worlds",
+ "published": "2026-09-25T01:30:00Z",
+ "duration": 5781,
+ "audio": "https://api.substack.com/feed/podcast/217289983/369e64e1c34f479bca75098a1d53f814.mp3",
+ "link": "https://www.latent.space/p/runway",
+ "image": "https://substackcdn.com/feed/podcast/1084089/post/217289983/8e1b9631d9b5ec2192fd2f00e8f43ff2.jpg",
+ "youtube_id": "",
+ "video_len": 0,
+ "transcript_url": "https://www.latent.space/p/runway",
+ "digest": {
+  "title": "Runway 赌上 1000 张 A100：世界模型绕开数字孪生",
+  "dek": "Runway 在 Series B 阶段就签下 1000 张 A100 集群，赌视频 scaling law 成立；如今世界模型只需一张环境照片就能 rollout 策略，绕开了为每个任务建数字孪生的老路。",
+  "why": "Anastasis 罕见地讲了 Runway 从 Gen-1 到实时世界模型的完整技术决策链，包括几次差点死掉的时刻和机器人数据的分歧。",
+  "points": [
+   {
+    "t": 0,
+    "h": "内容终将生成，工具必须重做",
+    "body": "Runway 的起点不是做工具，而是一个外推判断：2016、2017 年看到早期生成模型后，他们假设分辨率与质量会可预测地随时间提升，于是推出「大部分内容终将被生成」，因此创意工具必须被重新设计。Anastasis 说这是「a matter of when, not if」。这个论点后来被证明适用范围远超创意工具本身——他们建研究组织后发现模型在真实世界场景里同样有用，于是绕了一圈又回到起点。",
+    "spk": "Anastasis"
+   },
+   {
+    "t": 492,
+    "h": "Series B 就签下 1000 张 A100",
+    "body": "2022 年中，Runway 判断 scaling law 会像作用于语言一样作用于图像和视频生成，于是签下建一个 1000 张 A100 集群的协议——当时公司还是 Series B。Anastasis 自己说这「slightly irrational」。他们设的目标是：视频版的 latent diffusion / Stable Diffusion 时刻长什么样。当时最好的视频模型是 CogVideo，只有 256×256、质量很差。他们先做 video-to-video 而非 text-to-video，因为条件更强、问题更容易，Gen-1 于 2023 年 1 月发布。",
+    "spk": "Anastasis"
+   },
+   {
+    "t": 1209,
+    "h": "Gen-2 是周末 hack 的两段式管线",
+    "body": "Gen-2 在 Gen-1 正式可用之前就发布了，中间只隔两个月。原因是 text-to-video 直接做不出来，Anastasis 用一个周末项目把两段拼起来：先让模型从文本生成 depth map，再用 Gen-1 把 depth map 转成 RGB。他承认这个两段式管线会让视频结构偶尔看起来不对，因为必须先出深度。有意思的是这个思路后来回归：Reve 的 text-to-image 用 planner model 先生成 bounding box 再喂给 diffusion transformer，Ideogram 同一天也发了同样的创新。",
+    "spk": "Anastasis"
+   },
+   {
+    "t": 1436,
+    "h": "相机控制是世界模型研究的种子",
+    "body": "Anastasis 说 camera control 是第一次让人感觉不是在「生成一段视频」，而是在「世界里穿行」——这成了 world models 研究方向的种子。Runway 在 2023 年底专门成立研究组做世界模型。他们的论证是：要预测好视频，就必须以越来越强的能力模拟世界；如果 scaling law 在视频上成立，模型就能越来越可预测地模拟物理、人类动作与动态。他反驳「生成可爱视频不等于理解世界」：视频模型可以靠连续切镜藏住物理缺陷，所以别被当前表现骗到。",
+    "spk": "Anastasis"
+   },
+   {
+    "t": 2098,
+    "h": "Sora 发布后三个月把模型放大 10 倍",
+    "body": "Gen-3 是 2024 年、Sora 发布几个月后推出的。Sora 最大的变化之一是用 diffusion transformer 取代 convnet，Runway 意识到必须投入模型并行与分布式训练基础设施，整个 2023 年秋天都在建，期间有大量 false starts 和失败。2024 年 2 月 Sora 出来，Twitter 上到处是「Runway 完了」。Anastasis 说那几小时是 existential crisis，但团队用三个月把模型规模和训练算力放大 10 倍，做出了比 Sora 更好的模型，那个夏天发布 Gen-3。",
+    "spk": "Anastasis"
+   },
+   {
+    "t": 2649,
+    "h": "界面世界模型：直接生成像素",
+    "body": "Runway 的 interface world model 把软件前端整个替换掉：没有 HTML、CSS、React，界面像素直接由实时视频生成模型输出，点击、拖拽、滚动都作为输入。你可以用 prompt 描述每个元素的行为——按这个按钮应该发生什么。它同时是视频音频生成模型，能描述点击后的视觉结果和音效。Anastasis 的表述是「为什么要生成产生像素的代码？直接生成像素」。目前它更贵，因为跑实时视频模型的计算需求远高于渲染 HTML。",
+    "spk": "Anastasis"
+   },
+   {
+    "t": 3520,
+    "h": "世界模型绕开了数字孪生",
+    "body": "传统模拟器要精确描述刚体物理，可以用 Isaac Sim 或 MuJoCo，但遇到布料、湿滑表面这类复杂操作就很难，要为每个环境和任务建数字孪生，非常耗时。世界模型只需要给第一帧，就能在里面 rollout 策略——拍一张环境的照片就能测策略表现。Runway 用 Roborina benchmark 的相同场景、设置和 embodiment，测了动作模型在世界模型里和真实世界里的表现相关性，得到很好的相关性。这是他们模型对机器人有用的第一个信号。",
+    "spk": "Anastasis"
+   },
+   {
+    "t": 3715,
+    "h": "第三人称视频数据才是最大来源",
+    "body": "Anastasis 把机器人数据分成几类：遥操作数据、人类用机械臂做任务的 humie 数据、头上戴 GoPro 的 egocentric 数据。他说这些都有用，但世界上第三人称视频数据比 egocentric 数据多三个数量级。人类学做事也主要靠观察别人，不是第一人称。所以他们的论点是：视频预训练之后，只需几百小时机器人数据微调，而从头预训练机器人模型要十万到百万小时量级。他明确说「最丰富的数据源最终会赢」。",
+    "spk": "Anastasis"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 0,
+    "spk": "Anastasis",
+    "raw": "There’s gonna be a point where most of content will be generated, and that was maybe the initial thesis of Runway was we will need, as a result of those generative models, rethink how creative tools are made.",
+    "zh": "会有一个时间点，大部分内容都将被生成出来，这也许就是 Runway 最初的论点：由于这些生成模型，我们需要重新思考创意工具是怎么做的。"
+   },
+   {
+    "t": 492,
+    "spk": "Anastasis",
+    "raw": "we signed this deal to build a cluster of a thousand A100s, which at the time we were a Series B startup. That was a almost, slightly irrational decision maybe, but we really believed that if we trained a video model at a large scale, we would get, like, a great model at the end.",
+    "zh": "我们签了建一个一千张 A100 集群的协议，当时我们还是一家 Series B 创业公司。那也许是一个几乎有点不理性的决定，但我们真的相信，如果大规模训练一个视频模型，最终会得到一个很棒的模型。"
+   },
+   {
+    "t": 2098,
+    "spk": "Anastasis",
+    "raw": "There were a lot of, a lot of chatter on Twitter about Runway. Runway’s done. like, there is no way Runway will catch up.",
+    "zh": "Twitter 上有很多很多议论，说 Runway 完了，Runway 不可能追得上了。"
+   },
+   {
+    "t": 2718,
+    "spk": "Anastasis",
+    "raw": "It’s the end-to-end philosophy applying applied to front ends.",
+    "zh": "这是把端到端哲学应用到前端上。"
+   },
+   {
+    "t": 3715,
+    "spk": "Anastasis",
+    "raw": "the most plentiful source of data will ultimately wins.",
+    "zh": "最丰富的数据源最终会赢。"
+   },
+   {
+    "t": 4067,
+    "spk": "Anastasis",
+    "raw": "I call it the lucid dream test.",
+    "zh": "我把它叫做清醒梦测试。"
+   },
+   {
+    "t": 4992,
+    "spk": "Anastasis",
+    "raw": "Like one nice thing about image and video models is you can immediately tell with your eyes like what feels good from an aesthetic standpoint.",
+    "zh": "图像和视频模型的一个好处是，你一眼就能看出什么在审美上是对的。"
+   },
+   {
+    "t": 5168,
+    "spk": "Anastasis",
+    "raw": "And now my sense is increasingly people are gonna care about latency more and more. As those models become better, the ability to iterate very quickly becomes more important.",
+    "zh": "现在我的感觉是，人们会越来越在乎延迟。随着模型变好，快速迭代的能力会变得更重要。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "Gen-1 发布",
+    "v": "2023 年 1 月",
+    "t": 492
+   },
+   {
+    "k": "CogVideo 分辨率",
+    "v": "256×256",
+    "t": 492
+   },
+   {
+    "k": "Gen-3 相对此前模型规模与算力提升",
+    "v": "10x",
+    "t": 2098
+   },
+   {
+    "k": "character 模型自回归生成视频时长",
+    "v": "最长 30 分钟",
+    "t": 3220
+   },
+   {
+    "k": "GWM Worlds 开放式世界探索生成时长",
+    "v": "几分钟量级",
+    "t": 3220
+   },
+   {
+    "k": "Grok 视频上下文",
+    "v": "10 到 20 秒",
+    "t": 3220
+   },
+   {
+    "k": "Genie 生成时长上限",
+    "v": "最多 1 分钟",
+    "t": 3220
+   },
+   {
+    "k": "模型可接受的参考数量上限",
+    "v": "50",
+    "t": 5088
+   },
+   {
+    "k": "Runway 电影节举办频率",
+    "v": "every May or June",
+    "t": 5745
+   }
+  ],
+  "terms": [
+   {
+    "term": "lucid dream test",
+    "zh": "清醒梦测试",
+    "def": "分不清眼前是真实 pass-through 还是生成渲染，就说明世界模型够好了。"
+   },
+   {
+    "term": "step distillation",
+    "zh": "步数蒸馏",
+    "def": "把扩散模型的多步采样压缩成少步，以降低服务成本、提高生成速度。"
+   },
+   {
+    "term": "error accumulation",
+    "zh": "误差累积",
+    "def": "自回归生成中，每帧的小误差被喂回模型，随时间不断放大。"
+   },
+   {
+    "term": "counterfactual generation",
+    "zh": "反事实生成",
+    "def": "让模型生成「没发生」的结果，比如没进球，用于模拟失败和在线 RL。"
+   }
+  ],
+  "who": "关注视频生成、世界模型与机器人基础模型的创业者和工程师，以及想了解 Runway 技术路线与算力赌注的投资人。",
+  "skip": "1:33:40 之后关于 AlphaFold 式专用架构的讨论较泛，可跳过。",
+  "tags": [
+   "世界模型",
+   "视频生成",
+   "机器人",
+   "算力",
+   "实时模型"
+  ],
+  "quality": {
+   "transcript_source": "notes",
+   "transcript_detail": "feed item full text",
+   "words": 17010,
+   "wpm": 176.5,
+   "timed": true,
+   "verified_quotes": 8,
+   "grounded_facts": 9,
+   "points": 8,
+   "pruned": 1,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-09-25T02:31:30Z",
+ "triage": {
+  "score": 8.0,
+  "why": "Runway CTO与首席科学家讲实时世界模型的工程取舍、延迟与架构，属一手技术访谈",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 7.0,
+  "dims": {
+   "density": 8,
+   "faithful": 7,
+   "selection": 8,
+   "concrete": 8,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点多为判断与机制，数字具体；但相机控制那条把「世界模型论证」与「反驳可爱视频论」混成一段，且金句 lucid dream test 无解释。",
+  "worst": "[23:56] 要点把 camera control 的种子作用、世界模型论证、以及「反驳生成可爱视频不等于理解世界」三件事压成一段，原文里这三处并非同一段论述，读者会误以为 Anastasis 在同一处同时说了这些；建议拆开并标明各自出处"
+ },
+ "model": "openai:deepseek-chat"
+}
