@@ -1003,7 +1003,10 @@ def main() -> int:
             "        （Anthropic 控制台的 API key，sk-ant-api 开头；或 `claude setup-token` 生成的 token）。\n"
             "  本机：装好 claude CLI 并登录即可，不用 key；要走 API 账单就跑 scripts/set-local-key.sh。")
         if os.environ.get("GITHUB_ACTIONS"):
-            print("::error::云端没有 Claude 凭据（secrets.ANTHROPIC_API_KEY 为空）—— 深读全部停着")
+            # 没有 key 是现状（用户没有 Anthropic API key），不是故障：深读由本机线（claude CLI）负责。
+            # 心跳会记 llm=off，体检和本机线都认这个标记；本机线停了才报硬伤。
+            print("::notice::云端没有 Claude 凭据，跳过深读 —— 由本机线负责")
+            return 0
         return 2
 
     if a.catchup:

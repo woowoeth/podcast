@@ -7373,10 +7373,20 @@ class ThroughputKnobsMustBeMeasuredNotInherited(unittest.TestCase):
                                  "坏值没有回落，一个笔误会把整条线打挂")
 
     def test_the_catchup_budget_is_not_back_to_a_handful(self):
-        """两条线的建档预算别被改回个位数 —— 队列里常年 160+ 档等着被碰。"""
+        """两条线的建档预算别被改回个位数 —— 队列里常年 160+ 档等着被碰。
+
+        例外只有一个，而且是用户定的：本机走订阅额度（没有 API key）时，
+        2026-09-26「用最节省 token 的方式运行」—— 补课降到一轮 4 篇，额度先给新集。
+        有 key 时仍然 ≥16。"""
         import re
         sh = (ROOT / "scripts" / "local-daily.sh").read_text()
         yml = (ROOT / ".github" / "workflows" / "daily.yml").read_text()
+        m = re.search(r'if \[ -n "\$\{LLM_API_KEY:-\}" \]; then : "\$\{CATCHUP_LIMIT:=(\d+)\}"; '
+                      r'else : "\$\{CATCHUP_LIMIT:=(\d+)\}"; fi', sh)
+        self.assertIsNotNone(m, "本机线的补课预算不再按「有没有 API key」分档")
+        self.assertGreaterEqual(int(m.group(1)), 16, f"本机有 key 时补课预算回到 {m.group(1)}")
+        self.assertLessEqual(int(m.group(2)), 4, "走订阅额度时补课又放大了 —— 用户要求最省 token")
+        sh = sh.replace('"$CATCHUP_LIMIT"', m.group(1))
         for name, text in (("本机线", sh), ("云端线", yml)):
             # 锚在**真正那条命令**上。`text.index("--catchup")` 命中的是上面
             # 那句注释里的 --catchup，窗口根本够不到命令 —— 判据落在注释上，
@@ -9921,6 +9931,11 @@ class SourcesKeepUpdatingWhenOneLineStops(unittest.TestCase):
             for i, l in enumerate(L):
                 if re.search(r"heartbeat\.py cloud 0\b", l) and not l.strip().startswith("#"):
                     ctx = "\n".join(L[max(0, i - 3):i])
+                    if "--llm off" in l:
+                        # 没有 key 是现状不是故障（用户没有 API key）：记 0，但必须带 llm=off，
+                        # 而且只能在「确实没有 key」那一支里写
+                        self.assertIn('HAS_KEY" != "true"', ctx, f"{wf}:{i + 1} llm=off 不是由「没有 key」触发的")
+                        continue
                     self.assertIn("job.status", ctx, f"{wf}:{i + 1} 无条件写「云端成功」—— 跑批失败也记成 0")
             self.assertRegex(t, r"heartbeat\.py cloud [12] --why", f"{wf} 失败时不写原因")
             m = re.search(r"- name: [^\n]*\n\s+if: failure\(\)\n\s+run: \|\n(.*?)(?=\n      - name:|\Z)", t, re.S)
@@ -9941,6 +9956,8 @@ class SourcesKeepUpdatingWhenOneLineStops(unittest.TestCase):
             "失败": ({"at": iso(now), "exit": 2, "why": "云端没有 Claude 凭据"}, "失败"),
             "太久": ({"at": iso(now - dt.timedelta(hours=12)), "exit": 0}, "小时没有心跳"),
             "正常": ({"at": iso(now - dt.timedelta(hours=2)), "exit": 0}, ""),
+            # 云端记 0 但深读关着（没有 key）：跑是跑了，一篇也写不出来 —— 本机必须接班
+            "深读关着": ({"at": iso(now), "exit": 0, "llm": "off", "why": "云端没有 Claude 凭据"}, "深读关着"),
         }
         for name, (hb, want) in cases.items():
             with tempfile.TemporaryDirectory() as tmp:
@@ -9952,6 +9969,30 @@ class SourcesKeepUpdatingWhenOneLineStops(unittest.TestCase):
             else:
                 self.assertEqual("", out, f"云端正常时本机也接班了：{out!r}")
         self.assertRegex(self._local(), r'LIMIT=\$TAKEOVER_LIMIT', "判断出云端停了，却没把本机这一轮放大")
+
+    def test_a_cloud_line_without_a_key_is_a_note_not_an_outage(self):
+        """用户没有 API key：云端深读关着是现状。体检要说出来，但不能每轮都红 ——
+        否则看门狗每两小时开一张 issue，两周就被学会忽略。本机线停了才是故障。"""
+        import tempfile, datetime as dt, unittest.mock as mock, importlib
+        hc = importlib.import_module("healthcheck")
+        now = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        for llm, exit_code, want_fail in (("off", 0, False), (None, 2, True)):
+            with tempfile.TemporaryDirectory() as tmp:
+                d = pathlib.Path(tmp)
+                hb = {"at": now, "exit": exit_code, "why": "云端没有 Claude 凭据"}
+                if llm:
+                    hb["llm"] = llm
+                (d / "heartbeat-cloud.json").write_text(json.dumps(hb))
+                (d / "heartbeat-local.json").write_text(json.dumps({"at": now, "exit": 0}))
+                r = hc.Report()
+                with mock.patch.object(hc, "DATA", d), mock.patch.object(hc, "ROOT", d), \
+                     mock.patch.object(hc, "_commits_behind", lambda: 0):
+                    hc.check_heartbeats(r)
+                text = "\n".join(map(str, r.__dict__.values()))
+                cloud_fails = [m for m in r.bad if "云端" in m]
+                self.assertEqual(bool(cloud_fails), want_fail, f"llm={llm} exit={exit_code}：{cloud_fails}")
+                if llm == "off":
+                    self.assertIn("深读关着", text, "云端深读关着，体检一个字都没提")
 
     def test_every_subscription_run_confirms_it_spends(self):
         """没有 key 时走 claude CLI；--limit > 3 不带 --spend-subscription 会被 run.py 整步拒掉。"""

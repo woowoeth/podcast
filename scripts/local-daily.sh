@@ -63,13 +63,17 @@ export JOBS
 # 上限卡在 30000 等于这档源永远发不出来，而它的文稿是免费的 YouTube 字幕。
 # 长集的成本走 map 分段（便宜模型），不是线性烧推理预算。
 : "${MAX_WORDS:=45000}"
-# 没有 API key 时才回退到订阅额度。分工和云端一样：首稿 sonnet，评分和重写 opus ——
-# 评分不能和首稿同一个模型，自己给自己打分会偏袒
+# 没有 API key 时走订阅额度，**按最省 token 配**（2026-09-26 用户：「用最节省 token 的方式运行」）：
+#   初筛、分段抽取、成稿评分 haiku —— 短平快的活，调用次数占大头（初筛一周 800 多次）；
+#   深读 sonnet；LLM_MODEL 也是 sonnet = 评分不过不再换贵模型重写一遍，直接拦下。
+#   评分（haiku）和深读（sonnet）仍不是同一个模型 —— 自己给自己打分会偏袒。
 if [ -z "${LLM_API_KEY:-}" ]; then
-  : "${LLM_MODEL:=opus}"
-  : "${LLM_MODEL_TRIAGE:=sonnet}"
-  : "${LLM_MODEL_REVIEW:=opus}"
-  export LLM_MODEL_TRIAGE LLM_MODEL_REVIEW
+  : "${LLM_MODEL:=sonnet}"
+  : "${LLM_MODEL_DIGEST:=sonnet}"
+  : "${LLM_MODEL_TRIAGE:=haiku}"
+  : "${LLM_MODEL_MAP:=haiku}"
+  : "${LLM_MODEL_REVIEW:=haiku}"
+  export LLM_MODEL_DIGEST LLM_MODEL_TRIAGE LLM_MODEL_MAP LLM_MODEL_REVIEW
   echo "没有 LLM_API_KEY，回退到本机 claude CLI（会花订阅额度）"
   EXTRA="--spend-subscription"
 else
@@ -197,12 +201,14 @@ try:
 except Exception:
     print("没有云端心跳"); raise SystemExit
 age = (d.datetime.now(d.timezone.utc) - d.datetime.fromisoformat(h["at"].replace("Z", "+00:00"))).total_seconds() / 3600
-if h.get("exit") not in (0, "0", None):
+if h.get("llm") == "off":
+    print("云端深读关着（%s）" % (h.get("why") or "没有凭据"))
+elif h.get("exit") not in (0, "0", None):
     print("云端最后一轮失败（%s）" % (h.get("why") or "退出码 %s" % h.get("exit")))
 elif age > 10:
     print("云端 %.0f 小时没有心跳" % age)' 2>/dev/null)
   if [ -n "$CLOUD_DOWN" ]; then
-    : "${TAKEOVER_LIMIT:=12}"
+    : "${TAKEOVER_LIMIT:=8}"
     echo "$CLOUD_DOWN —— 本机接班：这一轮最多 $TAKEOVER_LIMIT 篇（平时 $LIMIT 篇）"
     LIMIT=$TAKEOVER_LIMIT
   fi
@@ -301,10 +307,11 @@ PYEOF
   # 不是「某一档一次发三篇」。
   # $EXTRA：没有 key 时走 claude CLI，--limit 24 > 3 必须显式确认花订阅额度。停用 DeepSeek 后
   # 这一步漏了它，每轮都被 run.py 拒掉（2026-09-25 晚上那轮日志：「拒绝执行：--limit 24 超过 3」）。
-  # 补课排在新集之后：走订阅额度时，新集（接班那 12 篇）先拿到额度；补课撞上上限只是这几篇
-  # 记一次软失败、下一轮再试，不会挤掉新集。
+  # 补课（给新源补存量）是 token 大头：有 API key 时一轮 24；走订阅额度时按「最省 token」只放 4，
+  # 额度先给新集（2026-09-26 用户要求）。新集排在补课之前，补课撞上上限也挤不掉新集。
+  if [ -n "${LLM_API_KEY:-}" ]; then : "${CATCHUP_LIMIT:=24}"; else : "${CATCHUP_LIMIT:=4}"; fi
   python3 pipeline/run.py --catchup 30 --only-residential --no-build \
-      --per-source 2 --limit 24 --triage-min 7 --review-min 7 $EXTRA || true
+      --per-source 2 --limit "$CATCHUP_LIMIT" --triage-min 7 --review-min 7 $EXTRA || true
 
   # ---- 每周一趟：YouTube 观察名单 ----
   # 只有这条线取得到 YouTube 字幕（住宅 IP；云端机房 IP 会被判成机器人）。

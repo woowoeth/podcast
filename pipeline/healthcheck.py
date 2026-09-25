@@ -182,6 +182,8 @@ def check_heartbeats(r: Report) -> None:
                 r.note(f"{who}：{h:.0f} 小时没跑，快到 {limit}h 阈值了")
             r.good(f"{who}：{h:.1f} 小时前跑过"
                    f"（发布 {hb.get('published', '?')} 篇，退出码 {hb.get('exit', '?')}）")
+        if hb.get("llm") == "off":
+            r.note(f"{who}：深读关着（{hb.get('why') or '没有模型凭据'}）—— 出稿全靠本机线")
         if hb.get("exit") not in (0, "0", None):
             why = f"：{hb['why']}" if hb.get("why") else ""
             r.fail(f"{who}：最后一轮退出码 {hb.get('exit')}{why}")
