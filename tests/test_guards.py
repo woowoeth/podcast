@@ -9659,8 +9659,10 @@ class BuildOutputDoesNotDependOnTheClock(unittest.TestCase):
                          "generated 应是最新一集自己的时间")
 
 
-class TheHotTabListsTheCoreShows(unittest.TestCase):
-    """首页「热门」：当前必看（tier 1）的信源名单，每个都点得进去，写明有没有更新。
+class TheHotTabListsTheMostReadShows(unittest.TestCase):
+    """首页「热门」：本站深读篇数最多的节目（近期还在更新），每个都点得进去，写明有没有更新。
+
+    第一版取的是 tier 1，张小珺（本站 150 篇）是 tier 2，不在里面（2026-09-25 用户指出）。
 
     名单不在首屏里（首屏体积有上限），在 hot.json 里；三棵树各一份。
     """
@@ -9701,12 +9703,21 @@ class TheHotTabListsTheCoreShows(unittest.TestCase):
         self.assertTrue(rows)
         for r in rows:
             sid = r["src"]["id"]
-            self.assertIn(sid, self.b.CORE_IDS, f"{sid} 不是必看的源，却进了热门")
             want = sum(1 for x in eps if x.get("source_id") == sid and (x.get("published") or "")[:10] >= cut)
             self.assertEqual(want, r["recent"], f"{sid} 的「近 7 天」算错了")
-        key = [(r["recent"], r["latest"]) for r in rows]
-        self.assertEqual(key, sorted(key, reverse=True),
-                         "热门没按「近 7 天更新多少」排 —— 读者看到的顺序会像没排过")
+        key = [(r["n"], r["latest"]) for r in rows]
+        self.assertEqual(key, sorted(key, reverse=True), "热门没按本站篇数排")
+        # 「最多」要名副其实：名单外还在更新的节目，篇数不许比名单里最少的那个多
+        fresh = (self.b.now() - dt.timedelta(days=self.b.HOT_FRESH_DAYS)).date().isoformat()
+        per = {}
+        for x in eps:
+            sid, d = x.get("source_id"), (x.get("published") or "")[:10]
+            if sid and d:
+                p = per.setdefault(sid, [0, ""]); p[0] += 1; p[1] = max(p[1], d)
+        inside = {r["src"]["id"] for r in rows}
+        floor = min(r["n"] for r in rows)
+        over = [(sid, n) for sid, (n, last) in per.items() if sid not in inside and last >= fresh and n > floor]
+        self.assertEqual([], over, f"这些节目本站篇数比热门里最少的（{floor}）还多，却不在热门里")
         html, _ = self._links("")
         self.assertNotRegex(html, r"\d+ 天前", "写了相对日期 —— 页面放几天就说错了")
 
@@ -9722,14 +9733,25 @@ class TheHotListIsCompleteAndItsMarksAreTrue(unittest.TestCase):
         import importlib
         self.b = importlib.import_module("build")
 
-    def test_every_core_show_is_listed_and_every_mark_matches(self):
+    def test_the_list_is_the_most_read_shows_and_every_mark_matches(self):
         import datetime as dt
         eps, srcs = self.b.load(); self.b.set_core(srcs)
         cut = (self.b.now() - dt.timedelta(days=self.b.NEW_DAYS)).date().isoformat()
-        want_ids = {x.get("source_id") for x in eps if x.get("source_id") in self.b.CORE_IDS}
+        fresh = (self.b.now() - dt.timedelta(days=self.b.HOT_FRESH_DAYS)).date().isoformat()
+        per = {}
+        for x in eps:
+            sid, d = x.get("source_id"), (x.get("published") or "")[:10]
+            if sid and d:
+                p = per.setdefault(sid, [0, ""]); p[0] += 1; p[1] = max(p[1], d)
+        # 独立算一遍：还在更新的里，篇数最多的 HOT_N 个
+        want = [sid for sid, _ in sorted(((sid, v) for sid, v in per.items() if v[1] >= fresh),
+                                         key=lambda kv: (kv[1][0], kv[1][1]), reverse=True)][:self.b.HOT_N]
         html = "".join(json.loads((ROOT / "hot.json").read_text()))
         items = re.findall(r'<a class="hot-src" href="/podcast/s/([^/"]+)/">(.*?)</a>', html)
-        self.assertEqual(sorted(want_ids), sorted(i for i, _ in items), "热门名单和「有深读的必看信源」对不上")
+        self.assertEqual(want, [i for i, _ in items], "热门名单不是「本站深读最多的那几个」，或者顺序不对")
+        top = max(per.items(), key=lambda kv: kv[1][0])[0]
+        if per[top][1] >= fresh:
+            self.assertEqual(top, items[0][0], f"本站深读最多的 {top} 不在热门第一位")
         for sid, body in items:
             k = sum(1 for x in eps if x.get("source_id") == sid and (x.get("published") or "")[:10] >= cut)
             on = 'class="hot-up on"' in body
@@ -9738,6 +9760,7 @@ class TheHotListIsCompleteAndItsMarksAreTrue(unittest.TestCase):
                 self.assertIn(f"更新 {k} 篇", body, f"{sid}：该写「近 7 天更新 {k} 篇」")
             else:
                 self.assertRegex(body, r"\d+月\d+日", f"{sid}：没更新却没写上次更新的日期")
+            self.assertIn(f"本站 {per[sid][0]} 篇", body, f"{sid}：篇数写错了")
 
 
 class TraditionalJsonKeepsLinksInItsTree(unittest.TestCase):

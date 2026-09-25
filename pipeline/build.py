@@ -1166,14 +1166,24 @@ def new_window(eps: list[dict]) -> int:
     return max(MIN_NEW, min(n, len(eps)))
 
 
-def hot_sources(eps: list[dict], srcs: dict) -> list[dict]:
-    """首页「热门」这一档：当前 tier 1（必看）的源，本站至少有一篇的，按最近一篇排。
+HOT_N = 24               # 手机上两列，24 个正好排满
+HOT_FRESH_DAYS = 60      # 60 天没有新稿的不算热门：停更的节目不该一直挂着
 
-    「有没有更新」用和「最新」同一个窗口（近 NEW_DAYS 天，构建期算）——两处各算一次，
-    迟早算出两个答案。没更新的给绝对日期「上次更新 9月16日」，页面放几天也不会说错。
+
+def hot_sources(eps: list[dict], srcs: dict) -> list[dict]:
+    """首页「热门」：本站深读篇数最多的 HOT_N 个节目（近 HOT_FRESH_DAYS 天有新稿），按篇数排。
+
+    **不看信源名单里的等级。** 第一版取的是 tier 1 —— 那个等级是加源时凭印象定的，
+    张小珺（本站 150 篇、全过成稿评分）是 tier 2，于是「热门」里没有她
+    （2026-09-25 用户指出）。成稿评分也区分不开节目：绝大多数都在 8 分上下，
+    两三篇稿的源均分照样 8.0。站上能说明「热门、内容有保障」的是**写了多少篇过关的深读**
+    —— 每篇都过了选题、事实、成稿评分几道关，篇数多说明它持续出好内容、我们也一直在跟。
+
+    「有没有更新」用和「最新」同一个窗口（近 NEW_DAYS 天，构建期算）。
     """
     import datetime as _dt
     cut = (now() - _dt.timedelta(days=NEW_DAYS)).date().isoformat()
+    fresh = (now() - _dt.timedelta(days=HOT_FRESH_DAYS)).date().isoformat()
     per: dict[str, dict] = {}
     for x in eps:
         sid, d = x.get("source_id"), (x.get("published") or "")[:10]
@@ -1183,14 +1193,10 @@ def hot_sources(eps: list[dict], srcs: dict) -> list[dict]:
         r["n"] += 1
         r["recent"] += d >= cut
         r["latest"] = max(r["latest"], d)
-    rows = []
-    for src in srcs.get("sources") or []:
-        if src["id"] in CORE_IDS and per.get(src["id"]):
-            rows.append({"src": src, **per[src["id"]]})
-    # 读者看得见的是「近 7 天更新 N 篇」，就按它排；同篇数按最近一篇。
-    # 原来按日期排，+7 的排在两个 +1 后面，看上去像没排序（审查查出）。
-    rows.sort(key=lambda r: (r["recent"], r["latest"]), reverse=True)
-    return rows
+    rows = [{"src": src, **per[src["id"]]} for src in srcs.get("sources") or []
+            if per.get(src["id"]) and per[src["id"]]["latest"] >= fresh]
+    rows.sort(key=lambda r: (r["n"], r["latest"]), reverse=True)
+    return rows[:HOT_N]
 
 
 def hot_panel(rows: list[dict]) -> str:

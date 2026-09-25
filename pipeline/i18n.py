@@ -163,7 +163,7 @@ UI: dict[str, str] = {
     '热门': 'Top shows',
     '热门信源': 'Popular shows',
     '上次更新': 'Last updated',
-    'HOT_NOTE': '{n} essential shows picked by our editors, most active this past week first. Tap a show for all its deep-reads here; for their newest episodes, tap “Essential”.',
+    'HOT_NOTE': 'The {n} shows with the most deep-reads here, most first. Every piece passed our topic, fact and quality checks. Tap a show for all of them.',
     '还有': '',
     'MORE_LEFT_UNIT': 'more',
     '再看一批': 'Show more',
@@ -283,8 +283,8 @@ _missed: set[str] = set()
 # 直接印到页面上——线上真出过：日志页显示 "LOG_LEDE_1"，首页显示
 # "BLURB_HEADBLURB_TAIL"。是同伴写的一条守护测试抓到的。
 ZH: dict[str, str] = {
-    "HOT_NOTE": "编辑挑的 {n} 个必看节目，按近 7 天更新多少排。点节目名，看它在本站的全部深读；"
-                "想直接看这些节目的新稿，点「必看」。",
+    "HOT_NOTE": "本站深读最多的 {n} 个节目，按篇数排；每篇都过了选题、事实和成稿评分几道关。"
+                "点节目名，看它在本站的全部深读。",
     "MORE_LEFT_UNIT": "篇",
     "BLURB_HEAD": "每天从 {n} 档中英文播客里挑出值得记住的判断。",
     "BLURB_HEAD_NONE": "每天从中英文播客里挑出值得记住的判断。",
