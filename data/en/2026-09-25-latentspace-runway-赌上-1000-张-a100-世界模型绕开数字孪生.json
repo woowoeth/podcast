@@ -16,36 +16,36 @@
  ],
  "points": [
   {
-   "h": "Content will eventually be generated, so the tools must be rebuilt",
-   "body": "Runway's starting point was not building a tool but an extrapolation: after seeing early generative models in 2016 and 2017, they assumed resolution and quality would improve predictably over time, and concluded that ‘most content will eventually be generated’, so creative tools had to be redesigned. Anastasis calls this ‘a matter of when, not if’. The argument later proved to apply far beyond creative tools themselves — once they built a research organisation they found the models were equally useful in real-world settings, so they came full circle back to where they started."
+   "h": "Content will eventually be generated, so tools must be rebuilt",
+   "body": "Runway's starting point was not building a tool but an extrapolation: after seeing early generative models in 2016 and 2017, they assumed resolution and quality would improve predictably over time, and concluded that ‘most content will eventually be generated’, so creative tools had to be redesigned. Anastasis calls this ‘a matter of when, not if’. The thesis later proved to apply far beyond creative tools themselves — once they built a research organisation they found the models were equally useful in real-world settings, and so they came full circle back to the starting point."
   },
   {
-   "h": "They signed for 1,000 A100s while still at Series B",
-   "body": "In mid-2022, Runway judged that the scaling law would act on image and video generation the way it acts on language, and signed an agreement to build a 1,000-A100 cluster — while the company was still at Series B. Anastasis himself calls this ‘slightly irrational’. Their stated goal was: what does the video version of the latent diffusion / Stable Diffusion moment look like. The best video model at the time was CogVideo, only 256×256 and poor quality. They did video-to-video before text-to-video because the conditioning is stronger and the problem easier, and Gen-1 shipped in January 2023."
+   "h": "It signed for 1,000 A100s while still at Series B",
+   "body": "In mid-2022, Runway judged that the scaling law would act on image and video generation the way it acts on language, and signed an agreement to build a 1,000-A100 cluster — at the time the company was still at Series B. Anastasis himself calls this ‘slightly irrational’. The goal they set was: what does the video version of the latent diffusion / Stable Diffusion moment look like. The best video model at the time was CogVideo, only 256×256 and very poor quality. They did video-to-video before text-to-video because the conditioning is stronger and the problem easier, and Gen-1 shipped in January 2023."
   },
   {
    "h": "Gen-2 was a two-stage pipeline hacked together over a weekend",
-   "body": "Gen-2 shipped before Gen-1 was generally available, only two months apart. The reason was that text-to-video simply could not be done directly, so Anastasis stitched two stages together in a weekend project: first have a model generate a depth map from text, then use Gen-1 to turn the depth map into RGB. He admits this two-stage pipeline makes the video structure occasionally look wrong, because depth has to come out first. Interestingly the idea later came back: Reve's text-to-image uses a planner model to generate bounding boxes first and then feeds them to a diffusion transformer, and Ideogram shipped the same innovation the same day."
+   "body": "Gen-2 shipped before Gen-1 was generally available, only two months apart. The reason was that text-to-video simply could not be done directly, so Anastasis stitched two stages together in a weekend project: first have the model generate a depth map from text, then use Gen-1 to turn the depth map into RGB. He admits this two-stage pipeline makes the video structure occasionally look wrong, because depth has to come out first. Interestingly the idea later came back: Reve's text-to-image uses a planner model to generate bounding boxes first and then feeds them to a diffusion transformer, and Ideogram shipped the same innovation on the same day."
   },
   {
    "h": "Camera control was the seed of the world-model research",
-   "body": "Anastasis says camera control was the first time it felt like you were not ‘generating a video’ but ‘moving through a world’ — this became the seed of the world models research direction. Runway set up a dedicated research group for world models at the end of 2023. Their argument: to predict video well you must simulate the world with increasing competence; if the scaling law holds for video, the model will become increasingly able to predict physics, human action and dynamics. He pushes back on ‘generating cute videos is not the same as understanding the world’: video models can hide physics flaws behind continuous cuts, so don't be fooled by current performance."
+   "body": "Anastasis says camera control was the first time it felt like you were not ‘generating a video’ but ‘moving through a world’ — and that became the seed of the world models research direction. Runway set up a dedicated research group for world models at the end of 2023. Their argument: to predict video well you must simulate the world with ever greater capability; if the scaling law holds for video, the model will become ever more able to predictably simulate physics, human action and dynamics. He pushes back on ‘generating cute videos is not the same as understanding the world’: video models can hide physics flaws behind continuous cuts, so don't be fooled by current performance."
   },
   {
-   "h": "Three months after Sora launched they scaled the model up 10x",
-   "body": "Gen-3 arrived in 2024, a few months after Sora launched. One of Sora's biggest changes was replacing the convnet with a diffusion transformer, and Runway realised it had to invest in model parallelism and distributed training infrastructure, which it spent the whole autumn of 2023 building, with plenty of false starts and failures along the way. Sora came out in February 2024 and Twitter was full of ‘Runway is finished’. Anastasis says those few hours were an existential crisis, but the team spent three months scaling model size and training compute up 10x, built a better model than Sora, and shipped Gen-3 that summer."
+   "h": "Three months after Sora it scaled the model up 10x",
+   "body": "Gen-3 arrived in 2024, a few months after Sora launched. One of Sora's biggest changes was replacing the convnet with a diffusion transformer, and Runway realised it had to invest in model parallelism and distributed training infrastructure, which it spent the whole autumn of 2023 building, with plenty of false starts and failures along the way. Sora came out in February 2024 and Twitter was full of ‘Runway is finished’. Anastasis says those few hours were an existential crisis, but the team spent three months scaling the model size and training compute up 10x, produced a better model than Sora, and shipped Gen-3 that summer."
   },
   {
-   "h": "The interface world model: generate the pixels directly",
-   "body": "Runway's interface world model replaces the entire software front end: no HTML, CSS or React, the interface pixels are output directly by a real-time video generation model, with clicks, drags and scrolls as inputs. You can use a prompt to describe the behaviour of each element — what should happen when this button is pressed. It is also a video-audio generation model, able to describe both the visual result and the sound effect of a click. Anastasis's phrasing is ‘why generate the code that produces the pixels? Generate the pixels’. Right now it is more expensive, because the compute needed to run a real-time video model is far higher than rendering HTML."
+   "h": "The interface world model: generate pixels directly",
+   "body": "Runway's interface world model replaces the entire software front end: no HTML, CSS or React, the interface pixels are output directly by a real-time video generation model, with clicks, drags and scrolls as inputs. You can use a prompt to describe the behaviour of each element — what should happen when this button is pressed. It is also a video-audio generation model, able to describe the visual result and the sound effect after a click. Anastasis's phrasing is ‘why generate code that produces pixels? Generate the pixels’. Right now it is more expensive, because the compute needed to run a real-time video model is far higher than rendering HTML."
   },
   {
-   "h": "World models bypass the digital twin",
-   "body": "Traditional simulators need to describe rigid-body physics precisely, and can use Isaac Sim or MuJoCo, but they struggle with complex manipulation such as cloth or slippery surfaces, and you have to build a digital twin for every environment and task, which is extremely time-consuming. A world model only needs the first frame and you can roll out policies inside it — take one photo of an environment and you can test policy performance. Runway used the same scenes, setup and embodiment from the Roborina benchmark to measure how well action-model performance in the world model correlates with performance in the real world, and got very good correlation. This was the first signal that their model is useful for robotics."
+   "h": "World models skip the digital twin",
+   "body": "Traditional simulators need to describe rigid-body physics precisely, and Isaac Sim or MuJoCo can do that, but they struggle with complex manipulation such as cloth or slippery surfaces, and you have to build a digital twin for every environment and task, which is extremely time-consuming. A world model only needs the first frame and you can roll out policies inside it — take one photo of an environment and you can test policy performance. Runway used the same scenes, settings and embodiment from the Roborina benchmark to measure how well action-model performance in the world model correlates with performance in the real world, and got very good correlation. This is the first signal that their model is useful for robotics."
   },
   {
-   "h": "Third-person video data is the largest source of all",
-   "body": "Anastasis sorts robot data into several categories: teleoperation data, humie data where humans do tasks with a robot arm, and egocentric data from a GoPro on someone's head. He says all of them are useful, but there is three orders of magnitude more third-person video data in the world than egocentric data. Humans also learn to do things mainly by watching others, not first-person. So their argument is: after video pretraining you only need a few hundred hours of robot data to fine-tune, whereas pretraining a robot model from scratch takes on the order of 100,000 to a million hours. He states plainly that ‘the most abundant data source will eventually win’."
+   "h": "Third-person video data is the biggest source of all",
+   "body": "Anastasis sorts robot data into a few categories: teleoperation data, humie data where humans do tasks with a robot arm, and egocentric data from a GoPro on someone's head. He says all of them are useful, but there is three orders of magnitude more third-person video data in the world than egocentric data. Humans also learn to do things mainly by watching others, not first-person. So their argument is: after video pretraining you only need a few hundred hours of robot data to fine-tune, whereas pretraining a robot model from scratch takes on the order of 100,000 to a million hours. He states plainly that ‘the most abundant data source will eventually win’."
   }
  ],
  "terms": [
@@ -63,7 +63,7 @@
   },
   {
    "term": "counterfactual generation",
-   "def": "Making the model generate outcomes that did not happen, such as a goal not being scored, for simulating failure and online RL."
+   "def": "Making the model generate an outcome that did not happen, such as a goal not being scored, used to simulate failure and for online RL."
   }
  ],
  "facts": [
@@ -80,11 +80,11 @@
    "v": "10x"
   },
   {
-   "k": "Length of video the character model generates autoregressively",
+   "k": "character model autoregressive video generation length",
    "v": "up to 30 minutes"
   },
   {
-   "k": "Length of open-ended world exploration generated by GWM Worlds",
+   "k": "GWM Worlds open-ended world exploration generation length",
    "v": "on the order of a few minutes"
   },
   {
@@ -96,11 +96,11 @@
    "v": "up to 1 minute"
   },
   {
-   "k": "Cap on number of references a model can accept",
+   "k": "Max number of references a model can accept",
    "v": "50"
   },
   {
-   "k": "How often the Runway film festival is held",
+   "k": "Runway film festival frequency",
    "v": "every May or June"
   }
  ],
