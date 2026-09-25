@@ -485,8 +485,8 @@ class Render(Harness):
             self.assertTrue(got, f"点了假门 {deadline}ms 内既没换成播放器也没给"
                                  f"出口（site.js 声明的兜底是 6 秒）：{state}")
 
-        # 「最新」档**故意不分页**：它就是内联的那一批，滚到底不该把整个
-        # 存档拉下来。所以这一条改在**分类档**上验——那才是"还有更多"的场景。
+        # 「最新」滑到底只取到这一档的最后一篇，不会把整个存档拉下来。
+        # 所以这一条改在**分类档**上验——那才是"补齐全部"的场景。
         p = self.page()
         p.goto(self.url("/"), wait_until="load")
         first = p.evaluate("() => document.querySelectorAll('[data-card]').length")
@@ -838,3 +838,119 @@ class TabsRevealInBatches(Harness):
         self.assertTrue(got["feedHidden"], "切到「热门」卡片还摆着")
         self.assertEqual(n, got["marks"], "有的信源没写有没有更新")
         self.assertIn("/s/", landed, f"点名单里的信源没进信源页：{landed}")
+
+
+# ---- 2026-09-25 审查补的：返回落点、换档从头、热门的出口、繁体取自己的名单 ----
+_VIS_ALL = """() => Array.from(document.querySelectorAll('[data-card]'))
+           .filter(c => c.offsetParent !== null).length"""
+
+def _bottom(p, n=1, wait=300):
+    for _ in range(n):
+        p.evaluate("() => window.scrollTo(0, document.body.scrollHeight)")
+        p.wait_for_timeout(wait)
+
+
+class BackReturnsToTheSameCard(Harness):
+    """从单集页返回，要落在刚才点的那张卡上——包括露到了第几批。"""
+
+    def _roundtrip(self, prep):
+        p = self.page(width=390, height=844)
+        p.goto(self.url("/"), wait_until="load")
+        prep(p)
+        href = p.evaluate("""() => { const v=[...document.querySelectorAll('[data-card]')]
+            .filter(c => c.offsetParent !== null); const c = v[v.length - 2];
+            c.scrollIntoView({block: 'center'}); return c.getAttribute('href'); }""")
+        p.wait_for_timeout(200)
+        p.click(f'[data-card][href="{href}"]')
+        p.wait_for_load_state("load"); p.wait_for_timeout(500)
+        ep_y = p.evaluate("scrollY")
+        p.go_back(wait_until="load"); p.wait_for_timeout(2500)
+        where = p.evaluate("""(h) => { const c = document.querySelector(`[data-card][href="${h}"]`);
+            if (!c) return 'missing'; if (c.offsetParent === null) return 'hidden';
+            const r = c.getBoundingClientRect();
+            return (r.bottom > 0 && r.top < innerHeight) ? 'inview' : 'off ' + Math.round(r.top); }""", href)
+        p.context.close()
+        return ep_y, where
+
+    def test_opening_an_episode_starts_at_the_top(self):
+        ep_y, _ = self._roundtrip(lambda p: _bottom(p, 2))
+        self.assertEqual(0, ep_y, f"从首页点进单集，单集页被滚到了 {ep_y}px —— 首页的位置被套到了别的页上")
+
+    def test_back_lands_on_the_card_in_a_later_batch(self):
+        def prep(p):
+            p.click('[data-cat-chip="core"]'); p.wait_for_timeout(1500)
+            _bottom(p, 3)
+        _, where = self._roundtrip(prep)
+        self.assertEqual("inview", where, f"「必看」露到第四批点进去再返回，那张卡：{where}")
+
+    def test_back_lands_on_a_paged_in_newest_card(self):
+        _, where = self._roundtrip(lambda p: _bottom(p, 5))
+        self.assertEqual("inview", where, f"「最新」从分页文件补进来的卡，返回后：{where}")
+
+
+class TabSwitchesStartOver(Harness):
+    def test_scroll_reveals_one_batch_at_a_time(self):
+        p = self.page(width=390, height=844)
+        p.goto(self.url("/"), wait_until="load")
+        p.click('[data-cat-chip="core"]'); p.wait_for_timeout(1500)
+        step = p.evaluate("() => +document.querySelector('[data-feed]').getAttribute('data-page-size')")
+        a = p.evaluate(_VIS_ALL); _bottom(p, 1, 600); b = p.evaluate(_VIS_ALL)
+        p.context.close()
+        self.assertGreater(b, a, "滑到底没露下一批")
+        self.assertLessEqual(b - a, 2 * step, f"滑一次露了 {b - a} 张 —— 一次全露了，不是分批")
+
+    def test_the_reveal_button_reveals_a_batch(self):
+        p = self.page(width=390, height=844)
+        p.goto(self.url("/"), wait_until="load")
+        p.click('[data-cat-chip="core"]'); p.wait_for_timeout(1500)
+        a = p.evaluate(_VIS_ALL)
+        # 不滚动，直接按按钮（滚动事件不来时的出口）
+        p.evaluate("() => document.querySelector('[data-reveal]').click()")
+        p.wait_for_timeout(400)
+        b = p.evaluate(_VIS_ALL)
+        p.context.close()
+        self.assertGreater(b, a, "点「再看一批」什么都没露")
+
+    def test_a_new_chip_starts_from_its_first_batch(self):
+        p = self.page(width=390, height=844)
+        p.goto(self.url("/"), wait_until="load")
+        step = p.evaluate("() => +document.querySelector('[data-feed]').getAttribute('data-page-size')")
+        p.click('[data-cat-chip="core"]'); p.wait_for_timeout(1500)
+        _bottom(p, 4)
+        p.click('[data-cat-chip="ai"]'); p.wait_for_timeout(800)
+        chip = p.evaluate(_VIS_ALL)
+        first_top = p.evaluate("() => [...document.querySelectorAll('[data-card]')].find(c => c.offsetParent).getBoundingClientRect().top")
+        p.context.close()
+        self.assertLessEqual(chip, step, f"换到「AI」一下露了 {chip} 张 —— 沿用了上一档露到的批数")
+        self.assertGreater(first_top, -400, f"换到「AI」后第一张卡在视口上方 {-first_top:.0f}px —— 没回到这一档开头")
+
+
+class TheHotTabGivesTheFeedBack(Harness):
+    def test_leaving_hot_or_searching_in_it_shows_cards(self):
+        p = self.page(width=390, height=844)
+        p.goto(self.url("/"), wait_until="load")
+        p.click('[data-cat-chip="hot"]'); p.wait_for_selector(".hot-src", timeout=5000)
+        p.fill("[data-search]", "的"); p.wait_for_timeout(1500)
+        in_hot = p.evaluate(_VIS_ALL)
+        p.fill("[data-search]", ""); p.wait_for_timeout(300)
+        p.click('[data-cat-chip="new"]'); p.wait_for_timeout(500)
+        back = p.evaluate(_VIS_ALL)
+        hot_vis = p.evaluate("() => document.querySelector('[data-hot]').offsetParent !== null")
+        p.context.close()
+        self.assertGreater(in_hot, 0, "在「热门」里搜，一张卡都没出来")
+        self.assertGreater(back, 0, "从「热门」切回「最新」，卡片没回来")
+        self.assertFalse(hot_vis, "切回「最新」，热门名单还挂着")
+
+    def test_the_traditional_hot_tab_stays_in_its_tree(self):
+        p = self.page(width=390, height=844)
+        got = []
+        p.on("request", lambda r: got.append(r.url) if "hot.json" in r.url else None)
+        p.goto(self.url("/tw/"), wait_until="load")
+        p.click('[data-cat-chip="hot"]'); p.wait_for_selector(".hot-src", timeout=5000)
+        hrefs = p.evaluate("() => [...document.querySelectorAll('.hot-src')].map(a => a.getAttribute('href'))")
+        p.context.close()
+        self.assertTrue(got and all("/podcast/tw/hot.json" in u for u in got), f"繁体首页取的是 {got}")
+        bad = [h for h in hrefs if not h.startswith("/podcast/tw/")]
+        self.assertEqual([], bad[:3], f"繁体「热门」名单链回了别的站：{len(bad)} 个")
+
+

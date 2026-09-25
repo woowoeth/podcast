@@ -51,10 +51,16 @@ class Walkthrough(Harness):
             p.fill(".search input", "半导体")
             p.wait_for_timeout(500)
             narrowed = p.evaluate(vis)
+            seen = ("() => [...document.querySelectorAll('[data-card]')]"
+                    ".filter(e => e.offsetParent).length")
+            shown = p.evaluate(seen)          # 读者真看得见的（计数是代码自己写的，看不见空屏）
             p.fill(".search input", "")
             p.wait_for_timeout(500)
             after = p.evaluate(vis)
+            shown_after = p.evaluate(seen)
             p.context.close()
+            self.assertGreater(shown, 0, f"{w}px 搜「半导体」计数有 {narrowed}，屏幕上一张都没有")
+            self.assertGreater(shown_after, 0, f"{w}px 清空搜索后屏幕上一张卡都没有")
             self.assertGreater(before, 0, f"{w}px 首屏一张卡片都没有")
             self.assertLess(narrowed, before,
                             f"{w}px 搜索没有筛掉任何东西（{before} → {narrowed}）")
@@ -99,8 +105,12 @@ class Walkthrough(Harness):
         p = self.page(width=1280, height=900)
         p.goto(self.url("/"), wait_until="load")
         p.fill(".search input", "zzzxqv这个词不存在")
-        p.wait_for_timeout=getattr(p, "wait_for_timeout")
-        p.wait_for_timeout(500)
+        # 不写死 500ms：分页还没到齐时「没有匹配」故意不出来（stillArriving），
+        # 负载高时 500ms 不够 —— 等到它出来，或全站都装进来
+        p.wait_for_function("""() => { const e = document.querySelector('[data-empty]');
+            return (e && !e.hidden) || document.querySelectorAll('[data-card]').length
+                   >= +document.querySelector('[data-feed]').getAttribute('data-total'); }""",
+                            timeout=15000)
         vis = p.evaluate("() => [...document.querySelectorAll('[data-card]')]"
                          ".filter(e => e.offsetParent).length")
         msg = p.evaluate("""() => {
@@ -156,6 +166,9 @@ class Walkthrough(Harness):
         f = p.evaluate("""() => { const f = document.querySelector('[data-feed]');
             return {n: +f.getAttribute('data-new-total'), head: +f.getAttribute('data-head'),
                     step: +f.getAttribute('data-page-size')}; }""")
+        # 这一档有几篇，从读者看得见的按钮上读 —— data-new-total 是构建自己写的，
+        # 它写错了（比如写成全站总数），这条判据会跟着放宽、放过拉全存档
+        f["n"] = int(p.inner_text('[data-cat-chip="new"] .n'))
         got = []
         p.on("request", lambda r: got.append(r.url) if "cards-" in r.url else None)
         for _ in range(60):
@@ -167,11 +180,14 @@ class Walkthrough(Harness):
             if (!e) return null;
             const cs=getComputedStyle(e);
             return cs.display!=='none' ? e.textContent.trim() : null; }""")
+        shown_new = p.evaluate("() => [...document.querySelectorAll('[data-card][data-new]')]"
+                               ".filter(e => e.offsetParent).length")
         p.context.close()
         need = max(0, -(-(f["n"] - f["head"]) // f["step"]))   # 这一档超出内联要几页
         self.assertLessEqual(len(set(got)), need,
                              f"「最新」只需要 {need} 页，却拉了 {len(set(got))} 页：{sorted(set(got))[-2:]}")
         self.assertTrue(end, "默认档到底了没有出口提示——读者会以为站还在转")
+        self.assertEqual(f["n"], shown_new, f"「最新」写 {f['n']} 篇，滑到底只露出 {shown_new} 篇")
 
     def test_a_category_loads_the_whole_archive(self):
         """选了分类必须补齐全部：只筛内联那批会让读者以为站上没有那篇。"""

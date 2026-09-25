@@ -9711,6 +9711,35 @@ class TheHotTabListsTheCoreShows(unittest.TestCase):
         self.assertNotRegex(html, r"\d+ 天前", "写了相对日期 —— 页面放几天就说错了")
 
 
+class TheHotListIsCompleteAndItsMarksAreTrue(unittest.TestCase):
+    """对着 hot.json 实际写出来的验，不拿同一个公式再算一遍。
+
+    审查时注入五种缺陷（全标「上次更新」、全标有更新、日期清空、名单截成 8 个、
+    链接全指向第一个）原有测试全绿 —— 它们只重算了 hot_sources() 的数。
+    """
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.b = importlib.import_module("build")
+
+    def test_every_core_show_is_listed_and_every_mark_matches(self):
+        import datetime as dt
+        eps, srcs = self.b.load(); self.b.set_core(srcs)
+        cut = (self.b.now() - dt.timedelta(days=self.b.NEW_DAYS)).date().isoformat()
+        want_ids = {x.get("source_id") for x in eps if x.get("source_id") in self.b.CORE_IDS}
+        html = "".join(json.loads((ROOT / "hot.json").read_text()))
+        items = re.findall(r'<a class="hot-src" href="/podcast/s/([^/"]+)/">(.*?)</a>', html)
+        self.assertEqual(sorted(want_ids), sorted(i for i, _ in items), "热门名单和「有深读的必看信源」对不上")
+        for sid, body in items:
+            k = sum(1 for x in eps if x.get("source_id") == sid and (x.get("published") or "")[:10] >= cut)
+            on = 'class="hot-up on"' in body
+            self.assertEqual(k > 0, on, f"{sid}：近 7 天 {k} 篇，页面上{'标了' if on else '没标'}有更新")
+            if k:
+                self.assertIn(f"更新 {k} 篇", body, f"{sid}：该写「近 7 天更新 {k} 篇」")
+            else:
+                self.assertRegex(body, r"\d+月\d+日", f"{sid}：没更新却没写上次更新的日期")
+
+
 class TraditionalJsonKeepsLinksInItsTree(unittest.TestCase):
     """繁体站从 JSON 补进来的卡片和热门名单，链接要留在 /tw/ 里。
 

@@ -319,7 +319,7 @@
         if (nearEnd()) loadPage();   // 装完 loadPage 会再调 maybeLoad，那时才露
         return;
       }
-      // 「最新」这一档就是内联的这一批，往下没有更多了——滚到底不该悄悄把
+      // 「最新」滑到底只取到这一档的最后一篇（上面 pendingNew 那条），不借机把
       // 整个存档拉下来。想看更多的读者点分类，那时才补齐（run() 里那条）。
       if (cat === 'new') return;
       var r = sentinel.getBoundingClientRect();
@@ -368,7 +368,7 @@
 
     /* 一旦开始搜或**选了某个分类**，就得看全站，不能只筛内联的那一批——
        只筛前几张会让读者以为站上没有那篇文章，那比慢更糟。
-       「最新」这一档例外：它就是内联的这一批（构建期保证 data-new 全部内联）。 */
+       「最新」这一档例外：它不用补齐整个存档，超出内联的那几页滑到了再取（maybeLoad）。 */
     function wantsEverything() {
       var q = (input && input.value || '').trim();
       return !!q || (cat !== 'new' && cat !== 'all' && cat !== 'hot');
@@ -465,6 +465,17 @@
       if (sentinel) sentinel.classList.toggle('at-end', cat === 'new');
     }
 
+    /* 回到这一档的开头（列表顶贴着吸顶工具栏的底）。原来量的是 chip 那一排自己的位置 ——
+       它在吸顶工具栏里，位置永远在视口顶上，于是条件永远不成立、从不回滚；页面变短后
+       视口还在底部，又一批批自动露出来，分批等于没做（2026-09-25 审查查出）。 */
+    function toStart() {
+      var box = (cat === 'hot' && hot && !hot.hidden) ? hot : feed;
+      var bar = document.querySelector('.toolbar');
+      var y = box.getBoundingClientRect().top + scrollY
+            - (bar ? bar.getBoundingClientRect().bottom : 0) - 8;
+      if (scrollY > y) scrollTo(0, Math.max(0, y));
+    }
+
     chips.forEach(function (ch) {
       ch.addEventListener('click', function () {
         cat = ch.getAttribute('data-cat-chip');
@@ -476,17 +487,13 @@
            永远不会被看到。换分类这个动作的意思就是「给我看别的」。
            回到筛选条本身，不是回页首 —— 上面还有搜索框，刚翻过去了。
            瞬时不平滑：内容已经换掉，平滑滚过去是滑过一堆不存在的东西。 */
-        var bar = ch.parentElement;
-        if (bar) {
-          var y = bar.getBoundingClientRect().top + scrollY - 8;
-          if (scrollY > y) scrollTo(0, y);
-        }
+        toStart();
       });
     });
     if (input) {
       var timer;
       input.addEventListener('input', function () {
-        clearTimeout(timer); timer = setTimeout(function () { limit = STEP; run(); }, 60);
+        clearTimeout(timer); timer = setTimeout(function () { limit = STEP; run(); toStart(); }, 60);
       });
       input.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') { input.value = ''; limit = STEP; run(); input.blur(); }
