@@ -99,24 +99,28 @@ launchctl load ~/Library/LaunchAgents/com.ourword.podcast.plist
 
 转写用本机模型，**不需要任何 key**：`mlx-whisper`（Apple Silicon）+ `imageio-ffmpeg`
 自带的静态 ffmpeg。它返回逐句真实时间码，比云端 SenseVoice 那条更准（后者只给整段
-文本，得按字数插值）。`~/.config/podcast/env` 里若放了 `LLM_API_KEY` 就走 API 账单，
-否则回退到本机 claude CLI（会花订阅额度，因此刻意压小篇数并用 sonnet）。
+文本，得按字数插值）。`~/.config/podcast/env` 里若放了 Claude 的 `LLM_API_KEY`（用
+`scripts/set-local-key.sh` 写）就走 API 账单，否则用本机已登录的 claude CLI（花订阅额度，
+因此刻意压小篇数）。
 
-**B · GitHub Actions 云端日更（需要一个 key，当前定时已停用）**
+**B · GitHub Actions 云端日更（只用 Claude）**
 
-`.github/workflows/daily.yml` 的 cron 已注释掉——没有可用 key 时开着只会天天
-红灯。拿到 key 后取消注释即可。**不限 Anthropic**：任何 OpenAI 兼容端点都行，
-配三个 secret 就跑：
+2026-09-25 起模型只用 Claude，不再用 DeepSeek 或其他 OpenAI 兼容端点。工作流里写死了
+`LLM_PROVIDER=anthropic` 和型号，只要一个 secret：
 
-| 供应商 | `LLM_BASE_URL` | `LLM_MODEL` 示例 |
+| secret | 内容 |
+|---|---|
+| `ANTHROPIC_API_KEY` | Anthropic 控制台的 API key（`sk-ant-api…`），或 `claude setup-token` 生成的 token（自动走 Bearer） |
+
+型号分工（写在工作流里，不是 secret）：
+
+| 角色 | 型号 | 为什么 |
 |---|---|---|
-| Anthropic | 留空 | `claude-opus-5` |
-| DeepSeek | `https://api.deepseek.com/v1` | `deepseek-chat` |
-| **OpenRouter** | `https://openrouter.ai/api/v1` | `deepseek/deepseek-v3.2` |
-| 阿里云百炼 | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-plus` |
-| 智谱 | `https://open.bigmodel.cn/api/paas/v4` | `glm-4.6` |
-| Moonshot | `https://api.moonshot.cn/v1` | `kimi-k2-0905-preview` |
-| Groq | `https://api.groq.com/openai/v1` | 见其模型列表 |
+| 选题初筛、分段抽取、深读首稿 | `claude-sonnet-5` | 实测便宜模型的首稿 13 集里 11 集持平或更好 |
+| 成稿评分 | `claude-opus-5` | 不能和首稿同一个模型——自己给自己打分会偏袒 |
+| 首稿没过评分时重写 | `claude-opus-5` | |
+
+没配 `ANTHROPIC_API_KEY` 时，跑批一开头就报 `::error::` 停下，不会一集集地 401。
 
 配完先跑 `python3 pipeline/whoami.py` 验证凭证形态，再跑 `python3 pipeline/selftest.py`
 验证全链路。

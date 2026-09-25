@@ -81,6 +81,9 @@ def provider() -> str:
     LLM_BASE_URL, which is what the README asks for.
     """
     if FORCE:
+        # 强制走 anthropic 却没有凭据：别假装可用 —— 那样每集都 401，而不是一开头就说清缺什么
+        if FORCE == "anthropic" and not KEY:
+            return "claude-cli" if shutil.which("claude") else "none"
         return FORCE
     if KEY:
         if BASE and "anthropic" not in BASE:
@@ -247,6 +250,52 @@ def safe_jobs() -> int:
         return 8
 
 
+# 当前这一代（Opus 5 / Sonnet 5 / Fable 5.x / Opus 4.7-4.8）不收 temperature/top_p：
+# 带上就是 400。Haiku 4.5、4.6 以前的还收。
+_NO_SAMPLING = re.compile(r"claude-(opus-5|sonnet-5|fable|mythos|opus-4-[78])", re.I)
+# 服务端拒答回退（Opus 5 / Fable）：安全分类器拒答时换一个模型接着答。
+# 病毒学（TWiV）、网络安全（Darknet Diaries）这类节目不开它会整集失败。
+_FALLBACK = re.compile(r"claude-(opus-5|fable)", re.I)
+# 思考深度按角色给：初筛、分段抽取是短平快的活，评分要想一想，深读用默认（high）。
+_EFFORT = {"triage": "low", "map": "low", "review": "medium"}
+
+
+def anthropic_request(system: str, user: str, *, max_tokens: int, temperature: float,
+                      model: str, role: str) -> tuple[dict, dict]:
+    """Messages API 的请求体和请求头。单独拿出来，好让测试不联网也能验。
+
+    **思考会吃掉 max_tokens。** 这一代默认先思考，思考的 token 也算在 max_tokens 里：
+    初筛只给 120、评分给 900，会被思考用光、正文返回空 —— 和 deepseek-reasoner
+    12/12 全挂是同一个坑（POSTMORTEM）。所以给一个下限，实际只按用掉的计费。
+    """
+    # 上限 32000：非流式请求，再大就有 HTTP 超时的风险（net.post_json 默认 300 秒）
+    body = {"model": model, "max_tokens": min(max(max_tokens * 4, 16000), 32000), "system": system,
+            "messages": [{"role": "user", "content": user}]}
+    if not _NO_SAMPLING.search(model):
+        body["temperature"] = temperature
+    if role in _EFFORT and _NO_SAMPLING.search(model):
+        body["output_config"] = {"effort": _EFFORT[role]}
+    h = dict(anthropic_headers())
+    if _FALLBACK.search(model):
+        body["fallbacks"] = "default"
+        beta = "server-side-fallback-2026-07-01"
+        h["anthropic-beta"] = (h["anthropic-beta"] + "," + beta) if h.get("anthropic-beta") else beta
+    return body, h
+
+
+def anthropic_text(r: dict, model: str) -> str:
+    """只取 text 块（思考块不算正文）；拒答和写到一半被截断都要报出来，不能当成功。"""
+    stop = r.get("stop_reason")
+    if stop == "refusal":
+        why = (r.get("stop_details") or {}).get("category") or "未说明"
+        raise RuntimeError(f"{model} 拒答（{why}）")
+    out = "".join(b.get("text", "") for b in r.get("content", []) if b.get("type") == "text")
+    if stop == "max_tokens" and not out.strip():
+        # 措辞里要有「推理把 max_tokens」：digest._compose 认这个字样换便宜模型接手
+        raise RuntimeError(f"{model} 没写出正文：推理把 max_tokens 用光了（思考吃掉了输出预算）")
+    return out
+
+
 def call(system: str, user: str, *, max_tokens: int = 6000,
          temperature: float = 0.3, want_json: bool = False,
          role: str = "digest") -> str:
@@ -254,15 +303,13 @@ def call(system: str, user: str, *, max_tokens: int = 6000,
     model = model_name(role)
     if p == "anthropic":
         base = BASE if "anthropic" in BASE else "https://api.anthropic.com"
-        r = _guard(lambda: net.post_json(base + "/v1/messages", {
-            "model": model, "max_tokens": max_tokens,
-            "temperature": temperature, "system": system,
-            "messages": [{"role": "user", "content": user}]},
-            anthropic_headers()))
+        body, headers = anthropic_request(system, user, max_tokens=max_tokens,
+                                          temperature=temperature, model=model, role=role)
+        r = _guard(lambda: net.post_json(base + "/v1/messages", body, headers))
         u = r.get("usage") or {}
         note_usage(role, model, {"prompt_tokens": u.get("input_tokens"),
                                  "completion_tokens": u.get("output_tokens")})
-        return "".join(b.get("text", "") for b in r.get("content", []))
+        return anthropic_text(r, model)
     if p == "openai":
         return _openai(system, user, max_tokens, temperature, model,
                        json_mode=want_json and _json_mode[0], role=role)

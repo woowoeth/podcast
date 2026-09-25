@@ -6,16 +6,11 @@
 # 在云端永远抓不到。住宅 IP 没这个问题。
 #
 # 模型凭证按这个顺序找：
-#   1) ~/.config/podcast/env 里的 LLM_API_KEY —— 推荐。走 API 账单，
-#      完全不碰 Claude 订阅额度。把云端用的那套照抄过来即可：
-#        mkdir -p ~/.config/podcast && cat > ~/.config/podcast/env <<EOF
-#        LLM_API_KEY=你的key
-#        LLM_BASE_URL=https://api.deepseek.com/v1
-#        LLM_MODEL=deepseek-chat
-#        EOF
-#        chmod 600 ~/.config/podcast/env
-#   2) 都没有时回退到本机已登录的 claude CLI —— 不需要 key，但会花订阅额度，
-#      所以此时刻意压小：每天 2 篇、sonnet、跳过超长集。
+#   1) ~/.config/podcast/env 里的 LLM_API_KEY（Claude 的 key）—— 走 API 账单，
+#      不碰 Claude 订阅额度。用 scripts/set-local-key.sh 写，别手抄进对话。
+#   2) 没有 key 时用本机已登录的 claude CLI —— 不需要 key，花订阅额度，
+#      所以刻意压小：每天 2 篇、跳过超长集。
+#   2026-09-25 起只用 Claude，不再用 DeepSeek。
 #
 # 装成每日任务：
 #   cp scripts/com.ourword.podcast.plist ~/Library/LaunchAgents/
@@ -68,9 +63,13 @@ export JOBS
 # 上限卡在 30000 等于这档源永远发不出来，而它的文稿是免费的 YouTube 字幕。
 # 长集的成本走 map 分段（便宜模型），不是线性烧推理预算。
 : "${MAX_WORDS:=45000}"
-# 没有 API key 时才回退到订阅额度，并把模型压到 sonnet
+# 没有 API key 时才回退到订阅额度。分工和云端一样：首稿 sonnet，评分和重写 opus ——
+# 评分不能和首稿同一个模型，自己给自己打分会偏袒
 if [ -z "${LLM_API_KEY:-}" ]; then
-  : "${LLM_MODEL:=sonnet}"
+  : "${LLM_MODEL:=opus}"
+  : "${LLM_MODEL_TRIAGE:=sonnet}"
+  : "${LLM_MODEL_REVIEW:=opus}"
+  export LLM_MODEL_TRIAGE LLM_MODEL_REVIEW
   echo "没有 LLM_API_KEY，回退到本机 claude CLI（会花订阅额度）"
   EXTRA="--spend-subscription"
 else

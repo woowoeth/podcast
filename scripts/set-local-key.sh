@@ -1,5 +1,7 @@
 #!/bin/bash
-# 把 API key 写进本机配置，让本机跑批走 API 账单而不是 Claude 订阅额度。
+# 把 Claude 的 API key 写进本机配置，让本机跑批走 API 账单而不是 Claude 订阅额度。
+# （不跑这个也行：没有 key 时本机线用已登录的 claude CLI，花订阅额度。）
+# 2026-09-25 起只用 Claude，不再用 DeepSeek。
 #
 #   bash scripts/set-local-key.sh
 #
@@ -9,7 +11,7 @@ set -uo pipefail
 ENV_DIR="$HOME/.config/podcast"
 ENV_FILE="$ENV_DIR/env"
 
-echo "把 DeepSeek 的 key 粘贴进来，然后回车（不会显示出来）："
+echo "把 Anthropic 的 API key（sk-ant-api 开头；或 claude setup-token 生成的 token）粘贴进来，然后回车（不会显示出来）："
 IFS= read -rs KEY
 echo
 
@@ -21,18 +23,18 @@ fi
 
 # 形状对不上就先说一声，免得写进去之后跑批才发现
 case "$KEY" in
-  sk-*) ;;
-  *) echo "提示：这个 key 不是 sk- 开头，可能不是 DeepSeek 的。仍会写入。" ;;
+  sk-ant-*) ;;
+  *) echo "这个 key 不是 sk-ant- 开头，不像 Anthropic 的，没有写入。" >&2; exit 1 ;;
 esac
 
 mkdir -p "$ENV_DIR"
 umask 077
 cat > "$ENV_FILE" <<EOF
+LLM_PROVIDER=anthropic
 LLM_API_KEY=$KEY
-LLM_BASE_URL=https://api.deepseek.com/v1
-LLM_MODEL=deepseek-reasoner
-LLM_MODEL_TRIAGE=deepseek-chat
-LLM_MODEL_REVIEW=deepseek-chat
+LLM_MODEL=claude-opus-5
+LLM_MODEL_TRIAGE=claude-sonnet-5
+LLM_MODEL_REVIEW=claude-opus-5
 EOF
 chmod 600 "$ENV_FILE"
 

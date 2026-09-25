@@ -31,16 +31,11 @@ jobs:
       - run: python -m pip install --quiet "opencc==1.4.2"
       - name: Rescore
         env:
-          LLM_API_KEY:  ${{ secrets.LLM_API_KEY }}
-          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
-          LLM_MODEL:    ${{ secrets.LLM_MODEL }}
-          # 选题用便宜模型，评审换一家——同一个模型给自己的作业打分会偏袒
-          # 长集分段抽取用便宜模型。不配就回落到 LLM_MODEL_TRIAGE，
-          # 所以不需要新加 secret 也已经省下来了。
-          LLM_MODEL_MAP: ${{ secrets.LLM_MODEL_MAP }}
-          LLM_MODEL_TRIAGE: ${{ secrets.LLM_MODEL_TRIAGE }}
-          LLM_MODEL_REVIEW: ${{ secrets.LLM_MODEL_REVIEW }}
-          LLM_AUTH:     ${{ secrets.LLM_AUTH }}
+          LLM_PROVIDER: anthropic            # 只走 Claude（2026-09-25 停用 DeepSeek）
+          LLM_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
+          LLM_MODEL:    claude-opus-5        # 贵模型：首稿过不了成稿评分时重写
+          LLM_MODEL_TRIAGE: claude-sonnet-5  # 初筛、分段抽取、深读首稿
+          LLM_MODEL_REVIEW: claude-opus-5    # 成稿评分：和首稿（sonnet）不用同一个模型 —— 自己给自己打分会偏袒
         run: |
           set -o pipefail
           DRY=""

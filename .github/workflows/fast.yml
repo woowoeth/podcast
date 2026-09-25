@@ -46,13 +46,11 @@ jobs:
 
       - name: 只跑头部信源的新集
         env:
-          LLM_API_KEY:  ${{ secrets.LLM_API_KEY }}
-          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
-          LLM_MODEL:    ${{ secrets.LLM_MODEL }}
-          LLM_MODEL_MAP: ${{ secrets.LLM_MODEL_MAP }}
-          LLM_MODEL_TRIAGE: ${{ secrets.LLM_MODEL_TRIAGE }}
-          LLM_MODEL_REVIEW: ${{ secrets.LLM_MODEL_REVIEW }}
-          LLM_AUTH:     ${{ secrets.LLM_AUTH }}
+          LLM_PROVIDER: anthropic            # 只走 Claude（2026-09-25 停用 DeepSeek）
+          LLM_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
+          LLM_MODEL:    claude-opus-5        # 贵模型：首稿过不了成稿评分时重写
+          LLM_MODEL_TRIAGE: claude-sonnet-5  # 初筛、分段抽取、深读首稿
+          LLM_MODEL_REVIEW: claude-opus-5    # 成稿评分：和首稿（sonnet）不用同一个模型 —— 自己给自己打分会偏袒
           TRANSCRIBE_API_KEY:  ${{ secrets.TRANSCRIBE_API_KEY }}
           TRANSCRIBE_BASE_URL: ${{ secrets.TRANSCRIBE_BASE_URL }}
           TRANSCRIBE_MODEL:    ${{ secrets.TRANSCRIBE_MODEL }}
@@ -97,10 +95,9 @@ jobs:
       - name: 译新集
         continue-on-error: true
         env:
-          LLM_API_KEY:  ${{ secrets.LLM_API_KEY }}
-          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
-          LLM_MODEL_REVIEW: ${{ secrets.LLM_MODEL_REVIEW }}
-          LLM_AUTH:     ${{ secrets.LLM_AUTH }}
+          LLM_PROVIDER: anthropic
+          LLM_API_KEY:  ${{ secrets.ANTHROPIC_API_KEY }}
+          LLM_MODEL_REVIEW: claude-opus-5    # 评审和首稿不用同一个模型
         run: |
           # 说话人译名表排在前面：它是全站去重的短字符串表，
           # 渲染时查不到就会在英文页上原样显示中文。

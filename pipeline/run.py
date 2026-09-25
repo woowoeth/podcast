@@ -998,11 +998,12 @@ def main() -> int:
         log("  （limit ≤ 3，继续。）\n")
 
     if not a.dry_run and not llm.available():
-        log("no LLM backend configured — nothing can be generated.\n"
-            "  In CI: add the LLM_API_KEY secret (sk-ant-* uses the Anthropic\n"
-            "         Messages API; anything else is treated as OpenAI-compatible,\n"
-            "         set LLM_BASE_URL and LLM_MODEL alongside it).\n"
-            "  Locally: install the claude CLI and sign in — no key needed.")
+        log("没有可用的 Claude 凭据，什么都生成不了。\n"
+            "  云端：GitHub → Settings → Secrets and variables → Actions，新建 ANTHROPIC_API_KEY\n"
+            "        （Anthropic 控制台的 API key，sk-ant-api 开头；或 `claude setup-token` 生成的 token）。\n"
+            "  本机：装好 claude CLI 并登录即可，不用 key；要走 API 账单就跑 scripts/set-local-key.sh。")
+        if os.environ.get("GITHUB_ACTIONS"):
+            print("::error::云端没有 Claude 凭据（secrets.ANTHROPIC_API_KEY 为空）—— 深读全部停着")
         return 2
 
     if a.catchup:

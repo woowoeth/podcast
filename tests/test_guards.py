@@ -9781,6 +9781,102 @@ class TraditionalJsonKeepsLinksInItsTree(unittest.TestCase):
         self.assertEqual([], bad[:5], f"繁体 JSON 里有 {len(bad)} 个链接链回了简体站")
 
 
+class ModelsAreClaudeOnly(unittest.TestCase):
+    """2026-09-25 用户：「之前用的 deepseek 我想换成你自己，不要用了」。
+
+    只改 secret 不够：工作流原来把 LLM_BASE_URL 从 secret 读进来，只要那条 secret 还在，
+    换了 key 也会照样打到 DeepSeek 的地址上。所以守的是**配置本身**：
+    工作流强制走 Anthropic、key 只从 ANTHROPIC_API_KEY 来、型号写死是 Claude。
+    """
+
+    def _llm_blocks(self, text):
+        """每个 env 块里连续的 LLM_* 行。"""
+        blocks, cur = [], []
+        for line in text.split("\n"):
+            m = re.match(r"^\s+(LLM_[A-Z_]+):\s*(.*?)\s*(#.*)?$", line)
+            if m:
+                cur.append((m.group(1), m.group(2)))
+            elif cur:
+                blocks.append(dict(cur)); cur = []
+        if cur:
+            blocks.append(dict(cur))
+        return blocks
+
+    def test_every_workflow_that_calls_a_model_calls_claude(self):
+        seen = 0
+        for f in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+            text = f.read_text()
+            self.assertNotRegex(text.lower(), r"deepseek\.com|deepseek-(chat|reasoner)",
+                                f"{f.name} 里还有 DeepSeek 的地址或型号")
+            self.assertNotIn("LLM_BASE_URL", text, f"{f.name} 还在读 LLM_BASE_URL —— 留着它就能被指到别家")
+            self.assertNotIn("secrets.LLM_", text, f"{f.name} 还在读旧的 LLM_* secret（那是 DeepSeek 的）")
+            for b in self._llm_blocks(text):
+                if "LLM_API_KEY" not in b:
+                    continue
+                seen += 1
+                self.assertEqual("anthropic", b.get("LLM_PROVIDER"), f"{f.name} 有一步没强制走 Anthropic")
+                self.assertIn("secrets.ANTHROPIC_API_KEY", b["LLM_API_KEY"], f"{f.name} 的 key 不是从 ANTHROPIC_API_KEY 来")
+                for k in ("LLM_MODEL", "LLM_MODEL_TRIAGE", "LLM_MODEL_REVIEW"):
+                    if k in b and "inputs" not in b[k]:
+                        self.assertTrue(b[k].startswith("claude-"), f"{f.name} 的 {k} 不是 Claude：{b[k]}")
+                if "LLM_MODEL_TRIAGE" in b and "LLM_MODEL_REVIEW" in b:
+                    self.assertNotEqual(b["LLM_MODEL_TRIAGE"], b["LLM_MODEL_REVIEW"],
+                                        f"{f.name}：评分和首稿同一个模型 —— 自己给自己打分会偏袒")
+        self.assertGreater(seen, 5, "一个调模型的步骤都没找到 —— 尺子坏了")
+
+    def test_the_local_key_script_writes_claude_only(self):
+        s = (ROOT / "scripts" / "set-local-key.sh").read_text()
+        self.assertNotRegex(s.lower(), r"deepseek\.com|deepseek-(chat|reasoner)")
+        self.assertIn("LLM_PROVIDER=anthropic", s)
+        self.assertIn("sk-ant-*", s, "不检查 key 的形状，粘错了别家的 key 也会写进去")
+
+    def _llm(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        return importlib.import_module("lib.llm")
+
+    def test_requests_fit_the_current_models(self):
+        """这一代不收 temperature（带上就 400）；思考算进 max_tokens，预算要留够。"""
+        llm = self._llm()
+        for model, role in (("claude-opus-5", "digest"), ("claude-sonnet-5", "triage"), ("claude-opus-5", "review")):
+            b, h = llm.anthropic_request("s", "u", max_tokens=120, temperature=0.1, model=model, role=role)
+            self.assertNotIn("temperature", b, f"{model} 带了 temperature —— 会被 400")
+            self.assertGreaterEqual(b["max_tokens"], 16000, f"{model}/{role} 的 max_tokens 会被思考吃光")
+            self.assertLessEqual(b["max_tokens"], 32000, "非流式请求的 max_tokens 太大，会撞 HTTP 超时")
+        b, _ = llm.anthropic_request("s", "u", max_tokens=120, temperature=0, model="claude-sonnet-5", role="triage")
+        self.assertEqual({"effort": "low"}, b.get("output_config"), "初筛这种短活没压低思考深度")
+        b, h = llm.anthropic_request("s", "u", max_tokens=8000, temperature=0.3, model="claude-opus-5", role="digest")
+        self.assertEqual("default", b.get("fallbacks"))
+        self.assertIn("server-side-fallback", h.get("anthropic-beta", ""), "开了 fallbacks 却没带 beta 头")
+
+    def test_refusals_and_blown_budgets_are_errors_not_empty_answers(self):
+        llm = self._llm()
+        import importlib
+        digest = importlib.import_module("lib.digest")
+        self.assertEqual("{}", llm.anthropic_text(
+            {"stop_reason": "end_turn", "content": [{"type": "thinking", "thinking": "…"},
+                                                   {"type": "text", "text": "{}"}]}, "m"),
+                         "思考块混进了正文")
+        with self.assertRaises(RuntimeError):
+            llm.anthropic_text({"stop_reason": "refusal", "stop_details": {"category": "bio"}, "content": []}, "m")
+        with self.assertRaises(RuntimeError) as cm:
+            llm.anthropic_text({"stop_reason": "max_tokens", "content": [{"type": "thinking", "thinking": "…"}]}, "m")
+        self.assertIn(digest._BUDGET_BLOWN, str(cm.exception),
+                      "预算被思考吃光的报错认不出来 —— digest 换便宜模型接手的那条路就断了")
+
+    def test_forcing_anthropic_without_a_key_is_not_a_backend(self):
+        """没配 ANTHROPIC_API_KEY 时要一开头就说缺什么，不能假装可用、然后每集 401。"""
+        llm = self._llm()
+        saved = (llm.FORCE, llm.KEY, llm.shutil.which)
+        try:
+            llm.FORCE, llm.KEY = "anthropic", ""
+            llm.shutil.which = lambda _: None
+            self.assertEqual("none", llm.provider())
+            self.assertFalse(llm.available())
+        finally:
+            llm.FORCE, llm.KEY, llm.shutil.which = saved
+
+
 class IndexNowDoesNotGiveUpOnTheFirstEndpoint(unittest.TestCase):
     """一个端点拒了要接着试下一个，并且请求要走项目的 TLS 上下文。
 
