@@ -9763,6 +9763,28 @@ class TheHotListIsCompleteAndItsMarksAreTrue(unittest.TestCase):
             self.assertIn(f"本站 {per[sid][0]} 篇", body, f"{sid}：篇数写错了")
 
 
+class EpisodesNameTheirShowTheWayTheRegistryDoes(unittest.TestCase):
+    """每一集记录里的节目名，要和信源名单上这个节目的名字一致。
+
+    2026-09-25：张小珺两集存成了「张小珲·商业访谈录」，信源页和首页卡片上照样显示错字 ——
+    卡片读的是每集自己存的名字，名单上的名字是对的，谁也没对过这两处。
+    """
+
+    def test_every_episode_uses_its_shows_registered_name(self):
+        S = {s["id"]: s for s in json.loads((ROOT / "data" / "sources.json").read_text())["sources"]}
+        bad = []
+        for f in sorted((ROOT / "data" / "episodes").glob("*.json")):
+            e = json.loads(f.read_text())
+            s = S.get(e.get("source_id"))
+            if not s:
+                continue
+            names = {s.get("name"), s.get("zh")} - {None}
+            for k in ("source", "source_zh"):
+                if e.get(k) and e[k] not in names:
+                    bad.append((f.name[:40], k, e[k]))
+        self.assertEqual([], bad[:5], f"{len(bad)} 处节目名和信源名单对不上")
+
+
 class TraditionalJsonKeepsLinksInItsTree(unittest.TestCase):
     """繁体站从 JSON 补进来的卡片和热门名单，链接要留在 /tw/ 里。
 

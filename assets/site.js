@@ -117,7 +117,11 @@
     var empty = feed.querySelector('[data-empty]');
     // 默认档是「最新」（近七天，构建期算好、卡上打 data-new）。
     // 「全部」去掉了：每次打开都要载入整个存档，而读者要的是最近的。
-    var cat = 'new';
+    // 只有首页有档位和分批的尾巴。信源页、分类页也带 [data-feed]，但那是「这个节目 / 这一类的
+    // 全部」：默认档必须是 all、不分批 —— 默认成「最新」的话它们一张卡都不带 data-new，
+    // 整页全被藏掉（2026-09-25 用户：「热门里每个节目点进去看不到具体每期的内容」）。
+    var cat = chips.length ? 'new' : 'all';
+    var homeCat = cat;
 
     // Pre-lowercase the inline haystack once; filtering then costs nothing.
     // The inline text is title + dek + source + tags only, so search works
@@ -166,7 +170,8 @@
     /* 分批露出：先露 STEP 张，滑到底再露一批。筛选和计数仍按全站。
        文案在 HTML 里（三棵树共用这份 js），这里只填数字。 */
     var STEP = pageSize;
-    var limit = STEP, leftN = 0, hiddenN = 0;
+    function firstBatch() { return sentinel ? STEP : Infinity; }   // 没有哨兵就没法往下露，不分批
+    var limit = firstBatch(), leftN = 0, hiddenN = 0;
     var newTotal = parseInt(feed.getAttribute('data-new-total'), 10) || 0;
     // 「最新」超出内联的那些还在分页文件里，没装进来
     function pendingNew() {
@@ -209,7 +214,7 @@
         o.setAttribute('aria-pressed', String(on));
         if (on) cat = st.cat;
       });
-      limit = Math.max(STEP, st.lim || 0);
+      limit = Math.max(firstBatch(), st.lim || 0);
       run();
       // 离开时露到第几张，就先装够那么多；装不进来（网络断了）就不再试
       (function more(tries) {
@@ -449,7 +454,7 @@
 
     function sync(q) {
       var p = new URLSearchParams();
-      if (cat !== 'new') p.set('c', cat);
+      if (cat !== homeCat) p.set('c', cat);   // 本页默认档不写进地址（信源页原来平白多个 ?c=all）
       if (q) p.set('q', q);
       var s = p.toString();
       history.replaceState(null, '', s ? '?' + s : location.pathname);
@@ -480,7 +485,7 @@
       ch.addEventListener('click', function () {
         cat = ch.getAttribute('data-cat-chip');
         chips.forEach(function (o) { o.setAttribute('aria-pressed', String(o === ch)); });
-        limit = STEP;
+        limit = firstBatch();
         run();
         /* 换筛选要把列表带回开头。原来不动：读者往下翻了几屏，一换分类
            内容整个换掉、位置却留在原地，落在新一批卡片的中间，前面那些
@@ -493,10 +498,10 @@
     if (input) {
       var timer;
       input.addEventListener('input', function () {
-        clearTimeout(timer); timer = setTimeout(function () { limit = STEP; run(); toStart(); }, 60);
+        clearTimeout(timer); timer = setTimeout(function () { limit = firstBatch(); run(); toStart(); }, 60);
       });
       input.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') { input.value = ''; limit = STEP; run(); input.blur(); }
+        if (e.key === 'Escape') { input.value = ''; limit = firstBatch(); run(); input.blur(); }
       });
     }
     document.addEventListener('keydown', function (e) {

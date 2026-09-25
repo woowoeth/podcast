@@ -954,3 +954,32 @@ class TheHotTabGivesTheFeedBack(Harness):
         self.assertEqual([], bad[:3], f"繁体「热门」名单链回了别的站：{len(bad)} 个")
 
 
+
+
+class ListPagesShowEverything(Harness):
+    """信源页、分类页展示的是「这个节目 / 这一类的全部」，打开就要全部看得见。
+
+    2026-09-25：首页改成分批露出后，脚本一加载就按「最新」筛一遍 —— 信源页和分类页也带
+    [data-feed]，而它们的卡一张都不带 data-new，于是**整页全被藏掉**。用户从「热门」点进
+    节目，看不到任何一期。这里的测试只开过首页，没有一条开过信源页。
+    """
+
+    def _check(self, path):
+        p = self.page(width=390, height=844)
+        p.goto(self.url(path), wait_until="load")
+        p.wait_for_timeout(400)
+        got = p.evaluate("""() => ({n: document.querySelectorAll('[data-card]').length,
+            vis: [...document.querySelectorAll('[data-card]')].filter(c => c.offsetParent !== null).length,
+            url: location.search})""")
+        p.context.close()
+        self.assertGreater(got["n"], 0, f"{path} 一张卡都没有 —— 判据此刻无效")
+        self.assertEqual(got["n"], got["vis"], f"{path} 有 {got['n']} 张卡，看得见的只有 {got['vis']} 张")
+        self.assertEqual("", got["url"], f"{path} 打开后地址被改成了 {got['url']}")
+
+    def test_the_most_read_show_page_shows_every_episode(self):
+        hot = "".join(json.load(open(os.path.join(ROOT, "hot.json"), encoding="utf-8")))
+        sid = re.search(r'class="hot-src" href="/podcast/s/([^/"]+)/"', hot).group(1)
+        self._check(f"/s/{sid}/")
+
+    def test_a_category_page_shows_every_episode(self):
+        self._check("/c/ai/")
