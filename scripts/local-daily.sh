@@ -103,6 +103,7 @@ export LLM_MODEL
     fi
   fi
 
+  START_REV=$(git rev-parse HEAD 2>/dev/null)
   # 先同步：state.json 在 git 里，云端刚发过的不能重复发。
   #
   # **这一步失败就不许深读。** 原来是 `|| true`：拉不下来照跑，而 state.json
@@ -174,6 +175,36 @@ PYEOF
   n_stash=$(git stash list 2>/dev/null | grep -c autostash || true)
   if [ "${n_stash:-0}" -ge 3 ]; then
     echo "注意：git stash 里堆了 $n_stash 个 autostash，多半是历次同步冲突留下的" >&2
+  fi
+
+  # **拉下了新版就用新版跑。** bash 边读边执行：这一轮开头读进来的是同步前的旧脚本，git pull
+  # 换掉文件后它照样执行旧的那份。2026-09-25 晚上那轮就是这样：新的 build.py 生成了 hot.json，
+  # 旧脚本的提交清单里却还没有它，热门名单就没推上去（心跳里的 rev 是新的，跑的脚本是旧的）。
+  # 输出接到 /dev/null：新脚本自己会 tee 进同一个日志，这里再接一次就每行写两遍。
+  if [ -z "${PODCAST_REEXEC:-}" ] && [ -n "$START_REV" ] \
+     && ! git diff --quiet "$START_REV" HEAD -- scripts/local-daily.sh 2>/dev/null; then
+    echo "这次同步更新了 local-daily.sh（$START_REV → $(git rev-parse --short HEAD)），用新版重新执行"
+    exec env PODCAST_REEXEC=1 bash "$REPO/scripts/local-daily.sh" >/dev/null 2>&1
+  fi
+
+  # **云端停了，本机接班。** 云端最后一轮失败（心跳退出码非 0），或 10 小时没有心跳，这一轮就多出
+  # 几篇、全站信源都管。不然云端一停，它那 45 档源就跟着停 —— 2026-09-25 停用 DeepSeek 之后云端
+  # 没有 Claude 的 key，连败三轮，站上只剩本机每轮 2 篇。云端恢复、心跳正常了就自动退回 2 篇。
+  # 不用 heredoc：这段在管道块里，heredoc 在这里出过「单独跑正常、真跑批一声不响」的事故。
+  CLOUD_DOWN=$(python3 -c 'import json, datetime as d
+try:
+    h = json.load(open("data/heartbeat-cloud.json"))
+except Exception:
+    print("没有云端心跳"); raise SystemExit
+age = (d.datetime.now(d.timezone.utc) - d.datetime.fromisoformat(h["at"].replace("Z", "+00:00"))).total_seconds() / 3600
+if h.get("exit") not in (0, "0", None):
+    print("云端最后一轮失败（%s）" % (h.get("why") or "退出码 %s" % h.get("exit")))
+elif age > 10:
+    print("云端 %.0f 小时没有心跳" % age)' 2>/dev/null)
+  if [ -n "$CLOUD_DOWN" ]; then
+    : "${TAKEOVER_LIMIT:=12}"
+    echo "$CLOUD_DOWN —— 本机接班：这一轮最多 $TAKEOVER_LIMIT 篇（平时 $LIMIT 篇）"
+    LIMIT=$TAKEOVER_LIMIT
   fi
 
   ONLY_ARG=""
@@ -268,8 +299,12 @@ PYEOF
   # limit 8 → 24：每轮约两小时转写，仍然只用掉空闲的一小部分。
   # per-source 3 → 2：同样的预算铺到更多档源上 —— 建档要的是「每档都被碰到」，
   # 不是「某一档一次发三篇」。
+  # $EXTRA：没有 key 时走 claude CLI，--limit 24 > 3 必须显式确认花订阅额度。停用 DeepSeek 后
+  # 这一步漏了它，每轮都被 run.py 拒掉（2026-09-25 晚上那轮日志：「拒绝执行：--limit 24 超过 3」）。
+  # 补课排在新集之后：走订阅额度时，新集（接班那 12 篇）先拿到额度；补课撞上上限只是这几篇
+  # 记一次软失败、下一轮再试，不会挤掉新集。
   python3 pipeline/run.py --catchup 30 --only-residential --no-build \
-      --per-source 2 --limit 24 --triage-min 7 --review-min 7 || true
+      --per-source 2 --limit 24 --triage-min 7 --review-min 7 $EXTRA || true
 
   # ---- 每周一趟：YouTube 观察名单 ----
   # 只有这条线取得到 YouTube 字幕（住宅 IP；云端机房 IP 会被判成机器人）。
@@ -331,7 +366,9 @@ PYEOF
   # （instituteforad ×2、youdead、tal 四篇建档出的集）。
   # 后果不是少了四个文件：下一次谁跑 build.py 都是**从数据重建**，
   # 这四页会被当成孤儿删掉，钱白花、内容消失，而账本里查不到它们发过。
-  git add data/episodes data/en data/state.json data/sources.json \
+  # data/covers.json：cache_covers 每轮都会改它，原来没在清单里 —— 云端 `git add -A` 顺手带着，
+  # 云端一停，本机缓存下的封面就永远不进仓库，首页封面一直直连第三方。
+  git add data/episodes data/en data/state.json data/sources.json data/covers.json data/indexnow.json \
           data/heartbeat-local.json $SITE_FILES 2>/dev/null || true
   git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
       commit -q -m "build: regenerate site" || true
@@ -373,7 +410,7 @@ PYEOF
     python3 pipeline/build.py >/dev/null
     # **data/en 也要加。** 原来重试分支漏了它：译稿留成未跟踪文件，别的线提交同名文件后，
     # 下一次同步被这些文件挡住、autostash 冲突——2026-09-23 那次事故就是从这里开始的。
-    git add data/episodes data/en data/state.json data/sources.json data/heartbeat-local.json $SITE_FILES 2>/dev/null || true
+    git add data/episodes data/en data/state.json data/sources.json data/covers.json data/indexnow.json data/heartbeat-local.json $SITE_FILES 2>/dev/null || true
     if git diff --cached --quiet; then echo "已是最新，无需推送"; exit 0; fi
     # 提交前再核一次：树里少了 origin 已有的集，提交就等于把它们删掉。
     python3 pipeline/gitsync.py missing origin/main data/episodes >/dev/null || { echo "重试后树里仍缺 origin 已有的集，拒绝提交"; exit 1; }

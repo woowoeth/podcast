@@ -9899,6 +9899,87 @@ class ModelsAreClaudeOnly(unittest.TestCase):
             llm.FORCE, llm.KEY, llm.shutil.which = saved
 
 
+class SourcesKeepUpdatingWhenOneLineStops(unittest.TestCase):
+    """2026-09-25 用户：「确保信源在更新」。
+
+    停用 DeepSeek 后云端没有 Claude 的 key，连败三轮 —— 而体检一直说「云端 7 小时前跑过、退出码 0」：
+    心跳步骤写死 `heartbeat.py cloud 0`，失败时后面的提交又被跳过。本机线每轮只出 2 篇，
+    补课那步还因为没带 --spend-subscription 被拒；它的提交清单里也没有封面清单。
+    这里守的是「一条线停了，看得见、另一条会接上」。
+    """
+
+    def _wf(self, name):
+        return (ROOT / ".github" / "workflows" / name).read_text()
+
+    def _local(self):
+        return (ROOT / "scripts" / "local-daily.sh").read_text()
+
+    def test_the_cloud_heartbeat_records_what_really_happened(self):
+        for wf in ("daily.yml", "fast.yml"):
+            t = self._wf(wf)
+            L = t.split("\n")
+            for i, l in enumerate(L):
+                if re.search(r"heartbeat\.py cloud 0\b", l) and not l.strip().startswith("#"):
+                    ctx = "\n".join(L[max(0, i - 3):i])
+                    self.assertIn("job.status", ctx, f"{wf}:{i + 1} 无条件写「云端成功」—— 跑批失败也记成 0")
+            self.assertRegex(t, r"heartbeat\.py cloud [12] --why", f"{wf} 失败时不写原因")
+            m = re.search(r"- name: [^\n]*\n\s+if: failure\(\)\n\s+run: \|\n(.*?)(?=\n      - name:|\Z)", t, re.S)
+            self.assertTrue(m and "heartbeat-cloud.json" in m.group(1) and "git push" in m.group(1),
+                            f"{wf} 跑批失败时没把心跳推上去 —— 体检看不见「云端停了」")
+
+    def _takeover_snippet(self):
+        m = re.search(r"CLOUD_DOWN=\$\(python3 -c '(.*?)' 2>/dev/null\)", self._local(), re.S)
+        self.assertTrue(m, "本机线没有「云端停了就接班」的判断")
+        return m.group(1)
+
+    def test_the_local_line_takes_over_when_the_cloud_stops(self):
+        import tempfile, datetime as dt, subprocess
+        code = self._takeover_snippet()
+        now = dt.datetime.now(dt.timezone.utc)
+        iso = lambda t: t.strftime("%Y-%m-%dT%H:%M:%SZ")
+        cases = {
+            "失败": ({"at": iso(now), "exit": 2, "why": "云端没有 Claude 凭据"}, "失败"),
+            "太久": ({"at": iso(now - dt.timedelta(hours=12)), "exit": 0}, "小时没有心跳"),
+            "正常": ({"at": iso(now - dt.timedelta(hours=2)), "exit": 0}, ""),
+        }
+        for name, (hb, want) in cases.items():
+            with tempfile.TemporaryDirectory() as tmp:
+                (pathlib.Path(tmp) / "data").mkdir()
+                (pathlib.Path(tmp) / "data" / "heartbeat-cloud.json").write_text(json.dumps(hb))
+                out = subprocess.run([sys.executable, "-c", code], cwd=tmp, capture_output=True, text=True).stdout.strip()
+            if want:
+                self.assertIn(want, out, f"云端{name}时本机没接班：{out!r}")
+            else:
+                self.assertEqual("", out, f"云端正常时本机也接班了：{out!r}")
+        self.assertRegex(self._local(), r'LIMIT=\$TAKEOVER_LIMIT', "判断出云端停了，却没把本机这一轮放大")
+
+    def test_every_subscription_run_confirms_it_spends(self):
+        """没有 key 时走 claude CLI；--limit > 3 不带 --spend-subscription 会被 run.py 整步拒掉。"""
+        t = self._local().replace("\\\n", " ")
+        calls = [l for l in t.split("\n") if "pipeline/run.py" in l and "--limit" in l and not l.strip().startswith("#")]
+        self.assertGreaterEqual(len(calls), 2, "尺子坏了：一条带 --limit 的 run.py 调用都没找到")
+        for c in calls:
+            self.assertIn("$EXTRA", c, f"这条跑批没带 $EXTRA，走订阅额度时会被拒：{c.strip()[:90]}")
+
+    def test_the_local_line_commits_the_cover_manifest(self):
+        adds = [l for l in self._local().replace("\\\n", " ").split("\n") if "git add" in l and "$SITE_FILES" in l]
+        self.assertTrue(adds)
+        for a in adds:
+            self.assertIn("data/covers.json", a, "本机线缓存了封面却不提交清单 —— 云端一停，封面一直直连第三方")
+
+    def test_the_local_script_reruns_itself_after_pulling_a_new_version(self):
+        t = self._local()
+        self.assertIn("PODCAST_REEXEC", t)
+        self.assertRegex(t, r'exec env PODCAST_REEXEC=1 bash "\$REPO/scripts/local-daily\.sh"',
+                         "同步拉下了新脚本，这一轮却还跑旧的那份")
+        self.assertLess(t.index("START_REV="), t.index("git pull --rebase --autostash -q origin main"),
+                        "START_REV 要在同步之前记下")
+
+    def test_the_healthcheck_watches_the_hot_sources(self):
+        src = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        self.assertIn("check_hot_sources_keep_up(r)", src)
+
+
 class IndexNowDoesNotGiveUpOnTheFirstEndpoint(unittest.TestCase):
     """一个端点拒了要接着试下一个，并且请求要走项目的 TLS 上下文。
 

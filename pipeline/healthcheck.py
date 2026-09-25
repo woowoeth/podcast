@@ -183,11 +183,47 @@ def check_heartbeats(r: Report) -> None:
             r.good(f"{who}：{h:.1f} 小时前跑过"
                    f"（发布 {hb.get('published', '?')} 篇，退出码 {hb.get('exit', '?')}）")
         if hb.get("exit") not in (0, "0", None):
-            r.fail(f"{who}：最后一轮退出码 {hb.get('exit')}")
+            why = f"：{hb['why']}" if hb.get("why") else ""
+            r.fail(f"{who}：最后一轮退出码 {hb.get('exit')}{why}")
         _check_line_revision(r, who, hb)
     if behind:
         r.note(f"本地落后 origin/main {behind} 个提交——上面凡是和时间有关的判断"
                f"都可能因此失真")
+
+
+def check_hot_sources_keep_up(r: Report) -> None:
+    """首页「热门」那几档：原平台出了新集，本站跟上没有。
+
+    线路心跳只能说「线在跑」，说不出「读者最常看的那几档还在更新」。2026-09-25 用户：「确保信源在
+    更新」。判据用信源实探记下的原平台最新一集（status.latest）对本站最新一篇；差 3 天以内是正常
+    的转写、选题节奏。落后的只列出来当提醒 —— 有的是真没文稿、有的是选题闸门拦了，那是逐档去看的事；
+    但一半以上的热门档都落后，就不是某一档的问题，是管线停了。
+    """
+    import sys as _s
+    _s.path.insert(0, str(ROOT / "pipeline"))
+    try:
+        import build as _b
+        eps, srcs = _b.load()
+        rows = _b.hot_sources(eps, srcs)
+    except Exception as ex:
+        r.note(f"热门信源的更新检查没跑成（{type(ex).__name__}）")
+        return
+    import datetime as _dt
+    late = []
+    for row in rows:
+        up = ((row["src"].get("status") or {}).get("latest") or "")[:10]
+        if not up or not row["latest"]:
+            continue
+        gap = (_dt.date.fromisoformat(up) - _dt.date.fromisoformat(row["latest"])).days
+        if gap > 3:
+            late.append(f"{_b.src_display(row['src'])}（原平台 {up}，本站 {row['latest']}）")
+    if len(late) * 2 > len(rows):
+        r.fail(f"热门 {len(rows)} 档里 {len(late)} 档没跟上原平台 —— 不是某一档的问题，是管线停了："
+               + "、".join(late[:5]))
+    elif late:
+        r.note(f"热门里 {len(late)} 档没跟上原平台超过 3 天：" + "、".join(late[:6]))
+    else:
+        r.good(f"热门 {len(rows)} 档都跟上了原平台（差不超过 3 天）")
 
 
 def check_content_freshness(r: Report) -> None:
@@ -1330,6 +1366,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  ok    {m}")
         return 1 if r.bad else 0
     check_heartbeats(r)
+    check_hot_sources_keep_up(r)
     check_content_freshness(r)
     check_build_consistency(r)
     check_sources(r)
