@@ -1,6 +1,6 @@
 # 原声 — 世界太吵，来原声听播客
 
-933 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
+935 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
 
 ==============================================================================
 
@@ -2060,6 +2060,77 @@
 谁该听 / who: 创业者、投资人、税务和财富管理从业者，想了解美国财富真实分布和创业回报的人。
 可跳过 / skip: 20:33到22:37关于疫情和行业颠覆的讨论，信息密度较低。
 标签 / tags: 财富分布, 创业, 税务, pass-through, 美国经济
+
+==============================================================================
+
+## 深度学习靠合成数据训练，终于打赢了表格数据里的XGBoost
+
+- URL: https://ourword.ai/podcast/p/2026-09-23-mlst-深度学习靠合成数据训练-终于打赢了表格数据里的xgboost/
+- 节目 / show: ML Street Talk (https://ourword.ai/podcast/s/mlst/)
+- 原集标题 / original episode: How Deep Learning Finally Cracked Messy Tables - Frank Hutter
+- 发布 / published: 2026-09-23 · 时长 / duration: 1:53:12
+- 文稿来源 / transcript: 音频转写 · 19661 words · timestamps are exact
+- 校验 / verification: 6 quotes matched verbatim, 3 numbers traced to the transcript, review score 7/10
+
+**能找到的真实表格数据集只有约5万个，不足以喂饱深度网络；PriorLabs转而用因果结构模型批量合成训练数据，让TabPFN第一次在表格预测上稳定超过XGBoost和CatBoost。**
+
+为什么听 / why: 如果你在用XGBoost处理表格数据，或者想搞清楚基础模型能不能吃下传统机器学习的地盘，这集把技术原理和商业落地都讲透了。
+
+### 核心论点 / points
+
+[3:04] (Frank Hutter) **TabNet红极一时，却是不泛化的失败样本** — 2019年Google推出的TabNet曾被引用上千次，是当时深度学习攻克表格数据的头牌方案，但Frank Hutter说它根本不泛化到新数据集。更深层的原因是：一张图片不管来自哪里，像素级的空间统计规律都是相通的，所以一个ImageNet模型能覆盖几乎所有图片；但一张医疗表格和一张保险表格，在具体某一行的数值上毫无关联，唯一能跨表迁移的是特征之间相互作用的「模式」,这必须靠上下文学习才能捕捉，而不是靠一个共享的深度网络。
+
+[9:28] (Frank Hutter) **真实表格数据太少，只能合成训练数据** — 互联网上能拿来训练统计模型的真实表格数据集其实只有大约5万个——维基百科上一张篮球运动员数据表算不上可学习的数据集。这和图像、文本、视频完全不同，后者人人愿意上传。PriorLabs因此从结构因果模型这类机制性先验出发，完全用合成数据训练TabPFN,顺带解决了大模型常见的数据泄漏、记忆测试集、偏见继承等问题，因为整条数据生成流水线都是自己写的、完全可控。
+
+[26:01] (Frank Hutter) **新模型在ChatGPT前一周悄悄发布** — TabPFN论文比ChatGPT发布还早一周，Frank Hutter把它定义为AutoML十五年元学习研究的自然延伸：不再是学习能泛化到新数据集的参数，而是直接学出一整套「算法」本身，在一次前向传播里执行完毕。同一个网络，喂进不同数据集就会算出不同的分类器，甚至可以导出成ONNX格式跑在传感器上——这是第一个端到端从数据中学出来、而不是人手写出来的表格算法。
+
+[33:11] (Frank Hutter) **跳过后验参数，直接学预测分布本身** — 传统贝叶斯推断要先算出参数或函数的后验分布，这一步靠MCMC或变分推断，又慢又难精确。TabPFN把这一步直接跳过：从先验里采样出上百万个不同的函数(比如不同的结构因果模型),再从每个函数里采样训练点和测试点，直接学习「看到训练点，预测测试点的y值」这一件事。见过上亿个这样的合成数据集之后，网络就学会了在一次前向传播里逼近任意新数据集的贝叶斯后验预测分布，而不需要真的建模出后验本身。
+
+[1:01:30] (Frank Hutter) **架构一路进化，复杂度代价水涨船高** — TabPFN v1把每一行数据编码成单个向量，再做类似标准Transformer的注意力，复杂度只对行数是二次方，但类别特征被当成普通数字处理得很粗糙。v2改成给矩阵里每个格子单独编码，分别对行、对列做注意力并交替，类别特征处理明显变好，但复杂度变成行数平方乘列数加上行数乘列数平方，超过一万行就撑不住，做到十万行还得靠堆更强的GPU硬扛。v3转向Gael Varoquaux团队的TabICL架构，把复杂度压回对行数二次方，才把可处理规模做到百万行，下一个目标是一千万行。
+
+[1:14:17] (Frank Hutter) **模型越大不等于越强：Google的教训** — Google三周前发布TabFM,沿用TabPFN的架构和先验思路，把规模放大约30倍，在TabArena上跑赢了PriorLabs。但代价惊人：模型极大导致前向推理慢了15倍；在最小规模的数据集上TabFM明显更强，中等规模(十万行以内)已经打平，而超过十万行的数据集TabFM甚至直接爆显存跑不了。相比之下，TabPFN自己的测试时计算模式只比标准前向慢10倍，ELO分数却更高——单纯堆算力换来的领先，换不来效率和可用范围。
+
+[1:19:23] (Frank Hutter) **TabPFN能从观察数据里学出「介入」预测** — Frank Hutter用一个例子说明相关不等于因果：如果只看「患者吃了什么药」去预测「有没有这个病」,模型会学出「吃药就等于有病」,但真实因果方向是反的——因为得病才吃药，不是吃药才得病。若真的停药，病不会消失。TabPFN的做法是在元训练阶段就模拟「介入」:采样出因果图后，不仅观察正常数据，还主动对某个变量做干预并记录效果，训练网络同时学会「观察下的预测」和「介入后的预测」,于是测试时只给它观察数据，也能在一定可辨识性范围内估计介入效应。
+
+[1:52:04] (Frank Hutter) **一分钟拿下十年前的Kaggle冠军成绩** — PriorLabs研究员Nick Erickson——AutoGluon的原作者——把TabPFN 3.5拿去跑2015年Kaggle上那场有3500名参赛者、奖金1万美元的Otto Challenge。当年冠军方案是36个模型手工特征工程堆出来的多层集成；Nick自己后来用AutoGluon,靠96颗CPU跑24小时拿到前1%。这次用TabPFN 3.5,只写了一行代码，在一块RTX Pro 6000上跑一分钟，直接拿到了历史最高分——比十年集体智慧的结果还高。
+
+### 原话 / verbatim quotes
+
+[0:00] Frank Hutter: "Deep learning did not work for tabular data, and now it works dramatically better than catboost and xgboost."
+    译 / zh: 深度学习以前对表格数据不管用，现在它比CatBoost和XGBoost表现好得多。
+
+[3:04] Frank Hutter: "Like 2019, TabNet by Google was really hyped. Thousands of citations. Yeah, the new thing for tabular data. And it just doesn't work. It doesn't generalize to new data sets."
+    译 / zh: 就说2019年吧，Google的TabNet当时红极一时，被引用了上千次，是表格数据领域的新宠。可它根本不管用，没法泛化到新的数据集上。
+
+[39:38] Frank Hutter: "we're getting there like two orders of magnitude a year"
+    译 / zh: 我们正在接近，差不多是每年提升两个数量级。
+
+[1:14:17] Frank Hutter: "The model is, yeah, very large and sort of quite slow as a corollary. That's sort of like 15 times slower than like it's just a forward pass, which is super cool."
+    译 / zh: 这个模型确实非常大，相应地也就很慢。它的前向推理大概比我们慢15倍，不过这一点很酷。
+
+[1:19:23] Frank Hutter: "if they get this medicine, then they have this disease. And you might be tempted to say, ha ha, let's stop giving them that medicine, and they won't have that disease anymore. But that would be foolish, right? Because the causal relationship is the other way around."
+    译 / zh: 如果他们吃了这种药，那他们就得了这个病。你可能会忍不住想，哈哈，那不给他们吃这药不就没病了吗？但那就太蠢了，对吧？因为因果关系是反过来的。
+
+[1:52:04] Frank Hutter: "And now he used TabPFN 3.5 and got the number one ranked solution in one line of code and one minute of compute on one RTX Pro 6000 GPU."
+    译 / zh: 他用TabPFN 3.5拿到了排名第一的方案，只用了一行代码，在一块RTX Pro 6000上跑了一分钟。
+
+### 数字 / figures
+
+- TabPFN1论文发布时间: 早于ChatGPT发布一周(2022年11月) [26:01]
+- Google TabFM前向推理速度（访谈录制时）: 比当时的TabPFN慢15倍 [1:14:17]
+- TabPFN 3.5相比TabFM前向推理速度（节目末尾的版本更新）: 同等质量下快20倍 [1:51:01]
+
+### 术语 / glossary
+
+- in-context learning (上下文学习): 不重新训练模型，把训练数据直接放进输入里，让模型在推理时现学现用
+- posterior predictive distribution (后验预测分布): 综合所有可能模型后，对新数据点给出的概率化预测
+- do-calculus (介入演算): Judea Pearl提出的工具，用来区分「主动干预」和「被动观察」两种因果关系
+- structural causal model (结构因果模型): 描述变量之间因果生成机制的数学模型，节目中简称SCM/SEM
+- ELO score (ELO分数): 源自国际象棋等级分算法，用来给两两对战的模型打分排名
+
+谁该听 / who: 做表格数据建模的数据科学家、关注AutoML与基础模型边界的工程师、想判断AI能否吃掉传统机器学习地盘的从业者。
+可跳过 / skip: 1:07到1:10关于测试时计算的即兴联想比较发散，信息密度低，可以跳过。
+标签 / tags: 表格数据, 基础模型, 合成数据, 贝叶斯推断, 因果推断, AutoML
 
 ==============================================================================
 
@@ -15973,6 +16044,82 @@
 谁该听 / who: 关注 AI 监管走向、开源模型生态和算力资本开支的创业者与投资人，尤其想听黄仁勋本人对末日论和 RSI 的完整口径。
 可跳过 / skip: 22:58 到 28:21 特朗普来电那段，除了一句「这是骗局」没有新信息。
 标签 / tags: 算力, 开源模型, AI 监管, 英伟达, 超级智能
+
+==============================================================================
+
+## 语音识别没解决：客服场景里，模型仍频繁出错
+
+- URL: https://ourword.ai/podcast/p/2026-09-14-mlst-语音识别没解决-客服场景里-模型仍频繁出错/
+- 节目 / show: ML Street Talk (https://ourword.ai/podcast/s/mlst/)
+- 原集标题 / original episode: Speech Recognition Is Not a Solved Problem — Pavan Kumar Reddy
+- 发布 / published: 2026-09-14 · 时长 / duration: 1:42:22
+- 文稿来源 / transcript: 音频转写 · 15731 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 4 numbers traced to the transcript, review score 8/10
+
+**做语音客服系统的客户反馈是：即便是最常见的客服场景，语音识别也远没有被解决，系统还在不断犯错，需要大量工程兜底。**
+
+为什么听 / why: 工程细节密度很高，从编码器帧率、codec 谱系到 DPO 对齐都给了具体做法，适合正在做语音 agent 落地的人；闲聊向的听众可以跳过。
+
+### 核心论点 / points
+
+[11:43] (Pavan Kumar Reddy) **音频原生理解替代转录+LLM级联** — Voxtral Chat 是音频输入、文本输出的理解模型，可以直接问「什么时候提到了这个话题」这类带时间戳的问题。传统做法是先转录成文字再喂给LLM,Pavan 认为级联会丢信息——情绪、语气这些不在转录文本里的东西，原生模型能直接从音频里注意到，而转录必须提前决定要在中间表示里保留哪些细节。
+
+[15:43] (Pavan Kumar Reddy) **音频被当成普通token喂进解码器** — Voxtral 用一个3B文本模型做主干，音频编码器把声音压成连续向量，每80毫秒产出一个token(约每秒12.5个),直接当token序列喂进解码器，和文本token一视同仁。编码器结构很接近Whisper,但没有单独的预训练阶段，而是和主干一起端到端训练——他们坚持「方案越简单越经得起时间考验」。
+
+[21:53] (Pavan Kumar Reddy) **流式转录的延迟是一个可调参数** — 借鉴 Kyutai 的 Delayed Streams Modeling,Voxtral Realtime 让模型每80毫秒直接吃一帧音频，并把「目标延迟」当成喂给模型的一个参数：延迟设得越短，字幕出现得越快但歧义越大；等得越久，消歧越充分、错误率越低。同一路音频可以同时开两条流，一条快的给字幕用，一条慢的留给需要准确记录的场景做纠错。
+
+[33:46] (Pavan Kumar Reddy) **用连续隐向量取代离散codec token** — 主流TTS用残差矢量量化(RVQ)生成离散token,一个时间步要预测30多个codebook,相当于每步再套一层30步的自回归，又慢又复杂。Mistral 的TTS改用flow matching头直接预测连续隐向量的速度场，推理时只是沿速度场做固定步数的积分，步数可控，在速度和质量之间的取舍更细腻。
+
+[37:55] (Pavan Kumar Reddy) **编解码器谱系：EnCodec到Mimi到自研FSQ** — 神经编解码器这条线从 EnCodec 的RVQ演进到 Kyutai 的 Mimi:Mimi 把codebook分成语义和声学两类，语义codebook接受蒸馏监督、离文本空间更近，生成时先猜语义再猜声学。Mistral 保留了语义codebook,但把声学部分换成了FSQ(有限标量量化)——21个数值级别、36维，离散和连续两种用法可以互换。
+
+[56:53] (Pavan Kumar Reddy) **说话人分离远没解决，尤其超过两人时** — Pavan 直言说话人分离「远没解决」,尤其是四五个人开会互相打断的场景。没有视频只靠听，连人类标注员都很难分清「是同一个人打断自己」还是「换了人说话」——模型面对的是单声道、单流的纯音频输入，天花板本身就受限，而现有系统离这个天花板还差得远。
+
+[1:03:02] (Pavan Kumar Reddy) **自回归模型一旦犯错就会自我强化** — 转录出现幻觉、卡死循环、整段漏译，根源常是自回归架构本身：模型一旦犯了一次错、被推出训练分布之外，就会在错误上继续「自证」下去。修复靠DPO——收集模型自己生成的坏样本当负例，配上人工修正当正例，直接给出「这样不对」的负向监督，这是纯预训练和SFT都给不了的。
+
+[1:28:32] (Pavan Kumar Reddy) **客户反馈：客服场景语音识别仍远没解决** — 和客户聊下来，即便是最主流的客服场景，反馈也是「远没解决」,系统会犯很多错误，还要靠大量工程兜底处理边界情况。跨出头部语种或安静录音环境后，转录质量会明显跳水；工厂车间这类背景噪音大、人声嘈杂的场景尤其难。也正因为语音模型足够小，针对具体场景做定制的成本远低于微调一个文本大模型。
+
+### 原话 / verbatim quotes
+
+[9:29] Pavan Kumar Reddy: "It's an audio input text-to-text LLM model. So you give it audio input and a textual instruction, or it doesn't need a textual instruction because your question can be in the audio, and then the model produces a text response."
+    译 / zh: 这是一个音频输入、文本输出的LLM模型。你给它音频输入和文字指令——甚至不需要文字指令，因为你的问题本身就可以在音频里——然后模型给出文本回答。
+
+[33:46] Pavan Kumar Reddy: "we wanted to see explore approaches which are more controllable, which provide you a more delicate tradeoff between the number of steps and the quality."
+    译 / zh: 我们想探索更可控的方法，能在步数和质量之间做出更精细的权衡。
+
+[37:55] Pavan Kumar Reddy: "the semantic codebook gets a distillation supervision. The motivation behind this is to keep this codebook closer to the text space."
+    译 / zh: 语义codebook会接受一种蒸馏监督，目的是让这个codebook更接近文本空间。
+
+[56:53] Pavan Kumar Reddy: "it's actually quite challenging. I think it's far from solved, in my opinion, especially multi-speaker, more than two speakers, in the context of a meeting."
+    译 / zh: 这其实相当有挑战性。我认为这远没有解决，尤其是多说话人、两人以上的会议场景。
+
+[59:55] : "some of the front-tier speech models could do what I can only describe intuitively as active speaker locking, which meant if there was crosstalk, it would lock on to what it thought was... was the active speaker, and it would continue to transcribe that voice and ignore other voices."
+    译 / zh: 有些前沿语音模型会出现一种我只能直观地称之为「锁定当前说话人」的现象：一旦出现交叉说话，它就会锁定它认为的那个活跃说话人，持续转录这个人的声音，忽略其他人。
+
+[1:03:02] Pavan Kumar Reddy: "once the model makes a few mistakes, it tends to commit to those mistakes. And especially when those mistakes take the model out of its training distribution, that's usually the scenario where it goes into a degenerate mode of infinite generations or looping the same prediction or skipping a whole segment of transcription."
+    译 / zh: 模型一旦犯了几个错误，就会倾向于把这些错误坚持下去。尤其当这些错误让模型偏离了训练分布，它往往就会进入退化模式：无限生成、重复同一个预测，或者跳过整段转录。
+
+[1:28:32] Pavan Kumar Reddy: "the primary complaint is, it's far from solved in the precise scenarios that deploying it, and it makes a ton of mistakes. Even for the most prominent customer service case, they feel it's not solved."
+    译 / zh: 客户最主要的抱怨是：在他们实际部署的具体场景里，这远没有解决，会犯大量错误。即便是最常见的客服场景，他们也觉得没有解决。
+
+### 数字 / figures
+
+- 音频编码器帧率: 每80毫秒1个token,约12.5 token/秒 [15:43]
+- 传统RVQ codebook数量: 30多个 [33:46]
+- FSQ声学codebook量化设置: 21个数值级别，36维 [38:55]
+- 流式转录较激进的目标延迟示例: 160毫秒 [54:50]
+
+### 术语 / glossary
+
+- Voxtral (Voxtral): Mistral 的音频理解/生成模型系列，能直接听懂音频并用文本回答问题
+- Delayed Streams Modeling (DSM) (延迟流建模): Kyutai 提出的流式语音范式，把目标延迟当成喂给模型的参数以权衡实时性与准确率
+- FSQ (Finite Scalar Quantization) (有限标量量化): 用固定数值级别做量化，替代残差矢量量化作为codec的离散化方式
+- RVQ (Residual Vector Quantization) (残差矢量量化): 传统神经编解码器的离散化方式，多层codebook逐级预测还原音频
+- DPO (Direct Preference Optimization) (直接偏好优化): 用「更好/更差」样本对训练模型，直接给出负向监督
+- Flow matching (流匹配): 通过预测速度场并做积分来生成连续向量的生成式建模方法
+
+谁该听 / who: 正在做语音识别、TTS或语音agent落地的工程师，以及关注级联系统vs端到端语音模型路线之争的从业者。
+可跳过 / skip: 开头0-9分钟是Mistral公司业务和产品线介绍，可直接跳到9:29听模型技术细节。
+标签 / tags: 语音识别, TTS, 神经编解码器, DPO, 说话人分离, Mistral
 
 ==============================================================================
 
