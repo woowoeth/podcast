@@ -1,0 +1,127 @@
+{
+ "slug": "2026-09-14-mlst-语音识别没解决-客服场景里-模型仍频繁出错",
+ "of": "mlst-e0fd9ac25f",
+ "source_lang": "en",
+ "title": "Speech Recognition Isn't Solved: Models Still Err Constantly in Customer Service",
+ "dek": "Customers building voice customer-service systems report that even the most common support scenarios are far from solved — models still make frequent errors, and shipping requires heavy engineering to paper over the gaps.",
+ "why": "Dense with engineering detail — encoder frame rates, codec lineage, DPO alignment all get concrete treatment — good for anyone shipping voice agents; skip if you're here for casual listening.",
+ "who": "Engineers building speech recognition, TTS, or voice agents, and anyone tracking the cascaded-vs-end-to-end debate in speech models.",
+ "skip": "Minutes 0-9 cover Mistral's business and product lineup; jump to 9:29 for the model technical details.",
+ "tags": [
+  "Speech Recognition",
+  "TTS",
+  "Neural Codecs",
+  "DPO",
+  "Speaker Diarization",
+  "Mistral"
+ ],
+ "points": [
+  {
+   "h": "Native audio understanding replaces transcribe-then-LLM cascades",
+   "body": "Voxtral Chat takes audio in and text out, and can directly answer timestamped questions like \"when did they bring this up?\" The traditional approach transcribes to text first, then feeds an LLM. Pavan argues cascading loses information — things like emotion and tone that never make it into the transcript. A native model can attend to them straight from the audio, whereas transcription forces you to decide in advance what detail survives into the intermediate representation."
+  },
+  {
+   "h": "Audio is fed into the decoder as ordinary tokens",
+   "body": "Voxtral runs on a 3B-parameter text model as its backbone. An audio encoder compresses sound into continuous vectors, emitting one token every 80 milliseconds (roughly 12.5 tokens per second), which feed into the decoder as a token sequence — treated exactly like text tokens. The encoder architecture closely resembles Whisper, but has no separate pretraining stage; it's trained end-to-end with the backbone, on the principle that the simpler the design, the better it ages."
+  },
+  {
+   "h": "Streaming latency is just a tunable parameter",
+   "body": "Borrowing Kyutai's Delayed Streams Modeling, Voxtral Realtime feeds the model one 80-millisecond audio frame at a time and treats \"target latency\" as an input parameter: set it shorter and captions appear faster but with more ambiguity; wait longer and you get better disambiguation and a lower error rate. The same audio stream can run through two parallel passes — a fast one for live captions, a slower one held back for use cases that need accurate records with corrections."
+  },
+  {
+   "h": "Continuous latent vectors replace discrete codec tokens",
+   "body": "Mainstream TTS uses residual vector quantization (RVQ) to produce discrete tokens, which means predicting across 30-plus codebooks at every timestep — effectively an extra 30-step autoregressive loop nested inside each step, slow and complex. Mistral's TTS instead uses a flow-matching head to directly predict the velocity field of a continuous latent vector; inference just integrates along that velocity field for a fixed number of steps, giving finer control over the speed/quality tradeoff."
+  },
+  {
+   "h": "Codec lineage: from EnCodec to Mimi to an in-house FSQ",
+   "body": "The neural codec lineage runs from EnCodec's RVQ to Kyutai's Mimi: Mimi splits its codebooks into semantic and acoustic categories, where the semantic codebook is trained under distillation supervision and sits closer to text space, so generation predicts semantics first and acoustics second. Mistral kept the semantic codebook but swapped the acoustic component for FSQ (Finite Scalar Quantization) — 21 quantization levels across 36 dimensions, with discrete and continuous usage interchangeable."
+  },
+  {
+   "h": "Speaker diarization is far from solved, especially beyond two speakers",
+   "body": "Pavan is blunt that speaker diarization is \"far from solved,\" particularly in meetings with four or five people talking over each other. Without video, working from audio alone, even human annotators struggle to tell \"the same person interrupting themselves\" from \"a different person taking over.\" Models face this with a single-channel, single-stream audio input — the ceiling itself is constrained, and current systems fall well short of even that ceiling."
+  },
+  {
+   "h": "Autoregressive models reinforce their own mistakes once they err",
+   "body": "Hallucinated transcriptions, repetition loops, and dropped passages usually trace back to the autoregressive architecture itself: once a model makes a mistake and drifts outside the training distribution, it keeps \"justifying\" that error going forward. The fix is DPO — collecting the model's own bad outputs as negative examples, paired with human-corrected versions as positive examples, giving explicit negative supervision that neither pure pretraining nor SFT can provide."
+  },
+  {
+   "h": "Customers say speech recognition in customer service is still far from solved",
+   "body": "Talking to customers, the feedback — even for the most common customer-service scenarios — is that things are \"far from solved\": systems make plenty of errors and still need heavy engineering to handle edge cases. Quality drops sharply once you move outside the leading languages or quiet recording conditions, and factory-floor settings with heavy background noise and overlapping voices are especially hard. Because speech models are small enough, customizing for a specific scenario costs far less than fine-tuning a large text model."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Voxtral",
+   "def": "Mistral's family of audio understanding/generation models, able to listen to audio directly and answer questions in text"
+  },
+  {
+   "term": "Delayed Streams Modeling (DSM)",
+   "def": "Kyutai's streaming speech paradigm that treats target latency as a parameter fed to the model, trading real-time speed against accuracy"
+  },
+  {
+   "term": "FSQ (Finite Scalar Quantization)",
+   "def": "Quantization using fixed numeric levels, used as a discretization method in codecs instead of residual vector quantization"
+  },
+  {
+   "term": "RVQ (Residual Vector Quantization)",
+   "def": "The traditional discretization scheme for neural codecs, using multiple codebook layers to predict and reconstruct audio progressively"
+  },
+  {
+   "term": "DPO (Direct Preference Optimization)",
+   "def": "Trains a model on paired better/worse examples, giving it direct negative supervision"
+  },
+  {
+   "term": "Flow matching",
+   "def": "A generative modeling method that produces continuous vectors by predicting a velocity field and integrating along it"
+  }
+ ],
+ "facts": [
+  {
+   "k": "Audio encoder frame rate",
+   "v": "1 token per 80 milliseconds, about 12.5 tokens/second"
+  },
+  {
+   "k": "Traditional RVQ codebook count",
+   "v": "30-plus"
+  },
+  {
+   "k": "FSQ acoustic codebook quantization setting",
+   "v": "21 levels, 36 dimensions"
+  },
+  {
+   "k": "Aggressive target latency example for streaming transcription",
+   "v": "160 milliseconds"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "It's an audio input text-to-text LLM model. So you give it audio input and a textual instruction, or it doesn't need a textual instruction because your question can be in the audio, and then the model produces a text response.",
+   "translated": false
+  },
+  {
+   "text": "we wanted to see explore approaches which are more controllable, which provide you a more delicate tradeoff between the number of steps and the quality.",
+   "translated": false
+  },
+  {
+   "text": "the semantic codebook gets a distillation supervision. The motivation behind this is to keep this codebook closer to the text space.",
+   "translated": false
+  },
+  {
+   "text": "it's actually quite challenging. I think it's far from solved, in my opinion, especially multi-speaker, more than two speakers, in the context of a meeting.",
+   "translated": false
+  },
+  {
+   "text": "some of the front-tier speech models could do what I can only describe intuitively as active speaker locking, which meant if there was crosstalk, it would lock on to what it thought was... was the active speaker, and it would continue to transcribe that voice and ignore other voices.",
+   "translated": false
+  },
+  {
+   "text": "once the model makes a few mistakes, it tends to commit to those mistakes. And especially when those mistakes take the model out of its training distribution, that's usually the scenario where it goes into a degenerate mode of infinite generations or looping the same prediction or skipping a whole segment of transcription.",
+   "translated": false
+  },
+  {
+   "text": "the primary complaint is, it's far from solved in the precise scenarios that deploying it, and it makes a ton of mistakes. Even for the most prominent customer service case, they feel it's not solved.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}

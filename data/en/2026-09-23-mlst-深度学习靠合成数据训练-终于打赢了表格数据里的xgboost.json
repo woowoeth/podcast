@@ -1,0 +1,115 @@
+{
+ "slug": "2026-09-23-mlst-深度学习靠合成数据训练-终于打赢了表格数据里的xgboost",
+ "of": "mlst-46b7a75d6e",
+ "source_lang": "en",
+ "title": "Deep Learning Finally Beat XGBoost at Tabular Data - By Training on Synthetic Data",
+ "dek": "Real tabular datasets you can actually find number only about 50,000 - not enough to feed a deep network. So PriorLabs switched to mass-synthesizing training data from causal structural models, and TabPFN became the first model to consistently beat XGBoost and CatBoost on tabular prediction.",
+ "why": "If you're running XGBoost on tabular data, or trying to figure out whether foundation models can eat into classical machine learning's territory, this episode lays out both the technical mechanics and the commercial rollout in full.",
+ "who": "Data scientists building tabular models, engineers tracking the boundary between AutoML and foundation models, and anyone trying to judge whether AI can actually displace classical machine learning.",
+ "skip": "The free-associating riff on test-time compute around 1:07-1:10 wanders and is low on information - skippable.",
+ "tags": [
+  "Tabular Data",
+  "Foundation Models",
+  "Synthetic Data",
+  "Bayesian Inference",
+  "Causal Inference",
+  "AutoML"
+ ],
+ "points": [
+  {
+   "h": "TabNet was a celebrated model that simply didn't generalize",
+   "body": "Google's TabNet, released in 2019, was once cited thousands of times and was the flagship deep-learning answer to tabular data - but Frank Hutter says it just doesn't generalize to new datasets. The deeper reason: a photo's pixel-level spatial statistics hold regardless of where the photo came from, so one ImageNet model covers nearly all images. But a specific value in a medical spreadsheet and a specific value in an insurance spreadsheet have no relationship at all - the only thing that transfers across tables is the \"pattern\" of how features interact with each other, and capturing that requires in-context learning, not a shared deep network."
+  },
+  {
+   "h": "Real tabular data is too scarce, so training data has to be synthesized",
+   "body": "The internet only holds around 50,000 real tabular datasets usable for training a statistical model - a spreadsheet of basketball player stats on Wikipedia doesn't count as a learnable dataset. That's nothing like images, text or video, which people happily upload by the billions. So PriorLabs started from mechanistic priors like structural causal models and trained TabPFN entirely on synthetic data - which incidentally sidesteps the data leakage, test-set memorization and inherited bias problems that plague large models, since the entire data-generation pipeline is theirs to control."
+  },
+  {
+   "h": "The new model quietly launched a week before ChatGPT",
+   "body": "The TabPFN paper came out a week before ChatGPT's release. Frank Hutter frames it as the natural extension of fifteen years of AutoML meta-learning research: instead of learning parameters that generalize to a new dataset, the model learns an entire \"algorithm\" outright, executed in a single forward pass. Feed the same network a different dataset and it computes a different classifier - it can even be exported to ONNX and run on sensors. This is the first tabular algorithm learned end-to-end from data rather than hand-written by people."
+  },
+  {
+   "h": "It skips posterior inference and learns the predictive distribution directly",
+   "body": "Traditional Bayesian inference first computes a posterior over parameters or functions - a step done via MCMC or variational inference, which is slow and hard to get exact. TabPFN skips that step entirely: it samples millions of different functions from the prior (different structural causal models, for instance), then samples training and test points from each function, and learns directly to \"predict the test y given the training points.\" After seeing hundreds of millions of such synthetic datasets, the network learns to approximate the Bayesian posterior predictive distribution for any new dataset in a single forward pass, without ever explicitly modeling the posterior itself."
+  },
+  {
+   "h": "Each architecture generation traded more accuracy for steeper compute cost",
+   "body": "TabPFN v1 encoded each row as a single vector and ran attention similar to a standard Transformer, so complexity scaled quadratically only in the number of rows - but categorical features were handled crudely, as plain numbers. v2 encoded each cell of the matrix separately, alternating attention across rows and across columns, which handled categorical features much better - but complexity became rows-squared-times-columns plus rows-times-columns-squared, which breaks down past ten thousand rows and needs brute-force GPU hardware to push to a hundred thousand. v3 switched to Gael Varoquaux's team's TabICL architecture, pulling complexity back down to quadratic in rows alone, which got the workable scale up to a million rows - with ten million as the next target."
+  },
+  {
+   "h": "Bigger isn't always better - a lesson from Google",
+   "body": "Google released TabFM three weeks ago, reusing TabPFN's architecture and prior-based approach but scaled up roughly 30x, and it beat PriorLabs on TabArena. The cost was steep: the huge model made forward inference 15x slower. On the smallest datasets TabFM was clearly stronger, on mid-sized ones (up to 100,000 rows) it was a tie, and on datasets over 100,000 rows TabFM simply ran out of GPU memory. By contrast, TabPFN's own test-time-compute mode is only 10x slower than a standard forward pass yet posts a higher ELO score - a lead bought purely by throwing more compute at it doesn't buy you efficiency or range."
+  },
+  {
+   "h": "TabPFN can learn to predict interventions from observational data alone",
+   "body": "Frank Hutter uses an example to show correlation isn't causation: a model that only sees \"what drug did the patient take\" to predict \"do they have the disease\" will learn that taking the drug means having the disease - but the real causal direction is reversed, since people take the drug because they're sick, not the other way around. Stop the drug and the disease doesn't disappear. TabPFN's fix is to simulate interventions during meta-training: after sampling a causal graph, it doesn't just observe normal data, it also actively intervenes on a variable and records the effect, training the network to learn both \"prediction under observation\" and \"prediction under intervention.\" At test time, given only observational data, it can estimate intervention effects within the bounds of what's identifiable."
+  },
+  {
+   "h": "It matched a decade-old Kaggle championship result in one minute",
+   "body": "PriorLabs researcher Nick Erickson - the original author of AutoGluon - ran TabPFN 3.5 on the 2015 Kaggle Otto Challenge, a competition with 3,500 participants and a $10,000 prize. That year's winning solution was a hand-engineered multi-layer ensemble of 36 models. Nick himself later used AutoGluon, running 96 CPUs for 24 hours, to land in the top 1%. This time, with TabPFN 3.5, he wrote one line of code, ran it for one minute on a single RTX Pro 6000, and matched the all-time high score - beating a decade of collective effort."
+  }
+ ],
+ "terms": [
+  {
+   "term": "in-context learning",
+   "def": "Rather than retraining the model, the training data is placed directly in the input, so the model learns on the fly at inference time"
+  },
+  {
+   "term": "posterior predictive distribution",
+   "def": "A probabilistic prediction for a new data point that accounts for all plausible models at once"
+  },
+  {
+   "term": "do-calculus",
+   "def": "A tool introduced by Judea Pearl for distinguishing active intervention from passive observation in causal relationships"
+  },
+  {
+   "term": "structural causal model",
+   "def": "A mathematical model describing the causal generating mechanism between variables; referred to in the episode by the shorthand SCM/SEM"
+  },
+  {
+   "term": "ELO score",
+   "def": "A rating drawn from the chess ranking algorithm, used here to rank models based on head-to-head comparisons"
+  }
+ ],
+ "facts": [
+  {
+   "k": "TabPFN1 paper release timing",
+   "v": "one week before ChatGPT's release (November 2022)"
+  },
+  {
+   "k": "Google TabFM forward inference speed (at time of interview)",
+   "v": "15x slower than TabPFN at the time"
+  },
+  {
+   "k": "TabPFN 3.5 forward inference speed vs. TabFM (by the version update mentioned at the end of the episode)",
+   "v": "20x faster at equivalent quality"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "Deep learning did not work for tabular data, and now it works dramatically better than catboost and xgboost.",
+   "translated": false
+  },
+  {
+   "text": "Like 2019, TabNet by Google was really hyped. Thousands of citations. Yeah, the new thing for tabular data. And it just doesn't work. It doesn't generalize to new data sets.",
+   "translated": false
+  },
+  {
+   "text": "we're getting there like two orders of magnitude a year",
+   "translated": false
+  },
+  {
+   "text": "The model is, yeah, very large and sort of quite slow as a corollary. That's sort of like 15 times slower than like it's just a forward pass, which is super cool.",
+   "translated": false
+  },
+  {
+   "text": "if they get this medicine, then they have this disease. And you might be tempted to say, ha ha, let's stop giving them that medicine, and they won't have that disease anymore. But that would be foolish, right? Because the causal relationship is the other way around.",
+   "translated": false
+  },
+  {
+   "text": "And now he used TabPFN 3.5 and got the number one ranked solution in one line of code and one minute of compute on one RTX Pro 6000 GPU.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
