@@ -1,0 +1,118 @@
+{
+ "slug": "2026-09-24-asianometry-hbm-堆得越高越慢-闪存堆叠要来抢它的位置",
+ "of": "asianometry-f5d41dfd0a",
+ "source_lang": "en",
+ "title": "The higher HBM stacks, the slower it gets — flash stacking is coming for its spot",
+ "dek": "Every layer added to HBM dilutes bandwidth per unit of capacity; Sandisk stacks NAND the same way to build HBF, with 8-16x the capacity of HBM4 but read and write two orders of magnitude slower, and it has to replay Optane's software problem.",
+ "why": "This episode lays out prefill/decode/KV Cache clearly, then follows HBF's specs, timeline and the Optane lesson downward — high information density, suited to anyone trying to understand the AI memory hierarchy.",
+ "who": "Engineers watching AI inference cost and memory architecture, investors in chips and storage, and anyone trying to understand prefill/decode/KV Cache and the HBM bottleneck.",
+ "skip": "The opening chit-chat about Baader-Meinhof and Hot Chips sightings can be skipped.",
+ "tags": [
+  "AI inference",
+  "HBM",
+  "Memory chips",
+  "Sandisk",
+  "Memory hierarchy"
+ ],
+ "points": [
+  {
+   "h": "Prefill eats compute, decode eats memory",
+   "body": "In the prefill stage the model processes the input in parallel — the user prompt, system prompt, past replies, tool calls, images, audio, internal chain of thought. Attention produces Query, Key and Value vectors for every token, and the latter two get written into the KV Cache. When prefill ends you have the KV Cache for the input, which is the precondition for computing the first output token. The decode stage then looks up the KV Cache and emits tokens one at a time, inserting each new token's key and value back into the cache. The two are entirely different jobs: prefill is compute-bound because it can be parallelised; decode goes one at a time and is memory-bound, with the GPU's logic circuits left waiting for data to load from memory."
+  },
+  {
+   "h": "Model weights and KV Cache are exploding at the same time",
+   "body": "The memory industry has to handle two exponential demands at once. One is model weights: Kimi K3 has 2.8 trillion total parameters, roughly 2.8 TB at 8-bit precision, where K2.7 was only 1 TB and DeepSeek V3 is 671 GB. The other is the KV Cache: long-running agents run for hours, with extremely long chains of thought, and the KV Cache grows enormous accordingly. The fuller the context window gets, the more confused the agent becomes. Current context windows are around 1 million tokens, equivalent to 1500 to 3000 pages of text — enough for reading documents or a large codebase, but only 11-12 hours if it is audio, and only an hour if it is HD video. Compressing context blurs the details, like compressing a JPG; chunking the KV Cache and throwing rarely-read chunks onto an SSD is another route, but the frequently-read chunks have to stay in HBM."
+  },
+  {
+   "h": "The higher HBM stacks, the thinner bandwidth per unit gets",
+   "body": "HBM is a 3D stack with a logic base die and 4/8/12/16 core memory dies stacked on top, with TSVs running through the central region of the dies to carry data down. The problem: the central region can only hold so many TSVs, so adding capacity necessarily dilutes bandwidth per GB, and the price of incremental capacity and bandwidth rises over time. In the memory session at Hot Chips 2026, a SemiAnalysis analyst asked directly in the Q&A after the SK hynix talk: on-chip bandwidth at the cell level is about 20 TB per square centimetre, while HBM4 is 20 layers thick, so each layer gets roughly only 20% of single-chip bandwidth — ‘you're diluting the throughput too much’. Pat Gelsinger, in front of an SK hynix vice president, called HBM ‘lousy memory’; that vice president, Kim Ho-sik, partly agreed, saying HBM is not the final answer to the Memory Wall problem but is still the best thing on the market today."
+  },
+  {
+   "h": "HBF stacks NAND the way HBM is stacked",
+   "body": "High Bandwidth Flash, as the name says, stacks and connects flash dies the same way HBM stacks and connects DRAM dies, using advanced packaging to pile flash dies inside a single package — this is not the same thing as monolithic 3D NAND, which stacks memory cells. NAND was originally meant to replace hard drives and is optimised for capacity; HBF raises capacity per stack 8-16x, 512 GB against roughly 36 GB for a single HBM4 stack, while retaining HBM-class high bandwidth — in theory it could go higher, because more NAND cells are exposed to the GPU. Current HBF specs reach 3 TB/s of effective bandwidth, above Micron HBM3E's 1.2 TB/s and comparable to Micron's and Samsung's HBM4 figures. But normalised by capacity, HBF's bandwidth number is far smaller."
+  },
+  {
+   "h": "NAND is not DRAM: slow, wears out, and burns power",
+   "body": "There are three costs. First, NAND reads and writes (formally, programs) are about two orders of magnitude slower than HBM, and writes are slower still than reads — the latency is fundamental; Sandisk can tune the die to cut latency, but likely at the cost of data retention or cost per bit. Second, endurance: NAND cells wear out after a few thousand writes, while DRAM cells have essentially no endurance limit, so the number of writes into HBF has to be controlled. Third, power and heat: driving these big HBF cubes takes more electricity, which is not a small matter today; more power means more heat, which causes the system to throttle, or makes the endurance problem worse."
+  },
+  {
+   "h": "Sandisk ropes in rivals and Google to set the standard",
+   "body": "The idea of stacking and connecting NAND with TSVs is old: at the 2019 IEEE 3D Systems Integration Conference, Koji Sakui and Takayuki Ohba of Honda Research Institute Japan proposed stacking flash dies with bumpless TSVs, calling it High Bandwidth NAND. Sandisk formally launched HBF at its Future FWD investor day in February 2025, saying the architecture had been in development for a year with major AI players involved; the first related patent application was filed in May 2024. In July 2025 it set up a technical advisory board, with David Patterson and Raja Koduri joining. In August Sandisk announced a memorandum of understanding with SK hynix to standardise the spec together — a spec only defines how the memory interfaces with the rest of the chip, not how things work inside the stack, so competitors can cooperate to grow the ecosystem, compete on the internal specs of their own products, and give customers a credible second source. Google and Tenstorrent also joined the HBF alliance. In August 2026, the Open Compute Project published the first public spec, version 0.7.0. Samsung has its own version, called zNAND-O."
+  },
+  {
+   "h": "HBF wants into Tier 1, side by side with HBM",
+   "body": "In the memory hierarchy, Tier 0 is the GPU/TPU's SRAM, fastest but with no capacity; Tier 1 is GPU HBM, off-die but closest to the chip; Tier 2 is system DRAM, higher capacity but further from the GPU. Sandisk's idea is for GPU makers to put HBF and HBM side by side in Tier 1: HBM holds ‘hot’ data, HBF holds ‘warm’ data by virtue of its capacity. The GPU interposer's ‘beachfront’ can only hold so many memory chips, and right now they are all HBM; architects have to decide how many to swap for HBF. A GPU that was eight stacks of 24GB HBM, about 192 GB total, becomes six stacks of HBF plus two stacks of HBM, and the system has 3.12 TB. Because of flash endurance, what goes there should be read-heavy, write-light data — most people think model weights, though some propose the KV Cache."
+  },
+  {
+   "h": "Cheap memory capacity does not equal cheap tokens",
+   "body": "At Hot Chips 2026, two architects, A. Agrawal and R. Giduthuri, discussed the challenges of integrating HBF into AI compute, and the core point was: systems are judged by their ability to serve tokens, and HBF having cheap memory capacity does not one-for-one mean cheaper tokens — if data cannot be pulled out of HBF fast enough, the accelerator has to wait and token output suffers. So HBF is not a no-brainer; it needs a lot of software support. A paper titled “HBF Sucks?” by five researchers from Peking University plus one from Fudan points out that HBF is not a plug-and-play replacement for SSD, and software must carefully choose which data goes into HBF, such as frequently used data like shared prompts. Model type matters too: Agrawal and Giduthuri note that mixture-of-experts models may be better suited to HBF, because they need the capacity to hold all the experts but each token reads only a few of them, so lower bandwidth per GB is acceptable."
+  },
+  {
+   "h": "The Optane lesson: great tech, everything else collapsed",
+   "body": "Intel Optane (the underlying technology was 3D XPoint) was phase-change memory, non-volatile like NAND, with read and write speeds close to DRAM and a price in between; Intel positioned it as something that could work alongside the CPU and flash, pitching ‘warm’ data — say a database that wants DRAM-class latency but is too big to fit in DRAM. The use cases were interesting, but they required application developers to write software support. Then 3D NAND rose and pushed down flash's cost per bit, gutting Optane's economics, and it never found its place between DRAM and NAND; Micron pulled out, leaving Intel alone, and nobody wanted to bet both CPU and memory on a single supplier, so it ended. This is especially relevant to HBF: the executive now driving HBF at Sandisk, EVP and CTO Alper Ilkbahar, spent five years at Intel as vice president and general manager of the Optane group. With today's DRAM shortage, some people lament that Intel should have kept Optane a few more years, using its capacity and latency to store model weights for inference. But one person who encountered Optane from the software side says that behind the scenes Optane could not do what Intel claimed. Some say HBF's advantage is that it starts from familiar flash, so it will fare better in the market; the counterargument is that Optane's PCM cells themselves worked fine and the core technology was great — what failed was the controller and go-to-market strategy, the surrounding parts. HBF has to avoid the same pit."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Prefill",
+   "def": "The first stage of inference, processing the entire input in parallel and generating the KV Cache; compute-bound."
+  },
+  {
+   "term": "Decode",
+   "def": "The second stage of inference, looking up the KV Cache to generate tokens one at a time; memory-bandwidth-bound."
+  },
+  {
+   "term": "KV Cache",
+   "def": "The cache of Key/Value vectors Attention produces for each token, avoiding recomputation."
+  },
+  {
+   "term": "HBF",
+   "def": "NAND dies connected using HBM's stacking and packaging approach; large capacity but read and write two orders of magnitude slower."
+  },
+  {
+   "term": "3D XPoint / Optane",
+   "def": "Non-volatile memory from Intel and Micron, close to DRAM in speed, ultimately defeated by economics."
+  },
+  {
+   "term": "mixture-of-experts",
+   "def": "Only some experts are activated per token; needs capacity to hold all experts but reads only a few."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Kimi K3 total parameter count",
+   "v": "2.8 trillion"
+  },
+  {
+   "k": "Current context window",
+   "v": "about 1 million tokens, equivalent to 1500-3000 pages of text"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "When you look at the internal bandwidth of a single chip, you see about 20 terabytes per square centimeter at the cell level ... You talk about going to 20 levels thick at HBM4 so maybe you are at 4 terabytes per square centimeter in a stack of 20, so you are talking about having 20% of the bandwidth of one chip [for each] layer of 20. You've diluted the throughput enormously. Why is that the correct way to go? Why are you so focused on going taller rather than going faster?",
+   "translated": false
+  },
+  {
+   "text": "The way HBM works right now, you cannot get the additional gigabytes of capacity without reducing bandwidth per gigabyte because there are only so many TSVs available in the central area to move data.",
+   "translated": false
+  },
+  {
+   "text": "While Sandisk can optimize the dies for lower latency - likely sacrificing either data retention or cost-per-bit in the process - this gap is fundamental. You will need to wait longer for your data than with DRAM, end of story.",
+   "translated": false
+  },
+  {
+   "text": "A core point was that systems are judged on how well they can serve tokens ... and just because HBF has cheap memory capacity does not one-to-one mean cheaper tokens. Because if we can't get all that data out of the HBF fast enough, and that makes the accelerator wait, then token output suffers.",
+   "translated": false
+  },
+  {
+   "text": "But someone who once worked with Optane from the software side told me that - behind the scenes - Optane just couldn't do what Intel claimed it can.",
+   "translated": false
+  },
+  {
+   "text": "But the counterpoint to that is that Optane's actual PCM cells worked brilliantly. The core technology was great. It was most everything else - like the controller and go-to market strategy - that failed to live up to its promise.",
+   "translated": false
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}

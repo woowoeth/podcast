@@ -1,0 +1,130 @@
+{
+ "slug": "2026-09-24-madpod-ai-工厂的中间层-模型正在变成一种需要管理的资源",
+ "of": "madpod-bc5f4ea8a5",
+ "source_lang": "en",
+ "title": "The Middle Layer of the AI Factory: Models Are Becoming a Resource That Has to Be Managed",
+ "dek": "The least glamorous layer of the five-layer cake is deciding who gets to sell AI to regulated enterprises — because model weights and enterprise data each refuse to let the other side see them.",
+ "why": "The first half is founder narrative; the real substance is in the second half: model management, confidential computing, the neocloud split, and real numbers from the demand side.",
+ "who": "Founders and investors focused on AI infrastructure, storage and the data stack, plus enterprise technical leaders evaluating building their own AI factories and worried about data leakage.",
+ "skip": "The P vs NP and personal math-history segment from 16:12 to 20:25 can be fast-forwarded.",
+ "tags": [
+  "AI infrastructure",
+  "storage",
+  "confidential computing",
+  "neocloud",
+  "model management"
+ ],
+ "points": [
+  {
+   "h": "Models are no longer applications, they are resources",
+   "body": "Hallak says that in the five-layer cake, models don't actually sit on top of the software infrastructure — over time, models have become a resource, just as GPUs are a resource and SSDs are a resource, and resources need to be managed. So this launch is about model management: acting as an operating system that knows which model is good at writing code, which is good at generating images, which is expensive and which is cheap, and routes tasks to the right model. With only four or five models today that's fine, but once reinforcement learning and fine-tuning scale up, hundreds or thousands of agents are running, and models keep spawning new versions, this gets much harder."
+  },
+  {
+   "h": "Confidential computing means neither side has to show its hand",
+   "body": "Model developers don't want to hand over weights, and regulated enterprises don't want to hand over data — that's the deadlock blocking AI from entering industries like finance and healthcare. VAST's approach is to make inference happen inside the enterprise's own environment (a physical data center or the enterprise's own VPC) rather than on the model provider's cloud; weights stay encrypted the whole way, and with Nvidia's encrypted memory capability, encrypted data stays encrypted from memory all the way to the GPU, accessible only to the inference program. Hallak says the underlying technology isn't new — confidential computing on processors has existed for over a decade — what's new is that it now works on GPUs, and it takes multiple parties in the ecosystem cooperating to assemble a complete solution."
+  },
+  {
+   "h": "Share everything, don't shard",
+   "body": "Old-style scale-out systems are built on sharding: each node owns a slice, and more nodes means more performance, but the number of connections between nodes grows quadratically, so past a hundred nodes you hit diminishing returns, and when one component fails everyone has to participate in recovery. VAST's DASE architecture does the opposite — SSDs aren't attached directly to the local processor but sit on the other side of the network, and with new protocols like NVMe over Fabrics and new media, every node can see all the data as if it were locally attached, so nodes no longer need to talk to each other. Hallak says one customer already runs a single cluster at several EB, tens of TB per second, with tens of thousands of nodes today."
+  },
+  {
+   "h": "Storage is where startups go to die",
+   "body": "Taking a storage company to VC in 2016 was an uphill fight; storage was considered the least attractive part of the whole stack. Hallak says that became today's moat: when they started in 2016, the underlying components their architecture depended on didn't exist yet, and only became available in 2017, 2018 and 2019, so early on his board repeatedly asked him what happens if that component never shows up, and his answer was that there is no plan B — which they did not like. Competitors who started 30 years or 3 years earlier couldn't make that kind of bet on the future, and today there is almost no other company at this layer, partly because it isn't sexy enough — building a model company or an application company is far more appealing than building systems."
+  },
+  {
+   "h": "Zero churn comes from customers being able to leave anytime",
+   "body": "Asked whether data gravity makes customers worry about lock-in, Hallak's answer is: because all the interfaces are standard, it's as easy for customers to move off us as to move on, so our job is to keep them happy. Every morning he looks at exactly one chart — the customer satisfaction chart, with only green, yellow and red — and anyone in the company can push a customer from green to yellow or yellow to red, but very few can push them back, and the only metric that really counts is the customer saying for themselves that they're satisfied now. His result: no customer has actively decided to stop using VAST, gross retention isn't 100% only because some customers went bankrupt, and the average customer's data volume on their systems doubles or even triples every year."
+  },
+  {
+   "h": "An agent inherits its principal's permissions, and its principal's risk",
+   "body": "For enterprise data to be usable by models there are three paths: the context window, the KV cache (the model's memory), and RAG. VAST's approach is to hook into the enterprise's existing authentication and authorization machinery — Active Directory, access control lists — first working out who can see what, then extending those attributes to agents: an agent's permissions are inherited from the person who deployed it, or from another agent that spawned it. Beyond data access, you also have to manage tool calls and communication between agents and between agents and people; those conversations flow through the streaming service they provide, so they can be queried and audited. Hallak says most model providers don't let you run inference in your own environment — you can only send them the data and pray — which significantly slows down AI adoption."
+  },
+  {
+   "h": "Demand is so large it scares him",
+   "body": "Hallak says he wasn't convinced by demand so much as sometimes frightened by it. One AI cloud customer came a quarter ago to do three-year planning and said it would need roughly 500 PB; last week it came back saying it needed another 2 EB; he expects that in another quarter or two they'll come back saying they need double-digit EB. What he sees is everything beating expectations across the board: both small and large environments are shifting from \"we thought we'd need tens of EB\" to \"we're talking three digits.\" He thinks the current constraint is physical — land, power, chips — and that buildout is far slower than demand; some AI clouds have already stopped selling capacity because the next year and a half is sold out. He isn't sure how long this can last, but thinks most industries are only just beginning their migration to AI, and at the current pace it can run for at least another five to ten years."
+  },
+  {
+   "h": "Neoclouds win by building early, not by raising early",
+   "body": "Asked which of the hundreds of neoclouds will survive, Hallak gives three conditions: get power, get equipment, get money. But what really separates winners is the timing of building capacity — the most successful are the ones who anticipated demand and built ahead of it, not the ones lagging demand and renting capacity to catch up. His reasoning is blunt: end users want compute right now, if you have it they pay, and if you say \"let's build together and I'll give it to you next year,\" they go find someone else. As for the popular argument that neoclouds are essentially financial instruments for Nvidia GPUs and that hyperscalers will eventually win on cheaper cost of capital, he thinks reality is the opposite: hyperscalers still haven't overtaken them, which is the innovator's dilemma; the AI clouds actually doing the work learn every day, while the side sitting on cheap capital without doing the work isn't learning, and the skills gap only widens."
+  }
+ ],
+ "terms": [
+  {
+   "term": "DASE / Disaggregated Shared-Everything architecture",
+   "def": "VAST's architecture: SSDs sit on the other side of the network, and every node sees all the data as if it were locally attached."
+  },
+  {
+   "term": "KV cache",
+   "def": "The context memory kept during model inference, which determines which GPU already holding that model a request should be routed to."
+  },
+  {
+   "term": "DataEnclave",
+   "def": "A confidential computing approach that completes inference inside the enterprise's own environment with weights encrypted the whole way."
+  },
+  {
+   "term": "neocloud",
+   "def": "A compute cloud built specifically for AI workloads, as distinct from the legacy stacks of traditional hyperscalers."
+  },
+  {
+   "term": "NVMe over Fabrics",
+   "def": "A network protocol that lets remote SSDs be accessed as if they were locally attached."
+  }
+ ],
+ "facts": [
+  {
+   "k": "VAST Data valuation",
+   "v": "$30 billion"
+  },
+  {
+   "k": "VAST single-cluster scale",
+   "v": "several EB, tens of TB per second, tens of thousands of nodes"
+  },
+  {
+   "k": "Rack power density change",
+   "v": "from 10 kW to 500 kW"
+  },
+  {
+   "k": "AI growth rate",
+   "v": "roughly 10x every 2 years"
+  },
+  {
+   "k": "Number of agents devoted to solving Navier-Stokes",
+   "v": "10,000"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "Over time, models have become a resource, just like a GPU is a resource or a solid state drive is a resource, and resources need to be managed.",
+   "translated": false
+  },
+  {
+   "text": "You cannot have more than 100 nodes in one of these systems. Uh, to build AI, we need systems with many millions of nodes.",
+   "translated": false
+  },
+  {
+   "text": "I kept telling them that we didn't have a plan B, that they didn't like it, and so, um, I wasn't their favorite person at the time.",
+   "translated": false
+  },
+  {
+   "text": "Our gross retention rate is not 100% because some of our clients have gone bankrupt over the years, but no one has actively decided to stop using Vast.",
+   "translated": false
+  },
+  {
+   "text": "Most of these model builders don't allow you to make inferences in your environment, which means you just have to send them your data and hope for the best. I think this significantly slows down the adoption of AI.",
+   "translated": false
+  },
+  {
+   "text": "I'm not sure if it reassures me, and sometimes it scares me, uh, how big the demand is and how it's accelerating",
+   "translated": false
+  },
+  {
+   "text": "And with each passing day, these AI clouds that are actually in the trenches doing the work, um, they're learning. And the neo-clouders, who are sitting on very cheap funding but not yet, um, hyperscalers, who are sitting on very cheap funding but not yet doing this work, are not learning this. And so the skills gap just, um, keeps getting bigger.",
+   "translated": false
+  },
+  {
+   "text": "So, I think we're going to see more of a difference in the next 10 years than we've seen in the last thousand years, if this continues to develop the way it seems to be developing now.",
+   "translated": false
+  }
+ ],
+ "model": "openai:deepseek-chat"
+}

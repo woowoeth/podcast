@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HBM 堆得越高越慢，闪存堆叠要来抢它的位置 — Asianometry · 原声</title>
+<meta name="description" content="HBM 每加一层容量，单位带宽就被稀释一次；Sandisk 把 NAND 用同样的方式堆起来做 HBF，容量是 HBM4 的 8-16 倍，但读写慢两个数量级，且要重演 Optane 的软件难题。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/p/2026-09-24-asianometry-hbm-堆得越高越慢-闪存堆叠要来抢它的位置/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原声">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="HBM 堆得越高越慢，闪存堆叠要来抢它的位置 — Asianometry · 原声">
+<meta property="og:description" content="HBM 每加一层容量，单位带宽就被稀释一次；Sandisk 把 NAND 用同样的方式堆起来做 HBF，容量是 HBM4 的 8-16 倍，但读写慢两个数量级，且要重演 Optane 的软件难题。">
+<meta property="og:url" content="https://ourword.ai/podcast/p/2026-09-24-asianometry-hbm-堆得越高越慢-闪存堆叠要来抢它的位置/">
+<meta property="og:image" content="https://ourword.ai/podcast/assets/cover/2b7c07e51ca86497.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-09-24T23:00:30Z">
+<meta property="article:modified_time" content="2026-09-25T02:31:18Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="HBM 堆得越高越慢，闪存堆叠要来抢它的位置 — Asianometry · 原声">
+<meta name="twitter:description" content="HBM 每加一层容量，单位带宽就被稀释一次；Sandisk 把 NAND 用同样的方式堆起来做 HBF，容量是 HBM4 的 8-16 倍，但读写慢两个数量级，且要重演 Optane 的软件难题。">
+<meta name="twitter:image" content="https://i4.ytimg.com/vi/3nTpW52nioI/hqdefault.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原声" href="/podcast/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-09-24-asianometry-hbm-堆得越高越慢-闪存堆叠要来抢它的位置/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-09-24-asianometry-hbm-堆得越高越慢-闪存堆叠要来抢它的位置/">
+<link rel="alternate" hreflang="en" href="https://ourword.ai/podcast/en/p/2026-09-24-asianometry-hbm-堆得越高越慢-闪存堆叠要来抢它的位置/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-09-24-asianometry-hbm-堆得越高越慢-闪存堆叠要来抢它的位置/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=a1db2406bb">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-09-24-asianometry-hbm-堆得越高越慢-闪存堆叠要来抢它的位置/#episode", "name": "HBM 堆得越高越慢，闪存堆叠要来抢它的位置", "headline": "HBM 堆得越高越慢，闪存堆叠要来抢它的位置", "description": "HBM 每加一层容量，单位带宽就被稀释一次；Sandisk 把 NAND 用同样的方式堆起来做 HBF，容量是 HBM4 的 8-16 倍，但读写慢两个数量级，且要重演 Optane 的软件难题。", "abstract": "HBM 每加一层容量，单位带宽就被稀释一次；Sandisk 把 NAND 用同样的方式堆起来做 HBF，容量是 HBM4 的 8-16 倍，但读写慢两个数量级，且要重演 Optane 的软件难题。", "datePublished": "2026-09-24T23:00:30Z", "dateModified": "2026-09-25T02:31:18Z", "url": "https://ourword.ai/podcast/p/2026-09-24-asianometry-hbm-堆得越高越慢-闪存堆叠要来抢它的位置/", "timeRequired": "PT21M", "partOfSeries": {"@type": "PodcastSeries", "name": "Asianometry", "url": "https://ourword.ai/podcast/s/asianometry/"}, "inLanguage": "zh-CN", "isBasedOn": "https://www.youtube.com/watch?v=3nTpW52nioI", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "AI 推理, HBM, 存储芯片, Sandisk, 内存层级, Prefill, Decode, KV Cache, HBF, 3D XPoint / Optane, mixture-of-experts, Kimi K3 总参数量, 当前上下文窗口", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}}, {"@type": "Article", "@id": "https://ourword.ai/podcast/p/2026-09-24-asianometry-hbm-堆得越高越慢-闪存堆叠要来抢它的位置/#deepread", "headline": "HBM 堆得越高越慢，闪存堆叠要来抢它的位置", "description": "HBM 每加一层容量，单位带宽就被稀释一次；Sandisk 把 NAND 用同样的方式堆起来做 HBF，容量是 HBM4 的 8-16 倍，但读写慢两个数量级，且要重演 Optane 的软件难题。", "articleBody": "HBM 每加一层容量，单位带宽就被稀释一次；Sandisk 把 NAND 用同样的方式堆起来做 HBF，容量是 HBM4 的 8-16 倍，但读写慢两个数量级，且要重演 Optane 的软件难题。\n[1:03] Prefill 吃算力，Decode 吃内存。Prefill 阶段模型并行处理输入内容——用户 prompt、系统 prompt、历史回复、工具调用、图像、音频、内部思维链，Attention 为每个 token 产出 Query、Key、Value 向量，后两者写进 KV Cache。Prefill 结束时你拿到输入的 KV Cache，这是算第一个输出 token 的前提。Decode 阶段则查 KV Cache 逐个吐 token，每生成一个新 token 就把它的 key 和 value 插回缓存。两者是截然不同的活：Prefill 受算力限制，因为可以并行；Decode 一个一个来，是内存受限的，GPU 的逻辑电路只能干等数据从内存加载。\n[3:07] 模型权重和 KV Cache 同时爆炸。内存业要同时应付两种指数级增长的需求。一是模型权重：Kimi K3 总参数 2.8 万亿，8-bit 精度下约 2.8 TB，而 K2.7 只有 1 TB，DeepSeek V3 是 671 GB。二是 KV Cache：长时间运行的 agent 会跑几个小时，思维链超长，KV Cache 随之变得极其庞大。上下文窗口填得越满，agent 越糊涂。当前上下文窗口约 100 万 token，折合 1500 到 3000 页文本，读文档或大型代码库够用，但换成音频只有 11-12 小时，换成高清视频只有一小时。压缩上下文会让细节变模糊，像压 JPG；把 KV Cache 分块、把不常读的块丢到 SSD 是另一条路，但常读的块必须留在 HBM。\n[5:14] HBM 堆得越高，单位带宽越薄。HBM 是带逻辑基 die、上面叠 4/8/12/16 层核心存储 die 的 3D 堆叠结构，TSV 穿过 die 的中央区域把数据往下送。问题在于：中央区域能放的 TSV 数量有限，所以想加容量就必然摊薄每 GB 的带宽，增量容量和带宽的价格随时间上涨。Hot Chips 2026 内存场次上，SemiAnalysis 的分析师在 SK hynix 演讲后的 Q&A 里直接发问：单芯片内部带宽在 cell 层面约每平方厘米 20 TB，而 HBM4 做到 20 层厚，每层大约只有单芯片带宽的 20%，「你把吞吐量稀释得太厉害了」。Pat Gelsinger 当着 SK hynix 副总裁的面说 HBM 是「lousy memory」，那位副总裁 Kim Ho-sik 部分认同，说 HBM 不是 Memory Wall 问题的最终答案，但仍是当下市场上最好的东西。\n[7:15] HBF 用堆 HBM 的方式堆 NAND。High Bandwidth Flash 顾名思义，就是用 HBM 堆叠和连接 DRAM die 的同样方式去堆叠、连接 flash die，靠先进封装在单个封装内堆 flash die，这和单片式堆存储单元的 3D NAND 不是一回事。NAND 本来是替代硬盘的，为容量优化；HBF 把每栈容量提高 8-16 倍，512 GB 对 HBM4 单栈约 36 GB，同时保留 HBM 级别的高带宽，理论上还能更高，因为更多 NAND 单元对 GPU 开放。当前 HBF 规格有效带宽可达 3 TB/s，高于 Micron HBM3E 的 1.2 TB/s，与 Micron 和 Samsung 的 HBM4 数字相当。但按容量折算，HBF 的带宽数字要小得多。\n[9:25] NAND 不是 DRAM：慢、会写坏、还费电。代价有三。第一，NAND 的读和写（正式说法是 program）速度比 HBM 慢约两个数量级，写又比读更慢，延迟是根本性的；Sandisk 可以优化 die 降低延迟，但很可能要牺牲数据保持能力或每 bit 成本。第二，耐久度：NAND 存储单元写几千次就会磨损，而 DRAM 单元基本没有耐久上限，所以必须控制写入 HBF 的次数。第三，功耗和散热：驱动这些大块 HBF 立方体需要更多电力，这在今天不是小事；功耗上去热量就上去，会导致系统降频，或让耐久问题更糟。\n[10:25] Sandisk 拉上对手和 Google 一起定标准。用 TSV 堆叠连接 NAND 的想法早就有，2019 年 IEEE 3D Systems Integration Conference 上 Honda Research Institute Japan 的 Koji Sakui 和 Takayuki Ohba 就提出过用无凸点 TSV 堆 flash die，叫 High Bandwidth NAND。Sandisk 在 2025 年 2 月的 Future FWD 投资者日上正式推出 HBF，称架构开发了一年，有主要 AI 玩家参与；相关首件专利申请在 2024 年 5 月提交。2025 年 7 月成立技术顾问委员会，David Patterson 和 Raja Koduri 加入。8 月 Sandisk 宣布与 SK hynix 签署谅解备忘录共同标准化规格——规格只规定内存如何与芯片其余部分接口，不规定堆栈内部怎么工作，所以竞争者可以合作做大生态、又在自家产品内部规格上竞争，同时给客户一个可信的第二供应商。Google 和 Tenstorrent 也加入了 HBF 联盟。2026 年 8 月，Open Compute Project 发布首个公开的 0.7.0 版规格。Samsung 有自己的版本，叫 zNAND-O。\n[13:28] HBF 想挤进 Tier 1，和 HBM 并排。内存层级里，Tier 0 是 GPU/TPU 的 SRAM，最快但没容量；Tier 1 是 GPU HBM，片外但离芯片最近；Tier 2 是系统 DRAM，容量更高但离 GPU 更远。Sandisk 的设想是让 GPU 厂商把 HBF 和 HBM 并排放在 Tier 1：HBM 存「热」数据，HBF 靠容量存「温」数据。GPU interposer 的「海岸线」只能容纳一定数量的内存芯片，现在全是 HBM，架构师要决定拿多少换成 HBF。原来八栈 24GB HBM 的 GPU 总共约 192 GB，换成六栈 HBF 加两栈 HBM，系统就有 3.12 TB。因为 flash 耐久问题，这里放的应该是读多写少的数据，多数人认为是模型权重，也有人提出 KV Cache。\n[15:34] 便宜的内存容量不等于便宜的 token。Hot Chips 2026 上两位架构师 A. Agrawal 和 R. Giduthuri 讨论了把 HBF 集成进 AI 计算的挑战，核心一点是：系统是按服务 token 的能力来评判的，HBF 有便宜的内存容量，并不一对一地意味着更便宜的 token——如果数据不能足够快地从 HBF 里取出来，加速器就得等，token 产出就受损。所以 HBF 不是无脑选择，需要大量软件支持。北京大学五位加复旦一位研究者写的论文《HBF Sucks?》指出 HBF 不是 SSD 的即插即用替代品，软件必须仔细挑选哪些数据进 HBF，比如共享 prompt 这类高频使用的数据。模型类型也要考虑：Agrawal 和 Giduthuri 提到 mixture-of-experts 模型可能更适合 HBF，因为它需要容量装下所有专家，但每个 token 只读其中少数几个，所以较低的每 GB 带宽可以接受。\n[16:36] Optane 的教训：技术好，别的地方全崩。Intel Optane（底层技术叫 3D XPoint）是相变存储器，非易失像 NAND，读写速度接近 DRAM，价格居中，Intel 把它定位成能和 CPU、flash 协同的东西，讲的是「温数据」——比如想要 DRAM 级延迟但太大装不进 DRAM 的数据库。用例有意思，但需要应用开发者写软件支持。后来 3D NAND 崛起压低了 flash 的每 bit 成本，Optane 的经济性被瓦解，它始终没能在 DRAM 和 NAND 之间找到自己的位置；Micron 退出，只剩 Intel 一家，没人愿意把 CPU 和内存都押在单一供应商身上，于是结束。这对 HBF 特别相关：Sandisk 现在主推 HBF 的核心高管、EVP 兼 CTO Alper Ilkbahar 曾在 Intel 担任 Optane 集团副总裁兼总经理五年。DRAM 短缺的今天，有人感慨 Intel 应该多留 Optane 几年，用它的容量和延迟存推理用的模型权重。但一位从软件侧接触过 Optane 的人说，背地里 Optane 做不到 Intel 宣称的事。有人说 HBF 的优势是起点是大家熟悉的 flash，市场表现会更好；反方观点是 Optane 的 PCM 单元本身工作得很好，核心技术很棒，失败的是控制器和上市策略这些周边。HBF 要避开同样的坑。\n[5:14]「看单芯片的内部带宽，在 cell 层面大约是每平方厘米 20 TB……你说 HBM4 要做到 20 层厚，那 20 层堆栈里也许就是每平方厘米 4 TB，也就是说 20 层里每一层只有单芯片带宽的 20%。你把吞吐量稀释得太厉害了。为什么这是正确的方向？为什么你们如此专注于堆得更高，而不是跑得更快？」\n[6:14]「按 HBM 现在的工作方式，你没法在不降低每 GB 带宽的情况下拿到额外的 GB 容量，因为中央区域能用来搬数据的 TSV 就那么多。」\n[9:25]「Sandisk 可以优化 die 来降低延迟——过程中很可能要牺牲数据保持能力或每 bit 成本——但这个差距是根本性的。你的数据就是要比在 DRAM 里等得更久，没别的说法。」\n[15:34]「一个核心观点是，系统是按服务 token 的能力来评判的……HBF 有便宜的内存容量，并不一对一地意味着更便宜的 token。因为如果我们不能足够快地把那些数据从 HBF 里取出来，让加速器干等，token 产出就会受损。」\n[18:40]「但一位曾在软件侧与 Optane 打过交道的人告诉我，在幕后，Optane 就是做不到 Intel 宣称它能做的事。」\n[18:40]「但反方观点是，Optane 实际的 PCM 单元工作得非常出色。核心技术很棒。是其他几乎所有东西——比如控制器和上市策略——没能兑现承诺。」\n[3:07] Kimi K3 总参数量：2.8 万亿\n[4:11] 当前上下文窗口：约 100 万 token，折合 1500-3000 页文本", "wordCount": 2423, "inLanguage": "zh-CN", "datePublished": "2026-09-24T23:00:30Z", "dateModified": "2026-09-25T02:31:18Z", "url": "https://ourword.ai/podcast/p/2026-09-24-asianometry-hbm-堆得越高越慢-闪存堆叠要来抢它的位置/", "about": {"@id": "https://ourword.ai/podcast/p/2026-09-24-asianometry-hbm-堆得越高越慢-闪存堆叠要来抢它的位置/#episode"}, "isBasedOn": "https://www.youtube.com/watch?v=3nTpW52nioI", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "isAccessibleForFree": true}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首页", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "Asianometry", "item": "https://ourword.ai/podcast/s/asianometry/"}, {"@type": "ListItem", "position": 3, "name": "HBM 堆得越高越慢，闪存堆叠要来抢它的位置"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/"><span class="wordmark">原声<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<button class="pill ghost" id="lang-toggle" type="button" data-en="1" data-sc="繁體" data-tw="简体"></button>
+<button class="icon-btn" data-theme-toggle aria-label="切换深浅色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，来原声听播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/">首页</a><span class="sep">/</span>
+<a href="/podcast/c/ai/">AI / 技术</a><span class="sep">/</span><a href="/podcast/s/asianometry/">Asianometry</a>
+<span class="sep">/</span><span>2026-09-24</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">Asianometry</span>
+<time class="date" datetime="2026-09-24T23:00:30Z">2026-09-24</time>
+<button class="share-btn" type="button" data-share data-share-title="HBM 堆得越高越慢，闪存堆叠要来抢它的位置" data-share-url="https://ourword.ai/podcast/e/asianometry-f5d41dfd0a/" data-share-desc="HBM 每加一层容量，单位带宽就被稀释一次；Sandisk 把 NAND 用同样的方式堆起来做 HBF，容量是 HBM4 的 8-16 倍，但读写慢两个数量级，且要重演 Opta…" data-share-text="HBM 堆得越高越慢，闪存堆叠要来抢它的位置&#10;Asianometry · 21 分钟 · 原声深读&#10;&#10;HBM 每加一层容量，单位带宽就被稀释一次；Sandisk 把 NAND 用同样的方式堆起来做 HBF，容量是 HBM4 的 8-16 倍，但读写慢两个数量级，且要重演 Optane 的软件难题。&#10;&#10;https://ourword.ai/podcast/e/asianometry-f5d41dfd0a/" aria-label="复制分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>HBM 堆得越高越慢，闪存堆叠要来抢它的位置</h1>
+<p class="dek-lead">HBM 每加一层容量，单位带宽就被稀释一次；Sandisk 把 NAND 用同样的方式堆起来做 HBF，容量是 HBM4 的 8-16 倍，但读写慢两个数量级，且要重演 Optane 的软件难题。</p>
+<div class="ep-meta"><span class="tag">AI 推理</span><span class="tag">HBM</span><span class="tag">存储芯片</span><span class="tag">Sandisk</span><span class="tag">内存层级</span></div>
+</div>
+<div class="player" data-player-box>
+  <button class="video-facade" data-yt="3nTpW52nioI" type="button"
+          aria-label="播放原节目视频">
+    <span class="frame">
+      <img src="https://i.ytimg.com/vi/3nTpW52nioI/hq720.jpg" alt="" loading="lazy" width="1280"
+           onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/3nTpW52nioI/hqdefault.jpg'">
+      <span class="play" aria-hidden="true"><svg viewBox="0 0 44 44" width="44" height="44" focusable="false"><circle cx="22" cy="22" r="21" fill="rgba(18,16,13,.55)" stroke="rgba(255,255,255,.92)" stroke-width="1.5"/><path d="M17 14.5 32 22 17 29.5Z" fill="#fff"/></svg></span>
+    </span>
+  </button>
+</div>
+
+<section class="section"><div class="why">这集把 prefill/decode/KV Cache 讲清楚，再顺着 HBF 的规格、时间表和 Optane 教训往下推，信息密度高，适合想搞懂 AI 内存层级的人。</div></section>
+
+<section class="section"><h2>核心论点 · 点时间戳可跳到原声</h2><div class="point" id="p0"><a class="ts" data-t="63" href="https://www.youtube.com/watch?v=3nTpW52nioI&amp;t=63s" target="_blank" rel="noopener">1:03</a><div><h4>Prefill 吃算力，Decode 吃内存</h4>
+<p class="body">Prefill 阶段模型并行处理输入内容——用户 prompt、系统 prompt、历史回复、工具调用、图像、音频、内部思维链，Attention 为每个 token 产出 Query、Key、Value 向量，后两者写进 KV Cache。Prefill 结束时你拿到输入的 KV Cache，这是算第一个输出 token 的前提。Decode 阶段则查 KV Cache 逐个吐 token，每生成一个新 token 就把它的 key 和 value 插回缓存。两者是截然不同的活：Prefill 受算力限制，因为可以并行；Decode 一个一个来，是内存受限的，GPU 的逻辑电路只能干等数据从内存加载。</p>
+</div></div>
+<div class="point" id="p1"><a class="ts" data-t="187" href="https://www.youtube.com/watch?v=3nTpW52nioI&amp;t=187s" target="_blank" rel="noopener">3:07</a><div><h4>模型权重和 KV Cache 同时爆炸</h4>
+<p class="body">内存业要同时应付两种指数级增长的需求。一是模型权重：Kimi K3 总参数 2.8 万亿，8-bit 精度下约 2.8 TB，而 K2.7 只有 1 TB，DeepSeek V3 是 671 GB。二是 KV Cache：长时间运行的 agent 会跑几个小时，思维链超长，KV Cache 随之变得极其庞大。上下文窗口填得越满，agent 越糊涂。当前上下文窗口约 100 万 token，折合 1500 到 3000 页文本，读文档或大型代码库够用，但换成音频只有 11-12 小时，换成高清视频只有一小时。压缩上下文会让细节变模糊，像压 JPG；把 KV Cache 分块、把不常读的块丢到 SSD 是另一条路，但常读的块必须留在 HBM。</p>
+</div></div>
+<div class="point" id="p2"><a class="ts" data-t="314" href="https://www.youtube.com/watch?v=3nTpW52nioI&amp;t=314s" target="_blank" rel="noopener">5:14</a><div><h4>HBM 堆得越高，单位带宽越薄</h4>
+<p class="body">HBM 是带逻辑基 die、上面叠 4/8/12/16 层核心存储 die 的 3D 堆叠结构，TSV 穿过 die 的中央区域把数据往下送。问题在于：中央区域能放的 TSV 数量有限，所以想加容量就必然摊薄每 GB 的带宽，增量容量和带宽的价格随时间上涨。Hot Chips 2026 内存场次上，SemiAnalysis 的分析师在 SK hynix 演讲后的 Q&amp;A 里直接发问：单芯片内部带宽在 cell 层面约每平方厘米 20 TB，而 HBM4 做到 20 层厚，每层大约只有单芯片带宽的 20%，「你把吞吐量稀释得太厉害了」。Pat Gelsinger 当着 SK hynix 副总裁的面说 HBM 是「lousy memory」，那位副总裁 Kim Ho-sik 部分认同，说 HBM 不是 Memory Wall 问题的最终答案，但仍是当下市场上最好的东西。</p>
+</div></div>
+<div class="point" id="p3"><a class="ts" data-t="435" href="https://www.youtube.com/watch?v=3nTpW52nioI&amp;t=435s" target="_blank" rel="noopener">7:15</a><div><h4>HBF 用堆 HBM 的方式堆 NAND</h4>
+<p class="body">High Bandwidth Flash 顾名思义，就是用 HBM 堆叠和连接 DRAM die 的同样方式去堆叠、连接 flash die，靠先进封装在单个封装内堆 flash die，这和单片式堆存储单元的 3D NAND 不是一回事。NAND 本来是替代硬盘的，为容量优化；HBF 把每栈容量提高 8-16 倍，512 GB 对 HBM4 单栈约 36 GB，同时保留 HBM 级别的高带宽，理论上还能更高，因为更多 NAND 单元对 GPU 开放。当前 HBF 规格有效带宽可达 3 TB/s，高于 Micron HBM3E 的 1.2 TB/s，与 Micron 和 Samsung 的 HBM4 数字相当。但按容量折算，HBF 的带宽数字要小得多。</p>
+</div></div>
+<div class="point" id="p4"><a class="ts" data-t="565" href="https://www.youtube.com/watch?v=3nTpW52nioI&amp;t=565s" target="_blank" rel="noopener">9:25</a><div><h4>NAND 不是 DRAM：慢、会写坏、还费电</h4>
+<p class="body">代价有三。第一，NAND 的读和写（正式说法是 program）速度比 HBM 慢约两个数量级，写又比读更慢，延迟是根本性的；Sandisk 可以优化 die 降低延迟，但很可能要牺牲数据保持能力或每 bit 成本。第二，耐久度：NAND 存储单元写几千次就会磨损，而 DRAM 单元基本没有耐久上限，所以必须控制写入 HBF 的次数。第三，功耗和散热：驱动这些大块 HBF 立方体需要更多电力，这在今天不是小事；功耗上去热量就上去，会导致系统降频，或让耐久问题更糟。</p>
+</div></div>
+<div class="point" id="p5"><a class="ts" data-t="625" href="https://www.youtube.com/watch?v=3nTpW52nioI&amp;t=625s" target="_blank" rel="noopener">10:25</a><div><h4>Sandisk 拉上对手和 Google 一起定标准</h4>
+<p class="body">用 TSV 堆叠连接 NAND 的想法早就有，2019 年 IEEE 3D Systems Integration Conference 上 Honda Research Institute Japan 的 Koji Sakui 和 Takayuki Ohba 就提出过用无凸点 TSV 堆 flash die，叫 High Bandwidth NAND。Sandisk 在 2025 年 2 月的 Future FWD 投资者日上正式推出 HBF，称架构开发了一年，有主要 AI 玩家参与；相关首件专利申请在 2024 年 5 月提交。2025 年 7 月成立技术顾问委员会，David Patterson 和 Raja Koduri 加入。8 月 Sandisk 宣布与 SK hynix 签署谅解备忘录共同标准化规格——规格只规定内存如何与芯片其余部分接口，不规定堆栈内部怎么工作，所以竞争者可以合作做大生态、又在自家产品内部规格上竞争，同时给客户一个可信的第二供应商。Google 和 Tenstorrent 也加入了 HBF 联盟。2026 年 8 月，Open Compute Project 发布首个公开的 0.7.0 版规格。Samsung 有自己的版本，叫 zNAND-O。</p>
+</div></div>
+<div class="point" id="p6"><a class="ts" data-t="808" href="https://www.youtube.com/watch?v=3nTpW52nioI&amp;t=808s" target="_blank" rel="noopener">13:28</a><div><h4>HBF 想挤进 Tier 1，和 HBM 并排</h4>
+<p class="body">内存层级里，Tier 0 是 GPU/TPU 的 SRAM，最快但没容量；Tier 1 是 GPU HBM，片外但离芯片最近；Tier 2 是系统 DRAM，容量更高但离 GPU 更远。Sandisk 的设想是让 GPU 厂商把 HBF 和 HBM 并排放在 Tier 1：HBM 存「热」数据，HBF 靠容量存「温」数据。GPU interposer 的「海岸线」只能容纳一定数量的内存芯片，现在全是 HBM，架构师要决定拿多少换成 HBF。原来八栈 24GB HBM 的 GPU 总共约 192 GB，换成六栈 HBF 加两栈 HBM，系统就有 3.12 TB。因为 flash 耐久问题，这里放的应该是读多写少的数据，多数人认为是模型权重，也有人提出 KV Cache。</p>
+</div></div>
+<div class="point" id="p7"><a class="ts" data-t="934" href="https://www.youtube.com/watch?v=3nTpW52nioI&amp;t=934s" target="_blank" rel="noopener">15:34</a><div><h4>便宜的内存容量不等于便宜的 token</h4>
+<p class="body">Hot Chips 2026 上两位架构师 A. Agrawal 和 R. Giduthuri 讨论了把 HBF 集成进 AI 计算的挑战，核心一点是：系统是按服务 token 的能力来评判的，HBF 有便宜的内存容量，并不一对一地意味着更便宜的 token——如果数据不能足够快地从 HBF 里取出来，加速器就得等，token 产出就受损。所以 HBF 不是无脑选择，需要大量软件支持。北京大学五位加复旦一位研究者写的论文《HBF Sucks?》指出 HBF 不是 SSD 的即插即用替代品，软件必须仔细挑选哪些数据进 HBF，比如共享 prompt 这类高频使用的数据。模型类型也要考虑：Agrawal 和 Giduthuri 提到 mixture-of-experts 模型可能更适合 HBF，因为它需要容量装下所有专家，但每个 token 只读其中少数几个，所以较低的每 GB 带宽可以接受。</p>
+</div></div>
+<div class="point" id="p8"><a class="ts" data-t="996" href="https://www.youtube.com/watch?v=3nTpW52nioI&amp;t=996s" target="_blank" rel="noopener">16:36</a><div><h4>Optane 的教训：技术好，别的地方全崩</h4>
+<p class="body">Intel Optane（底层技术叫 3D XPoint）是相变存储器，非易失像 NAND，读写速度接近 DRAM，价格居中，Intel 把它定位成能和 CPU、flash 协同的东西，讲的是「温数据」——比如想要 DRAM 级延迟但太大装不进 DRAM 的数据库。用例有意思，但需要应用开发者写软件支持。后来 3D NAND 崛起压低了 flash 的每 bit 成本，Optane 的经济性被瓦解，它始终没能在 DRAM 和 NAND 之间找到自己的位置；Micron 退出，只剩 Intel 一家，没人愿意把 CPU 和内存都押在单一供应商身上，于是结束。这对 HBF 特别相关：Sandisk 现在主推 HBF 的核心高管、EVP 兼 CTO Alper Ilkbahar 曾在 Intel 担任 Optane 集团副总裁兼总经理五年。DRAM 短缺的今天，有人感慨 Intel 应该多留 Optane 几年，用它的容量和延迟存推理用的模型权重。但一位从软件侧接触过 Optane 的人说，背地里 Optane 做不到 Intel 宣称的事。有人说 HBF 的优势是起点是大家熟悉的 flash，市场表现会更好；反方观点是 Optane 的 PCM 单元本身工作得很好，核心技术很棒，失败的是控制器和上市策略这些周边。HBF 要避开同样的坑。</p>
+</div></div></section>
+<section class="section"><h2>原话 · 已逐字校验</h2><blockquote class="quote"><p class="raw">When you look at the internal bandwidth of a single chip, you see about 20 terabytes per square centimeter at the cell level ... You talk about going to 20 levels thick at HBM4 so maybe you are at 4 terabytes per square centimeter in a stack of 20, so you are talking about having 20% of the bandwidth of one chip [for each] layer of 20. You&#x27;ve diluted the throughput enormously. Why is that the correct way to go? Why are you so focused on going taller rather than going faster?</p>
+<p class="zh">看单芯片的内部带宽，在 cell 层面大约是每平方厘米 20 TB……你说 HBM4 要做到 20 层厚，那 20 层堆栈里也许就是每平方厘米 4 TB，也就是说 20 层里每一层只有单芯片带宽的 20%。你把吞吐量稀释得太厉害了。为什么这是正确的方向？为什么你们如此专注于堆得更高，而不是跑得更快？</p>
+<div class="attrib"><a class="ts" data-t="314" href="https://www.youtube.com/watch?v=3nTpW52nioI&amp;t=314s" target="_blank" rel="noopener">5:14</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">The way HBM works right now, you cannot get the additional gigabytes of capacity without reducing bandwidth per gigabyte because there are only so many TSVs available in the central area to move data.</p>
+<p class="zh">按 HBM 现在的工作方式，你没法在不降低每 GB 带宽的情况下拿到额外的 GB 容量，因为中央区域能用来搬数据的 TSV 就那么多。</p>
+<div class="attrib"><a class="ts" data-t="374" href="https://www.youtube.com/watch?v=3nTpW52nioI&amp;t=374s" target="_blank" rel="noopener">6:14</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">While Sandisk can optimize the dies for lower latency - likely sacrificing either data retention or cost-per-bit in the process - this gap is fundamental. You will need to wait longer for your data than with DRAM, end of story.</p>
+<p class="zh">Sandisk 可以优化 die 来降低延迟——过程中很可能要牺牲数据保持能力或每 bit 成本——但这个差距是根本性的。你的数据就是要比在 DRAM 里等得更久，没别的说法。</p>
+<div class="attrib"><a class="ts" data-t="565" href="https://www.youtube.com/watch?v=3nTpW52nioI&amp;t=565s" target="_blank" rel="noopener">9:25</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">A core point was that systems are judged on how well they can serve tokens ... and just because HBF has cheap memory capacity does not one-to-one mean cheaper tokens. Because if we can&#x27;t get all that data out of the HBF fast enough, and that makes the accelerator wait, then token output suffers.</p>
+<p class="zh">一个核心观点是，系统是按服务 token 的能力来评判的……HBF 有便宜的内存容量，并不一对一地意味着更便宜的 token。因为如果我们不能足够快地把那些数据从 HBF 里取出来，让加速器干等，token 产出就会受损。</p>
+<div class="attrib"><a class="ts" data-t="934" href="https://www.youtube.com/watch?v=3nTpW52nioI&amp;t=934s" target="_blank" rel="noopener">15:34</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">But someone who once worked with Optane from the software side told me that - behind the scenes - Optane just couldn&#x27;t do what Intel claimed it can.</p>
+<p class="zh">但一位曾在软件侧与 Optane 打过交道的人告诉我，在幕后，Optane 就是做不到 Intel 宣称它能做的事。</p>
+<div class="attrib"><a class="ts" data-t="1120" href="https://www.youtube.com/watch?v=3nTpW52nioI&amp;t=1120s" target="_blank" rel="noopener">18:40</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">But the counterpoint to that is that Optane&#x27;s actual PCM cells worked brilliantly. The core technology was great. It was most everything else - like the controller and go-to market strategy - that failed to live up to its promise.</p>
+<p class="zh">但反方观点是，Optane 实际的 PCM 单元工作得非常出色。核心技术很棒。是其他几乎所有东西——比如控制器和上市策略——没能兑现承诺。</p>
+<div class="attrib"><a class="ts" data-t="1120" href="https://www.youtube.com/watch?v=3nTpW52nioI&amp;t=1120s" target="_blank" rel="noopener">18:40</a></div>
+</blockquote></section>
+<section class="section"><h2>数字与实体</h2><table class="facts"><tr><td class="k">Kimi K3 总参数量</td><td class="v">2.8 万亿</td><td class="t"><a class="ts" data-t="187" href="https://www.youtube.com/watch?v=3nTpW52nioI&amp;t=187s" target="_blank" rel="noopener">3:07</a></td></tr>
+<tr><td class="k">当前上下文窗口</td><td class="v">约 100 万 token，折合 1500-3000 页文本</td><td class="t"><a class="ts" data-t="251" href="https://www.youtube.com/watch?v=3nTpW52nioI&amp;t=251s" target="_blank" rel="noopener">4:11</a></td></tr></table></section>
+<section class="section"><h2>术语</h2><dl class="terms"><div><dt>Prefill<span>预填充</span></dt><dd>推理第一阶段，并行处理全部输入并生成 KV Cache，受算力限制。</dd></div>
+<div><dt>Decode<span>解码</span></dt><dd>推理第二阶段，查 KV Cache 逐个生成 token，受内存带宽限制。</dd></div>
+<div><dt>KV Cache<span>键值缓存</span></dt><dd>Attention 为每个 token 产出的 Key/Value 向量缓存，避免重复计算。</dd></div>
+<div><dt>HBF<span>高带宽闪存</span></dt><dd>用 HBM 的堆叠封装方式连接 NAND die，容量大但读写慢两个数量级。</dd></div>
+<div><dt>3D XPoint / Optane<span>相变存储器</span></dt><dd>Intel 与 Micron 推出的非易失内存，速度近 DRAM，最终因经济性失败。</dd></div>
+<div><dt>mixture-of-experts<span>混合专家模型</span></dt><dd>每个 token 只激活部分专家，需要容量装下全部专家但只读少数。</dd></div></dl></section>
+<section class="section"><h2>收听指南</h2>
+<div class="panel guide">
+<div><span class="k">谁该听</span><p>关注 AI 推理成本与内存架构的工程师、芯片与存储方向的投资人，以及想搞懂 prefill/decode/KV Cache 和 HBM 瓶颈的人。</p></div>
+<div><span class="k">可跳过</span><p>开头关于 Baader-Meinhof 和 Hot Chips 见闻的闲聊可跳过。</p></div>
+</div></section>
+<section class="related"><h2 class="sec-title">顺着这个话题</h2><ul class="rel-list"><li><a href="/podcast/p/2026-08-13-asianometry-sk-hynix-靠-hbm-翻身-客户战略赢过周期/"><span class="rel-t">SK hynix 翻身靠的不是 HBM 技术，而是客户关系</span><span class="rel-s">Asianometry</span></a></li><li><a href="/podcast/p/2026-09-20-asianometry-intel-的-optane-死于-3d-nand-太便宜-不是技术不行/"><span class="rel-t">Intel 的 Optane 死于 3D NAND 太便宜，不是技术不行</span><span class="rel-s">Asianometry</span></a></li><li><a href="/podcast/p/2026-07-15-naturepod-裸鼹鼠女王不靠尿液-靠一种5美元分子维持王位/"><span class="rel-t">裸鼹鼠女王靠5美元分子统治：不是尿液，是护肤成分</span><span class="rel-s">Nature Podcast</span></a></li><li><a href="/podcast/p/2026-09-14-semianalysiswe-英伟达旗舰-gpu-内存首次倒退-4-hi-hbm-为什么赢/"><span class="rel-t">英伟达旗舰 GPU 内存首次倒退：4-HI HBM 为什么赢</span><span class="rel-s">SemiAnalysis Weekly</span></a></li><li><a href="/podcast/p/2026-08-31-techtechpotato-未来-ai-定制芯片的形态-一只带-16-个-hbm-的巨兽/"><span class="rel-t">AI 芯片出货量将跳一个量级：从百万颗到 1500 万颗</span><span class="rel-s">TechTechPotato</span></a></li></ul></section>
+<nav class="prevnext"><a href="/podcast/p/2026-09-25-latentspace-runway-赌上-1000-张-a100-世界模型绕开数字孪生/"><span class="lbl">← 更新</span><strong>Runway 赌上 1000 张 A100：世界模型绕开数字孪生</strong></a><a class="r" href="/podcast/p/2026-09-24-britishhist-亨利一世用阉割和挖眼重建了英格兰的信任/"><span class="lbl">更早 →</span><strong>亨利一世用阉割和挖眼重建了英格兰的信任</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原节目</h4>
+<div class="row"><span>节目</span><span>Asianometry</span></div>
+<div class="row"><span>原标题</span><span>High Bandwidth Flash Is Coming</span></div>
+<div class="row"><span>发布</span><span>2026-09-24</span></div>
+<div class="row"><span>时长</span><span>21:10</span></div>
+<a class="row" href="https://www.youtube.com/watch?v=3nTpW52nioI" target="_blank" rel="noopener"><span>原页面</span><span>打开 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇结构</h4><nav class="toc"><a href="#p0"><span class="t">1:03</span><span>Prefill 吃算力，Decode 吃内存</span></a>
+<a href="#p1"><span class="t">3:07</span><span>模型权重和 KV Cache 同时爆炸</span></a>
+<a href="#p2"><span class="t">5:14</span><span>HBM 堆得越高，单位带宽越薄</span></a>
+<a href="#p3"><span class="t">7:15</span><span>HBF 用堆 HBM 的方式堆 NAND</span></a>
+<a href="#p4"><span class="t">9:25</span><span>NAND 不是 DRAM：慢、会写坏、还费电</span></a>
+<a href="#p5"><span class="t">10:25</span><span>Sandisk 拉上对手和 Google 一起定标准</span></a>
+<a href="#p6"><span class="t">13:28</span><span>HBF 想挤进 Tier 1，和 HBM 并排</span></a>
+<a href="#p7"><span class="t">15:34</span><span>便宜的内存容量不等于便宜的 token</span></a>
+<a href="#p8"><span class="t">16:36</span><span>Optane 的教训：技术好，别的地方全崩</span></a></nav></div>
+
+<div class="panel"><h4>这篇是怎么来的</h4>
+<div class="row"><span>成稿评分</span><span>8 / 10</span></div>
+<div class="row"><span>文稿来源</span><span>YouTube 字幕</span></div>
+<div class="row"><span>文稿字数</span><span>3206</span></div>
+<div class="row"><span>语速核验</span><span>151.5 wpm</span></div>
+<div class="row"><span>逐字校验金句</span><span>6 条</span></div>
+<div class="row"><span>回溯校验数字</span><span>2 条</span></div>
+<div class="row"><span>质检剔除</span><span>8 处</span></div>
+<p class="note">金句在逐字稿里逐字比对过，数字回原文核对过；对不上的当场删掉，不上站。
+成稿另经一道独立评审（信息密度／忠实度／选择力／具体性／中文），低于 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原声 · <a href="https://ourword.ai">OurWord.ai</a>的播客线。内容为原播客的中文深读，
+版权归各节目所有；每篇都附原节目链接，请去支持原作者。</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/" lang="zh">人类世界生存法则</a> · <a href="/podcast/">原声</a></div>
+<div class="links"><a href="/podcast/">首页</a><a href="/podcast/zt/founders/">专题</a><a href="/podcast/sources/">信源</a>
+<a href="/podcast/log/">更新日志</a><a href="/podcast/feed.xml">RSS</a>
+<a href="/podcast/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源码</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=d235129544" defer></script>
+</body></html>

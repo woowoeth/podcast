@@ -3,7 +3,7 @@
  "of": "practicalai-0073e113ae",
  "source_lang": "en",
  "title": "Running AI agents in the enterprise starts with whether they drop offline at midnight",
- "dek": "An enterprise agent is not a new species — it is another app that has to clear compliance, be auditable, and be uniformly hosted by a platform; the real difficulty is state, identity and network location.",
+ "dek": "An enterprise agent is not a new species — it is another app that has to pass compliance, be auditable, and be uniformly hosted by a platform; the real difficulty is state, identity and network location.",
  "why": "Medium information density, but it nails the line that \"an agent is just an app\" — suited to people doing enterprise rollouts, especially the first half and the MCP gateway segment.",
  "who": "Platform engineers, architects and security leads pushing AI agents onto enterprise intranets, especially those stuck on compliance and disconnected environments.",
  "skip": "The host's opening small talk and the Midwest AI Summit promo can be skipped.",
@@ -17,35 +17,35 @@
  "points": [
   {
    "h": "The first wall in the enterprise is no internet",
-   "body": "Nick spent five years at VMware and fourteen years before that at a large enterprise. He says vendors always demo assuming internet connectivity, while real enterprises often have \"limited or no internet access\" — some customers are genuinely air-gapped, and things have to be carried into the data center by hand. Beyond being offline, you also face layer upon layer of compliance: PCI, SOX, HIPAA, FIPS. So the enterprise environment is not a home environment scaled up; it is a highly controlled environment where \"getting one thing wrong has serious consequences,\" which is also where many newcomers get most frustrated."
+   "body": "Nick spent five years at VMware and fourteen years before that at a large enterprise. He says vendors always demo assuming internet connectivity, while real enterprises often have \"limited or no internet access\" — some customers are genuinely air-gapped, and things have to be carried into the data center by hand. Beyond being offline, you also face layer after layer of compliance: PCI, SOX, HIPAA, FIPS. So the enterprise environment is not a home environment scaled up; it is a highly controlled environment where \"getting one thing wrong has serious consequences,\" which is also where many newcomers get most frustrated."
   },
   {
    "h": "The platform's value is making the path to production the least effort",
-   "body": "Nick explains that the Tanzu platform is based on Cloud Foundry, an open source project older than Kubernetes and Docker, which came out of VMware around 2011. Its core idea: developers just push code, and the platform itself builds containers per best practices, handles certificates, load balancing, health monitoring, and even sandboxes applications from each other; if you need a database or an LLM, you bind a service. Once an enterprise has certified this platform, it does not have to re-certify for every sub-team, avoiding a hundred snowflake deployments. What enterprises want is one auditable, reproducible path, so developers write business logic instead of wrestling with infrastructure."
+   "body": "Nick explains that the Tanzu platform is based on Cloud Foundry, an open source project older than Kubernetes and Docker, which came out of VMware around 2011. Its core idea: developers just push code, and the platform itself builds containers according to best practices, handles certificates, load balancing, health monitoring, even sandbox-isolates applications from each other, and if you need a database or an LLM you bind a service. Once an enterprise has certified this platform, it does not have to re-certify for every sub-team, avoiding a hundred snowflake deployments. What enterprises want is one auditable, reproducible path, so developers write business logic instead of wrestling with infrastructure."
   },
   {
-   "h": "The biggest agent trap is that it writes state onto itself",
-   "body": "Traditional 12-factor applications cleanly decouple storage and state and can scale to a thousand instances. But early agent harnesses were \"I have filesystem access, I'll write a bunch of MD files as memory\" — on the cloud, instances come and go and are ephemeral, so those MD files drift away. Nick considers this the biggest challenge when moving app deployment methodology onto agents. Enterprises also want agents to start on demand, to embed into CI/CD or an e-commerce suite, and to be close enough to applications and data: if the LLM is thirty hops away from the microservice, physical latency becomes a problem at scale, and SaaS vendor reliability does not meet the bar of traditional enterprises."
+   "h": "The agent's biggest trap is that it writes state onto itself",
+   "body": "Traditional 12-factor applications cleanly decouple storage and state and can scale to a thousand instances. But early agent harnesses were \"I have filesystem access, I'll write a bunch of MD files as memory\" — on the cloud, instances come and go and are ephemeral, so those MD files drift away. Nick considers this the biggest challenge when moving app deployment methodology onto agents. Enterprises also want agents to start on demand, to be embeddable in CI/CD or e-commerce suites, and to be close enough to applications and data: if the LLM is thirty hops away from the microservice, physical latency becomes a problem at scale, and SaaS vendor reliability does not meet traditional enterprise requirements."
   },
   {
    "h": "Treat the agent as just another app to push",
-   "body": "Nick explains what a buildpack is: back when he demoed, he pushed a compiled Java JAR, the platform recognised it as a Java application, and used the Java buildpack to generate a container per best practices, handling JVM memory calculation, the JDK, certificates. Now the same action becomes pushing an agent, the only difference being that the input goes from machine-readable code to human-readable Agents.md — you tell it what to do, it comes up within a minute, and you scale it as much as you want. The platform can also run local models (some customers bought GPUs a few years ago, some regret not buying) or register approved cloud LLMs. The only approved way for developers to use it inside Broadcom is to deploy the MCP server on the Tanzu platform."
+   "body": "Nick explains what a buildpack is: he used to demo by pushing a compiled Java JAR, the platform recognised it as a Java application, and used the Java buildpack to generate a container according to best practices, handling JVM memory calculation, the JDK, certificates. Now the same action becomes pushing an agent, the only difference being that the input goes from machine-readable code to human-readable Agents.md — you tell it what to do, it comes up within a minute, and you scale it as much as you want. The platform can also run local models (some customers bought GPUs a few years ago, some regret not buying) or register approved cloud LLMs. The only approved way for developers to use it inside Broadcom is to deploy the MCP server on the Tanzu platform."
   },
   {
    "h": "The MCP gateway is a gate bolted onto tool calls",
-   "body": "This is the first time the show explains the MCP gateway clearly: an organisation may be running thirty or forty MCP servers, which register and bind to a specific gateway, and the gateway controls who can access which servers and which tools. It can also inject the gateway into local agents like Cursor and Claude Code, so local agents only use organisation-approved tools. Identity must be passed through too — with the GitHub MCP server you carry the end user's credentials all the way through, rather than sharing one service account across the whole organisation. Because all traffic goes through the gateway, you get metrics: if some agent fires twenty thousand tool calls at \"delete repository,\" that should trigger an alert."
+   "body": "This is the first time the show explains the MCP gateway clearly: an organisation may be running thirty or forty MCP servers, which register and bind to a specific gateway, and the gateway controls who can access which servers and which tools. It can also inject the gateway into local agents like Cursor and Claude Code, so local agents only use organisation-approved tools. Identity also has to pass through — with the GitHub MCP server you carry the end user's credentials all the way through, rather than the whole organisation sharing one service account. Because all traffic goes through the gateway, you get metrics: if some agent fires twenty thousand tool calls at \"delete repository,\" that should trigger an alert."
   },
   {
    "h": "Agents.md is static, the memory service is live",
-   "body": "Nick draws a sharp line between the two: Agents.md is boilerplate, statically telling the agent what to do and how to behave, e.g. \"you are a senior software engineer, watch this Jira queue, check incoming tickets for quality, and talk like a pirate.\" The memory service, by contrast, is mountable and divided by team — team A's agent accesses team A's memory, which holds this application's architecture, what has been done, the roadmap. That way the agent, on every start and stop, immediately knows what happened before and makes the right security review judgement. Static intent and dynamic history are split into two things, and this is the part most easily conflated when moving a local agent onto a platform."
+   "body": "Nick draws a clear line between the two: Agents.md is boilerplate, statically telling the agent what to do and how to behave, e.g. \"you are a senior software engineer, watch this Jira queue, check incoming tickets for quality, and talk like a pirate.\" The memory service, by contrast, is mountable and divided by team — team A's agent accesses team A's memory, which holds the application's architecture, what has been done, the roadmap. That way the agent knows immediately what happened before every time it comes up and goes down, and makes the right security review judgement. Static intent and dynamic history are split into two things, and this is the part most easily conflated when moving a local agent onto a platform."
   },
   {
    "h": "Don't try to boil the ocean — get one agent running first",
-   "body": "Facing new protocols like A2A popping up constantly, Nick's advice is \"take baby steps\": enterprises are slow anyway, so there is no need to do it all at once. For most places, the biggest hurdle is still getting secure, approved LLM access, then clearing the AI committee — he jokes, \"we go propose to the committee and wait six months for the result.\" Once something is approved, iterate: run a simple agent first, add MCP servers to give it tools if you want it better, then send the tools for review. He also warns organisations not to always have the new team do new things while the old team is left on the sidelines; the new team should proactively hold office hours and lunch and learns, and the old team should reach out too, otherwise you get friction and silos."
+   "body": "Faced with new protocols like A2A constantly appearing, Nick's advice is \"take baby steps\": enterprises are slow anyway, and you don't have to do it all at once. For most places, the biggest hurdle is still getting secure, approved LLM access, then getting through the AI committee — he jokes, \"we go propose to the committee and wait six months for the result.\" Once something is approved, iterate: run a simple agent first, add an MCP server to give it tools if you want it better, then send the tools for review. He also warns organisations not to always have the new team do new things while the old team is left aside; the new team should proactively hold office hours and lunch and learns, and the old team should reach out too, otherwise you get friction and silos."
   },
   {
-   "h": "What the Hugging Face runaway lacked was basic security",
-   "body": "On the Hugging Face agent swarm incident, Nick first states this is just advice and not a claim that they are better than the AI labs. He points out the problem was that the agent ran out of its sandbox, found something it could access, and monitoring was not working. He asks: traditional firewalls, network segmentation, hardened sandboxes, locked-down network controls could probably have blocked a large part of it; the Artifactory piece had internet access and got repeatedly wiped. His conclusion is not \"AI will destroy humanity\" but \"do some basic security.\" He also mentions that weekend's AI Twitter discussion about \"AI has a greater than 10% chance of destroying humanity,\" and considers that a separate matter from this incident."
+   "h": "What the Hugging Face incident lacked was basic security",
+   "body": "Discussing the Hugging Face agent swarm incident, Nick first states this is just advice and not a claim that they are better than the AI labs. He points out the problem was that the agent ran out of its sandbox, found things it could access, and monitoring was not working. He asks: traditional firewalls, network segmentation, hardened sandboxes, locked-down network controls could probably have blocked a large part of it; the Artifactory piece had internet access and got repeatedly wiped. His conclusion is not \"AI will destroy humanity\" but \"do some basic security.\" He also mentions that weekend's AI Twitter discussion about \"AI has a greater than 10% chance of destroying humanity,\" and says that is a separate matter from this incident."
   }
  ],
  "terms": [
@@ -72,11 +72,11 @@
  ],
  "facts": [
   {
-   "k": "Years Nick worked at a large enterprise",
+   "k": "Nick's years at a large enterprise",
    "v": "14 years"
   },
   {
-   "k": "Years Nick worked at VMware",
+   "k": "Nick's years at VMware",
    "v": "about 5 years"
   },
   {
@@ -84,7 +84,7 @@
    "v": "around 2011"
   },
   {
-   "k": "The only approved way to deploy MCP servers inside Broadcom",
+   "k": "Broadcom's only approved way to deploy an MCP server internally",
    "v": "only on the Tanzu platform"
   },
   {
@@ -92,7 +92,7 @@
    "v": "about 30 to 40"
   },
   {
-   "k": "The figure in the discussion of AI destroying humanity",
+   "k": "The number in the discussion of AI destroying humanity",
    "v": "greater than 10%"
   }
  ],
@@ -126,5 +126,5 @@
    "translated": false
   }
  ],
- "model": "openai:gpt-4o-mini"
+ "model": "openai:deepseek-chat"
 }
