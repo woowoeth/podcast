@@ -7595,8 +7595,13 @@ class LocalAsrChunksStopAtTheEndOfTheAudio(unittest.TestCase):
         from lib import transcript as T
         with tempfile.TemporaryDirectory() as tmp:
             src = pathlib.Path(tmp) / "ep.mp3"
+            # 元数据走 ffmetadata 文件，不走命令行：Linux 单个参数上限 128KB，30 万字节的
+            # -metadata 在 CI 上直接 E2BIG（macOS 没这个限制，本机是绿的）。
+            meta = pathlib.Path(tmp) / "meta.txt"
+            meta.write_text(";FFMETADATA1\ncomment=" + "x" * 300000 + "\n")
             subprocess.run([ff, "-nostdin", "-v", "error", "-y", "-f", "lavfi", "-i", "sine=frequency=440:duration=660",
-                            "-metadata", "comment=" + "x" * 300000, "-ac", "1", "-b:a", "32k", str(src)], check=True)
+                            "-i", str(meta), "-map", "0:a", "-map_metadata", "1",
+                            "-ac", "1", "-b:a", "32k", str(src)], check=True)
             td = pathlib.Path(tmp) / "chunks"
             td.mkdir()
             chunks = T._split(src, src.stat().st_size / 1e6, str(td), force=True)
