@@ -545,17 +545,57 @@ _YT_LOCK = threading.Lock()
 
 # 区分"这一集本来就没有文稿"和"这次没拿到"。前者该消耗重试预算（试三次就别再试），
 # 后者不该——限流、机器人拦截、连接中断都属于后者，而它们在日志里长得跟前者一样。
-_transient = {"hit": False, "yt_throttled": False}
+#
+# **每个线程一份。** 原来是模块级的一个 dict：几个 worker 并行取稿时，一个线程开始取稿
+# （acquire 开头清零）会把另一个线程刚记下的「被限流」抹掉 —— 那一集于是掉进本地转写，
+# 白烧 GPU，正是下面 asr_after_throttle 要防的事。取稿和读结果（run.py 的
+# last_was_transient）都在同一个 worker 线程里，所以按线程分开就对了。
+class _PerThread(threading.local):
+    def __init__(self):
+        self.d = {"hit": False, "yt_throttled": False}
+
+    def __getitem__(self, k):
+        return self.d[k]
+
+    def __setitem__(self, k, v):
+        self.d[k] = v
+
+
+_transient = _PerThread()
 
 
 def last_was_transient() -> bool:
     return _transient["hit"]
 
 
+# **字幕请求的限流熔断。** 被判成机器人（「Sign in to confirm you're not a bot」）通常要几个小时
+# 才解开，而原来每一集都重新退避 30+60+120 秒再放弃：2026-09-26 10:30 那轮撞了 4 次，
+# 干等 14 分钟，4 集一集也没拿到。现在同一个进程里第一次退避完仍被拦，之后 30 分钟的**字幕请求**
+# 直接按「被限流」记（软失败、下一轮再来），不再干等。
+#
+# 故意收得很窄（审查过一版更宽的，副作用比省下的时间大）：
+#   · 只管字幕。YouTube 搜索和音频下载不受影响 —— 搜索跳过会让这集当成「没有 YouTube 版」
+#     直接去转写、丢掉视频时间戳；音频下载是「一直被限流的集最后也要能发」的那条退路。
+#   · 只在本进程里，不写文件。补课进程最多再退避一次；每周的观察名单扫描、手动工具不受影响。
+_YT_COOLDOWN_S = 30 * 60
+_YT_COOL = {"until": 0.0}
+
+
+def _yt_skip_while_cooling() -> bool:
+    if time.time() >= _YT_COOL["until"]:
+        return False
+    _transient["hit"] = True
+    _transient["yt_throttled"] = True
+    log("    YouTube 字幕刚被限流过（本轮 30 分钟内），这一集先不去碰，留给下一轮")
+    return True
+
+
 def from_youtube(vid: str, lang: str) -> dict | None:
     if not vid or not shutil.which("yt-dlp"):
         return None
     with _YT_LOCK:
+        if _yt_skip_while_cooling():     # 在锁里查：排队等锁的时候前一个线程可能刚熔断
+            return None
         return _from_youtube(vid, lang)
 
 
@@ -624,9 +664,10 @@ def _from_youtube(vid: str, lang: str) -> dict | None:
                 # 两者后果完全不同：没字幕就该去转写，被限流去转写是白烧 GPU ——
                 # 过一会儿再来同一条视频的字幕就在那儿。
                 _transient["yt_throttled"] = True
-                wait = 30 * (2 ** attempt)
-                log(f"    YouTube 限流或要求登录，等 {wait}s 再试（{attempt + 1}/3）")
-                time.sleep(wait)
+                if attempt < 2:          # 第三次失败之后不再等：后面没有第四次了
+                    wait = 30 * (2 ** attempt)
+                    log(f"    YouTube 限流或要求登录，等 {wait}s 再试（{attempt + 1}/3）")
+                    time.sleep(wait)
                 continue
             if kind == "upcoming":
                 # 还没开播的直播：不是限流也不是没字幕，重试三次也一样。
@@ -634,6 +675,9 @@ def _from_youtube(vid: str, lang: str) -> dict | None:
                 _transient["hit"] = False
                 return None
             break
+        if not files and kind == "ratelimit":
+            _YT_COOL["until"] = time.time() + _YT_COOLDOWN_S
+            log("    YouTube 字幕仍然被拦 —— 本轮 30 分钟内不再请求字幕，这期间的集留给下一轮")
         if not files:
             # 用**分类结果**判，不要在截断后的消息里再匹配一次 ——
             # 「没字幕」那句 yt-dlp 写在 stderr 还是 stdout 不一定，

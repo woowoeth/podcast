@@ -7392,16 +7392,23 @@ class ThrottlingIsNotAReasonToSpendTheGPU(unittest.TestCase):
         import unittest.mock as mock, types
         T = self.T
         T._transient["yt_throttled"] = False
+        T._YT_COOL["until"] = 0.0          # 熔断开着的话走的是跳过路径，它自己也会设标志 —— 测不到真的设置点
+        ran = []
 
         def fake_run(cmd, *a, **kw):
+            ran.append(cmd)
             return types.SimpleNamespace(
                 returncode=1, stdout="[youtube] fetching...",
                 stderr="ERROR: unable to download: HTTP Error 429: Too Many Requests")
 
-        with mock.patch.object(T.subprocess, "run", fake_run), \
-             mock.patch.object(T.time, "sleep", lambda *_: None), \
-             mock.patch.object(T.shutil, "which", lambda n: "/usr/bin/yt-dlp"):
-            T.from_youtube("vid", "en")
+        try:
+            with mock.patch.object(T.subprocess, "run", fake_run), \
+                 mock.patch.object(T.time, "sleep", lambda *_: None), \
+                 mock.patch.object(T.shutil, "which", lambda n: "/usr/bin/yt-dlp"):
+                T.from_youtube("vid", "en")
+        finally:
+            T._YT_COOL["until"] = 0.0
+        self.assertTrue(ran, "没有真的去请求字幕 —— 测的不是 429 那条路")
         self.assertTrue(
             T._transient["yt_throttled"],
             "yt-dlp 明明报的是 429，却没记成「被限流」——"
@@ -7564,6 +7571,80 @@ class TheRunningLineMustSayWhichVersionItIsRunning(unittest.TestCase):
                       "写了检查但没人调 —— 又一个静默失效的判据")
 
 
+class TranscriptStateSurvivesParallelWorkers(unittest.TestCase):
+    """放开并发之后，取稿那几个「这次是不是被限流」的记号不许串线程；YouTube 被判成机器人
+    之后不许每一集都再退避三分半钟。"""
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib import transcript
+        self.T = transcript
+
+    def test_the_throttle_mark_belongs_to_the_worker_that_saw_it(self):
+        import threading
+        T = self.T
+        T._transient["yt_throttled"] = True
+        got = {}
+        def other():
+            got["before"] = T._transient["yt_throttled"]
+            T._transient["yt_throttled"] = False      # 别的线程开始取稿、清零
+        t = threading.Thread(target=other)
+        t.start()
+        t.join()
+        self.assertFalse(got["before"])
+        self.assertTrue(T._transient["yt_throttled"], "别的线程清零把这个线程的「被限流」抹掉了 —— 会去白转写")
+        T._transient["yt_throttled"] = False
+
+    def test_after_one_failed_backoff_captions_are_left_alone(self):
+        """一轮里字幕请求退避一次仍被拦，之后 30 分钟的字幕请求直接记「被限流」、不再干等。
+        只管字幕：音频下载是「一直被限流的集最后也要能发」的退路，不许被熔断堵上。"""
+        import types, unittest.mock as mock
+        T = self.T
+        calls, sleeps = [], []
+
+        def run(cmd, **kw):
+            calls.append(" ".join(cmd[:3]))
+            return types.SimpleNamespace(returncode=1, stdout="",
+                                         stderr="ERROR: [youtube] x: Sign in to confirm you're not a bot.")
+        T._YT_COOL["until"] = 0.0
+        try:
+            with mock.patch.object(T.shutil, "which", lambda x: "/usr/bin/yt-dlp"), \
+                 mock.patch.object(T.subprocess, "run", run), \
+                 mock.patch.object(T.time, "sleep", lambda s: sleeps.append(s)):
+                self.assertIsNone(T.from_youtube("vid1", "en"))
+                self.assertEqual(sleeps, [30, 60], "第三次失败之后后面没有第四次了，不该再等 120 秒")
+                n = len(calls)
+                T._transient["yt_throttled"] = False
+                self.assertIsNone(T.from_youtube("vid2", "en"))
+                self.assertEqual((len(calls), sleeps), (n, [30, 60]), "熔断之后还在请求字幕、还在干等")
+                self.assertTrue(T._transient["yt_throttled"], "跳过的这一集没记成「被限流」—— 会被当成没字幕去转写")
+                T._yt_audio("vid3", "/tmp")
+                self.assertGreater(len(calls), n, "熔断把音频下载也堵上了 —— 一直被限流的集永远发不出来")
+        finally:
+            T._YT_COOL["until"] = 0.0
+            T._transient["yt_throttled"] = False
+            T._transient["hit"] = False
+
+    def test_the_cooldown_leaves_no_file_behind(self):
+        """熔断只在本进程里：写文件的话，跑测试会在检出里留下一个真的熔断，每周的观察名单扫描
+        也会把「限流中」当成「没有字幕」。让它真触发一次，看缓存目录里多没多东西。"""
+        import tempfile, types, unittest.mock as mock, os as _os
+        T = self.T
+        run = lambda cmd, **kw: types.SimpleNamespace(returncode=1, stdout="", stderr="HTTP Error 429: Too Many Requests")
+        T._YT_COOL["until"] = 0.0
+        try:
+            with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(_os.environ, {"PODCAST_CACHE": tmp}), \
+                 mock.patch.object(T.shutil, "which", lambda x: "/usr/bin/yt-dlp"), \
+                 mock.patch.object(T.subprocess, "run", run), mock.patch.object(T.time, "sleep", lambda s: None):
+                T.from_youtube("vid1", "en")
+                self.assertGreater(T._YT_COOL["until"], 0, "熔断没触发 —— 这条测试没测到东西")
+                self.assertEqual(sorted(_os.listdir(tmp)), [], "熔断往缓存目录里写了文件")
+        finally:
+            T._YT_COOL["until"] = 0.0
+            T._transient["yt_throttled"] = False
+            T._transient["hit"] = False
+
+
 class ThroughputKnobsMustBeMeasuredNotInherited(unittest.TestCase):
     """吞吐的每个上限都要有量过的依据，不能是「一直就这么写的」。
 
@@ -7584,12 +7665,138 @@ class ThroughputKnobsMustBeMeasuredNotInherited(unittest.TestCase):
         import importlib
         self.llm = importlib.import_module("lib.llm")
 
-    def test_the_cli_backend_still_runs_one_at_a_time(self):
-        """claude -p 并行会无消息非零退出 —— 这条不是保守，是事实。"""
-        import unittest.mock as mock
-        with mock.patch.object(self.llm, "provider", lambda: "claude-cli"):
-            self.assertEqual(self.llm.safe_jobs(), 1,
-                             "CLI 后端被放开并发 —— 它会无消息地失败")
+    def _gate_reset(self):
+        self.llm._CLI = self.llm._Gate()
+
+    def _fake_cli(self, fail_first=0):
+        """桩掉 subprocess.run：记下同时在跑的 claude -p 个数；前 fail_first 次模拟旧版 CLI
+        并发时的「无输出退出」。"""
+        import threading, time, types
+        box = {"now": 0, "peak": 0, "calls": 0, "lock": threading.Lock()}
+
+        def run(cmd, **kw):
+            with box["lock"]:
+                box["now"] += 1
+                box["peak"] = max(box["peak"], box["now"])
+                box["calls"] += 1
+                n = box["calls"]
+            threading.Event().wait(0.15)    # 不用 time.sleep：测试会把它桩掉
+            with box["lock"]:
+                box["now"] -= 1
+            if n <= fail_first:
+                return types.SimpleNamespace(returncode=1, stdout="", stderr="")
+            return types.SimpleNamespace(returncode=0, stdout="ok", stderr="")
+        return box, run
+
+    def _hammer(self, n=6):
+        import threading
+        errs = []
+        def go():
+            try:
+                self.llm._cli("s", "u", model="haiku")
+            except Exception as ex:
+                errs.append(ex)
+        ts = [threading.Thread(target=go) for _ in range(n)]
+        [t.start() for t in ts]
+        [t.join() for t in ts]
+        return errs
+
+    def test_the_cli_backend_runs_in_parallel_behind_a_gate(self):
+        """CLI 后端原来写死一次一个，理由是旧版 claude -p 并发会无输出退出；现在的 CLI 在本机
+        翻译那步 4 路并发 0 失败（09-25 晚起）。并发由 _cli 里的信号量兜住，不靠压住线程数 ——
+        压线程数会把本地转写和写稿也一起压成串行。"""
+        import unittest.mock as mock, os as _os, time
+        with mock.patch.object(self.llm, "provider", lambda: "claude-cli"), \
+             mock.patch.dict(_os.environ, {"LLM_CLI_JOBS": "3"}), mock.patch.object(self.llm.time, "sleep", lambda s: None):
+            self.assertGreater(self.llm.safe_jobs(), 1, "CLI 后端又被压回一次一个：转写和写稿不能重叠")
+            self._gate_reset()
+            box, run = self._fake_cli()
+            with mock.patch.object(self.llm.subprocess, "run", run):
+                self.assertEqual(self._hammer(), [])
+            self.assertEqual(box["peak"], 3, f"同时在跑的 claude -p 是 {box['peak']} 个，应该被闸门卡在 3")
+            self._gate_reset()
+
+    def test_the_gate_falls_back_to_one_at_a_time_when_the_old_failure_returns(self):
+        """又出现「无输出退出」就退回一次一个，这一集重试成功，不白失败。"""
+        import unittest.mock as mock, os as _os
+        with mock.patch.object(self.llm, "provider", lambda: "claude-cli"), \
+             mock.patch.dict(_os.environ, {"LLM_CLI_JOBS": "3"}), mock.patch.object(self.llm.time, "sleep", lambda s: None):
+            self._gate_reset()
+            box, run = self._fake_cli(fail_first=1)
+            with mock.patch.object(self.llm.subprocess, "run", run):
+                self.assertEqual(self._hammer(), [], "无输出退出之后没有重试 —— 那一集白失败")
+                self.assertEqual(self.llm._CLI.limit, 1, "出了无输出退出却没退回一次一个")
+                box["peak"] = 0
+                self.assertEqual(self._hammer(), [])
+            self.assertEqual(box["peak"], 1, "退回之后仍然并发")
+            self._gate_reset()
+
+    def test_when_every_parallel_call_fails_together_every_one_is_retried(self):
+        """旧版 CLI 的症状是几个会话一起挂：只救第一个撞上的线程，其余几集照样白失败。"""
+        import unittest.mock as mock, os as _os
+        with mock.patch.object(self.llm, "provider", lambda: "claude-cli"), \
+             mock.patch.dict(_os.environ, {"LLM_CLI_JOBS": "3"}), mock.patch.object(self.llm.time, "sleep", lambda s: None):
+            self._gate_reset()
+            box, run = self._fake_cli(fail_first=3)
+            with mock.patch.object(self.llm.subprocess, "run", run):
+                errs = self._hammer(3)
+            self.assertEqual(errs, [], f"{len(errs)} 个同时挂掉的调用没被救回来")
+            self._gate_reset()
+
+    def test_the_serial_retry_waits_for_calls_already_in_flight(self):
+        """收紧到一次一个之后，重试要等已经在跑的调用结束 —— 不然正好和它们撞在一起、再挂一次。"""
+        import threading, time, types, unittest.mock as mock, os as _os
+        log, lock = [], threading.Lock()
+        started_b = threading.Event()
+
+        def run(cmd, input="", **kw):
+            with lock:
+                log.append((time.monotonic(), input, "start"))
+            if input == "A":
+                started_b.wait(2)
+                threading.Event().wait(0.3)
+                out = "ok"
+            elif sum(1 for _, w, e in log if w == "B" and e == "start") == 1:
+                started_b.set()
+                out = ""                       # B 第一次：旧版 CLI 并发时的无输出退出
+            else:
+                out = "ok"
+            with lock:
+                log.append((time.monotonic(), input, "end"))
+            return types.SimpleNamespace(returncode=0 if out else 1, stdout=out, stderr="")
+
+        with mock.patch.object(self.llm, "provider", lambda: "claude-cli"), \
+             mock.patch.dict(_os.environ, {"LLM_CLI_JOBS": "3"}), mock.patch.object(self.llm.time, "sleep", lambda s: None), \
+             mock.patch.object(self.llm.subprocess, "run", run):
+            self._gate_reset()
+            ta = threading.Thread(target=lambda: self.llm._cli("s", "A"))
+            ta.start()
+            threading.Event().wait(0.05)
+            self.assertEqual(self.llm._cli("s", "B"), "ok")
+            ta.join()
+            self._gate_reset()
+        a_end = max(t for t, w, e in log if w == "A" and e == "end")
+        b_retry = [t for t, w, e in log if w == "B" and e == "start"][1]
+        self.assertGreaterEqual(b_retry, a_end, "串行重试和还在跑的调用撞在了一起")
+
+    def test_a_strong_rewrite_only_switches_its_own_thread(self):
+        """一集切到贵模型重写，不能把同时在跑的别的集也切过去。"""
+        import threading, unittest.mock as mock
+        with mock.patch.object(self.llm, "MODEL", "strong-x"), mock.patch.object(self.llm, "MODEL_DIGEST", "cheap-x"):
+            inside, seen = threading.Event(), {}
+            release = threading.Event()
+            def rewriting():
+                with self.llm.strong_digest():
+                    seen["self"] = self.llm.model_name("digest")
+                    inside.set()
+                    release.wait(2)
+            t = threading.Thread(target=rewriting)
+            t.start()
+            inside.wait(2)
+            seen["other"] = self.llm.model_name("digest")
+            release.set()
+            t.join()
+        self.assertEqual(seen, {"self": "strong-x", "other": "cheap-x"})
 
     def test_the_http_cap_is_tunable_without_a_code_change(self):
         import unittest.mock as mock, os

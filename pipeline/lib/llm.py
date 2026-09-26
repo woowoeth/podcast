@@ -15,6 +15,7 @@ import os
 import re
 import shutil
 import subprocess
+import threading
 import time
 
 from . import net
@@ -184,6 +185,9 @@ def model_name(role: str = "digest") -> str:
     #   每集 14,241 token vs 27,467 —— 省 48%，而深读占全站 63% 的开销
     # 写坏的那几集由成稿评分兜住，再用贵模型重做一次（见 strong_digest）。
     # 只配了 LLM_MODEL 的人不受影响：那时 MODEL_TRIAGE 为空，照样走 MODEL。
+    # 这个线程正在用贵模型重写（strong_digest）：只影响本线程，别的 worker 照常用便宜模型
+    if role == "digest" and getattr(_TLS, "digest", None):
+        return _TLS.digest
     override = {"triage": MODEL_TRIAGE, "review": MODEL_REVIEW,
                 "digest": MODEL_DIGEST or MODEL_TRIAGE,
                 "map": MODEL_MAP or MODEL_TRIAGE}.get(role, "")
@@ -207,17 +211,21 @@ def can_upgrade_digest() -> bool:
     return bool(strong) and strong != cur and strong != "none"
 
 
+# 每个线程自己的临时设置。几个 worker 并行处理不同的集时，一集切到贵模型重写
+# 不能把别的集也一起切过去（原来改的是模块级的 MODEL_DIGEST，全进程共用）。
+_TLS = threading.local()
+
+
 @contextlib.contextmanager
 def strong_digest():
     """临时把深读换成贵模型。用完一定换回去 —— 忘了换回去的话，
-    「省钱」会变成「每集都用贵的还多跑一遍」，比不改还糟。"""
-    global MODEL_DIGEST
-    was = MODEL_DIGEST
-    MODEL_DIGEST = strong_digest_model()
+    「省钱」会变成「每集都用贵的还多跑一遍」，比不改还糟。**只对当前线程生效。**"""
+    was = getattr(_TLS, "digest", None)
+    _TLS.digest = strong_digest_model()
     try:
         yield
     finally:
-        MODEL_DIGEST = was
+        _TLS.digest = was
 
 
 def roles() -> dict:
@@ -231,8 +239,13 @@ def available() -> bool:
 def safe_jobs() -> int:
     """How many of these calls may run at once.
 
-    `claude -p` 不能并行：几个 headless 会话同时跑会无消息地非零退出，
-    所以 CLI 后端永远一次一个，哪怕 --jobs 给得更大。
+    **CLI 后端原来写死 1**，理由是「几个 headless 会话同时跑会无消息地非零退出」。
+    那是 9 月中旬以前的 CLI；2026-09-25 晚上起本机线走 claude CLI，翻译那一步一直是
+    4 个 `claude -p` 同时跑：13 篇、几十次调用，0 次失败（本机日志 09-25 21:30 / 23:27 /
+    09-26 10:30）。而主跑批被这个 1 压成了整条串行 —— 一集在本机转写的几分钟里模型闲着，
+    模型写稿的几分钟里 GPU 闲着（run.py 把 --jobs 夹到这里）。
+    现在默认 3（量过的 4 往下留一档），LLM_CLI_JOBS 可调；_cli 里用闸门兜住同时在跑的
+    `claude -p` 个数，一旦又出现「无输出退出」就自动退回一次一个（见 _Gate）。
 
     **HTTP 后端那个上限原来写死 4，没人量过。**
     实测（deepseek，16 路并发、极小 prompt）：0 失败，单次中位延迟
@@ -243,7 +256,10 @@ def safe_jobs() -> int:
     要再往上推的人先拿真实长度的请求量一遍，别拿小 prompt 的结果当证据。
     """
     if provider() == "claude-cli":
-        return 1
+        try:
+            return max(1, int(os.environ.get("LLM_CLI_JOBS", "3")))
+        except ValueError:
+            return 3
     try:
         return max(1, int(os.environ.get("LLM_MAX_JOBS", "8")))
     except ValueError:
@@ -380,6 +396,43 @@ def _openai(system: str, user: str, max_tokens: int, temperature: float,
     return out
 
 
+class _Gate:
+    """同时在跑的 `claude -p` 个数的上限。
+
+    上限第一次用到时按 safe_jobs() 定。出现「无输出退出」（旧版 CLI 并发时的症状）就收紧到 1：
+    **收紧之后要等正在跑的全部结束才放下一个进去** —— 原来的写法是另换一把锁，已经拿到名额的
+    调用照跑，重试的那一次恰好和它们撞在一起，再失败一次。
+    """
+
+    def __init__(self):
+        self.cv = threading.Condition()
+        self.active = 0
+        self.limit = None
+
+    def __enter__(self):
+        with self.cv:
+            if self.limit is None:
+                self.limit = safe_jobs()
+            while self.active >= self.limit:
+                self.cv.wait()
+            self.active += 1
+        return self
+
+    def __exit__(self, *exc):
+        with self.cv:
+            self.active -= 1
+            self.cv.notify_all()
+
+    def serialize(self) -> bool:
+        """收紧到一次一个。返回 True 表示这次才收紧（打一行日志）。"""
+        with self.cv:
+            was, self.limit = self.limit, 1
+            return was != 1
+
+
+_CLI = _Gate()
+
+
 def _cli(system: str, user: str, *, model: str = "", tries: int = 4) -> str:
     # stdin carries the payload so a long transcript never hits ARG_MAX.
     #
@@ -391,9 +444,11 @@ def _cli(system: str, user: str, *, model: str = "", tries: int = 4) -> str:
            "--append-system-prompt", system,
            "--allowed-tools", ""]
     last = ""
+    serial_retry = False
     for i in range(tries):
         try:
-            r = subprocess.run(cmd, input=user, capture_output=True, text=True, timeout=1800)
+            with _CLI:
+                r = subprocess.run(cmd, input=user, capture_output=True, text=True, timeout=1800)
         except subprocess.TimeoutExpired:
             last = "timed out after 1800s"
         else:
@@ -402,6 +457,16 @@ def _cli(system: str, user: str, *, model: str = "", tries: int = 4) -> str:
             last = ((r.stderr or "").strip() or (r.stdout or "").strip() or
                     f"exit {r.returncode} with no output — the CLI does this when "
                     f"several headless sessions run at once")
+            # 无输出退出：**每个调用**都有一次串行重试，不只是第一个撞上的那个线程 ——
+            # 旧版 CLI 的这个症状是几个会话一起挂，只救一个等于其余几集照样白失败。
+            if (not (r.stdout or "").strip() and not (r.stderr or "").strip()
+                    and not serial_retry and i < tries - 1):
+                if _CLI.serialize():
+                    log("    claude -p 并发时无输出退出 —— 这个进程余下的调用改回一次一个"
+                        "（LLM_CLI_JOBS 调小可以避免）")
+                serial_retry = True
+                time.sleep(5)
+                continue
         if i < tries - 1 and _TRANSIENT.search(last):
             wait = 20 * (2 ** i)
             log(f"    provider busy ({last[:70]}) — retrying in {wait}s "

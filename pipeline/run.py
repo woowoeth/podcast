@@ -591,6 +591,9 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
         log("    dry-run: stopping before the model call")
         return "dry"
 
+    # 实际写出这份稿的模型：贵模型重写被采用时要跟着改（原来在 strong_digest 退出之后才取
+    # model_name()，采用了贵模型重写的稿记成了便宜模型）。
+    used_model = llm.model_name("digest")
     try:
         d = D.build(ep, s, tr, ch)
     except llm.AuthError:
@@ -660,6 +663,7 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
                             log(f"    重做后成稿 {rv2['score']:.0f}/10 {rv2['why']}")
                             if rv2["score"] >= _review["min"]:
                                 d, rv = d2, rv2
+                                used_model = llm.strong_digest_model()
             if rv is not None and rv["score"] < _review["min"]:
                 prev = state["fail"].get(key, {})
                 state["fail"][key] = {
@@ -702,7 +706,7 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
         "transcript_url": tr.get("url", ""),
         "digest": d, "generated": iso(now()),
         "triage": _last_triage.get(key), "review": rv,
-        "model": f"{llm.provider()}:{llm.model_name()}",
+        "model": f"{llm.provider()}:{used_model}",
     }
     EPS.mkdir(parents=True, exist_ok=True)
     # **同一个 id 只许有一份。** 短链目录是 /e/<id>/，两份同 id 的稿子会

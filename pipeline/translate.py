@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import concurrent.futures as cf
 import json
+import os
 import pathlib
 import re
 import sys
@@ -274,6 +275,9 @@ def main() -> int:
     ap.add_argument("--workers", type=int, default=4,
                     help="并发数。串行一篇约 25-30 秒，269 篇要两小时")
     a = ap.parse_args()
+    # 没有 API key 走 claude CLI 时，同时在跑的 claude -p 由 llm 里的闸门卡着（默认 3）。
+    # 翻译自己开 --workers 个线程，闸门按它来 —— 不然日志写「并发 4」，实际只跑 3 个。
+    os.environ.setdefault("LLM_CLI_JOBS", str(max(1, a.workers)))
 
     OUT.mkdir(parents=True, exist_ok=True)
     seen = set() if a.redo else load_done()
