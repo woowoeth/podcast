@@ -1,0 +1,143 @@
+{
+ "slug": "2026-09-25-latentspace-模型训练不难-难的是送到开发者手上-顶级实验室常年做不到",
+ "of": "latentspace-a4ecc25bd8",
+ "source_lang": "en",
+ "title": "Training the model is the easy part; shipping it to developers is what the top labs keep failing at",
+ "dek": "It took Anthropic more than a year to get Claude into developers' hands; OpenRouter can put a new model in front of 1 million developers on launch day — distribution, not training, is the model labs' biggest weakness.",
+ "why": "It explains why model labs cannot solve distribution, and how the \"wrapper\" label nearly caused VCs collectively to miss the biggest opportunity on the table.",
+ "who": "Founders building model gateways, routers or agent infrastructure, and investors trying to understand why \"distribution\" can justify a billion-dollar acquisition.",
+ "skip": "Minutes 43-52, on the Mistral price war and the OpenRouter-versus-LM Arena comparison, are low on information density and can be skipped.",
+ "tags": [
+  "Model routing",
+  "Developer distribution",
+  "Token economy",
+  "AI infrastructure",
+  "Fraud prevention",
+  "Model marketplace"
+ ],
+ "points": [
+  {
+   "h": "A $600 fine-tune came out level with ChatGPT",
+   "body": "A Stanford team spent just $600 fine-tuning Llama on a batch of synthetic data and produced a model of a billion-odd parameters called Alpaca. Trying it out on a plane, in many cases you simply could not tell it apart from ChatGPT. That made the point clear: the bar for producing a good-enough model had dropped low enough that any team could clear it, and the cost was going to keep falling. Out of that came an entirely new business model — compress valuable data into a model and sell it — and the whole ecosystem shifted from \"one company decides everything\" to countless teams each building their own variant. Those variants need somewhere to be discovered and used, which is exactly the problem OpenRouter would later exist to solve."
+  },
+  {
+   "h": "Refused moderation requests forced the need for open models",
+   "body": "Discord used GPT for content moderation, but the moderation requests themselves kept tripping the model's own safety guardrails and getting refused outright — community rules touching on Harry Potter copyright material, a violent passage from a detective novel, all of it simply declined. Discord had 250 million monthly active users at the time, and the team went to OpenAI saying \"we need the weights in order to guarantee moderation is reliable at this scale.\" The answer was: \"Sorry, we're a closed-source company.\" That wall is seen as the origin point of realizing that enterprises need stronger control over model behavior and need open-weight models — a need that got its first real answer only six months later, when Llama shipped."
+  },
+  {
+   "h": "Model labs have no idea how to get a model out the door",
+   "body": "After training a good checkpoint, the default move at most labs is to ship an API and then go quiet — there is no channel for developer feedback. Claude's first checkpoint was actually finished a year before ChatGPT appeared, yet the release was dragged out a full year, and when it did launch the official blog post could name only three developer examples, all of them projects belonging to friends of the founding team. Contrast that with Black Forest Labs: on the day they released a model, OpenRouter could say \"no problem, we can send you 1 million developers today.\" That is a scale a lab has almost no chance of reaching on its own, and it is the core reason OpenRouter positions itself as the distribution layer for model companies rather than as just an API that forwards calls."
+  },
+  {
+   "h": "VCs called it a wrapper; a month later the valuation was 10x",
+   "body": "When OpenRouter raised, plenty of investors filed it under \"wrapper\" — a thin layer forwarding someone else's API, with no moat to speak of. The problem with that read is that most of those investors had never actually deployed models at scale, so they did not understand how much engineering and community design it takes to keep even three model APIs running together reliably in production. Among the firms taking that skeptical line was Menlo Ventures — the same firm that marked the valuation up 10x within a month. Which shows the wrapper thesis does not hold up; it only exposed that the people making the judgment had no real operating experience."
+  },
+  {
+   "h": "Ten billion dollars behind OpenAI, Anthropic won by grinding on coding",
+   "body": "Anthropic started out a full $10 billion behind OpenAI at the line, yet the team locked itself to the direction set in the founding memo — responsibly commercializing an AI pair programming tool — instead of chasing the flashier, attention-grabbing image and video model trends of the moment. There have been only one or two moments in the company's history of being distracted by the question of whether to build a general-purpose chatbot, but the core evaluation suite — coding, long-horizon agentic tasks — has not changed since day one. That restraint in the face of temptation is held up as one of the key reasons it grew into a trillion-dollar company within five years, and it is invoked as the analogy for OpenRouter's own choice to focus on being a model marketplace and stay out of adjacent features like memory and sandboxes."
+  },
+  {
+   "h": "One app's heartbeat mechanism accidentally revived the auto router",
+   "body": "OpenClaw, which appeared in late 2025, is a new product form — it brought non-developer ordinary creators into AI for the first time, and architecturally it periodically sends a \"heartbeat\" request to the selected model to confirm it is still alive, rather than calling the model only when there is real work to do. Nobody wants to pay premium prices for frequent heartbeat requests, so OpenRouter's auto-routing feature, originally aimed at a handful of use cases, suddenly became extremely useful to this entire new cohort of users and drove exponential growth in volume. Applications like Hermes then followed with deep integrations built around auto routing and skill management."
+  },
+  {
+   "h": "Open a free trial and the fraudsters show up before the users",
+   "body": "Midjourney's early growth ran on a free trial, with ten generations the magic number that made users think \"this thing is incredible.\" Then one day the team noticed user numbers spiking; checking the geolocation IPs revealed that someone in China was treating the free trial quota as a commodity and reselling it — outright fraud and abuse. Midjourney never reopened the free trial after that. This is seen as an early signal of a larger regularity: the moment something valuable starts flowing across the internet at scale, someone will find a way to get a hand in. It is also the earliest source of intuition for the token-economy fraud problems OpenRouter would later have to face."
+  },
+  {
+   "h": "Over the next decade, agents become the main perpetrators of fraud",
+   "body": "Every piece of malicious behavior flowing across the internet today is done by humans, but over the next ten years more and more of it will be carried out by AI agents themselves — the bad actors attacking token flows shift from humans to vast numbers of agents. The token economy is projected to reach roughly $5 trillion in flow within five years and possibly $10 trillion within ten, and within that volume, fraud and abuse could account for a genuinely startling share. That is why the Stripe-OpenRouter combination should be read as a security story and not merely a payments story: without a defensive line that can see across the whole ecosystem, across labs and across deployments, the token economy might not actually be able to scale at all, because people would stop trusting tokens themselves."
+  }
+ ],
+ "terms": [
+  {
+   "term": "BYOK",
+   "def": "Developers connect to each model provider using their own API keys, rather than having OpenRouter front the bill."
+  },
+  {
+   "term": "auto router",
+   "def": "The system picks which model to call based on the task, with no need for the developer to specify one."
+  },
+  {
+   "term": "Mixture of Models (MoM)",
+   "def": "An experimental feature that fuses answers from multiple models into a single better result."
+  },
+  {
+   "term": "wrapper",
+   "def": "A product that merely forwards calls to someone else's API and has no technical moat of its own; often used to talk a valuation down."
+  },
+  {
+   "term": "OpenClaw",
+   "def": "A new-format agent app whose heartbeat mechanism accidentally drove explosive growth in auto routing."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Cost of fine-tuning the Alpaca model",
+   "v": "$600"
+  },
+  {
+   "k": "Discord monthly active users during the content moderation work",
+   "v": "250 million"
+  },
+  {
+   "k": "Developers OpenRouter promises to route on a new model's launch day",
+   "v": "1 million"
+  },
+  {
+   "k": "Time from Midjourney's launch to $100M annualized revenue",
+   "v": "under 8 months"
+  },
+  {
+   "k": "How far behind OpenAI Anthropic started",
+   "v": "$10 billion"
+  },
+  {
+   "k": "Anthropic's valuation five years later",
+   "v": "a trillion-dollar company"
+  },
+  {
+   "k": "OpenRouter token volume, week-over-week growth",
+   "v": "about 9%"
+  },
+  {
+   "k": "Monthly value of fraudulent transactions OpenRouter blocks, month-over-month increase",
+   "v": "10x"
+  },
+  {
+   "k": "Projected size of the token economy (within 5 years / 10 years)",
+   "v": "$5 trillion / $10 trillion"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "I figured if it was this easy to make a model, one, we have a whole new way of monetizing data for the first time.",
+   "translated": false
+  },
+  {
+   "text": "we need access to the weights because if we’re gonna be doing content moderation at scale, we had 250 million monthly active users, we need more reliability that the model will do what we need it to.",
+   "translated": false
+  },
+  {
+   "text": "the day you launch, we can send 1 million developers to you.",
+   "translated": false
+  },
+  {
+   "text": "I think, like, a month later, Matt Murphy marked it up by 10x.",
+   "translated": false
+  },
+  {
+   "text": "I no longer read Local Llama ‘cause, like, I just go to OpenClaw-- OpenRouter’s leaderboard.",
+   "translated": false
+  },
+  {
+   "text": "somebody in China had started to resell Midjourney free, subscriptions with the free trial as a way to, like, you - It was fraud abuse, right?",
+   "translated": false
+  },
+  {
+   "text": "We’re gonna build a shield for the entire token economy.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}

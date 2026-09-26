@@ -1,6 +1,170 @@
 # 原聲 — 世界太吵，來原聲聽播客
 
-941 entries. Source: https://ourword.ai/podcast/tw/ · Generated from the sources listed in https://ourword.ai/podcast/tw/llms.txt
+945 entries. Source: https://ourword.ai/podcast/tw/ · Generated from the sources listed in https://ourword.ai/podcast/tw/llms.txt
+
+==============================================================================
+
+## 模型訓練不難，難的是送到開發者手上——頂級實驗室常年做不到
+
+- URL: https://ourword.ai/podcast/tw/p/2026-09-25-latentspace-模型训练不难-难的是送到开发者手上-顶级实验室常年做不到/
+- 節目 / show: Latent Space (https://ourword.ai/podcast/tw/s/latentspace/)
+- 原集標題 / original episode: OpenRouter: from Seed to Stripe — with OpenRouter’s Alex Atallah & AMP’s Anjney Midha
+- 發布 / published: 2026-09-25 · 時長 / duration: 1:20:43
+- 文稿來源 / transcript: 官方全文 · 14992 words · timestamps are exact
+- 校驗 / verification: 7 quotes matched verbatim, 9 numbers traced to the transcript, review score 7/10
+
+**Anthropic花了一年多才讓Claude觸達開發者，OpenRouter卻能在新模型發布當天送去100萬開發者——分發，才是模型實驗室最大的短板。**
+
+為什麼聽 / why: 講清楚了模型實驗室為什麼搞不定分發，以及「套殼」標籤如何差點讓VC集體看漏最大機會。
+
+### 核心論點 / points
+
+[2:11] **600美元微調，效果能打平ChatGPT** — 斯坦福團隊只花了600美元，用一批合成數據對Llama做微調，做出了名為Alpaca的十幾億參數模型。在飛機上試用時，很多情況下根本分不出它和ChatGPT的差別。這讓人意識到：做出一個足夠好的模型，門檻已經低到任何團隊都能做到，而且這個成本還會繼續下降。於是出現了一種全新的商業模式——把有價值的數據壓縮進一個模型再賣出去，整個生態一下子從「一家公司決定一切」變成「無數團隊各自做出變體」，而這些變體需要一個地方被發現、被使用，這正是後來OpenRouter要解決的問題。
+
+[9:10] **內容審核被拒答，逼出對開放模型的需求** — Discord用GPT做內容審核，但審核請求經常觸發模型自身的安全護欄而被直接拒絕——比如涉及哈利波特版權內容的社區規則，或偵探小說裡一段暴力情節，模型統統拒絕處理。當時Discord有2.5億月活用戶，團隊向OpenAI提出「我們需要拿到權重，才能保證審核在大規模場景下可靠」，得到的答覆是「抱歉，我們是閉源公司」。這次碰壁被認為是意識到企業需要對模型能力有更強控制權、需要開放權重模型的起點，而這類需求直到六個月後Llama發布才第一次有了答案。
+
+[20:46] **模型實驗室根本不懂怎麼把模型送出去** — 訓練出一個好checkpoint後，大多數實驗室的默認動作就是發一個API，然後陷入沉寂——沒有開發者反饋的渠道。Claude的第一個checkpoint其實在ChatGPT出現前一年就做完了，卻拖了一年才對外發布，發布時官方博客裡能舉出的開發者案例只有三個，還都是創始團隊朋友的項目。相比之下，Black Forest Labs發布模型當天，OpenRouter就能說「沒問題，我們當天能給你導流100萬個開發者」——這是一個實驗室靠自己幾乎不可能做到的規模，也是OpenRouter把自己定位為「模型公司的分發層」而不只是一個轉發API的關鍵理由。
+
+[24:48] **被VC當成套殼，一個月後估值漲了10倍** — OpenRouter融資時，不少投資人把它簡單歸類為「套殼」——一個轉發別人API的薄層，沒什麼護城河。這種判斷的問題在於，這些投資人大多沒有真正在大規模場景下部署過模型的經驗，不理解讓哪怕三個模型API在生產環境穩定協同運行背後需要多少工程和社區設計工作。持這類懷疑態度的機構裡，恰恰包括後來把估值一個月內標高10倍的Menlo Ventures——說明「套殼論」本身站不住腳，只是暴露了評判者沒有真正的運營經驗。
+
+[52:22] **起步落後OpenAI百億美元，靠死磕編程翻盤** — Anthropic創立時，起跑線上比OpenAI落後了整整100億美元，團隊卻把創始備忘錄裡定的方向鎖定在「負責任地商業化一個AI結對編程工具」上，而不是去追當時更搶眼、更容易拿到關注的圖像、視頻模型熱點。公司歷史上只有過一兩次「要不要做通用聊天機器人」的分心嘗試，但核心評測體系——編程、長程agentic任務——從第一天起就沒變過。這種在誘惑面前的剋制，被認為是它能在五年內成長為萬億美元公司的關鍵原因之一，也被拿來類比OpenRouter自己「專注做模型市場、不做記憶/沙盒等相鄰功能」的選擇。
+
+[1:07:02] **一款App的心跳機制意外救活了自動路由** — 2025年底出現的OpenClaw是一種新的產品形態——它把非開發者的普通創作者第一次帶進了AI，同時架構上會定期給所選模型發「心跳」請求，確認自己還活著，而不只是在真正幹活時才調用模型。沒人願意為頻繁的心跳請求支付高價，於是OpenRouter原本面向少數場景的自動路由功能突然對這一整批新用戶變得極其有用，帶來了指數級的用量增長，隨後Hermes等應用也跟進圍繞自動路由和技能管理做深度整合。
+
+[1:13:54] **免費試用一開放，先來的是騙子不是用戶** — Midjourney早期靠免費試用獲客，十次生成是讓用戶「覺得這東西不得了」的魔法數字。但某天團隊發現用戶量突然暴漲，一查地理位置IP，發現是有人在中國把免費試用額度當成商品倒賣轉售，是一次徹頭徹尾的欺詐濫用。此後Midjourney再也沒有重新開放過免費試用。這被視為一個更大規律的早期信號：只要有價值的東西開始在互聯網上大規模流動，就一定會有人想辦法把手伸進來——這也是後來OpenRouter要面對token經濟欺詐問題時，最早的直覺來源。
+
+[1:16:52] **未來十年，agent才是欺詐主力** — 現在互聯網上流動的所有惡意行為都是人類乾的，但接下來十年，這些壞事會越來越多地由AI agent自己去做——攻擊token流動的壞行為主體會從人類變成海量agent。預計token經濟會在未來五年做到大約5萬億美元、十年內可能到10萬億美元的流量規模，而這個體量裡，欺詐和濫用可能佔到相當驚人的比例。這也是把Stripe和OpenRouter的合併理解成「一個安全故事」而不只是支付故事的原因——沒有能看到全生態、跨實驗室、跨部署的防線，token經濟甚至可能因為大家不再信任token本身而無法真正做大。
+
+### 原話 / verbatim quotes
+
+[2:11] : "I figured if it was this easy to make a model, one, we have a whole new way of monetizing data for the first time."
+    譯 / zh: 我意識到，如果做一個模型這麼容易，那我們就第一次有了一種全新的方式，把數據變現。
+
+[9:10] : "we need access to the weights because if we’re gonna be doing content moderation at scale, we had 250 million monthly active users, we need more reliability that the model will do what we need it to."
+    譯 / zh: 我們需要拿到權重，因為如果要大規模做內容審核——我們有2.5億月活用戶——我們需要模型更可靠地按我們的需要去執行。
+
+[20:46] : "the day you launch, we can send 1 million developers to you."
+    譯 / zh: 你發布模型的當天，我們就能給你導流一百萬個開發者。
+
+[24:48] : "I think, like, a month later, Matt Murphy marked it up by 10x."
+    譯 / zh: 大概一個月後，Matt Murphy就把估值標高了10倍。
+
+[1:08:05] : "I no longer read Local Llama ‘cause, like, I just go to OpenClaw-- OpenRouter’s leaderboard."
+    譯 / zh: 我不再看Local Llama了，因為我現在就直接去看OpenClaw——OpenRouter的排行榜。
+
+[1:13:54] : "somebody in China had started to resell Midjourney free, subscriptions with the free trial as a way to, like, you - It was fraud abuse, right?"
+    譯 / zh: 有人在中國開始把Midjourney的免費試用訂閱當成商品倒賣轉售——這就是徹頭徹尾的欺詐濫用。
+
+[1:16:52] : "We’re gonna build a shield for the entire token economy."
+    譯 / zh: 我們要為整個token經濟建一道防護盾。
+
+### 數字 / figures
+
+- Alpaca模型微調成本: 600美元 [2:11]
+- Discord內容審核期月活用戶數: 2.5億 [9:10]
+- 新模型發布當天OpenRouter承諾導流開發者數: 100萬 [20:46]
+- Midjourney上線到年化收入1億美元用時: 不到8個月 [41:30]
+- Anthropic創立時落後OpenAI規模: 100億美元 [52:22]
+- Anthropic五年後估值: 萬億美元級公司 [52:22]
+- OpenRouter token量周環比增速: 約9% [1:02:40]
+- OpenRouter月度封鎖欺詐交易金額環比漲幅: 10倍 [1:09:07]
+- token經濟預計規模（5年/10年內）: 5萬億美元/10萬億美元 [1:13:54]
+
+### 術語 / glossary
+
+- BYOK (自帶密鑰): 開發者用自己的API key連接各家模型，不經OpenRouter代付賬單。
+- auto router (自動路由): 系統按任務自動挑選調用哪個模型，無需開發者手動指定。
+- Mixture of Models (MoM) (模型混合/模型融合): 把多個模型的回答融合成一個更優結果的實驗性功能。
+- wrapper (套殼): 只轉發調用別人API、沒有獨立技術壁壘的產品，常被用來貶低估值。
+- OpenClaw (OpenClaw): 一款新形態agent應用，靠心跳機制意外帶動了自動路由的爆發式增長。
+
+誰該聽 / who: 在做模型網關/路由或agent基礎設施的創業者，以及想理解「分發」為何能撐起十億美元級收購的投資人。
+可跳過 / skip: 43-52分鐘關於Mistral價格戰和OpenRouter與LM Arena對比那段，信息密度較低，可跳過。
+標籤 / tags: 模型路由, 開發者分發, Token經濟, AI基礎設施, 欺詐風控, 模型市場
+
+==============================================================================
+
+## 太平洋司令的艦隊全在中東：不戰而勝是因為他沒兵可戰
+
+- URL: https://ourword.ai/podcast/tw/p/2026-09-25-chinatalk-太平洋司令的舰队全在中东-不战而胜是因为他没兵可战/
+- 節目 / show: ChinaTalk (https://ourword.ai/podcast/tw/s/chinatalk/)
+- 原集標題 / original episode: WarTalk: Potemkin Pacific, Midterm Budget Woes
+- 發布 / published: 2026-09-25 · 時長 / duration: 1:12:28
+- 文稿來源 / transcript: 音頻轉寫 · 13775 words · timestamps are exact
+- 校驗 / verification: 8 quotes matched verbatim, 10 numbers traced to the transcript, review score 8/10
+
+**Paparo 上了時代週刊封面，說法是他的部隊覆蓋半個地球、必須不戰而勝；同一周 40% 的在航海軍壓在中東，印太司令部剛改名叫太平洋司令部，而它的船全在印度洋。**
+
+為什麼聽 / why: 四個熟悉預算和編制的人，把對華戰備被伊朗戰爭掏空的賬算給你聽：兵力、彈藥、精確武器落到對手手裡，還有明年就要掉頭的錢。
+
+### 核心論點 / points
+
+[4:11] (Brian) **太平洋司令名下的兵都在印度洋** — 時代週刊給 Paparo 的封面說法是他的部隊覆蓋半個地球、必須不戰而勝。節目裡的拆法是：不是不想打，是沒東西可打。當週兩艘航母、約 16 艘驅逐艦、數千岸上部隊壓在中東，約 40% 的在航海軍在波斯灣或中東地區，導彈庫存已去掉 30%，連他本該指揮的那艘航母都在中東。今年剛把印度洋-太平洋司令部改名回太平洋司令部，號稱迴歸傳統，結果按艦隊實際位置，你要真想指揮這支部隊，反而該叫印太司令部。至於國際日期變更線以西那個爭了多年的前沿指揮所，歷史上常常只是兩個揹著包的人，還得回頭向後方借兵。
+
+[7:12] (Justin) **美軍前沿補給捏在 FedEx 手裡** — 往印太部署部隊、往艦隊送零件，唯一的辦法是跟 DHL 或 FedEx 籤合同。有一次政府凍結經費，欠了四個月的聯合演訓運費，FedEx 直接停了服務——用當事人的話說，人家是正經公司，提供了服務就指望收到錢。問題不止於欠費：現在每一家航運公司在他們眼裡都被滲透得沒法討論。而之所以離不開這條即時補給鏈，是因為零件本來就不夠：前沿囤不起，放到補給艦上又等於鎖死——三個零件全在某條貨船上，誰都用不了。這層脆弱性平時沒人算進戰備賬裡。
+
+[11:15] (Brian) **國防部按錢只會變多來設計流程** — 距中期選舉 39 天。檯面上的預期是民主黨眾議院淨增 20 到 40 席、參議院淨增 4 席，連伊朗戰爭都在往這個方向加碼。Hudson 的閉門會上，國會少數黨一側的幕僚給出的判斷是：參議院一旦翻盤，國防預算會走平甚至再次下降。平常即使某一院翻盤，還能指望打平或漲一兩個百分點，但這次不是常規博弈——現任防長極不受歡迎，政策口又沒有跟國會溝通，對方的姿態不是打打硬球，而是要讓它疼。麻煩在於部門內部的決策流程是按照錢越來越多來組織的，好把錢鋪給越來越雜的初創公司和試驗項目；頂線縮水時，沒人演練過怎麼轉身。
+
+[15:23] (Brian) **買得起的艦隊養不起，代價是戰備** — 今年這份 1.1 萬億美元的預算大概率會過，因為各方都想在國會換屆前把它落袋。但它的構成是大量資本投入：光造艦就 820 億美元，壓在上一年約 600 億之上，再加一堆戰鬥機。船和飛機的貴不在買，在養——人員、維護、週轉都是每年要掏的錢。於是三四年後這批兵力結構交付時，預算已經走平甚至下降，兩條路二選一：退掉老裝備、維持規模不變，或者不肯縮編、讓戰備空掉。而沒人願意當縮編軍隊的一員，所以判斷是這屆政府末期會選擇保住規模，代價是戰備。
+
+[35:24] (Justin) **AI 單獨建軍種會讓它對部隊無用** — AI Force 目前只宣布了要有這麼個東西，沒說是什麼、放在哪。Justin 的反對理由是它同時押了兩個互相矛盾的前提：一邊說 AI 特殊到需要超常能力和知識才能用好，一邊說它強大到能替我們思考——兩者不可能同時成立。更值得看的是他們援引的類比：文件裡出現的是 SOCOM、NRO、NSA、CIA，也就是想要一個特殊的、自己人說了算的建制。前車之鑑是電子戰和信號情報：一旦切出去，就變成不能談、要特批、有專屬經費才能動的東西，中層指揮官日常根本想不起來用，最後只剩誰對誰有權限的扯皮。Tony 的補充是產業界已經在實做的自主性與實驗室裡的通用聊天機器人被混為一談了。
+
+[50:55] (Brian) **有人-無人協同是個拖後腿的設計** — 海軍學會會刊上有篇文章主張自主技術還不成熟，應該搞可選有人艦——平時人在船上管著，任務危險到一定程度再跳船。節目裡認為這是倒退。空軍在協同作戰飛機上已經聽到飛行員的原話：我開的是隱身機，身邊跟一架機器人飛機只會把注意力引到我這兒來，它為什麼不能去別處吸引火力。艦船同理：機器人船不可能既便宜又跑得一樣快一樣遠，否則就沒必要造；結果是它加油更頻繁、拖慢編隊，捱打時還得分兵保護它。結論是人和機器人要分開用，各做各最擅長的事。Tony 把這叫組合心智——像步兵和坦克那樣互補協同，而不是並排走同一條路、打同一個目標。
+
+[58:24] (Brian) **為對華留的彈藥正在伊朗被撿走** — 伊朗海岸上衝上來一艘 Anduril 的 Dive-LD。它此前在海峽做獵雷，已經工作約四個月，波斯灣最深處也就五百英尺上下，這類大型航行器在淺水裡很難保持深度控制，浮上來就被發現、被打撈——伊朗調來了吊杆和吊車，一支據稱被打殘的軍隊完成了一次完整回收。五角大樓說上面沒有密級物項，但合理假設是美軍硬件一落到伊朗手裡，信息很快流向俄羅斯和中國。更貴的一筆是彈藥：為對華衝突準備的 PrSM、JASSM 打了出去，啞彈和殘骸留在當地，等於既用掉了對華的庫存，又把技術送上門。歷史先例是卡在米格機身裡的響尾蛇導彈後來被蘇聯逆向。
+
+[1:04:39] (Jordan) **算力優勢到物理世界就停住了** — 美方的算力優勢被認為是更持久的權力來源——模型是硬盤上的一串數字，攔不住蒸餾也攔不住偷，但芯片和半導體設備攔得住；至於中國的進展有多大比例來自蒸餾，Jordan 的說法是沒人真的知道，只是明擺著有人願意花這麼多力氣，說明它省時間省錢。問題在於這份優勢往硬實力的轉化。推理側確實吃算力：從五秒一個答案，到會思考，到智能體連幹幾天，到上千個智能體幹幾週。但網絡戰、目標解算、電子戰這些軟件的事之外，最後還是得有東西飛出去、泡在水裡、待在水下。已經出現的反而是人的依賴：伊朗那次學校空襲，操作方假定 Palantir Maven 能識別出數據已經過時——數據庫裡只有舊數據，堆多少算力都還是舊數據。
+
+### 原話 / verbatim quotes
+
+[5:12] Brian: "So he owns half the world from an operational perspective, but no forces to actually do anything with. So, yeah, you're going to be winning without fighting."
+    譯 / zh: 所以從作戰角度他擁有半個世界，卻沒有任何兵力真去做點什麼。那當然了，你只能不戰而勝。
+
+[7:12] Justin: "And we got so behind on payment at one point because we went through a government freeze and FedEx is like a real company and expects to be paid for the services they render that they cut them off."
+    譯 / zh: 有一陣我們欠款欠得太久了——趕上政府凍結經費——而 FedEx 是家正經公司，提供了服務就指望拿到錢，於是直接把我們停了。
+
+[11:15] Brian: "Their decision making processes are organized around the idea of more and more money coming in so they can devote it to a more and more diverse array of startup companies and experimental activities."
+    譯 / zh: 他們的決策流程是圍繞著錢會越來越多這個假設組織起來的，好把錢投給越來越五花八門的初創公司和試驗性項目。
+
+[15:23] Brian: "Nobody wants to be part of a shrinking military. Right. So the Trump administration at the end of its term will be trying to keep the military big and probably at the cost of readiness."
+    譯 / zh: 沒人願意當縮編軍隊裡的一員。所以特朗普政府在任期末尾會力保軍隊的規模，代價很可能是戰備。
+
+[36:25] Tony: "And talking about an AI force is really just saying, I want a group of strategic thinkers to just think about AI all day. And it's like implementation. The more you segregate this from the rest of the force, the worse it's going to be, whether we are talking about the federal government side or the military side."
+    譯 / zh: 談什麼 AI 軍種，說白了就是我想要一群戰略思想家整天琢磨 AI。可關鍵是落地。你把它從部隊其餘部分裡隔離得越徹底，結果就越糟——不管是聯邦政府這一側還是軍隊這一側。
+
+[50:55] Brian: "So for all those reasons, man on man teaming just doesn't work. We got to keep the people and the robots actually separate from one another and use them for what they each do best."
+    譯 / zh: 基於以上所有理由，有人-無人協同根本行不通。我們得把人和機器人真正分開，各自用在它們最擅長的地方。
+
+[58:24] Brian: "we basically have just dumped a bunch of new technology on the Iranians that we were hoping to hold on to for China."
+    譯 / zh: 我們等於是把一堆本打算留著對付中國的新技術，一股腦倒給了伊朗。
+
+[1:06:53] Jordan: "Like you're still stuck with, OK, your command and control is only so good as like the things that you are commanding and controlling, which are physical and in the real world and have to like fly around and get wet."
+    譯 / zh: 你最後還是卡在這兒：你的指揮控制再強，也強不過你所指揮控制的那些東西——它們是實體的、在現實世界裡的，得真的飛起來、得泡在水裡。
+
+### 數字 / figures
+
+- 在航海軍部署在波斯灣/中東的比例: 約 40% [4:11]
+- 節目中提到已消耗的導彈庫存: 30% [4:11]
+- 中東方向的航母與驅逐艦: 2 艘航母、約 16 艘驅逐艦 [4:11]
+- 該地區在航艦船數量: 約 24-25 艘 [6:12]
+- 距中期選舉: 39 天 [10:12]
+- 眾議院民主黨淨增席位預期: 20 至 40 席 [10:12]
+- 參議院民主黨淨增席位預期: 4 席 [10:12]
+- 本年度國防預算規模: 約 1.1 萬億美元 [15:23]
+- 本年度造艦預算: 820 億美元（上一年約 600 億） [15:23]
+- Dive-LD 被伊朗撿到前的運行時長: 約 4 個月 [57:20]
+
+### 術語 / glossary
+
+- work at risk (風險自擔投入): 承包商先拿自有或 VC 的錢墊資開發，指望政府日後給合同付款。
+- FME (foreign material exploitation) (外軍裝備利用): 拿到對手的實物裝備後拆解逆向，榨取技術與情報。
+- CCA (collaborative combat aircraft) (協同作戰飛機): 與有人戰機編組飛行的無人僚機項目。
+- combined minds (組合心智): Tony 造的說法：照合成兵種的邏輯讓人與機器互補協同，而非並排做同一件事。
+- hellscape (地獄景象): 用大量無人系統把臺海變成對手無法通行的戰場的構想。
+
+誰該聽 / who: 關心對華威懾實際家底的投資人、國防科技創業者，以及要判斷明年美國國防預算風向的人。
+可跳過 / skip: 0:00-4:00 的國宴段子，和 1:07 之後的尤克里里民謠。
+標籤 / tags: 國防預算, 無人系統, 印太戰備, AI軍事化, 出口管制
 
 ==============================================================================
 
@@ -2167,6 +2331,87 @@
 誰該聽 / who: 正在考慮單人創業或已經單人創業的創始人，以及做 AI 產品、糾結要不要繼續做 UI 的產品負責人。
 可跳過 / skip: 0:00-9:00 的行業閒聊和 Shopify 類比可以快進。
 標籤 / tags: 單人創始人, AI 創業, 服務業, 產品判斷, 融資
+
+==============================================================================
+
+## 法國國王沒有情婦，於是所有的恨都砸向王后
+
+- URL: https://ourword.ai/podcast/tw/p/2026-09-24-historyhit-法国国王没有情妇-于是所有的恨都砸向王后/
+- 節目 / show: History Hit (https://ourword.ai/podcast/tw/s/historyhit/)
+- 原集標題 / original episode: The 'Scandalous' Life of Marie Antoinette
+- 發布 / published: 2026-09-24 · 時長 / duration: 53:51
+- 文稿來源 / transcript: 音頻轉寫 · 10215 words · timestamps are exact
+- 校驗 / verification: 8 quotes matched verbatim, 10 numbers traced to the transcript, review score 9/10
+
+**君主是神選的，攻擊國王等於叛國，能罵的只有王后和情婦。路易十六偏偏不像歷代法王那樣有情婦，怨恨沒有分流口，全落在瑪麗·安托瓦內特一個人身上。**
+
+為什麼聽 / why: 把「揮霍亡國」的每一環拆開：債務來自兩場戰爭和收不上來的稅，蛋糕那句出自盧梭，造謠的是沒被邀請進小圈子的貴族。
+
+### 核心論點 / points
+
+[11:19] (Kate Williams) **沒有情婦，恨就全砸向王后** — 國王被認為是神選的，公開攻擊他可能算叛國，所以宮廷的怨氣只能找替代出口——王后和情婦，兩個靶子分擔。而路易十六不像別的法國國王，他沒有情婦。Kate Williams 說，這件事本身就讓宮裡很多人惱火：有情婦就有兩條通向國王的路，現在只剩一條。後果是所有本該分成兩份的攻擊全部落在王后身上。這個結構性缺口比任何一條具體指控都重要——後面的揮霍、通姦、叛國罪名能長到那麼大，是因為沒有第二個人分走。
+
+[13:25] (Kate Williams) **蛋糕那句是盧梭寫的，她當年九歲** — 「讓他們吃蛋糕」有三處對不上。原句說的是布里歐修面包；寫下它的是哲學家盧梭，在 1765 年的《懺悔錄》裡——他說自己想去麵包店又嫌衣服太講究，於是想起「一位大公主」說過窮人可以吃布里歐修；而那一年瑪麗·安托瓦內特九歲，人在維也納，法國根本沒人知道她是誰。這句話直到 1840 年代才被安到她頭上，此後再也摘不掉。同一集裡還有一個對照：她的同代人葉卡捷琳娜大帝在革命中給法國王室寫信出主意，說國王就該照自己的意思來，我行我素。
+
+[17:30] (Kate Williams) **她確實花得多，但債不是她花出來的** — Kate Williams 沒有替她全洗：王后花得太多，她母親寫信罵過她；凡爾賽花得太多，國王也花得太多——他們把奢華當成本職，是替法國製造業撐場面。但真正的窟窿在別處：七年戰爭被英國打慘之後的鉅債、稅收體系收不上錢、稅負壓在本來就沒錢的窮人身上、貴族不交稅、中央官僚體系陳舊得吱呀作響。隨後又是北美那場戰爭，錢花光了，英國確實敗了，美洲殖民地獨立了，法國什麼也沒撈到。國債從這時開始失控，而賬記在王后頭上——Madame Deficit。
+
+[20:38] (Kate Williams) **造謠的是沒收到請柬的貴族** — 她不喜歡凡爾賽的等級秩序，又覺得那些人在她多年無子時刻薄過她，於是只和一小圈朋友來往，躲進 Petit Trianon。傳統貴族被排除在外，很惱火——但「沒人請我們去派對」當不了武器。於是同一件事被換了講法：她在那裡假扮牧羊女，還搞各種古怪的縱慾。Kate Williams 指出 Petit Hameau 其實是一座真正運作的農場，給凡爾賽的餐桌供食材，當時貴族裡很流行這麼做，用今天的話說她算個早期的市民農園主。真實版本動員不了任何人，被加工過的版本可以。
+
+[28:01] (Kate Williams) **紅衣主教被判無罪，反而坐實了謠言** — 項鍊案的要害不是騙局本身，是判決。這條 650 顆寶石、150 萬里弗的項鍊她拒絕過兩次，理由是為國王情婦定製、不合她的品味，而且太貴——「我們需要的是船，不是項鍊」。騙子 Jeanne de Lamotte 找來一位巴黎性工作者假扮王后，在凡爾賽花園的夜色裡見紅衣主教 de Rohan，騙到項鍊後轉手賣掉。有朝臣勸國王把事壓下去，國王和王后偏要公開審，想借此自證清白。結果 Jeanne 被判有罪、烙上代表竊賊的 V，de Rohan 卻被無罪釋放——這幾乎等於官方承認，一個人相信自己半夜在花園見到了王后，是合理的。
+
+[43:25] (Kate Williams) **出逃失敗才是不可逆的那一步** — 出逃之前，Kate Williams 估計全國 95%、96% 的人要的只是君主立憲：國王當個花架子，少花錢，接受這個角色。執行卻處處崩壞——為了體面用了一輛很大的馬車；隨行是王后、國王的妹妹、王室女教師和孩子，沒有一個懂得臨機指揮的軍人；先頭接應的 Choiseul 公爵本來就以容易慌著稱，人沒有準點到，他判定計劃取消，讓所有人和馬都散了去睡覺。二十四小時之內被抓。押回巴黎的路上，人們背過身去，沉默地看著他們。此後立憲這條路關閉，剩下的是議會與國王之間的戰爭。
+
+[51:58] (Kate Williams) **殺國王要投票，殺她不用** — 國王經過審判、律師舉證，國民公會投票，以六票之差通過處死，並被允許留出時間禱告。王后沒有這道程序：一場通宵會議上，一位政客兼記者說他已經向人民許諾了瑪麗·安托瓦內特的頭，你們不給他就自己動手割；不給這顆頭，人民就會自己去取。審判裡甚至拋出她與兒子亂倫的指控，她向在場的母親們申辯，Kate Williams 認為場內女性的同情反倒加速了結局——王后一開口太有說服力，委員會更覺得必須儘快除掉她。最後沒有投票，直接決定處決。國王坐馬車赴刑，她坐敞篷囚車。
+
+### 原話 / verbatim quotes
+
+[11:19] Kate Williams: "So they'll attack the wife and they'll attack the mistress. But with no mistress, it's all going to go on the wife."
+    譯 / zh: 所以他們會攻擊妻子，攻擊情婦。但沒有情婦，火就全都燒向妻子。
+
+[13:25] Kate Williams: "The let them eat cake is actually totally untrue. First of all, the quote was about brioche."
+    譯 / zh: 「讓他們吃蛋糕」其實完全不是真的。首先，那句話說的是布里歐修面包。
+
+[20:38] Kate Williams: "it's not going to work for them to say, oh, well, no one invited us to the party."
+    譯 / zh: 他們要是說「唉，沒人請我們去派對」，那是沒用的。
+
+[23:43] Kate Williams: "But sometimes they're just there to be put in a sort of lined up and like a bowling alley and have a ball thrown at them and knocking them down."
+    譯 / zh: 但有時候她們站在那兒就是為了被排成一列，像保齡球道一樣，讓人朝她們扔球，把她們打倒。
+
+[26:57] Kate Williams: "She says we need ships more than we need a necklace."
+    譯 / zh: 她說，我們需要的是船，不是項鍊。
+
+[37:16] Kate Williams: "I would say probably 95, 96 percent of the country want Louis to be a figurehead."
+    譯 / zh: 我會說，大概全國 95%、96% 的人希望路易當一個象徵性的君主。
+
+[49:49] Kate Williams: "i have promised the people the head of marie antoinette and i'll cut it off myself if you don't give it to them"
+    譯 / zh: 我已經向人民許諾了瑪麗·安托瓦內特的頭，你們要是不給，我就自己去割。
+
+[51:58] Kate Williams: "the king went to his execution in a carriage marie antoinette goes in an open cart she is the real enemy of france even though she could never ever be on the throne"
+    譯 / zh: 國王是坐馬車去受刑的，瑪麗·安托瓦內特坐的是敞篷囚車。她才是法國真正的敵人——儘管她永遠不可能繼承王位。
+
+### 數字 / figures
+
+- 瑪麗在母親子女中的排行: 第 15 個孩子 [2:01]
+- 被送到法國宮廷完婚時的年齡: 14 歲 [1:01]
+- 從成婚到確定懷孕的間隔: 確定是 7 年（推測約 3-4 年圓房） [10:19]
+- 成為王后時的年齡: 18 歲 [15:30]
+- 盧梭寫下「吃布里歐修」的年份: 1765 年 [13:25]
+- 鑽石項鍊的寶石數量: 650 顆 [25:52]
+- 鑽石項鍊的價格: 150 萬里弗 [26:57]
+- 三級會議上一次召開: 1614 年 [34:12]
+- 希望國王成為象徵性君主的人口比例: 約 95%-96% [37:16]
+- 處死國王的表決結果: 以 6 票之差通過 [48:46]
+
+### 術語 / glossary
+
+- Petit Hameau (小村莊農場): 凡爾賽內一座真正運作、給宮廷供食材的農場，被漫畫畫成她扮牧羊女。
+- Salic law (薩利克法): 法國王位繼承排除女性，王后永遠只能是配偶，不可能登基。
+- Estates General (三級會議): 貴族、教士與第三等級的代表大會，1614 年後首次重開。
+- flight to Varennes (瓦雷納出逃): 1791 年夏國王一家出逃未遂被捕，君主立憲的可能性自此終結。
+
+誰該聽 / who: 做公關與輿論危機的人、寫非虛構的作者，以及想弄清一個人如何被輿論定罪的讀者。
+可跳過 / skip: 開頭的會員廣告，以及中段兩次相同的節目串場。
+標籤 / tags: 法國大革命, 王權, 輿論, 替罪羊, 宮廷政治, 性別政治
 
 ==============================================================================
 
@@ -4369,6 +4614,82 @@
 誰該聽 / who: 關注國際援助、非營利組織品牌與運營、以及地緣政治如何傳導到糧食和能源供應鏈的創業者和投資人。
 可跳過 / skip: 16:53 到 18:59 是贊助商廣告和另一檔播客的推廣，可以跳過。
 標籤 / tags: 人道援助, 品牌重塑, 地緣政治, 糧食安全, AI 應用
+
+==============================================================================
+
+## 青少年友誼崩潰，不是依戀出了問題，而是文化不獎勵關懷
+
+- URL: https://ourword.ai/podcast/tw/p/2026-09-22-secureattach-青少年友谊崩溃-不是依恋出了问题-而是文化不奖励关怀/
+- 節目 / show: Securely Attached (https://ourword.ai/podcast/tw/s/secureattach/)
+- 原集標題 / original episode: The connection crisis: Why kids are struggling with friendship and what parents can do with Dr. Niobe Way
+- 發布 / published: 2026-09-22 · 時長 / duration: 1:06:40
+- 文稿來源 / transcript: 音頻轉寫 · 12346 words · timestamps are exact
+- 校驗 / verification: 7 quotes matched verbatim, 5 numbers traced to the transcript, review score 7/10
+
+**四十年追蹤發現，安全依戀只是保護因素：活在把成績和競爭看得比關懷更重的文化裡，再安全的依戀也救不了青春期的連接危機。**
+
+為什麼聽 / why: 如果你信奉「打好依戀基礎就萬事大吉」,這集會告訴你為什麼這還不夠，以及具體能做的幾件小事。
+
+### 核心論點 / points
+
+[5:28] (Niobe Way) **依戀的紐帶比食物水更基礎** — Way 說，依戀理論過去把「關係」放在馬斯洛需求金字塔底部，和食物、住所並列同等重要；但現在的說法更進一步——關係紐帶其實比食物和水更重要，因為正是那個「有人在照顧你」的關係，才讓你有機會拿到食物和水。嬰兒從出生第一年就表現出對「誰在幫助誰」的敏感：實驗裡，當有人不幫助別人時，嬰兒會轉過頭去、露出不安。
+
+[8:47] (Niobe Way) **三四歲小孩天生會關懷、合作、好奇** — Way 的研究發現，三到五歲的孩子已經具備三種核心能力：關懷(不只是父母照顧孩子，孩子也在關心父母和彼此)、合作，以及長期被忽視的「好奇」——三歲小孩會問「你的大腦想的事情和我一樣嗎，因為我們是一家人？」,四歲小孩會當面問媽媽「你難過的時候為什麼還要笑？」。這些能力是與生俱來的，不是教出來的，但成長過程中會被文化磨掉。
+
+[26:20] (Niobe Way) **男孩渴望的深度友誼會在青春期中段消失** — Way 幾十年追蹤同一批男孩發現一條清晰軌跡：12到14歲時，男孩會直接說自己渴望「深度秘密友誼」——能脆弱、不怕被嘲笑的那種關係，說法和女孩幾乎一樣，推翻了「男孩只想運動、女孩才想談心」的刻板印象。但到了青春期中後期，同一批男孩開始退縮、疏遠，說很難再找到能信任成那樣的朋友，甚至乾脆放棄尋找。這個從渴望到放棄的轉變，她稱為「連接危機」。
+
+[28:24] (Niobe Way) **情感被貼上「娘」的標籤，是危機的根源** — 男孩們後來會說出連接危機背後的原因：「當女孩子說不定更好，那樣就不用總是沒有情緒了」——這句話暴露的是一種把情感等同於「娘」、把不分享感受等同於「成熟」的文化。Way 強調這不只是男孩的處境：現在女孩報告的「必須man up」的壓力幾乎和男孩一樣大，因為整個文化把「硬」的東西(理性、獨立、競爭)系統性地看得比「軟」的東西(情感、連接)更重要。
+
+[31:34] (Niobe Way) **心理健康是社會健康出問題後的症狀** — Way 的核心論斷：心理健康不是根源問題，而是「社會健康」出問題後的症狀——但公共衛生話語裡幾乎沒有「社會健康」這個概念，只有心理健康和身體健康。她講了一個例子：給一群十歲孩子提問「什麼能預測心理健康」,一個五年級男孩脫口而出「別人怎麼對待你」,另一個孩子補充說朋友對你不好你就不會感覺良好——她感嘆，做了近四十年研究才拿到的結論，十歲孩子憑直覺就說出來了。據此她提出：養育孩子唯一該聚焦的事就是幫他們建立健康關係，其餘的都會自然跟上。
+
+[37:42] (Niobe Way) **安全依戀是保護因素，但撐不住反社會文化** — 面對主持人「打好依戀基礎是否就夠了」的追問，Way 承認依戀理論確實有近一個世紀研究支持，安全依戀能帶來更好的關係質量，是重要的保護因素。但她隨即劃出限制：如果整個大文化把錢看得比人重、把「硬技能」看得比「軟技能」值錢，那麼就算孩子安全依戀，也不必然帶來健康關係——因為周圍所有人都在爭著往上爬，沒人對彼此保持好奇，沒人真正在用這些關係技能去連接別人。她說依戀更像是蛋糕上的糖霜，不是蛋糕本身。
+
+[48:07] (Niobe Way) **不帶評判地問孩子在看什麼，比勸他別看更有效** — Way 給出具體做法：與其一上來就想把孩子從 Instagram、TikTok 上拉走，不如先帶著好奇去了解他們在關注誰、為什麼關注。她舉自己的例子——女兒一直追一個教化妝的博主，她原以為是浪費時間，忍不住問女兒為什麼老看她，女兒答「我很喜歡她的聲音，特別能讓我平靜下來」。她說，這種非評判式的好奇一旦開始，孩子會感覺「被看見」,而「被看見」之後的反應幾乎總是一樣的：孩子會反過來對你產生好奇，開始問你的事。
+
+[59:26] (Niobe Way) **換位思考能力正在下降，而它才是數學的底子** — Way 提到一項全國性研究(她在《紐約客》上讀到)顯示，美國人換位思考的能力正在下降。她認為這正是因為社會把換位思考當成「軟技能」、把學數學當成「硬技能」,卻沒意識到換位思考本身就是學好高階數學所需要的能力——無論是做數學抽象，還是像這場對話裡她同時想著主持人、聽眾、製作人的需求，本質上都是同一種「跳出已知、站到別人角度想問題」的能力。結尾她給家長的具體建議是：從今天開始，問對方一句「你最喜歡的童年回憶是什麼」,然後讓對方也問回你。
+
+### 原話 / verbatim quotes
+
+[0:00] Niobe Way: "Even being securely attached in an antisocial culture doesn't necessarily produce healthy relationships because everybody's just trying to get on top and nobody's curious with each other and they're not using their skills to connect to other people."
+    譯 / zh: 就算在反社會文化裡擁有安全依戀，也不一定能帶來健康的關係，因為每個人都在爭著往上爬，沒人對彼此保持好奇，也沒人真正在用這些技能去連接別人。
+
+[5:28] Niobe Way: "They're saying that actually the attachment, the bond, that someone's taking care of you relationship is actually more important than water and food because they give you water and food."
+    譯 / zh: 現在的說法是，依戀、那個紐帶、有人在照顧你這件事，其實比水和食物更重要，因為正是它才能讓你獲得水和食物。
+
+[28:24] Niobe Way: "boys will say things like it might be nice to be a girl. Cause then I wouldn't have to be emotionless."
+    譯 / zh: 男孩們會說，當女孩子說不定更好，那樣我就不用總是表現得沒有情緒。
+
+[31:34] Niobe Way: "parenting should only be focused on helping your children have healthy relationships. That's it. Everything else will fall into place."
+    譯 / zh: 養育孩子應該只聚焦於一件事：幫他們建立健康的關係。就這一件事。其餘的一切都會自然跟上。
+
+[33:37] Niobe Way: "but it's just so obvious how people treat you and how your friends treat you. If they don't treat you well, you're not going to feel good about yourself."
+    譯 / zh: 但這不是很明顯嗎，別人怎麼對你、朋友怎麼對你——如果他們對你不好，你當然不會覺得自己好。
+
+[38:44] Niobe Way: "even being attached, securely attached in an antisocial culture doesn't, doesn't necessarily produce a healthy relationships, because everybody's just trying to get on top and nobody's curious with each other"
+    譯 / zh: 就算是安全依戀，活在反社會文化裡也不一定能帶來健康的關係，因為每個人都在爭著往上爬，沒人對彼此保持好奇。
+
+[59:26] Niobe Way: "our capacity to see the perspective of the other person is declining. It's declining."
+    譯 / zh: 我們理解他人視角的能力正在下降，確實在下降。
+
+### 數字 / figures
+
+- 認為父母重學業輕善良的孩子比例: 80% [29:25]
+- Listening with Curiosity 課程節數: 26 節 [53:17]
+- 好奇傾聽的具體實踐數量: 9 項 [54:21]
+- Social Health Institute 培訓師人數: 8 人 [1:02:28]
+- Way 追蹤青少年友誼數據的起始年份: 1987 年 [22:10]
+
+### 術語 / glossary
+
+- social health (社會健康): 指人際關係質量本身作為一個獨立的健康維度，與心理健康、身體健康並列
+- antisocial culture (反社會文化): 指不重視人的社會天性、把成績金錢看得比關懷連接更重要的整體文化，不是指反社會人格
+- crisis of connection (連接危機): 青少年從渴望深度友誼到主動放棄尋找、彼此疏遠的轉變過程
+- relational intelligence (關係智力): 區別於情緒智力(自我導向),指專門用於建立人際連接的認知社會情感能力
+- metacognition (元認知): 對自己思考過程的思考能力，三歲左右開始出現
+
+誰該聽 / who: 關注孩子社交情緒發展的家長、兒童心理諮詢師，以及信奉依戀理論但想知道「打好依戀基礎之後呢」的人。
+可跳過 / skip: 35:41-36:42 是贊助商廣告插播，可以跳過。
+標籤 / tags: 依戀理論, 青少年友誼, 社會情緒學習, 好奇心, 育兒, 心理健康
 
 ==============================================================================
 
