@@ -54,8 +54,36 @@ def _rev() -> dict:
     return out
 
 
+def cloud_down(path="data/heartbeat-cloud.json", max_age_h: float = 10) -> str:
+    """云端这条线还在出稿吗？在出返回空串，停了返回一句原因。
+
+    本机线决定要不要接班（local-daily.sh 的 CLOUD_DOWN）、体检判「住宅之外那批有没有人管」
+    （check_every_source_has_a_producer）**用的是这同一个函数**。原来两边各写一份：本机按
+    「深读关着 / 最后一轮失败 / 10 小时没心跳」判，体检只认「深读关着」—— 云端因为别的原因停了、
+    本机又没接全站时，体检一声不响。
+    """
+    import datetime as _d
+    try:
+        h = json.loads(pathlib.Path(path).read_text())
+    except Exception:
+        return "没有云端心跳"
+    if h.get("llm") == "off":
+        return "云端深读关着（%s）" % (h.get("why") or "没有凭据")
+    if h.get("exit") not in (0, "0", None):
+        return "云端最后一轮失败（%s）" % (h.get("why") or "退出码 %s" % h.get("exit"))
+    try:
+        at = _d.datetime.fromisoformat(str(h["at"]).replace("Z", "+00:00"))
+        age = (_d.datetime.now(_d.timezone.utc) - at).total_seconds() / 3600
+    except Exception:
+        return "云端心跳读不出时间"
+    if age > max_age_h:
+        return "云端 %.0f 小时没有心跳" % age
+    return ""
+
+
 def write(line: str, exit_code: int, published: int | None = None,
-          why: str | None = None, llm: str | None = None) -> pathlib.Path:
+          why: str | None = None, llm: str | None = None,
+          scope: str | None = None) -> pathlib.Path:
     eps = len(list((ROOT / "data" / "episodes").glob("*.json")))
     rec = {
         "at": dt.datetime.now(dt.timezone.utc)
@@ -69,6 +97,8 @@ def write(line: str, exit_code: int, published: int | None = None,
         rec["published"] = int(published)
     if llm:
         rec["llm"] = llm      # "off"：这条线有意不跑模型（比如云端没有凭据），不是故障
+    if scope:
+        rec["scope"] = scope  # all / residential / only：全站、只有住宅 IP 那批、手动 --only 跑的几档
     if why:
         # 非零退出时写清楚**为什么**。只有退出码的话，体检只能说"这条线坏了"，
         # 说不出"坏在哪"，而排查要从头看一遍日志。
@@ -85,12 +115,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--published", type=int, default=None)
     ap.add_argument("--why", default=None, help="非零退出时，一句话说明原因")
     ap.add_argument("--llm", default=None, help="off = 这条线有意不跑模型（不是故障）")
+    ap.add_argument("--scope", default=None, choices=("all", "residential", "only"),
+                    help="这一轮管的信源范围")
     a = ap.parse_args(argv)
     try:
         code = int(a.exit_code)
     except ValueError:
         code = 1
-    p = write(a.line, code, a.published, a.why, a.llm)
+    p = write(a.line, code, a.published, a.why, a.llm, a.scope)
     # 打出来：心跳失效过一次就是因为它一声不响
     print(f"心跳已写 {p.relative_to(ROOT)}（退出码 {code}）")
     return 0

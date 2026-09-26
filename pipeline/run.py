@@ -488,7 +488,8 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
             state["fp"][fp] = key            # claim it before the slow work starts
     if claimed is not None and claimed != key:
         log(f"    duplicate of {claimed} — same episode from another source")
-        state["done"][key] = {"skip": "duplicate", "of": claimed, "at": iso(now())}
+        state["done"][key] = {"skip": "duplicate", "of": claimed, "at": iso(now()),
+                              "src": s["id"], "pub": iso(ep["published"])}
         return "duplicate"
 
     # 选题闸门放在取稿之前：只喂标题和节目介绍（约 600 token），比下载音频、
@@ -533,6 +534,9 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
                                       # 尺子的指纹：尺子一改，这条判决自动不算数
                                       "rubric": v.get("rubric"),
                                       "title": ep["title"][:120], "src": s["id"],
+                                      # 这一集在原平台的发布时间：体检用它判「最新一集看过没有」。
+                                      # 只有判决时间（at）的话，同一天先判掉一集旧的也会被当成看过新的。
+                                      "pub": iso(ep["published"]),
                                       "at": iso(now())}
                 _release(state, fp, key)
                 return "off-brief"

@@ -18,6 +18,12 @@
 # 卸掉：
 #   launchctl unload ~/Library/LaunchAgents/com.ourword.podcast.plist
 set -uo pipefail
+# 启动时的原始环境（launchd 给的那几个变量），在导出任何东西之前记下来。
+# 下面「拉下了新版就用新版跑」要用它：exec 会把这一轮已经导出的变量原样带进新脚本，
+# 而新脚本用 `: "${X:=默认}"` 设默认值 —— 看到「已经有值」就不改了。2026-09-26 10:30 那轮：
+# 旧脚本导出了 LLM_MODEL_TRIAGE=sonnet / LLM_MODEL_REVIEW=opus / LLM_MODEL=opus，新脚本的
+# haiku 一个都没生效，横幅上写着「选题 sonnet / 评审 opus」。
+ORIG_ENV=$(export -p)
 
 # BASH_SOURCE 可能为空（被 source 进来、或从 stdin 执行），那样会算出 /
 REPO="${PODCAST_REPO:-}"
@@ -157,6 +163,7 @@ d["at"] = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:
 d["exit"] = 1
 d["published"] = 0
 d["why"] = f"同步失败，落后 origin/main {sys.argv[1]} 个提交；本轮拒绝深读"
+d.pop("scope", None)   # 这一轮什么源都没管：上一轮的范围不能留着冒充
 p.write_text(json.dumps(d, ensure_ascii=False, indent=1) + "\n")
 PYEOF
     exit 1
@@ -188,30 +195,35 @@ PYEOF
   if [ -z "${PODCAST_REEXEC:-}" ] && [ -n "$START_REV" ] \
      && ! git diff --quiet "$START_REV" HEAD -- scripts/local-daily.sh 2>/dev/null; then
     echo "这次同步更新了 local-daily.sh（$START_REV → $(git rev-parse --short HEAD)），用新版重新执行"
-    exec env PODCAST_REEXEC=1 bash "$REPO/scripts/local-daily.sh" >/dev/null 2>&1
+    # env -i + 原始环境：新脚本从 launchd 给的那一份环境起步，不继承旧脚本导出的任何东西
+    exec env -i /bin/bash -c 'eval "$1"; export PODCAST_REEXEC=1; exec bash "$2"' _ \
+         "$ORIG_ENV" "$REPO/scripts/local-daily.sh" >/dev/null 2>&1
   fi
 
-  # **云端停了，本机接班。** 云端最后一轮失败（心跳退出码非 0），或 10 小时没有心跳，这一轮就多出
-  # 几篇、全站信源都管。不然云端一停，它那 45 档源就跟着停 —— 2026-09-25 停用 DeepSeek 之后云端
-  # 没有 Claude 的 key，连败三轮，站上只剩本机每轮 2 篇。云端恢复、心跳正常了就自动退回 2 篇。
+  # **云端停了，本机接班。** 云端深读关着（心跳 llm=off）、最后一轮失败，或 10 小时没有心跳，
+  # 这一轮就多出几篇、**全站信源都管**。不然云端一停，它那 49 档源就跟着停 —— 2026-09-25 停用
+  # DeepSeek 之后云端没有 Claude 的 key，站上只剩本机那一批。云端恢复了就自动退回。
+  #
+  # 「全站都管」这四个字在注释里写了一天，代码里没有：接班只调大了篇数，--only-residential 还在，
+  # Odd Lots / Dwarkesh / Acquired 这些只归云端的源一篇都轮不到。守护也只查了篇数那一行。
+  # 现在：接班清掉 ONLY_RESIDENTIAL、补课也放开范围，心跳记下这一轮管的是 all 还是 residential，
+  # 体检在「云端深读关着、本机又只管住宅那批」时报硬伤（check_every_source_has_a_producer）。
   # 不用 heredoc：这段在管道块里，heredoc 在这里出过「单独跑正常、真跑批一声不响」的事故。
-  CLOUD_DOWN=$(python3 -c 'import json, datetime as d
-try:
-    h = json.load(open("data/heartbeat-cloud.json"))
-except Exception:
-    print("没有云端心跳"); raise SystemExit
-age = (d.datetime.now(d.timezone.utc) - d.datetime.fromisoformat(h["at"].replace("Z", "+00:00"))).total_seconds() / 3600
-if h.get("llm") == "off":
-    print("云端深读关着（%s）" % (h.get("why") or "没有凭据"))
-elif h.get("exit") not in (0, "0", None):
-    print("云端最后一轮失败（%s）" % (h.get("why") or "退出码 %s" % h.get("exit")))
-elif age > 10:
-    print("云端 %.0f 小时没有心跳" % age)' 2>/dev/null)
+  # 判据在 pipeline/heartbeat.py 的 cloud_down()：体检判「住宅之外那批有没有人管」用的是同一个函数。
+  CLOUD_DOWN=$(python3 -c 'import sys; sys.path.insert(0, "pipeline"); from heartbeat import cloud_down; print(cloud_down())' 2>/dev/null)
+  SCOPE=residential
+  CATCHUP_ONLY="--only-residential"
+  [ -z "$ONLY_RESIDENTIAL" ] && SCOPE=all && CATCHUP_ONLY=""
   if [ -n "$CLOUD_DOWN" ]; then
     : "${TAKEOVER_LIMIT:=8}"
-    echo "$CLOUD_DOWN —— 本机接班：这一轮最多 $TAKEOVER_LIMIT 篇（平时 $LIMIT 篇）"
+    echo "$CLOUD_DOWN —— 本机接班：这一轮全站信源都管、最多 $TAKEOVER_LIMIT 篇（平时只管住宅 IP 那批、$LIMIT 篇）"
     LIMIT=$TAKEOVER_LIMIT
+    ONLY_RESIDENTIAL=""
+    SCOPE=all
+    CATCHUP_ONLY=""
   fi
+  # 手动 ONLY=… 只跑那几档：别记成「全站都管了」（体检会把它当成住宅之外那批有人管）
+  [ -n "$ONLY" ] && SCOPE=only
 
   ONLY_ARG=""
   [ -n "$ONLY" ] && ONLY_ARG="--only $ONLY"
@@ -228,7 +240,7 @@ elif age > 10:
   # 体检脚本读的就是这个文件（见 pipeline/healthcheck.py）。
   # 心跳换成正式脚本，不再用 heredoc：第一版嵌在被管道接走的花括号块里，
   # 单独执行正常、真跑批却一声不响地没写出文件。心跳自己静默失效等于白做。
-  python3 pipeline/heartbeat.py local "$rc" || echo "心跳没写成（不致命，但要查）"
+  python3 pipeline/heartbeat.py local "$rc" --scope "$SCOPE" || echo "心跳没写成（不致命，但要查）"
 
   # residential 源的体检只能在这里做：它们在机房 IP 上必然 403，云端那边的每周
   # 体检对它们没有意义（而且曾经把四档主力源刷到 2/3 次连续失败，差一次就被
@@ -310,7 +322,7 @@ PYEOF
   # 补课（给新源补存量）是 token 大头：有 API key 时一轮 24；走订阅额度时按「最省 token」只放 4，
   # 额度先给新集（2026-09-26 用户要求）。新集排在补课之前，补课撞上上限也挤不掉新集。
   if [ -n "${LLM_API_KEY:-}" ]; then : "${CATCHUP_LIMIT:=24}"; else : "${CATCHUP_LIMIT:=4}"; fi
-  python3 pipeline/run.py --catchup 30 --only-residential --no-build \
+  python3 pipeline/run.py --catchup 30 $CATCHUP_ONLY --no-build \
       --per-source 2 --limit "$CATCHUP_LIMIT" --triage-min 7 --review-min 7 $EXTRA || true
 
   # ---- 每周一趟：YouTube 观察名单 ----

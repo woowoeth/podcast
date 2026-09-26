@@ -193,6 +193,44 @@ def check_heartbeats(r: Report) -> None:
                f"都可能因此失真")
 
 
+def check_every_source_has_a_producer(r: Report) -> None:
+    """每一档信源都得有一条线在给它出稿。
+
+    本机线平时只管住宅 IP 那批（--only-residential），其余的归云端。云端深读关着（没有模型凭据）时，
+    那批源只能靠本机接班时接全站。2026-09-26 查出：接班只调大了篇数、没放开范围，49 档源
+    （含 Odd Lots、Dwarkesh、Acquired 这些必看源）没有任何一条线在出稿 —— 两条线的心跳都是绿的，
+    热门那条要等它们落后三天才会响。这一条直接问「这一轮本机管了哪些源」。
+    """
+    import sys as _s
+    _s.path.insert(0, str(ROOT / "pipeline"))
+    from heartbeat import cloud_down        # 和本机线决定接班用的是同一个判断
+    why = cloud_down(DATA / "heartbeat-cloud.json")
+    if not why:
+        return                      # 云端在出稿：住宅之外那批归它
+    try:
+        local = json.loads((DATA / "heartbeat-local.json").read_text())
+        srcs = json.loads((DATA / "sources.json").read_text())
+    except Exception:
+        return                      # 心跳缺失、读不出来：check_heartbeats 已经报了
+    if local.get("exit") not in (0, "0", None):
+        return                      # 本机最后一轮失败：check_heartbeats 已经报了硬伤
+    srcs = srcs.get("sources", srcs) if isinstance(srcs, dict) else srcs
+    rest = [s for s in srcs if not s.get("residential")]
+    scope = local.get("scope")
+    if scope == "all":
+        r.good(f"{why}，本机最后一轮管了全站 {len(srcs)} 档信源")
+    elif scope in (None, "only"):
+        # 没记范围（修复之前的脚本）、或最后一轮是手动的 --only：看不出来，不猜。
+        # 本机心跳超时由 check_heartbeats 兜住，所以这个「看不出」最多持续到本机下一轮定时跑批。
+        r.note(f"{why}；本机最后一轮{'是手动 --only 跑批' if scope else '没记下信源范围'}，"
+               f"看不出住宅之外那 {len(rest)} 档有没有人管 —— 下一轮定时跑批才看得出")
+    else:
+        must = [src_name for s in rest if s.get("tier") == 1
+                for src_name in [s.get("zh") or s.get("name") or s["id"]]]
+        r.fail(f"{why}，本机最后一轮只管了住宅 IP 那批 —— 其余 {len(rest)} 档没有任何一条线在出稿"
+               + (f"（必看源：{'、'.join(must[:6])}）" if must else ""))
+
+
 def check_hot_sources_keep_up(r: Report) -> None:
     """首页「热门」那几档：原平台出了新集，本站跟上没有。
 
@@ -211,13 +249,26 @@ def check_hot_sources_keep_up(r: Report) -> None:
         r.note(f"热门信源的更新检查没跑成（{type(ex).__name__}）")
         return
     import datetime as _dt
+    # 按规则没做的也算跟上：原平台上最新那一集（按**它的发布日期**，不是我们判它的时间）判过、
+    # 结果是不做（赞助访谈、选题不过、重复）。原来只比「本站最新一篇」，硅谷101 最新那集是
+    # 赞助访谈、按规则跳过，被报成「没跟上原平台」—— 提醒里混着假的，真的也就没人看了。
+    # 只认带 pub 的跳过记录（run.py 从 2026-09-26 起写）：用判决时间凑的话，同一天先判掉一集
+    # 旧的、或者尺子一改把旧判决重判一遍，都会把真落后的源当成跟上了。
+    judged = {}
+    try:
+        for k, v in (json.loads((DATA / "state.json").read_text()).get("done") or {}).items():
+            if isinstance(v, dict) and v.get("skip") and v.get("pub"):
+                sid = v.get("src") or k.rsplit("-", 1)[0]
+                judged[sid] = max(judged.get(sid, ""), v["pub"][:10])
+    except Exception:
+        pass
     late = []
     for row in rows:
         up = ((row["src"].get("status") or {}).get("latest") or "")[:10]
         if not up or not row["latest"]:
             continue
         gap = (_dt.date.fromisoformat(up) - _dt.date.fromisoformat(row["latest"])).days
-        if gap > 3:
+        if gap > 3 and judged.get(row["src"].get("id"), "") < up:
             late.append(f"{_b.src_display(row['src'])}（原平台 {up}，本站 {row['latest']}）")
     if len(late) * 2 > len(rows):
         r.fail(f"热门 {len(rows)} 档里 {len(late)} 档没跟上原平台 —— 不是某一档的问题，是管线停了："
@@ -1368,6 +1419,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  ok    {m}")
         return 1 if r.bad else 0
     check_heartbeats(r)
+    check_every_source_has_a_producer(r)
     check_hot_sources_keep_up(r)
     check_content_freshness(r)
     check_build_consistency(r)

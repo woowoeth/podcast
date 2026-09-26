@@ -4851,9 +4851,11 @@ class NewSourcesMustGetAnArchive(unittest.TestCase):
                       f"白失败：{cloud[:110]}")
         local = call((ROOT / self.LINES["local-daily.sh"]).read_text())
         self.assertTrue(local, "local-daily.sh 里 --catchup 只出现在注释里")
-        self.assertIn("--only-residential", local,
-                      f"本机的建档没限定 residential —— 会和云端重复劳动："
-                      f"{local[:110]}")
+        # 云端在出稿时本机只补住宅那批（不重复劳动）；云端深读关着时本机全站都补，否则只归云端的
+        # 新源永远建不起档。范围由 $CATCHUP_ONLY 决定 —— 两种状态下它实际是什么，
+        # test_the_takeover_covers_every_source_not_just_more_episodes 跑真代码验过。
+        self.assertTrue("--only-residential" in local or "$CATCHUP_ONLY" in local,
+                        f"本机的建档没限定范围 —— 云端正常时会和云端重复劳动：{local[:110]}")
 
     def test_catchup_targets_only_under_covered_new_sources(self):
         """判据从账本推导：最后一条是 added、且已发布不足 min_eps。
@@ -10190,7 +10192,8 @@ class SourcesKeepUpdatingWhenOneLineStops(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmp:
                 (pathlib.Path(tmp) / "data").mkdir()
                 (pathlib.Path(tmp) / "data" / "heartbeat-cloud.json").write_text(json.dumps(hb))
-                out = subprocess.run([sys.executable, "-c", code], cwd=tmp, capture_output=True, text=True).stdout.strip()
+                out = subprocess.run([sys.executable, "-c", code], cwd=tmp, capture_output=True, text=True,
+                                     env={**os.environ, "PYTHONPATH": str(ROOT / "pipeline")}).stdout.strip()
             if want:
                 self.assertIn(want, out, f"云端{name}时本机没接班：{out!r}")
             else:
@@ -10221,6 +10224,144 @@ class SourcesKeepUpdatingWhenOneLineStops(unittest.TestCase):
                 if llm == "off":
                     self.assertIn("深读关着", text, "云端深读关着，体检一个字都没提")
 
+    def _run_block(self, start, end, env):
+        """把 local-daily.sh 里 start 到 end 之间那段**真代码**拿出来在 bash 里跑。"""
+        import subprocess
+        sh = self._local()
+        i = sh.index(start)
+        j = sh.index(end, i)
+        code = sh[i:j] + '\nprintf "%s|%s|%s|%s" "$ONLY_ARG" "$SCOPE" "$CATCHUP_ONLY" "$LIMIT"'
+        return subprocess.run(["bash", "-c", code], env={"PATH": "/usr/bin:/bin", **env},
+                              capture_output=True, text=True).stdout.strip().splitlines()[-1].split("|")
+
+    def test_the_takeover_covers_every_source_not_just_more_episodes(self):
+        """接班要**全站信源都管**，不只是多发几篇。
+
+        2026-09-26 查出：注释写着「全站信源都管」，代码只把 LIMIT 调大，--only-residential 还在 ——
+        只归云端的 49 档（Odd Lots、Dwarkesh、Acquired……）没有任何一条线出稿。上面那条测试只查了
+        LIMIT=$TAKEOVER_LIMIT 那一行，于是一直是绿的。这里跑真代码，看 run.py 实际拿到的参数。"""
+        start, end = "  SCOPE=residential", "  python3 pipeline/run.py $ONLY_ARG"
+        base = {"ONLY_RESIDENTIAL": "1", "ONLY": "", "LIMIT": "6"}
+        only, scope, catch, limit = self._run_block(start, end, {**base, "CLOUD_DOWN": "云端深读关着"})
+        self.assertNotIn("--only-residential", only, "云端停了，本机接班却还是只跑住宅 IP 那批")
+        self.assertEqual((scope, catch, limit), ("all", "", "8"), "接班时心跳范围 / 补课范围 / 篇数不对")
+        only, scope, catch, limit = self._run_block(start, end, {**base, "CLOUD_DOWN": ""})
+        self.assertIn("--only-residential", only, "云端正常时本机也跑全站 —— 和云端重复劳动")
+        self.assertEqual((scope, catch, limit), ("residential", "--only-residential", "6"))
+        only, scope, catch, limit = self._run_block(start, end, {**base, "ONLY": "sv101", "CLOUD_DOWN": "云端深读关着"})
+        self.assertEqual(scope, "only", "手动 ONLY= 只跑几档，却记成了全站都管")
+        sh = self._local()
+        self.assertIn('python3 pipeline/run.py --catchup 30 $CATCHUP_ONLY', sh, "补课没跟着放开范围")
+        self.assertIn('heartbeat.py local "$rc" --scope "$SCOPE"', sh, "心跳没记这一轮管了哪些源")
+
+    def test_rerunning_the_new_script_starts_from_the_launchd_environment(self):
+        """拉下新版后 exec 新脚本：新脚本不许继承旧脚本导出的变量。
+        2026-09-26 10:30：旧脚本导出的 LLM_MODEL_TRIAGE=sonnet 等被带进新脚本，
+        新脚本的 `: "${X:=haiku}"` 一个都没生效。"""
+        import subprocess, tempfile, os as _os
+        sh = self._local()
+        cap = re.search(r"^ORIG_ENV=\$\(export -p\)$", sh, re.M)
+        ex = re.search(r"^\s*exec env .*?local-daily\.sh\" >/dev/null 2>&1$", sh, re.M | re.S)
+        self.assertTrue(cap and ex, "找不到「记下原始环境」或「用原始环境重新执行」那两行")
+        self.assertLess(cap.start(), sh.index("export PATH="), "原始环境要在导出任何东西之前记下")
+        with tempfile.TemporaryDirectory() as tmp:
+            _os.makedirs(f"{tmp}/scripts")
+            open(f"{tmp}/scripts/local-daily.sh", "w").write(f'env > "{tmp}/env.txt"\n')
+            code = (cap.group(0) + "\nexport LLM_MODEL_TRIAGE=sonnet LIMIT=99\n"
+                    + f'REPO="{tmp}"\n' + ex.group(0).strip().replace(" >/dev/null 2>&1", ""))
+            subprocess.run(["bash", "-c", code], env={"PATH": "/usr/bin:/bin", "HOME": tmp, "LIMIT": "6"},
+                           capture_output=True, text=True, timeout=20)
+            got = dict(l.split("=", 1) for l in open(f"{tmp}/env.txt").read().splitlines() if "=" in l)
+        self.assertNotIn("LLM_MODEL_TRIAGE", got, "旧脚本导出的模型设置漏进了新脚本")
+        self.assertEqual(got.get("LIMIT"), "6", "launchd 给的变量被旧脚本改过的值覆盖了")
+        self.assertEqual(got.get("PODCAST_REEXEC"), "1", "新脚本不知道自己是重新执行的，会无限重启")
+        self.assertEqual(got.get("HOME"), tmp)
+
+    def test_the_healthcheck_knows_when_nobody_covers_the_rest(self):
+        """云端停了（任何一种停法）、本机又只管住宅那批 → 硬伤；云端在出稿时不许报。
+        判「云端停了」和本机决定接班用同一个函数（heartbeat.cloud_down）。"""
+        import tempfile, importlib, datetime as dt, unittest.mock as mock
+        hc = importlib.import_module("healthcheck")
+        iso = lambda h: (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=h)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        srcs = [{"id": "odd", "residential": False, "tier": 1, "name": "Odd Lots"},
+                {"id": "sv", "residential": True, "tier": 1}]
+        off = {"at": iso(1), "exit": 0, "llm": "off"}
+        cases = [  # (云端心跳, 本机心跳, 该记在哪)
+            (off, {"exit": 0, "scope": "residential"}, "bad"),
+            (off, {"exit": 0, "scope": "all"}, "ok"),
+            (off, {"exit": 0}, "warn"),
+            (off, {"exit": 0, "scope": "only"}, "warn"),
+            (off, {"exit": 1, "scope": "all"}, None),          # 本机失败由 check_heartbeats 报，这里不许说「管了全站」
+            ({"at": iso(1), "exit": 1}, {"exit": 0, "scope": "residential"}, "bad"),
+            ({"at": iso(12), "exit": 0}, {"exit": 0, "scope": "residential"}, "bad"),
+            ({"at": iso(1), "exit": 0}, {"exit": 0, "scope": "residential"}, None),   # 云端在出稿：正常状态，一个字都不许说
+        ]
+        for cloud, local, want in cases:
+            with tempfile.TemporaryDirectory() as tmp:
+                d = pathlib.Path(tmp)
+                (d / "heartbeat-cloud.json").write_text(json.dumps(cloud))
+                (d / "heartbeat-local.json").write_text(json.dumps({"at": iso(1), **local}))
+                (d / "sources.json").write_text(json.dumps(srcs))
+                r = hc.Report()
+                with mock.patch.object(hc, "DATA", d):
+                    hc.check_every_source_has_a_producer(r)
+            got = {"bad": r.bad, "ok": r.ok, "warn": r.warn}
+            tag = f"云端 {cloud} / 本机 {local}"
+            if want is None:
+                self.assertEqual(got, {"bad": [], "ok": [], "warn": []}, f"{tag}：这个状态不该出声")
+                continue
+            self.assertTrue(got[want], f"{tag}：应该记在 {want}，实际 {got}")
+            if want == "bad":
+                self.assertIn("Odd Lots", r.bad[0], "硬伤里要点名没人管的必看源")
+            else:
+                self.assertFalse(r.bad, f"{tag} 不该报硬伤：{r.bad}")
+
+    def test_the_producer_check_is_wired_in(self):
+        src = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        main = src[src.index("\ndef main("):]
+        self.assertIn("check_every_source_has_a_producer(r)", main, "检查写了没接进体检")
+
+    def test_the_takeover_owns_the_scope_variables(self):
+        """SCOPE / CATCHUP_ONLY 只在接班那一段里赋值：在它和补课、心跳之间再改一次，
+        上面那条跑真代码的测试就看不到了。"""
+        sh = self._local()
+        i = sh.index("  SCOPE=residential")
+        j = sh.index("  ONLY_ARG=\"\"", i)
+        for var in ("SCOPE", "CATCHUP_ONLY"):
+            for m in re.finditer(rf"(?<![\w$]){var}=", sh):
+                self.assertTrue(i <= m.start() < j, f"{var} 在接班那段之外又被赋值了（第 {sh[:m.start()].count(chr(10)) + 1} 行）")
+
+    def test_a_skip_by_the_rules_counts_as_keeping_up(self):
+        """原平台最新那一集（按它的发布日期）判过、按规则不做的，不算「没跟上」。
+        硅谷101 被这样误报过。只认跳过记录的 pub：判决时间、失败记录、补课发的旧集都不算。"""
+        import tempfile, importlib, types, unittest.mock as mock
+        hc = importlib.import_module("healthcheck")
+        ids = ["sv", "twiv", "failed", "backcat", "rejudged"]
+        row = lambda i: {"src": {"id": i, "status": {"latest": "2026-09-24"}}, "latest": "2026-09-18"}
+        fake = types.SimpleNamespace(load=lambda: ([], []), hot_sources=lambda e, s: [row(i) for i in ids],
+                                     src_display=lambda s: s["id"])
+        with tempfile.TemporaryDirectory() as tmp:
+            d = pathlib.Path(tmp)
+            (d / "state.json").write_text(json.dumps({
+                "done": {
+                    # 最新一集（09-24 发布）是赞助访谈，按规则跳过 → 跟上了
+                    "sv-1": {"src": "sv", "skip": "off-brief", "pub": "2026-09-24T08:00:00Z", "at": "2026-09-24T10:00:00Z"},
+                    # 跳过的是更早的一集（09-15 发布），哪怕是今天判的 → 最新一集没人碰
+                    "twiv-1": {"src": "twiv", "skip": "off-brief", "pub": "2026-09-15T00:00:00Z", "at": "2026-09-25T00:00:00Z"},
+                    # 补课在 09-25 发了一集旧的 → 不说明最新一集看过
+                    "backcat-1": {"slug": "2026-08-01-backcat-x", "at": "2026-09-25T00:00:00Z"},
+                    # 旧格式的跳过（没有 pub）被尺子重判、打上新的 at → 不算
+                    "rejudged-1": {"src": "rejudged", "skip": "off-brief", "at": "2026-09-25T00:00:00Z"}},
+                # 最新一集卡在失败里 → 没跟上
+                "fail": {"failed-1": {"src": "failed", "at": "2026-09-25T00:00:00Z", "why": "transcript-transient"}}}))
+            r = hc.Report()
+            with mock.patch.dict(sys.modules, {"build": fake}), mock.patch.object(hc, "DATA", d):
+                hc.check_hot_sources_keep_up(r)
+        text = " ".join(r.warn + r.bad)
+        self.assertNotIn("sv（", text, "最新一集按规则跳过了，还报成没跟上")
+        for i in ("twiv", "failed", "backcat", "rejudged"):
+            self.assertIn(f"{i}（", text, f"{i} 的最新一集没人判过，却被当成跟上了")
+
     def test_every_subscription_run_confirms_it_spends(self):
         """没有 key 时走 claude CLI；--limit > 3 不带 --spend-subscription 会被 run.py 整步拒掉。"""
         t = self._local().replace("\\\n", " ")
@@ -10238,7 +10379,8 @@ class SourcesKeepUpdatingWhenOneLineStops(unittest.TestCase):
     def test_the_local_script_reruns_itself_after_pulling_a_new_version(self):
         t = self._local()
         self.assertIn("PODCAST_REEXEC", t)
-        self.assertRegex(t, r'exec env PODCAST_REEXEC=1 bash "\$REPO/scripts/local-daily\.sh"',
+        # 真正执行新脚本、而且从原始环境起步的那条，见 test_rerunning_the_new_script_starts_from_the_launchd_environment
+        self.assertRegex(t, r'exec env -i /bin/bash -c .*export PODCAST_REEXEC=1; exec bash "\$2"',
                          "同步拉下了新脚本，这一轮却还跑旧的那份")
         self.assertLess(t.index("START_REV="), t.index("git pull --rebase --autostash -q origin main"),
                         "START_REV 要在同步之前记下")
