@@ -221,6 +221,8 @@ NEVER = (
 # 用字风格：台湾教育部把「佈」并入「布」
 # 「和面向高功率…」被切成了「和麵」（揉面）+「向」。麵向 从来不对。
 POST = [("佈", "布"), ("麵向", "面向"),
+        # 公司自己的写法是「台積電」（台灣積體電路製造），OpenCC 一律转成「臺」
+        ("臺積電", "台積電"),
         # 制度／面积／发表：這三個組合從來不對。
         # OpenCC 在「考试制度」「平方毫米面积」「被发表」上都切错了。
         ("製度", "制度"), ("麵積", "面積"), ("髮表", "發表")]
@@ -234,6 +236,8 @@ FONT = []
 # 语言标记：繁体页必须自报繁体，否则搜索引擎和分享卡片都按简体归类。
 # 这几处转换转不到（它们是标记不是正文），只能显式替换。
 LOCALE = [
+    # 默认分享卡：简体那张写着「原声」，繁体树用写着「原聲」的那张（gen_og_default.py）
+    ("/assets/og-default.jpg", "/assets/og-default-tw.jpg"),
     ('property="og:locale" content="zh_CN"', 'property="og:locale" content="zh_TW"'),
     ('"inLanguage": "zh-CN"', '"inLanguage": "zh-TW"'),
     ('"inLanguage":"zh-CN"', '"inLanguage":"zh-TW"'),
@@ -242,6 +246,18 @@ LOCALE = [
 ]
 
 URLISH = re.compile(r"^(https?:|//|/|#|\.\.?/|mailto:|data:)")
+_PCT = re.compile(r"%[0-9A-Fa-f]{2}")
+
+
+def _urlish(val):
+    """这个属性值是地址（不转字形、要改指向），还是给人读的文字（要转字形）？
+
+    原来的判据是「以地址开头，**或者含 %**」。含 % 那一条是给跳转页的
+    `content="0;url=/podcast/p/%E5…"` 开的，但它把「增长 45%」这种描述也当成了
+    地址：72 个繁体短链页、79 个繁体正文页的 og:description 一直是简体 ——
+    那正是繁体读者分享出去的链接卡上的字。现在要求是真的百分号编码，
+    而且不含汉字（地址里的汉字都已编码，含汉字就是给人读的）。"""
+    return bool(URLISH.match(val) or (_PCT.search(val) and not _HAN_RUN.search(val)))
 ATTR = re.compile(r'\b(href|src|action|srcset|content|url)\s*=\s*"([^"]*)"')
 # 出现在**文本**里的地址（sitemap 的 <loc>、feed 的 <link>、llms.txt 的裸地址）。
 # 只认 http(s) 和本站绝对路径，不碰正文里的普通斜杠。
@@ -315,7 +331,7 @@ def _protect(s):
 
     def attr(m):
         name, val = m.group(1), m.group(2)
-        if URLISH.match(val) or "%" in val:
+        if _urlish(val):
             return '%s="%s"' % (name, stash(val))
         return m.group(0)
 
@@ -347,34 +363,56 @@ def _sister(val):
     return None
 
 
+def _retarget_value(val, base):
+    """一个地址该指向繁体树的哪里。属性、跳转目标、分享文本里的链接都走这一个。"""
+    bare = (val.replace("https://ourword.ai", "", 1)
+            if val.startswith("https://ourword.ai") else val)
+    if not bare.startswith(base + "/") and bare != base:
+        sis = _sister(bare)
+        if sis is not None:
+            # 只换路径那一截：val.replace(bare, …) 在 bare 是 "/" 时会换掉
+            # "https://" 里的第一个斜杠，把主站根地址改成 "https:/tw//ourword.ai/"
+            return val[:len(val) - len(bare)] + sis
+    # 英文树是另一种语言，不是繁体树的子目录：/podcast/en/… 不许改成 /podcast/tw/en/…
+    if bare.startswith(base + "/en/") or bare == base + "/en":
+        return val
+    # /podcast/assets/ 是三棵树共用的一份，不重写。它们要么带内容指纹
+    # （site.css?v=…），要么文件名本身就是内容哈希（封面），所以共用不会
+    # 拿到过期版本；而各复制一份的代价是 17 MB 和"同一张图缓存两次"。
+    if val.startswith(base + "/assets/"):
+        return val
+    if val.startswith(base + "/") and not val.startswith(base + "/tw/"):
+        val = base + "/tw" + val[len(base):]
+    elif (val.startswith("https://ourword.ai" + base + "/")
+          and "/tw/" not in val
+          and not val.startswith("https://ourword.ai" + base + "/assets/")):
+        val = val.replace("https://ourword.ai" + base + "/",
+                          "https://ourword.ai" + base + "/tw/", 1)
+    return val
+
+
+# 不在属性里、但读者真会被送去的地址：跳转页的 refresh 和 location.replace，
+# 以及分享文本末尾那条链接。原来它们全都原样留着简体地址 ——
+# 繁体页复制出去的分享文本指向简体站（1117 页），繁体短链跳到简体正文（941 页）。
+# 属性表 ATTR 管不到它们：refresh 的值以 "0;url=" 开头，location.replace 在脚本
+# 文本里，分享文本整段是给人读的字、链接只是末尾一截。
+_REFRESH = re.compile(r'(http-equiv="refresh" content="\d+;\s*url=)([^"]+)(")')
+_JSREDIR = re.compile(r'(location\.replace\(")([^"]+)("\))')
+_SHARETEXT = re.compile(r'(data-share-text=")([^"]*)(")')
+
+
 def _retarget(s, base):
     def one(m):
-        name, val = m.group(1), m.group(2)
-        bare = (val.replace("https://ourword.ai", "", 1)
-                if val.startswith("https://ourword.ai") else val)
-        if not bare.startswith(base + "/") and bare != base:
-            sis = _sister(bare)
-            if sis is not None:
-                return '%s="%s"' % (name, val.replace(bare, sis, 1))
-        # /podcast/assets/ 是三棵树共用的一份，不重写。它们要么带内容指纹
-        # （site.css?v=…），要么文件名本身就是内容哈希（封面），所以共用不会
-        # 拿到过期版本；而各复制一份的代价是 17 MB 和"同一张图缓存两次"。
-        if val.startswith(base + "/assets/"):
-            return '%s="%s"' % (name, val)
-        if val.startswith(base + "/") and not val.startswith(base + "/tw/"):
-            val = base + "/tw" + val[len(base):]
-        elif (val.startswith("https://ourword.ai" + base + "/")
-              and "/tw/" not in val
-              and not val.startswith("https://ourword.ai" + base + "/assets/")):
-            val = val.replace("https://ourword.ai" + base + "/",
-                              "https://ourword.ai" + base + "/tw/", 1)
-        return '%s="%s"' % (name, val)
+        return '%s="%s"' % (m.group(1), _retarget_value(m.group(2), base))
 
     holes = []
     s = re.sub(r'<link rel="alternate" hreflang[^>]*>',
                lambda m: holes.append(m.group(0)) or "%d" % (len(holes) - 1), s)
-    s = ATTR.sub(lambda m: one(m) if (URLISH.match(m.group(2)) or "%" in m.group(2))
-                 else m.group(0), s)
+    s = ATTR.sub(lambda m: one(m) if _urlish(m.group(2)) else m.group(0), s)
+    s = _REFRESH.sub(lambda m: m.group(1) + _retarget_value(m.group(2), base) + m.group(3), s)
+    s = _JSREDIR.sub(lambda m: m.group(1) + _retarget_value(m.group(2), base) + m.group(3), s)
+    s = _SHARETEXT.sub(lambda m: m.group(1) + URLTEXT.sub(
+        lambda u: _retarget_value(u.group(0), base), m.group(2)) + m.group(3), s)
     return re.sub("(\\d+)", lambda m: holes[int(m.group(1))], s)
 
 

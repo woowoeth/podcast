@@ -245,6 +245,69 @@ class Walkthrough(Harness):
             ctx.close()
             self.assertTrue(msg, f"{tag}：点了分享没有任何反馈")
 
+    def test_every_share_path_delivers_the_link(self):
+        """分享出去的东西里必须有链接 —— 在按钮被点下去的那一刻量，不读源码。
+
+        2026-09-26 用户报「分享本站点了都没带 url」：分享面板收到的是
+        {title, text: 简介, url}，iOS / macOS 的 WebKit 把 text 和 url 拆成两个条目，
+        微信只取 text。源码层那条「调用里有 url」的断言一路是绿的。
+
+          · 分享面板：收到的对象有 url、**没有 text**，url 指向本页所在的树；
+          · 复制（微信里）：剪贴板里的文本以本树的链接结尾；
+          · writeText 被拒：退到 execCommand，读者看到「已复制」，不是「复制没成功」。
+        """
+        slug = _episode_slugs(1)[0]
+        pages = [("/", "zh"), ("/tw/", "tw"), ("/s/a16z/", "zh"), ("/tw/s/a16z/", "tw"),
+                 (f"/p/{slug}/", "zh"), (f"/tw/p/{slug}/", "tw")]
+        if os.path.isdir(os.path.join(ROOT, "en")):
+            pages += [("/en/", "en"), ("/en/s/a16z/", "en")]
+            if os.path.isdir(os.path.join(ROOT, "en", "p", slug)):
+                pages.append((f"/en/p/{slug}/", "en"))
+        site = "https://ourword.ai/podcast"
+        own = {"zh": lambda u: u.startswith(site + "/") and not u.startswith((site + "/tw/", site + "/en/")),
+               "tw": lambda u: u.startswith(site + "/tw/"), "en": lambda u: u.startswith(site + "/en/")}
+        sheet = """
+            Object.defineProperty(navigator, 'share', {configurable: true,
+              value: d => { window.__shared = JSON.parse(JSON.stringify(d)); return Promise.resolve(); }});"""
+        board = """
+            Object.defineProperty(navigator, 'clipboard', {configurable: true, value: {
+              writeText: t => { window.__copied = t; return %s; }}});
+            document.execCommand = c => { window.__exec = c; return true; };"""
+        wechat = ("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 "
+                  "(KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.50")
+        failed = ("复制没成功", "複製沒成功", "Copy did not work")
+        for path, tree in pages:
+            # 1) 系统分享面板
+            ctx = self.browser.new_context(viewport={"width": 390, "height": 844})
+            p = ctx.new_page()
+            p.add_init_script(sheet)
+            p.goto(self.url(path), wait_until="load")
+            p.locator(".share-btn").first.click()
+            p.wait_for_timeout(300)
+            got = p.evaluate("() => window.__shared || null")
+            ctx.close()
+            self.assertTrue(got, f"{path}：点了分享，分享面板什么都没收到")
+            self.assertNotIn("text", got, f"{path}：分享面板收到了 text —— WebKit 会把它和链接拆开，微信只发 text：{got}")
+            self.assertTrue(own[tree](got.get("url") or ""), f"{path}：分享面板的链接不在本树：{got}")
+
+            # 2) 微信里：复制；3) writeText 被拒：退到 execCommand
+            for reject in (False, True):
+                ctx = self.browser.new_context(viewport={"width": 390, "height": 844}, user_agent=wechat)
+                p = ctx.new_page()
+                p.add_init_script(board % ("Promise.reject(new Error('denied'))" if reject else "Promise.resolve()"))
+                p.goto(self.url(path), wait_until="load")
+                p.locator(".share-btn").first.click()
+                p.wait_for_timeout(400)
+                r = p.evaluate("() => ({c: window.__copied || '', x: window.__exec || '',"
+                               " t: (document.querySelector('.toast') || {}).textContent || ''})")
+                ctx.close()
+                text = r["c"].rstrip()
+                self.assertTrue(text and own[tree](text.split()[-1].split("：")[-1]),
+                                f"{path}：复制出去的文本不以本树的链接结尾：{text[-80:]!r}")
+                if reject:
+                    self.assertEqual(r["x"], "copy", f"{path}：writeText 被拒后没有退到 execCommand")
+                    self.assertFalse(r["t"].startswith(failed), f"{path}：退路能复制，却告诉读者复制失败：{r['t']!r}")
+
     # ------------------------------------------------- JS 注入的文案要跟语言
     def test_runtime_strings_are_english_on_the_english_site(self):
         """JS 写进 DOM 的字，「零漏译」那道闸扫不到。

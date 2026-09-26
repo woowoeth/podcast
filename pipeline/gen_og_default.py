@@ -19,13 +19,15 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "assets", "og-default.jpg")
 OUT_EN = os.path.join(ROOT, "assets", "og-default-en.jpg")
+# 繁体树的分享卡写「原聲」：繁体页的 og:site_name 是原聲，卡上写简体就对不上
+OUT_TW = os.path.join(ROOT, "assets", "og-default-tw.jpg")
 BG = (26, 25, 23)          # #1a1917 站里的墨色
 FG = (244, 242, 236)       # #f4f2ec 纸色
 ACC = (226, 118, 78)       # #e2764e 站里的橙红
 SIZE = 600
 
 
-def _font(px, bold=False):
+def _font(px, bold=False, index=0):
     from PIL import ImageFont
     # 中文标题要用能画汉字的字体；Georgia 里没有汉字，画出来是空白方块。
     for p in ("/System/Library/Fonts/Songti.ttc",
@@ -37,19 +39,24 @@ def _font(px, bold=False):
               "/Library/Fonts/Arial Bold.ttf"):
         if os.path.exists(p):
             try:
-                return ImageFont.truetype(p, px)
+                return ImageFont.truetype(p, px, index=index if p.endswith(".ttc") else 0)
             except Exception:
                 pass
     return ImageFont.load_default()
 
 
-def _card(path, title, sub):
+def _card(path, title, sub, face=0):
     from PIL import Image, ImageDraw
 
     im = Image.new("RGB", (SIZE, SIZE), BG)
     d = ImageDraw.Draw(im)
     d.rectangle([0, 0, SIZE - 1, 10], fill=ACC)          # 站里的强调色
-    f1 = _font(96 if len(title) <= 3 else 78, True)
+    f1 = _font(96 if len(title) <= 3 else 78, True, face)
+    # **字体里没有的字会被静默画成空白。** 繁体卡第一版用了 Songti.ttc 的第 0 个
+    # 字面（Songti SC Black），它没有「聲」—— 图上只有一个「原」字，脚本照样成功。
+    missing = [ch for ch in title if not ch.isspace() and f1.getmask(ch).getbbox() is None]
+    if missing:
+        raise SystemExit(f"{os.path.basename(path)}：字体画不出 {''.join(missing)}，换一个字面")
     f2 = _font(26)
     w1 = d.textbbox((0, 0), title, font=f1)[2]
     w2 = d.textbbox((0, 0), sub, font=f2)[2]
@@ -68,6 +75,7 @@ def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     n1 = _card(OUT, "\u539f\u58f0", "ourword.ai")
     n2 = _card(OUT_EN, "Podcast", "ourword.ai")
+    _card(OUT_TW, "\u539f\u8072", "ourword.ai", face=2)   # Songti.ttc #2 = Songti TC Bold
     print("\u9ed8\u8ba4\u5206\u4eab\u56fe\uff1a%s %d B\uff0c%s %d B"
           % (os.path.basename(OUT), n1, os.path.basename(OUT_EN), n2))
     return 0

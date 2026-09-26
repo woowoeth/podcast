@@ -262,6 +262,25 @@ def here_n(k: int) -> str:
     return f"本站 {k} 篇" if LANG == "zh" else f"{k} deep read{'s' if k != 1 else ''}"
 
 
+def minutes(m: int) -> str:
+    """35 分钟 / 35 min —— 分享文本的元信息行"""
+    return f"{m} 分钟" if LANG == "zh" else f"{m} min"
+
+
+def byline() -> str:
+    """原声深读 —— 分享文本里「这是谁写的」。英文不写：站名 Podcast 跟在
+    节目名后面读起来像重复（"All-In Podcast · 17 min · Podcast"），而且
+    「深读」直译出来的 deep 用户要求去掉过；出处由末尾的链接说明。"""
+    return f"{NAMES['zh']}深读" if LANG == "zh" else ""
+
+
+def read_here(k: int) -> str:
+    """节目分享文本末尾那句，后面紧跟链接。"""
+    if LANG == "zh":
+        return f"本站已深读 {k} 篇："
+    return f"{k} deep read{'s' if k != 1 else ''} here: "
+
+
 def name() -> str:
     return NAMES.get(LANG, NAMES["zh"])
 

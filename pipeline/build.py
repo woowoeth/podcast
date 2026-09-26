@@ -594,7 +594,7 @@ else{{addEventListener('load',function(){{setTimeout(go,1200)}})}}}})();</script
 {dates}<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{e(title)}">
 <meta name="twitter:description" content="{e(desc)}">
-{f'<meta name="twitter:image" content="{e(image)}">' if image else ''}
+<meta name="twitter:image" content="{e(og_image(image))}">
 <link rel="icon" type="image/svg+xml" href="{BASE_ZH}/icon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="{BASE_ZH}/apple-touch-icon.png">
 <link rel="alternate" type="application/rss+xml" title="{e(NAME)}" href="{BASE}/feed.xml">
@@ -633,22 +633,39 @@ def share_button(text: str, *, url: str, title: str, label: str = "") -> str:
 
     文本放 data 属性里，换行写成 &#10;——这样不需要额外的 JSON 或内联脚本。
     """
-    # data-share-text 是**粘贴**用的：末尾带链接，粘到哪都成立。
-    # data-share-desc 是**系统分享面板**用的：一句简介，**不带链接** ——
-    # 链接由 navigator.share 的 url 字段单独传。两者必须分开，见 site.js
-    # 里那段说明：只传 text 的话微信收到的是一段纯文本，它没有链接可认，
-    # 于是分享卡是一块灰色占位，og:image 从头到尾用不上。
-    desc = _clip(squeeze(text.split("\n\n")[-2] if "\n\n" in text else text), 90)
+    # data-share-text 是**粘贴**用的：末尾带链接，粘到哪都成立（微信内置浏览器、
+    # 以及没有系统分享面板时走这条）。系统分享面板只拿 title + url，**不拿文本** ——
+    # WebKit 会把文本和链接拆成两个条目，微信只取文本、把链接丢掉（见 site.js）。
+    # 原来这里还有一个 data-share-desc 专供分享面板，现在没人读它了，删掉。
     return (f'<button class="share-btn" type="button" data-share '
             f'data-share-title="{e(title)}" data-share-url="{e(url)}" '
-            f'data-share-desc="{e(desc)}" '
             f'data-share-text="{e(text).replace(chr(10), "&#10;")}" '
             f'aria-label="{T("复制分享文本")}">{ICON_SHARE}<span>{e(label or T("分享"))}</span></button>')
 
 
 def _clip(s: str, n: int) -> str:
     s = squeeze(s or "")
-    return s if len(s) <= n else s[:n - 1].rstrip("，。、；：,. ") + "…"
+    if len(s) <= n:
+        return s
+    cut = s[:n - 1]
+    # 别把英文单词截成半截（"How to M…"、"isn'…"）：落在词中间就退到上一个空格。
+    # 撇号算词内 —— 缩写和所有格（isn't / Hardrada's）拆开同样是半个词。
+    word = lambda c: bool(c) and c.isascii() and c.isalnum() or c in "'’"
+    if word(s[n - 1]) and word(cut[-1:]):
+        sp = cut.rfind(" ")
+        if sp > n // 3:
+            cut = cut[:sp]
+    return cut.rstrip("，。、；：,.:;-—– ") + "…"
+
+
+def _clip_sentence(s: str, n: int) -> str:
+    """截到 n 字以内的最后一个整句；一句都放不下才退回硬截。
+    整站分享文本原来硬截 BLURB，英文版停在半句上（'Points and quote…'）。"""
+    s = squeeze(s or "")
+    if len(s) <= n:
+        return s
+    cut = max(s.rfind(p, 0, n) for p in ("。", "！", "？", ". ", "! ", "? "))
+    return s[:cut + 1].rstrip() if cut > n // 3 else _clip(s, n)
 
 
 def episode_share_text(ep: dict) -> str:
@@ -665,7 +682,7 @@ def episode_share_text(ep: dict) -> str:
     d = D(ep)
     src = show_name(ep)
     mins = int((ep.get("duration") or 0) // 60)
-    meta = " · ".join(x for x in (src, f"{mins} 分钟" if mins else "", f"{NAME}深读") if x)
+    meta = " · ".join(x for x in (src, i18n.minutes(mins) if mins else "", i18n.byline()) if x)
     lines = [squeeze(d.get("title") or ""), meta]
     if d.get("dek"):
         lines += ["", _clip(d["dek"], 120)]
@@ -709,7 +726,7 @@ def alias_page(ep: dict) -> str:
                '<meta name="twitter:image" content="%s">' % (img, t, img))
     head = "\n".join([
         '<!DOCTYPE html>',
-        '<html lang="{LANG_ATTR}"><head><meta charset="utf-8">',
+        f'<html lang="{LANG_ATTR}"><head><meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width,initial-scale=1">',
         f'<title>{t} — {e(NAME)}</title>',
         '<meta name="robots" content="noindex,follow">',
@@ -729,7 +746,7 @@ def alias_page(ep: dict) -> str:
         f'<meta http-equiv="refresh" content="0;url={e(real)}">',
         f'<script>location.replace({json.dumps(real)})</script>',
         '</head><body>',
-        f'<p>{T("正在打开")}{t}……',
+        f'<p>{T("正在打开")}{" " if LANG == "en" else ""}{t}{"…" if LANG == "en" else "……"}',
         f'<a href="{e(real)}">{T("点这里")}</a></p>',
         '</body></html>',
     ])
@@ -737,15 +754,16 @@ def alias_page(ep: dict) -> str:
 
 
 def source_share_text(src: dict, rows: list[dict]) -> str:
+    # 和节目页的 h1、分享按钮的 title 用同一个名字（source_page 也用 src_display）。
     name = src_display(src)
     # 同上：第一行是完整名字，不加书名号也不截。微信卡片拿它当标题，
     # 我们截一次、它再折一次，读者看到的就是两头都不全的一串。
-    lines = [f"{squeeze(name)} · {NAME}深读", ""]
+    lines = [" · ".join(x for x in (squeeze(name), i18n.byline()) if x), ""]
     if src.get("desc"):
         lines += [_clip(src_desc(src), 96), ""]
     for x in rows[:3]:
-        lines.append("· " + _clip(D(x).get("title"), 34))
-    lines += ["", f"本站已深读 {len(rows)} 篇：{SITE}/s/{src['id']}/"]
+        lines.append("· " + _clip(D(x).get("title"), 64 if LANG == "en" else 34))
+    lines += ["", f"{i18n.read_here(len(rows))}{SITE}/s/{src['id']}/"]
     return "\n".join(lines)
 
 
@@ -753,10 +771,11 @@ def site_share_text(eps: list[dict]) -> str:
     """整站的分享文本。不吹功能，说清它凭什么值得点开：
     每条判断都能跳回原声，对不上的当场删掉。"""
     lines = [f"{NAME} · {TAGLINE}", "",
-             _clip(BLURB, 110), ""]
+             _clip_sentence(BLURB, 110), ""]
     for x in eps[:3]:
         src = show_name(x)
-        lines.append(f"· {_clip(D(x).get('title'), 30)}（{_clip(src, 14)}）")
+        who = f" ({_clip(src, 24)})" if LANG == "en" else f"（{_clip(src, 20)}）"
+        lines.append(f"· {_clip(D(x).get('title'), 60 if LANG == 'en' else 30)}{who}")
     lines += ["", f"{SITE}/"]
     return "\n".join(lines)
 
@@ -1269,8 +1288,10 @@ def index_page(eps: list[dict], srcs: dict) -> str:
                              "url": f"{SITE}/p/{x['slug']}/",
                              "name": D(x).get("title")}
                             for i, x in enumerate(eps[:60])]}}]})
-    return (head(TAGLINE, BLURB, path="/",
-                 image=(eps[0].get("image") if eps else ""), extra=ld)
+    # 首页的分享卡用站点默认图，不用最新一集的封面：分享的是「这个站」，
+    # 而最新一集的封面常常还没缓存，交出去的是外站 3000px 原图（声明 600×600），
+    # 墙内抓不到就是灰卡。系统分享面板现在只传链接，卡片全靠这几个 og 标签。
+    return (head(TAGLINE, BLURB, path="/", image="", extra=ld)
             + masthead(len(eps), home=True, path="/")
             + f"""
 <div class="toolbar"><div class="wrap"><div class="toolbar-in">
@@ -1658,7 +1679,9 @@ def sources_page(srcs: dict, eps: list[dict]) -> str:
 def source_page(src: dict, eps: list[dict], total_known: int | None) -> str:
     """One show's own page. An aggregator is judged on whether you can follow a
     single show through it, not only on the front page firehose."""
-    name = src.get("zh") or src["name"]
+    # src_display：简体取 zh 名，英文取英文名。原来这里写死 zh 优先，英文站上
+    # 5 个英文节目的 h1 是中文译名（Literature and History 显示成「文学与历史」）。
+    name = src_display(src)
     cards = "\n".join(card(x, hero=(i == 0)) for i, x in enumerate(eps))
     st = src.get("status") or {}
     rows = []

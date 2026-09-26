@@ -1780,55 +1780,281 @@ class LatencyIsAFeatureNotAnAccident(unittest.TestCase):
         self.assertIn("4 小时", fast)
 
 
-class ShareSheetMustCarryTheLinkExactlyOnce(unittest.TestCase):
-    """一次分享里链接只能出现一次——不能两次，也不能零次。
+class ShareSheetGetsOnlyTheLink(unittest.TestCase):
+    """系统分享面板只拿 title + url，**不拿 text**。
 
-    这条判据是两次相反的修改共同得出的，两次的症状都真实发生过：
+    三次修改，三种症状，全都真实发生过：
 
-    · **两次**：navigator.share 同时传 text（末尾带链接）和 url，微信把它
-      当成两个条目——文本正常发出，URL 另存成一个 151 字节的临时文件
-      跟着发过去。
-    · **零次**：为了修上面那个，把 url 也去掉、只传 text，结果微信收到的是
-      **纯文本**——没有链接可认，就不去建链接卡，分享出来是一块灰方块。
-      页面上的 og 标签从头到尾没被用到，所以改多少遍图都没变化。
+    · 8 月之前：text（末尾带链接）+ url —— 微信发出文本，URL 另存成一个
+      151 字节的临时文件跟着发过去。
+    · 8 月：只传 text —— 链接在，但微信当纯文本发，不建链接卡，灰方块。
+    · 9 月 5 日：不带链接的简介 + url —— 理由是「临时文件是因为链接出现了两次」。
+      **这个判断是错的**：iOS / macOS 的 WebKit 把 text 和 url 做成两个独立条目
+      （WKShareSheet.mm），跟 text 里有没有链接无关；微信和「拷贝」取 text，
+      于是链接彻底没了（2026-09-26 用户报「分享本站点了都没带 url」）。
 
-    所以判据不是"传不传 url"，而是**链接出现的次数**。现在的解法是分两份
-    文案：data-share-text 给粘贴用（带链接），data-share-desc 给系统分享
-    面板用（不带链接），面板那条配 url —— 加起来正好一次。
-
-    钉写法（assertIn 某个具体调用）挡不住这类回退：两次修改的写法都合法，
-    错的是链接出现了几次。
+    上一版的判据是「链接只出现一次」—— 数的是 site.js 里链接出现几次，
+    而真正决定结果的是**分享面板收到几个条目**。它恰好在出故障的那个写法上是绿的。
+    现在的判据：面板对象的键只能是 title 和 url。浏览器里真点一下的那道
+    在 test_walkthrough.py（test_every_share_path_delivers_the_link）。
     """
 
-    def test_the_share_sheet_gets_a_url_and_a_link_free_text(self):
+    def _payload_keys(self):
         js = (ROOT / "assets" / "site.js").read_text()
-        i = js.index("navigator.share(")
-        call = js[i:js.index(")", i) + 1]
-        self.assertIn("url", call, f"分享面板没传 url，微信建不起链接卡：{call}")
-        self.assertNotIn("text: text", call,
-                         f"分享面板传的是带链接的粘贴文案，链接会出现两次："
-                         f"{call}")
+        calls = re.findall(r"navigator\.share\(\s*\{([^}]*)\}", js)
+        self.assertEqual(len(calls), 1, f"navigator.share 调用不是恰好一处：{calls}")
+        return {k.strip() for k in re.findall(r"(\w+)\s*:", calls[0])}
 
-    def test_paste_text_carries_the_link_and_the_sheet_text_does_not(self):
+    def test_the_share_sheet_gets_a_url_and_no_text(self):
+        keys = self._payload_keys()
+        self.assertIn("url", keys, "分享面板没传 url：对方拿不到链接，也建不起链接卡")
+        self.assertFalse(keys - {"title", "url"},
+                         f"分享面板多传了 {sorted(keys - {'title', 'url'})}：WebKit 会把它拆成"
+                         f"单独的条目，微信只取文本、把链接丢掉")
+
+    def test_paste_text_carries_the_link(self):
         sys.path.insert(0, str(ROOT / "pipeline"))
         import build
         for f in sorted((ROOT / "data" / "episodes").glob("*.json"))[:8]:
             ep = json.loads(f.read_text())
-            url = build.ep_url(ep)
-            self.assertIn(url, build.episode_share_text(ep),
-                          "粘贴用的文案里没有链接，粘出去点不了")
+            self.assertTrue(build.episode_share_text(ep).endswith(build.ep_url(ep)),
+                            "粘贴用的文案不以链接结尾，粘出去点不了")
 
-    def test_rendered_markup_has_both_halves(self):
-        """产物上验一遍：两份文案都在，而且面板那份不带链接。"""
-        import re as _re
-        for f in sorted(ROOT.glob("p/*/index.html"))[:5]:
+    def test_rendered_buttons_carry_a_url_and_no_dead_fields(self):
+        """产物上验：每个按钮都有 url；没人读的 data-share-desc 不许回来 ——
+        它回来就说明有人又想把它喂给分享面板。"""
+        for f in [ROOT / "index.html", *sorted(ROOT.glob("p/*/index.html"))[:5],
+                  *sorted(ROOT.glob("s/*/index.html"))[:3]]:
             h = f.read_text()
-            m = _re.search(r'data-share-desc="([^"]*)"', h)
-            u = _re.search(r'data-share-url="([^"]*)"', h)
-            self.assertTrue(m, f"{f.parent.name} 没有 data-share-desc")
-            self.assertTrue(u, f"{f.parent.name} 没有 data-share-url")
-            self.assertNotIn("ourword.ai", m.group(1),
-                             "分享面板那句简介里带了链接，加上 url 就是两次")
+            self.assertIn('data-share-url="https://', h, f"{f.relative_to(ROOT)} 没有 data-share-url")
+            self.assertNotIn("data-share-desc", h, f"{f.relative_to(ROOT)} 又带上了 data-share-desc")
+
+
+class EveryShareLandsInTheReadersOwnTree(unittest.TestCase):
+    """分享出去的链接，落在分享的人所在的那棵树上，而且那一页真的存在。
+
+    2026-09-26 查出：繁体页复制出去的分享文本末尾是**简体**链接（1117 页）——
+    tw.py 的属性表只管 href/src/content/url，分享文本是给人读的整段字，
+    链接只是末尾一截，原样留着；繁体短链 tw/e/ 的 refresh 和 location.replace
+    也都指向简体正文（941 页）。只有 data-share-url 是对的，而且是碰巧对的：
+    `\\burl` 正好匹配到 data-share-url 的尾巴。已有的判据只查 href，全绿。
+    """
+
+    SITE = "https://ourword.ai/podcast"
+    _BTN = re.compile(r'<button class="share-btn"[^>]*>')
+
+    @staticmethod
+    def _tree(rel: str) -> str:
+        return "tw" if rel.startswith("tw/") else "en" if rel.startswith("en/") else "zh"
+
+    def _check(self, rel, url, bad, what):
+        import html as _h
+        url = _h.unescape(url)
+        tree = self._tree(rel)
+        path = url.replace(self.SITE, "", 1) if url.startswith(self.SITE) else url.replace("/podcast", "", 1)
+        want = {"zh": lambda p: not p.startswith(("/tw/", "/en/")),
+                "tw": lambda p: p.startswith("/tw/"), "en": lambda p: p.startswith("/en/")}[tree]
+        if not want(path):
+            bad.append(f"{rel} 的{what}指到别的语言树：{url}")
+            return
+        disk = ROOT / urllib.parse.unquote(path.split("#")[0].lstrip("/")) / "index.html"
+        if not disk.exists():
+            bad.append(f"{rel} 的{what}指向不存在的页：{url}")
+
+    def test_share_buttons_point_into_their_own_tree(self):
+        import html as _h
+        bad, n = [], 0
+        for f in ROOT.glob("**/index.html"):
+            rel = str(f.relative_to(ROOT))
+            if rel.startswith((".", "node_modules")):
+                continue
+            h = f.read_text()
+            for b in self._BTN.findall(h):
+                n += 1
+                u = re.search(r'data-share-url="([^"]*)"', b)
+                t = re.search(r'data-share-text="([^"]*)"', b)
+                self.assertTrue(u and t, f"{rel} 的分享按钮缺 url 或文本")
+                self._check(rel, u.group(1), bad, "分享面板链接")
+                text = _h.unescape(t.group(1)).rstrip()
+                links = re.findall(r"https?://\S+", text)
+                if not links or not text.endswith(links[-1]):
+                    bad.append(f"{rel} 的复制文本不以链接结尾")
+                    continue
+                self._check(rel, links[-1], bad, "复制文本末尾的链接")
+        self.assertGreater(n, 1000, f"只找到 {n} 个分享按钮 —— 判据没扫到产物")
+        self.assertEqual(bad[:6], [], f"{len(bad)} 处分享链接落不到本树")
+
+    def test_short_links_redirect_into_their_own_tree(self):
+        bad, n = [], 0
+        for sub in ("e", "tw/e", "en/e"):
+            for f in sorted((ROOT / sub).glob("*/index.html")):
+                rel, h = str(f.relative_to(ROOT)), f.read_text()
+                n += 1
+                targets = (re.findall(r'http-equiv="refresh" content="\d+;\s*url=([^"]+)"', h)
+                           + re.findall(r'location\.replace\("([^"]+)"\)', h)
+                           + re.findall(r'<a href="([^"]+)"', h))
+                if len(targets) != 3:
+                    bad.append(f"{rel} 的跳转目标不是三处（refresh / JS / 链接）：{targets}")
+                for u in targets:
+                    self._check(rel, u, bad, "跳转目标")
+        self.assertGreater(n, 1000, f"只找到 {n} 个短链页")
+        self.assertEqual(bad[:6], [], f"{len(bad)} 处短链跳错树")
+
+    def test_english_share_text_is_chinese_only_where_the_page_says_so(self):
+        """英文页的分享文本里，汉字只能是这一页标了 lang="zh" 的专名（中文节目名）。
+        原来「深读」「本站已深读 N 篇」「分钟」写死在 build.py 里，零漏译那道闸
+        不扫 data-share-*，941 + 175 个英文页的分享文本夹着中文。"""
+        import html as _h
+        cjk = re.compile(r"[\u3400-\u9fff]+")
+        bad = []
+        for f in [ROOT / "en" / "index.html", *ROOT.glob("en/s/*/index.html"), *ROOT.glob("en/p/*/index.html")]:
+            h = f.read_text()
+            b = self._BTN.search(h)
+            if not b:
+                continue
+            text = _h.unescape(re.search(r'data-share-text="([^"]*)"', b.group(0)).group(1))
+            marked = " ".join(_h.unescape(t) for _, t in
+                              re.findall(r'<(\w+)[^>]*\blang="zh[^"]*"[^>]*>([^<]*)', h))
+            for run in cjk.findall(text):
+                if run not in marked:
+                    bad.append(f"{f.relative_to(ROOT)}: {run}")
+        self.assertEqual(sorted(set(b.split(': ', 1)[1] for b in bad))[:8], [],
+                         f"{len(bad)} 处英文分享文本里有没标成中文专名的汉字")
+
+
+class EnglishShowsKeepTheirEnglishNames(unittest.TestCase):
+    """英文节目在英文站上叫英文名 —— h1 和分享文本都是。
+
+    source_page 原来写死 `src.get("zh") or src["name"]`：英文站上
+    Literature and History 的 h1 是「文学与历史」（标了 lang="zh"，零漏译闸门放行）。
+    分享文本一度和它对齐，于是连分享出去的字也成了中文译名。"""
+
+    def test_english_shows_have_no_chinese_in_title_or_share_text(self):
+        import html as _h
+        srcs = json.loads((ROOT / "data" / "sources.json").read_text())
+        srcs = srcs.get("sources", srcs) if isinstance(srcs, dict) else srcs
+        cjk = re.compile(r"[\u3400-\u9fff]")
+        bad, n = [], 0
+        for s in srcs:
+            f = ROOT / "en" / "s" / s.get("id", "") / "index.html"
+            if s.get("lang") != "en" or not f.exists():
+                continue
+            n += 1
+            h = f.read_text()
+            h1 = re.search(r"<h1[^>]*>([^<]*)</h1>", h)
+            t = re.search(r'data-share-text="([^"]*)"', h)
+            first = _h.unescape(t.group(1)).split("\n")[0] if t else ""
+            if (h1 and cjk.search(h1.group(1))) or cjk.search(first):
+                bad.append(f"{s['id']}: h1={h1 and h1.group(1)!r} 分享={first!r}")
+        self.assertGreater(n, 20, f"只找到 {n} 个英文节目页 —— 判据没扫到东西")
+        self.assertEqual(bad, [], f"{len(bad)} 个英文节目在英文站上叫中文名")
+
+
+class ClippingNeverLeavesHalfAWord(unittest.TestCase):
+    """分享文本和卡片描述里的截断：不截半个英文词（含缩写和所有格），不留破折号尾巴。"""
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import build
+        self.clip = build._clip
+
+    def test_cases(self):
+        for s, n, want in (
+            ("Complex Systems", 14, "Complex…"),
+            ("A character isn't drawn, it's painted", 28, "A character isn't drawn…"),   # 落在 it|'s
+            ("A character isn't drawn, it's painted", 30, "A character isn't drawn, it's…"),  # 落在词后：不退
+            ("Before Harald Hardrada's Viking army", 23, "Before Harald…"),              # 落在 Hardrada|'s
+            ("The bottleneck is still under construction — something else", 48,
+             "The bottleneck is still under construction…"),
+            ("别教孩子怎么交朋友，教他们怎么当一个好朋友", 12, "别教孩子怎么交朋友，教…"),
+            ("short", 14, "short"),
+        ):
+            self.assertEqual(self.clip(s, n), want, f"_clip({s!r}, {n})")
+
+
+class TraditionalDescriptionsAreConverted(unittest.TestCase):
+    """繁体树里给人读的描述要转字形 —— 含「%」的也一样。
+
+    tw.py 原来把「以地址开头**或者含 %**」的属性值都当成地址、整段不转。
+    含 % 那条是给跳转页 `content="0;url=/podcast/p/%E5…"` 开的，却把
+    「增长 45%」这种描述也挡在外面：72 个繁体短链页、79 个繁体正文页的
+    og:description 一直是简体 —— 正是繁体读者分享出去的链接卡上的字。
+    """
+
+    def test_the_rule_tells_urls_from_prose(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import tw
+        self.assertFalse(tw._urlish("超过 45%的听众认为这很难"), "带 % 的描述被当成了地址")
+        self.assertTrue(tw._urlish("0;url=/podcast/p/%E5%BC%A0/"), "跳转页的编码地址没被认出来")
+        self.assertTrue(tw._urlish("https://ourword.ai/podcast/p/x/"))
+
+    def test_retargeting_leaves_other_sites_and_languages_intact(self):
+        """主站根地址原来被改成 "https:/tw//ourword.ai/"（replace 换掉了 https:// 里的斜杠）；
+        英文树的地址不许被塞进繁体树（/podcast/tw/en/…）。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import tw
+        rv = lambda v: tw._retarget_value(v, "/podcast")
+        self.assertEqual(rv("https://ourword.ai/"), "https://ourword.ai/tw/")
+        self.assertEqual(rv("/"), "/tw/")
+        self.assertEqual(rv("https://ourword.ai/podcast/en/p/x/"), "https://ourword.ai/podcast/en/p/x/")
+        self.assertEqual(rv("/podcast/en/"), "/podcast/en/")
+        self.assertEqual(rv("https://ourword.ai/podcast/s/a16z/"), "https://ourword.ai/podcast/tw/s/a16z/")
+        self.assertEqual(rv("/podcast/assets/site.css"), "/podcast/assets/site.css")
+
+    def test_rendered_descriptions_are_converted(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import tw
+        pat = re.compile(r'property="og:description" content="([^"]*)"')
+        bad, n = [], 0
+        for f in sorted((ROOT / "e").glob("*/index.html")):
+            zh = pat.search(f.read_text())
+            t = ROOT / "tw" / f.relative_to(ROOT)
+            if not zh or "%" not in zh.group(1) or not t.exists():
+                continue
+            n += 1
+            hant = pat.search(t.read_text())
+            if tw.convert(zh.group(1)) != zh.group(1) and hant and hant.group(1) == zh.group(1):
+                bad.append(str(t.relative_to(ROOT)))
+        self.assertGreater(n, 0, "一页带 % 的描述都没找到 —— 判据没扫到东西")
+        self.assertEqual(bad[:5], [], f"{len(bad)}/{n} 个带 % 的繁体描述没转字形")
+
+
+class ShareCardsUseTheRightPicture(unittest.TestCase):
+    """系统分享面板现在只传链接，卡片的图全靠 og 标签，所以这两条更要守住。"""
+
+    def test_the_home_card_is_the_site_card(self):
+        """「分享本站」的卡片是站点图，不是最新一集的封面：原来交出去的是
+        megaphone 的 3000px 原图（声明 600×600、没缓存），墙内抓不到就是灰卡，
+        而且分享的明明是整个站。"""
+        for f, card in (("index.html", "og-default.jpg"), ("tw/index.html", "og-default-tw.jpg"),
+                        ("en/index.html", "og-default-en.jpg")):
+            h = (ROOT / f).read_text()
+            m = re.search(r'property="og:image" content="([^"]+)"', h)
+            self.assertTrue(m and m.group(1).endswith("/assets/" + card),
+                            f"{f} 的分享卡不是本树的站点图 {card}：{m and m.group(1)}")
+            self.assertTrue((ROOT / "assets" / card).exists(), f"assets/{card} 不在仓库里")
+
+    def test_traditional_pages_use_the_traditional_card(self):
+        """简体那张写着「原声」；繁体页的站名是「原聲」，卡上要对得上。"""
+        bad = [str(f.relative_to(ROOT)) for f in (ROOT / "tw").glob("**/index.html")
+               if "/assets/og-default.jpg" in f.read_text()]
+        self.assertEqual(bad[:5], [], f"{len(bad)} 个繁体页用的还是写着简体「原声」的分享卡")
+
+    def test_twitter_image_is_the_same_picture_as_og_image(self):
+        """twitter:image 原来直接用原始封面地址，og:image 走了本站缓存 ——
+        同一页两张图，推特和 Slack 抓到的还是外站大图。"""
+        bad = []
+        pages = [ROOT / "index.html", ROOT / "en" / "index.html", ROOT / "tw" / "index.html",
+                 *sorted(ROOT.glob("p/*/index.html"))[:60], *sorted(ROOT.glob("en/p/*/index.html"))[:20],
+                 *sorted(ROOT.glob("s/*/index.html"))[:10]]
+        for f in pages:
+            h = f.read_text()
+            o = re.search(r'property="og:image" content="([^"]+)"', h)
+            t = re.search(r'name="twitter:image" content="([^"]+)"', h)
+            # 两个都要有：只比「都有的那些页」的话，twitter:image 全站消失也是绿的
+            if o and (not t or o.group(1) != t.group(1)):
+                bad.append(f"{f.relative_to(ROOT)}: {t.group(1)[:60] if t else '没有 twitter:image'}")
+        self.assertEqual(bad[:4], [], f"{len(bad)} 页 twitter:image 和 og:image 不是同一张")
 
 
 class ShareCardImageMustBeSmall(unittest.TestCase):
@@ -3466,7 +3692,7 @@ class NoUnevaluatedTemplateExpressions(unittest.TestCase):
     def _pages(self, n=40):
         out = [ROOT / "index.html", ROOT / "sources" / "index.html",
                ROOT / "log" / "index.html", ROOT / "404.html"]
-        for sub in ("p", "en/p", "tw/p", "s", "en/s"):
+        for sub in ("p", "en/p", "tw/p", "s", "en/s", "e", "en/e", "tw/e"):
             d = ROOT / sub
             if d.exists():
                 out += [x / "index.html" for x in sorted(d.iterdir())[:n]
@@ -3486,7 +3712,8 @@ class NoUnevaluatedTemplateExpressions(unittest.TestCase):
     def test_no_stray_braces_in_visible_text(self):
         """再宽一档：正文里不该出现 `{某个标识符}` 这种形状。
         （CSS/JS 已排除；真实文案里的花括号极少，出现就值得看一眼。）"""
-        pat = re.compile(r"\{[a-z_][a-z0-9_.]{2,}\}")
+        # 大小写都认：短链页的 lang="{LANG_ATTR}"（1882 页）就是因为这里只认小写才漏掉的
+        pat = re.compile(r"\{[A-Za-z_][A-Za-z0-9_.]{2,}\}")
         bad = []
         for f in self._pages(12):
             body = self._SCRIPT.sub(" ", f.read_text())

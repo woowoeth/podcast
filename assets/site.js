@@ -847,7 +847,7 @@
      签名。所以和「走你」同一套办法：把内容拼成一段能直接粘贴的文本。手机上先试
      系统分享面板（装了微信就在里面），不行就复制，用户自己粘。 */
   var toastEl;
-  function toast(msg) {
+  function toast(msg, ms) {
     if (!toastEl) {
       toastEl = document.createElement('div');
       toastEl.className = 'toast';
@@ -857,15 +857,22 @@
     }
     toastEl.textContent = msg;
     toastEl.classList.add('on');
+    toastEl.classList.toggle('pick', !!ms);
     clearTimeout(toast._t);
-    toast._t = setTimeout(function () { toastEl.classList.remove('on'); }, 2600);
+    toast._t = setTimeout(function () { toastEl.classList.remove('on'); }, ms || 2600);
   }
 
   function copy(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      return navigator.clipboard.writeText(text);
+      // writeText 有 API 也可能被拒（权限策略、失去焦点、手势已被用掉）——
+      // 拒了就退到 execCommand，而不是直接报「复制没成功」
+      return navigator.clipboard.writeText(text).catch(function () { return legacyCopy(text); });
     }
-    // Safari 在非安全上下文、以及旧 WebView 里没有 clipboard API
+    return legacyCopy(text);
+  }
+
+  // Safari 在非安全上下文、以及旧 WebView 里没有 clipboard API
+  function legacyCopy(text) {
     return new Promise(function (res, rej) {
       var ta = document.createElement('textarea');
       ta.value = text;
@@ -896,17 +903,23 @@
     // 所以在微信里一律走复制 + 提示右上角菜单——那才是分享到朋友圈的正路。
     var wx = inWeChat();
     if (!wx && navigator.share) {
-      // **要传 url。** 之前只传 text（末尾自带链接），微信收到的是一段
-      // 纯文本 —— 它没有链接可认，分享卡就是一块灰色占位，页面上的
-      // og:image / og:title / og:description 从头到尾没被用到。用户报了
-      // 好几轮「分享图没显示」，查到最后不是图的问题，是压根没走链接卡。
+      // **只传 url 和 title，不传 text。**（2026-09-26 用户报「分享本站点了都没带 url」）
       //
-      // 当初不传 url 的理由是「同时传两个微信会当成两个条目，URL 另存成
-      // 一个临时文件跟着发过去」—— 那是因为**文本里也带着同一个链接**，
-      // 一次分享出现了两个 URL。现在 desc 是不带链接的一句简介，
-      // 链接只由 url 字段出一次，重复没有了，链接卡才建得起来。
-      var desc = b.getAttribute('data-share-desc') || '';
-      navigator.share({ title: title, text: desc, url: url })
+      // iOS / macOS 的 WebKit 把 text 和 url 做成**两个独立的分享条目**
+      // （WebKit 源码 UIProcess/Cocoa/WKShareSheet.mm：一个 NSString、一个 NSURL），
+      // 由接收方自己挑：微信和「拷贝」取 text，url 要么被丢掉、要么存成一个
+      // 一百多字节的临时文件（8 月实测截图里那个 "32058763b0241ae675c…"）；
+      // WhatsApp 反过来只取 url、丢掉 text。**只要带着 text，总有一边收不到链接。**
+      //
+      // 这里走过两次弯路：8 月只传 text（链接写在文本末尾）—— 链接在，但微信
+      // 当纯文本发，不建链接卡；9 月 5 日改成「不带链接的简介 + url」，理由是
+      // 「临时文件是因为链接出现了两次」—— 这个判断是错的，两种写法 WebKit 给出的
+      // 都是两个条目，区别只在于 text 里还有没有一份备用链接。于是链接彻底没了。
+      //
+      // 只传 url：iOS / mac 上只有一个链接条目（title 只进预览元数据），
+      // 安卓 Chrome 的 EXTRA_TEXT 就是链接本身。卡片的标题、描述、图由对方抓 og 标签。
+      // 带简介的那段文本仍在：微信内置浏览器、以及系统分享不可用时，走下面的复制。
+      navigator.share({ title: title, url: url })
         .then(function () { track('share_native'); })
         .catch(function (err) {
           // 用户主动取消不算失败，不该弹提示
@@ -922,7 +935,8 @@
         track('share_copy');
         toast(wx ? T('copiedWeChat') : T('copied'));
       }).catch(function () {
-        toast(T('copyFailed') + url);
+        // 两种复制都失败：给足时间让人手动选中链接（默认 2.6 秒来不及）
+        toast(T('copyFailed') + url, 9000);
       });
     }
   });
