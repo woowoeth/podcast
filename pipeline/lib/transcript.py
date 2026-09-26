@@ -736,7 +736,10 @@ def _local_asr(path: pathlib.Path, lang: str) -> list[dict] | None:
                                    language=lang if lang in ("en", "zh") else None,
                                    word_timestamps=False, verbose=False)
     except Exception as ex:
-        log(f"    本地转写失败：{type(ex).__name__}: {str(ex)[:110]}")
+        # 取**最后一行**：ffmpeg 的报错开头是几行版本横幅，原来截前 110 个字，看到的全是横幅，
+        # 真正的原因（「Invalid data found when processing input」）在最后。
+        lines = [l.strip() for l in str(ex).splitlines() if l.strip()]
+        log(f"    本地转写失败：{type(ex).__name__}: {(lines[-1] if lines else '')[:160]}")
         return None
     segs = [{"t": int(x.get("start") or 0), "text": squeeze(x.get("text") or "")}
             for x in (r.get("segments") or []) if squeeze(x.get("text") or "")]
@@ -993,6 +996,22 @@ def _local_chunked(ep: dict, src: pathlib.Path, mb: float, td: str,
     return segs or None
 
 
+def _audio_seconds(path: pathlib.Path) -> float | None:
+    """ffmpeg 报的时长；读不出来（没有音频流、文件是空壳）返回 None。"""
+    ff = _ffmpeg()
+    if not ff:
+        return None
+    try:
+        r = subprocess.run([ff, "-hide_banner", "-nostdin", "-i", str(path)],
+                           capture_output=True, text=True, timeout=60)
+    except Exception:
+        return None
+    m = re.search(r"Duration: (\d+):(\d+):(\d+(?:\.\d+)?)", r.stderr or "")
+    if not m or "Audio:" not in (r.stderr or ""):
+        return None
+    return int(m.group(1)) * 3600 + int(m.group(2)) * 60 + float(m.group(3))
+
+
 def _split(src: pathlib.Path, mb: float, td: str, *,
            force: bool = False) -> list[tuple[int, pathlib.Path]] | None:
     if mb <= ASR_MAX_MB and not force:
@@ -1001,6 +1020,13 @@ def _split(src: pathlib.Path, mb: float, td: str, *,
     if not ff:
         log(f"    audio is {mb:.0f}MB (limit {ASR_MAX_MB}MB) and ffmpeg is absent — skipping")
         return None
+    # **每一片都验有没有音频。** 原来只靠「切出来的文件够不够大（20KB）」判断到头没有：
+    # ffmpeg 9 在音频结尾之后照样写文件 —— 27 万字节、一帧音频都没有（元数据），于是一路切到
+    # 41 片封顶。第一片空壳解码失败，整集判「转写失败」；而真实的那 15 片早就转好、缓存着。
+    # 下一轮复用缓存、又死在同一片 —— 2026-09-12 起 47 集这样卡住，每天 8～20 次，
+    # 日志里只有一句「算软失败，下一轮接着转」。
+    # 停不停只看切出来的这一片有没有音频，**不按整集时长截**：没有 Xing 头的 VBR mp3，ffmpeg 报的
+    # 时长是按码率估的、可能偏短，按它截会把结尾静默丢掉。
     out = []
     i = 0
     while True:
@@ -1012,12 +1038,17 @@ def _split(src: pathlib.Path, mb: float, td: str, *,
         # 切出来是**一片 98KB**，里面几乎全是封面图。
         # 然后 whisper 对着静音吐一句「Thank you.」，被当成转写结果缓存下来，
         # 最后报的却是「取不到文稿」。整条链上没有一处说得出真正的原因。
+        # -map_metadata -1：元数据不带进切片（结尾之后那 27 万字节的空壳就是它）。
+        # 它是**输出**选项，必须写在 -i 后面 —— 写在前面 ffmpeg 当成输入选项、一片都切不出来。
         r = subprocess.run([ff, "-nostdin", "-v", "error", "-vn",
                            "-ss", str(i * CHUNK_SEC),
-                           "-t", str(CHUNK_SEC), "-i", str(src),
+                           "-t", str(CHUNK_SEC), "-i", str(src), "-map_metadata", "-1",
                            "-ac", "1", "-ar", "16000", "-b:a", "48k", str(dst)],
                           capture_output=True)
         if r.returncode != 0 or not dst.exists() or dst.stat().st_size < 20000:
+            break
+        if not (_audio_seconds(dst) or 0) >= 1:      # 切出来的是没有音频的空壳：到头了
+            dst.unlink(missing_ok=True)
             break
         out.append((i * CHUNK_SEC, dst))
         i += 1

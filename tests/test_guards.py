@@ -7571,6 +7571,59 @@ class TheRunningLineMustSayWhichVersionItIsRunning(unittest.TestCase):
                       "写了检查但没人调 —— 又一个静默失效的判据")
 
 
+class LocalAsrChunksStopAtTheEndOfTheAudio(unittest.TestCase):
+    """本机转写的切片要停在音频结尾。
+
+    2026-09-12 起 47 集卡死：ffmpeg 在结尾之后照样写出 27 万字节、没有一帧音频的文件（元数据），
+    原来只看「文件够不够 20KB」，于是一路切到 41 片封顶；第一片空壳解码失败，整集判失败 ——
+    真实的那十几片早就转好了。每一轮复用缓存、死在同一片，日志只说「软失败，下一轮接着转」。
+    这里用真的 ffmpeg 造一段 11 分钟、带 30 万字节元数据的音频来切（旧代码切出 41 片）。"""
+
+    def _ff(self):
+        import shutil as _sh, os as _os
+        ff = _sh.which("ffmpeg")
+        if not ff:
+            if _os.environ.get("GITHUB_ACTIONS"):
+                self.fail("CI 上没有 ffmpeg —— 这条测试不许静默跳过（ci.yml 里装）")
+            self.skipTest("本机没有 ffmpeg")
+        return ff
+
+    def test_a_long_metadata_tail_does_not_become_phantom_chunks(self):
+        import subprocess, tempfile
+        ff = self._ff()
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib import transcript as T
+        with tempfile.TemporaryDirectory() as tmp:
+            src = pathlib.Path(tmp) / "ep.mp3"
+            subprocess.run([ff, "-nostdin", "-v", "error", "-y", "-f", "lavfi", "-i", "sine=frequency=440:duration=660",
+                            "-metadata", "comment=" + "x" * 300000, "-ac", "1", "-b:a", "32k", str(src)], check=True)
+            td = pathlib.Path(tmp) / "chunks"
+            td.mkdir()
+            chunks = T._split(src, src.stat().st_size / 1e6, str(td), force=True)
+            self.assertIsNotNone(chunks, "一片都没切出来")
+            want = -(-660 // T.CHUNK_SEC)
+            self.assertEqual(len(chunks), want, f"660 秒的音频切成了 {len(chunks)} 片 —— 结尾之后的空壳也被当成了片")
+            for off, path in chunks:
+                r = subprocess.run([ff, "-nostdin", "-v", "error", "-i", str(path), "-f", "s16le", "-"], capture_output=True)
+                self.assertEqual(r.returncode, 0, f"第 {off // T.CHUNK_SEC + 1} 片解不开 —— 转写会死在这一片")
+            self.assertAlmostEqual(sum(T._audio_seconds(pth) for _, pth in chunks), 660, delta=3, msg="切片加起来不是整集")
+
+    def test_the_failure_message_keeps_the_real_reason(self):
+        """ffmpeg 的报错开头是版本横幅：原来截前 110 个字，日志里只看得到横幅。"""
+        import types, unittest.mock as mock
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib import transcript as T
+        def boom(*a, **k):
+            raise RuntimeError("Failed to load audio: ffmpeg version 9.0.1 Copyright (c) 2000-2026 the FFmpeg developers\n"
+                               "  built with Apple clang\n  configuration: --prefix=/opt/homebrew\n"
+                               "/tmp/c15.mp3: Invalid data found when processing input")
+        said = []
+        with mock.patch.dict(sys.modules, {"mlx_whisper": types.SimpleNamespace(transcribe=boom)}), \
+             mock.patch.object(T, "log", lambda m: said.append(m)), mock.patch.object(T, "_ffmpeg", lambda: None):
+            self.assertIsNone(T._local_asr(pathlib.Path("/tmp/c15.mp3"), "en"))
+        self.assertIn("Invalid data found", " ".join(said), f"日志里没有真正的原因：{said}")
+
+
 class TranscriptStateSurvivesParallelWorkers(unittest.TestCase):
     """放开并发之后，取稿那几个「这次是不是被限流」的记号不许串线程；YouTube 被判成机器人
     之后不许每一集都再退避三分半钟。"""
