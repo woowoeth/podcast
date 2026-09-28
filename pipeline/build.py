@@ -1237,13 +1237,19 @@ def hot_sources(eps: list[dict], srcs: dict) -> list[dict]:
         sid, d = x.get("source_id"), (x.get("published") or "")[:10]
         if not sid or not d:
             continue
-        r = per.setdefault(sid, {"n": 0, "recent": 0, "latest": ""})
+        r = per.setdefault(sid, {"n": 0, "recent": 0, "latest": "", "ts": ""})
         r["n"] += 1
         r["recent"] += d >= cut
         r["latest"] = max(r["latest"], d)
+        r["ts"] = max(r["ts"], x.get("published") or "")
     rows = [{"src": src, **per[src["id"]]} for src in srcs.get("sources") or []
             if per.get(src["id"]) and per[src["id"]]["latest"] >= fresh]
-    rows.sort(key=lambda r: (r["n"], r["latest"]), reverse=True)
+    # **排序必须是全序。** 原来只按（篇数，最后更新日）排，打平时落回 sources.json
+    # 的顺序 —— 一次 curate 调整名单，首页热门就可能换位，守护照着集的顺序独立算，
+    # 两边对不上（2026-09-28：asianometry 和 cogrev 都是 14 篇、最后一篇都在 9 月 27 日）。
+    # 打平时先看最后一篇的发布时刻（更近的在前），再看 id。
+    rows.sort(key=lambda r: r["src"]["id"])
+    rows.sort(key=lambda r: (r["n"], r["latest"], r["ts"]), reverse=True)
     return rows[:HOT_N]
 
 

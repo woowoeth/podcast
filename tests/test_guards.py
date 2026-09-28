@@ -10408,10 +10408,13 @@ class TheHotListIsCompleteAndItsMarksAreTrue(unittest.TestCase):
         for x in eps:
             sid, d = x.get("source_id"), (x.get("published") or "")[:10]
             if sid and d:
-                p = per.setdefault(sid, [0, ""]); p[0] += 1; p[1] = max(p[1], d)
-        # 独立算一遍：还在更新的里，篇数最多的 HOT_N 个
-        want = [sid for sid, _ in sorted(((sid, v) for sid, v in per.items() if v[1] >= fresh),
-                                         key=lambda kv: (kv[1][0], kv[1][1]), reverse=True)][:self.b.HOT_N]
+                p = per.setdefault(sid, [0, "", ""]); p[0] += 1; p[1] = max(p[1], d)
+                p[2] = max(p[2], x.get("published") or "")
+        # 独立算一遍：还在更新的里，篇数最多的 HOT_N 个。打平时按最后一篇的发布时刻、
+        # 再按 id —— 原来这里没写打平规则，隐含的是「集的读取顺序」，而构建隐含的是
+        # sources.json 的顺序，两边在 14 篇对 14 篇时各排各的（2026-09-28）。
+        live = sorted((sid for sid, v in per.items() if v[1] >= fresh))
+        want = sorted(live, key=lambda sid: tuple(per[sid]), reverse=True)[:self.b.HOT_N]
         html = "".join(json.loads((ROOT / "hot.json").read_text()))
         items = re.findall(r'<a class="hot-src" href="/podcast/s/([^/"]+)/">(.*?)</a>', html)
         self.assertEqual(want, [i for i, _ in items], "热门名单不是「本站深读最多的那几个」，或者顺序不对")
@@ -10427,6 +10430,15 @@ class TheHotListIsCompleteAndItsMarksAreTrue(unittest.TestCase):
             else:
                 self.assertRegex(body, r"\d+月\d+日", f"{sid}：没更新却没写上次更新的日期")
             self.assertIn(f"本站 {per[sid][0]} 篇", body, f"{sid}：篇数写错了")
+
+    def test_the_order_does_not_depend_on_the_registry_order(self):
+        """名单顺序只由集决定。sources.json 倒过来排，热门必须一字不差 ——
+        curate 每次调整名单都会动那个文件的顺序。"""
+        eps, srcs = self.b.load()
+        a = [r["src"]["id"] for r in self.b.hot_sources(eps, srcs)]
+        rev = dict(srcs, sources=list(reversed(srcs.get("sources") or [])))
+        b = [r["src"]["id"] for r in self.b.hot_sources(eps, rev)]
+        self.assertEqual(a, b, "热门的顺序跟着 sources.json 的顺序变了 —— 打平时没有全序")
 
 
 class EpisodesNameTheirShowTheWayTheRegistryDoes(unittest.TestCase):
