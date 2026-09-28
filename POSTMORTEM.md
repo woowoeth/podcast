@@ -1139,3 +1139,47 @@ fast.yml 换回旧写法、daily.yml 删掉提交前的核对）都红。
 **教训。** 这是第三次栽在「git 给中文路径加引号」上：前两次在我临时敲的命令里，
 量出假的「0 集」；这一次在生产代码里，删了 20 篇。**凡是把 git 输出的路径再拿去用，
 一律 `-z`**。而且一道检查只放在主路径上不算数，**每一条会提交的分支都要过它**。
+
+## 32. 繁体页的结构化数据指着简体版；一个专题页声明了不存在的英文版
+
+**现象。** 2026-09-26 审计（分享链接那次修复之前就有）：
+- 繁体树 1156 个页面的 JSON-LD 全都指着简体版 —— 面包屑「首頁」是
+  `https://ourword.ai/podcast/`，每一集的 `url` / `@id`、信源的 `url`、首页的
+  `WebSite` 和站内搜索模板都在 `/podcast/…`，而同一页的 canonical 是 `/podcast/tw/…`。
+  搜索引擎读到的是「这一页的实体是简体那一页」。
+- `zt/founders/` 和 `tw/zt/founders/` 声明 `hreflang="en"` → `/podcast/en/zt/founders/`，
+  语言下拉里也给了 EN；`en/zt/` 根本不存在。这是整个繁体树里唯一解析不到的站内地址。
+
+**根因。**
+- tw.py 的改指向只认 HTML 属性（`ATTR` 要求 `名="…"`，JSON 写的是 `"名": "…"`），
+  外加 refresh / location.replace / 分享文本三处。`<script type="application/ld+json">`
+  一处都没碰，`_protect` 的 `URLTEXT` 又把里面的地址当裸地址挡住不转，于是原样留着简体。
+- `_has_en` 的规则是「不是 /p/ 的一律有英文版」。专题只在简体站出（`zt_topics` 在英文那趟
+  返回空），是它没想到的一种页。信源页、分类页在英文树里也只给有译文的建 ——
+  只是碰巧 176 档每档都有译文，第一档还没译的新信源就会指向 404。
+
+**为什么没人看见。** 查 href 的 `NoBrokenInternalLinks` 跳过 `https://` 开头的地址，
+hreflang 全是绝对地址；`HreflangIsPerPage` 和 `test_data_en_matches_reality` 只抽查 p/ 下
+前 120 页；分享、短链那几道闸读的是按钮和跳转，没有一条读 JSON-LD。
+
+**修法。**
+- tw.py `_retarget` 里改 JSON-LD 的 `url` / `item` / `@id` / `urlTemplate`，走同一个
+  `_retarget_value`（它本来就不动 /podcast/en/ 和 /podcast/assets/）。只改本站地址：
+  publisher 的 `https://ourword.ai/` 是出版方的标识，三个版本得是同一个出版方。
+- `_has_en`：专题返回 False；信源页、分类页看底下有没有一集有译文（`_en_lists`，
+  和英文那趟建页是同一条规则，判断落在译文数据上，不落在 en/ 目录上）。
+
+**闸。**
+- `StructuredDataStaysInItsOwnTree`：扫三棵树 JSON-LD 的**所有**字符串值（不只 tw.py
+  改的那四个键 —— 以后谁加一个新键，这里红，不会又安静地指回简体）。繁体页不许指到
+  简体树，英文页不许指到简体或繁体，每个地址都要落在磁盘上的文件。
+- `EveryAlternateResolves`：三棵树每条 hreflang 都落在磁盘上；两棵中文树上
+  「声明有英文版」（hreflang=en、下拉的 data-en）和 en/ 下真有这一页**同真同假**。
+- 反向验证：修复前的产物上 8885 个 JSON-LD 地址、2 条 hreflang、4 处 en 声明报红；
+  另外注入三处（繁体 JSON-LD 指向不存在的页、英文 JSON-LD 指回简体、真有英文版的页
+  不声明）都红；再把一档单集信源的译文挪走重建 —— 旧规则下信源页声明 404 的英文版、
+  闸红，新规则下不声明、闸绿。每次注入后工作区指纹和注入前一致。
+
+**教训。** 改指向的规则按「地址长在哪种语法里」逐个补（属性 → refresh → JS → 分享文本），
+每补一种就漏下一种。闸要反过来从产物出发：**这一页里所有看起来像本站地址的字符串**，
+不管它长在哪。

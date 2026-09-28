@@ -1922,6 +1922,110 @@ class EveryShareLandsInTheReadersOwnTree(unittest.TestCase):
                          f"{len(bad)} 处英文分享文本里有没标成中文专名的汉字")
 
 
+# 仓库根下哪些目录不是已发布的简体树（tw/、en/ 是另外两棵树，单独扫）
+_NOT_SITE = {"pipeline", "tests", "data", "scripts", "node_modules", "assets", "tw", "en"}
+
+
+def _tree_pages(tree: str) -> list:
+    """一棵已发布树（zh 在仓库根、tw/、en/）里的每一个 HTML 页。
+
+    不用 ROOT.rglob：那会走进 .git 和 data/，而且会把 tw/ en/ 算进简体树。"""
+    base = ROOT if tree == "zh" else ROOT / tree
+    if not (base / "index.html").exists():
+        return []
+    out = [base / "index.html", base / "404.html"]
+    for d in sorted(base.iterdir()):
+        if d.is_dir() and not d.name.startswith(".") and not (tree == "zh" and d.name in _NOT_SITE):
+            out += sorted(d.rglob("index.html"))
+    return [f for f in out if f.exists()]
+
+
+def _on_disk(path: str) -> pathlib.Path:
+    """站内路径（/podcast 之后那一截，如 /tw/p/x/#episode）落在磁盘上的哪个文件。"""
+    p = urllib.parse.unquote(path.split("#")[0].split("?")[0]).lstrip("/")
+    t = ROOT / p
+    return t if p and not p.endswith("/") and t.is_file() else t / "index.html"
+
+
+class StructuredDataStaysInItsOwnTree(unittest.TestCase):
+    """JSON-LD 里的站内地址，指向本树里真实存在的页。
+
+    2026-09-26 审计查出：繁体页的 JSON-LD 全都指着简体版 —— 941 个繁体节目页的
+    面包屑「首頁」是 https://ourword.ai/podcast/，PodcastEpisode 的 url 和 @id、
+    信源的 url 都是 /podcast/p/…、/podcast/s/…，而同一页的 canonical 是
+    /podcast/tw/…。搜索引擎读到的是「这一页的实体是简体那一页」。
+    tw.py 的改指向只认 HTML 属性（ATTR 要求 `名="…"`，JSON 是 `"名": "…"`），
+    外加 refresh / location.replace / 分享文本三处；<script type="application/ld+json">
+    一处都没碰，_protect 又把里面的地址当裸地址挡住，于是原样留着简体。
+    已有的判据查 href、查分享、查短链，没有一条读 JSON-LD。
+
+    判据扫 JSON-LD 的**所有**字符串值，不只是 tw.py 改写的那几个键
+    （url / item / @id / urlTemplate）：以后谁加一个 mainEntityOfPage，
+    tw.py 不认识它，这里会红，而不是又安静地指回简体。
+    繁体页里允许英文地址：简体源里写 /podcast/en/… 只可能是故意指向英文版，
+    _retarget_value 也刻意不改它。简体树的地址出现在繁体页里则永远是错的 ——
+    简体源里指向简体树，意思就是「本版」。
+    """
+
+    SITE = "https://ourword.ai/podcast"
+    _LD = re.compile(r'<script type="application/ld\+json">(.*?)</script>', re.S)
+    # 每棵树的 JSON-LD 不许指向哪些树。assets/ 三棵树共用一份，哪棵都许。
+    FORBID = {"zh": set(), "tw": {"zh"}, "en": {"zh", "tw"}}
+
+    @staticmethod
+    def _strings(o):
+        if isinstance(o, dict):
+            for v in o.values():
+                yield from StructuredDataStaysInItsOwnTree._strings(v)
+        elif isinstance(o, list):
+            for v in o:
+                yield from StructuredDataStaysInItsOwnTree._strings(v)
+        elif isinstance(o, str):
+            yield o
+
+    @staticmethod
+    def _tree_of(path: str) -> str:
+        for t in ("tw", "en", "assets"):
+            if path == "/" + t or path.startswith("/" + t + "/"):
+                return t
+        return "zh"
+
+    def _scan(self):
+        """[(页所在树, 页, 地址, 地址在 /podcast 之后那截)]"""
+        out, n_blk = [], 0
+        for tree in ("zh", "tw", "en"):
+            for f in _tree_pages(tree):
+                rel = str(f.relative_to(ROOT))
+                for blk in self._LD.findall(f.read_text()):
+                    n_blk += 1
+                    try:
+                        data = json.loads(blk)
+                    except ValueError as ex:
+                        self.fail(f"{rel} 的 JSON-LD 解析不了（改指向把它改坏了？）：{ex}")
+                    for v in self._strings(data):
+                        if v.startswith(self.SITE + "/") or v == self.SITE:
+                            out.append((tree, rel, v, v[len(self.SITE):] or "/"))
+                        elif v.startswith("/podcast/"):
+                            out.append((tree, rel, v, v[len("/podcast"):]))
+        self.assertGreater(n_blk, 3000, f"只找到 {n_blk} 段 JSON-LD —— 判据没扫到产物")
+        return out
+
+    def test_json_ld_never_points_into_another_edition(self):
+        bad, n = [], {"zh": 0, "tw": 0, "en": 0}
+        for tree, rel, url, path in self._scan():
+            n[tree] += 1
+            if self._tree_of(path) in self.FORBID[tree]:
+                bad.append(f"{rel}：{url}")
+        for tree in ("zh", "tw", "en"):
+            self.assertGreater(n[tree], 5000, f"{tree} 树只扫到 {n[tree]} 个 JSON-LD 地址")
+        self.assertEqual(bad[:6], [], f"{len(bad)} 个 JSON-LD 地址指到了别的语言树")
+
+    def test_json_ld_urls_resolve(self):
+        bad = [f"{rel}：{url}" for _, rel, url, path in self._scan()
+               if not _on_disk(path).exists()]
+        self.assertEqual(bad[:6], [], f"{len(bad)} 个 JSON-LD 地址指向不存在的页")
+
+
 class EnglishShowsKeepTheirEnglishNames(unittest.TestCase):
     """英文节目在英文站上叫英文名 —— h1 和分享文本都是。
 
@@ -3397,6 +3501,64 @@ class HreflangIsPerPage(unittest.TestCase):
             if claims != (d.name in have):
                 bad.append(f"{d.name[:34]} claims={claims} has_en={d.name in have}")
         self.assertEqual(bad[:4], [], f"{len(bad)} 页的 hreflang=en 和实际不符")
+
+
+class EveryAlternateResolves(unittest.TestCase):
+    """hreflang 和语言下拉列出的每一个版本，磁盘上都真有那一页。
+
+    2026-09-26 审计查出：zt/founders/ 和 tw/zt/founders/ 声明了
+    hreflang="en" → /podcast/en/zt/founders/，下拉里也给了 EN 那一项，
+    而 en/zt/ 根本不存在 —— 专题只在简体站出（zt_topics 在英文那趟返回空）。
+    _has_en 的规则原来是「不是 /p/ 的一律有英文版」，专题是它没想到的一种页；
+    信源页、分类页在英文树里也只给有译文的建，同一条规则在第一档还没译的
+    新信源上就会指向 404。
+    已有的 HreflangIsPerPage 和 test_data_en_matches_reality 只抽查 p/ 下
+    前 120 页；NoBrokenInternalLinks 跳过 https:// 开头的地址，而 hreflang
+    全是绝对地址。那是整个繁体树里唯一一个解析不到的站内地址，没有一条判据看得见。
+
+    判据落在后果上：三棵树的每一页、每一条 hreflang 都要落在磁盘上的文件；
+    两棵中文树上「声明有英文版」（hreflang=en、下拉的 data-en）必须和
+    en/ 下真有这一页**同真同假** —— 反方向也查，因为收紧 _has_en 时
+    最容易犯的错，是把真有英文版的页也一起收掉了。
+    """
+
+    SITE = "https://ourword.ai/podcast"
+    _HREF = re.compile(r'<link rel="alternate" hreflang="([^"]+)" href="([^"]+)"')
+
+    def test_every_hreflang_href_is_a_real_page(self):
+        import html as _h
+        bad, n = [], 0
+        for tree in ("zh", "tw", "en"):
+            for f in _tree_pages(tree):
+                for lang, url in self._HREF.findall(f.read_text()):
+                    n += 1
+                    url = _h.unescape(url)
+                    if not url.startswith(self.SITE + "/"):
+                        bad.append(f"{f.relative_to(ROOT)} 的 hreflang={lang} 不在本站：{url}")
+                    elif not _on_disk(url[len(self.SITE):]).exists():
+                        bad.append(f"{f.relative_to(ROOT)} 的 hreflang={lang} 指向不存在的页：{url}")
+        self.assertGreater(n, 10000, f"只扫到 {n} 条 hreflang —— 判据没扫到产物")
+        self.assertEqual(bad[:6], [], f"{len(bad)} 条 hreflang 解析不到")
+
+    def test_english_is_offered_exactly_where_it_exists(self):
+        if not (ROOT / "en" / "index.html").exists():
+            self.skipTest("英文站还没建")
+        bad, n = [], 0
+        for tree in ("zh", "tw"):
+            base = ROOT if tree == "zh" else ROOT / tree
+            for f in _tree_pages(tree):
+                h = f.read_text()
+                has = (ROOT / "en" / f.relative_to(base)).exists()
+                rel = f.relative_to(ROOT)
+                if "hreflang=" in h:            # 短链跳转页不声明任何版本，不算
+                    n += 1
+                    if ('hreflang="en"' in h) != has:
+                        bad.append(f"{rel} hreflang=en {'有' if not has else '缺'}，en 页{'有' if has else '没有'}")
+                m = re.search(r'id="lang-toggle"[^>]*data-en="([^"]*)"', h)
+                if m and bool(m.group(1)) != has:
+                    bad.append(f"{rel} data-en={m.group(1)!r}，en 页{'有' if has else '没有'}")
+        self.assertGreater(n, 2000, f"只扫到 {n} 个声明了 hreflang 的中文页")
+        self.assertEqual(bad[:6], [], f"{len(bad)} 处「有没有英文版」和磁盘不符")
 
 
 class LanguageSwitchIsOneControl(unittest.TestCase):

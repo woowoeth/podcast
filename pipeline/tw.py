@@ -403,6 +403,24 @@ def _retarget_value(val, base):
 _REFRESH = re.compile(r'(http-equiv="refresh" content="\d+;\s*url=)([^"]+)(")')
 _JSREDIR = re.compile(r'(location\.replace\(")([^"]+)("\))')
 _SHARETEXT = re.compile(r'(data-share-text=")([^"]*)(")')
+# JSON-LD 里的地址。ATTR 要求 `名="…"`，JSON 写的是 `"名": "…"`，一个都匹配不上；
+# _protect 又把里面的地址当裸地址挡住不转字形 —— 于是繁体页的结构化数据原样
+# 指着简体版：941 页的面包屑「首頁」、每一集的 url 和 @id、信源的 url，
+# 而同一页的 canonical 是 /podcast/tw/…（2026-09-26 审计查出）。
+# **只改这几个键**，不是所有字符串：以后要是有 translationOfWork 这种故意指向
+# 简体版的键，不该被顺手改成指向自己。认不得的新键由守护
+# StructuredDataStaysInItsOwnTree 扫所有字符串值兜住 —— 会红，不会静默。
+_LDBLOCK = re.compile(r'(<script type="application/ld\+json">)(.*?)(</script>)', re.S)
+_LDURL = re.compile(r'("(?:url|item|@id|urlTemplate)":\s*")([^"\\]*)(")')
+
+
+def _ld_value(val, base):
+    """JSON-LD 只改本站（base 底下）的地址。跨站的 https://ourword.ai/ 是
+    publisher 那个 Organization 的标识，三个版本得是同一个出版方 ——
+    按 SISTER 改成 /tw/ 就成了另一个。页面上给人点的链接才该去繁体主站。"""
+    if val.startswith(("https://ourword.ai" + base + "/", base + "/")):
+        return _retarget_value(val, base)
+    return val
 
 
 def _retarget(s, base):
@@ -417,6 +435,8 @@ def _retarget(s, base):
     s = _JSREDIR.sub(lambda m: m.group(1) + _retarget_value(m.group(2), base) + m.group(3), s)
     s = _SHARETEXT.sub(lambda m: m.group(1) + URLTEXT.sub(
         lambda u: _retarget_value(u.group(0), base), m.group(2)) + m.group(3), s)
+    s = _LDBLOCK.sub(lambda m: m.group(1) + _LDURL.sub(
+        lambda u: u.group(1) + _ld_value(u.group(2), base) + u.group(3), m.group(2)) + m.group(3), s)
     return re.sub("(\\d+)", lambda m: holes[int(m.group(1))], s)
 
 

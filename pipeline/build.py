@@ -481,15 +481,44 @@ LANG_JS = ("<script>(function(){try{"
            "}catch(e){}})();</script>")
 
 
+_EN_LISTS: dict[str, set] = {}
+
+
+def _en_lists() -> dict[str, set]:
+    """英文树会有哪些信源页、分类页：{"s": {source_id…}, "c": {cat…}}。
+
+    和 render_site(lang="en") 同一条规则：那一趟先把集按译文筛过，再给
+    **还剩下集的**信源和分类建页。判断落在译文数据上，理由见 _has_en。
+    render_site 每趟开头清空，所以测试换了数据也不会读到上一份。
+    """
+    if not _EN_LISTS:
+        tr = [x for x in load()[0] if _has_en(f"/p/{x.get('slug')}/")]
+        _EN_LISTS["s"] = {x.get("source_id") for x in tr}
+        _EN_LISTS["c"] = {x.get("cat") for x in tr}
+    return _EN_LISTS
+
+
 def _has_en(path: str) -> bool:
     """这个 path 有英文版吗。
 
-    列表页（/、/sources/、/log/、/s/<id>/）总是有；单集页要看那一篇译了没有。
-    判断落在**磁盘上真有那个目录**，不是"数据里有译文"——两者会在构建中途
-    不一致（英文那趟还没跑到），而 hreflang 说的是"那个 URL 存在"。
+    首页、/sources/、/log/、404 总是有；单集页要看那一篇译了没有；信源页、
+    分类页要看底下有没有一集译了；专题没有。
+    判断落在**译文数据**上，不落在 en/ 目录上（见下面单集页那段）。
+    hreflang 和下拉里的 EN 说的都是"那个 URL 存在"，守护
+    EveryAlternateResolves 拿三棵树的产物逐条对磁盘。
     """
     if LANG == "en":
         return True
+    if path.startswith("/zt/"):
+        # 专题只在简体站出（zt_topics 在英文那趟返回空）。原来这里落进
+        # 「不是 /p/ 就有」，zt/founders/ 和它的繁体页都声明了一个 404 的
+        # 英文版，下拉里也给了 EN（2026-09-26 审计查出）。
+        return False
+    if path.startswith(("/s/", "/c/")):
+        # 一档新收录、还没有一集译完的信源，英文树里没有它的页。
+        # 原来这两种页也落进「总是有」—— 只是碰巧 175 档每档都有译文。
+        kind, key = path.split("/")[1:3]
+        return key in _en_lists()[kind]
     if not path.startswith("/p/"):
         return True
     slug = path[3:].rstrip("/")
@@ -2316,6 +2345,7 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
         BASE, SITE = BASE_ZH, SITE_ZH
     BLURB = _blurb()
     eps, srcs = load()
+    _EN_LISTS.clear()       # _has_en 的信源／分类缓存按这一趟的数据重算
     set_core(srcs)          # 卡片要按**当前**源等级打「必看」标记
     global _EN
     global _EN_SRC
