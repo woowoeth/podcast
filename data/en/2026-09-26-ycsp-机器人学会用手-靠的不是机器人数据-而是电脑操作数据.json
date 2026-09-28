@@ -1,0 +1,122 @@
+{
+ "slug": "2026-09-26-ycsp-机器人学会用手-靠的不是机器人数据-而是电脑操作数据",
+ "of": "ycsp-d4c4c7cdec",
+ "source_lang": "en",
+ "title": "Robots Learn to Manipulate Using Computer Interaction Data, Not Robot Data",
+ "dek": "General-purpose large models are bundling programming, computer operation, and spatial reasoning capabilities to robots; the industry expects genuinely general robots—capable of following any instruction and working like a competent teenager—within two years.",
+ "why": "Two pioneering roboticists use concrete demos and research lineages to explain why general-purpose models may win the robotics control competition faster than purpose-built robot models.",
+ "who": "Entrepreneurs, investors, and engineers tracking robotics, embodied AI, or the boundaries of general-model applications, seeking to anticipate what the next wave of robotics companies will look like.",
+ "skip": "12–14 minutes on context-learning theory—overly academic in detail and conversational in tone; skip if time is short.",
+ "tags": [
+  "Embodied AI",
+  "Robot control",
+  "General-purpose models",
+  "Code-writing agents",
+  "Bitter lesson"
+ ],
+ "points": [
+  {
+   "h": "Robot motion output once lacked reasoning chains",
+   "body": "Early VLA models like RT2 fine-tuned language models to directly output action coordinates (end-effector poses) without intermediate reasoning steps—similar to how early GSM8K models output answers directly without showing work. Today's coding agents can think first, write code, invoke tools, then decide actions: the robot equivalent of the reasoning chains that transformed language models. Now complex tasks can use variable amounts of computation instead of fixed-depth outputs."
+  },
+  {
+   "h": "The bottleneck was perhaps never the model architecture",
+   "body": "VLA architectures are built on language models and theoretically capable of reasoning and code generation. The real bottleneck may not be whether to use specialized robot architectures, but what data trains them. Robot-specific data has always been scarce and progress slow. Since code and web text are well within models' natural distribution, the alternative is to reframe robot tasks—inherently out-of-distribution—as problems solvable with existing data."
+  },
+  {
+   "h": "In-context learning cannot support true scaling",
+   "body": "François ran an experiment removing a task from the training set and testing pure in-context learning (no weight updates). Performance gains were non-monotonic and highly variable. Critically, models plateau after roughly 20–40 examples; more context examples don't help, and beyond roughly half the training context length, performance drops. Companies like Tesla with massive datasets cannot rely on this approach for autonomous driving."
+  },
+  {
+   "h": "Distilling on-the-fly learning into a skill library works",
+   "body": "Waddle Labs treats a \"harness\" (an agent's bundled tools and workflows) as a domain-expertise carrier. When a robot enters a new environment, it learns on the fly through context, but what it learns can be packaged into concrete code or skills for future agents to call directly—experience distilled into fixed assets. This echoes meta-learning: one large model \"programs\" smaller ones, which execute in context, staying smaller and faster."
+  },
+  {
+   "h": "If latency halves monthly, real-time robots may arrive by year-end",
+   "body": "In the demonstrations, Astra controlling a robotic arm shows obvious latency-driven sluggishness because the entire pipeline is bottlenecked by the model's inference speed. However, observations suggest frontier-level LLM latency approximately halves each month; if this trend holds, by year-end real-time robot control becomes possible. Today's slow demos may quickly become non-issues."
+  },
+  {
+   "h": "Stronger language models necessarily yield stronger robot models",
+   "body": "Philip Isola's platonic representation hypothesis: at sufficient scale with sufficient data, different models converge on the same underlying world representation. If true, a sufficiently powerful language model necessarily corresponds to a sufficiently powerful robot model—both learning the same physical-world mapping. This embodies the bitter lesson most completely: architecture is irrelevant; what matters is whether you have a genuinely powerful general model."
+  },
+  {
+   "h": "Dragging cursors in Blender taught the model spatial reasoning",
+   "body": "Astra's breakthrough in spatial reasoning traces largely to pretraining on vast quantities of computer operation and CAD data—dragging cursors in Blender around a 3D object for design work is fundamentally learning spatial concepts like up, down, left, right: exactly the abilities robot arms require. Ironically, Xerox PARC designed graphical interfaces to mirror the physical world for human ease in the 1980s; now those \"skeuomorphic\" environments have become training data for AI learning to control actual physics."
+  },
+  {
+   "h": "General robots will emerge within two years, possibly sooner",
+   "body": "Across frontier labs and foundation robotics companies, consensus holds that truly general robots—those following any natural-language instruction to accomplish work a competent teenager can do with hands—will emerge within two years or sooner, a ChatGPT moment for robotics. The remaining challenge is compressing slow, high-latency inference into rapidly deployable skills—analogous to sleep, where brains consolidate daily experience into memory: models need an offline stage to distill context-learned experience into weights or a growing skill library."
+  }
+ ],
+ "terms": [
+  {
+   "term": "VLA (Vision-Language-Action Model)",
+   "def": "Robot control model that outputs action coordinates rather than text"
+  },
+  {
+   "term": "end-effector pose",
+   "def": "The coordinates and orientation of a robot arm's endpoint in space"
+  },
+  {
+   "term": "code as policies",
+   "def": "Using code-writing agents to directly control robots by generating task-specific programs"
+  },
+  {
+   "term": "in-context learning (ICL)",
+   "def": "Improving model performance through examples in prompts without updating model weights"
+  },
+  {
+   "term": "platonic representation hypothesis",
+   "def": "The hypothesis that sufficiently advanced models converge to the same underlying representation of the world"
+  },
+  {
+   "term": "bitter lesson",
+   "def": "Rich Sutton's principle that generic scaling methods ultimately outperform domain-specific engineering"
+  }
+ ],
+ "facts": [
+  {
+   "k": "Examples needed for in-context learning saturation",
+   "v": "Approximately 20-40"
+  },
+  {
+   "k": "Frontier-level LLM inference latency improvement rate",
+   "v": "Approximately halves monthly"
+  },
+  {
+   "k": "Industry consensus on general robot emergence timing",
+   "v": "Two years or sooner"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "instead of outputting English, for example, they just output what we call an end-effector pose. Which is the coordinates that you can then translate into join commands that can control the robots.",
+   "translated": false
+  },
+  {
+   "text": "We want to be bidderless and pill, right? We want to benefit from all kinds of data. We want to pour in computer use data into our robot models. We want to pour in coding data into our robot models.",
+   "translated": false
+  },
+  {
+   "text": "one is non-monotonic improvement which is wild so it gets worse it gets better it gets worse it gets better like pretty grass aggressively number two is that it caps out very quickly and so after like 20 30 maybe 40 examples it is basically saturated",
+   "translated": false
+  },
+  {
+   "text": "So one thing that we saw is that for Fable class LLMs, their latency is improving by around 2x per month, which is very, very fast.",
+   "translated": false
+  },
+  {
+   "text": "There's some consensus within the Frontier Labs and also in the Robotics Foundation models companies that we will have general purpose robots within the next two years or even earlier.",
+   "translated": false
+  },
+  {
+   "text": "when we say general purpose robots, we mean something like if you give any natural language instruction, it can do what a competent teenager could do with their hands.",
+   "translated": false
+  },
+  {
+   "text": "like almost everything that is intelligent sleeps. Like tell me an intelligent system that doesn't sleep, right, in some way. And then during sleep, compression happens.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
