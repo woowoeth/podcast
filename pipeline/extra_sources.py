@@ -360,4 +360,13 @@ EXTRA: list[dict] = [
        feed="http://www.ximalaya.com/album/46587439.xml",
        residential=True, desc="第一财经商业案例拆解，机制与数据可核"),
 
+  dict(id="timferriss", name="The Tim Ferriss Show", zh="Tim Ferriss",
+       cat="ideas", tier=2, lang="en", itunes=863897795,
+       feed="https://rss.art19.com/tim-ferriss-show",
+       # 文稿走 YouTube 字幕（官方频道有正片）或本机转写，两样都只有本机线做得了。
+       # 官网 tim.blog 有完整人工逐字稿，但 RSS 里没有 podcast:transcript，取稿层用不上。
+       # 近期约四分之一是合辑、问答、闲聊（#880/#881/#877/#875）。tier 2 在选题上只拦广告
+       # （run.py 的 NO_FILTER_TIERS），这几类靠成稿评分 7 分把关；真发出来一篇合辑再加标题过滤。
+       # 不放 tier 3：haiku 选题只看简介，扎实的 #884 Kevin Ryan 也只给 6 分，tier 3 会把正片一起挡掉。
+       residential=True, desc="Tim Ferriss 把各行顶尖者的具体做法问到可照做的细节，选题跨商业、健康与学习"),
 ]
