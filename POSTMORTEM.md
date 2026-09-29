@@ -1265,6 +1265,13 @@ origin/main 上已经有 1 个更新的提交没被拉下来」。那一轮 13:3
   漏提交 —— 注入的不是那个缺陷）；fast 那次是真缺口 —— 云端重试有没有 adopt 没有任何东西在查，
   于是补了 `RetryAfterResetMustNotRevertTheOtherLine`。
 
+**这道闸推上去第一次在 CI 上红了三条（本机全绿）。** 沙盒里的裸仓库用 `git init --bare` 建，
+本机 Apple git 的系统配置写着 `init.defaultBranch=main`，runner 上没有 —— 裸仓库的 HEAD 指向
+master，另一条线 clone 下来什么都没 checkout，「中途推一个提交」根本没发生。**尺子自己先红了**
+（「另一条线的提交没进 origin，重试分支根本没走到」），没有假绿；修成 `--bare -b main`，再用
+`HOME=空目录 GIT_CONFIG_NOSYSTEM=1` 在本机复现 CI 的配置跑一遍、连同本机线那 6 处注入都重跑过。
+**沙盒测试要在「没有我这台机器的配置」下跑一遍才算验过。**
+
 **清理那 26 个 stash（2026-09-29，本机线那一轮跑完、launchd 显示没在跑之后）。** 先逐个核对
 每个 stash 里有什么是别处没有的，再删：
 - 留痕类（catchup / indexnow / coverage / heartbeat-cloud）：磁盘上都有更新的版本。其中

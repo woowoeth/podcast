@@ -11514,7 +11514,9 @@ if NAME == "build.py":
                 (p / "seed").mkdir(parents=True, exist_ok=True)
                 (p / "seed" / "index.html").write_text("seed\n")
         git = lambda *a, cwd=box: subprocess.run(["git", *a], cwd=cwd, capture_output=True, text=True, check=True)
-        subprocess.run(["git", "init", "-q", "--bare", str(origin)], check=True)
+        # -b main：runner 上没有 init.defaultBranch，裸仓库的 HEAD 默认指向 master，
+        # clone 出来什么都不 checkout（本机的 Apple git 系统配置是 main，所以本机从没暴露）
+        subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
         git("init", "-q", "-b", "main")
         git("add", "-A")
         git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "seed")
