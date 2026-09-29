@@ -1258,6 +1258,232 @@ class ChecksMustRunWithoutBeingRemembered(unittest.TestCase):
         self.assertTrue(os.access(pf, os.X_OK), "preflight.sh 没有可执行位")
 
 
+class BotPushesGetTheSameCI(unittest.TestCase):
+    """云端 bot 推上去的提交，必须和人的推送过同一道 CI。
+
+    事故（2026-09-28，POSTMORTEM 34）：curate 推出去半套站（9b897da4bc，147 个产物是旧的），
+    ci.yml「生成产物和仓库里的一致」那一步正好能抓它 —— 可它根本没跑：用 GITHUB_TOKEN 推上去的
+    提交不启动任何别的工作流。当天的 CI 全是人或本机线的推送，bot 的提交一个都没查过；而 ci.yml
+    和 POSTMORTEM 的开头都写着「bot 的提交也一样过」，写了没人验。
+
+    现在：bot 的每一处推送都走 scripts/bot-push.sh（推成功就记下 HEAD），job 最后一步
+    `if: always()` 用 workflow_dispatch（GITHUB_TOKEN 发起的事件里少数会起新 run 的）给 ci.yml 派单，
+    查这一轮推上去的**最后一个**提交；ci.yml 按那个 SHA 检出、按 SHA 分并发组。
+
+    **从磁盘上的每一个 .yml 出发**，不从一张名单出发：以后加一条会推送的工作流，没接上就红。
+    bot-push.sh 本身在沙盒里真跑（裸仓库当 origin、gh 换成桩）。
+    """
+
+    WRAP = "scripts/bot-push.sh"
+
+    @staticmethod
+    def _load(rel):
+        import yaml
+        return yaml.safe_load((ROOT / rel).read_text())
+
+    @staticmethod
+    def _run_lines(step):
+        return [l for l in (step.get("run") or "").splitlines() if not l.lstrip().startswith("#")]
+
+    @classmethod
+    def problems(cls, workflows, ci):
+        """workflows：{文件名: 解析后的 yaml}（不含 ci.yml）。返回 (违规清单, 会推送的 job 数)。"""
+        bad, pushing = [], 0
+        for name, d in sorted(workflows.items()):
+            for jn, job in (d.get("jobs") or {}).items():
+                steps = job.get("steps") or []
+                last_push = -1
+                for i, st in enumerate(steps):
+                    for l in cls._run_lines(st):
+                        if not re.search(r"\bgit\s+push\b", l):
+                            continue
+                        last_push = i
+                        if re.search(r"(?<!scripts/bot-push\.sh )\bgit\s+push\b", l):
+                            bad.append(f"{name}/{jn} 第 {i + 1} 步直接 git push，没走 {cls.WRAP}：{l.strip()}")
+                if last_push < 0:
+                    continue
+                pushing += 1
+                perms = {**(d.get("permissions") or {}), **(job.get("permissions") or {})}
+                if perms.get("actions") != "write":
+                    bad.append(f"{name}/{jn} 会推送，却没有 actions: write —— 派不了 CI 的单")
+                ks = [i for i, st in enumerate(steps)
+                      if re.fullmatch(r"\s*bash scripts/bot-push\.sh ci\s*", st.get("run") or "")]
+                if not ks:
+                    bad.append(f"{name}/{jn} 会推送，推完没派 CI（缺 `bash {cls.WRAP} ci` 那一步）")
+                    continue
+                st = steps[ks[-1]]
+                if ks[-1] < last_push:
+                    bad.append(f"{name}/{jn} 派 CI 的那步排在最后一次推送之前 —— 查不到最后推上去的那个")
+                if str(st.get("if", "")).replace("${{", "").replace("}}", "").strip() != "always()":
+                    bad.append(f"{name}/{jn} 派 CI 的那步不是 if: always() —— 推送之后哪一步失败，它就被跳过")
+                if "github.token" not in str((st.get("env") or {}).get("GH_TOKEN", "")):
+                    bad.append(f"{name}/{jn} 派 CI 的那步没把 GH_TOKEN 设成 github.token")
+        on = ci[True] if True in ci else ci["on"]
+        if "sha" not in ((on.get("workflow_dispatch") or {}).get("inputs") or {}):
+            bad.append("ci.yml 的 workflow_dispatch 没有 sha 输入 —— bot 派来的单不知道查哪个提交")
+        steps = ci["jobs"]["check"]["steps"]
+        co = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout")]
+        if not co or "inputs.sha" not in str((co[0].get("with") or {}).get("ref", "")):
+            bad.append("ci.yml 检出的不是 inputs.sha —— 查的是派单那一刻分支的最新，不是 bot 推上去的那个")
+        if "inputs.sha" not in str((ci.get("concurrency") or {}).get("group", "")):
+            bad.append("ci.yml 的并发组不按 SHA 分 —— bot 派的单会被紧跟着的一次推送取消")
+        fresh = [s for s in steps if s.get("name") == "生成产物和仓库里的一致"]
+        if not fresh:
+            bad.append("ci.yml 没有「生成产物和仓库里的一致」那一步了 —— 这条守护要护的就是它")
+        else:
+            cond = str(fresh[0].get("if", ""))
+            if "!cancelled()" not in cond and "always()" not in cond:
+                bad.append("「生成产物和仓库里的一致」前面一红就被跳过 —— 09-26 到 09-29 单元测试一直红，"
+                           "它一次都没跑过（要 if: !cancelled()）")
+            if "pipeline/build.py" not in (fresh[0].get("run") or ""):
+                bad.append("「生成产物和仓库里的一致」自己不建站 —— 上一步没建成时它量的是没建过的树，永远是绿的")
+        return bad, pushing
+
+    def _all(self):
+        wfs = {f.name: self._load(f".github/workflows/{f.name}")
+               for f in sorted((ROOT / ".github" / "workflows").glob("*.yml")) if f.name != "ci.yml"}
+        return wfs, self._load(".github/workflows/ci.yml")
+
+    def test_every_pushing_workflow_hands_its_push_to_ci(self):
+        bad, pushing = self.problems(*self._all())
+        self.assertGreaterEqual(pushing, 6, "会推送的 job 不到 6 个 —— 尺子认不出推送了")
+        self.assertEqual([], bad, "bot 的推送有漏过 CI 的路：\n" + "\n".join(bad))
+
+    def test_the_rule_goes_red_on_each_way_a_push_can_skip_ci(self):
+        """反向注入（按语义）：每一种「推上去了、CI 却没查它」的写法都得红。"""
+        import copy
+        wfs0, ci0 = self._all()
+        steps = lambda w, f: next(iter(w[f]["jobs"].values()))["steps"]
+        on = lambda c: c[True] if True in c else c["on"]
+        fresh = lambda c: next(s for s in c["jobs"]["check"]["steps"] if s.get("name") == "生成产物和仓库里的一致")
+
+        def unwrap(w, c):
+            for s in steps(w, "sources.yml"):
+                if s.get("run"):
+                    s["run"] = s["run"].replace("bash scripts/bot-push.sh git push", "git push")
+
+        def early(w, c):
+            st = steps(w, "rescore.yml")
+            st.insert(0, st.pop())
+
+        cases = [
+            # 事故那天所有 bot 推送都长这样；新加一条工作流也最可能这样写
+            (lambda w, c: w.__setitem__("new.yml", {"permissions": {"contents": "write"}, "jobs": {"j": {
+                "steps": [{"run": "git add -A\ngit commit -m x\ngit push"}]}}}), "直接 git push"),
+            (unwrap, "直接 git push"),
+            (lambda w, c: steps(w, "curate.yml").pop(), "推完没派 CI"),
+            (lambda w, c: steps(w, "daily.yml")[-1].pop("if"), "if: always()"),
+            (early, "排在最后一次推送之前"),
+            (lambda w, c: w["fast.yml"]["permissions"].pop("actions"), "actions: write"),
+            (lambda w, c: steps(w, "yt-scan.yml")[-1].pop("env"), "GH_TOKEN"),
+            (lambda w, c: next(s for s in c["jobs"]["check"]["steps"]
+                               if "checkout" in str(s.get("uses"))).pop("with"), "inputs.sha"),
+            (lambda w, c: c["concurrency"].__setitem__("group", "ci-${{ github.ref }}"), "并发组"),
+            (lambda w, c: on(c)["workflow_dispatch"].pop("inputs"), "sha 输入"),
+            (lambda w, c: fresh(c).pop("if"), "前面一红就被跳过"),
+            (lambda w, c: fresh(c).__setitem__("run", fresh(c)["run"].replace(
+                "python pipeline/build.py >/dev/null\n", "")), "自己不建站"),
+        ]
+        for mutate, want in cases:
+            w, c = copy.deepcopy(wfs0), copy.deepcopy(ci0)
+            mutate(w, c)
+            bad, _ = self.problems(w, c)
+            self.assertTrue(any(want in b for b in bad), f"注入没被抓到（要的是「{want}」）：{bad}")
+
+    # ---------------------------------------------------------------- 沙盒里真跑 bot-push.sh
+
+    def _sandbox(self):
+        import shutil, tempfile
+        tmp = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        git = lambda *a, cwd: subprocess.run(["git", *a], cwd=cwd, check=True, capture_output=True,
+                                             text=True).stdout.strip()
+        origin = tmp / "origin.git"
+        git("init", "-q", "--bare", str(origin), cwd=tmp)
+        git("symbolic-ref", "HEAD", "refs/heads/main", cwd=origin)
+        a, b = tmp / "a", tmp / "b"
+        git("clone", "-q", str(origin), str(a), cwd=tmp)
+        git("config", "user.email", "t@t", cwd=a); git("config", "user.name", "t", cwd=a)
+        # 分支名和上游都显式给：runner 上 git 默认是 master，空仓库 clone 下来不一定带上游
+        git("checkout", "-q", "-B", "main", cwd=a)
+        (a / "f").write_text("0\n")
+        git("add", "-A", cwd=a); git("commit", "-qm", "init", cwd=a)
+        git("push", "-q", "-u", "origin", "HEAD:main", cwd=a)
+        git("clone", "-q", str(origin), str(b), cwd=tmp)
+        git("config", "user.email", "t@t", cwd=b); git("config", "user.name", "t", cwd=b)
+        (tmp / "bin").mkdir()
+        gh = tmp / "bin" / "gh"
+        gh.write_text('#!/bin/bash\necho "$*" >> "$GH_CALLS"\nexit "${GH_EXIT:-0}"\n')
+        gh.chmod(0o755)
+        env = {**os.environ, "PATH": f"{tmp / 'bin'}{os.pathsep}{os.environ['PATH']}",
+               "GH_CALLS": str(tmp / "gh.log"), "GITHUB_REF_NAME": "main",
+               "GITHUB_WORKFLOW": "source health", "GITHUB_RUN_ID": "42", "BOT_PUSH_BACKOFF": "0"}
+        env.pop("RUNNER_TEMP", None)
+
+        def run(cwd, *args, log, **extra):
+            return subprocess.run(["bash", str(ROOT / self.WRAP), *args], cwd=cwd, capture_output=True,
+                                  text=True, env={**env, "BOT_PUSH_LOG": str(log), **extra})
+
+        def commit(c, text):
+            (c / "f").write_text(text)
+            git("commit", "-qam", text.strip(), cwd=c)
+            return git("rev-parse", "HEAD", cwd=c)
+
+        calls = lambda: (tmp / "gh.log").read_text().splitlines() if (tmp / "gh.log").exists() else []
+        return tmp, git, run, commit, calls, origin, a, b
+
+    def test_a_successful_push_is_recorded_and_handed_to_ci(self):
+        tmp, git, run, commit, calls, origin, a, b = self._sandbox()
+        log = tmp / "pushed"
+        first = commit(a, "1\n")
+        r = run(a, "git", "push", "-q", "origin", "HEAD:main", log=log)
+        self.assertEqual(0, r.returncode, r.stderr)
+        self.assertEqual(first, git("rev-parse", "main", cwd=origin), "推送本身没成")
+        self.assertEqual(first, log.read_text().strip())
+        # 一轮推两次（日更：先推数据、再推重建的站）：记的是最后一个
+        last = commit(a, "2\n")
+        self.assertEqual(0, run(a, "git", "push", log=log).returncode)
+        self.assertEqual(last, log.read_text().strip(), "记的不是这一轮最后推上去的那个")
+        r = run(a, "ci", log=log)
+        self.assertEqual(0, r.returncode, r.stdout + r.stderr)
+        self.assertEqual([f"workflow run ci.yml --ref main -f sha={last} -f from=source health #42"], calls(),
+                         "派单的参数不对：要派 ci.yml、带完整 SHA 和是哪一轮派的")
+
+    def test_a_rejected_push_is_not_recorded_and_nothing_is_dispatched(self):
+        tmp, git, run, commit, calls, origin, a, b = self._sandbox()
+        commit(a, "1\n")
+        self.assertEqual(0, run(a, "git", "push", log=tmp / "a.pushed").returncode)
+        commit(b, "b\n")                          # b 没 pull：非快进，推送被拒
+        log = tmp / "b.pushed"
+        r = run(b, "git", "push", "-q", "origin", "HEAD:main", log=log)
+        self.assertNotEqual(0, r.returncode, "被拒的推送报了成功 —— 重试循环会以为推上去了")
+        self.assertFalse(log.exists(), "没推上去的提交被记成「推上去了」")
+        r = run(b, "ci", log=log)
+        self.assertEqual(0, r.returncode)
+        self.assertIn("没有推送", r.stdout)
+        self.assertEqual([], calls(), "没推任何东西却派了 CI")
+
+    def test_a_dispatch_that_cannot_get_through_is_red(self):
+        tmp, git, run, commit, calls, origin, a, b = self._sandbox()
+        log = tmp / "pushed"
+        commit(a, "1\n")
+        self.assertEqual(0, run(a, "git", "push", log=log).returncode)
+        r = run(a, "ci", log=log, GH_EXIT="1")
+        self.assertEqual(1, r.returncode, "推上去了、CI 派不出去，却是绿的")
+        self.assertIn("::error::", r.stderr)
+        self.assertEqual(3, len(calls()), "派单失败没有重试")
+
+    def test_it_refuses_what_it_cannot_record_honestly(self):
+        tmp, git, run, commit, calls, origin, a, b = self._sandbox()
+        log = tmp / "pushed"
+        commit(a, "1\n")
+        # 推的不是 HEAD：记下的 HEAD 就不是推上去的那个 —— 宁可当场拒绝
+        r = run(a, "git", "push", "origin", "main~0:main", log=log)
+        self.assertEqual(2, r.returncode, r.stderr)
+        self.assertFalse(log.exists())
+        self.assertEqual(2, run(a, "git", "status", log=log).returncode, "只包 git push")
+
+
 class CandidatePoolIsNotJustPopularity(unittest.TestCase):
     """Apple 分类榜按流行度排，天然偏大众——Radar 自己的 top 榜（真crime、励志、
     政治）就是这个偏差的样本。候选池必须能从别处进，但判断仍然全部由本站做。"""

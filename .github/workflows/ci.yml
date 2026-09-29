@@ -7,22 +7,36 @@ name: ci
 # 每一个都能被这里的某一项挡住。
 #
 # 也包括 bot 的提交：bot 有权限写 main，那它就必须过同一道闸门。
-# **但云端 bot 的推送不会触发这里**：用 GITHUB_TOKEN 推上去的提交不启动别的工作流
-# （GitHub 的规则）。只有本机线和人的推送会跑到。2026-09-28 curate 推出去半套站，
-# 这里「产物和仓库一致」那一步本来能抓住，可它根本没跑（POSTMORTEM 34）。
+# 人和本机线的推送走下面的 push 触发。**云端 bot 的推送不走它**：用 GITHUB_TOKEN 推上去的
+# 提交不启动别的工作流（GitHub 的规则）—— 2026-09-28 curate 推出去半套站，这里「产物和
+# 仓库一致」那一步本来能抓住，可它根本没跑（POSTMORTEM 34）。所以 bot 的推送都经过
+# scripts/bot-push.sh，job 最后一步用 workflow_dispatch 给这里派一次单（GITHUB_TOKEN 发起的
+# 事件里只有它和 repository_dispatch 会起新 run），查**这一轮推上去的最后一个提交**，
+# run 名字里写着 SHA 和是哪一轮派的。只查最后一个：日更先推只有数据的提交、再推重建的站，
+# 中间那个的产物本来就是旧的。
+# 守护 BotPushesGetTheSameCI 核每条会推送的工作流都这么接了。
+run-name: ${{ inputs.sha && format('bot 推送 {0}（{1}）', inputs.sha, inputs.from) || '' }}
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      sha:
+        description: "要查的提交（完整 40 位；bot 推送后自动派）。留空 = 所选分支的最新提交"
+        default: ""
+      from:
+        description: "谁派的（bot 工作流名 #run id）"
+        default: ""
 
 permissions:
   contents: read
 
 concurrency:
-  # 同一个分支上连着推几次，只验最后一次
-  group: ci-${{ github.ref }}
+  # 同一个分支上连着推几次，只验最后一次。bot 派来的单按 SHA 各占一组：它们查的是
+  # 各自那一轮留给 main 的样子，不能被紧跟着的一次人手推送（或别的 bot）取消掉。
+  group: ci-${{ github.ref }}-${{ inputs.sha || 'tip' }}
   cancel-in-progress: true
 
 jobs:
@@ -31,6 +45,22 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
+        with:
+          # bot 派来的单查它推上去的那个提交，不是派单那一刻分支的最新（中间可能又有人推了）。
+          # 留空时（push / PR / 手动不填）照旧取触发它的那个提交。
+          ref: ${{ inputs.sha }}
+
+      - name: 查的正是要查的那个提交
+        if: ${{ inputs.sha != '' }}
+        env:
+          WANT: ${{ inputs.sha }}
+        run: |
+          got=$(git rev-parse HEAD)
+          [ "$got" = "$WANT" ] || { echo "::error::要查 ${WANT}，检出的却是 $got"; exit 1; }
+          # 按 SHA 检出没有 origin/<分支> 这个引用，push 触发的检出有（指着同一个提交）。
+          # 体检里「跑的是不是 origin/main 最新版」要读它 —— 补上，两种触发看到的仓库才一样。
+          git update-ref "refs/remotes/origin/${GITHUB_REF_NAME}" HEAD
+          echo "查的是 ${got}（${GITHUB_REF_NAME}）"
 
       - uses: actions/setup-python@v5
         with:
@@ -53,18 +83,25 @@ jobs:
           sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg
           python -m unittest discover -s tests -v 2>&1 | tail -40
 
+      # 下面每一项都带 `if: !cancelled()`：**各查各的，前面红了也照跑。** 没有它，单元测试一红，
+      # 后面全是 skipped —— 2026-09-26 到 09-29 那几天 main 上的 CI 一直红在单元测试，
+      # 「生成产物和仓库里的一致」一次都没跑过；09-28 curate 那次就算 CI 跑了也抓不住。
+
       # **依赖缺失时 unittest 会静默 skip**，而上面是 `| tail -40`——
       # "跳过了整层浏览器检查"和"全过"在输出上分不出来。这两层是唯一
       # 会打开真实页面的检查，静默消失等于没有。
       - name: 浏览器那两层必须真的跑了
+        if: ${{ !cancelled() }}
         run: python scripts/require-browser-layers.py
 
       - name: shell 语法
+        if: ${{ !cancelled() }}
         run: |
           for f in scripts/*.sh; do bash -n "$f" || exit 1; done
           echo "所有脚本语法正常"
 
       - name: workflow YAML 可解析
+        if: ${{ !cancelled() }}
         run: |
           python - <<'EOF'
           import glob, sys, yaml
@@ -78,6 +115,7 @@ jobs:
           EOF
 
       - name: 入库的符号链接不许指回仓库内部
+        if: ${{ !cancelled() }}
         run: |
           # 这一条炸的是部署而不是代码，测试全绿也看不出来：一个指向仓库自身的
           # 符号链接会让 Pages 的 Upload artifact 无限递归，卡死整轮部署。
@@ -91,6 +129,7 @@ jobs:
           exit $bad
 
       - name: 构建是幂等的
+        if: ${{ !cancelled() }}
         run: |
           # 同样的数据连续构建两次必须一字不差。不成立说明生成产物里混进了时间戳
           # 或随机顺序，而那会让每一轮跑批都在生成产物上冲突。
@@ -107,8 +146,11 @@ jobs:
           echo "连续两次构建结果一致"
 
       - name: 生成产物和仓库里的一致
+        if: ${{ !cancelled() }}
         run: |
           # 有人用 --no-build 发了内容却没重建，或者重建被打断——站上就会缺页。
+          # 自己建一次，不靠上一步：上一步在建站之前就红了的话，这里量的会是没建过的树，永远是绿的。
+          python pipeline/build.py >/dev/null
           if ! git diff --quiet; then
             echo "::error::重新构建后产物有差异：说明推上来的生成产物是旧的"
             git diff --stat
@@ -117,4 +159,5 @@ jobs:
           echo "仓库里的生成产物是最新的"
 
       - name: 体检（只查文件）
+        if: ${{ !cancelled() }}
         run: python pipeline/healthcheck.py

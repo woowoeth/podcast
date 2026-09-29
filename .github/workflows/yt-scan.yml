@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  actions: write      # 推送后给 ci.yml 派单（scripts/bot-push.sh ci）
 
 concurrency:
   group: podcast-write
@@ -39,4 +40,13 @@ jobs:
           if git diff --cached --quiet; then echo "watchlist unchanged"; exit 0; fi
           git commit -m "yt-scan: watchlist"
           git pull --rebase --autostash origin main || true
-          git push || true
+          bash scripts/bot-push.sh git push || true
+
+      # 用 GITHUB_TOKEN 推的提交不触发 ci.yml（POSTMORTEM 34）。这一轮推过，就给它派一次单，
+      # 查推上去的最后一个提交；派不出去就红。见 scripts/bot-push.sh。
+      - name: 这一轮推上去的提交也过 CI
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: bash scripts/bot-push.sh ci

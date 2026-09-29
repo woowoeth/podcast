@@ -27,6 +27,7 @@ on:
 
 permissions:
   contents: write
+  actions: write      # 推送后给 ci.yml 派单（scripts/bot-push.sh ci）
 
 # 必须串行：并行多班会把同一批候选各做一遍深读，账单翻倍。
 # 排队只留 1 个，多出来的 pending 会被取消——这是省钱，不是故障。
@@ -177,7 +178,7 @@ jobs:
             git add data/heartbeat-cloud.json
             git diff --cached --quiet && { ok=1; break; }
             git commit -q -m "heartbeat: cloud run failed"
-            if git push -q origin HEAD:main; then ok=1; break; fi
+            if bash scripts/bot-push.sh git push -q origin HEAD:main; then ok=1; break; fi
             echo "push retry $i"; sleep $(( (RANDOM % 5) + 3 ))
           done
           [ "$ok" = 1 ] || { echo "::error::心跳推不上去"; exit 1; }
@@ -207,7 +208,7 @@ jobs:
           git commit -m "digest: $(git diff --cached --name-only | grep -c 'data/episodes/') new"
           ok=0
           for i in $(seq 1 8); do
-            if git pull --rebase --autostash origin main && git push; then ok=1; break; fi
+            if git pull --rebase --autostash origin main && bash scripts/bot-push.sh git push; then ok=1; break; fi
             # 驱动只防"能自动合的"。真留下未合并文件时必须先脱身，
             # 否则之后每次 pull 都报 unmerged，重试循环全撞同一面墙。
             if [ -n "$(git ls-files -u)" ]; then
@@ -281,7 +282,7 @@ jobs:
           git commit -m "build: regenerate site"
           ok=0
           for i in $(seq 1 10); do
-            if git push; then ok=1; break; fi
+            if bash scripts/bot-push.sh git push; then ok=1; break; fi
             # 生成产物冲突一律以重建为准，不做三方合并
             git fetch origin main
             OURS=$(git rev-parse HEAD)
@@ -316,3 +317,12 @@ jobs:
           name: run-log
           path: ${{ runner.temp }}/run.log
           retention-days: 14
+
+      # 用 GITHUB_TOKEN 推的提交不触发 ci.yml（POSTMORTEM 34）。这一轮推过，就给它派一次单，
+      # 查推上去的最后一个提交；派不出去就红。见 scripts/bot-push.sh。
+      - name: 这一轮推上去的提交也过 CI
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: bash scripts/bot-push.sh ci

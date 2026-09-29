@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: write
+  actions: write      # 推送后给 ci.yml 派单（scripts/bot-push.sh ci）
 concurrency:
   group: podcast-write
   cancel-in-progress: false
@@ -56,7 +57,7 @@ jobs:
           git add -A
           git diff --cached --quiet || git commit -m "build: regenerate site"
           for i in $(seq 1 8); do
-            git push && exit 0
+            bash scripts/bot-push.sh git push && exit 0
             git pull --rebase --autostash origin main || true
             python pipeline/build.py; git add -A
             git commit --amend --no-edit || true
@@ -66,3 +67,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: rescore-log, path: "${{ runner.temp }}/rescore.log", retention-days: 30 }
+
+      # 用 GITHUB_TOKEN 推的提交不触发 ci.yml（POSTMORTEM 34）。这一轮推过，就给它派一次单，
+      # 查推上去的最后一个提交；派不出去就红。见 scripts/bot-push.sh。
+      - name: 这一轮推上去的提交也过 CI
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: bash scripts/bot-push.sh ci

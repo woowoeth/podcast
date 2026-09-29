@@ -19,6 +19,7 @@ on:
 
 permissions:
   contents: write
+  actions: write      # 推送后给 ci.yml 派单（scripts/bot-push.sh ci）
 concurrency:
   group: podcast-write
   cancel-in-progress: false
@@ -91,7 +92,7 @@ jobs:
           ok=0
           for i in $(seq 1 10); do
             git pull --rebase --autostash origin main || true
-            if git push; then ok=1; break; fi
+            if bash scripts/bot-push.sh git push; then ok=1; break; fi
             echo "push retry $i"; sleep $(( (RANDOM % 7) + 3 ))
           done
           if [ "$ok" != 1 ]; then echo "::error::信源改动推送失败"; exit 1; fi
@@ -107,7 +108,7 @@ jobs:
           git commit -m "build: regenerate site"
           ok=0
           for i in $(seq 1 10); do
-            if git push; then ok=1; break; fi
+            if bash scripts/bot-push.sh git push; then ok=1; break; fi
             git fetch origin main; git reset --mixed origin/main
             # 别的线刚发的集，数据在索引里、不在磁盘上。不取回的话 build.py 不给它们建页，
             # 下面整站一加，它们的正文页、繁体页、英文页、短链就全被当成删除推上去。
@@ -127,3 +128,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: curate-log, path: "${{ runner.temp }}/curate.log", retention-days: 60 }
+
+      # 用 GITHUB_TOKEN 推的提交不触发 ci.yml（POSTMORTEM 34）。这一轮推过，就给它派一次单，
+      # 查推上去的最后一个提交；派不出去就红。见 scripts/bot-push.sh。
+      - name: 这一轮推上去的提交也过 CI
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: bash scripts/bot-push.sh ci
