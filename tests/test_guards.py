@@ -12045,19 +12045,27 @@ class HealthcheckSeesLeftoverStashesAndMidRunCommits(unittest.TestCase):
         r = self._heartbeats({"autostash": 0})
         self.assertFalse(any("autostash" in b for b in r.bad), "没有 stash 也报 —— 喊狼来了")
 
-    def test_a_commit_that_lands_mid_run_is_not_a_failed_pull(self):
+    def _hc(self):
         import importlib
         sys.path.insert(0, str(ROOT / "pipeline"))
-        hc = importlib.import_module("healthcheck")
+        return importlib.import_module("healthcheck")
+
+    def test_a_commit_that_lands_mid_run_is_not_a_failed_pull(self):
+        """新心跳带 synced：rev..synced 之间的才算没跟上。要几个真提交，CI 的浅克隆里会跳过 ——
+        不需要历史的那半（老心跳按时间估）拆在下一条，CI 上照跑。"""
+        hc = self._hc()
         revs = subprocess.run(["git", "-C", str(ROOT), "rev-list", "--max-count=4", "HEAD"],
                               capture_output=True, text=True).stdout.split()
         if len(revs) < 4:
-            self.skipTest("历史太短")
+            self.skipTest("历史太短（浅克隆）")
         rows = [["x", "2026-01-01T00:00:00Z"]]
         # 开跑时看见的就是 revs[2]、跑的也是它 —— 之后别人推的不算没跟上
         self.assertEqual([], hc._missed_at_start(revs[2][:10], {"synced": revs[2][:10]}, rows))
         # 开跑时远端已经到 revs[0]，跑的却是 revs[2]：这才是 pull 没起作用
         self.assertEqual(2, len(hc._missed_at_start(revs[2][:10], {"synced": revs[0][:10]}, rows)))
+
+    def test_an_old_heartbeat_is_judged_by_the_run_window_in_utc(self):
+        hc = self._hc()
         # 老心跳没有 synced：跑批时长以内推上来的不算，+08:00 的时间按 UTC 比
         hb = {"at": "2026-09-28T13:51:01Z"}
         self.assertEqual([], hc._missed_at_start("x", hb, [["a", "2026-09-28T13:42:49Z"],
