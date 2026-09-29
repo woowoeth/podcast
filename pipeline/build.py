@@ -1952,9 +1952,11 @@ def cat_nav(counts: dict, here: str = "") -> str:
 
 # ---------------------------------------------------------------- 更新日志
 
-KIND_LABEL = {"added": "收录", "removed": "移除", "demoted": "降级", "dormant": "休眠"}
+KIND_LABEL = {"added": "收录", "removed": "移除", "demoted": "降级", "dormant": "休眠",
+              "restored": "恢复"}
 # 用 T() 取，别在字典里存两套：字典是常量，语言是运行时决定的
-KIND_TONE = {"added": "add", "removed": "drop", "demoted": "down", "dormant": "down"}
+KIND_TONE = {"added": "add", "removed": "drop", "demoted": "down", "dormant": "down",
+             "restored": "add"}
 
 
 def zt_topics() -> list[dict]:
@@ -2027,7 +2029,7 @@ def log_page(eps: list[dict], srcs: dict) -> str:
             flag = f'<em class="ev-flag">{T("试用")}</em>' if r.get("probation") else ""
             sc = i18n.score(f"{r['score']:.1f}")
             extra = f'<span class="ev-score">{sc}{flag}</span>'
-        elif kind in ("demoted", "dormant") and r.get("from_tier"):
+        elif kind in ("demoted", "dormant", "restored") and r.get("from_tier"):
             extra = f'<span class="ev-score">T{r["from_tier"]} → T{r["to_tier"]}</span>'
         items.append(f"""<li class="ev {tone}">
 <span class="ev-when">{e((r.get('at') or '')[:10])}</span>

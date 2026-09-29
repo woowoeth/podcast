@@ -334,20 +334,77 @@ def apply_actions(actions: list[tuple[str, str, str]], dry: bool = False) -> lis
             log(f"  移除 {name}：{why}")
         else:
             old = s.get("tier", 3)
-            new = min(3, old + 1)
-            if new == old and act == "demote":
+            # **降一级是从「自动降级之前的等级」算，不是从当前等级算。**
+            # 判决是一个状态（「这档源成稿中位只有 7.0」），不是一次事件：它每一轮都会
+            # 再触发。从当前等级减，同一份证据就会一轮降一级 —— 张小珺那 150 篇 7.0
+            # 三轮之内就能把它从 T1 降到 T3、再按「已在最低层」移除。原来没炸，是因为
+            # resolve_sources 每次都把 tier 抄回硬编码表、把降级一起抹了（POSTMORTEM 35）；
+            # tier 归 curate 之后这层意外的保护就没了，所以这里必须自己幂等。
+            base = s.get("tier_base", old)
+            new = min(3, base + 1)
+            if new == base and act == "demote":
                 blob["sources"] = [x for x in blob["sources"] if x["id"] != sid]
                 entries.append({"at": iso(now()), "kind": "removed", "id": sid,
                                 "name": name, "cat": s["cat"],
                                 "why": why + "（已在最低层，移除）"})
                 log(f"  移除 {name}：{why}（已在最低层）")
                 continue
+            if new == old:
+                # 同一条判决上一轮已经执行过。不再记账：原来每一轮都追加一条
+                # 「休眠 T2→T3」，BBC Analysis 在站上的更新日志里记了十几遍。
+                log(f"  维持 {name} T{old}：{why}")
+                continue
+            if new != base:
+                s["tier_base"] = base
             s["tier"] = new
             entries.append({"at": iso(now()),
                             "kind": "dormant" if act == "dormant" else "demoted",
                             "id": sid, "name": name, "cat": s["cat"],
                             "from_tier": old, "to_tier": new, "why": why})
             log(f"  降级 {name} T{old}→T{new}：{why}")
+    if entries and not dry:
+        blob["generated"] = iso(now())
+        path.write_text(json.dumps(blob, ensure_ascii=False, indent=1) + "\n")
+    return entries
+
+
+def restore_lifted(perf: dict, actions: list[tuple[str, str, str]],
+                   dry: bool = False) -> list[dict]:
+    """自动降过级、这一轮又没有任何判决的源，回到降级前的等级。
+
+    **tier 归 curate 之后，恢复也得是 curate 的事。** 原来降级根本留不住
+    （resolve_sources 每次重新生成都抄回硬编码表），「判据不再成立就回去」是那个
+    bug 顺带做的；现在降级会留下来，没有这一步，一条过期的判决就成了永久的 ——
+    empirehist 被 3 篇的旧门槛判到 T3、门槛当天就提到 6 篇，就是这个形状。
+
+    只恢复**确实健康**的：feed 这一轮取得到、没有停更超过 STALE_DAYS。
+    这两种情况 judge 会提前返回 None（体检偶尔失败不算死、停更在自己历史节奏以内
+    不算休眠），但那是「这一轮不下判断」，不是「判据不成立了」 —— 恢复了下一轮
+    又会降回去，等级就又开始来回翻。
+    """
+    path = DATA / "sources.json"
+    blob = json.loads(path.read_text())
+    judged = {sid for sid, _, _ in actions}
+    entries = []
+    for s in blob["sources"]:
+        sid = s["id"]
+        if "tier_base" not in s or sid in judged:
+            continue
+        m = perf.get(sid)
+        if not m or m.get("feed_ok") is False:
+            continue
+        if m.get("age_days") is not None and m["age_days"] > STALE_DAYS:
+            continue
+        old, base = s.get("tier", 3), s["tier_base"]
+        if base == old:
+            continue
+        del s["tier_base"]
+        s["tier"] = base
+        name = s.get("zh") or s["name"]
+        entries.append({"at": iso(now()), "kind": "restored", "id": sid, "name": name,
+                        "cat": s["cat"], "from_tier": old, "to_tier": base,
+                        "why": "降级的判据这一轮不再成立，回到降级前的等级"})
+        log(f"  恢复 {name} T{old}→T{base}：降级的判据这一轮不再成立")
     if entries and not dry:
         blob["generated"] = iso(now())
         path.write_text(json.dumps(blob, ensure_ascii=False, indent=1) + "\n")
@@ -1241,9 +1298,11 @@ def main() -> int:
     log(f"\n— 体检（{len(perf)} 档）—")
     actions = audit(perf)
     entries = []
-    if a.demote and actions:
-        log(f"\n— 执行 {len(actions)} 项 —")
-        entries += apply_actions(actions, a.dry_run)
+    if a.demote:
+        if actions:
+            log(f"\n— 执行 {len(actions)} 项 —")
+            entries += apply_actions(actions, a.dry_run)
+        entries += restore_lifted(perf, actions, a.dry_run)
     elif actions:
         log(f"\n{len(actions)} 项待处理（加 --demote 执行）")
     if a.discover is not None:

@@ -32,6 +32,11 @@ OUT = ROOT / "data" / "sources.json"
 # tier 1 = always ingest · 2 = ingest when the episode looks substantive
 # 3 = only on an unusually strong episode.  `kind`: rss | youtube
 # `itunes` lets --check re-resolve a moved feed from the Apple directory.
+#
+# **这里的 tier 只是新源进 sources.json 时的初始值。** 进去之后等级归 curate 管
+# （降级、休眠、恢复都记在 data/curation.json），重新生成原样保留 sources.json 里的，
+# 见 keep_curated_tier。改这里的 tier 对已有的源不起作用 —— 要改就在 sources.json
+# 里改、并在账本里记一条。
 CURATED: list[dict] = [
   # ---------- AI / 技术 ----------
   dict(id="latentspace", name="Latent Space", zh="Latent Space", cat="ai", tier=1, lang="en",
@@ -344,6 +349,40 @@ def carry_forward(out: list[dict], prev: dict[str, dict]) -> int:
     return n
 
 
+# curate 写、这里只结转的字段。tier_base 是「自动降级之前的等级」，curate 靠它
+# 让同一条判决只降一次、判据不成立时恢复（见 curate.apply_actions）。
+CURATE_OWNED = ("tier", "tier_base")
+
+
+def keep_curated_tier(out: list[dict], prev: dict[str, dict]) -> list[tuple[str, int, int]]:
+    """sources.json 里已有的源，等级原样保留。返回和硬编码表不一致的 (id, 表里的, 保留的)。
+
+    **tier 只有一个写入者：curate。** 原来这里每跑一次就把 CURATED/EXTRA 里写死的
+    tier 抄回 sources.json —— carry_forward 只结转量出来的字段，overrides 又故意
+    不 replay 自动降级 —— 于是 curate 的降级每一次都被下一次重新生成撤销。
+    2026-09-28 curate 降了 8 档（72f7ef38e7），一小时后 sources.yml 的 --check
+    全部改回（ce3ee695da），站上的「必看」跟着来回翻。账本里 BBC Analysis 的
+    「休眠 T2→T3」从 08-28 起记了十几遍，一次都没留住（POSTMORTEM 35）。
+
+    放在 overrides 之后、写盘之前：账本里 promoted 的 replay 只对 sources.json 里
+    还没有的源生效（从头重建时补回人的决定），已有的源一律以 sources.json 为准。
+    """
+    differs = []
+    for srec in out:
+        old = prev.get(srec["id"])
+        if not old or "tier" not in old:
+            continue                     # 新源：用表里的初始值
+        seeded = srec.get("tier")
+        for f in CURATE_OWNED:
+            if f in old:
+                srec[f] = old[f]
+            else:
+                srec.pop(f, None)
+        if seeded != srec["tier"]:
+            differs.append((srec["id"], seeded, srec["tier"]))
+    return differs
+
+
 def itunes_lookup(cid: int) -> dict | None:
     q = urllib.parse.urlencode({"id": cid, "entity": "podcast"})
     try:
@@ -530,10 +569,14 @@ def overrides(rows: list[dict] | None = None) -> dict[str, dict]:
       · pinned      —— 人钉的，数据里没有任何痕迹能推出来，必须替回
       · residential —— 从「已发布的稿全靠转写」测出来的，账本记着，替回
       · promoted    —— 记的是「用户指定为优先源」，人的决定，替回
+                       （只落到 sources.json 里还没有的源上；已有的源 tier 归 curate，
+                       见 keep_curated_tier）
     demoted / dormant **不替**：curate 每一轮都会按当前数据重算，替回去等于
     把一条过期的自动判决钉成永久的。实测 empirehist 就是这么被 3 篇的旧门槛
     判到 tier3 的，而门槛当天已经提到 6 篇 —— replay 会让它再也起不来。
     这和「用已经不存在的那把尺子判出来的结论不算数」是同一条规矩。
+    （不替不等于抹掉：curate 写进 sources.json 的等级这里原样保留，判据不再成立
+    时由 curate 自己恢复 —— 见 curate.restore_lifted。）
     """
     out: dict[str, dict] = {}
     if rows is None:
@@ -745,6 +788,12 @@ def main() -> int:
     if n_ov:
         log(f"  账本里替回 {n_ov} 处重新生成算不出来的决定"
             f"（pinned／residential／用户指定的 tier）")
+
+    kept = keep_curated_tier(out, prev)
+    if kept:
+        log(f"  {len(kept)} 档的等级和硬编码表不同，以 sources.json 为准（等级归 curate）："
+            + "、".join(f"{sid} T{a}→T{b}" for sid, a, b in kept[:8])
+            + ("…" if len(kept) > 8 else ""))
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(

@@ -8796,6 +8796,209 @@ class RegeneratingTheRegistryMustNotUndoWhatWasMeasuredOrDecided(unittest.TestCa
         self.assertFalse(bad, f"账本里的决定没落到清单上：{bad[:5]}")
 
 
+class TierHasOneWriter(unittest.TestCase):
+    """tier 只归 curate 写；重新生成不许改回去，curate 自己也不许一轮降一级。
+
+    事故（POSTMORTEM 35）：2026-09-28 curate 降了 8 档（72f7ef38e7），一小时后
+    sources.yml 的 resolve_sources --check 把 8 档全改回硬编码表（ce3ee695da）。
+    不只 --check：resolve_sources 每跑一次都从 CURATED/EXTRA 抄 tier，carry_forward
+    不带它、overrides 又故意不 replay 降级。账本里 BBC Analysis「休眠 T2→T3」从
+    08-28 起记了十几遍，一次都没留住；站上的「必看」跟着两个工作流来回翻。
+
+    修的时候撞见的第二层：curate 的降级是「当前等级 +1、已在 T3 再判就移除」，
+    而判决每一轮都会再触发。原来是 resolve_sources 的抹除意外地挡住了它 ——
+    只修前一半，张小珺的 150 篇 7.0 三轮之内就会把它从 T1 一路降到移除。
+    """
+
+    def setUp(self):
+        import importlib
+        self.R = importlib.import_module("resolve_sources")
+        self.C = importlib.import_module("curate")
+
+    # ---- resolve_sources：已有的源，等级原样保留 ----
+
+    def _regenerate(self, prev_rows: list[dict]) -> dict[str, dict]:
+        """在临时目录里真跑一遍 resolve_sources.main()（不带 --check，不联网），返回产物。
+
+        走的是入口本身，不是某个辅助函数：不管 tier 是在哪一步被改回去的，都在这里现形。
+        账本用真的那份 —— promoted 的 replay 和退役表都要参与。
+        """
+        import contextlib
+        import tempfile
+        import unittest.mock as mock
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            (root / "data").mkdir()
+            out = root / "data" / "sources.json"
+            out.write_text(json.dumps({"sources": prev_rows}, ensure_ascii=False))
+            (root / "data" / "curation.json").write_bytes(
+                (ROOT / "data" / "curation.json").read_bytes())
+            with mock.patch.object(self.R, "ROOT", root), \
+                    mock.patch.object(self.R, "OUT", out), \
+                    mock.patch.object(self.R, "RETIRED_FILE", root / "data" / "retired.json"), \
+                    mock.patch.object(sys, "argv", ["resolve_sources.py"]), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(self.R.main(), 0)
+            return {s["id"]: s for s in json.loads(out.read_text())["sources"]}
+
+    def test_regenerating_keeps_the_tier_already_in_the_registry(self):
+        table = {s["id"]: s["tier"] for s in self.R.ALL_SOURCES}
+        prev = json.loads((ROOT / "data" / "sources.json").read_text())["sources"]
+        prev = [dict(s) for s in prev if s["id"] in table]
+        # 每一档都改成和硬编码表不一样的等级 —— 包括账本里 promoted 过的 a16z／allin
+        for s in prev:
+            s["tier"] = 3 if table[s["id"]] != 3 else 1
+        prev[0]["tier_base"] = table[prev[0]["id"]]
+        # 挑一档当成新源（sources.json 里还没有），避开账本里 promoted 过的
+        ov = self.R.overrides()
+        fresh = prev.pop(max(i for i, s in enumerate(prev)
+                             if "tier" not in ov.get(s["id"], {})))
+        got = self._regenerate(prev)
+
+        undone = [(s["id"], s["tier"], got[s["id"]].get("tier"))
+                  for s in prev if s["id"] in got and got[s["id"]].get("tier") != s["tier"]]
+        self.assertFalse(undone, f"重新生成把 {len(undone)} 档的等级改回去了"
+                                 f"（id, sources.json 里的, 产物里的）：{undone[:6]}")
+        self.assertGreater(sum(1 for s in prev if s["id"] in got), 50,
+                           "产物里几乎没有已有的源 —— 这条没在量它该量的东西")
+        self.assertEqual(got[prev[0]["id"]].get("tier_base"), prev[0]["tier_base"],
+                         "curate 记的 tier_base 被重新生成丢了 —— 下一轮又会从当前等级再降一级")
+        self.assertFalse([s["id"] for s in prev[1:] if "tier_base" in got.get(s["id"], {})],
+                         "凭空多出了 tier_base")
+        self.assertEqual(got[fresh["id"]].get("tier"), table[fresh["id"]],
+                         "新源没拿到硬编码表里的初始等级")
+
+    # ---- curate：同一条判决只降一次 ----
+
+    def _registry(self, rows: list[dict]):
+        import tempfile
+        import unittest.mock as mock
+        td = tempfile.TemporaryDirectory()
+        self.addCleanup(td.cleanup)
+        data = pathlib.Path(td.name)
+        (data / "sources.json").write_text(json.dumps({"sources": rows}))
+        p = mock.patch.object(self.C, "DATA", data)
+        p.start()
+        self.addCleanup(p.stop)
+        return lambda: {s["id"]: s for s in
+                        json.loads((data / "sources.json").read_text())["sources"]}
+
+    def _src(self, sid, tier, **kw):
+        return dict(id=sid, name=sid, cat="ai", tier=tier, **kw)
+
+    @staticmethod
+    def _m(**kw):
+        """一档源的体检数字，默认是一档健康、产出合格的源。"""
+        m = dict(name="x", tier=1, cat="ai", published=150, review_rejected=0,
+                 gate_rejected=0, draft_pass=1.0, review_median=8.0, triage_n=0,
+                 triage_kinds={}, triage_pass=None, no_transcript=0, cloud_only_fails=0,
+                 feed_ok=True, fail_streak=0, residential=False, pinned=False,
+                 asr_only=False, age_days=3, max_gap_days=10, official_transcripts=0)
+        m.update(kw)
+        return m
+
+    def _curate(self, perf: dict) -> list[dict]:
+        """真跑一轮 curate.main(--demote)，体检数字用给定的；返回这一轮记进账本的。"""
+        import contextlib
+        import unittest.mock as mock
+        ledger = self.C.DATA / "curation.json"
+        before = len(json.loads(ledger.read_text())) if ledger.exists() else 0
+        with mock.patch.object(self.C, "performance", lambda: perf), \
+                mock.patch.object(self.C, "LEDGER", ledger), \
+                mock.patch.object(sys, "argv", ["curate.py", "--demote"]), \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(self.C.main(), 0)
+        return json.loads(ledger.read_text())[before:] if ledger.exists() else []
+
+    def test_a_standing_verdict_demotes_once(self):
+        now = self._registry([self._src("t1", 1), self._src("t2", 2),
+                              self._src("idle", 3), self._src("floor", 3)])
+        weak = dict(review_median=7.0)                      # 张小珺那种：150 篇中位刚好及格
+        perf = {"t1": self._m(**weak), "t2": self._m(**weak),
+                "idle": self._m(age_days=916, max_gap_days=77), "floor": self._m()}
+        first = self._curate(perf)
+        later = self._curate(perf) + self._curate(perf)
+        reg = now()
+        for sid in ("t1", "t2"):
+            self.assertIn(sid, reg, f"同一条判决跑了三轮，{sid} 被一路降到移除了"
+                                    f"（一轮降一级、到 T3 再判就移除）")
+        self.assertEqual((reg["t1"]["tier"], reg["t1"].get("tier_base")), (2, 1),
+                         "同一条判决跑了三轮，T1 不该降到 T2 以下")
+        self.assertEqual((reg["t2"]["tier"], reg["t2"].get("tier_base")), (3, 2))
+        self.assertNotIn("tier_base", reg["idle"], "本来就在 T3 的休眠，不该记 tier_base")
+        self.assertEqual(sorted((e["kind"], e["id"]) for e in first),
+                         [("demoted", "t1"), ("demoted", "t2")])
+        self.assertEqual(later, [], "判决没变，后两轮不该再往更新日志里记（原来每轮一条）")
+
+        # 判据不成立了（成稿中位回到 8.0）—— 回到降级前的等级，记一条「恢复」
+        back = self._curate(dict(perf, t1=self._m(), t2=self._m()))
+        reg = now()
+        self.assertEqual((reg["t1"]["tier"], reg["t2"]["tier"]), (1, 2),
+                         "判据不成立了还留在降级后的等级 —— 过期的判决成了永久的")
+        self.assertEqual(sorted((e["kind"], e["id"], e["to_tier"]) for e in back),
+                         [("restored", "t1", 1), ("restored", "t2", 2)])
+
+        # 本来就在最低层、又判降级 —— 移除，这条老规矩不变
+        gone = self._curate(dict(perf, floor=self._m(review_median=7.0)))
+        self.assertIn(("removed", "floor"), [(e["kind"], e["id"]) for e in gone])
+        self.assertNotIn("floor", now())
+
+    # ---- curate：判据不成立就恢复，但只在确实健康时 ----
+
+    def test_a_lifted_verdict_restores_the_tier(self):
+        import contextlib
+        now = self._registry([self._src("up", 2, tier_base=1), self._src("flaky", 2, tier_base=1),
+                              self._src("quiet", 3, tier_base=2), self._src("still", 2, tier_base=1)])
+        perf = {"up": {"feed_ok": True, "age_days": 3},
+                "flaky": {"feed_ok": False, "age_days": 3},
+                "quiet": {"feed_ok": True, "age_days": 400},
+                "still": {"feed_ok": True, "age_days": 3}}
+        with contextlib.redirect_stdout(io.StringIO()):
+            got = self.C.restore_lifted(perf, [("still", "demote", "成稿评分中位 7.0")])
+        reg = now()
+        self.assertEqual((reg["up"]["tier"], "tier_base" in reg["up"]), (1, False),
+                         "判据不成立了还留在降级后的等级 —— 过期的判决成了永久的")
+        self.assertEqual([(e["kind"], e["id"], e["from_tier"], e["to_tier"]) for e in got],
+                         [("restored", "up", 2, 1)])
+        self.assertEqual(reg["flaky"]["tier"], 2, "体检失败一次就恢复了 —— 下一轮又降回去")
+        self.assertEqual(reg["quiet"]["tier"], 3, "停更在节奏以内也恢复了 —— 下一轮又降回去")
+        self.assertEqual(reg["still"]["tier"], 2, "判决还在，却被恢复了")
+
+    # ---- 从产物出发：站上的更新日志和清单说的是同一件事 ----
+
+    TIER_OWNED_SINCE = "2026-09-29"     # 这一天起 tier 只有 curate 一个写入者
+
+    def test_the_registry_agrees_with_the_public_log(self):
+        """账本最后一次说某档源到了 T几，清单里就得是 T几。
+
+        上面几条顺着 resolve_sources、curate 的代码走；这一条从产物出发，
+        任何一条改回等级的路（手工 checkout 一份旧 sources.json、合并挑错边、
+        手改等级不记账）都在这里现形。更新日志是公开页面：它写着「降级 T1→T2」、
+        站上却还挂着「必看」，读者看到的就是两句互相矛盾的话。
+
+        只核 TIER_OWNED_SINCE 之后的记录：之前的那些正是这次事故 —— 账本记了、
+        清单被改回去了，是已知的不一致，不是这道闸该拦的。按 2026-09-29 的数据，
+        去掉这条线会报 23 档：8 档是 09-28 那一轮（curate 刚判、一小时后被改回），
+        另 15 档是 09-01 到 09-25 几轮降过、之后判据不再触发 —— 被重新生成悄悄
+        恢复了，更新日志里却没有一条「恢复」。
+        """
+        rows = json.loads((ROOT / "data" / "curation.json").read_text())
+        reg = {s["id"]: s for s in json.loads(
+            (ROOT / "data" / "sources.json").read_text())["sources"]}
+        last: dict[str, tuple[str, int]] = {}
+        for r in sorted(rows, key=lambda r: r.get("at") or ""):
+            sid, kind = r.get("id"), r.get("kind")
+            if kind in ("added", "removed"):
+                last.pop(sid, None)
+            elif (kind in ("demoted", "dormant", "restored", "promoted")
+                  and r.get("to_tier") and (r.get("at") or "") >= self.TIER_OWNED_SINCE):
+                last[sid] = (r["at"], r["to_tier"])
+        bad = [(sid, at, want, reg[sid].get("tier")) for sid, (at, want) in last.items()
+               if sid in reg and reg[sid].get("tier") != want]
+        self.assertFalse(bad, f"更新日志说的等级和清单里的不一样（id, 记录时间, 日志说, 清单里）："
+                              f"{bad[:6]} —— 有别的写入者把 curate 的决定改回去了")
+
+
 class PromotingASourceMustReopenWhatTheOldBarRejected(unittest.TestCase):
     """把源升成核心源，要连带放开它被旧尺子判掉的集。
 

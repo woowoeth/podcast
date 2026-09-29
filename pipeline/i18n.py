@@ -128,6 +128,7 @@ UI: dict[str, str] = {
     "移除": "removed",
     "降级": "downgraded",
     "休眠": "dormant",
+    "恢复": "restored",
     "抓取异常": "fetch failing",
     "试用": "on trial",
     "还没有信源变动": "No show changes yet",

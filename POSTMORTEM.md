@@ -1329,7 +1329,7 @@ c/ai/ 1。带着旧「必看」（data-core）的卡片：简体分页 257 处�
    api.json 一样都没跟上。backfill.yml 抄的是同一张（还少 log）。
 2. 09:53Z sources.yml（`build.py && git add -A`）重建，tw/ 和 en/ 的信源页这才对上。
    但它同时把 curate 的 8 处改动**全部改了回去** —— resolve_sources.py 里有一张写死等级的表，
-   每次 --check 都写回 sources.json（另开任务处理，不在这一条里修）。分页卡片和分类页
+   每次 --check 都写回 sources.json（另开任务处理，见 35）。分页卡片和分类页
    没被这次重建动过，是因为等级回到了原样，旧卡片「碰巧又对了」，不是因为有人补上了。
    所以前后约一小时，三棵树对同一档节目给出两种「必看」。
 
@@ -1382,3 +1382,87 @@ c/ai/ 1。带着旧「必看」（data-core）的卡片：简体分页 257 处�
 **教训。** 提交清单是产物的影子。**影子要从产物推，不能从记忆抄**：每加一种产物就得有人
 记得去改三张清单，这件事已经失败过四次（e、log；c、api.json；zt；这一次的 tw、en、c、分页）。
 而一道只看其中一条线的闸，等于告诉另外几条线「你们不归我管」。
+
+## 35. 两个工作流抢同一个字段：curate 的降级每一次都被 resolve_sources 改回硬编码表
+
+**现象。** 2026-09-28 08:50Z curate.yml（`curate.py --demote`）降了 8 档（72f7ef38e7：anthropic、
+interconnects、zhangxiaojun 1→2，bbcanalysis、empirehist、rationally、restishistory、wsjournal 2→3）。
+09:53Z sources.yml（`resolve_sources.py --check`，run 的 headSha 是 9b897da4bc，看得见 curate 的改动）
+把 8 档**全部改回原值**（ce3ee695da）。站上的「必看」（data-core）跟着两个工作流来回翻。
+这不是那一天的事：账本里 108 条降级／休眠从 08-28 记起，BBC Analysis 和 Rationally Speaking
+各记了 17 遍「休眠」；108 条里 96 条的 from_tier 就是硬编码表里的值 —— 每一轮都从头降起，
+没有一次留住过。
+
+**根因（代码路径）。** `resolve_sources.main()` 从 `ALL_SOURCES`（CURATED + EXTRA）逐档
+`s = dict(s)` 生成 `out`，表里每一档都写着 `tier=`；之后只有两处往回拿东西：
+`carry_forward()` 只带 `MEASURED = status/image/itunes`，`overrides()` 只 replay 账本里的
+pinned / residential / promoted，**故意不 replay 降级和休眠**（怕过期判决钉成永久的）。
+两边都没管「curate 刚写进 sources.json 的等级」，于是 `OUT.write_text` 写出去的是表里的 tier。
+**不只 --check**：不带任何参数跑一次也一样，`--only-residential` 那条分支也一样。
+在临时副本里用 72f7ef38e7 的 sources.json 不带参数跑一遍，8 档全部回到原值。
+调它的有四处：sources.yml（每周一，提交后建站）、curate.yml 第一步（紧挨着 curate 之前 ——
+所以每一轮 curate 看到的都是刚被重置过的等级）、local-daily.sh 每周日的
+`--check --only-residential`（之后 `git add -A data` 提交）、sync-sources.yml（手动）。
+
+**第二层：重置顺带挡住了一个更坏的问题。** curate 的降级是 `new = min(3, old + 1)`，
+已在 T3 再判「降级」就移除；而判决是状态、不是事件，每一轮都会再触发
+（「成稿中位 7.0（150 篇）」下一轮还是这 150 篇）。只要等级留得住，同一份证据就一轮降一级：
+restishistory、empirehist、wsjournal 第二轮就被「已在最低层」移除，张小珺、Anthropic、
+Interconnects 第三轮移除（每三天一轮，10-01 起算不到一周）。**只修前一半就会删掉最大的几档源。** 重置同时还是唯一的
+「恢复」：判据不再触发时，下一次重新生成悄悄把等级抄回去、账本里不留一行 —— 按今天的数据，
+更新日志最后一条写着降级／休眠、清单里却是原等级的有 23 档（8 档是 09-28 那轮，
+另 15 档是 09-01 到 09-25 降过、之后判据不再触发的）。
+
+**为什么没人看见。**
+- 两个写入者各自都对：curate 按规则降级、resolve_sources 按真相源重建。错在两个都以为自己拥有 tier。
+- 已有的守护只挡了一个方向：`test_an_automatic_verdict_is_not_frozen_into_the_ledger` 挡
+  「过期判决被 replay 成永久的」，`test_every_decision_in_the_ledger_is_in_the_registry`
+  只核 overrides 那三种（pinned / residential / promoted）。**没有一条问「curate 的决定
+  重新生成之后还在不在」。**
+- 账本每轮都有新的「降级」，看起来就是 curate 在正常工作。重复本身就是信号，没人数过。
+- 云端 bot 的推送不触发 CI（34），ce3ee695da 没有 CI 记录。
+
+**修法。**
+- **tier 只归 curate 写。** `resolve_sources.keep_curated_tier()`：sources.json 里已有的源，
+  tier 和 tier_base 原样保留；硬编码表里的 tier 只是新源的初始值。放在 overrides 之后、
+  写盘之前 —— 账本里 promoted 的 replay 只对 sources.json 里还没有的源生效（从头重建时补回
+  人的决定）。和表不一致的档数会打进日志。CURATED 上方和 README 写明了这一点。
+- **curate 的降级幂等。** 降一级从 `tier_base`（自动降级之前的等级）算，不从当前等级算；
+  第一次降级时记下 tier_base。判决没变就只打日志「维持」、不再往账本里追加。「已在最低层就移除」
+  只对本来就在 T3 的源成立，和原来一样。
+- **判据不成立时由 curate 恢复。** `curate.restore_lifted()`：有 tier_base、这一轮没有任何判决、
+  而且确实健康（feed 取得到、停更没超过 STALE_DAYS）的源，回到 tier_base，账本记一条
+  `restored`（站上显示「恢复 T2 → T1」，英文 restored）。体检偶尔失败、停更在自己的节奏以内时
+  judge 也返回 None，但那是「这一轮不下判断」，恢复了下一轮又降回去，所以不算。
+- 没有手改任何等级。当前 8 档仍是原值；下一次定时 curate（10-01 02:25Z）会按当时的数据重判，
+  判决还在的就会降、而且这次留得住。
+
+**闸（`TierHasOneWriter`）。**
+- `test_regenerating_keeps_the_tier_already_in_the_registry`：临时目录里真跑一遍
+  `resolve_sources.main()`（真账本、不联网），输入是真清单、每一档的 tier 都改成和表不一样
+  （含 promoted 过的 a16z / allin），外加一档 tier_base、一档当新源。要求已有的一档不改、
+  tier_base 不丢不多、新源拿表里的初始值。
+- `test_a_standing_verdict_demotes_once`：真跑三轮 `curate.main(--demote)`（体检数字注入），
+  同一条「中位 7.0」T1 只到 T2、T2 只到 T3 不移除、账本只记第一轮；数字回到 8.0 再跑一轮，
+  两档都恢复并记 `restored`；本来在 T3 的判降级照旧移除。
+- `test_a_lifted_verdict_restores_the_tier`：体检失败、停更、判决还在的，都不恢复。
+- `test_the_registry_agrees_with_the_public_log`：**从产物出发**，账本（公开的更新日志）
+  最后一次说某档到了 T几，清单里就得是 T几。任何改回等级的路 —— 手工 checkout 旧清单、
+  合并挑错边、手改不记账 —— 都在这里红。只核 2026-09-29 之后的记录；去掉这条线它报的
+  正是上面那 23 档。
+- 反向注入 9 次，全红，每次还原后文件哈希、`git diff` 和 `git status --porcelain` 都和注入前一致：
+  去掉结转（128 档全部被改回表里的值，含 interconnects 3→1）；结转挪到 overrides 之前（a16z、allin 被
+  promoted replay 改回 1）；结转丢 tier_base；curate 换回 `old + 1`（t1 三轮被降到移除）；
+  判决没变也记账；main 不接恢复；体检失败也恢复；停更也恢复；有判决也恢复。
+  第一版「换回 old + 1」红在 KeyError 上 —— 源已经被删了，断言还在取它的等级。红对了，
+  理由说不出来，补了一句先断言「还在」。
+
+**还没修的。**
+- sync-sources.yml（只能手动触发）在重新生成之前先 `git checkout d47470b… -- data/sources.json`，
+  那是 2026-08-26 的清单。现在等级会原样保留，它就会把 08-26 的等级带回来。上面那道
+  「清单和更新日志一致」会在下一次跑 CI 或 preflight 时红，但它自己不会拦。
+- 那 15 档没有「恢复」记录的历史降级，账本只追加、不改写，留着。
+
+**教训。** 一个字段两个写入者，结果是「后写的赢」，而后写的是谁取决于 cron 的排班。
+先定谁拥有它，其他人只结转。**修掉一个写入者之前，要先问它顺带在做什么** —— 这次它在
+替 curate 做幂等和恢复，只拿掉它、不补上这两件，事故就会从「降级留不住」变成「好源被删掉」。

@@ -142,7 +142,9 @@ pipeline/
     gate.py           编辑质检
     util.py           指纹、时间戳、脱敏
 data/
-  sources.json        54 档信源 + 抓取健康度
+  sources.json        54 档信源 + 抓取健康度。tier 只归 curate.py 写（降级／恢复记进
+                      curation.json）；resolve_sources 重新生成时原样保留，硬编码表里的
+                      tier 只是新源的初始值
   episodes/*.json     每集一个文件（唯一文件名，并发跑不会冲突）
   state.json          已处理、指纹、失败计数
 ```
