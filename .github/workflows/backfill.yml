@@ -144,8 +144,13 @@ jobs:
           # 而守护只在比例超过 1/8 才响，中间一路静默劣化。
           python pipeline/cache_covers.py || true
           python pipeline/build.py
-          git add index.html sources s p feed.xml sitemap.xml robots.txt 404.html \
-                  search.json llms.txt llms-full.txt icon.svg .nojekyll 2>/dev/null || true
+          # **整站一起加，清单只有 pipeline/gitsync.py 里那一份（SITE）。**
+          # 这里原来手抄了一张，和 curate.yml 同一张：没有 tw/ en/ c/ e/ log/ zt/ hot.json
+          # cards-*.json api.json —— 回填的集只有简体页上线（POSTMORTEM 34）。
+          # 另加上一步刚缓存的封面：页面已经指着 /assets/cover/ 了，不提交就是破图
+          # （封面清单 data/covers.json 由下面的 `git add -A data` 带上）。
+          python pipeline/gitsync.py add-site assets/cover \
+            || { echo "::error::建站产物没能整套暂存，本轮不推站点（数据已入库，下一轮会重建）"; exit 1; }
           # 数据提交之后才写的那些（译稿、用量、译不合格的计数、封面清单）也要进仓库：
           # 体检读的是仓库，不提交就只量到了提交清单（POSTMORTEM §33）。
           git add -A data
@@ -178,8 +183,8 @@ jobs:
             python pipeline/gitsync.py restore-deleted data
             python pipeline/run.py --reconcile || true
             python pipeline/build.py
-            git add index.html sources s p feed.xml sitemap.xml robots.txt 404.html \
-                    search.json llms.txt llms-full.txt icon.svg .nojekyll 2>/dev/null || true
+            python pipeline/gitsync.py add-site assets/cover \
+              || { echo "::error::重试后建站产物没能整套暂存，本轮不推站点"; exit 1; }
             git add -A data
             git diff --cached --quiet && { echo "site unchanged after rebuild"; ok=1; break; }
             # 提交前再核一次：树里少了 origin 已有的集，提交就等于把它们删掉。

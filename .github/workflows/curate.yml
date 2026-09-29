@@ -97,18 +97,28 @@ jobs:
           if [ "$ok" != 1 ]; then echo "::error::信源改动推送失败"; exit 1; fi
 
           python pipeline/build.py
-          git add index.html sources s p log feed.xml sitemap.xml robots.txt 404.html \
-                  search.json llms.txt llms-full.txt icon.svg .nojekyll 2>/dev/null || true
+          # **整站一起加，清单只有 pipeline/gitsync.py 里那一份（SITE）。**
+          # 这里原来手抄了一张 index.html sources s p log …，没有 tw/ en/ c/ e/ zt/
+          # hot.json cards-*.json api.json。2026-09-28 信源改了等级，这一步只推了简体的
+          # s/ 和 sources/，繁体、英文、分类页、分页卡片带着旧的「必看」留在线上（POSTMORTEM 34）。
+          # add-site 加完会核一遍这些路径下一个没剩；剩了就不推——半套站比晚一轮更糟。
+          python pipeline/gitsync.py add-site || { echo "::error::建站产物没能整套暂存，本轮不推站点"; exit 1; }
           git diff --cached --quiet && exit 0
           git commit -m "build: regenerate site"
           ok=0
           for i in $(seq 1 10); do
             if git push; then ok=1; break; fi
             git fetch origin main; git reset --mixed origin/main
+            # 别的线刚发的集，数据在索引里、不在磁盘上。不取回的话 build.py 不给它们建页，
+            # 下面整站一加，它们的正文页、繁体页、英文页、短链就全被当成删除推上去。
+            # 取回必须走 -z：非 ASCII 路径会被 git 转义，checkout 找不到文件又被 || true 吞掉，
+            # 2026-09-23 就这样把 19 篇中文名的已发布集当成删除推了上去（见 pipeline/gitsync.py）。
+            python pipeline/gitsync.py restore-deleted data
             python pipeline/build.py
-            git add index.html sources s p log feed.xml sitemap.xml robots.txt 404.html \
-                    search.json llms.txt llms-full.txt icon.svg .nojekyll 2>/dev/null || true
+            python pipeline/gitsync.py add-site || { echo "::error::重试后建站产物没能整套暂存，本轮不推站点"; exit 1; }
             git diff --cached --quiet && { ok=1; break; }
+            # 提交前再核一次：树里少了 origin 已有的集，这一提交就会删掉它们的页面。
+            python pipeline/gitsync.py missing origin/main data/episodes >/dev/null || { echo "::error::重试后树里仍缺 origin 已有的集，拒绝提交（提交等于删除它们的页面）"; exit 1; }
             git commit -m "build: regenerate site"
             echo "push retry $i"; sleep $(( (RANDOM % 7) + 3 ))
           done

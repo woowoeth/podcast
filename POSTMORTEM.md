@@ -11,7 +11,8 @@
 所以现在有两道机械闸门，不依赖任何人的自觉：
 
     bash scripts/preflight.sh     推之前跑，一条命令跑完全部检查
-    .github/workflows/ci.yml      每次 push 都跑，bot 的提交也一样过
+    .github/workflows/ci.yml      每次 push 都跑（本机线的提交也过；云端 bot 用 GITHUB_TOKEN
+                                  推的提交不触发任何工作流，见 34）
 
 它们检查的东西刻意包含了几项"测试全绿也看不出来"的：入库的符号链接不许指回仓库
 内部（会让 Pages 打包无限递归）、构建必须幂等、仓库里的生成产物必须是最新的。
@@ -1304,3 +1305,74 @@ master，另一条线 clone 下来什么都没 checkout，「中途推一个提�
 - git 有两处失败了却报 0：autostash 恢复冲突；重试后 `git add` 把别人的改动倒回去
   （后者连一句警告都没有）。前者现在数 stash，后者现在 adopt。**只在本机日志里提醒的数字
   不算信号**：「堆了 N 个 autostash」从 11 打到 26，没有一次出现在体检里。
+
+## 34. 信源改了等级，只推了半套站：curate 建站后手抄的 git add 清单没有 tw/ en/ c/ 和分页卡片
+
+**现象。** 2026-09-28 08:50Z，curate.yml 改了 8 档信源的等级（72f7ef38e7：anthropic、
+interconnects、zhangxiaojun 1→2，bbcanalysis、empirehist、rationally、restishistory、
+wsjournal 2→3），紧接着的「build: regenerate site」（9b897da4bc）只改了 42 个文件：
+简体的 s/ 38 个、sources/、log/、llms.txt、index.html。在临时副本里把时钟冻在 08:50:30Z、
+按 9b897da4bc 重建一遍：**147 个产物和提交里的不一样** —— tw/ 63、en/ 63、cards-*.json 20、
+c/ai/ 1。带着旧「必看」（data-core）的卡片：简体分页 257 处、分类页 3 处、繁体 419 处、
+英文 419 处；tw/ 和 en/ 的 llms.txt 还是旧排序。
+
+**经过。**
+1. curate.yml 建站后 `git add index.html sources s p log feed.xml sitemap.xml robots.txt 404.html
+   search.json llms.txt llms-full.txt icon.svg .nojekyll`，两处（主路径和推送重试）一字不差。
+   这张清单写于只有简体树的时候，之后加的 tw/、en/、c/、e/、zt/、hot.json、cards-*.json、
+   api.json 一样都没跟上。backfill.yml 抄的是同一张（还少 log）。
+2. 09:53Z sources.yml（`build.py && git add -A`）重建，tw/ 和 en/ 的信源页这才对上。
+   但它同时把 curate 的 8 处改动**全部改了回去** —— resolve_sources.py 里有一张写死等级的表，
+   每次 --check 都写回 sources.json（另开任务处理，不在这一条里修）。分页卡片和分类页
+   没被这次重建动过，是因为等级回到了原样，旧卡片「碰巧又对了」，不是因为有人补上了。
+   所以前后约一小时，三棵树对同一档节目给出两种「必看」。
+
+**为什么没人看见。**
+- ci.yml 有「重新构建后产物必须和仓库一致」这一步，正好能抓它 —— 可**云端 bot 的推送
+  不触发 CI**：用 GITHUB_TOKEN 推上去的提交不会启动别的工作流。9b897da4bc、ce3ee695da
+  都没有 CI 记录，当天的三次 CI 全是人或本机线的推送。本文件开头「bot 的提交也一样过」
+  只对本机线成立。
+- 已有的守护（`LocalLineCommitsEverythingItBuilds`）只核本机线那一张清单，而且推导产物用的是
+  正则 `out / "…"`：看不见 tw.py 的 OUT、`render_site(ROOT / "en")` 和 f-string 写的
+  cards-{n}.json —— 三棵树里它只认得一棵。
+- 手抄清单还有两个更安静的坑：`git add a b c 2>/dev/null || true` 里**只要有一个路径不存在，
+  整条 add 作废**，`|| true` 把它吞掉，一个文件都不提交；`$(ls cards-*.json)` 只按磁盘展开，
+  页数变少时 build.py 删掉的那几页永远不进提交。
+- backfill.yml 在建站前跑 cache_covers，页面已经指着 /assets/cover/…，可封面和 data/covers.json
+  都不在它的清单里。curate.yml 的重试分支 reset 之后不取回数据，别的线刚发的集没有数据就不建页，
+  整站一加就成了删除 —— 清单变全之后，这一条会删得更多，所以一起补上了。
+
+**修法。**
+- `pipeline/gitsync.py` 里放唯一一份清单 `SITE`，外加两个子命令：
+  `add-site [额外路径…]` 把整套产物用 `git add -A --` 加进索引（增、改、删都算；只传此刻在磁盘
+  或索引里存在的路径；通配两边展开），加完**从磁盘再核一遍**这些路径下没有没暂存的改动和未跟踪文件，
+  剩了就退出 1；`site-paths [额外路径…]` 打印同一份展开结果给 shell 用。
+- curate.yml、backfill.yml 两条路径都改成 `add-site`，暂存不全就报 `::error::` 不推。
+  curate 的重试分支补上 `restore-deleted data` 和提交前的缺集核对；backfill 多加 assets/cover
+  （封面清单 data/covers.json 由 33 那次改的 `git add -A data` 带上；重试时别的线缓存的封面
+  由 33 的 `adopt` 取回，不会被当成删除）。
+- local-daily.sh 的 `SITE_FILES` 改由 `site-paths assets` 产出，推送重试重建之后再取一次。
+- daily / fast / rescore / sources / sync-sources 建站后本来就是 `git add -A`，产物是全的，没动。
+
+**闸。**
+- `EveryBuildCommitShipsTheWholeSite`：**产物集合按 AST 从 build.py 推导**——每一处写文件、建目录、
+  删文件的调用顺着目标表达式追到 `out / "名字"` 或 `ROOT / "名字"`（中间变量按函数作用域追），
+  加上 `render_site(ROOT / "en")` 和 tw.py 的 OUT，一共 22 个顶层路径；**追不到根的写入直接红**。
+  然后核 SITE 盖住这 22 个，再核每个工作流和脚本里「跑了 build.py、之后会提交」的地方，
+  提交前的 git add（`-A`、`add-site`，或显式路径，`$变量` 按本文件的赋值展开）盖住全部。
+- `AddSiteStagesTheWholeSite`：临时 git 仓库里改一个繁体页、新增一个英文页、删一个分页、
+  改一个中文路径的页、再改一个源码文件，要求前四个进索引、源码不进，不存在的产物不让整条作废。
+- 反向注入十次，全红，每次还原后工作区指纹和注入前一致：SITE 删掉 tw；curate.yml 换回事故时那版
+  （报漏 api.json c cards-*.json cards.json e en hot.json tw zt）；backfill.yml 换回原版；
+  local-daily.sh 换回手写清单再删掉 tw；daily.yml 的 `git add -A` 改成 `git add -A data`；
+  build.py 多写一个 new.json；build.py 写一个追不到的 `(out / name)`；curate 重试去掉取回；
+  add-site 漏加 tw（事后核对拦住）；site-paths 只按磁盘展开通配（删掉的分页没进提交）。
+- 在事故现场复演：9b897da4bc 的副本、冻住的时钟，`add-site` 暂存的正好是那 147 个文件，
+  什么都没剩；本机线那条路（bash 下 `git add … $SITE_FILES`）同样 147 个，删掉的分页记为 D。
+- 尺子自己错过两次：第一版 AST 推导不分作用域，别的函数里的 `d = DATA / "en"` 串进删 s/ 的循环，
+  报出一个不存在的产物 data；复演本机线时我用 zsh 跑 `$SITE_FILES`，zsh 不按空白切词，
+  量出「一个都没加上」。脚本本身是 bash，两次都是尺子的问题，先查清才动代码。
+
+**教训。** 提交清单是产物的影子。**影子要从产物推，不能从记忆抄**：每加一种产物就得有人
+记得去改三张清单，这件事已经失败过四次（e、log；c、api.json；zt；这一次的 tw、en、c、分页）。
+而一道只看其中一条线的闸，等于告诉另外几条线「你们不归我管」。

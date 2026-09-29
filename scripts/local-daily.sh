@@ -385,18 +385,17 @@ PYEOF
   # 这一步原来不在任何发布线里，只在手动跑的时候才生效。
   python3 pipeline/cache_covers.py || true
   python3 pipeline/build.py
-  # 这张清单每次加新产物都必须跟着改，漏了就是"本机线永远不提交它"——
-  # e（分享短链）和 log（更新日志）就漏过：日志里躺着一堆未跟踪的 e/ 目录，
-  # 而云端用 git add -A 所以看不出问题，只有本机线在悄悄少推东西。
-  # 体检脚本的"数据／正文页／短链三个数字必须相等"就是为了抓这种漏。
-  # tw 和 en 也在清单里：三棵树都是产物，漏一棵就是"本机线永远不推它"。
-  # c（分类页）、api.json、zt（专题）原来也不在清单里——本机线从没提交过它们，
-  # 靠云端的 git add -A 兜着。清单现在由守护从 build.py 实际写出的路径推导着核对。
-  SITE_FILES="index.html sources s p e c zt log feed.xml sitemap.xml robots.txt 404.html
-              search.json api.json hot.json llms.txt llms-full.txt icon.svg .nojekyll
-              assets tw en"
-  # 分页文件是动态数量（cards-1.json … cards-N.json），不能写死一个。
-  SITE_FILES="$SITE_FILES $(ls cards-*.json 2>/dev/null | tr '\n' ' ')"
+  # **建站产物的清单只有一份：pipeline/gitsync.py 的 SITE。** 云端 curate / backfill 也用它。
+  # 这里原来手写一张，每加一种产物都得跟着改，漏了就是"本机线永远不提交它"——
+  # e（分享短链）、log（更新日志）漏过；c（分类页）、api.json、zt（专题）从没进过，
+  # 靠云端的 git add -A 兜着。curate.yml 抄的那张更短，2026-09-28 推出去半套站（POSTMORTEM 34）。
+  # 守护从 build.py / tw.py 实际写出的路径推导产物集合，和 SITE 对不上就红。
+  # site-paths 只列此刻真实存在（磁盘或索引里有）的路径：git add 碰到一个不匹配的
+  # pathspec 会整条作废，而下面的 `2>/dev/null || true` 会把它吞掉，数据也跟着不提交。
+  # 分页文件（cards-1.json … cards-N.json）按磁盘和索引两边展开，页数变少时删掉的那几页也提交。
+  # assets 是本机线自己加的：cache_covers 把封面缓存进 assets/cover。
+  SITE_FILES=$(python3 pipeline/gitsync.py site-paths assets) \
+    || { echo "取不到建站产物清单（gitsync.py site-paths），本轮不提交"; exit 1; }
   # **数据也要一起加。**
   # 上面那趟 `git add data/episodes` 发生在日更之后，而**建档（--catchup）
   # 和 YouTube 观察名单是在它之后才发集的** —— 那些集的数据文件永远赶不上
@@ -464,6 +463,9 @@ PYEOF
     python3 pipeline/gitsync.py restore-deleted data
     python3 pipeline/run.py --reconcile >/dev/null 2>&1 || true
     python3 pipeline/build.py >/dev/null
+    # 重建之后再取一次：分页数可能变了，pipeline/ 也刚换成远端的版本。
+    SITE_FILES=$(python3 pipeline/gitsync.py site-paths assets) \
+      || { echo "取不到建站产物清单（gitsync.py site-paths），本轮不提交"; exit 1; }
     # **data/en 也要加。** 原来重试分支漏了它：译稿留成未跟踪文件，别的线提交同名文件后，
     # 下一次同步被这些文件挡住、autostash 冲突——2026-09-23 那次事故就是从这里开始的。
     # 现在整个 data/ 都加（上面 adopt 已经把别人的改动对齐回来了）。

@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""发布线同步用的两个小工具。所有路径一律走 -z。
+"""发布线同步用的小工具。所有路径一律走 -z。
 
   restore-deleted <前缀>   把「索引里有、磁盘上没有」的文件从索引取回来
   missing <ref> <前缀>     数一数 ref 里有、磁盘上没有的文件；有就退出码 1
   adopt <ours> <theirs> <前缀>...
                            推送重试 `reset --mixed <theirs>` 之后用：磁盘上那份和远端不一样的文件，
                            本机这轮没动过的取远端的，两边都动过的走 .gitattributes 登记的合并驱动
+  add-site [额外路径…]     把建站产物（SITE）整套加进索引，加完核对一个没剩
+  site-paths [额外路径…]   打印 SITE 此刻真实存在的路径，给 shell 的 git add 用
 
 **为什么要单独成文件。** 2026-09-23 本机线推送被拒后走重试分支：
 `git reset --mixed origin/main`，再用
@@ -19,15 +21,33 @@
 提交前那道缺集检查用的是 -z，所以它是对的；但它只在第一次提交前跑，重试分支里没有。
 
 这里取回之后**逐个核对文件真的回来了**，回不来就报错，不许静默吞掉。
+
+**建站产物也只有一份清单，就是下面的 SITE。** 2026-09-28 curate.yml 跑完 build.py，
+只 `git add` 了一张手抄的清单（index.html sources s p log feed.xml …），里面没有
+tw/ en/ c/ e/ zt/ hot.json cards-*.json api.json。信源等级一改，简体的 s/ 更新了，
+繁体、英文、分类页和分页卡片带着旧的「必看」留在线上。backfill.yml 抄的是同一张，
+本机线另有一张（漏过 e、log，又漏过 c、api.json、zt）。现在它们都从这里取；
+tests/test_guards.py 从 build.py / tw.py 的写入点推导产物集合，和 SITE 对不上就红。
 """
 from __future__ import annotations
 
+import fnmatch
+import glob
 import hashlib
 import os
 import shlex
 import subprocess
 import sys
 import tempfile
+
+# 一次建站写出的全部顶层路径：build.py 往仓库根和 en/ 写的，加上 tw.py 生成的繁体树。
+# 加了新产物就加在这里；漏了守护会红（它从 build.py 的写入点推导，不看这张表）。
+SITE = ("index.html", "hot.json", "sources", "404.html", "feed.xml", "sitemap.xml",
+        "search.json", "api.json", "log", "zt", "s", "c", "robots.txt",
+        "llms.txt", "llms-full.txt", ".nojekyll", "p", "e",
+        "cards-*.json",   # 分页数随篇数变：通配，而且要连被删掉的那几页一起提交
+        "cards.json",     # 第一版的单文件分页；build.py 见到就删，删除也要进提交
+        "en", "tw")
 
 
 def _z(args: list[str]) -> list[str]:
@@ -146,6 +166,47 @@ def adopt(ours: str, theirs: str, prefixes: list[str]) -> dict:
     return tally
 
 
+def _tracked(paths: list[str]) -> list[str]:
+    return _z(["ls-files", "-z", "--", *paths]) if paths else []
+
+
+def site_paths(extra: list[str] | tuple[str, ...] = ()) -> list[str]:
+    """SITE 加上 extra，展开成此刻真实存在的路径：磁盘上有，或者索引里有。
+
+    - 通配（cards-*.json）磁盘和索引**两边**都展开。只按磁盘展开（shell 的 `ls cards-*.json`
+      就是这样），页数变少时 build.py 删掉的 cards-N.json 永远不进提交，线上留着过期的那页。
+    - 两边都没有的丢掉。git add 碰到一个不匹配的 pathspec 会**整条命令作废**，
+      而调用处的 `2>/dev/null || true` 把它吞掉 —— 一个没建出来的目录就能让整站一个文件都不提交。
+    """
+    specs = list(SITE) + [e for e in extra if e not in SITE]
+    tracked = _tracked(specs)
+    out: list[str] = []
+    for spec in specs:
+        if any(ch in spec for ch in "*?["):
+            depth = spec.count("/")
+            hits = set(glob.glob(spec)) | {p for p in tracked
+                                           if p.count("/") == depth and fnmatch.fnmatch(p, spec)}
+            out += sorted(hits - set(out))
+        elif os.path.lexists(spec) or any(p == spec or p.startswith(spec + "/") for p in tracked):
+            out.append(spec)
+    return out
+
+
+def add_site(extra: list[str] | tuple[str, ...] = ()) -> int:
+    """把建站产物整套加进索引（增、改、删都算），然后**从磁盘核一遍**：
+    这些路径下不许还剩没暂存的改动或未跟踪的文件。剩了就报错，不许推半套站。
+    返回暂存了多少个产物文件的变动。"""
+    paths = site_paths(extra)
+    if not paths:
+        raise SystemExit("一个建站产物都没找到 —— 不在仓库根目录跑，还是没跑 build.py？")
+    subprocess.run(["git", "add", "-A", "--", *paths], check=True)
+    left = (_z(["diff", "-z", "--name-only", "--", *paths])
+            + _z(["ls-files", "-z", "--others", "--exclude-standard", "--", *paths]))
+    if left:
+        raise SystemExit(f"加完还有 {len(left)} 个产物没进索引：{left[:5]}")
+    return len(_z(["diff", "-z", "--cached", "--name-only", "--", *paths]))
+
+
 def main(argv: list[str]) -> int:
     if len(argv) >= 2 and argv[1] == "adopt":
         if len(argv) < 5:
@@ -158,6 +219,18 @@ def main(argv: list[str]) -> int:
             # 不静默：两边都改了、又没有合并驱动的，留的是本机版本，远端那次改动会被这次提交盖掉
             print(f"两边都改过、没有合并驱动，留本机版本 {len(t['kept_both_changed'])} 个："
                   f"{t['kept_both_changed'][:5]}", file=sys.stderr)
+        return 0
+    if len(argv) >= 2 and argv[1] == "add-site":
+        n = add_site(argv[2:])
+        print(f"建站产物已整套暂存：{n} 个文件有变动")
+        return 0
+    if len(argv) >= 2 and argv[1] == "site-paths":
+        paths = site_paths(argv[2:])
+        bad = [p for p in paths if any(c.isspace() for c in p)]
+        if bad or not paths:
+            # 输出要被 shell 按空白切开；带空白的路径会被切碎，空输出等于什么都不加
+            raise SystemExit(f"建站产物路径没法交给 shell：{bad[:3] or '一个都没找到'}")
+        print(" ".join(paths))
         return 0
     if len(argv) >= 2 and argv[1] == "restore-deleted":
         n = restore_deleted(argv[2] if len(argv) > 2 else "data")

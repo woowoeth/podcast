@@ -854,18 +854,18 @@ class LocalLineCommitsEverythingItBuilds(unittest.TestCase):
     于是本机跑批**永远不提交这两样**——日志里躺着一堆未跟踪的 e/ 目录。
     云端用 git add -A 所以完全看不出来，只有本机线在悄悄少推东西。"""
 
-    def test_site_files_covers_every_built_directory(self):
-        """清单从 build.py 实际写出的路径推导，不再手写。
+    def test_site_files_come_from_the_shared_list(self):
+        """本机线的清单不再手写，取自 pipeline/gitsync.py 的 SITE（云端 curate / backfill 同一份）。
 
         手写那版漏过 e、log（第一次），后来又漏了 c、api.json（从没被发现：
         手写清单只能核到写清单的人记得的东西）；2026-09-24 加专题时 zt 也不在里面。
+        覆盖面由 EveryBuildCommitShipsTheWholeSite 从 build.py 的写入点推导着核，这里只管来源。
         """
-        sh = (ROOT / "scripts" / "local-daily.sh").read_text()
-        decl = re.search(r'SITE_FILES="([^"]*)"', sh).group(1).split()
-        written = set(re.findall(r'\bout / "([^"]+)"', (ROOT / "pipeline" / "build.py").read_text()))
-        self.assertGreater(len(written), 10, "从 build.py 一个输出路径都没推出来 —— 这道闸在空转")
-        missing = sorted(written - set(decl))
-        self.assertEqual([], missing, f"build.py 会写、本机线却不提交：{missing}")
+        sh = re.sub(r"(?m)^\s*#.*$", "", (ROOT / "scripts" / "local-daily.sh").read_text())
+        decl = re.findall(r"(?m)^\s*SITE_FILES=(.*)$", sh)
+        self.assertTrue(decl, "local-daily.sh 里没有 SITE_FILES 的赋值 —— 判据本身失效了")
+        for d in decl:
+            self.assertIn("pipeline/gitsync.py site-paths", d, f"SITE_FILES 又手写了：{d[:80]}")
 
     def test_heartbeat_is_a_script_not_a_heredoc(self):
         # heredoc 版嵌在被管道接走的花括号块里，单独跑正常、真跑批一声不响没写出来
@@ -882,6 +882,349 @@ class LocalLineCommitsEverythingItBuilds(unittest.TestCase):
         src = (ROOT / "pipeline" / "heartbeat.py").read_text()
         self.assertIn("print(", src, "心跳必须自己出声——它静默失效过一次")
         self.assertTrue(hasattr(heartbeat, "write"))
+
+
+class EveryBuildCommitShipsTheWholeSite(unittest.TestCase):
+    """事故（2026-09-28，POSTMORTEM 34）：curate.yml 跑完 build.py，只 `git add` 了一张手抄清单
+    （index.html sources s p log feed.xml …），没有 tw/ en/ c/ e/ zt/ hot.json cards-*.json api.json。
+    信源等级一改，简体的 s/ 和 sources/ 更新了，繁体、英文、分类页和 20 个分页卡片带着旧的
+    「必看」留在线上。backfill.yml 抄的是同一张；本机线另有一张，漏过 e、log，又漏过 c、api.json、zt。
+
+    **产物集合从 build.py / tw.py 的写入点推导，不手写** —— 手写的清单只能核到写清单的人
+    记得的东西。然后对每一处「跑了 build.py、之后会提交」的地方，核提交前的 git add
+    盖没盖住全部。现在各条线都用 pipeline/gitsync.py 的 SITE，这里同时核 SITE 本身。
+    """
+
+    BUILD = re.compile(r"\bpython3?\s+\S*pipeline/build\.py\b")
+    COMMIT = re.compile(r"\bgit(?:\s+-c\s+\S+)*\s+commit\b")
+    ADD = re.compile(r"\bgit\s+add\b")
+    ADD_SITE = re.compile(r"\bpython3?\s+\S*pipeline/gitsync\.py\s+add-site\b")
+    CUT = re.compile(r"\|\||&&|;|\||(?<!\S)\d*>")
+    WRITES = {"write_text", "write_bytes", "mkdir", "unlink", "touch"}
+    MAKES = {"write_text", "write_bytes", "mkdir", "touch"}
+
+    _cache = None
+
+    @classmethod
+    def derive(cls):
+        """(会写/会删的顶层路径, 其中会新建的, 追不到根的写入行号)。
+
+        按 AST 走 build.py：每一处写文件、建目录、删文件的调用，顺着目标表达式追到
+        `out / "名字"`（out 是 render_site 的输出根）或 `ROOT / "名字"`，取第一段；
+        f-string 的插值换成 `*`（cards-{n}.json → cards-*.json）。中间变量
+        （sdir = out / "s"、for d in sdir.iterdir()）按函数作用域追 —— 第一版不分作用域，
+        别处的 `d = DATA / "en"` 串进了删 s/ 的循环，报出一个不存在的产物 data。
+        `render_site(ROOT / "en")` 是另一棵树；build.py 调了 tw.build 就加上 tw.py 的 OUT。
+        **追不到根的写入单独列出来** —— 那是这把尺子看不见的产物，不能当它不存在。
+        """
+        if cls._cache:
+            return cls._cache
+        import ast
+        tree = ast.parse((ROOT / "pipeline" / "build.py").read_text())
+        SCOPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)
+
+        def own_nodes(scope):
+            """这个作用域自己的节点，不进嵌套的函数。"""
+            todo = list(ast.iter_child_nodes(scope))
+            while todo:
+                n = todo.pop()
+                yield n
+                if not isinstance(n, SCOPES):
+                    todo.extend(ast.iter_child_nodes(n))
+
+        def first(seg):
+            if isinstance(seg, ast.Constant) and isinstance(seg.value, str):
+                return seg.value.split("/")[0]
+            if isinstance(seg, ast.JoinedStr):
+                return "".join(v.value if isinstance(v, ast.Constant) else "*"
+                               for v in seg.values).split("/")[0]
+            return None
+
+        def root_of(node, env):
+            """set() = 输出根本身；None = 追不到。"""
+            parts = []
+            while isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+                parts.append(node.right)
+                node = node.left
+            if not isinstance(node, ast.Name):
+                return None
+            if node.id in ("out", "ROOT"):
+                if not parts:
+                    return set()
+                f = first(parts[-1])
+                return {f} if f else None
+            return env.get(node.id)
+
+        def bind(scope, env):
+            env = {k: set(v) for k, v in env.items()}
+            for _ in range(6):              # 变量互相引用，迭代到不动点
+                before = {k: set(v) for k, v in env.items()}
+                for n in own_nodes(scope):
+                    if (isinstance(n, ast.Assign) and len(n.targets) == 1
+                            and isinstance(n.targets[0], ast.Name)
+                            and n.targets[0].id not in ("out", "ROOT")):
+                        r = root_of(n.value, env)
+                        if r:
+                            env.setdefault(n.targets[0].id, set()).update(r)
+                    if (isinstance(n, ast.For) and isinstance(n.target, ast.Name)
+                            and isinstance(n.iter, ast.Call) and isinstance(n.iter.func, ast.Attribute)
+                            and n.iter.func.attr in ("iterdir", "glob", "rglob")):
+                        r = root_of(n.iter.func.value, env)
+                        if r:
+                            env.setdefault(n.target.id, set()).update(r)
+                if env == before:
+                    return env
+            return env
+
+        found, made, blind = set(), set(), []
+        tw_alias = {a.asname or a.name for n in ast.walk(tree) if isinstance(n, ast.Import)
+                    for a in n.names if a.name == "tw"}
+        calls_tw = False
+        module_env = bind(tree, {})
+        scopes = [tree] + [n for n in ast.walk(tree) if isinstance(n, SCOPES)]
+        for scope in scopes:
+            env = module_env if scope is tree else bind(scope, module_env)
+
+            def note(target, lineno, creates):
+                r = root_of(target, env)
+                if r is None:
+                    blind.append(lineno)
+                elif r:
+                    found.update(r)
+                    if creates:
+                        made.update(r)
+
+            for n in own_nodes(scope):
+                if not isinstance(n, ast.Call):
+                    continue
+                f = n.func
+                if isinstance(f, ast.Attribute) and f.attr in cls.WRITES:
+                    note(f.value, n.lineno, f.attr in cls.MAKES)
+                elif (isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name)
+                      and f.value.id == "shutil" and n.args):
+                    if f.attr == "rmtree":
+                        note(n.args[0], n.lineno, False)
+                    elif f.attr in ("copy", "copy2", "copyfile", "copytree", "move") and len(n.args) > 1:
+                        note(n.args[1], n.lineno, True)
+                elif (isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name)
+                      and f.value.id == "os" and f.attr in ("remove", "unlink", "makedirs") and n.args):
+                    note(n.args[0], n.lineno, f.attr == "makedirs")
+                elif isinstance(f, ast.Name) and f.id == "open" and n.args:
+                    mode = n.args[1] if len(n.args) > 1 else next(
+                        (k.value for k in n.keywords if k.arg == "mode"), None)
+                    if isinstance(mode, ast.Constant) and set(str(mode.value)) & set("wax"):
+                        note(n.args[0], n.lineno, True)
+                elif isinstance(f, ast.Name) and f.id == "render_site" and n.args:
+                    note(n.args[0], n.lineno, True)
+                elif (isinstance(f, ast.Attribute) and f.attr == "build"
+                      and isinstance(f.value, ast.Name) and f.value.id in tw_alias):
+                    calls_tw = True
+        if calls_tw:
+            m = re.search(r'(?m)^OUT\s*=\s*os\.path\.join\(ROOT,\s*"([^"]+)"',
+                          (ROOT / "pipeline" / "tw.py").read_text())
+            if m:
+                found.add(m.group(1).split("/")[0])
+                made.add(m.group(1).split("/")[0])
+            else:
+                blind.append("tw.py 的 OUT")
+        cls._cache = (found, made, sorted(blind, key=str))
+        return cls._cache
+
+    @staticmethod
+    def _covered(out, specs):
+        import fnmatch
+        return any(s == out or s == "." or fnmatch.fnmatch(out, s) for s in specs)
+
+    @staticmethod
+    def _site():
+        import gitsync
+        return list(gitsync.SITE)
+
+    # ---- 尺子本身 ----
+
+    def test_the_ruler_sees_every_write_in_build_py(self):
+        _, _, blind = self.derive()
+        self.assertEqual([], blind,
+                         f"build.py 这几行在写文件，但追不到写在哪个顶层路径下：{blind} —— "
+                         "让它经过 out / \"名字\"（或先赋给一个这样来的变量），否则这道闸看不见它的产物")
+
+    def test_the_ruler_reads_real_outputs(self):
+        """推出来的每个「会新建」的路径，仓库里都真有 —— 证明读到的是产物，不是正则拼出来的碎片。"""
+        import fnmatch
+        found, made, _ = self.derive()
+        self.assertGreaterEqual(len(found), 15, f"只推出 {sorted(found)} —— 这把尺子在空转")
+        tracked = {p.split("/")[0] for p in subprocess.run(
+            ["git", "ls-files", "-z"], cwd=ROOT, capture_output=True, check=True
+        ).stdout.decode().split("\0") if p}
+        ghost = sorted(o for o in made if not any(fnmatch.fnmatch(t, o) for t in tracked))
+        self.assertEqual([], ghost, f"推出来的产物仓库里没有：{ghost}")
+
+    # ---- 共用清单 ----
+
+    def test_the_shared_list_covers_everything_build_writes(self):
+        found, _, _ = self.derive()
+        missing = sorted(o for o in found if not self._covered(o, self._site()))
+        self.assertEqual([], missing,
+                         f"build.py / tw.py 会写、pipeline/gitsync.py 的 SITE 里却没有：{missing} —— "
+                         "每条用 add-site / site-paths 的发布线都不会提交它")
+
+    # ---- 每一处提交 ----
+
+    @staticmethod
+    def _logical(text):
+        """[(起始行号, 代码)]：注释行去掉，反斜杠续行接起来。"""
+        out, buf, start = [], "", 0
+        for n, line in enumerate(text.splitlines(), 1):
+            if not buf and line.lstrip().startswith("#"):
+                continue
+            if not buf:
+                start = n
+            if line.rstrip().endswith("\\"):
+                buf += line.rstrip()[:-1] + " "
+                continue
+            out.append((start, buf + line))
+            buf = ""
+        if buf:
+            out.append((start, buf))
+        return out
+
+    def _expand(self, word, text, depth=0):
+        """shell 的一个词展开成 pathspec。变量按本文件里的赋值展开，认得
+        `$(… gitsync.py site-paths 额外…)` 和 `$(ls 通配 …)`；认不出的原样留着（什么都盖不住）。"""
+        word = word.strip("\"'")
+        m = re.fullmatch(r"\$\{?([A-Za-z_]\w*)\}?", word)
+        if not m:
+            return [word]
+        if depth > 4:
+            return []
+        name, vals = m.group(1), []
+        code = "\n".join(l for _, l in self._logical(text))
+        for a in re.finditer(r"(?m)^\s*(?:export\s+)?" + name +
+                             r"=(\"(?:[^\"\\]|\\.)*\"|\$\((?:[^()]|\([^()]*\))*\)|\S*)", code):
+            v = a.group(1)
+            v = v[1:-1] if v.startswith('"') else v
+            for sub in re.findall(r"\$\(((?:[^()]|\([^()]*\))*)\)", v):
+                sp = re.search(r"pipeline/gitsync\.py\s+site-paths\b(.*)", sub)
+                ls = re.match(r"\s*ls\s+(\S+)", sub)
+                rep = (" ".join(self._site() + sp.group(1).split()) if sp
+                       else ls.group(1) if ls else "")
+                v = v.replace(f"$({sub})", rep)
+            for w in v.split():
+                if w.strip("\"'") in (f"${name}", f"${{{name}}}"):
+                    continue
+                vals += self._expand(w, text, depth + 1)
+        return vals or [word]
+
+    def _specs_before_commit(self, lines, i, start, text):
+        """第 i 条逻辑行（从 start 列起）到下一个 git commit 之间，所有 git add 加了什么。
+        返回 (有没有提交, 是否整棵树, pathspec 列表)。"""
+        full, specs = False, []
+        for j in range(i, len(lines)):
+            seg = lines[j][1][start:] if j == i else lines[j][1]
+            c = self.COMMIT.search(seg)
+            chunk = seg[:c.start()] if c else seg
+            if self.ADD_SITE.search(chunk):
+                specs += self._site() + self.CUT.split(
+                    chunk[self.ADD_SITE.search(chunk).end():], 1)[0].split()
+            for a in self.ADD.finditer(chunk):
+                args = self.CUT.split(chunk[a.end():], 1)[0].split()
+                opts = [w for w in args if w.startswith("-")]
+                paths = [p for w in args if not w.startswith("-") for p in self._expand(w, text)]
+                if not paths and ("-A" in opts or "--all" in opts):
+                    full = True
+                specs += paths
+            if c:
+                return True, full, specs
+        return False, full, specs
+
+    def committed_builds(self):
+        """[(文件, 行号, 漏掉的产物)]，每一处跑了 build.py、之后会提交的地方一条。"""
+        found, _, _ = self.derive()
+        files = sorted((ROOT / ".github" / "workflows").glob("*.yml")) + sorted((ROOT / "scripts").glob("*.sh"))
+        rows = []
+        for f in files:
+            text = f.read_text()
+            lines = self._logical(text)
+            for i, (lineno, code) in enumerate(lines):
+                for b in self.BUILD.finditer(code):
+                    commits, full, specs = self._specs_before_commit(lines, i, b.end(), text)
+                    if not commits:
+                        continue            # 只构建不提交（ci.yml、preflight.sh）
+                    miss = [] if full else sorted(o for o in found if not self._covered(o, specs))
+                    rows.append((str(f.relative_to(ROOT)), lineno, miss))
+        return rows
+
+    def test_the_ruler_finds_the_lines_that_commit_a_build(self):
+        rows = self.committed_builds()
+        where = {f for f, _, _ in rows}
+        for need in (".github/workflows/curate.yml", ".github/workflows/backfill.yml",
+                     ".github/workflows/daily.yml", "scripts/local-daily.sh"):
+            self.assertIn(need, where, f"没在 {need} 里认出「建站后提交」—— 判据本身失效了")
+        self.assertGreaterEqual(len(rows), 8, f"只认出 {len(rows)} 处建站后提交：{rows}")
+
+    def test_every_build_that_gets_committed_adds_the_whole_site(self):
+        bad = [f"{f}:{n} 漏了 {miss}" for f, n, miss in self.committed_builds() if miss]
+        self.assertEqual([], bad,
+                         "跑完 build.py 就提交，git add 却没盖住全部产物 —— 推上去的是半套站：\n  "
+                         + "\n  ".join(bad))
+
+
+class AddSiteStagesTheWholeSite(unittest.TestCase):
+    """gitsync.py add-site / site-paths 在真 git 仓库里的行为：增、改、删都进索引，
+    中文路径不出错，不存在的产物不让整条 git add 作废，页数变少时删掉的那页也提交。"""
+
+    def _repo(self, tmp):
+        git = lambda *a: subprocess.run(["git", *a], cwd=tmp, check=True, capture_output=True)
+        git("init", "-q")
+        git("config", "user.email", "t@t")
+        git("config", "user.name", "t")
+        for rel in ("index.html", "tw/index.html", "en/index.html", "cards-1.json", "cards-2.json",
+                    "cards-3.json", "p/2026-09-28-张小珺-某一期/index.html", "pipeline/build.py"):
+            f = pathlib.Path(tmp) / rel
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_text("old")
+        git("add", "-A")
+        git("commit", "-qm", "init")
+        return git
+
+    def _run(self, tmp, *args):
+        return subprocess.run([sys.executable, str(ROOT / "pipeline" / "gitsync.py"), *args],
+                              cwd=tmp, capture_output=True, text=True)
+
+    def test_adds_changes_deletions_and_new_files_but_not_source(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            self._repo(tmp)
+            t = pathlib.Path(tmp)
+            (t / "tw" / "index.html").write_text("new")
+            (t / "en" / "p").mkdir(parents=True)
+            (t / "en" / "p" / "index.html").write_text("new")
+            (t / "cards-3.json").unlink()                  # 页数变少
+            (t / "p" / "2026-09-28-张小珺-某一期" / "index.html").write_text("new")
+            (t / "pipeline" / "build.py").write_text("本地改动，不是产物")
+            r = self._run(tmp, "add-site")                 # zt/ c/ … 都不存在：不许让整条作废
+            self.assertEqual(0, r.returncode, r.stderr)
+            staged = subprocess.run(["git", "diff", "--cached", "--name-status", "-z"], cwd=tmp,
+                                    capture_output=True, check=True).stdout.decode().split("\0")
+            pairs = dict(zip(staged[1::2], staged[0::2]))
+            self.assertEqual("M", pairs.get("tw/index.html"), pairs)
+            self.assertEqual("A", pairs.get("en/p/index.html"), pairs)
+            self.assertEqual("D", pairs.get("cards-3.json"), "页数变少时删掉的分页没进提交")
+            self.assertEqual("M", pairs.get("p/2026-09-28-张小珺-某一期/index.html"), "中文路径的页没进提交")
+            self.assertNotIn("pipeline/build.py", pairs, "add-site 把源码也加进去了")
+
+    def test_site_paths_lists_deleted_pages_and_skips_absent_outputs(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            self._repo(tmp)
+            (pathlib.Path(tmp) / "cards-3.json").unlink()
+            r = self._run(tmp, "site-paths", "assets")
+            self.assertEqual(0, r.returncode, r.stderr)
+            got = r.stdout.split()
+            self.assertIn("cards-3.json", got, "被删掉的分页没列出来 —— shell 那边就不会提交这次删除")
+            self.assertIn("tw", got)
+            for absent in ("zt", "c", "assets", "cards-*.json"):
+                self.assertNotIn(absent, got, f"{absent} 不存在却列了出来，git add 会整条作废")
 
 
 class ChecksMustRunWithoutBeingRemembered(unittest.TestCase):
@@ -3949,10 +4292,18 @@ class EveryPublishLineTranslates(unittest.TestCase):
         self.assertIn("pipeline/translate.py", src, "本机线不译新集")
 
     def test_local_commit_list_covers_every_artifact(self):
-        """清单漏一项就是"本机线永远不推它"。三棵树、译文、分页文件都要在。"""
-        src = (ROOT / "scripts" / "local-daily.sh").read_text()
-        for need in ("data/en", " tw ", " en\"", "cards-*.json", "assets"):
-            self.assertIn(need, src, f"本机线的提交清单里少了 {need!r}")
+        """清单漏一项就是"本机线永远不推它"。三棵树、译文、分页文件、封面都要在。
+
+        三棵树和分页文件在共用清单 SITE 里（覆盖面见 EveryBuildCommitShipsTheWholeSite）；
+        译文和封面是本机线自己加的，得在它自己的 git add / site-paths 里。"""
+        import gitsync
+        for need in ("tw", "en", "cards-*.json"):
+            self.assertIn(need, gitsync.SITE, f"共用的建站清单里少了 {need!r}")
+        src = re.sub(r"(?m)^\s*#.*$", "", (ROOT / "scripts" / "local-daily.sh").read_text())
+        self.assertRegex(src, r"git add (?:-A data\b|data/episodes data/en\b)",
+                         "本机线的提交里少了 data/en（译文）")
+        self.assertRegex(src, r"gitsync\.py site-paths[^\n)]*\bassets\b",
+                         "本机线的提交里少了 assets（cache_covers 缓存的封面）")
 
     def test_no_hardcoded_page_number(self):
         """cards-*.json 是动态数量，写死一个（cards-1.json）就漏其余的。"""
@@ -10963,10 +11314,13 @@ class RetryPathMustNotDeleteNonAsciiEpisodes(unittest.TestCase):
             self.assertEqual("1", r.stdout.strip())
 
     def test_every_publish_line_restores_with_the_helper_and_checks_before_committing(self):
+        # curate.yml 原来不在这里：它只提交页面，可页面是从磁盘上的数据建的 ——
+        # 别的线刚发的集数据不在磁盘上，它们的页就被当成删除推上去（POSTMORTEM 34 修时补上）。
         lines = {"scripts/local-daily.sh": 'commit -q -m "digest + build (local)"',
                  ".github/workflows/daily.yml": 'git commit -m "build: regenerate site"',
                  ".github/workflows/fast.yml": 'git commit -m "build: regenerate site"',
-                 ".github/workflows/backfill.yml": 'git commit -m "build: regenerate site"'}
+                 ".github/workflows/backfill.yml": 'git commit -m "build: regenerate site"',
+                 ".github/workflows/curate.yml": 'git commit -m "build: regenerate site"'}
         for f, commit in lines.items():
             src = (ROOT / f).read_text()
             self.assertNotRegex(src, r"diff --name-only --diff-filter=D[^\n]*\|\s*while read",
@@ -11504,8 +11858,10 @@ if NAME == "build.py":
         for f in reads:
             (box / "data" / f).write_text(json.dumps(seed.get(f, {"at": "2026-01-01T00:00:00Z"}), indent=1) + "\n")
         (box / "data" / "episodes" / "seed.json").write_text('{"slug": "seed"}\n')
-        # 建站清单里的每一项都得先存在：`git add a b 不存在的` 会整条失败、一个都不加
-        decl = re.search(r'SITE_FILES="([^"]*)"', sh).group(1).split() + ["cards-1.json"]
+        # 建站产物各放一份种子，建站那趟的 git add 才有东西可加。清单取自 gitsync.SITE ——
+        # 本机线的 SITE_FILES 由 `gitsync.py site-paths` 产出（POSTMORTEM 34），不再有手写的那张可读。
+        import gitsync
+        decl = [f.replace("*", "1") for f in gitsync.SITE]
         for f in decl:
             p = box / f
             if "." in f.lstrip(".") or f in (".nojekyll",):
