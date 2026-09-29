@@ -75,6 +75,9 @@ def merge_heartbeat(ours: dict, theirs: dict) -> dict:
     留晚的那次即可。不给它驱动的话，两条线各写自己的心跳文件、却在同一次合并里
     相遇，工作区会留下冲突标记，之后本机线**每天照跑、心跳照写，但提交和推送
     全被挡住**，而日志里只有一行 "unmerged files"。真卡了一天。
+
+    建档留痕（catchup.json）、搜索引擎通知留痕（indexnow.json）是同一种东西：
+    「某一轮跑完是什么样」，留晚的那次即可（见 _is_note）。
     """
     a, b = ours.get("at") or "", theirs.get("at") or ""
     return theirs if b > a else ours
@@ -84,14 +87,52 @@ def _is_heartbeat(d: dict) -> bool:
     return "at" in d and "line" in d
 
 
+_TABLES = ("done", "fail", "fp")
+
+
+def _is_note(d: dict) -> bool:
+    """「某一轮跑完留下的痕」：顶层有 `at`、又不是账本（没有 done/fail/fp 表）。
+
+    心跳、catchup.json、indexnow.json 都是这个形状。2026-09-29 之前后两个没有驱动：
+    本机那份副本每轮开头 autostash 恢复时都在它们上面冲突，冲一次留一个 stash，
+    堆到 26 个（POSTMORTEM §33）。
+    """
+    return isinstance(d, dict) and "at" in d and not any(t in d for t in _TABLES)
+
+
+def _is_flat_map(d: dict) -> bool:
+    """键 → 文件名（或 null）的清单，比如 covers.json（封面原址 → 本站缓存名）。"""
+    return bool(d) and isinstance(d, dict) and not _is_note(d) \
+        and all(v is None or isinstance(v, str) for v in d.values())
+
+
+def merge_flat_map(ours: dict, theirs: dict) -> dict:
+    """并集。同一个键一边有文件名、一边是 null（那一边没抓到），取有文件名的那边。
+
+    cache_covers.py 只往清单里加、从不删键，所以并集不会让删掉的东西复活。
+    """
+    out = dict(ours)
+    for k, v in theirs.items():
+        if out.get(k) is None:
+            out[k] = v
+    return out
+
+
 def main(argv: list[str]) -> int:
     if len(argv) < 3:
         print("用法: mergestate.py %O %A %B", file=sys.stderr)
         return 2
     _base, ours_path, theirs_path = argv[0], argv[1], argv[2]
     o, t = _load(ours_path), _load(theirs_path)
-    merged = merge_heartbeat(o, t) if (_is_heartbeat(o) or _is_heartbeat(t)) \
-        else merge(o, t)
+    if _is_note(o) or _is_note(t):
+        merged = merge_heartbeat(o, t)
+    elif _is_flat_map(o) or _is_flat_map(t):
+        # 和 cache_covers.py 写出来的格式一致（sort_keys、结尾不换行），合完不产生无关的改动
+        pathlib.Path(ours_path).write_text(
+            json.dumps(merge_flat_map(o, t), ensure_ascii=False, indent=1, sort_keys=True))
+        return 0
+    else:
+        merged = merge(o, t)
     pathlib.Path(ours_path).write_text(
         json.dumps(merged, ensure_ascii=False, indent=1) + "\n")
     return 0

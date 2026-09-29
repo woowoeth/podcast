@@ -114,6 +114,11 @@ export LLM_MODEL
   fi
 
   START_REV=$(git rev-parse HEAD 2>/dev/null)
+  # **autostash 恢复失败时 git pull 的退出码仍是 0**：只打一句 "Applying autostash resulted in
+  # conflicts"，stash 留着，工作区里是冲突标记。这份副本就这样一声不响堆到 26 个 stash
+  # （POSTMORTEM §33）。判据不看退出码，看 stash 有没有多出来。
+  n_autostash() { git stash list 2>/dev/null | grep -c 'autostash$' || true; }
+  STASH_BEFORE=$(n_autostash)
   # 先同步：state.json 在 git 里，云端刚发过的不能重复发。
   #
   # **这一步失败就不许深读。** 原来是 `|| true`：拉不下来照跑，而 state.json
@@ -170,6 +175,18 @@ PYEOF
     fi
   fi
 
+  STASH_AFTER=$(n_autostash)
+  if [ "${STASH_AFTER:-0}" -gt "${STASH_BEFORE:-0}" ]; then
+    # 上一轮没提交的改动收在 stash@{0} 里恢复不回来 —— 那可能是它唯一的一份。
+    # 不在冲突标记上照跑（下面 checkdata 会拿远端版本把 JSON「修好」，本机那份就只剩 stash 里了），
+    # 停下来、写进心跳。下一轮开头的脱身逻辑会把工作区对齐远端，stash 留给人看。
+    echo "同步时 autostash 恢复冲突：上一轮没提交的改动收在 stash@{0}，恢复不回来，本轮不深读" >&2
+    echo "  冲突的文件：$(git diff --name-only --diff-filter=U 2>/dev/null | tr '\n' ' ')" >&2
+    python3 pipeline/heartbeat.py local 1 --published 0 \
+      --why "同步时 autostash 恢复冲突（stash 多了一个），本轮拒绝深读；看过 stash@{0} 再 drop" || true
+    exit 1
+  fi
+
   # **同步「成功」不等于工作区是好的。**
   # autostash 恢复时冲突，git pull 的退出码仍是 0：只警告一句，把冲突标记
   # 留在工作区，stash 也留着（实测那台机器堆了 5 个）。于是那一轮照跑，
@@ -183,9 +200,9 @@ PYEOF
       --why "同步后 data 下有坏掉的 JSON（多半是 autostash 冲突留下的标记），本轮拒绝深读" || true
     exit 1
   fi
-  n_stash=$(git stash list 2>/dev/null | grep -c autostash || true)
-  if [ "${n_stash:-0}" -ge 3 ]; then
-    echo "注意：git stash 里堆了 $n_stash 个 autostash，多半是历次同步冲突留下的" >&2
+  if [ "${STASH_AFTER:-0}" -gt 0 ]; then
+    # 心跳会记下这个数（heartbeat.py 的 autostash 字段），体检见到非零就报硬伤
+    echo "注意：git stash 里留着 $STASH_AFTER 个 autostash，是历次同步恢复失败留下的，看过再 drop" >&2
   fi
 
   # **拉下了新版就用新版跑。** bash 边读边执行：这一轮开头读进来的是同步前的旧脚本，git pull
@@ -254,8 +271,10 @@ PYEOF
   if [ -z "$(git status --porcelain data/episodes)" ]; then
     # 没有新内容也要把心跳推上去：否则"跑了但闸门全拦下"和"根本没跑"分不开，
     # 而这两件事需要完全不同的处理。
-    echo "本轮没有新内容，只推心跳"
-    git add data/heartbeat-local.json data/state.json 2>/dev/null || true
+    echo "本轮没有新内容，只推心跳和状态"
+    # **写了什么就提交什么，整个 data/。** 原来只 add 心跳和 state.json：run.py 写的
+    # usage.json 就一直躺在工作区里，下一轮开头被 autostash 收走、恢复时一冲突就留一个 stash。
+    git add -A data 2>/dev/null || true
     git diff --cached --quiet && exit 0
     git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
         commit -q -m "heartbeat: local"
@@ -295,7 +314,8 @@ PYEOF
     exit 1
   fi
 
-  git add data/episodes data/en data/state.json data/sources.json data/heartbeat-local.json 2>/dev/null || true
+  # 数据一律 `git add -A data`，不再手写清单（理由见下面建站那一趟）。
+  git add -A data 2>/dev/null || true
   n=$(git diff --cached --name-only | grep -c 'data/episodes/' || true)
   git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
       commit -q -m "digest: $n new (local)"
@@ -387,8 +407,20 @@ PYEOF
   # 这四页会被当成孤儿删掉，钱白花、内容消失，而账本里查不到它们发过。
   # data/covers.json：cache_covers 每轮都会改它，原来没在清单里 —— 云端 `git add -A` 顺手带着，
   # 云端一停，本机缓存下的封面就永远不进仓库，首页封面一直直连第三方。
-  git add data/episodes data/en data/state.json data/sources.json data/covers.json data/indexnow.json \
-          data/heartbeat-local.json $SITE_FILES 2>/dev/null || true
+  #
+  # **数据不再手写清单，整个 data/ 都加（`git add -A data`，和云端一样）。** 手写清单是
+  # 同一个坑的第三次：先漏 data/episodes 之外的集，再漏 covers.json，这次漏的是
+  # data/catchup.json —— 建档（--catchup）每轮都写它，本机线从没提交过，云端停用之后
+  # 仓库里那份停在 09-25，体检连着三天报「新源建档没跑过」，而建档其实每天两轮都在跑
+  # （POSTMORTEM §33）。usage.json、translate-failed.json 也一样从没进过仓库。
+  # 体检读的是仓库，**不提交 = 体检量到的是提交清单，不是这条线干了什么。**
+  # 守护 LocalLineLeavesNothingTheHealthcheckReadsUncommitted 真跑一遍这个脚本来核。
+  #
+  # 搜索引擎通知挪到提交**之前**：indexnow.py 把结果写进 data/indexnow.json（体检读它），
+  # 放在推送之后的话这份留痕永远落在下一轮之外 —— 本机线晚一轮才提交，
+  # 云端 runner 一销毁就没了。提交前通知只比推送早几十秒，而 Pages 部署本来就在推送之后。
+  python3 pipeline/indexnow.py || echo "indexnow 通知失败（不致命）"
+  git add -A data $SITE_FILES 2>/dev/null || true
   git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
       commit -q -m "build: regenerate site" || true
 
@@ -397,11 +429,10 @@ PYEOF
   # index.html / feed.xml 上冲突，rebase 反复失败——云端就是这么丢掉 11 篇的。
   for i in 1 2 3 4 5; do
     if git push -q origin main; then
+      # **每条发布线都要通知搜索引擎**（上面提交之前已经通知过，留痕跟着这次推送上去了）。
+      # 原来只有云端日更接了，而这条线是中文播客的主力（住宅 IP）——它发的内容只能等
+      # 爬虫自己回来，那是几天到几周。三棵树的 URL 都提交（见 indexnow.py）。
       echo "已推送"
-      # **每条发布线都要通知搜索引擎。** 原来只有云端日更接了，而这条线是
-      # 中文播客的主力（住宅 IP）——它发的内容只能等爬虫自己回来，
-      # 那是几天到几周。三棵树的 URL 都提交（见 indexnow.py）。
-      python3 pipeline/indexnow.py || echo "indexnow 通知失败（不致命）"
       exit 0
     fi
     # 留下未合并文件就先脱身，否则之后每次 pull 都报 unmerged
@@ -411,6 +442,7 @@ PYEOF
     fi
     echo "push 重试 $i"
     git fetch -q origin main
+    OURS=$(git rev-parse HEAD)
     # 冲突时不做三方合并。三步都必需：
     #   --mixed  索引对齐远端。用 --soft 的话索引还是旧基线的整棵树，下一个提交会把
     #            这期间别人推上来的源码全部回退——真出过事（见 POSTMORTEM 七）。
@@ -422,6 +454,11 @@ PYEOF
     # 于是 HEAD 看着是最新的、跑的却是旧程序（2026-09-24 体检：本机线跑的是几轮前的代码）。
     # bot 不该改源码，所以这里直接让它们等于远端。
     git checkout -q origin/main -- pipeline scripts tests .github assets 2>/dev/null || true
+    # **数据也要三方对齐，不能拿磁盘整份盖上去。** reset 之后，本机这轮没碰、而另一条线
+    # 刚改过的文件（对方的心跳、建档留痕、用量账本……）在磁盘上还是旧的，下面 `git add -A data`
+    # 会把它们倒回去。adopt：本机没动过的取远端，两边都动过的走合并驱动（见 gitsync.py）。
+    python3 pipeline/gitsync.py adopt "$OURS" origin/main data || {
+      echo "重试时对齐远端数据失败，本轮不提交（产出还在本地，下次跑批会带上）" >&2; exit 1; }
     # 取回必须走 -z：非 ASCII 路径会被 git 转义，checkout 找不到文件又被 || true 吞掉，
     # 2026-09-23 就这样把 19 篇中文名的已发布集当成删除推了上去（见 pipeline/gitsync.py）。
     python3 pipeline/gitsync.py restore-deleted data
@@ -429,7 +466,8 @@ PYEOF
     python3 pipeline/build.py >/dev/null
     # **data/en 也要加。** 原来重试分支漏了它：译稿留成未跟踪文件，别的线提交同名文件后，
     # 下一次同步被这些文件挡住、autostash 冲突——2026-09-23 那次事故就是从这里开始的。
-    git add data/episodes data/en data/state.json data/sources.json data/covers.json data/indexnow.json data/heartbeat-local.json $SITE_FILES 2>/dev/null || true
+    # 现在整个 data/ 都加（上面 adopt 已经把别人的改动对齐回来了）。
+    git add -A data $SITE_FILES 2>/dev/null || true
     if git diff --cached --quiet; then echo "已是最新，无需推送"; exit 0; fi
     # 提交前再核一次：树里少了 origin 已有的集，提交就等于把它们删掉。
     python3 pipeline/gitsync.py missing origin/main data/episodes >/dev/null || { echo "重试后树里仍缺 origin 已有的集，拒绝提交"; exit 1; }

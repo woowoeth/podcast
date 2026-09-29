@@ -18,6 +18,21 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "pipeline"))
 
 
+def _stages(cmd: str, path: str) -> bool:
+    """这条 `git add …` 会不会把 path 加进索引：点名了它，或者加的是它所在的目录
+    （本机线 2026-09-29 起数据一律 `git add -A data`，见 POSTMORTEM §33）。"""
+    m = re.search(r"\bgit add\b(.*)", cmd)
+    if not m:
+        return False
+    toks = []
+    for t in m.group(1).split():
+        if t.startswith(("2>", "||", "&&", ";")):
+            break
+        toks.append(t)
+    paths = [t.rstrip("/") for t in toks if not t.startswith("-")]
+    return any(path == t or path.startswith(t + "/") for t in paths)
+
+
 class PushLoopsMustFailLoudly(unittest.TestCase):
     """事故：推送重试 8 次全失败，步骤仍报 success，11 篇内容随 runner 销毁。"""
 
@@ -7076,7 +7091,10 @@ class APublishedEpisodeMustNotVanishSilently(unittest.TestCase):
         外面只看到一句 "digest: N new (local)"。
         """
         sh = (ROOT / "scripts" / "local-daily.sh").read_text()
-        i = sh.index("git add data/episodes data/en data/state.json")
+        # 缺集检查之后、第一次把 data/episodes 加进索引的那一行
+        start = sh.index("missing=$(")
+        i = next(start + m.start() for m in re.finditer(r"(?m)^[ \t]*git add\b.*$", sh[start:])
+                 if _stages(m.group(0), "data/episodes"))
         before = sh[:i]
         self.assertIn("origin/main", before[-2000:],
                       "提交前没和 origin 核对过树的完整性")
@@ -9623,10 +9641,10 @@ class EveryCommitThatShipsPagesMustShipTheirData(unittest.TestCase):
 
     def test_they_all_add_the_episode_data(self):
         for cmd in self._site_adds():
-            self.assertIn("data/episodes", cmd,
-                          f"这条提交只推页面不推数据，那几页会变成孤儿：{cmd[:90]}")
-            self.assertIn("data/state.json", cmd,
-                          f"账本没跟着推，下一轮会重复深读：{cmd[:90]}")
+            self.assertTrue(_stages(cmd, "data/episodes"),
+                            f"这条提交只推页面不推数据，那几页会变成孤儿：{cmd[:90]}")
+            self.assertTrue(_stages(cmd, "data/state.json"),
+                            f"账本没跟着推，下一轮会重复深读：{cmd[:90]}")
 
 
 class ASourcesKindMustMatchItsFeed(unittest.TestCase):
@@ -10813,7 +10831,8 @@ class SourcesKeepUpdatingWhenOneLineStops(unittest.TestCase):
         adds = [l for l in self._local().replace("\\\n", " ").split("\n") if "git add" in l and "$SITE_FILES" in l]
         self.assertTrue(adds)
         for a in adds:
-            self.assertIn("data/covers.json", a, "本机线缓存了封面却不提交清单 —— 云端一停，封面一直直连第三方")
+            self.assertTrue(_stages(a, "data/covers.json"),
+                            "本机线缓存了封面却不提交清单 —— 云端一停，封面一直直连第三方")
 
     def test_the_local_script_reruns_itself_after_pulling_a_new_version(self):
         t = self._local()
@@ -10982,7 +11001,7 @@ class LocalRetryPathKeepsTreeAndTranslations(unittest.TestCase):
         b = self._retry_block()
         adds = [l for l in b.splitlines() if l.strip().startswith("git add ")]
         self.assertTrue(adds, "重试分支里没有 git add")
-        self.assertTrue(all("data/en" in l for l in adds),
+        self.assertTrue(all(_stages(l, "data/en") for l in adds),
                         "重试分支的 git add 漏了 data/en —— 译稿会留成未跟踪文件，挡住下一次同步")
 
 
@@ -11180,3 +11199,543 @@ class TopicPagesArePublishedLinkedAndClean(unittest.TestCase):
         for t in self.topics:
             self.assertNotIn("zt-src-dead", self._page(t).read_text(),
                              "专题里有出处找不到已发布的集 —— 看构建日志里的 ⚠ 专题 那一行")
+
+# ---------------------------------------------------------------------------
+# 体检读的状态文件，发布线写了就必须提交（POSTMORTEM §33）
+# ---------------------------------------------------------------------------
+
+def _healthcheck_reads() -> set:
+    """体检从 data/ 下读哪几个状态文件 —— 从 healthcheck.py 的源码推导，不手写。"""
+    src = (ROOT / "pipeline" / "healthcheck.py").read_text()
+    names = set(re.findall(r'DATA\s*/\s*"([^"/]+\.json)"', src))
+    for pre, suf in re.findall(r'DATA\s*/\s*f"([^"{]*)\{[^}]+\}([^"]*\.json)"', src):
+        if pre == "heartbeat-":
+            names |= {f"{pre}{x}{suf}" for x in ("local", "cloud")}
+    return names
+
+
+def _state_writers(names: set) -> dict:
+    """pipeline/ 下每个脚本会写 names 里的哪几个文件（{脚本名: {文件名}}）。
+
+    按**函数**算：一个函数里既有写操作（write_text / json.dump / open(..., "w")），
+    又点名了那个文件（字面量、f"heartbeat-{line}.json" 这种、或模块级常量
+    STATE = DATA / "state.json"），才算它写。文档字符串不算。
+    lib/ 里的写函数（llm.persist_usage → usage.json）算到**调用了它的**脚本头上。
+    """
+    import ast
+
+    def strings(node):
+        doc = set()
+        for n in ast.walk(node):
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Module)) \
+                    and n.body and isinstance(n.body[0], ast.Expr) \
+                    and isinstance(n.body[0].value, ast.Constant):
+                doc.add(id(n.body[0].value))
+        for n in ast.walk(node):
+            if id(n) in doc:
+                continue
+            if isinstance(n, ast.Constant) and isinstance(n.value, str):
+                yield n.value
+            elif isinstance(n, ast.JoinedStr):
+                yield "".join(v.value if isinstance(v, ast.Constant) else "\0" for v in n.values)
+
+    def named(s):
+        hit = {nm for nm in names if re.search(rf"(?:^|[/\s\"']){re.escape(nm)}(?:$|[\s\"'])", s)}
+        comp = s.split("/")[-1]
+        if "\0" in comp:
+            pre, _, suf = comp.partition("\0")
+            if pre and suf.endswith(".json") and "\0" not in suf:
+                hit |= {nm for nm in names if nm.startswith(pre) and nm.endswith(suf)}
+        return hit
+
+    def writes(node):
+        for n in ast.walk(node):
+            if not isinstance(n, ast.Call):
+                continue
+            f = n.func
+            if isinstance(f, ast.Attribute) and f.attr in ("write_text", "write_bytes", "dump"):
+                return True
+            if isinstance(f, ast.Name) and f.id == "open":
+                mode = n.args[1] if len(n.args) > 1 else next(
+                    (k.value for k in n.keywords if k.arg == "mode"), None)
+                if isinstance(mode, ast.Constant) and isinstance(mode.value, str) \
+                        and set(mode.value) & set("wa"):
+                    return True
+        return False
+
+    def by_function(path):
+        tree = ast.parse(path.read_text())
+        consts = {}
+        for n in tree.body:
+            if isinstance(n, ast.Assign):
+                hit = set().union(set(), *(named(s) for s in strings(n.value)))
+                for t in n.targets:
+                    if isinstance(t, ast.Name) and hit:
+                        consts[t.id] = hit
+        out = {}
+        for n in ast.walk(tree):
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and writes(n):
+                hit = set().union(set(), *(named(s) for s in strings(n)))
+                hit |= set().union(set(), *(consts[m.id] for m in ast.walk(n)
+                                            if isinstance(m, ast.Name) and m.id in consts))
+                if hit:
+                    out[n.name] = hit
+        return out
+
+    libs = {p.stem: by_function(p) for p in (ROOT / "pipeline" / "lib").glob("*.py")}
+    out = {}
+    for p in sorted((ROOT / "pipeline").glob("*.py")):
+        src = p.read_text()
+        files = set().union(set(), *by_function(p).values())
+        for stem, fns in libs.items():
+            if not re.search(rf"\b(from lib import [^\n]*\b{stem}\b|import lib\.{stem}|from lib\.{stem} import)", src):
+                continue
+            for fn, hit in fns.items():
+                if re.search(rf"\b{re.escape(fn)}\(", src):
+                    files |= hit
+        if files:
+            out[p.name] = files
+    return out
+
+
+class TheStateFileRulerMeasuresTheRealCode(unittest.TestCase):
+    """先验尺子：下面两道守护都靠「体检读哪些文件」「哪个脚本写哪个」这两张表。
+    表推导错了（比如漏了 catchup.json），守护就在空转 —— 而它会是绿的。"""
+
+    def test_it_knows_what_the_healthcheck_reads(self):
+        r = _healthcheck_reads()
+        for f in ("catchup.json", "usage.json", "indexnow.json", "state.json",
+                  "heartbeat-local.json", "heartbeat-cloud.json", "translate-failed.json"):
+            self.assertIn(f, r, f"从 healthcheck.py 推不出它读 {f} —— 尺子坏了")
+
+    def test_it_knows_who_writes_them(self):
+        w = _state_writers(_healthcheck_reads())
+        want = {"run.py": {"catchup.json", "state.json", "usage.json"},
+                "indexnow.py": {"indexnow.json"},
+                "translate.py": {"translate-failed.json"},
+                "heartbeat.py": {"heartbeat-local.json"},
+                "srccoverage.py": {"coverage.json"}}
+        for script, files in want.items():
+            self.assertTrue(files <= w.get(script, set()),
+                            f"尺子认不出 {script} 写 {sorted(files - w.get(script, set()))}")
+        # 反过来也不能太宽：文档字符串里提到的文件名不算写（gitsync.py 的 adopt 说明里点名了
+        # catchup.json）；data/en/_sources.json 也不算 data/sources.json
+        self.assertNotIn("gitsync.py", w, "尺子把文档字符串里提到的文件名当成了写")
+        self.assertNotIn("transspeakers.py", w, "尺子把 data/en/_speakers.json 这类路径的一截当成了体检文件")
+
+
+class CloudLinesCommitWhatTheHealthcheckReads(unittest.TestCase):
+    """云端每条会推送的工作流：一步里跑的脚本写了体检读的文件，后面就得有一次
+    `git add` 盖住它、再有一次 `git push`。
+
+    事故（2026-09-29 查出）：三条工作流都是「推送 → 最后一步通知搜索引擎」，而通知把结果写进
+    data/indexnow.json —— runner 一销毁就没了，体检读到的 indexnow.json 从来只有本机线那份。
+    判据落在步骤顺序上，不看注释、不看 git config 里登记的驱动命令。
+    """
+
+    CALL = re.compile(r"(?:^|[;&|(!]\s*|\b(?:if|then|do|else)\s+)python3?\s+(?:-\S+\s+)*pipeline/([a-z_]+\.py)")
+
+    def _events(self, steps):
+        """(步序, 行序, 类别, 内容)。只在失败时才跑的步骤不算提交点。"""
+        ev = []
+        for si, st in enumerate(steps):
+            run = st.get("run") or ""
+            only_on_failure = "failure()" in str(st.get("if") or "")
+            lines = [l for l in run.replace("\\\n", " ").split("\n") if not l.lstrip().startswith("#")]
+            for li, l in enumerate(lines):
+                for m in self.CALL.finditer(l):
+                    ev.append((si, li, "call", m.group(1)))
+                if only_on_failure:
+                    continue
+                for m in re.finditer(r"\bgit add\b([^;&|\n]*)", l):
+                    toks = [t for t in m.group(1).split() if not t.startswith("2>")]
+                    ev.append((si, li, "add", toks))
+                if re.search(r"\bgit push\b", l):
+                    ev.append((si, li, "push", None))
+        return ev
+
+    @staticmethod
+    def _covers(toks, f):
+        paths = [t for t in toks if not t.startswith("-")]
+        if not paths:
+            return "-A" in toks or "--all" in toks
+        return any(p in (".", "data", "data/") or p == f"data/{f}" for p in paths)
+
+    def uncommitted(self, steps, writers, reads):
+        ev = self._events(steps)
+        bad = []
+        for i, (si, li, kind, what) in enumerate(ev):
+            if kind != "call":
+                continue
+            for f in sorted(writers.get(what, set()) & reads):
+                later = ev[i + 1:]
+                ok = any(k == "add" and self._covers(t, f)
+                         and any(k2 == "push" for (_, _, k2, _) in later[j + 1:])
+                         for j, (_, _, k, t) in enumerate(later))
+                if not ok:
+                    bad.append(f"第 {si + 1} 步「{steps[si].get('name')}」跑 {what}，写了 data/{f}，之后没有提交它再推送")
+        return bad
+
+    def _workflows(self):
+        import yaml
+        for f in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+            d = yaml.safe_load(f.read_text())
+            for job in (d.get("jobs") or {}).values():
+                steps = job.get("steps") or []
+                if any("git push" in (s.get("run") or "") for s in steps):
+                    yield f.name, steps
+
+    def test_every_pushing_workflow_commits_the_state_it_writes(self):
+        reads, writers = _healthcheck_reads(), _state_writers(_healthcheck_reads())
+        seen, bad = 0, []
+        for name, steps in self._workflows():
+            seen += 1
+            bad += [f"{name}：{b}" for b in self.uncommitted(steps, writers, reads)]
+        self.assertGreaterEqual(seen, 5, "一条会推送的工作流都没找到 —— 尺子坏了")
+        self.assertEqual([], bad, "体检读的文件写了却没进仓库 —— 体检量到的就只是提交清单：\n"
+                         + "\n".join(bad))
+
+    def test_the_rule_goes_red_on_a_note_written_after_the_last_push(self):
+        """反向注入（按语义，不按字面）：在日更最后补一步通知搜索引擎 —— 修之前就长这样。"""
+        import yaml
+        steps = yaml.safe_load((ROOT / ".github/workflows/daily.yml").read_text())["jobs"]["digest"]["steps"]
+        steps = steps + [{"name": "Notify (injected)", "run": "python pipeline/indexnow.py || true"}]
+        bad = self.uncommitted(steps, _state_writers(_healthcheck_reads()), _healthcheck_reads())
+        self.assertTrue(any("indexnow.json" in b for b in bad), f"注入的缺陷没被抓到：{bad}")
+
+
+class LocalLineLeavesNothingTheHealthcheckReadsUncommitted(unittest.TestCase):
+    """真跑一遍 scripts/local-daily.sh（沙盒里：裸仓库当 origin，pipeline 脚本换成桩），
+    跑完核对：体检读的文件，这一轮写过的，**全都在 origin 上、而且是最后写的那一版**。
+
+    事故（2026-09-29，POSTMORTEM §33）：本机线的 `git add` 是手写清单，建档（--catchup）
+    每轮都写 data/catchup.json、清单里没有它 —— 云端停用之后仓库里那份停在 09-25，
+    体检连着三天报「新源建档没跑过」，而建档每天两轮都在跑。usage.json 同样从没进过仓库；
+    indexnow.json 在推送之后才写，永远晚一轮。没提交的文件每轮开头被 autostash 收走，
+    恢复一冲突就留一个 stash，那份副本堆到 26 个。
+
+    为什么真跑而不是查字符串：提交点有三条路（有新内容 / 没有新内容 / 推送被拒后重试），
+    手写清单漏过的每一次都是其中一条路上的事，静态看 `git add` 那一行看不出来。
+    桩写哪些文件由 _state_writers 从真脚本推导 —— 以后 run.py 多写一个体检读的文件，
+    桩跟着就写，这里跟着就查。
+    """
+
+    REAL = ("gitsync.py", "mergestate.py", "merge_usage.py", "checkdata.py", "heartbeat.py")
+
+    STUB = r'''
+import datetime, json, os, pathlib, subprocess, sys
+NAME, WRITES = {name!r}, {writes!r}
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+args = sys.argv[1:]
+if NAME == "translate.py" and "--pending" in args:
+    print(0); sys.exit(0)
+if NAME == "run.py" and "--reconcile" in args:
+    sys.exit(0)
+now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+day = now[:10]
+def touch(f):
+    p = ROOT / "data" / f
+    try:
+        d = json.loads(p.read_text())
+    except Exception:
+        d = {{}}
+    if "at" in d:
+        d.update(at=now, by=NAME, args=args)
+    elif f == "usage.json":
+        row = d.setdefault(day, {{}}).setdefault("stub/" + NAME, {{"calls": 0, "in": 0, "out": 0, "think": 0}})
+        row["calls"] += 1
+    elif "done" in d:
+        d["done"][NAME + now] = {{"at": now}}
+    else:
+        d["touched_" + NAME] = now
+    p.write_text(json.dumps(d, ensure_ascii=False, indent=1) + "\n")
+    with open(os.environ["STUB_LOG"], "a") as log:
+        log.write(json.dumps({{"file": f, "by": NAME, "args": args}}) + "\n")
+for f in WRITES:
+    touch(f)
+if NAME == "run.py" and os.environ.get("STUB_PUBLISH", "1") == "1":
+    slug = "ep-" + now.replace(":", "").replace(".", "")
+    (ROOT / "data" / "episodes" / (slug + ".json")).write_text(json.dumps({{"slug": slug}}) + "\n")
+if NAME == "build.py":
+    (ROOT / "index.html").write_text("<!-- " + now + " -->\n")
+    race = os.environ.get("STUB_RACE")
+    if race and not os.path.exists(race + ".done"):
+        # 另一条线在这一轮跑批中途推了一个提交：改它自己的心跳、记一笔用量
+        other = race + ".clone"
+        subprocess.run(["git", "clone", "-q", os.environ["STUB_ORIGIN"], other], check=True)
+        hb = pathlib.Path(other, "data", "heartbeat-cloud.json")
+        hb.write_text(json.dumps({{"at": now, "line": "cloud", "exit": 0, "by": "other"}}, indent=1) + "\n")
+        u = pathlib.Path(other, "data", "usage.json")
+        ud = json.loads(u.read_text())
+        ud.setdefault(day, {{}})["cloud/other"] = {{"calls": 7, "in": 7, "out": 7, "think": 0}}
+        u.write_text(json.dumps(ud, indent=1) + "\n")
+        g = ["git", "-C", other, "-c", "user.name=other", "-c", "user.email=o@o"]
+        subprocess.run(g + ["commit", "-qam", "other line"], check=True)
+        subprocess.run(g + ["push", "-q", "origin", "HEAD:main"], check=True)
+        open(race + ".done", "w").close()
+'''
+
+    def _sandbox(self, tmp, publish=True, race=False, leftover=None, upstream=None):
+        sh = (ROOT / "scripts" / "local-daily.sh").read_text()
+        reads = _healthcheck_reads()
+        writers = {k: sorted(v & reads) for k, v in _state_writers(reads).items()}
+        calls = set(re.findall(r"pipeline/([a-z_]+\.py)", sh))
+        self.assertIn("run.py", calls, "尺子坏了：local-daily.sh 里找不到 run.py")
+        tmp = pathlib.Path(tmp)
+        origin, box, home, bin_ = tmp / "origin.git", tmp / "box", tmp / "home", tmp / "bin"
+        for d in (box / "pipeline", box / "scripts", box / "data" / "episodes", home, bin_):
+            d.mkdir(parents=True)
+        (bin_ / "claude").write_text("#!/bin/sh\nexit 0\n")
+        (bin_ / "claude").chmod(0o755)
+        (box / "scripts" / "local-daily.sh").write_text(sh)
+        for f in (".gitattributes", ".gitignore"):
+            (box / f).write_text((ROOT / f).read_text())
+        for f in self.REAL:
+            (box / "pipeline" / f).write_text((ROOT / "pipeline" / f).read_text())
+        for f in sorted(calls - set(self.REAL)):
+            (box / "pipeline" / f).write_text(self.STUB.format(name=f, writes=writers.get(f, [])))
+        now = __import__("datetime").datetime.now(__import__("datetime").timezone.utc)
+        stamp = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+        seed = {"state.json": {"done": {}, "fail": {}, "fp": {}},
+                "usage.json": {stamp[:10]: {"seed/x": {"calls": 1, "in": 1, "out": 1, "think": 0}}},
+                "sources.json": {"sources": []},
+                "heartbeat-cloud.json": {"at": stamp, "line": "cloud", "exit": 0},
+                "heartbeat-local.json": {"at": stamp, "line": "local", "exit": 0}}
+        for f in reads:
+            (box / "data" / f).write_text(json.dumps(seed.get(f, {"at": "2026-01-01T00:00:00Z"}), indent=1) + "\n")
+        (box / "data" / "episodes" / "seed.json").write_text('{"slug": "seed"}\n')
+        # 建站清单里的每一项都得先存在：`git add a b 不存在的` 会整条失败、一个都不加
+        decl = re.search(r'SITE_FILES="([^"]*)"', sh).group(1).split() + ["cards-1.json"]
+        for f in decl:
+            p = box / f
+            if "." in f.lstrip(".") or f in (".nojekyll",):
+                p.write_text("seed\n")
+            else:
+                (p / "seed").mkdir(parents=True, exist_ok=True)
+                (p / "seed" / "index.html").write_text("seed\n")
+        git = lambda *a, cwd=box: subprocess.run(["git", *a], cwd=cwd, capture_output=True, text=True, check=True)
+        subprocess.run(["git", "init", "-q", "--bare", str(origin)], check=True)
+        git("init", "-q", "-b", "main")
+        git("add", "-A")
+        git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "seed")
+        git("remote", "add", "origin", str(origin))
+        git("push", "-q", "origin", "main")
+        git("branch", "-u", "origin/main")
+        if upstream:
+            # 另一条线在这一轮开跑**之前**推的提交
+            other = tmp / "upstream"
+            subprocess.run(["git", "clone", "-q", str(origin), str(other)], check=True)
+            for f, body in upstream.items():
+                (other / "data" / f).write_text(body)
+            git("-c", "user.name=o", "-c", "user.email=o@o", "commit", "-qam", "upstream", cwd=other)
+            git("push", "-q", "origin", "HEAD:main", cwd=other)
+        for f, body in (leftover or {}).items():
+            # 上一轮留在工作区、没提交的改动
+            (box / "data" / f).write_text(body)
+        env = {"PATH": f"{bin_}:{os.environ.get('PATH', '')}", "HOME": str(home),
+               "PODCAST_REPO": str(box), "PODCAST_REEXEC": "1", "STUB_LOG": str(tmp / "writes.jsonl"),
+               "STUB_PUBLISH": "1" if publish else "0", "STUB_ORIGIN": str(origin),
+               "GIT_CONFIG_NOSYSTEM": "1", "LANG": "en_US.UTF-8"}
+        if race:
+            env["STUB_RACE"] = str(tmp / "race")
+        r = subprocess.run(["bash", str(box / "scripts" / "local-daily.sh")], cwd=box, env=env,
+                           capture_output=True, text=True, timeout=240)
+        return r, box, origin, tmp / "writes.jsonl", reads
+
+    def _left_behind(self, r, box, origin, log, reads):
+        """这一轮写过、却没按最后那一版进 origin 的体检文件。"""
+        written = {json.loads(l)["file"] for l in log.read_text().splitlines()} if log.exists() else set()
+        written |= {"heartbeat-local.json"}           # 真的 heartbeat.py 写的
+        self.assertIn("catchup.json", written, "尺子坏了：桩一次都没写 catchup.json（建档那一步没跑到？）\n"
+                      + r.stdout[-1500:])
+        bad = []
+        for f in sorted(written & reads):
+            disk = (box / "data" / f).read_bytes()
+            up = subprocess.run(["git", "--git-dir", str(origin), "show", f"main:data/{f}"],
+                                capture_output=True).stdout
+            if disk != up:
+                bad.append(f)
+        dirty = subprocess.run(["git", "status", "--porcelain", "--", "data"], cwd=box,
+                               capture_output=True, text=True).stdout.strip()
+        return bad, dirty
+
+    def _run(self, then=None, **kw):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            r, box, origin, log, reads = self._sandbox(tmp, **kw)
+            self.assertEqual(0, r.returncode, f"沙盒里的本机线没跑通：\n{r.stdout[-2500:]}\n{r.stderr[-800:]}")
+            bad, dirty = self._left_behind(r, box, origin, log, reads)
+            self.assertEqual([], bad, f"这一轮写了、体检也读，却没进 origin：{bad}\n"
+                             "—— 体检量到的会是提交清单，不是这条线干了什么（POSTMORTEM §33）")
+            self.assertEqual("", dirty, f"跑完 data/ 下还有没提交的改动，下一轮开头会被 autostash 收走：\n{dirty}")
+            if then:
+                then(box, origin)
+
+    def test_a_run_that_publishes(self):
+        self._run(publish=True)
+
+    def test_a_leftover_note_merges_instead_of_leaving_a_stash(self):
+        """上一轮没提交的建档留痕 + 另一条线也改了它：有合并驱动，autostash 恢复不再冲突。"""
+        mine = '{\n "at": "2026-09-28T03:10:56Z",\n "pending": 147\n}\n'
+        theirs = '{\n "at": "2026-09-27T05:20:00Z",\n "pending": 148\n}\n'
+        self._run(publish=True, leftover={"catchup.json": mine}, upstream={"catchup.json": theirs},
+                  then=lambda box, origin: self.assertEqual(
+                      "", subprocess.run(["git", "stash", "list"], cwd=box, capture_output=True,
+                                         text=True).stdout, "autostash 恢复又留下了 stash"))
+
+    def test_an_unrestorable_autostash_stops_the_run_loudly(self):
+        """恢复不了的 autostash 不许静默：退出码非零、心跳写明原因、stash 留给人看。
+
+        原来 git pull 退出码是 0，checkdata 拿远端版本把冲突的 JSON「修好」，这一轮照跑 ——
+        本机那份改动只剩 stash 里一份，而 stash 一声不响地堆到了 26 个。
+        """
+        import tempfile
+        mine = '{\n "sources": [],\n "mine": 1\n}\n'
+        theirs = '{\n "sources": [],\n "theirs": 2\n}\n'
+        with tempfile.TemporaryDirectory() as tmp:
+            r, box, origin, log, reads = self._sandbox(tmp, leftover={"sources.json": mine},
+                                                        upstream={"sources.json": theirs})
+            self.assertNotEqual(0, r.returncode, "autostash 恢复冲突了，这一轮却照跑完了：\n" + r.stdout[-1500:])
+            self.assertIn("autostash 恢复冲突", r.stdout + r.stderr, "停了，但没说为什么")
+            hb = json.loads((box / "data" / "heartbeat-local.json").read_text())
+            self.assertEqual(1, hb.get("exit"), "心跳没记下这一轮失败")
+            self.assertIn("autostash", hb.get("why", ""), "心跳里没写原因")
+            self.assertEqual(1, hb.get("autostash"), "心跳里没记 stash 数 —— 体检就看不见它")
+            self.assertFalse(log.exists() and "run.py" in log.read_text(), "恢复失败之后还是去深读了")
+
+    def test_a_run_with_nothing_new(self):
+        """「本轮没有新内容，只推心跳」那条路：原来只 add 心跳和 state.json，usage.json 就留在工作区。"""
+        self._run(publish=False)
+
+    def test_a_run_whose_push_is_rejected_keeps_the_other_lines_changes(self):
+        """推送被拒走重试分支：reset --mixed 之后 `git add -A data` 不许把另一条线刚推的改动倒回去。"""
+        self._run(publish=True, race=True, then=self._other_line_survived)
+
+    def _other_line_survived(self, box, origin):
+        show = lambda f: json.loads(subprocess.run(["git", "--git-dir", str(origin), "show", f"main:data/{f}"],
+                                                   capture_output=True, text=True).stdout)
+        log = subprocess.run(["git", "--git-dir", str(origin), "log", "--format=%s", "main"],
+                             capture_output=True, text=True).stdout
+        self.assertIn("other line", log, "尺子坏了：另一条线的提交没进 origin，重试分支根本没走到")
+        self.assertIn("digest + build (local)", log, "尺子坏了：没走到推送重试分支")
+        self.assertEqual("other", show("heartbeat-cloud.json").get("by"), "重试分支把另一条线的心跳倒回了旧版")
+        rows = {k for d in show("usage.json").values() for k in d}
+        self.assertIn("cloud/other", rows, "重试分支把另一条线记的用量盖掉了")
+        self.assertIn("stub/run.py", rows, "重试分支丢了本机这一轮记的用量")
+
+
+class StateNotesMergeInsteadOfConflicting(unittest.TestCase):
+    """建档留痕、搜索引擎通知留痕、封面清单：两条线都写，原来没有合并驱动，
+    本机副本每轮开头 autostash 恢复都在它们上面冲突（POSTMORTEM §33）。"""
+
+    def test_they_are_registered(self):
+        ga = (ROOT / ".gitattributes").read_text()
+        for f in ("catchup.json", "indexnow.json", "covers.json"):
+            self.assertRegex(ga, rf"(?m)^data/{re.escape(f)}\s+merge=podcast-state$", f"{f} 没有合并驱动")
+
+    def _merge(self, ours, theirs, base="{}"):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            fo, fa, fb = (pathlib.Path(d) / x for x in "OAB")
+            fo.write_text(base); fa.write_text(ours); fb.write_text(theirs)
+            r = subprocess.run([sys.executable, str(ROOT / "pipeline" / "mergestate.py"), fo, fa, fb],
+                               capture_output=True, text=True)
+            self.assertEqual(0, r.returncode, r.stderr)
+            return fa.read_text()
+
+    def test_a_note_keeps_the_newer_run_either_way(self):
+        old = json.dumps({"at": "2026-09-25T05:20:00Z", "pending": 148, "ids": ["a"]})
+        new = json.dumps({"at": "2026-09-28T03:10:56Z", "pending": 147, "ids": ["b"]})
+        self.assertEqual(147, json.loads(self._merge(old, new))["pending"])
+        self.assertEqual(147, json.loads(self._merge(new, old))["pending"])
+        # 带 done/fail/fp 的还是账本，不许被当成留痕整份替换
+        st = self._merge(json.dumps({"done": {"a": {}}, "fail": {}, "fp": {}}),
+                         json.dumps({"done": {"b": {}}, "fail": {}, "fp": {}}))
+        self.assertEqual({"a", "b"}, set(json.loads(st)["done"]))
+
+    def test_the_cover_manifest_is_a_union(self):
+        out = self._merge(json.dumps({"x.jpg": "1.jpg", "y.jpg": None}),
+                          json.dumps({"y.jpg": "2.jpg", "z.jpg": "3.jpg"}))
+        self.assertEqual({"x.jpg": "1.jpg", "y.jpg": "2.jpg", "z.jpg": "3.jpg"}, json.loads(out),
+                         "封面清单合并丢了条目，或者拿 null 盖掉了抓到的文件名")
+        self.assertFalse(out.endswith("\n"), "格式和 cache_covers.py 写的不一致，合完会多出无关改动")
+
+
+class HealthcheckSeesLeftoverStashesAndMidRunCommits(unittest.TestCase):
+    """体检这两处判断拿的是**真实的**心跳形状，这里用临时目录，不碰仓库里的 data/。"""
+
+    def _heartbeats(self, local: dict):
+        import importlib, tempfile, datetime as _dt
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        hc = importlib.import_module("healthcheck")
+        now = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        keep = hc.DATA
+        with tempfile.TemporaryDirectory() as d:
+            (pathlib.Path(d) / "heartbeat-cloud.json").write_text(json.dumps({"at": now, "line": "cloud", "exit": 0}))
+            (pathlib.Path(d) / "heartbeat-local.json").write_text(json.dumps({"at": now, "line": "local", "exit": 0, **local}))
+            hc.DATA = pathlib.Path(d)
+            try:
+                r = hc.Report()
+                hc.check_heartbeats(r)
+                return r
+            finally:
+                hc.DATA = keep
+
+    def test_a_leftover_autostash_is_a_hard_failure(self):
+        r = self._heartbeats({"autostash": 3})
+        self.assertTrue(any("autostash" in b for b in r.bad), f"stash 堆着，体检却没报：{r.bad}")
+        r = self._heartbeats({"autostash": 0})
+        self.assertFalse(any("autostash" in b for b in r.bad), "没有 stash 也报 —— 喊狼来了")
+
+    def test_a_commit_that_lands_mid_run_is_not_a_failed_pull(self):
+        import importlib
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        hc = importlib.import_module("healthcheck")
+        revs = subprocess.run(["git", "-C", str(ROOT), "rev-list", "--max-count=4", "HEAD"],
+                              capture_output=True, text=True).stdout.split()
+        if len(revs) < 4:
+            self.skipTest("历史太短")
+        rows = [["x", "2026-01-01T00:00:00Z"]]
+        # 开跑时看见的就是 revs[2]、跑的也是它 —— 之后别人推的不算没跟上
+        self.assertEqual([], hc._missed_at_start(revs[2][:10], {"synced": revs[2][:10]}, rows))
+        # 开跑时远端已经到 revs[0]，跑的却是 revs[2]：这才是 pull 没起作用
+        self.assertEqual(2, len(hc._missed_at_start(revs[2][:10], {"synced": revs[0][:10]}, rows)))
+        # 老心跳没有 synced：跑批时长以内推上来的不算，+08:00 的时间按 UTC 比
+        hb = {"at": "2026-09-28T13:51:01Z"}
+        self.assertEqual([], hc._missed_at_start("x", hb, [["a", "2026-09-28T13:42:49Z"],
+                                                           ["b", "2026-09-28T21:30:00+08:00"]]))
+        self.assertEqual(1, len(hc._missed_at_start("x", hb, [["a", "2026-09-28T08:00:00Z"]])))
+
+    def test_the_heartbeat_records_what_it_synced_to(self):
+        src = (ROOT / "pipeline" / "heartbeat.py").read_text()
+        self.assertIn('"synced"', src)
+        self.assertIn('rec["autostash"]', src)
+
+
+class RetryAfterResetMustNotRevertTheOtherLine(unittest.TestCase):
+    """推送重试 `git reset --mixed origin/main` 之后，磁盘上还是这一方的那份；
+    接着 `git add` 就会把另一条线在这期间推上来的改动倒回去 —— 除非中间先三方对齐。
+
+    本机线有沙盒真跑（LocalLineLeavesNothingTheHealthcheckReadsUncommitted 的推送被拒那一条），
+    云端三条工作流没法在这里真跑，所以按形状查：每一处 reset --mixed 和它后面第一次
+    git add 之间，必须有 gitsync.py adopt。
+    """
+
+    FILES = ("scripts/local-daily.sh", ".github/workflows/daily.yml",
+             ".github/workflows/fast.yml", ".github/workflows/backfill.yml")
+
+    def test_every_reset_is_followed_by_adopt_before_add(self):
+        seen = 0
+        for rel in self.FILES:
+            code = "\n".join(l for l in (ROOT / rel).read_text().splitlines()
+                             if not l.lstrip().startswith("#"))
+            for m in re.finditer(r"git reset (?:-q )?--mixed", code):
+                seen += 1
+                j = code.find("git add", m.end())
+                self.assertNotEqual(-1, j, f"{rel}：reset --mixed 之后没有 git add —— 尺子认错了地方")
+                self.assertRegex(code[m.end():j], r"gitsync\.py adopt \"\$OURS\"",
+                                 f"{rel}：reset --mixed 之后直接 git add，没先 adopt —— "
+                                 f"另一条线这期间推上来的改动会被倒回去")
+                self.assertRegex(code[max(0, m.start() - 300):m.start()], r'OURS=\$\(git rev-parse HEAD\)',
+                                 f"{rel}：adopt 要的「这一方」没在 reset 之前记下")
+        self.assertGreaterEqual(seen, 4, "一处 reset --mixed 都没找到 —— 尺子坏了")

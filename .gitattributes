@@ -1,6 +1,12 @@
 data/state.json merge=podcast-state
 # 心跳是「某条线某一刻还活着」，不是累积状态：取更新的那份
 data/heartbeat-*.json merge=podcast-state
+# 建档留痕、搜索引擎通知留痕同理：「某一轮跑完是什么样」，取 at 更新的那份。
+# 封面清单只增不删：取并集。没有驱动时，本机副本每轮开头 autostash 恢复都在这三个文件上
+# 冲突，冲一次留一个 stash，堆到 26 个（POSTMORTEM §33）。
+data/catchup.json  merge=podcast-state
+data/indexnow.json merge=podcast-state
+data/covers.json   merge=podcast-state
 
 # 构建产物：内容完全由 data/ 决定，冲突没有"合并"的语义——取任意一边，
 # 紧接着重新构建才是正确解。这几个文件是全量重写的（每篇文章一行），

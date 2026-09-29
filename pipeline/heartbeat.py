@@ -51,7 +51,38 @@ def _rev() -> dict:
             out["dirty"] = bool(r.stdout.strip())
     except Exception:
         pass
+    try:
+        # **这一轮开跑时看见的远端是哪一版。** 两条线都在开头同步（本机 git pull、云端 checkout），
+        # 之后到写心跳之间没有别的 fetch，所以此刻的 origin/main 就是开跑时的那一版。
+        # 体检拿它判「pull 有没有起作用」：比它旧的提交没跑到才是故障，比它新的只是还没轮到。
+        # 原来只能拿心跳时间（**跑完**的时刻）去比提交时间，于是跑批中途别的线推一个提交，
+        # 体检就报「这条线的 git pull 没起作用」（2026-09-28 21:30 那轮：13:30 拉、13:42 fast lane 推、
+        # 13:51 写心跳）。
+        r = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short", "origin/main"],
+                           capture_output=True, text=True, timeout=10)
+        if r.returncode == 0 and r.stdout.strip():
+            out["synced"] = r.stdout.strip()
+    except Exception:
+        pass
     return out
+
+
+def _autostash() -> int | None:
+    """这份副本的 git stash 里有几个 autostash。
+
+    `git pull --rebase --autostash` 恢复时冲突，退出码仍是 0，stash 留着 —— 本机那份副本
+    就这样一声不响堆到 26 个，而每个 stash 都可能是某一轮改动的唯一一份。
+    写进心跳，体检才看得见（check_heartbeats）。取不到就不写。
+    """
+    import subprocess
+    try:
+        r = subprocess.run(["git", "-C", str(ROOT), "stash", "list"],
+                           capture_output=True, text=True, timeout=10)
+    except Exception:
+        return None
+    if r.returncode != 0:
+        return None
+    return sum(1 for l in r.stdout.splitlines() if l.rstrip().endswith("autostash"))
 
 
 def cloud_down(path="data/heartbeat-cloud.json", max_age_h: float = 10) -> str:
@@ -93,6 +124,10 @@ def write(line: str, exit_code: int, published: int | None = None,
         "episodes": eps,
     }
     rec.update(_rev())
+    if line == "local":
+        n = _autostash()
+        if n is not None:
+            rec["autostash"] = n
     if published is not None:
         rec["published"] = int(published)
     if llm:

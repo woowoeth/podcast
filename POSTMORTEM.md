@@ -1183,3 +1183,117 @@ hreflang 全是绝对地址；`HreflangIsPerPage` 和 `test_data_en_matches_real
 **教训。** 改指向的规则按「地址长在哪种语法里」逐个补（属性 → refresh → JS → 分享文本），
 每补一种就漏下一种。闸要反过来从产物出发：**这一页里所有看起来像本站地址的字符串**，
 不管它长在哪。
+
+## 33. 体检量到的是提交清单：建档每天两轮在跑，体检连报三天「没跑过」；本机副本堆了 26 个 stash
+
+**现象。** 2026-09-28 `test_the_healthcheck_currently_has_no_hard_failures` 在 origin/main 上红：
+「新源建档 3 天没跑过了，队列里还有 148 档」。而本机线日志里 09-26 到 09-29 每天两轮
+「建档模式：147 档新信源还没起量」；launchd 那份副本的 data/catchup.json 写着
+`at 2026-09-28T03:10:56Z / pending 147`，`git status` 是 ` M` —— 写了，从没提交。
+同一份副本 `git stash list` 里有 26 个 autostash。
+
+**根因（三层）。**
+1. **提交清单是手写的。** 本机线三个提交点 add 的是一张清单（episodes / en / state / sources /
+   covers / indexnow / heartbeat-local），没有 catchup.json。09-25 之前云端每班都跑建档、
+   `git add -A data` 顺手带着，看不出来；09-25 云端停用（没有 Claude 凭据，run.py 在建档
+   之前就 `return 0`），仓库里那份就停在 09-25T05:20。同一张清单也从没有过 usage.json、
+   translate-failed.json。indexnow.json 是**推送之后**才写的：本机线晚一轮才提交，云端
+   daily / fast / backfill 三条 runner 一销毁就没了 —— 体检读到的通知结果从来只有本机那份。
+   「没有新内容」那条路只 add 心跳和 state.json，run.py 记的用量留在工作区。
+2. **没提交的文件每轮开头被 autostash 收走，恢复一冲突就留一个 stash，而且不响。**
+   另一条线也改过同一个文件（catchup / covers / indexnow 都没有合并驱动）→ 恢复冲突 →
+   `git pull` 退出码 0、stash 留着、工作区是冲突标记 → checkdata.py 拿 origin 的版本把 JSON
+   「修好」→ 这一轮照跑。本机那份改动此后只剩 stash 里一份。launchd.out 里
+   「Applying autostash resulted in conflicts」正好 26 次，对上 26 个 stash；09-25 之后云端不再
+   写这几个文件，冲突停了，数字停在 26。本机线有一句「堆了 N 个 autostash」的提醒，
+   只打在那台机器的日志里 —— 从 11 个一路打到 26 个，没有任何外面看得见的地方。
+3. **推送重试会把另一条线的改动倒回去。** `reset --mixed origin/main` 只挪索引，磁盘上
+   本机这轮没碰、而另一条线刚改过的文件还是旧版，接着 `git add` 照收。stash 里那些
+   heartbeat-cloud.json、coverage.json 就是这种「比 base 还旧」的版本。本机线原来只 add
+   清单里那几个，倒回去的也只有那几个；云端三条的重试是 `git add -A`，整棵树都有这个洞，
+   包括源码。所以第 1 层不能简单改成 `git add -A data` —— 不先补这一层，就是把洞从几个文件
+   扩大到整个 data/。
+
+**同一个测试里的第二项硬伤是误报。** 「本机 launchd：跑的是 96090e706d，而它开跑时
+origin/main 上已经有 1 个更新的提交没被拉下来」。那一轮 13:30 拉、13:42 fast lane 推了一个
+心跳提交、13:51 写心跳。判据拿**写心跳的时刻**（跑完）去比提交时间，跑批中途推上来的
+全算成「pull 没起作用」；还按字符串比 ISO 时间，+08:00 的提交会差出 8 小时。
+
+**修法。**
+- 本机线三个提交点一律 `git add -A data`，不再手写清单。搜索引擎通知挪到建站提交**之前**，
+  留痕跟同一次推送上去。云端 daily / fast / backfill 同样挪进建站那一步、提交之前（只在
+  真有东西要推时通知）；backfill 建站那一趟也 `git add -A data`（它的译稿和用量原来随
+  runner 销毁）。
+- `gitsync.py adopt <ours> <theirs> <前缀>…`：四条线的推送重试在 reset 之后先三方对齐 ——
+  本机没动过的取远端（远端删掉的就删），两边都动过的走 .gitattributes 登记的合并驱动，
+  没有驱动的留本机、**点名打出来**。云端对齐 data 和源码目录。
+- 合并驱动（podcast-state）：catchup.json、indexnow.json 取 `at` 更新的那份（和心跳同一类，
+  `_is_note`）；covers.json 取并集，null 让位给抓到的文件名。preflight 顺手在每个检出登记。
+- autostash 恢复失败要响：本机线同步前后数 stash，多出来就停（退出码 1、心跳写明原因），
+  不在冲突标记上照跑。心跳记 `autostash` 数，体检见到非零报**硬伤** —— stash 里可能是
+  那一轮改动唯一的一份，要人看过再删。
+- 心跳记 `synced`（开跑时的 origin/main）；体检用 `rev..synced` 判 pull 有没有起作用。
+  老心跳没有它，按「跑完 − 最长一轮 3 小时」估，时间一律按 UTC 解析。
+
+**闸。**
+- `LocalLineLeavesNothingTheHealthcheckReadsUncommitted`：沙盒里**真跑** local-daily.sh
+  （裸仓库当 origin，pipeline 脚本换成桩；桩写哪些文件由真脚本推导，run.py 以后多写一个
+  体检读的文件，桩跟着写、这里跟着查）。五种情形：有新内容；没有新内容；推送被拒（中途
+  另一条线推了心跳和用量）；上一轮留下的建档留痕和远端冲突；留下一个没有驱动的文件和远端
+  冲突。前四种要求：这一轮写过的体检文件全在 origin 上、是最后写的那一版，data/ 干净，
+  另一条线的改动没被倒回，没有新 stash。第五种要求：退出非零、心跳写明原因和 stash 数、
+  没去深读。
+- `CloudLinesCommitWhatTheHealthcheckReads`：每条会推送的工作流，一步里的脚本写了体检读的
+  文件，后面必须有盖住它的 `git add`、再有 `git push`（只在失败时跑的步骤不算提交点，
+  git config 里登记的驱动命令不算调用）。自带一条按语义的反向注入：在日更末尾补一步通知。
+- `RetryAfterResetMustNotRevertTheOtherLine`：四条线每一处 `reset --mixed` 和后面的
+  `git add` 之间必须 adopt，而且 adopt 要的「这一方」在 reset 之前记下。
+- `TheStateFileRulerMeasuresTheRealCode`（先验尺子）：「体检读哪些」从 healthcheck.py 推；
+  「谁写哪些」按**函数**从 AST 推（函数里既有写操作又点名了文件才算；lib/llm.persist_usage
+  算到调用它的 run.py 头上）。推不出 run.py 写 catchup / state / usage 就红；文档字符串里
+  提到的、data/en/_speakers.json 这种路径的一截，都不许误算。第一版就犯了这两种：
+  gitsync.py 因为 adopt 的说明里点名了 catchup.json 被算成写它，`f"{x}"` 这种 f-string
+  匹配上了所有文件名。
+- `StateNotesMergeInsteadOfConflicting`、`HealthcheckSeesLeftoverStashesAndMidRunCommits`：
+  驱动、体检两处判断的单元测试（体检这条用临时目录，不碰仓库里的 data/）。
+- **反向注入 13 处缺陷，最终全红**（每次注入后逐字节还原、比对工作区）：建站那一趟回到手写清单
+  （报 catchup / indexnow / sources / state / usage 五个没进 origin）；通知挪回推送之后；
+  「没有新内容」回到只 add 心跳和 state（报 catchup、usage）；本机重试去掉 adopt（报另一条线的
+  心跳被倒回）；去掉「stash 多出来就停」；catchup.json 去掉驱动；日更通知挪回单独一步；
+  fast、backfill 重试去掉 adopt；心跳不记 autostash；体检不看 autostash；体检回到拿心跳时间比；
+  留痕合并退回账本合并。第一轮 12 次里有两次**没红**：日更那次我把通知整行删了（没有写入就没有
+  漏提交 —— 注入的不是那个缺陷）；fast 那次是真缺口 —— 云端重试有没有 adopt 没有任何东西在查，
+  于是补了 `RetryAfterResetMustNotRevertTheOtherLine`。
+
+**清理那 26 个 stash（2026-09-29，本机线那一轮跑完、launchd 显示没在跑之后）。** 先逐个核对
+每个 stash 里有什么是别处没有的，再删：
+- 留痕类（catchup / indexnow / coverage / heartbeat-cloud）：磁盘上都有更新的版本。其中
+  heartbeat-cloud、coverage 比它自己的 base 还旧 —— 就是第 3 层那种「倒回去」；4 个里是冲突标记。
+- covers.json：没有缺的键；3 处是 stash 里 null、磁盘上已经抓到了文件名。
+- 站点产物、7 个 stash 里的源码（pipeline / scripts / tests / .github，09-24 修掉的 --mixed 旧洞
+  留下的旧版）：可重建、或本来就是倒回。
+- data/en：221 份（有重复）从没进过 origin/main 的译稿 —— 同一集的另一版（DeepSeek / gpt-4o-mini
+  时期），站上那一集已经有译文。state.json 里 10 条 done 没有对应的集文件（reconcile 早就去掉了）；
+  translate-failed 两条对应的译稿现在都在；curation.json 14 行（13 行没有 id 的 passed_over，
+  1 行 added coolworldslab —— 它在 sources.json 里）。
+- **usage.json 是唯一只存在于 stash 里的数据**：09-12 到 09-25 本机线（DeepSeek 时期）记的用量，
+  本机线从没提交过它，这些 stash 是仅有的记录 —— 合计约 830 次调用、444 万输入 / 94 万输出 token。
+  **没有并进 data/usage.json**：每个 stash 只是某一刻相对它自己 base 的差，同一天会被几个 stash
+  重复看到，有的差还是负的，并进去就是编出来的数。按「天 / 角色取各 stash 里的最大值」存成近似，
+  放在备份里。
+- 备份在 `~/Library/Application Support/ourword-podcast/stash-backup-2026-09-29/`（54 MB）：
+  那份副本里 `refs/backup/autostash-2026-09-29/00..25` 26 个 ref（对象不会被回收）；
+  `autostash.bundle`（verify 过，在一个新 clone 里 fetch 回来 26 个提交、逐个比对过 sha）；
+  每个 stash 的 patch + base、改动文件的完整内容、`audit.json`（上面这份核对）、
+  `local-usage-deltas.json`。然后从最大的序号往下逐个 drop，每个 drop 前核对它就是清单上那个。
+  那份副本的 HEAD 和工作区前后一致（仍是 3487fda807，` M data/catchup.json`、` M data/indexnow.json`）。
+
+**教训。**
+- 手写提交清单是同一个坑的第三次（先漏建档那一步发的集，再漏 covers.json，这次漏
+  catchup.json）。**提交什么只能从「写了什么」推出来，不能从「记得什么」写出来**；最直接的
+  推法就是整个 data/ —— 前提是重试分支不会借机把别人的改动倒回去。
+- 「体检读仓库」和「这条线干了什么」之间隔着一次提交。没提交，体检量的就是提交清单；
+  它报「建档没跑」的那三天，建档一轮没落下。
+- git 有两处失败了却报 0：autostash 恢复冲突；重试后 `git add` 把别人的改动倒回去
+  （后者连一句警告都没有）。前者现在数 stash，后者现在 adopt。**只在本机日志里提醒的数字
+  不算信号**：「堆了 N 个 autostash」从 11 打到 26，没有一次出现在体检里。

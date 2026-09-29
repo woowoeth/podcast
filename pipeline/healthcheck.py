@@ -101,6 +101,46 @@ def _commits_behind() -> int:
 
 # ------------------------------------------------------------------ 各项检查
 
+# 一轮跑批最长多久（本机线建档那一步按「约两小时转写」配预算）。只在老心跳没有 synced 时用。
+RUN_MAX_H = 3
+
+
+def _missed_at_start(rev: str, hb: dict, rows: list) -> list:
+    """开跑时远端就已经有、这一轮却没跑到的提交。
+
+    **判据是「开跑时看见的远端」，不是「写心跳的时刻」。** 心跳在跑完才写；拿它的时间去比，
+    跑批中途别的线推上来的提交全都算成「pull 没起作用」—— 2026-09-28 21:30 那轮就是这么
+    报的硬伤：13:30 拉、13:42 fast lane 推了一个心跳提交、13:51 写心跳。
+
+    新心跳带 synced（开跑时 origin/main 的版本）：rev..synced 之间的提交才是真没跟上。
+    老心跳没有它，只能按时间估：比「跑完 − 最长一轮」还早的提交才算，时间一律按 UTC 解析
+    （原来按字符串比，+08:00 的提交时间会差出 8 小时）。
+    """
+    synced = hb.get("synced")
+    if synced:
+        try:
+            out = subprocess.run(["git", "-C", str(ROOT), "rev-list", f"{rev}..{synced}"],
+                                 capture_output=True, text=True, timeout=20)
+        except Exception:
+            return []
+        if out.returncode == 0:
+            return out.stdout.split()
+    import datetime as _dt
+    try:
+        end = _dt.datetime.fromisoformat((hb.get("at") or "").replace("Z", "+00:00"))
+    except ValueError:
+        return []
+    start = end - _dt.timedelta(hours=RUN_MAX_H)
+    missed = []
+    for c in rows:
+        try:
+            if len(c) > 1 and _dt.datetime.fromisoformat(c[1].replace("Z", "+00:00")) < start:
+                missed.append(c)
+        except ValueError:
+            continue
+    return missed
+
+
 def _check_line_revision(r: Report, who: str, hb: dict) -> None:
     """这条线上一轮跑的是哪一版代码。
 
@@ -133,9 +173,7 @@ def _check_line_revision(r: Report, who: str, hb: dict) -> None:
     if not rows:
         r.good(f"{who}：跑的就是 origin/main 最新版（{rev}）")
         return
-    at = hb.get("at") or ""
-    # 心跳时间之前就已经推上去、而它没跑到的提交，才算「没跟上」
-    missed = [c for c in rows if len(c) > 1 and c[1][:19].replace("T", "T") < at[:19]]
+    missed = _missed_at_start(rev, hb, rows)
     if missed:
         r.fail(f"{who}：跑的是 {rev}，而它开跑时 origin/main 上已经有 {len(missed)} 个"
                f"更新的提交没被拉下来——这条线的 git pull 没起作用，"
@@ -187,6 +225,12 @@ def check_heartbeats(r: Report) -> None:
         if hb.get("exit") not in (0, "0", None):
             why = f"：{hb['why']}" if hb.get("why") else ""
             r.fail(f"{who}：最后一轮退出码 {hb.get('exit')}{why}")
+        if int(hb.get("autostash") or 0) > 0:
+            # 同步时 autostash 恢复冲突，git 退出码仍是 0、stash 留着。每一个都可能是那一轮
+            # 改动的唯一一份 —— 本机副本就这样一声不响堆到 26 个（POSTMORTEM §33）。
+            # 要人看过再删，所以是硬伤不是提醒；看法见 POSTMORTEM §33 的清理步骤。
+            r.fail(f"{who}：那份副本的 git stash 里留着 {hb['autostash']} 个 autostash —— "
+                   f"同步恢复失败留下的，里面可能有只存在那里的改动；看过再 drop")
         _check_line_revision(r, who, hb)
     if behind:
         r.note(f"本地落后 origin/main {behind} 个提交——上面凡是和时间有关的判断"

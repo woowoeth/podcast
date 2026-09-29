@@ -163,12 +163,26 @@ jobs:
           python pipeline/build.py
           git add -A
           if git diff --cached --quiet; then echo "site unchanged"; exit 0; fi
+          # **通知搜索引擎放在提交之前。** indexnow.py 把结果写进 data/indexnow.json（体检读它）；
+          # 原来是推送之后单独一步，runner 一销毁这份留痕就没了，云端的通知结果从没进过仓库
+          # （POSTMORTEM §33）。只在真有东西要推的时候通知：没变的页面不必反复报给搜索引擎。
+          # **每条发布线都要通知。** 原来只有日更接了，而快车道是每 2 小时发一次的那条、
+          # 本机线又是中文播客的主力 —— 它们发的内容只能等爬虫自己回来，那是几天到几周。
+          # 三棵树的 URL 都提交（见 indexnow.py）。
+          python pipeline/indexnow.py || true
+          git add -A data
           git commit -m "build: regenerate site"
           ok=0
           for i in $(seq 1 8); do
             if git push; then ok=1; break; fi
             git fetch origin main
+            OURS=$(git rev-parse HEAD)
             git reset --mixed origin/main
+            # reset 之后磁盘上还是这台 runner 的那份：别的线在这期间推上来的改动（本机线的心跳、
+            # 建档留痕、用量账本，乃至源码）会被下面的 `git add -A` 倒回去。adopt：这一轮没动过的
+            # 取远端，两边都动过的走合并驱动（见 pipeline/gitsync.py）。
+            python pipeline/gitsync.py adopt "$OURS" origin/main data pipeline scripts tests .github assets || {
+              echo "::error::重试时对齐远端失败，本轮不推"; exit 1; }
             # 取回必须走 -z：非 ASCII 路径会被 git 转义，checkout 找不到文件又被 || true 吞掉，
             # 2026-09-23 就这样把 19 篇中文名的已发布集当成删除推了上去（见 pipeline/gitsync.py）。
             python pipeline/gitsync.py restore-deleted data
@@ -183,10 +197,3 @@ jobs:
           done
           [ "$ok" = 1 ] || { echo "::error::站点推送失败"; exit 1; }
 
-      - name: Notify search engines (IndexNow)
-        if: success()
-        run: |
-          # **每条发布线都要通知。** 原来只有日更接了，而快车道是每 2 小时
-          # 发一次的那条、本机线又是中文播客的主力——它们发的内容只能等爬虫
-          # 自己回来，那是几天到几周。三棵树的 URL 都提交（见 indexnow.py）。
-          python pipeline/indexnow.py || true

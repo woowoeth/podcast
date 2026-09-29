@@ -33,6 +33,14 @@ if [ "$(git config --get merge.usage.driver)" != "python3 pipeline/merge_usage.p
 else
   good "已登记"
 fi
+# state.json、心跳、建档留痕、indexnow 留痕、封面清单走同一个驱动（.gitattributes 里的 podcast-state）。
+# 推送重试里的 gitsync.py adopt 也按它合两边都改过的文件 —— 没登记就只能留本机那份。
+if [ "$(git config --get merge.podcast-state.driver)" != "python3 pipeline/mergestate.py %O %A %B" ]; then
+  git config merge.podcast-state.driver "python3 pipeline/mergestate.py %O %A %B"
+  good "podcast-state 已登记（这个检出之前没配）"
+else
+  good "podcast-state 已登记"
+fi
 
 step "守护检查与单元测试"
 # 只跑一遍，看退出码，打印的也是这一遍的输出。原先跑三遍：一遍拿 `tail -3 | grep OK`
