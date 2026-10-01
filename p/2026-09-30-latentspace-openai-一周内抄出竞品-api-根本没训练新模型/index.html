@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenAI 一周内抄出竞品 API：根本没训练新模型 — Latent Space · 原声</title>
+<meta name="description" content="决策 API 的诞生是看到对手产品爆火后的应激反应，OpenAI 一周内就做出竞品，秘诀是直接在现有 Luna 模型上加结构化输出和批量并行推理，根本没训练新模型。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/p/2026-09-30-latentspace-openai-一周内抄出竞品-api-根本没训练新模型/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原声">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="OpenAI 一周内抄出竞品 API：根本没训练新模型 — Latent Space · 原声">
+<meta property="og:description" content="决策 API 的诞生是看到对手产品爆火后的应激反应，OpenAI 一周内就做出竞品，秘诀是直接在现有 Luna 模型上加结构化输出和批量并行推理，根本没训练新模型。">
+<meta property="og:url" content="https://ourword.ai/podcast/p/2026-09-30-latentspace-openai-一周内抄出竞品-api-根本没训练新模型/">
+<meta property="og:image" content="https://ourword.ai/podcast/assets/cover/bdaf8b7fcc00a6ee.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-09-30T22:23:40Z">
+<meta property="article:modified_time" content="2026-10-01T02:36:59Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="OpenAI 一周内抄出竞品 API：根本没训练新模型 — Latent Space · 原声">
+<meta name="twitter:description" content="决策 API 的诞生是看到对手产品爆火后的应激反应，OpenAI 一周内就做出竞品，秘诀是直接在现有 Luna 模型上加结构化输出和批量并行推理，根本没训练新模型。">
+<meta name="twitter:image" content="https://ourword.ai/podcast/assets/cover/bdaf8b7fcc00a6ee.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原声" href="/podcast/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-09-30-latentspace-openai-一周内抄出竞品-api-根本没训练新模型/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-09-30-latentspace-openai-一周内抄出竞品-api-根本没训练新模型/">
+<link rel="alternate" hreflang="en" href="https://ourword.ai/podcast/en/p/2026-09-30-latentspace-openai-一周内抄出竞品-api-根本没训练新模型/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-09-30-latentspace-openai-一周内抄出竞品-api-根本没训练新模型/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=869d2bfecc">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-09-30-latentspace-openai-一周内抄出竞品-api-根本没训练新模型/#episode", "name": "OpenAI 一周内抄出竞品 API：根本没训练新模型", "headline": "OpenAI 一周内抄出竞品 API：根本没训练新模型", "description": "决策 API 的诞生是看到对手产品爆火后的应激反应，OpenAI 一周内就做出竞品，秘诀是直接在现有 Luna 模型上加结构化输出和批量并行推理，根本没训练新模型。", "abstract": "决策 API 的诞生是看到对手产品爆火后的应激反应，OpenAI 一周内就做出竞品，秘诀是直接在现有 Luna 模型上加结构化输出和批量并行推理，根本没训练新模型。", "datePublished": "2026-09-30T22:23:40Z", "dateModified": "2026-10-01T02:36:59Z", "url": "https://ourword.ai/podcast/p/2026-09-30-latentspace-openai-一周内抄出竞品-api-根本没训练新模型/", "timeRequired": "PT39M", "partOfSeries": {"@type": "PodcastSeries", "name": "Latent Space", "url": "https://ourword.ai/podcast/s/latentspace/"}, "inLanguage": "zh-CN", "isBasedOn": "https://www.latent.space/p/devday-2026", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "Computer Use, Agents API, Decisions API, OpenAI DevDay, 推理成本, Agent自动化, App Shot, TTFT/TTFD, mid-turn steering, WebSockets, GPT-6.1 Sol 成本（对比 Astra）, meal prep 下单耗时, Computer Use 速度提升（Tejal 在演讲中提到）, Luna 推理成本降幅, 决策API竞品克隆数量, Responses API 缓存保证窗口", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}, "associatedMedia": {"@type": "AudioObject", "contentUrl": "https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3"}}, {"@type": "Article", "@id": "https://ourword.ai/podcast/p/2026-09-30-latentspace-openai-一周内抄出竞品-api-根本没训练新模型/#deepread", "headline": "OpenAI 一周内抄出竞品 API：根本没训练新模型", "description": "决策 API 的诞生是看到对手产品爆火后的应激反应，OpenAI 一周内就做出竞品，秘诀是直接在现有 Luna 模型上加结构化输出和批量并行推理，根本没训练新模型。", "articleBody": "决策 API 的诞生是看到对手产品爆火后的应激反应，OpenAI 一周内就做出竞品，秘诀是直接在现有 Luna 模型上加结构化输出和批量并行推理，根本没训练新模型。\n[4:53] 「Computer Use 两年没进步」被当面反驳。有主持人提到某头部AI播客几个月前说过 Computer Use 两年没有实质进步，这个说法被直接摆上台面。Ari Weinstein 的回应很干脆：那是几个月前的判断了，Computer Use 现在和当时已经「180度大转变」。他的从业背景支撑这个判断——做过苹果 Shortcuts、创业做 Sky，再到现在带 OpenAI 的 Computer Use 团队，一直在做计算机自动化，这次反驳建立在他亲眼看着模型能力跃迁的基础上。\n[5:57] 能力跃迁的关键不是更聪明，是会自己纠错。Ari 指出，过去一年最大的变化不是「能不能开始做任务」，而是「卡住之后会不会自己排查」——模型现在很擅长调试、重试、反思哪里没做对。与此同时 harness 层面也在升级：模型不再是一步步点击截图，而是直接写 JavaScript 代码一次性执行多步操作，并按任务需要在截图、无障碍接口（accessibility）、Playwright 之间切换模态，这是速度提升背后的核心机制。\n[11:27] 双击 Command 调出的不是截图，是整页结构化数据。App Shot 功能常被用户误解成「截图」。实际上双击两个 Command 键拉出来的是页面完整的无障碍表示（accessibility representation）——链接指向哪里、日历事件的完整标题，这些普通截图会丢失的信息都保留着。Ari 提到这项技术本来是为视障人士的屏幕阅读器做的，现在同样的技术路径让语言模型能「看清」整个应用，而不用像以前那样靠反复截图、滚动、再截图来拼凑信息。\n[12:32] 已经比普通人快，瓶颈变成了网页加载速度。Ari 给出一个具体判断：现在 Computer Use 完成任务的速度，在大多数场景下已经超过普通人类，下一个目标是真正「超人类」——比资深电脑操作者本身还快。但他也坦承当下最大的瓶颈已经不在模型本身，而在网页加载速度：benchmark 里相当一部分时间是在等 doordash.com 这类网站本身加载完，如何用事件驱动而不是盲等去触发下一步动作，反而成了新的工程难题。\n[17:31] 最爱用法：让 Computer Use 测试自己写的软件。Ari 最喜欢的使用场景是让 agent 自己完成软件开发的完整闭环：Codex 写完代码后，不再需要人去当 QA 验收，而是另一个 Computer Use agent 直接打开应用操作一遍、截图核对。他调侃自己有时在用 Computer Use 开发 Computer Use——一个 agent 测试另一个 agent 操作的软件，这种自测闭环让交到他手里的东西「已经是跑通的」。\n[24:16] 决策 API 抄的是一周前刚火的竞品。Nikunj Handa 坦承 Decisions API 的起点，是看到竞品爆火之后的应激反应——用户在催，内部团队也在喊「我们需要一个更快的分类系统」。他承认四周前这件事根本不在产品路线图上，是 OpenAI 内部「黑客文化」的产物：推理团队和基础设施团队各出一人，看到对手产品后直接动手搭原型，验证可行后就开始卷延迟，目标是一达到延迟指标就尽快发布。\n[27:26] 所谓决策模型，其实是戴着镣铐跑的 Luna。关键信息在这里：Decisions API 没有训练任何新模型，底层就是现有的 Luna 权重，没有变。所做的工作是在推理层加约束——强制结构化输出、把多个问题打包并行批量跑、极致优化首 token 时间（TTFD）。Nikunj 说这是 OpenAI 一贯的迭代发布打法：先把 zero-shot 版本放出来收反馈，后续再看是否需要针对校准、置信度这些能力专门训练模型。\n[32:12] 长线程 Agent 的缓存窗口拉到 12 小时。针对 Dots 这类「一个线程无限跑下去」的个人 agent 场景，Responses API 把缓存策略当成重点在打磨：默认保证 30 分钟内的缓存命中，还给一位客户单独上线了 12 小时缓存窗口的预览功能——哪怕用户三四个小时后才回来继续同一个对话线程，依然能吃到缓存带来的速度和成本优势。配合新上线的「预热」功能，开发者可以提前为还没发生的请求付一次缓存写入费，让后续调用随时处于热启动状态。\n[4:53] Ari Weinstein：「他们几个月前是这么说的，我希望他们现在有不一样的看法了，因为 Computer Use 已经和当时完全不一样了，可以说是 180 度大转变。」\n[5:57] Ari Weinstein：「现在 Computer Use 经常是直接写代码。如果你在 Codex 里把工具调用展开看，会发现它不是一步一步执行单个动作，而是真的在写一段 JavaScript 代码去执行。」\n[11:27] Ari Weinstein：「如果你截一张带链接的网页截图，截图里是看不到链接指向哪里的。也看不到完整信息——比如截一张日历的图，事件标题是被截断的，你懂吧？」\n[12:32] Ari Weinstein：「现在 Computer Use 完成任务的速度，在大多数情况下已经比普通人更快了。我认为下一个前沿是让 Computer Use 真正变得超人类——性能上比我们这样的电脑操作专家还要快。」\n[17:31] Ari Weinstein：「我最喜欢的 Computer Use 用例之一，也是我们在实际使用中看到很多的，就是让 Computer Use 去测试 agent 自己构建出来的软件，这件事的意义比听上去重要得多。」\n[27:26] Nikunj Handa：「这其实就是 Luna。在这基础上，你做的事是加约束——结构化输出是很重要的一部分，你在推理栈上做极致优化，让首 token 时间（TTFD）变得非常快。」\n[32:12] Nikunj Handa：「我们一直在努力把缓存这件事做得更好。现在我们提供 30 分钟内缓存命中的保证。实际上我们刚刚为一位客户上线了更长的缓存窗口——我们现在有 12 小时的缓存保证。」\n[0:00] GPT-6.1 Sol 成本（对比 Astra）：五分之一；Computer Use 场景下为七分之一\n[3:47] meal prep 下单耗时：人工2小时 → Computer Use 15分钟（快8倍）\n[8:03] Computer Use 速度提升（Tejal 在演讲中提到）：7倍\n[21:43] Luna 推理成本降幅：降价80%\n[26:20] 决策API竞品克隆数量：两周内约100个\n[32:12] Responses API 缓存保证窗口：默认30分钟，预览版12小时\n[33:40] 新模型缓存读取成本降幅：便宜25%", "wordCount": 1769, "inLanguage": "zh-CN", "datePublished": "2026-09-30T22:23:40Z", "dateModified": "2026-10-01T02:36:59Z", "url": "https://ourword.ai/podcast/p/2026-09-30-latentspace-openai-一周内抄出竞品-api-根本没训练新模型/", "about": {"@id": "https://ourword.ai/podcast/p/2026-09-30-latentspace-openai-一周内抄出竞品-api-根本没训练新模型/#episode"}, "isBasedOn": "https://www.latent.space/p/devday-2026", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "isAccessibleForFree": true}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首页", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "Latent Space", "item": "https://ourword.ai/podcast/s/latentspace/"}, {"@type": "ListItem", "position": 3, "name": "OpenAI 一周内抄出竞品 API：根本没训练新模型"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/"><span class="wordmark">原声<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<button class="pill ghost" id="lang-toggle" type="button" data-en="1" data-sc="繁體" data-tw="简体"></button>
+<button class="icon-btn" data-theme-toggle aria-label="切换深浅色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，来原声听播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/">首页</a><span class="sep">/</span>
+<a href="/podcast/c/ai/">AI / 技术</a><span class="sep">/</span><a href="/podcast/s/latentspace/">Latent Space</a>
+<span class="sep">/</span><span>2026-09-30</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">Latent Space</span>
+<time class="date" datetime="2026-09-30T22:23:40Z">2026-09-30</time>
+<button class="share-btn" type="button" data-share data-share-title="OpenAI 一周内抄出竞品 API：根本没训练新模型" data-share-url="https://ourword.ai/podcast/e/latentspace-cf124f3d18/" data-share-text="OpenAI 一周内抄出竞品 API：根本没训练新模型&#10;Latent Space · 39 分钟 · 原声深读&#10;&#10;决策 API 的诞生是看到对手产品爆火后的应激反应，OpenAI 一周内就做出竞品，秘诀是直接在现有 Luna 模型上加结构化输出和批量并行推理，根本没训练新模型。&#10;&#10;https://ourword.ai/podcast/e/latentspace-cf124f3d18/" aria-label="复制分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>OpenAI 一周内抄出竞品 API：根本没训练新模型</h1>
+<p class="dek-lead">决策 API 的诞生是看到对手产品爆火后的应激反应，OpenAI 一周内就做出竞品，秘诀是直接在现有 Luna 模型上加结构化输出和批量并行推理，根本没训练新模型。</p>
+<div class="ep-meta"><span class="tag">Computer Use</span><span class="tag">Agents API</span><span class="tag">Decisions API</span><span class="tag">OpenAI DevDay</span><span class="tag">推理成本</span><span class="tag">Agent自动化</span></div>
+</div>
+<div class="player" data-player-box>
+  <div class="strip" data-audio-strip>
+    <p class="afallback">原视频在 YouTube 上放不出来，用音频听：</p>
+    <audio data-player controls preload="none" src="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3"></audio>
+    <div class="aui" data-audio-ui data-dur="2352" hidden>
+      <button class="aplay" type="button" aria-label="播放"></button>
+      <div class="abar" role="slider" tabindex="0" aria-label="播放进度"
+           aria-valuemin="0" aria-valuemax="100"><div class="afill"></div></div>
+      <span class="atime"><span class="acur">0:00</span><span class="asep">/</span><span class="atot">--:--</span></span>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="why">前半段是产品发布会常规复述，后半段关于 Decisions API 诞生过程和 Computer Use 底层机制的内容信息密度更高，值得听到最后。</div></section>
+
+<section class="section"><h2>核心论点 · 点时间戳可跳到原声</h2><div class="point" id="p0"><a class="ts" data-t="293" href="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3#t=293" target="_blank" rel="noopener">4:53</a><div><h4>「Computer Use 两年没进步」被当面反驳</h4>
+<p class="body">有主持人提到某头部AI播客几个月前说过 Computer Use 两年没有实质进步，这个说法被直接摆上台面。Ari Weinstein 的回应很干脆：那是几个月前的判断了，Computer Use 现在和当时已经「180度大转变」。他的从业背景支撑这个判断——做过苹果 Shortcuts、创业做 Sky，再到现在带 OpenAI 的 Computer Use 团队，一直在做计算机自动化，这次反驳建立在他亲眼看着模型能力跃迁的基础上。</p>
+<span class="spk">— Ari Weinstein</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="357" href="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3#t=357" target="_blank" rel="noopener">5:57</a><div><h4>能力跃迁的关键不是更聪明，是会自己纠错</h4>
+<p class="body">Ari 指出，过去一年最大的变化不是「能不能开始做任务」，而是「卡住之后会不会自己排查」——模型现在很擅长调试、重试、反思哪里没做对。与此同时 harness 层面也在升级：模型不再是一步步点击截图，而是直接写 JavaScript 代码一次性执行多步操作，并按任务需要在截图、无障碍接口（accessibility）、Playwright 之间切换模态，这是速度提升背后的核心机制。</p>
+<span class="spk">— Ari Weinstein</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="687" href="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3#t=687" target="_blank" rel="noopener">11:27</a><div><h4>双击 Command 调出的不是截图，是整页结构化数据</h4>
+<p class="body">App Shot 功能常被用户误解成「截图」。实际上双击两个 Command 键拉出来的是页面完整的无障碍表示（accessibility representation）——链接指向哪里、日历事件的完整标题，这些普通截图会丢失的信息都保留着。Ari 提到这项技术本来是为视障人士的屏幕阅读器做的，现在同样的技术路径让语言模型能「看清」整个应用，而不用像以前那样靠反复截图、滚动、再截图来拼凑信息。</p>
+<span class="spk">— Ari Weinstein</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="752" href="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3#t=752" target="_blank" rel="noopener">12:32</a><div><h4>已经比普通人快，瓶颈变成了网页加载速度</h4>
+<p class="body">Ari 给出一个具体判断：现在 Computer Use 完成任务的速度，在大多数场景下已经超过普通人类，下一个目标是真正「超人类」——比资深电脑操作者本身还快。但他也坦承当下最大的瓶颈已经不在模型本身，而在网页加载速度：benchmark 里相当一部分时间是在等 doordash.com 这类网站本身加载完，如何用事件驱动而不是盲等去触发下一步动作，反而成了新的工程难题。</p>
+<span class="spk">— Ari Weinstein</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="1051" href="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3#t=1051" target="_blank" rel="noopener">17:31</a><div><h4>最爱用法：让 Computer Use 测试自己写的软件</h4>
+<p class="body">Ari 最喜欢的使用场景是让 agent 自己完成软件开发的完整闭环：Codex 写完代码后，不再需要人去当 QA 验收，而是另一个 Computer Use agent 直接打开应用操作一遍、截图核对。他调侃自己有时在用 Computer Use 开发 Computer Use——一个 agent 测试另一个 agent 操作的软件，这种自测闭环让交到他手里的东西「已经是跑通的」。</p>
+<span class="spk">— Ari Weinstein</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="1456" href="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3#t=1456" target="_blank" rel="noopener">24:16</a><div><h4>决策 API 抄的是一周前刚火的竞品</h4>
+<p class="body">Nikunj Handa 坦承 Decisions API 的起点，是看到竞品爆火之后的应激反应——用户在催，内部团队也在喊「我们需要一个更快的分类系统」。他承认四周前这件事根本不在产品路线图上，是 OpenAI 内部「黑客文化」的产物：推理团队和基础设施团队各出一人，看到对手产品后直接动手搭原型，验证可行后就开始卷延迟，目标是一达到延迟指标就尽快发布。</p>
+<span class="spk">— Nikunj Handa</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="1646" href="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3#t=1646" target="_blank" rel="noopener">27:26</a><div><h4>所谓决策模型，其实是戴着镣铐跑的 Luna</h4>
+<p class="body">关键信息在这里：Decisions API 没有训练任何新模型，底层就是现有的 Luna 权重，没有变。所做的工作是在推理层加约束——强制结构化输出、把多个问题打包并行批量跑、极致优化首 token 时间（TTFD）。Nikunj 说这是 OpenAI 一贯的迭代发布打法：先把 zero-shot 版本放出来收反馈，后续再看是否需要针对校准、置信度这些能力专门训练模型。</p>
+<span class="spk">— Nikunj Handa</span></div></div>
+<div class="point" id="p7"><a class="ts" data-t="1932" href="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3#t=1932" target="_blank" rel="noopener">32:12</a><div><h4>长线程 Agent 的缓存窗口拉到 12 小时</h4>
+<p class="body">针对 Dots 这类「一个线程无限跑下去」的个人 agent 场景，Responses API 把缓存策略当成重点在打磨：默认保证 30 分钟内的缓存命中，还给一位客户单独上线了 12 小时缓存窗口的预览功能——哪怕用户三四个小时后才回来继续同一个对话线程，依然能吃到缓存带来的速度和成本优势。配合新上线的「预热」功能，开发者可以提前为还没发生的请求付一次缓存写入费，让后续调用随时处于热启动状态。</p>
+<span class="spk">— Nikunj Handa</span></div></div></section>
+<section class="section"><h2>原话 · 已逐字校验</h2><blockquote class="quote"><p class="raw">they said that a few months ago, I think, and I hope they have a different perspective now because Computer Use is, like, 180 degrees different than it was.</p>
+<p class="zh">他们几个月前是这么说的，我希望他们现在有不一样的看法了，因为 Computer Use 已经和当时完全不一样了，可以说是 180 度大转变。</p>
+<div class="attrib"><b>Ari Weinstein</b><a class="ts" data-t="293" href="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3#t=293" target="_blank" rel="noopener">4:53</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">now Computer Use, often writes code. So if you actually look at it in Codex and you expand the tool calls manually, you can see that it’s not just doing one action at a time. It’s actually writing JavaScript code that it executes</p>
+<p class="zh">现在 Computer Use 经常是直接写代码。如果你在 Codex 里把工具调用展开看，会发现它不是一步一步执行单个动作，而是真的在写一段 JavaScript 代码去执行。</p>
+<div class="attrib"><b>Ari Weinstein</b><a class="ts" data-t="357" href="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3#t=357" target="_blank" rel="noopener">5:57</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">if you take a screenshot of a webpage that has a link- The screenshot doesn’t include where the link goes. It doesn’t include, you know, maybe you take a screenshot of your calendar, the ca- event ti- titles are truncated, you know?</p>
+<p class="zh">如果你截一张带链接的网页截图，截图里是看不到链接指向哪里的。也看不到完整信息——比如截一张日历的图，事件标题是被截断的，你懂吧？</p>
+<div class="attrib"><b>Ari Weinstein</b><a class="ts" data-t="687" href="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3#t=687" target="_blank" rel="noopener">11:27</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">now Computer Use is, like, faster at accomplishing tasks than, like, the average human probably in most cases. and I think that the next frontier is to have Computer Use be, like, literally superhuman in its performance</p>
+<p class="zh">现在 Computer Use 完成任务的速度，在大多数情况下已经比普通人更快了。我认为下一个前沿是让 Computer Use 真正变得超人类——性能上比我们这样的电脑操作专家还要快。</p>
+<div class="attrib"><b>Ari Weinstein</b><a class="ts" data-t="752" href="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3#t=752" target="_blank" rel="noopener">12:32</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">One of my favorite use cases for Computer Use actually, and one that we see a lot in the wild, is Computer Use letting the agent- actually test the software that the agent has built, which is far more consequential than it sounds.</p>
+<p class="zh">我最喜欢的 Computer Use 用例之一，也是我们在实际使用中看到很多的，就是让 Computer Use 去测试 agent 自己构建出来的软件，这件事的意义比听上去重要得多。</p>
+<div class="attrib"><b>Ari Weinstein</b><a class="ts" data-t="1051" href="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3#t=1051" target="_blank" rel="noopener">17:31</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">This is, like, really just Luna. And, on top of that, what you’re doing is you’re constraining. So, like, structured output’s a big part of it. you’re really optimizing the inference stack to, like, get very fast on TTFD.</p>
+<p class="zh">这其实就是 Luna。在这基础上，你做的事是加约束——结构化输出是很重要的一部分，你在推理栈上做极致优化，让首 token 时间（TTFD）变得非常快。</p>
+<div class="attrib"><b>Nikunj Handa</b><a class="ts" data-t="1646" href="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3#t=1646" target="_blank" rel="noopener">27:26</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">We’ve been, trying to, like, really up our game on caching. We provide now guarantees of, like, cache hits within, like, 30 minutes. We’re actually, like, we-- for one of our users, we just launched, like, a much longer cache window. So we have, like, a 12-hour caching guarantee</p>
+<p class="zh">我们一直在努力把缓存这件事做得更好。现在我们提供 30 分钟内缓存命中的保证。实际上我们刚刚为一位客户上线了更长的缓存窗口——我们现在有 12 小时的缓存保证。</p>
+<div class="attrib"><b>Nikunj Handa</b><a class="ts" data-t="1932" href="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3#t=1932" target="_blank" rel="noopener">32:12</a></div>
+</blockquote></section>
+<section class="section"><h2>数字与实体</h2><table class="facts"><tr><td class="k">GPT-6.1 Sol 成本（对比 Astra）</td><td class="v">五分之一；Computer Use 场景下为七分之一</td><td class="t"><a class="ts" data-t="0" href="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3#t=0" target="_blank" rel="noopener">0:00</a></td></tr>
+<tr><td class="k">meal prep 下单耗时</td><td class="v">人工2小时 → Computer Use 15分钟（快8倍）</td><td class="t"><a class="ts" data-t="227" href="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3#t=227" target="_blank" rel="noopener">3:47</a></td></tr>
+<tr><td class="k">Computer Use 速度提升（Tejal 在演讲中提到）</td><td class="v">7倍</td><td class="t"><a class="ts" data-t="483" href="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3#t=483" target="_blank" rel="noopener">8:03</a></td></tr>
+<tr><td class="k">Luna 推理成本降幅</td><td class="v">降价80%</td><td class="t"><a class="ts" data-t="1303" href="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3#t=1303" target="_blank" rel="noopener">21:43</a></td></tr>
+<tr><td class="k">决策API竞品克隆数量</td><td class="v">两周内约100个</td><td class="t"><a class="ts" data-t="1580" href="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3#t=1580" target="_blank" rel="noopener">26:20</a></td></tr>
+<tr><td class="k">Responses API 缓存保证窗口</td><td class="v">默认30分钟，预览版12小时</td><td class="t"><a class="ts" data-t="1932" href="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3#t=1932" target="_blank" rel="noopener">32:12</a></td></tr>
+<tr><td class="k">新模型缓存读取成本降幅</td><td class="v">便宜25%</td><td class="t"><a class="ts" data-t="2020" href="https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3#t=2020" target="_blank" rel="noopener">33:40</a></td></tr></table></section>
+<section class="section"><h2>术语</h2><dl class="terms"><div><dt>App Shot<span>应用快照</span></dt><dd>双击快捷键抓取应用完整无障碍数据，而非普通截图</dd></div>
+<div><dt>TTFT/TTFD<span>首Token延迟</span></dt><dd>模型生成第一个输出token所需时间，衡量推理速度的关键指标</dd></div>
+<div><dt>mid-turn steering<span>推理中途引导</span></dt><dd>在模型推理过程中途插入新指令来调整其行为</dd></div>
+<div><dt>WebSockets<span>WebSocket双向连接</span></dt><dd>支持异步工具调用和实时交互的持久通信协议</dd></div></dl></section>
+<section class="section"><h2>收听指南</h2>
+<div class="panel guide">
+<div><span class="k">谁该听</span><p>关注 OpenAI Agent 产品线、想摸清 Computer Use 和 Decisions API 底层机制的开发者与创业者。</p></div>
+<div><span class="k">可跳过</span><p>22:57-23:21 关于 UltraFast 是否用了 Cerebras 芯片的调侃，没有实质信息，可跳过。</p></div>
+</div></section>
+<section class="related"><h2 class="sec-title">顺着这个话题</h2><ul class="rel-list"><li><a href="/podcast/p/2026-09-19-a16z-判断消费-ai-产品-别问留存-问用户停掉了什么/"><span class="rel-t">判断消费 AI 产品，别问留存，问用户停掉了什么</span><span class="rel-s">a16z</span></a></li><li><a href="/podcast/p/2026-09-12-ycsp-企业最终八成-token-走开源模型-但只花两成预算/"><span class="rel-t">企业最终八成 token 走开源模型，但只花两成预算</span><span class="rel-s">Y Combinator</span></a></li><li><a href="/podcast/p/2026-09-03-ycsp-驱动创始人的不是当亿万富翁-是怕服务器半夜崩掉/"><span class="rel-t">驱动创始人的不是当亿万富翁，是怕服务器半夜崩掉</span><span class="rel-s">Y Combinator</span></a></li><li><a href="/podcast/p/2026-08-22-cogrev-ai-事故的发现者从来不是安全评估员/"><span class="rel-t">AI 事故的发现者从来不是安全评估员</span><span class="rel-s">Cognitive Revolution</span></a></li><li><a href="/podcast/p/2026-08-14-cogrev-lindy-全线跑在-deepseek-上-创始人主张封禁中国模型/"><span class="rel-t">Lindy 全线跑 DeepSeek，创始人却主张封禁中国模型</span><span class="rel-s">Cognitive Revolution</span></a></li></ul></section>
+<nav class="prevnext"><a href="/podcast/p/2026-10-01-historyhit-古巴导弹危机不是智斗险胜-而是接近失控的侥幸/"><span class="lbl">← 更新</span><strong>古巴导弹危机不是智斗险胜，而是接近失控的侥幸</strong></a><a class="r" href="/podcast/p/2026-09-30-stuffmissed-被讥讽为-监狱游客-的贵格会主妇-推动了英国首部监狱法案/"><span class="lbl">更早 →</span><strong>被讥讽为「监狱游客」的贵格会主妇，推动了英国首部监狱法案</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原节目</h4>
+<div class="row"><span>节目</span><span>Latent Space</span></div>
+<div class="row"><span>原标题</span><span>Why Dwarkesh is Wrong about Computer Use + How OpenAI shipped its Jev competitor in 1 Week</span></div>
+<div class="row"><span>发布</span><span>2026-09-30</span></div>
+<div class="row"><span>时长</span><span>39:12</span></div>
+<a class="row" href="https://www.latent.space/p/devday-2026" target="_blank" rel="noopener"><span>原页面</span><span>打开 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇结构</h4><nav class="toc"><a href="#p0"><span class="t">4:53</span><span>「Computer Use 两年没进步」被当面反驳</span></a>
+<a href="#p1"><span class="t">5:57</span><span>能力跃迁的关键不是更聪明，是会自己纠错</span></a>
+<a href="#p2"><span class="t">11:27</span><span>双击 Command 调出的不是截图，是整页结构化数据</span></a>
+<a href="#p3"><span class="t">12:32</span><span>已经比普通人快，瓶颈变成了网页加载速度</span></a>
+<a href="#p4"><span class="t">17:31</span><span>最爱用法：让 Computer Use 测试自己写的软件</span></a>
+<a href="#p5"><span class="t">24:16</span><span>决策 API 抄的是一周前刚火的竞品</span></a>
+<a href="#p6"><span class="t">27:26</span><span>所谓决策模型，其实是戴着镣铐跑的 Luna</span></a>
+<a href="#p7"><span class="t">32:12</span><span>长线程 Agent 的缓存窗口拉到 12 小时</span></a></nav></div>
+
+<div class="panel"><h4>这篇是怎么来的</h4>
+<div class="row"><span>成稿评分</span><span>8 / 10</span></div>
+<div class="row"><span>文稿来源</span><span>官方全文</span></div>
+<div class="row"><span>文稿字数</span><span>8434</span></div>
+<div class="row"><span>语速核验</span><span>215.2 wpm</span></div>
+<div class="row"><span>逐字校验金句</span><span>7 条</span></div>
+<div class="row"><span>回溯校验数字</span><span>7 条</span></div>
+
+<p class="note">金句在逐字稿里逐字比对过，数字回原文核对过；对不上的当场删掉，不上站。
+成稿另经一道独立评审（信息密度／忠实度／选择力／具体性／中文），低于 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原声 · <a href="https://ourword.ai">OurWord.ai</a>的播客线。内容为原播客的中文深读，
+版权归各节目所有；每篇都附原节目链接，请去支持原作者。</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/" lang="zh">人类世界生存法则</a> · <a href="/podcast/">原声</a></div>
+<div class="links"><a href="/podcast/">首页</a><a href="/podcast/zt/founders/">专题</a><a href="/podcast/sources/">信源</a>
+<a href="/podcast/log/">更新日志</a><a href="/podcast/feed.xml">RSS</a>
+<a href="/podcast/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源码</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=2457e29027" defer></script>
+</body></html>

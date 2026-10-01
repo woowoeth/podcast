@@ -1,0 +1,131 @@
+{
+ "slug": "2026-09-30-latentspace-openai-一周内抄出竞品-api-根本没训练新模型",
+ "of": "latentspace-cf124f3d18",
+ "source_lang": "en",
+ "title": "OpenAI shipped its competitor's clone in a week—no new model training involved",
+ "dek": "The Decisions API was born as a reflexive response to a competitor's product going viral; OpenAI shipped a clone in a week, the secret: structured output and batch-parallel inference layered onto the existing Luna model—no new model training.",
+ "why": "The first half rehearses standard product-launch talking points; the second half—on the Decisions API's origin and Computer Use's underlying mechanics—carries higher information density and rewards listening to the end.",
+ "who": "Developers and founders tracking OpenAI's agent product line and trying to reverse-engineer the mechanics of Computer Use and the Decisions API.",
+ "skip": "22:57–23:21 on whether UltraFast used Cerebras chips—banter with no substance; skip it.",
+ "tags": [
+  "Computer Use",
+  "Agents API",
+  "Decisions API",
+  "OpenAI DevDay",
+  "Inference cost",
+  "Agent automation"
+ ],
+ "points": [
+  {
+   "h": "‘Computer Use stalled for two years’ was contradicted on stage",
+   "body": "A moderator cited a major AI podcast's claim from months back that Computer Use had seen no material progress in two years. Ari Weinstein shot back: that was old news. Computer Use is now ‘180 degrees different’ from then. His track record—Apple Shortcuts, Sky, now leading OpenAI's Computer Use team—sits on a foundation of hands-on work in computer automation, so this rebuttal comes from watching the model's leap firsthand."
+  },
+  {
+   "h": "The capability leap came from self-correction, not raw smarts",
+   "body": "The biggest shift in the past year wasn't whether the model ‘could start a task’ but whether it ‘debugs itself when stuck’—the model now excels at troubleshooting, retrying, and reflecting on what went wrong. Meanwhile, the harness layer evolved: the model no longer steps through screenshots one by one. Instead it writes JavaScript to execute multiple actions at once, switching between modalities—screenshot, accessibility interface, Playwright—as needed. That's the speed gain's real engine."
+  },
+  {
+   "h": "Double-tapping Command returns page structure, not a screenshot",
+   "body": "App Shot is widely misread as ‘taking a screenshot.’ In reality, the two-Command double-tap pulls the full accessibility representation of the page—where links point, complete calendar-event titles, all the information a raw image would lose. Ari notes the technology originally served screen readers for the visually impaired; that same path now lets language models ‘see’ an entire application without the old cycle of repeated screenshots, scrolling, and more screenshots to stitch the picture together."
+  },
+  {
+   "h": "Computer Use now outpaces humans; page load times are the bottleneck",
+   "body": "Ari offered a firm judgment: Computer Use now completes tasks faster than ordinary people in most scenarios. The next horizon is truly ‘superhuman’—faster than expert operators themselves. But he acknowledged the biggest constraint today is no longer the model: it's page load speed. Considerable time in benchmarks goes to waiting for sites like doordash.com to finish rendering. Shifting from blind waits to event-driven triggers for the next action becomes the new engineering challenge."
+  },
+  {
+   "h": "His favorite use case: agents testing software other agents built",
+   "body": "Ari's preferred application closes the software development loop entirely. After Codex writes code, there's no need for a human QA step—another Computer Use agent simply opens the application, operates it, takes screenshots, and compares the output. He jokes that sometimes he's using Computer Use to develop Computer Use itself: one agent testing another agent's software. This self-testing closed loop means what reaches his desk ‘already runs.’"
+  },
+  {
+   "h": "The Decisions API: a one-week response to viral competition",
+   "body": "Nikunj Handa owned up to it directly: the Decisions API started as a reflexive answer to a competitor's hit product. Users were pushing; internal teams were demanding ‘we need a faster classification system.’ He conceded the project wasn't even on the roadmap four weeks prior—it was pure OpenAI ‘hacker culture.’ The inference team and infrastructure team each sent one person, saw the competitor's move, built a prototype, validated it, then began optimizing latency. The goal: ship as soon as the latency target hit."
+  },
+  {
+   "h": "The Decisions model is Luna constrained, not retrained",
+   "body": "The critical detail: the Decisions API trained no new model. The weights underneath are the existing Luna model, unchanged. The work was adding constraints at the inference layer—forcing structured output, batching multiple questions for parallel execution, and aggressively optimizing time-to-first-decision (TTFD). Nikunj described this as OpenAI's standard release pattern: ship the zero-shot version, collect feedback, then decide later whether new model training is needed for calibration, confidence, or other downstream capabilities."
+  },
+  {
+   "h": "Long-running agents now sustain cache across twelve-hour windows",
+   "body": "For scenarios like Dots—a single thread running indefinitely for one person—the Responses API prioritizes caching strategy. The default guarantees a cache hit within 30 minutes. The team also spun up a 12-hour cache window as a preview feature for one customer: even if a user walks away and returns hours later to continue the same conversation thread, they still benefit from cache-driven speed and cost savings. A new ‘warmup’ feature lets developers pre-pay for a cache write before a request even lands, so subsequent calls always fire hot."
+  }
+ ],
+ "terms": [
+  {
+   "term": "App Shot",
+   "def": "Double-tapping a keyboard shortcut to capture an application's complete accessibility data structure, including all links, labels, and text—not a pixel screenshot."
+  },
+  {
+   "term": "TTFD",
+   "def": "Time to first decision: the latency from user input to the model's first output token, a key metric for inference speed."
+  },
+  {
+   "term": "mid-turn steering",
+   "def": "Inserting new instructions during the model's reasoning process to adjust its behavior in real time."
+  },
+  {
+   "term": "WebSocket",
+   "def": "A persistent bidirectional connection protocol that enables asynchronous tool calls and real-time interaction between client and model."
+  }
+ ],
+ "facts": [
+  {
+   "k": "GPT-6.1 Sol cost vs. Astra",
+   "v": "one-fifth; in Computer Use scenarios, one-seventh"
+  },
+  {
+   "k": "Meal prep ordering time",
+   "v": "2 hours manually → 15 minutes with Computer Use (8× faster)"
+  },
+  {
+   "k": "Computer Use speed improvement",
+   "v": "7×"
+  },
+  {
+   "k": "Luna inference cost reduction",
+   "v": "80% cheaper"
+  },
+  {
+   "k": "Decisions API competitor clones in two weeks",
+   "v": "~100"
+  },
+  {
+   "k": "Responses API cache guarantee window",
+   "v": "default 30 minutes; preview 12 hours"
+  },
+  {
+   "k": "New model cache read cost reduction",
+   "v": "25% cheaper"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "they said that a few months ago, I think, and I hope they have a different perspective now because Computer Use is, like, 180 degrees different than it was.",
+   "translated": false
+  },
+  {
+   "text": "now Computer Use, often writes code. So if you actually look at it in Codex and you expand the tool calls manually, you can see that it’s not just doing one action at a time. It’s actually writing JavaScript code that it executes",
+   "translated": false
+  },
+  {
+   "text": "if you take a screenshot of a webpage that has a link- The screenshot doesn’t include where the link goes. It doesn’t include, you know, maybe you take a screenshot of your calendar, the ca- event ti- titles are truncated, you know?",
+   "translated": false
+  },
+  {
+   "text": "now Computer Use is, like, faster at accomplishing tasks than, like, the average human probably in most cases. and I think that the next frontier is to have Computer Use be, like, literally superhuman in its performance",
+   "translated": false
+  },
+  {
+   "text": "One of my favorite use cases for Computer Use actually, and one that we see a lot in the wild, is Computer Use letting the agent- actually test the software that the agent has built, which is far more consequential than it sounds.",
+   "translated": false
+  },
+  {
+   "text": "This is, like, really just Luna. And, on top of that, what you’re doing is you’re constraining. So, like, structured output’s a big part of it. you’re really optimizing the inference stack to, like, get very fast on TTFD.",
+   "translated": false
+  },
+  {
+   "text": "We’ve been, trying to, like, really up our game on caching. We provide now guarantees of, like, cache hits within, like, 30 minutes. We’re actually, like, we-- for one of our users, we just launched, like, a much longer cache window. So we have, like, a 12-hour caching guarantee",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
