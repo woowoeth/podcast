@@ -1,0 +1,224 @@
+{
+ "id": "latentspace-cf124f3d18",
+ "slug": "2026-09-30-latentspace-openai-一周内抄出竞品-api-根本没训练新模型",
+ "fingerprint": "9720562a4eb1ae42",
+ "source_id": "latentspace",
+ "source": "Latent Space",
+ "source_zh": "Latent Space",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "讲 Decisions API 的技术实现、模型能力跃迁与推",
+ "tier": 1,
+ "lang": "en",
+ "title_original": "Why Dwarkesh is Wrong about Computer Use + How OpenAI shipped its Jev competitor in 1 Week",
+ "published": "2026-09-30T22:23:40Z",
+ "duration": 2352,
+ "audio": "https://api.substack.com/feed/podcast/218243619/bab92a493c836ce907351acda5d8c2ec.mp3",
+ "link": "https://www.latent.space/p/devday-2026",
+ "image": "https://substackcdn.com/feed/podcast/1084089/post/218243619/d3224547e92ee6a40b066438a204696d.jpg",
+ "youtube_id": "",
+ "video_len": 1143,
+ "transcript_url": "https://www.latent.space/p/devday-2026",
+ "digest": {
+  "title": "OpenAI 一周内抄出竞品 API：根本没训练新模型",
+  "dek": "决策 API 的诞生是看到对手产品爆火后的应激反应，OpenAI 一周内就做出竞品，秘诀是直接在现有 Luna 模型上加结构化输出和批量并行推理，根本没训练新模型。",
+  "why": "前半段是产品发布会常规复述，后半段关于 Decisions API 诞生过程和 Computer Use 底层机制的内容信息密度更高，值得听到最后。",
+  "points": [
+   {
+    "t": 293,
+    "h": "「Computer Use 两年没进步」被当面反驳",
+    "body": "有主持人提到某头部AI播客几个月前说过 Computer Use 两年没有实质进步，这个说法被直接摆上台面。Ari Weinstein 的回应很干脆：那是几个月前的判断了，Computer Use 现在和当时已经「180度大转变」。他的从业背景支撑这个判断——做过苹果 Shortcuts、创业做 Sky，再到现在带 OpenAI 的 Computer Use 团队，一直在做计算机自动化，这次反驳建立在他亲眼看着模型能力跃迁的基础上。",
+    "spk": "Ari Weinstein"
+   },
+   {
+    "t": 357,
+    "h": "能力跃迁的关键不是更聪明，是会自己纠错",
+    "body": "Ari 指出，过去一年最大的变化不是「能不能开始做任务」，而是「卡住之后会不会自己排查」——模型现在很擅长调试、重试、反思哪里没做对。与此同时 harness 层面也在升级：模型不再是一步步点击截图，而是直接写 JavaScript 代码一次性执行多步操作，并按任务需要在截图、无障碍接口（accessibility）、Playwright 之间切换模态，这是速度提升背后的核心机制。",
+    "spk": "Ari Weinstein"
+   },
+   {
+    "t": 687,
+    "h": "双击 Command 调出的不是截图，是整页结构化数据",
+    "body": "App Shot 功能常被用户误解成「截图」。实际上双击两个 Command 键拉出来的是页面完整的无障碍表示（accessibility representation）——链接指向哪里、日历事件的完整标题，这些普通截图会丢失的信息都保留着。Ari 提到这项技术本来是为视障人士的屏幕阅读器做的，现在同样的技术路径让语言模型能「看清」整个应用，而不用像以前那样靠反复截图、滚动、再截图来拼凑信息。",
+    "spk": "Ari Weinstein"
+   },
+   {
+    "t": 752,
+    "h": "已经比普通人快，瓶颈变成了网页加载速度",
+    "body": "Ari 给出一个具体判断：现在 Computer Use 完成任务的速度，在大多数场景下已经超过普通人类，下一个目标是真正「超人类」——比资深电脑操作者本身还快。但他也坦承当下最大的瓶颈已经不在模型本身，而在网页加载速度：benchmark 里相当一部分时间是在等 doordash.com 这类网站本身加载完，如何用事件驱动而不是盲等去触发下一步动作，反而成了新的工程难题。",
+    "spk": "Ari Weinstein"
+   },
+   {
+    "t": 1051,
+    "h": "最爱用法：让 Computer Use 测试自己写的软件",
+    "body": "Ari 最喜欢的使用场景是让 agent 自己完成软件开发的完整闭环：Codex 写完代码后，不再需要人去当 QA 验收，而是另一个 Computer Use agent 直接打开应用操作一遍、截图核对。他调侃自己有时在用 Computer Use 开发 Computer Use——一个 agent 测试另一个 agent 操作的软件，这种自测闭环让交到他手里的东西「已经是跑通的」。",
+    "spk": "Ari Weinstein"
+   },
+   {
+    "t": 1456,
+    "h": "决策 API 抄的是一周前刚火的竞品",
+    "body": "Nikunj Handa 坦承 Decisions API 的起点，是看到竞品爆火之后的应激反应——用户在催，内部团队也在喊「我们需要一个更快的分类系统」。他承认四周前这件事根本不在产品路线图上，是 OpenAI 内部「黑客文化」的产物：推理团队和基础设施团队各出一人，看到对手产品后直接动手搭原型，验证可行后就开始卷延迟，目标是一达到延迟指标就尽快发布。",
+    "spk": "Nikunj Handa"
+   },
+   {
+    "t": 1646,
+    "h": "所谓决策模型，其实是戴着镣铐跑的 Luna",
+    "body": "关键信息在这里：Decisions API 没有训练任何新模型，底层就是现有的 Luna 权重，没有变。所做的工作是在推理层加约束——强制结构化输出、把多个问题打包并行批量跑、极致优化首 token 时间（TTFD）。Nikunj 说这是 OpenAI 一贯的迭代发布打法：先把 zero-shot 版本放出来收反馈，后续再看是否需要针对校准、置信度这些能力专门训练模型。",
+    "spk": "Nikunj Handa"
+   },
+   {
+    "t": 1932,
+    "h": "长线程 Agent 的缓存窗口拉到 12 小时",
+    "body": "针对 Dots 这类「一个线程无限跑下去」的个人 agent 场景，Responses API 把缓存策略当成重点在打磨：默认保证 30 分钟内的缓存命中，还给一位客户单独上线了 12 小时缓存窗口的预览功能——哪怕用户三四个小时后才回来继续同一个对话线程，依然能吃到缓存带来的速度和成本优势。配合新上线的「预热」功能，开发者可以提前为还没发生的请求付一次缓存写入费，让后续调用随时处于热启动状态。",
+    "spk": "Nikunj Handa"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 293,
+    "spk": "Ari Weinstein",
+    "raw": "they said that a few months ago, I think, and I hope they have a different perspective now because Computer Use is, like, 180 degrees different than it was.",
+    "zh": "他们几个月前是这么说的，我希望他们现在有不一样的看法了，因为 Computer Use 已经和当时完全不一样了，可以说是 180 度大转变。"
+   },
+   {
+    "t": 357,
+    "spk": "Ari Weinstein",
+    "raw": "now Computer Use, often writes code. So if you actually look at it in Codex and you expand the tool calls manually, you can see that it’s not just doing one action at a time. It’s actually writing JavaScript code that it executes",
+    "zh": "现在 Computer Use 经常是直接写代码。如果你在 Codex 里把工具调用展开看，会发现它不是一步一步执行单个动作，而是真的在写一段 JavaScript 代码去执行。"
+   },
+   {
+    "t": 687,
+    "spk": "Ari Weinstein",
+    "raw": "if you take a screenshot of a webpage that has a link- The screenshot doesn’t include where the link goes. It doesn’t include, you know, maybe you take a screenshot of your calendar, the ca- event ti- titles are truncated, you know?",
+    "zh": "如果你截一张带链接的网页截图，截图里是看不到链接指向哪里的。也看不到完整信息——比如截一张日历的图，事件标题是被截断的，你懂吧？"
+   },
+   {
+    "t": 752,
+    "spk": "Ari Weinstein",
+    "raw": "now Computer Use is, like, faster at accomplishing tasks than, like, the average human probably in most cases. and I think that the next frontier is to have Computer Use be, like, literally superhuman in its performance",
+    "zh": "现在 Computer Use 完成任务的速度，在大多数情况下已经比普通人更快了。我认为下一个前沿是让 Computer Use 真正变得超人类——性能上比我们这样的电脑操作专家还要快。"
+   },
+   {
+    "t": 1051,
+    "spk": "Ari Weinstein",
+    "raw": "One of my favorite use cases for Computer Use actually, and one that we see a lot in the wild, is Computer Use letting the agent- actually test the software that the agent has built, which is far more consequential than it sounds.",
+    "zh": "我最喜欢的 Computer Use 用例之一，也是我们在实际使用中看到很多的，就是让 Computer Use 去测试 agent 自己构建出来的软件，这件事的意义比听上去重要得多。"
+   },
+   {
+    "t": 1646,
+    "spk": "Nikunj Handa",
+    "raw": "This is, like, really just Luna. And, on top of that, what you’re doing is you’re constraining. So, like, structured output’s a big part of it. you’re really optimizing the inference stack to, like, get very fast on TTFD.",
+    "zh": "这其实就是 Luna。在这基础上，你做的事是加约束——结构化输出是很重要的一部分，你在推理栈上做极致优化，让首 token 时间（TTFD）变得非常快。"
+   },
+   {
+    "t": 1932,
+    "spk": "Nikunj Handa",
+    "raw": "We’ve been, trying to, like, really up our game on caching. We provide now guarantees of, like, cache hits within, like, 30 minutes. We’re actually, like, we-- for one of our users, we just launched, like, a much longer cache window. So we have, like, a 12-hour caching guarantee",
+    "zh": "我们一直在努力把缓存这件事做得更好。现在我们提供 30 分钟内缓存命中的保证。实际上我们刚刚为一位客户上线了更长的缓存窗口——我们现在有 12 小时的缓存保证。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "GPT-6.1 Sol 成本（对比 Astra）",
+    "v": "五分之一；Computer Use 场景下为七分之一",
+    "t": 0
+   },
+   {
+    "k": "meal prep 下单耗时",
+    "v": "人工2小时 → Computer Use 15分钟（快8倍）",
+    "t": 227
+   },
+   {
+    "k": "Computer Use 速度提升（Tejal 在演讲中提到）",
+    "v": "7倍",
+    "t": 483
+   },
+   {
+    "k": "Luna 推理成本降幅",
+    "v": "降价80%",
+    "t": 1303
+   },
+   {
+    "k": "决策API竞品克隆数量",
+    "v": "两周内约100个",
+    "t": 1580
+   },
+   {
+    "k": "Responses API 缓存保证窗口",
+    "v": "默认30分钟，预览版12小时",
+    "t": 1932
+   },
+   {
+    "k": "新模型缓存读取成本降幅",
+    "v": "便宜25%",
+    "t": 2020
+   }
+  ],
+  "terms": [
+   {
+    "term": "App Shot",
+    "zh": "应用快照",
+    "def": "双击快捷键抓取应用完整无障碍数据，而非普通截图"
+   },
+   {
+    "term": "TTFT/TTFD",
+    "zh": "首Token延迟",
+    "def": "模型生成第一个输出token所需时间，衡量推理速度的关键指标"
+   },
+   {
+    "term": "mid-turn steering",
+    "zh": "推理中途引导",
+    "def": "在模型推理过程中途插入新指令来调整其行为"
+   },
+   {
+    "term": "WebSockets",
+    "zh": "WebSocket双向连接",
+    "def": "支持异步工具调用和实时交互的持久通信协议"
+   }
+  ],
+  "who": "关注 OpenAI Agent 产品线、想摸清 Computer Use 和 Decisions API 底层机制的开发者与创业者。",
+  "skip": "22:57-23:21 关于 UltraFast 是否用了 Cerebras 芯片的调侃，没有实质信息，可跳过。",
+  "tags": [
+   "Computer Use",
+   "Agents API",
+   "Decisions API",
+   "OpenAI DevDay",
+   "推理成本",
+   "Agent自动化"
+  ],
+  "quality": {
+   "transcript_source": "notes",
+   "transcript_detail": "feed item full text",
+   "words": 8434,
+   "wpm": 215.2,
+   "timed": true,
+   "verified_quotes": 7,
+   "grounded_facts": 7,
+   "points": 8,
+   "pruned": 0,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-10-01T02:36:59Z",
+ "triage": {
+  "score": 7.0,
+  "why": "Sky创始人、OpenAI API访谈。新产品技术演进与产业机制。无字幕难验。",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 8,
+   "faithful": 9,
+   "selection": 8,
+   "concrete": 8,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "要点都是判断或机制而非转述，忠实度高，有具体数字和技术细节，中文清晰无空话。基本做到位。",
+  "worst": "标题『一周内』的时间框架与原文『四周前不在路线图』的关系需核实——两个时间点的先后逻辑和具体含义应该对应清楚。"
+ },
+ "model": "claude-cli:sonnet"
+}
