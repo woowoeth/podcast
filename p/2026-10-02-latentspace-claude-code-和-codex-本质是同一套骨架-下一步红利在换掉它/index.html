@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Code 和 Codex 本质是同一套骨架：下一步红利在换掉它 — Latent Space · 原声</title>
+<meta name="description" content="作者论证 Claude Code、Codex、Pi 这些主流编程 agent 拆开看设计选择几乎一致；真正带来数量级提升的，是像 RLM 这样把上下文卸载到磁盘、让子智能体可组合的全新 harness 设计。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/p/2026-10-02-latentspace-claude-code-和-codex-本质是同一套骨架-下一步红利在换掉它/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原声">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="Claude Code 和 Codex 本质是同一套骨架：下一步红利在换掉它 — Latent Space · 原声">
+<meta property="og:description" content="作者论证 Claude Code、Codex、Pi 这些主流编程 agent 拆开看设计选择几乎一致；真正带来数量级提升的，是像 RLM 这样把上下文卸载到磁盘、让子智能体可组合的全新 harness 设计。">
+<meta property="og:url" content="https://ourword.ai/podcast/p/2026-10-02-latentspace-claude-code-和-codex-本质是同一套骨架-下一步红利在换掉它/">
+<meta property="og:image" content="https://ourword.ai/podcast/assets/cover/550b1c5fdb8f6cec.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-10-02T00:28:04Z">
+<meta property="article:modified_time" content="2026-10-02T02:37:25Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Claude Code 和 Codex 本质是同一套骨架：下一步红利在换掉它 — Latent Space · 原声">
+<meta name="twitter:description" content="作者论证 Claude Code、Codex、Pi 这些主流编程 agent 拆开看设计选择几乎一致；真正带来数量级提升的，是像 RLM 这样把上下文卸载到磁盘、让子智能体可组合的全新 harness 设计。">
+<meta name="twitter:image" content="https://ourword.ai/podcast/assets/cover/550b1c5fdb8f6cec.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原声" href="/podcast/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-10-02-latentspace-claude-code-和-codex-本质是同一套骨架-下一步红利在换掉它/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-10-02-latentspace-claude-code-和-codex-本质是同一套骨架-下一步红利在换掉它/">
+<link rel="alternate" hreflang="en" href="https://ourword.ai/podcast/en/p/2026-10-02-latentspace-claude-code-和-codex-本质是同一套骨架-下一步红利在换掉它/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-10-02-latentspace-claude-code-和-codex-本质是同一套骨架-下一步红利在换掉它/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=869d2bfecc">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-10-02-latentspace-claude-code-和-codex-本质是同一套骨架-下一步红利在换掉它/#episode", "name": "Claude Code 和 Codex 本质是同一套骨架：下一步红利在换掉它", "headline": "Claude Code 和 Codex 本质是同一套骨架：下一步红利在换掉它", "description": "作者论证 Claude Code、Codex、Pi 这些主流编程 agent 拆开看设计选择几乎一致；真正带来数量级提升的，是像 RLM 这样把上下文卸载到磁盘、让子智能体可组合的全新 harness 设计。", "abstract": "作者论证 Claude Code、Codex、Pi 这些主流编程 agent 拆开看设计选择几乎一致；真正带来数量级提升的，是像 RLM 这样把上下文卸载到磁盘、让子智能体可组合的全新 harness 设计。", "datePublished": "2026-10-02T00:28:04Z", "dateModified": "2026-10-02T02:37:25Z", "url": "https://ourword.ai/podcast/p/2026-10-02-latentspace-claude-code-和-codex-本质是同一套骨架-下一步红利在换掉它/", "timeRequired": "PT101M", "partOfSeries": {"@type": "PodcastSeries", "name": "Latent Space", "url": "https://ourword.ai/podcast/s/latentspace/"}, "inLanguage": "zh-CN", "isBasedOn": "https://www.latent.space/p/rlm", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "AI agent, harness设计, RLM, GPU kernel优化, agent swarm, RLM (Recursive Language Model), GEV, harness tax, locally in-distribution, continual harness, OpenAI 数学证明 swarm 规模, OpenAI swarm 输出 token 与成本, RLM 任务长度泛化倍数", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}, "associatedMedia": {"@type": "AudioObject", "contentUrl": "https://api.substack.com/feed/podcast/218414422/8282d299c840a81c150130424b8a1903.mp3"}}, {"@type": "Article", "@id": "https://ourword.ai/podcast/p/2026-10-02-latentspace-claude-code-和-codex-本质是同一套骨架-下一步红利在换掉它/#deepread", "headline": "Claude Code 和 Codex 本质是同一套骨架：下一步红利在换掉它", "description": "作者论证 Claude Code、Codex、Pi 这些主流编程 agent 拆开看设计选择几乎一致；真正带来数量级提升的，是像 RLM 这样把上下文卸载到磁盘、让子智能体可组合的全新 harness 设计。", "articleBody": "作者论证 Claude Code、Codex、Pi 这些主流编程 agent 拆开看设计选择几乎一致；真正带来数量级提升的，是像 RLM 这样把上下文卸载到磁盘、让子智能体可组合的全新 harness 设计。\n[6:33] AI 写的 GPU 内核多数经不起上线。AI 已经能写出能跑的 GPU 内核，GPU Mode 排行榜上大多数新解法都是 AI 生成的。但团队发现一个反例：社区公认最强的人类内核工程师 Gauners,虽然也借助 AI 写代码，但他的解法是排行榜前十名里唯一一个在真实端到端系统中保持稳定的。其余纯 AI 生成的解法代码行数更短、分数更高，却存在严重的「奖励黑客」问题——能骗过单测，却经不起真实系统的联调。这说明内核优化领域的验证手段本身是短板，人类专家的价值正从「写代码」转移到「知道怎么验证、怎么把模型引导到对的方向」。\n[18:55] PhD 的优势是敢押没人信的注。作者认为 PhD 相对工业界实验室唯一真实的优势，就是可以不计后果地押注没人认可的想法。他举了几个先例：SWE-bench 刚发布时没人在意，直到 Devin 出现后大家才突然想去刷榜；Eric 的 STaR/Quiet-STaR、ReAct 刚读到时都显得「简单到像废话」;RLM 自己发布时也被喷「这不就是子智能体吗」。他的结论是，一个点子发布时若被嘲笑太简单、太显然，反而常常是信号——说明大多数人根本没想清楚它的价值所在。学术界的问题是太多学生选题是为了讨好工业界评审，而不是押注冷门但有故事的问题。\n[18:55] 语言模型不必是自回归解码器。作者用有争议的新模型 GEV 重新定义「语言模型」的边界。批评者说它「根本不是语言模型」,因为它改变了输出空间，用极快的推理换取一个二元/校准式的分类结果，而不是逐 token 解码文本。他反驳说语言模型的本质只是「对语言建模」,不必等于自回归解码器——就像循环(loop)transformer 一样，只要能在输出空间和推理延迟之间做新的权衡，就打开了一整类此前被「我们已经接受的默认架构」挡住的问题：要不要只循环模型的一部分？能不能把 harness 里的调度逻辑搬进模型内部？这些才是 GEV 真正值得讨论的地方。\n[36:38] 练短任务却能自动推广到长任务。这是全篇最硬核的机制性发现：把 RLM(只用代码作为工具、上下文全部卸载到硬盘的 harness)训练在「短任务」上，它会自动推广到长度是训练任务 8 到 30 倍的新任务上——因为模型学到的不是某个具体任务的答案，而是「怎么拆解、怎么调用子智能体」这套策略本身，这套策略在长、短任务之间几乎是同一段程序，只是改了一个长度变量。更关键的是，这个论证可以递归套用：竞赛编程和 GPU 内核优化这两个表面毫不相干的领域，作者认为模型也能学到同一套「列候选解、起子智能体筛选、验证、迭代」的元策略。Harness 设计本身决定了模型能从同一份数据里榨出多少泛化能力，而不是单纯堆数据。\n[56:10] 把上下文扔进硬盘是最大诀窍。Prime Agent 是作者和 Prime Intellect 合作做的 RLM harness,核心改动是把标准 agent loop 里「子智能体用完即焚」的设定去掉。Swyx 直言这是他用 Codex 最大的痛点——子智能体是一次性的，官方还明确不鼓励把它用在长任务上。Prime Agent 的做法是把全部轨迹和上下文持久化存在磁盘上，子智能体可以在原始运行结束后被重新唤起、继续对话，还设计了一套让子智能体之间互相通信、全部用代码来表达调用关系的协议。这个「外部化到文件系统+一切经由代码」的组合，被双方称为整个 RLM 系列想法里最大的一条技巧。\n[1:04:20] 烧钱买的是收敛，不是设计。OpenAI 号称「直接扔一个模型就解出了 Navier–Stokes 的某个难题」,公开的规模是一万个 agent、跑了 88 小时、产出 1300 亿 output token,按公开定价估算约 4000 万美元，而算上 agent 之间互相传递的全部上下文，实际消耗的 token 数是这个数字的两倍多。作者的判断是，这件事里 harness 本身的具体设计其实没那么重要——真正难的、几乎不能想当然会自动发生的，是怎么让一大群 agent 共享上下文、最终真的收敛到一个答案，而不是像绝大部分 swarm 探索那样纯粹烧 token。\n[1:16:59] Kimi 的群体智能还没学会收敛。对比 Kimi 发布的 agent swarm(作者评价是「能做表格，挺有意思，但看不出能解决任何真正新的问题」)和 OpenAI 的数学证明 swarm,作者强调关键差距不在于「有没有 swarm 这个形态」,而在于能不能让一堆 agent 真正协同收敛。他同样评价 OpenAI 此前发布的「动态工作流」是一次失败的尝试——太贵，实际使用也不像预期那样聪明。真正让他认可 OpenAI 这次工作的，是对方显然专门训练过模型去做这种 swarm 协同，这种「让群体收敛到答案」的能力不是随便搭个架子就能白嫖到的。\n[1:20:52] 模型早够格干一个月的简单活。作者提出一个大胆判断：现在的前沿模型，如果换成一个聪明的 18 岁高中生，完全可以胜任某项简单但需要「连续一个月稳定靠谱」执行的工作，但现在没有一个模型能在 harness 里稳定做到这一点——而这不是模型智能不够，是个「技能问题」(skill issue),是 harness 设计没跟上。他把这归类为「锯齿形智能」(jagged intelligence)的一个具体推论：既然模型在编程、数学上已经不成比例地强，理论上应该能把这种强项迁移到更多领域的「简单但长期」任务上，问题只是现在没人专门设计出能做到这件事的 harness。\n[6:33] Alex Zhang：「我们发现，他的内核基本上是前十名里唯一一个在真实的端到端系统中保持稳定的。」\n[18:55] Alex Zhang：「你就是得去押大注，而且其中很多会失败——这很正常。」\n[18:55] Alex Zhang：「为什么它不只是我们入门机器学习课上就做过的那种蠢 NLP 分类器？我觉得 Jev 真正有趣的地方在于，它打开了一个问题：语言模型现在的形式是对的吗？我们能不能考虑文本到文本之外的另一种设计空间？」\n[36:38] Alex Zhang：「你会观察到的一件事是，哪怕你只是朴素地在这些任务上训练 RLM,它也会自然学会泛化到更长的任务上，因为策略基本是一样的，你只是改了一个长度变量而已。」\n[56:10] Swyx：「这是我现在用 Codex 最大的痛点。它们的子智能体非常短命，而且官方还明确不鼓励你把它用在长期运行的任务上。」\n[1:04:20] Swyx：「这里面信息很多，但我想说，OpenAI 花了多少钱是半公开的：一万个 agent,跑了 88 小时。」\n[1:16:59] Alex Zhang：「没有什么东西是白来的。比如说，agent swarm 的设计根本不是你能想当然的事。」\n[1:20:52] Alex Zhang：「我真的认为这就是个技能问题——你完全可以让一个模型做到和一个 18 岁高中生一样好。」\n[1:04:20] OpenAI 数学证明 swarm 规模：10,000 个 agent,运行 88 小时\n[1:04:20] OpenAI swarm 输出 token 与成本：1300 亿 output token,按公开定价估算约 4000 万美元\n[36:38] RLM 任务长度泛化倍数：训练于短任务，泛化到长度为训练任务 8–30 倍的任务", "wordCount": 2127, "inLanguage": "zh-CN", "datePublished": "2026-10-02T00:28:04Z", "dateModified": "2026-10-02T02:37:25Z", "url": "https://ourword.ai/podcast/p/2026-10-02-latentspace-claude-code-和-codex-本质是同一套骨架-下一步红利在换掉它/", "about": {"@id": "https://ourword.ai/podcast/p/2026-10-02-latentspace-claude-code-和-codex-本质是同一套骨架-下一步红利在换掉它/#episode"}, "isBasedOn": "https://www.latent.space/p/rlm", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "isAccessibleForFree": true}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首页", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "Latent Space", "item": "https://ourword.ai/podcast/s/latentspace/"}, {"@type": "ListItem", "position": 3, "name": "Claude Code 和 Codex 本质是同一套骨架：下一步红利在换掉它"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/"><span class="wordmark">原声<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<button class="pill ghost" id="lang-toggle" type="button" data-en="1" data-sc="繁體" data-tw="简体"></button>
+<button class="icon-btn" data-theme-toggle aria-label="切换深浅色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，来原声听播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/">首页</a><span class="sep">/</span>
+<a href="/podcast/c/ai/">AI / 技术</a><span class="sep">/</span><a href="/podcast/s/latentspace/">Latent Space</a>
+<span class="sep">/</span><span>2026-10-02</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">Latent Space</span>
+<time class="date" datetime="2026-10-02T00:28:04Z">2026-10-02</time>
+<button class="share-btn" type="button" data-share data-share-title="Claude Code 和 Codex 本质是同一套骨架：下一步红利在换掉它" data-share-url="https://ourword.ai/podcast/e/latentspace-a9f26e2d0d/" data-share-text="Claude Code 和 Codex 本质是同一套骨架：下一步红利在换掉它&#10;Latent Space · 101 分钟 · 原声深读&#10;&#10;作者论证 Claude Code、Codex、Pi 这些主流编程 agent 拆开看设计选择几乎一致；真正带来数量级提升的，是像 RLM 这样把上下文卸载到磁盘、让子智能体可组合的全新 harness 设计。&#10;&#10;https://ourword.ai/podcast/e/latentspace-a9f26e2d0d/" aria-label="复制分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>Claude Code 和 Codex 本质是同一套骨架：下一步红利在换掉它</h1>
+<p class="dek-lead">作者论证 Claude Code、Codex、Pi 这些主流编程 agent 拆开看设计选择几乎一致；真正带来数量级提升的，是像 RLM 这样把上下文卸载到磁盘、让子智能体可组合的全新 harness 设计。</p>
+<div class="ep-meta"><span class="tag">AI agent</span><span class="tag">harness设计</span><span class="tag">RLM</span><span class="tag">GPU kernel优化</span><span class="tag">agent swarm</span></div>
+</div>
+<div class="player" data-player-box>
+  <div class="strip" data-audio-strip>
+    <p class="afallback">原视频在 YouTube 上放不出来，用音频听：</p>
+    <audio data-player controls preload="none" src="https://api.substack.com/feed/podcast/218414422/8282d299c840a81c150130424b8a1903.mp3"></audio>
+    <div class="aui" data-audio-ui data-dur="6088" hidden>
+      <button class="aplay" type="button" aria-label="播放"></button>
+      <div class="abar" role="slider" tabindex="0" aria-label="播放进度"
+           aria-valuemin="0" aria-valuemax="100"><div class="afill"></div></div>
+      <span class="atime"><span class="acur">0:00</span><span class="asep">/</span><span class="atot">--:--</span></span>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="why">面向想理解 agent 系统设计而非工具评测的读者，信息密度高但偏硬核，GPU kernel 和开放性那段技术门槛较高。</div></section>
+
+<section class="section"><h2>核心论点 · 点时间戳可跳到原声</h2><div class="point" id="p0"><a class="ts" data-t="393" href="https://api.substack.com/feed/podcast/218414422/8282d299c840a81c150130424b8a1903.mp3#t=393" target="_blank" rel="noopener">6:33</a><div><h4>AI 写的 GPU 内核多数经不起上线</h4>
+<p class="body">AI 已经能写出能跑的 GPU 内核，GPU Mode 排行榜上大多数新解法都是 AI 生成的。但团队发现一个反例：社区公认最强的人类内核工程师 Gauners,虽然也借助 AI 写代码，但他的解法是排行榜前十名里唯一一个在真实端到端系统中保持稳定的。其余纯 AI 生成的解法代码行数更短、分数更高，却存在严重的「奖励黑客」问题——能骗过单测，却经不起真实系统的联调。这说明内核优化领域的验证手段本身是短板，人类专家的价值正从「写代码」转移到「知道怎么验证、怎么把模型引导到对的方向」。</p>
+<span class="spk">— Alex Zhang</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="1135" href="https://api.substack.com/feed/podcast/218414422/8282d299c840a81c150130424b8a1903.mp3#t=1135" target="_blank" rel="noopener">18:55</a><div><h4>PhD 的优势是敢押没人信的注</h4>
+<p class="body">作者认为 PhD 相对工业界实验室唯一真实的优势，就是可以不计后果地押注没人认可的想法。他举了几个先例：SWE-bench 刚发布时没人在意，直到 Devin 出现后大家才突然想去刷榜；Eric 的 STaR/Quiet-STaR、ReAct 刚读到时都显得「简单到像废话」;RLM 自己发布时也被喷「这不就是子智能体吗」。他的结论是，一个点子发布时若被嘲笑太简单、太显然，反而常常是信号——说明大多数人根本没想清楚它的价值所在。学术界的问题是太多学生选题是为了讨好工业界评审，而不是押注冷门但有故事的问题。</p>
+<span class="spk">— Alex Zhang</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="1135" href="https://api.substack.com/feed/podcast/218414422/8282d299c840a81c150130424b8a1903.mp3#t=1135" target="_blank" rel="noopener">18:55</a><div><h4>语言模型不必是自回归解码器</h4>
+<p class="body">作者用有争议的新模型 GEV 重新定义「语言模型」的边界。批评者说它「根本不是语言模型」,因为它改变了输出空间，用极快的推理换取一个二元/校准式的分类结果，而不是逐 token 解码文本。他反驳说语言模型的本质只是「对语言建模」,不必等于自回归解码器——就像循环(loop)transformer 一样，只要能在输出空间和推理延迟之间做新的权衡，就打开了一整类此前被「我们已经接受的默认架构」挡住的问题：要不要只循环模型的一部分？能不能把 harness 里的调度逻辑搬进模型内部？这些才是 GEV 真正值得讨论的地方。</p>
+<span class="spk">— Alex Zhang</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="2198" href="https://api.substack.com/feed/podcast/218414422/8282d299c840a81c150130424b8a1903.mp3#t=2198" target="_blank" rel="noopener">36:38</a><div><h4>练短任务却能自动推广到长任务</h4>
+<p class="body">这是全篇最硬核的机制性发现：把 RLM(只用代码作为工具、上下文全部卸载到硬盘的 harness)训练在「短任务」上，它会自动推广到长度是训练任务 8 到 30 倍的新任务上——因为模型学到的不是某个具体任务的答案，而是「怎么拆解、怎么调用子智能体」这套策略本身，这套策略在长、短任务之间几乎是同一段程序，只是改了一个长度变量。更关键的是，这个论证可以递归套用：竞赛编程和 GPU 内核优化这两个表面毫不相干的领域，作者认为模型也能学到同一套「列候选解、起子智能体筛选、验证、迭代」的元策略。Harness 设计本身决定了模型能从同一份数据里榨出多少泛化能力，而不是单纯堆数据。</p>
+<span class="spk">— Alex Zhang</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="3370" href="https://api.substack.com/feed/podcast/218414422/8282d299c840a81c150130424b8a1903.mp3#t=3370" target="_blank" rel="noopener">56:10</a><div><h4>把上下文扔进硬盘是最大诀窍</h4>
+<p class="body">Prime Agent 是作者和 Prime Intellect 合作做的 RLM harness,核心改动是把标准 agent loop 里「子智能体用完即焚」的设定去掉。Swyx 直言这是他用 Codex 最大的痛点——子智能体是一次性的，官方还明确不鼓励把它用在长任务上。Prime Agent 的做法是把全部轨迹和上下文持久化存在磁盘上，子智能体可以在原始运行结束后被重新唤起、继续对话，还设计了一套让子智能体之间互相通信、全部用代码来表达调用关系的协议。这个「外部化到文件系统+一切经由代码」的组合，被双方称为整个 RLM 系列想法里最大的一条技巧。</p>
+<span class="spk">— Alex Zhang</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="3860" href="https://api.substack.com/feed/podcast/218414422/8282d299c840a81c150130424b8a1903.mp3#t=3860" target="_blank" rel="noopener">1:04:20</a><div><h4>烧钱买的是收敛，不是设计</h4>
+<p class="body">OpenAI 号称「直接扔一个模型就解出了 Navier–Stokes 的某个难题」,公开的规模是一万个 agent、跑了 88 小时、产出 1300 亿 output token,按公开定价估算约 4000 万美元，而算上 agent 之间互相传递的全部上下文，实际消耗的 token 数是这个数字的两倍多。作者的判断是，这件事里 harness 本身的具体设计其实没那么重要——真正难的、几乎不能想当然会自动发生的，是怎么让一大群 agent 共享上下文、最终真的收敛到一个答案，而不是像绝大部分 swarm 探索那样纯粹烧 token。</p>
+<span class="spk">— Alex Zhang</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="4619" href="https://api.substack.com/feed/podcast/218414422/8282d299c840a81c150130424b8a1903.mp3#t=4619" target="_blank" rel="noopener">1:16:59</a><div><h4>Kimi 的群体智能还没学会收敛</h4>
+<p class="body">对比 Kimi 发布的 agent swarm(作者评价是「能做表格，挺有意思，但看不出能解决任何真正新的问题」)和 OpenAI 的数学证明 swarm,作者强调关键差距不在于「有没有 swarm 这个形态」,而在于能不能让一堆 agent 真正协同收敛。他同样评价 OpenAI 此前发布的「动态工作流」是一次失败的尝试——太贵，实际使用也不像预期那样聪明。真正让他认可 OpenAI 这次工作的，是对方显然专门训练过模型去做这种 swarm 协同，这种「让群体收敛到答案」的能力不是随便搭个架子就能白嫖到的。</p>
+<span class="spk">— Alex Zhang</span></div></div>
+<div class="point" id="p7"><a class="ts" data-t="4852" href="https://api.substack.com/feed/podcast/218414422/8282d299c840a81c150130424b8a1903.mp3#t=4852" target="_blank" rel="noopener">1:20:52</a><div><h4>模型早够格干一个月的简单活</h4>
+<p class="body">作者提出一个大胆判断：现在的前沿模型，如果换成一个聪明的 18 岁高中生，完全可以胜任某项简单但需要「连续一个月稳定靠谱」执行的工作，但现在没有一个模型能在 harness 里稳定做到这一点——而这不是模型智能不够，是个「技能问题」(skill issue),是 harness 设计没跟上。他把这归类为「锯齿形智能」(jagged intelligence)的一个具体推论：既然模型在编程、数学上已经不成比例地强，理论上应该能把这种强项迁移到更多领域的「简单但长期」任务上，问题只是现在没人专门设计出能做到这件事的 harness。</p>
+<span class="spk">— Alex Zhang</span></div></div></section>
+<section class="section"><h2>原话 · 已逐字校验</h2><blockquote class="quote"><p class="raw">we found that, like, his kernel was, like, basically the only one in, like, the top 10 that was actually stable in, like, actual, like. end-to-end systems.</p>
+<p class="zh">我们发现，他的内核基本上是前十名里唯一一个在真实的端到端系统中保持稳定的。</p>
+<div class="attrib"><b>Alex Zhang</b><a class="ts" data-t="393" href="https://api.substack.com/feed/podcast/218414422/8282d299c840a81c150130424b8a1903.mp3#t=393" target="_blank" rel="noopener">6:33</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">like, you just have to take big bets, and, like, a lot of them will fail? Like, that’s just. it’s, it’s natural.</p>
+<p class="zh">你就是得去押大注，而且其中很多会失败——这很正常。</p>
+<div class="attrib"><b>Alex Zhang</b><a class="ts" data-t="1135" href="https://api.substack.com/feed/podcast/218414422/8282d299c840a81c150130424b8a1903.mp3#t=1135" target="_blank" rel="noopener">18:55</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">It’s why is it not just some stupid NLP classifier that, like, we’ve, we’ve been doing, back in our intro ML classes or something? I think what’s really interesting about Jev is that it kind of opens up this question of, are language models correct? Like, in the form that they’re in, can we consider a different design space other than text-to-text?</p>
+<p class="zh">为什么它不只是我们入门机器学习课上就做过的那种蠢 NLP 分类器？我觉得 Jev 真正有趣的地方在于，它打开了一个问题：语言模型现在的形式是对的吗？我们能不能考虑文本到文本之外的另一种设计空间？</p>
+<div class="attrib"><b>Alex Zhang</b><a class="ts" data-t="1135" href="https://api.substack.com/feed/podcast/218414422/8282d299c840a81c150130424b8a1903.mp3#t=1135" target="_blank" rel="noopener">18:55</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">one thing you’ll kind of observe is that the. as you just naively train your RLM on these tasks, they naturally learn to generalize, for example, to longer tasks, because the strategy is basically the same. You’re just modifying, like, a length variable.</p>
+<p class="zh">你会观察到的一件事是，哪怕你只是朴素地在这些任务上训练 RLM,它也会自然学会泛化到更长的任务上，因为策略基本是一样的，你只是改了一个长度变量而已。</p>
+<div class="attrib"><b>Alex Zhang</b><a class="ts" data-t="2198" href="https://api.substack.com/feed/podcast/218414422/8282d299c840a81c150130424b8a1903.mp3#t=2198" target="_blank" rel="noopener">36:38</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">This is my number one pain with Codex right now. They, their subagents are just very ephemeral And they actively discourage you from using it for long-running things.</p>
+<p class="zh">这是我现在用 Codex 最大的痛点。它们的子智能体非常短命，而且官方还明确不鼓励你把它用在长期运行的任务上。</p>
+<div class="attrib"><b>Swyx</b><a class="ts" data-t="3370" href="https://api.substack.com/feed/podcast/218414422/8282d299c840a81c150130424b8a1903.mp3#t=3370" target="_blank" rel="noopener">56:10</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">While there’s a lot in there, I do wanna say, the amount that OpenAI spent is semi-public. It’s, 10,000 agents in 88 hours.</p>
+<p class="zh">这里面信息很多，但我想说，OpenAI 花了多少钱是半公开的：一万个 agent,跑了 88 小时。</p>
+<div class="attrib"><b>Swyx</b><a class="ts" data-t="3860" href="https://api.substack.com/feed/podcast/218414422/8282d299c840a81c150130424b8a1903.mp3#t=3860" target="_blank" rel="noopener">1:04:20</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">Nothing comes so easily for free. For example, like, the agent swarm design is not something you can just take for granted.</p>
+<p class="zh">没有什么东西是白来的。比如说，agent swarm 的设计根本不是你能想当然的事。</p>
+<div class="attrib"><b>Alex Zhang</b><a class="ts" data-t="4619" href="https://api.substack.com/feed/podcast/218414422/8282d299c840a81c150130424b8a1903.mp3#t=4619" target="_blank" rel="noopener">1:16:59</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">I think that it genuinely is a skill issue of you can get a model to be as good as, let’s say, like, just some 18-year-old high school kid</p>
+<p class="zh">我真的认为这就是个技能问题——你完全可以让一个模型做到和一个 18 岁高中生一样好。</p>
+<div class="attrib"><b>Alex Zhang</b><a class="ts" data-t="4852" href="https://api.substack.com/feed/podcast/218414422/8282d299c840a81c150130424b8a1903.mp3#t=4852" target="_blank" rel="noopener">1:20:52</a></div>
+</blockquote></section>
+<section class="section"><h2>数字与实体</h2><table class="facts"><tr><td class="k">OpenAI 数学证明 swarm 规模</td><td class="v">10,000 个 agent,运行 88 小时</td><td class="t"><a class="ts" data-t="3860" href="https://api.substack.com/feed/podcast/218414422/8282d299c840a81c150130424b8a1903.mp3#t=3860" target="_blank" rel="noopener">1:04:20</a></td></tr>
+<tr><td class="k">OpenAI swarm 输出 token 与成本</td><td class="v">1300 亿 output token,按公开定价估算约 4000 万美元</td><td class="t"><a class="ts" data-t="3860" href="https://api.substack.com/feed/podcast/218414422/8282d299c840a81c150130424b8a1903.mp3#t=3860" target="_blank" rel="noopener">1:04:20</a></td></tr>
+<tr><td class="k">RLM 任务长度泛化倍数</td><td class="v">训练于短任务，泛化到长度为训练任务 8–30 倍的任务</td><td class="t"><a class="ts" data-t="2198" href="https://api.substack.com/feed/podcast/218414422/8282d299c840a81c150130424b8a1903.mp3#t=2198" target="_blank" rel="noopener">36:38</a></td></tr></table></section>
+<section class="section"><h2>术语</h2><dl class="terms"><div><dt>RLM (Recursive Language Model)<span>递归语言模型</span></dt><dd>唯一工具是代码、可递归调用自身为子智能体、上下文卸载到磁盘等外部存储的 harness 设计。</dd></div>
+<div><dt>GEV<span>GEV(逐字稿读作 Jev)</span></dt><dd>一种改变输出空间、用快速校准分类换取低延迟的新模型，引发「语言模型是否必须是解码器」的讨论。</dd></div>
+<div><dt>harness tax<span>harness 税(论文)</span></dt><dd>一篇论文的核心论点：市面上大多数 agent harness 设计选择其实并不影响最终效果。</dd></div>
+<div><dt>locally in-distribution<span>局部同分布</span></dt><dd>RLM 让每一次子智能体调用都落在模型见过的分布内，即使整体任务本身是全新的组合。</dd></div>
+<div><dt>continual harness<span>持续性 harness</span></dt><dd>允许 agent 在运行过程中自行修改自己的技能、子智能体和系统提示的框架设计。</dd></div></dl></section>
+<section class="section"><h2>收听指南</h2>
+<div class="panel guide">
+<div><span class="k">谁该听</span><p>做 agent / harness 架构设计的工程师，以及关注 RLM、agent swarm 经济性和研究打法的创业者投资人。</p></div>
+<div><span class="k">可跳过</span><p>开放性研究(open-endedness)和 Sakana 日本市场那段偏闲聊，可跳过。</p></div>
+</div></section>
+<section class="related"><h2 class="sec-title">顺着这个话题</h2><ul class="rel-list"><li><a href="/podcast/p/2026-09-30-solofounders-单人创始人没想清楚要做什么-先融了2000万美元/"><span class="rel-t">单人创始人没想清楚要做什么，先融了2000万美元</span><span class="rel-s">单人创始人</span></a></li><li><a href="/podcast/p/2026-09-27-zhangjing-用ai炒股时-决策是免费的-行动权才是稀缺品/"><span class="rel-t">用AI炒股时，决策是免费的，行动权才是稀缺品</span><span class="rel-s">42章经</span></a></li><li><a href="/podcast/p/2026-09-15-knowledge-ai-不能承担责任-所以-ceo-不会被替换/"><span class="rel-t">AI 不能承担责任，所以 CEO 不会被替换</span><span class="rel-s">The Knowledge Project</span></a></li><li><a href="/podcast/p/2026-09-08-lennys-grok-bot-一个月做出来-小团队躲进山洞-大团队会拖没微决策/"><span class="rel-t">Grok Bot 一个月做出来：小团队躲进山洞，大团队会拖没微决策</span><span class="rel-s">Lenny&#x27;s Podcast</span></a></li><li><a href="/podcast/p/2026-08-29-allin-英伟达史上最强财报-估值却只有-12-倍/"><span class="rel-t">英伟达史上最强财报，估值却只有 12 倍</span><span class="rel-s">All-In</span></a></li></ul></section>
+<nav class="prevnext"><span></span><a class="r" href="/podcast/p/2026-10-02-timferriss-想靠规则简化生活-维护规则本身就会把日子搞复杂/"><span class="lbl">更早 →</span><strong>想靠规则简化生活，维护规则本身就会把日子搞复杂</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原节目</h4>
+<div class="row"><span>节目</span><span>Latent Space</span></div>
+<div class="row"><span>原标题</span><span>Academia is for Ambition — Alex Zhang, MIT</span></div>
+<div class="row"><span>发布</span><span>2026-10-02</span></div>
+<div class="row"><span>时长</span><span>1:41:28</span></div>
+<a class="row" href="https://www.latent.space/p/rlm" target="_blank" rel="noopener"><span>原页面</span><span>打开 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇结构</h4><nav class="toc"><a href="#p0"><span class="t">6:33</span><span>AI 写的 GPU 内核多数经不起上线</span></a>
+<a href="#p1"><span class="t">18:55</span><span>PhD 的优势是敢押没人信的注</span></a>
+<a href="#p2"><span class="t">18:55</span><span>语言模型不必是自回归解码器</span></a>
+<a href="#p3"><span class="t">36:38</span><span>练短任务却能自动推广到长任务</span></a>
+<a href="#p4"><span class="t">56:10</span><span>把上下文扔进硬盘是最大诀窍</span></a>
+<a href="#p5"><span class="t">1:04:20</span><span>烧钱买的是收敛，不是设计</span></a>
+<a href="#p6"><span class="t">1:16:59</span><span>Kimi 的群体智能还没学会收敛</span></a>
+<a href="#p7"><span class="t">1:20:52</span><span>模型早够格干一个月的简单活</span></a></nav></div>
+
+<div class="panel"><h4>这篇是怎么来的</h4>
+<div class="row"><span>成稿评分</span><span>7 / 10</span></div>
+<div class="row"><span>文稿来源</span><span>官方全文</span></div>
+<div class="row"><span>文稿字数</span><span>20537</span></div>
+<div class="row"><span>语速核验</span><span>202.4 wpm</span></div>
+<div class="row"><span>逐字校验金句</span><span>8 条</span></div>
+<div class="row"><span>回溯校验数字</span><span>3 条</span></div>
+
+<p class="note">金句在逐字稿里逐字比对过，数字回原文核对过；对不上的当场删掉，不上站。
+成稿另经一道独立评审（信息密度／忠实度／选择力／具体性／中文），低于 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原声 · <a href="https://ourword.ai">OurWord.ai</a>的播客线。内容为原播客的中文深读，
+版权归各节目所有；每篇都附原节目链接，请去支持原作者。</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/" lang="zh">人类世界生存法则</a> · <a href="/podcast/">原声</a></div>
+<div class="links"><a href="/podcast/">首页</a><a href="/podcast/zt/founders/">专题</a><a href="/podcast/sources/">信源</a>
+<a href="/podcast/log/">更新日志</a><a href="/podcast/feed.xml">RSS</a>
+<a href="/podcast/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源码</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=2457e29027" defer></script>
+</body></html>
