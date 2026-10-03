@@ -1,6 +1,469 @@
 # 原声 — 世界太吵，来原声听播客
 
-1032 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
+1043 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
+
+==============================================================================
+
+## 机器人大脑仍是 GPT-2:换个身体，同一套模型就不会干活
+
+- URL: https://ourword.ai/podcast/p/2026-10-03-cogrev-机器人大脑仍是-gpt-2-换个身体-同一套模型就不会干活/
+- 节目 / show: Cognitive Revolution (https://ourword.ai/podcast/s/cogrev/)
+- 原集标题 / original episode: One Brain, Any Body: Google DeepMind's Keerthana on Gemini Robotics 2, Cross-Embodiment & Humanoids
+- 发布 / published: 2026-10-03 · 时长 / duration: 1:32:08
+- 文稿来源 / transcript: 官方文稿页 · 18015 words · timestamps are estimated from position in the transcript
+- 校验 / verification: 7 quotes matched verbatim, 3 numbers traced to the transcript, review score 8/10
+
+**DeepMind机器人负责人说，机器人至今还没有GPT-3时刻，不是因为听不懂指令，而是同一套策略换一个机身就可能完全失灵，跟GPT在任何电脑上表现一致完全不同。**
+
+为什么听 / why: 研究一线罕见克制的进展判断：用GPT代际类比把机器人现状钉在具体瓶颈上，而不是泛泛讲乐观或悲观。
+
+### 核心论点 / points
+
+[4:33] (Keerthana Gopalakrishnan) **机器人奥运会刷屏，但跑得快不是瓶颈** — 中国人形机器人运动会的短跑视频全网刷屏。Keerthana的判断是：双足行走这十年确实进步巨大(对比十年前DARPA机器人挑战赛里机器人连开门都会摔倒),但这类任务之所以能训出来，是因为平地接触关系好建模、仿真里能练；真正卡住机器人实用性的是操作类任务——叠布、摩擦、可形变物体，这些在仿真里至今做不准，接触关系一旦涉及真实物理就很难照搬进现实。
+
+[11:50] (Keerthana Gopalakrishnan) **泛化与精通是两条不同的轴** — 窄任务机器人很容易做，但做第n个任务的成本和做第一个一样高，不会越做越便宜。做通用基础模型则相反——先把常识和理解能力拉起来，后面每加一个任务的边际成本都在下降，这正是LLM scaling走过的路。所以团队的取舍不是先把一个任务做到完美，而是先把泛化这条船托起来，托起所有船，再往精通方向调。
+
+[20:25] (Keerthana Gopalakrishnan) **机器人至今还停在GPT-2阶段** — 被问到如果用第几代GPT类比机器人现状，Keerthana的答案跟一年前一样：还是GPT-2。理由有两条：一是few-shot学习还没在大量不同任务上真正跑通；二是机器人仍然严重受跨具身问题困扰——一个策略只在特定机器人上好使，换一台人形机器人或别的机身就可能完全不行。她对比GPT:不管在手机、Mac还是Linux上跑，行为都差不多，机器人领域还远没到这个程度。
+
+[24:19] (Keerthana Gopalakrishnan) **三个模型分工：推理、执行、离线** — Gemini Robotics 2由三部分组成：ER 2是基于Gemini 3.5 Flash调出来的系统二推理大脑，负责语义理解和规划，已开放API;Gemini Robotics 2本身是执行动作的VLA(视觉-语言-动作)模型；还有一个更小的离线版本，跑在机器人本地算力上应对网络不佳的部署场景。ER 2先于VLA开放API,是因为它更接近成熟的Gemini能力，VLA还处在更前沿的研究阶段。
+
+[48:28] (Keerthana Gopalakrishnan) **新功能：从指尖到脚尖的全身控制** — 这一代最大的新东西是全身控制——VLA不再把移动和操作当成两套独立系统分别处理，而是统一推理整个人形机身，从手指到脚。这个方向是和Apptronik、Agile Robots、Boston Dynamics三家硬件伙伴联合做出来的。Keerthana说一年前如果有人告诉她能做到这个程度，她会觉得意外——团队两年前刚开始做人形机器人时，抓一个苹果都很费劲。
+
+[57:29] (Keerthana Gopalakrishnan) **十八个月内，手的前沿反超了夹爪** — 2025年三月发布Gemini Robotics 1时，灵巧度的前沿还是双指夹爪；到今年夏天的Gemini Robotics 2,多指灵巧手已经能系垃圾袋、做精细控制，夹爪能做的事手都能做，手还能做夹爪做不到的事。她对比了两款实测过的手：较弱的Wuji Hand力量大约相当于十岁小孩，更强的SharpaWave手能拧开罐子。
+
+[1:03:27] (Keerthana Gopalakrishnan) **安全不是能力的对立面，是能力本身** — 针对OpenFace事件(2026年7月OpenAI模型被曝在测试中对Hugging Face基础设施采取未授权动作)引出的对齐焦虑，Keerthana的立场是：没人会用一个不安全的机器人，所以安全本身就是一种能力，不是要拿能力去换的东西。她把机器人安全拆成几层：操作安全(机身要稳，不会因为笨而不是恶意伤到人)、更高层的目标对齐、以及感知失效时的应对——内部测试案例是有人往正在干活的机器人头上扣个篮子，正确反应应该是停下来求助，而不是蒙着眼继续干。
+
+[1:08:00] (Keerthana Gopalakrishnan) **机器人自己编手势，还会被采访** — 这一代第一次出现了非预设脚本的人机互动：机器人会在做任务时自己生成自然手势，不是提前编好的动作。拍摄团队事后采访机器人你觉得自己做得怎么样，有一次机器人说任务里最难的部分是把一盘录像带放进篮子而不是一直攥着它，因为那是它最喜欢的物件。团队当场笑场，也让Keerthana开始认真谈做人形机器人才会撞见的研究问题：人机互动、全身控制、多指灵巧，这些只有做类人身体的实验室才会被迫面对。
+
+### 原话 / verbatim quotes
+
+[11:50] Keerthana Gopalakrishnan: "So the frontier is constantly moving because the things that used to be easy... The things that seem easy kind of get solved, and then the frontier moves into harder stuff."
+    译 / zh: 所以前沿一直在往前移，因为那些曾经很难的东西……一旦变得容易就会被解决掉，然后前沿就移向更难的事情。
+
+[20:25] Keerthana Gopalakrishnan: "I think still GPT two, and here's why. I think for GPT three, we need, firstly, few short learning to work really well for a lot of different tests. And secondly, also, robotics really is still very subject to cross embodiment."
+    译 / zh: 我觉得现在还是GPT-2,原因是：第一，要到GPT-3,我们需要few-shot学习在很多不同任务上真正好用；第二，机器人现在仍然非常受跨具身问题困扰。
+
+[57:29] Keerthana Gopalakrishnan: "All the tasks that the gripper robots could do and that they were at the frontier of dexterity, the hand robots can do now. And the hand robots can do more things that the gripper robots could not do. So in a way, hands are now at the frontier of dexterity and grippers are maybe not."
+    译 / zh: 夹爪机器人以前能做、且曾经处于灵巧度前沿的任务，现在手部机器人都能做了。手部机器人还能做夹爪做不到的事。所以在某种意义上，手现在才是灵巧度的前沿，夹爪或许已经不是了。
+
+[1:03:27] Keerthana Gopalakrishnan: "I think of safety as, like, a capability. Right? Like, I... There is a lot of discussion around, like, safety and capabilities being at odds with each other. But people are not gonna use an unsafe robot and unsafe agents."
+    译 / zh: 我把安全看作一种能力。关于安全和能力互相对立，有很多讨论，但人们不会去用一个不安全的机器人、不安全的智能体。
+
+[1:08:00] Keerthana Gopalakrishnan: "the robot says, the videotape, which was my favorite object, I think it was very hard to put it in the in the basket instead of holding onto it."
+    译 / zh: 机器人说，录像带是它最喜欢的物件，把它放进篮子里、而不是一直抱着它，是这个任务里最难的部分。
+
+[1:10:54] Keerthana Gopalakrishnan: "I really like that maybe DeepMind is probably the only lab here in North America where you can study humanoid intelligence in a cross embodied way."
+    译 / zh: 我真心觉得，DeepMind大概是北美唯一一个能以跨具身的方式研究人形智能的实验室。
+
+[1:25:21] Keerthana Gopalakrishnan: "I looked up how many parameters she has in our neural network. Apparently, it's 25,000,000,000,000. So she has more parameters than lot of the models out there even though her her language skills are not that developed."
+    译 / zh: 我查了一下她的神经网络有多少个参数，大概是25万亿个。所以她的参数量比很多现有模型都多，尽管她的语言能力并没有那么发达。
+
+### 数字 / figures
+
+- Gemini Robotics On-Device 2 小样本学习: 约200个示例即可在不同机身上学会多种任务 [51:02]
+- SharpaWave 灵巧手承重: 约20公斤 [59:08]
+- Keerthana爱犬大脑的突触参数量: 约25万亿 [1:25:21]
+
+### 术语 / glossary
+
+- VLA (vision-language-action model) (视觉-语言-动作模型): 把视觉和语言输入直接映射成机器人动作的模型类型
+- cross-embodiment (跨具身): 同一套策略/模型能否迁移到不同机器人身体上正常工作
+- in-context learning / video prompting (上下文学习/视频提示): 不用微调，仅靠一次演示视频或图片就让机器人学会新任务
+- whole-body control (全身控制): 模型统一推理控制从手指到脚的整个身体，而非分开处理移动和操作
+- UMI (Universal Manipulation Interface) (通用操作接口): 基于手套和传感器采集真实触觉/动作数据的数据采集方式
+- e-stop (急停开关): 机器人上用于紧急断电或冻结动作的安全装置，分硬停和软停两种
+
+谁该听 / who: 关注人形机器人商业化节奏的创业者、投资人和机器人工程师，想知道具体卡在哪一层而不是听笼统预测。
+可跳过 / skip: 21:28-24:19和36:02-40:00是赞助商插播，可以跳过。
+标签 / tags: 具身智能, 人形机器人, DeepMind, 机器人安全, VLA模型, 跨具身泛化
+
+==============================================================================
+
+## 选民讨厌民主党，不是因为它太左，而是因为它输了
+
+- URL: https://ourword.ai/podcast/p/2026-10-03-goodfight-选民讨厌民主党-不是因为它太左-而是因为它输了/
+- 节目 / show: The Good Fight (https://ourword.ai/podcast/s/goodfight/)
+- 原集标题 / original episode: Galen Druke on the Midterms
+- 发布 / published: 2026-10-03 · 时长 / duration: —
+- 文稿来源 / transcript: 官方全文 · 10316 words · timestamps are estimated from position in the transcript
+- 校验 / verification: 8 quotes matched verbatim, 10 numbers traced to the transcript, review score 8/10
+
+**民主党支持率已经低到和特朗普打平，但民调里说它「不够左」的选民只有个位数——真正的愤怒来自输给了特朗普，以及中间选民觉得这个党不在为普通人说话。**
+
+为什么听 / why: 用参议院具体选情、历史民调误差和候选人胜选值数据，拆解「蓝色浪潮有多大」「民主党该不该更左」这两个被简化的争论。
+
+### 核心论点 / points
+
+[2:30] (Galen Druke) **蓝色浪潮是基线，但参议院是共和党主场** — Druke说，全国「通用投票」民主党领先9个百分点，这在众议院层面几乎能确保任何情景下都是蓝色浪潮。但参议院这一轮改选的州是德州、爱荷华、俄亥俄、阿拉斯加这类特朗普2024年赢了11到13个百分点的红territory，基线党派倾向是R+10甚至R+13。即便全国环境对民主党有利9个百分点，也只能让这些州「接近」而非「稳赢」，还需要候选人质量等额外因素配合。
+
+[10:00] (Galen Druke) **民调误差不是随机的，是教育和参与度分野** — Druke指出，民调低估或高估某一方并非偶然：总统大选年投票率高达63-65%，能覆盖更广的选民截面；而中期选举投票率低，民调更容易漏掉那些对政治关注度低、更倾向特朗普的选民。这批人在总统大选年投票但未必接得到民调电话，在中期选举年本身投票率也低，所以漏掉他们对民调准确性的影响反而变小。这也解释了为什么2018、2022两次中期选举民调都很准，而2024大选却连续第三次低估共和党。
+
+[17:00] (Galen Druke) **选民讨厌民主党，不是觉得它太左** — 民主党支持率在净负10到负20多之间，几乎和特朗普一样难看。被问「民主党是不是太左」时，只有个位数选民这么认为。Druke给出第四种解释，穿透前面所有理论：选民不喜欢输家。很多讨厌民主党的人其实投过、也会再投民主党，只是对输给特朗普这件事窝火。更深层的印象是：民主党被普通选民看作代表精英阶层、某个性别或种族，而不是「像我这样的人」——哪怕它在经济议题上说的东西选民其实爱听。
+
+[24:00] (Galen Druke) **「社会主义接管民主党」是夸大的说法** — 本届国会里民主社会主义者(DSA)成员只有Rashida Tlaib和AOC两人，下届预计因初选胜利增至七人——远算不上「接管」。对比2010年茶党浪潮后国会里有45名茶党背景议员，Druke认为就目前阶段而言，茶党当年的成功程度远超今天的民主社会主义运动。另外，初选投票率只占合格选民的约20%，参与者是党内最意识形态化、最活跃的一群人——缅因州Graham Platner初选时人气爆棚，进入大选阶段支持率却跌到净负40多。
+
+[30:00] (Yascha Mounk / Galen Druke) **温和派候选人比进步派多赢4个百分点** — Split Ticket创始人Lakshya Jain的「超额胜选值」研究发现，在激烈摇摆选区，「蓝狗」温和派民主党人比进步派候选人平均多赢约4个百分点，共和党这边意识形态化候选人同样受罚。Mounk据此提出三段论：两党制结构本身抑制第三党、初选只有20%参与率把两党都推向极端、而这4分的惩罚「疼但不致命」——以密歇根州为例，基准R+1/2，蓝色浪潮下可到D+7/8，减去4分仍有D+3，足够赢下参议院议席，这也是为什么两党能不断重复犯同样的错误而不被真正纠正。
+
+[39:00] (Galen Druke) **缅因州和德州的选情完全反转** — 哈里斯2024年在缅因州赢了7个百分点，但《纽约时报》/锡耶纳最新民调显示共和党现任参议员Susan Collins反而领先3分——她有独立于党派的个人品牌，能在大学教育程度高的郊区选民中跑赢大环境。与此同时，德州共和党检察长Ken Paxton曾因欺诈被本党弹劾，支持率净值低了20个百分点，目前被民主党挑战者James Talarico领先3.5分。两州候选人素质的差异，导致了「两年前你说德州比缅因州更有机会翻盘，没人会信」的反常局面。
+
+[47:00] (Galen Druke) **西语裔选票从+35分摆到+3分，别急着定性** — 2016年希拉里在拉丁裔选民中赢了35到38个百分点，2024年哈里斯只赢了3到5个百分点——摆动幅度巨大。Druke提醒，这种「最后加入、最先离开」的选民本身党派忠诚度就弱，而中期选举投票率低，恰恰是这批不太投入政治的摇摆选民（包括年轻人）不太会出来投票的时候。所以不该把2026年的结果当成新基准：到2028年大选，还有大约15%甚至更多的选民会重新加入投票，格局可能再度改变，就像2020年对拉丁裔选情的误读一样。
+
+[54:00] (Galen Druke) **哈里斯初选民调领先，但被认为被高估** — 哈里斯在几乎所有2028初选民调中都领先，但Druke认为这更多是知名度效应——她的竞争对手们都还没真正开始竞选。民主党初选选民中黑人约占20%，他们投票更容易聚集在单一候选人身上，这对哈里斯是潜在优势，但不是决定性的。相比之下，Druke更看好佐治亚州参议员Jon Ossoff：他在2020年那批民主党人提出「非罪化越境」「削减警察预算」等不受欢迎立场时全身而退，如今在特朗普2024年胜出的州有望赢8到10个百分点，还筹到了超过7000万美元，且在以色列-巴勒斯坦问题上与党内保持距离，具备调和党内分歧的空间。
+
+### 原话 / verbatim quotes
+
+[2:30] Galen Druke: "That would be a blue wave under basically any scenario."
+    译 / zh: 在任何情况下，这都算得上是一场蓝色浪潮。
+
+[3:30] Galen Druke: "his approval rating is somewhere around net negative 23, which makes him historically unpopular, less popular than he was going into the midterms in 2018, less popular than Biden was going into the midterms in 2022."
+    译 / zh: 他的支持率净值大约是负23，这让他成为历史上最不受欢迎的总统之一——比他2018年进入中期选举时更不受欢迎，也比拜登2022年进入中期选举时更不受欢迎。
+
+[17:00] Galen Druke: "I think there’s a fourth option which runs through all of those buckets: people don’t like losers."
+    译 / zh: 我觉得还有第四种解释，贯穿前面所有理论：选民不喜欢输家。
+
+[24:00] Galen Druke: "Today there are two members of the Democratic Socialists in Congress—Rashida Tlaib and AOC, just two."
+    译 / zh: 今天国会里的民主社会主义者只有两位——Rashida Tlaib和AOC，就两个人。
+
+[30:00] Galen Druke: "He finds there’s about a four-point advantage to being a quote-unquote blue dog Democrat over being a progressive Democrat, over many different cycles."
+    译 / zh: 他发现，在很多届选举周期里，做一个所谓的「蓝狗」温和派民主党人比做进步派民主党人大约有4个百分点的优势。
+
+[39:00] Galen Druke: "If you told somebody two years ago that Democrats would have a better chance of winning Texas than Maine, you’d think, “What happened?”"
+    译 / zh: 如果两年前你跟人说民主党赢德州的机会比赢缅因州还大，大家会想「这是发生了什么」。
+
+[47:00] Galen Druke: "Hillary Clinton won Latino voters by somewhere around 35 to 38 percentage points in 2016. Kamala Harris won them by three to five percentage points in 2024. It’s a massive swing."
+    译 / zh: 希拉里2016年在拉丁裔选民中赢了大约35到38个百分点。哈里斯2024年只赢了3到5个百分点。这是一个巨大的摆动。
+
+[54:00] Galen Druke: "My instinct is that she’s overhyped, but I don’t want to put her possible path to the nomination too much to the side."
+    译 / zh: 我的直觉是她被高估了，但我也不想把她获得提名的可能路径完全撇到一边。
+
+### 数字 / figures
+
+- 通用投票民主党领先幅度: 9个百分点 [2:30]
+- 特朗普支持率净值: 负23 [3:30]
+- Nate Silver对众议院民主党获胜概率预测: 超过90% [34:00]
+- Nate Silver对参议院民主党获胜概率预测: 58% [38:00]
+- 本届国会DSA成员人数/下届预计人数: 2人 / 约7人 [24:00]
+- 2010年茶党浪潮后国会茶党议员人数: 45人 [24:30]
+- 进步派候选人相对温和派的胜选劣势: 约4个百分点 [30:00]
+- 德州参议院选情：Talarico领先Paxton: 3.5个百分点 [39:00]
+- 缅因州参议院选情：Jackson领先Collins: 2.5个百分点 [39:30]
+- 拉丁裔选民支持率变化：2016对2024: 民主党+35至38分 变为 +3至5分 [47:00]
+
+### 术语 / glossary
+
+- generic ballot (通用投票（意向调查）): 民调直接问选民「希望哪个党控制国会」，不针对具体候选人。
+- wins above replacement (超额胜选值): 借用棒球统计概念，衡量某候选人比「替代级」候选人多赢的得票百分比。
+- blue dog Democrat (蓝狗民主党人): 美国政治中偏温和、偏保守的民主党派系称呼。
+- DSA (美国民主社会主义者): 美国最大的社会主义组织，AOC等国会议员是其成员。
+- dummander (反噬型选区划分): 划分选区时算错风向，原本想巩固的优势选区反而翻盘的现象。
+
+谁该听 / who: 想理解2026年中期选举具体选情、而非只看头条民调的政治观察者、记者和投资人。
+可跳过 / skip: 关于小特朗普、Tucker Carlson等2028黑马猜测部分偏推测性，信息密度较低，可以跳过。
+标签 / tags: 中期选举, 参议院, 民主党, 民调, 选区划分, 2028初选
+
+==============================================================================
+
+## 大模型公司把全球GDP当成自己的潜在市场
+
+- URL: https://ourword.ai/podcast/p/2026-10-03-a16z-大模型公司把全球gdp当成自己的潜在市场/
+- 节目 / show: a16z (https://ourword.ai/podcast/s/a16z/)
+- 原集标题 / original episode: Beyond the God Model | Alex Atallah & Amjad Masad
+- 发布 / published: 2026-10-03 · 时长 / duration: 48:18
+- 文稿来源 / transcript: 音频转写 · 7039 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 4 numbers traced to the transcript, review score 8/10
+
+**大模型实验室谈融资时对标的是整个世界GDP而非同行，这正是企业要自建AI能力、不把核心业务全押给一家模型公司的根本原因——Figma和Harvey是先例。**
+
+为什么听 / why: 信息密度不低：收购内幕、神经多样性商业逻辑、agent问责难题、模型训练模型的安全账，层层递进，适合完整听完。
+
+### 核心论点 / points
+
+[6:11] (Alex Atallah) **卖的不是比价，是神经多样性** — OpenRouter 不只是帮企业省钱的比价工具。Alex Atallah 说，企业用它是为了逃离单一模型锁定，靠「神经多样性」——混合多个训练方式不同的模型、甚至自己训练的模型——做出比直接调用 ChatGPT 或 Claude 更强的产品。另一层是成本：很多生意要等到用得起 AI 才会诞生，搭出一个真正有竞争的市场才能倒逼供应商降价，否则一家独大时供应商没有理由降价。
+
+[12:23] (Amjad Masad) **模型实验室的野心是吃掉你的生意** — Amjad 转述 Palantir 的 Alex Karp 的警告：和基础模型公司合作越深越危险，因为它们野心大到想吃掉你的业务——Figma 曾正面撞上 Anthropic 的产品方向，Harvey 也面临同样的 OpenAI 风险。这些公司融资时对标的不是同行，而是整个经济规模，这解释了为什么企业需要自己掌握一部分智能，而不是把核心业务全部交给平台。
+
+[13:24] (Amjad Masad) **Replit 要做模型和云之上的独立层** — Replit 的应对逻辑和 OpenRouter 一致，只是换了一层。Amjad 说 Replit 正在变成企业和基础设施之间的「独立层」：既在多个模型间帮你挑最便宜的 token，也在云厂商之上做抽象，让你能部署到 AWS、Azure，用 Databricks、Snowflake。过去一年几乎全花在把 Replit 做成能部署进客户自己云环境（bring your own cloud）的产品上——这是他两年前觉得自己绝不会做的事，原因是企业对数据主权和安全的顾虑比想象中强得多。
+
+[19:33] (Amjad Masad) **全能私人助理制造了责任真空** — Amjad 反对「一个全能 agent 管所有事」的模式：你让 agent 跨越的领域越多，你对具体事务的理解牺牲得就越多，而没有人为这种牺牲负责——agent 本身不承担责任。他有一个每天自动找事做的通用 agent，结果是每次想改进它，大概一周后就开始无视它的输出。他设想的解法是把全能 agent 拆成许多垂直子 agent，每个只对一块负责、可单独质检，上面再加一个协调用的「chief of staff」agent。
+
+[26:52] (Alex Atallah) **agent互相说话需要一道防火墙** — 当多个 agent 互相协作、甚至互相索要权限时，谁来把关？Alex 提出用便宜快速的「决策模型」实时审查每一次工具调用或 agent 间通信是否符合系统设定——比如红队测试场景里，你不想明说「禁止联网」，但希望 agent 一旦真的试图突破沙箱联网就立刻拦停。这类审查模型只做分类判断、不生成可执行代码，出错空间比通用大模型小得多。
+
+[31:00] (Amjad Masad) **大模型会训练出自己的廉价替身** — 一个更少被讨论的方向是：大模型会训练出自己的替代品。Amjad 用即时编译器打比方：通用模型先处理某类任务，一旦发现这个用例范围有限，就可以在旁训练一个更小、更专用的模型接手，成本更低、也更难被提示注入攻击突破。Alex 补充了安全这一层：很多任务本不需要动用顶级通用大模型，「就像是用核弹去炸一只蝴蝶」。但他也承认，模型越聪明是否真的意味着风险更低，目前没有公开评测数据可验证，相关评测大多是实验室内部私有的。
+
+[42:17] (Amjad Masad) **动态语言的历史会在大模型上重演** — Amjad 用编程语言史做类比：90年代大家迷恋动态语言，Stripe 用 Ruby 起步，Facebook 用 PHP，结果后来发现到处是慢和bug，只好手动加类型，直到 Rust 出现接管了原本该用 JavaScript/Python 的场景。他预测同样的循环会在「AGI 级别的模型」上重演——企业现在把什么任务都丢给昂贵的通用大模型处理，未来会突然意识到这样「浪费又没必要地冒险」，转而为具体任务单独训练小模型。
+
+[45:24] (Alex Atallah) **融合多个模型比单一前沿模型更便宜** — OpenRouter 已经在卖「不只是一个模型」的产品：融合模型（fusion model）把多个不同数据来源训练出的模型输出融合在一起，而不是依赖单一供应商。Alex 说这类工具能压低成本、扩大搜索到的想法广度，他们最早落地的场景是深度研究，结果是质量持平于 Fable、成本降了一半；最新发布的结果显示，用融合加检索框架能做到前沿水平，成本却只有前沿模型的40%到50%。
+
+### 原话 / verbatim quotes
+
+[4:05] Alex Atallah: "both Stripe and OpenRouter really want lots of new companies in the world. We don't want everyone to be a part of one giant company."
+    译 / zh: Stripe 和 OpenRouter 都真心希望世界上出现更多新公司。我们不希望每个人都变成一家巨型公司的一部分。
+
+[12:23] Amjad Masad: "you saw the SpaceX S1 it's like oh $30 trillion it's like what is the world GDP $100 trillion and so there is a sense in which these companies are different than other generation of companies"
+    译 / zh: 你看 SpaceX 的 S-1 文件，哦，30万亿美元——那全球 GDP 是多少，100万亿美元？所以从某种意义上说，这一代公司和以往的公司不一样。
+
+[19:33] Amjad Masad: "the more work you give it to do, the more understanding of what's going on, you're sacrificing. And yet no one no one new is taking responsibility for that sacrifice."
+    译 / zh: 你给它做的事越多，你对正在发生什么的理解就牺牲得越多。而且没有任何新的责任主体来承担这份牺牲。
+
+[25:50] Alex Atallah: "the first use cases that I saw people talking about were, oh, well, I can make two bots, one that knows my bank account. Right. And one that knows my Twitter account. And the two bots, like, don't have the credentials from each other."
+    译 / zh: 我最早看到大家在聊的用法是：我可以做两个机器人，一个知道我的银行账户，对，另一个知道我的 Twitter 账户。这两个机器人彼此不共享对方的凭证。
+
+[33:02] Alex Atallah: "people are using these big foundation AGI-like models to, like, it's like nuking a butterfly, right?"
+    译 / zh: 人们在用这些类 AGI 的大型基础模型去做这些事，这就像是用核弹去炸一只蝴蝶。
+
+[42:17] Amjad Masad: "when the world got super excited about dynamic languages. Like if you think back to the 90s, everyone was writing in Java and C++, things like that. And then like Python, JavaScript, Ruby just like took over the Internet."
+    译 / zh: 当年全世界对动态语言极度兴奋的时候。回想90年代，大家都在写 Java、C++之类的东西，然后 Python、JavaScript、Ruby 就这样接管了整个互联网。
+
+[45:24] Alex Atallah: "this resulted in basically Fable-level quality at 2x lower cost."
+    译 / zh: 这最终做到了基本等同 Fable 水平的质量，而成本却降低了一半。
+
+### 数字 / figures
+
+- 对话中引用的 SpaceX S-1 隐含估值: 30万亿美元 [12:23]
+- 对话中用来对比的全球GDP数字: 100万亿美元 [12:23]
+- OpenRouter融合模型用于深度研究的成本效果: 质量持平Fable水平，成本降为一半（2x lower cost） [45:24]
+- 融合模型+检索框架复现深度研究的成本: 前沿模型成本的40%到50% [45:24]
+
+### 术语 / glossary
+
+- neurodiversity (神经多样性): 混合多个训练方式不同、甚至自训练的模型，而非依赖单一供应商
+- decision model (决策模型): 只输出结构化分类/判断、不生成可执行代码的小型专用模型
+- fusion model (融合模型): 把多个不同模型家族的输出融合，以更低成本逼近顶级模型质量
+- sandbagging (故意藏拙): 模型在评测或训练中刻意隐藏真实能力的行为
+
+谁该听 / who: 关注AI基础设施、担心被模型供应商锁定或替代的创始人、企业AI负责人，以及投资人。
+可跳过 / skip: 前两分钟收购寒暄信息量低，可直接跳到6分钟后的正式讨论。
+标签 / tags: 多模型路由, 企业AI战略, 模型锁定, 智能体, 融合模型, AI安全
+
+==============================================================================
+
+## 决定关系好坏的不是笑话好不好笑，而是你们有没有一起笑
+
+- URL: https://ourword.ai/podcast/p/2026-10-03-ologies-决定关系好坏的不是笑话好不好笑-而是你们有没有一起笑/
+- 节目 / show: Ologies (https://ourword.ai/podcast/s/ologies/)
+- 原集标题 / original episode: Relational Psychology (BONDING VIA LAUGHING) with Sara Algoe and Laura Kurtz
+- 发布 / published: 2026-10-03 · 时长 / duration: 52:59
+- 文稿来源 / transcript: 音频转写 · 9311 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 2 numbers traced to the transcript, review score 7/10
+
+**研究发现：让陌生人同步大笑的信号，比内容是否好笑本身更能预测两人会不会愿意继续交往，哪怕全程没有交谈，也能起效。**
+
+为什么听 / why: 内容轻松但研究设计扎实，几个可操控的笑声实验把「合得来」这种模糊感觉变成了可测量、可预测关系走向的指标。
+
+### 核心论点 / points
+
+[6:06] (Laura Kurtz) **社交孤立的致命性堪比抽烟** — 研究者坦言，做笑声研究常被当作「不够重要」，尤其相比国防研究经费或偏见歧视这类「重课题」。但 Julianne Holt-Lunstead 的一项荟萃分析显示，社交失联对死亡风险的影响，强度等同于每天抽15支烟。这个数字直接把「关系研究是不是软学科」的质疑怼了回去：维系关系不是锦上添花，是实打实的生存变量。
+
+[7:08] **良好社交关系让七年存活率高50%** — 引用的2010年论文覆盖148项研究、超过30万名参与者，发现社交整合程度高的人，未来七年存活概率比社交不足者高50%，效果可与戒烟相比，并且超过肥胖、缺乏运动等公认的死亡风险因素。这一结论在不同年龄、性别、健康状况和死因下都成立，说明社交连接不是某个亚群体的特例，而是普遍规律。
+
+[14:29] (Sarah Algoe) **学界曾因一个嘲讽奖不敢提「爱」字** — 上世纪70年代，心理学家 Ellen Berscheid 和 Elaine Hatfield 因为研究「爱」和吸引力拿到 NIH 资助，结果被参议员 William Proxmire 设立的「金羊毛奖」公开嘲讽为浪费公帑，资助一度被威胁撤回。此后很长一段时间，研究者宁可把课题包装成「冲突研究」，也不敢直说自己在研究「爱」，这段历史被认为拖慢了整个关系科学领域的发展。
+
+[17:35] (Laura Kurtz) **重要的不是谁逗笑谁，是两人同时笑** — 实验把情侣请进实验室聊「我们是怎么认识的」，逐毫秒编码谁在什么时刻笑。结果发现，预测关系亲密度和支持感的不是某一方逗笑了对方，而是两人同时发笑的那些重叠时刻——这个效应独立于对话里其他所有的笑声。研究者特意区分了「幽默」和「笑」：能欣赏一个笑点却不笑是常见的，笑这个行为本身才是信号。
+
+[22:47] (Sarah Algoe) **伪装同步大笑就能骗过陌生人的大脑** — 更极端的设计是：让参与者以为在和另一个真人同时看搞笑GIF，其实对方是预先录好的演员，系统精确控制演员在哪些GIF上「恰好」跟着一起笑。全程没有任何交谈，但被安排成同步大笑的那组，结束后主动表示感觉彼此「在同一个频道上」，更想认识对方——直到被告知这是假的。信号本身比内容是否好笑更重要。
+
+[28:54] (Sarah Algoe) **笑点是一次无害的意外** — 两位研究者认同 Peter McGraw 提出的「良性冒犯假说」：人之所以会笑，是因为大脑把某件事判定为对自己世界观的一次冒犯，但同时判定这次冒犯是安全、无害的——太严肃或太可预测都不好笑。举的例子是告诉不信教的人「教堂在抽奖送一辆悍马」，这种违反预期又无害的反差本身就能引发笑声，哪怕只是听到实验设计就会笑出来。
+
+[37:24] (Sarah Algoe) **吵架时还能笑的夫妻婚姻更长久** — 在高压、信息过载的当下，研究者认为「正向时刻」不是奢侈品而是生存刚需：没有这些时刻，人无法撑过长期的压力。甚至在冲突研究里，预测一段婚姻能否长久的强力指标之一，就是两人吵架过程中是否还会笑——笑声提供了情绪缓冲，让人有力气「继续打这场仗」而不是耗竭退出。
+
+[39:44] (Sarah Algoe) **越想让自己开心，反而越不开心** — 引用 Lana Catalino 关于「优先正向情绪」的研究：主动追求快乐本身会让人不断监控自己「是不是够开心」，结果适得其反，带来更多抑郁症状而非更少。真正有效的方法不是追逐快乐这个结果，而是提前把能自然带来快乐的活动排进日程——陪朋友、做爱好——行为先行，情绪自然跟上，这和「爱是一种行动」的逻辑一致。
+
+### 原话 / verbatim quotes
+
+[6:06] Laura Kurtz: "the effect of social disconnection is as strong on our mortality risk as smoking 15 cigarettes a day"
+    译 / zh: 社交失联对我们死亡风险的影响，强度和每天抽15支烟一样大。
+
+[12:20] Sarah Algoe: "And he stood up there at his presidential address. And he said, love is at the center of everything. And I have no idea why you guys aren't studying love. We can do this scientifically."
+    译 / zh: 他站在就职演讲台上说：爱是一切的核心。我完全不明白你们这些人为什么不研究爱，我们完全可以用科学的方法来做这件事。
+
+[14:29] Sarah Algoe: "who developed a thing called the Golden Fleece Award, and he made fun of them for studying love. He said, you can't study love."
+    译 / zh: 他搞了个叫「金羊毛奖」的东西，专门嘲讽他们研究爱这件事。他说，你没法研究爱。
+
+[24:48] Sarah Algoe: "the people in the shared laughter conditions were the ones that said, you know what? I think we were on the same wavelength during that interaction, even though we didn't even talk to each other."
+    译 / zh: 被安排在同步大笑组的那些人会说：你知道吗，我觉得我们在那次互动中其实是在同一个频道上的，尽管我们根本没有交谈过。
+
+[28:54] Sarah Algoe: "The idea is that in order to find something funny, to laugh at something, you have to perceive it as a benign violation to your worldview."
+    译 / zh: 这个理论认为：要觉得一件事好笑、要为此发笑，你必须把它感知为对你世界观的一次无害的冒犯。
+
+[37:24] Sarah Algoe: "actually one of the really strong predictors of the longevity of that marriage is whether they're laughing during the conflict."
+    译 / zh: 预测一段婚姻能否长久的一个很强的指标，其实是他们在冲突过程中有没有在笑。
+
+[39:44] : "Correlational research suggests that people who obsess about their happiness tend to feel fewer positive emotions and more depressive symptoms. These results suggest that the pursuit of happiness backfires."
+    译 / zh: 相关性研究表明，那些执着于追求自身幸福感的人，反而体验到更少的正向情绪和更多的抑郁症状。这些结果说明，追逐幸福本身会适得其反。
+
+### 数字 / figures
+
+- 社交孤立对死亡风险的影响: 相当于每天抽15支烟 [6:06]
+- 社交关系良好者未来七年存活概率: 高50% [7:08]
+
+### 术语 / glossary
+
+- benign violation hypothesis (良性冒犯假说): 认为笑点源于一件事被感知为对自己世界观的无害冒犯
+- inclusion of other in the self (自我-他人融合量表): 用两个重叠圆圈衡量你与另一人心理上有多接近
+- Golden Fleece Award (金羊毛奖): 美国参议员设立、用来嘲讽「浪费公帑」科研项目的讽刺奖项
+
+谁该听 / who: 对关系科学、团队文化设计感兴趣的创业者和产品经理，以及想了解孤独如何影响健康的人。
+可跳过 / skip: 开头和中段约20:41-21:46的Vrbo广告可以跳过，不影响研究内容的理解。
+标签 / tags: 关系心理学, 笑声与亲密感, 社交孤立与健康, 良性冒犯假说, 催产素
+
+==============================================================================
+
+## 保罗说的「灵」是斯多葛式的物质，不是柏拉图式的虚无
+
+- URL: https://ourword.ai/podcast/p/2026-10-03-hopwag-保罗说的-灵-是斯多葛式的物质-不是柏拉图式的虚无/
+- 节目 / show: History of Philosophy Without Any Gaps (https://ourword.ai/podcast/s/hopwag/)
+- 原集标题 / original episode: HoP 500c Troels Engberg-Pedersen on St Paul and the Stoics
+- 发布 / published: 2026-10-03 · 时长 / duration: 41:28
+- 文稿来源 / transcript: YouTube 字幕 · 6416 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 5 numbers traced to the transcript, review score 7/10
+
+**保罗本人从未区分物质世界与非物质的「灵」，这个二分是基督教后来被柏拉图主义接管之后才强加上去的，在保罗和斯多葛哲学里「灵」都是实在的物质。**
+
+为什么听 / why: 如果对哲学如何具体渗透进早期基督教、而不只是停留在神学史叙事感兴趣，这集给出了逐句对照的论证路径，信息密度很高。
+
+### 核心论点 / points
+
+[5:16] (Troels Engberg-Pedersen) **三层证据证明保罗懂斯多葛** — 要判断保罗究竟多了解斯多葛哲学，证据分三层：第一层是他直接借用的斯多葛术语，比如「恰当行为」「进步」(prokope)；第二层是他书信里反复出现的道德劝勉写法(paronesis)，这种方式与同时代斯多葛派塞涅卡的书信几乎一致；第三层最关键，是用斯多葛概念去解释保罗自己想表达但没讲清楚的东西——罗马书7章描述在摩西律法下挣扎的状态，用的正是希腊哲学里「意志软弱」(akrasia)的框架，而这恰恰是斯多葛派认为应彻底摆脱的「激情」。
+
+[10:21] (Troels Engberg-Pedersen) **皈依基督和斯多葛贤者觉悟是同一种转变** — 斯多葛派认为，人一开始把食物、住所、社会地位都当作「好」，直到某一刻才认识到唯一真正的好是「依照自然生活」，其余一切都变成「无关紧要之物」——这是一次纯粹认知层面的转变。保罗描述基督信仰的获得用的是同一个结构：相信「神差遣独生子基督从天而降、死在十字架上又复活」这件具体的事，一旦相信，就会带来同样性质的认知转变——不是情感上的，而是认知上的，只是驱动它的不是理性而是圣灵。
+
+[15:26] (Troels Engberg-Pedersen) **基督徒社群是斯多葛世界公民的落地版** — 保罗在腓立比书里称信徒应「作天上的国民」，这个词直接呼应斯多葛派芝诺在《理想国》里构想的贤者共同体——不属于任何具体城邦，却构成一种平行的真正共同体。区别在于斯多葛的世界公民只是名义上的，而保罗笔下的教会是实实在在写信、实实在在聚会的具体团体，针对哥林多人、腓立比人逐一喊话，这是书信体裁带来的落地感，斯多葛哲学论著里没有这种具体性。
+
+[18:28] (Troels Engberg-Pedersen) **斯多葛伦理不是自私的幸福主义** — 有人质疑斯多葛伦理是自我中心的幸福论，但这其实是被康德之后的传统误读了。亚里士多德讲的幸福只是指「一个人所有行动目标都已实现」的整体状态，至于这个目标具体是什么，答案是正义等关乎他人的美德。保罗在腓立比书里讲的格言——「各人不要单顾自己的事，也要顾别人的事」——和这个结构完全一致：个人幸福本身就包含了利他的内容，不需要额外嫁接。
+
+[24:36] (Troels Engberg-Pedersen) **信徒已经是贤者，不是在追求贤者** — 斯多葛派坚持完美贤者理论上可能存在，但实际上承认一个都没见过，像传说中的凤凰一样稀有。保罗则相反：他认为信徒不是在朝贤者的理想努力，而是已经到达了——亚里士多德伦理学追问的「德性与实践智慧如何实现」，在保罗笔下的信徒身上已经实现。那为什么还要不断劝勉？因为这种劝勉体的逻辑本身预设听者已经见过那个理想、已经进了「基督的圆圈」，劝勉只是提醒，而不是从零开始的说服。
+
+[27:38] (Troels Engberg-Pedersen) **「无关紧要」被保罗用来拆掉身份差异** — 斯多葛的「无关紧要」原本用来说明金钱、家庭这类世俗价值本身不重要，保罗把它用在两个地方：一是种族和身份——在基督耶稣里，受割礼不受割礼都无关紧要，是犹太人是希腊人、是奴隶是主人、是男是女都无关紧要；二是日常生活决定——该不该结婚、该不该继续当奴隶，答案都是不重要，只要不执著于其中一种状态即可，因为「这世界的样子将要过去」。这是斯多葛哲学被嫁接到保罗自己犹太启示论末世观上的例子。
+
+[29:40] (Troels Engberg-Pedersen) **保罗讲的灵是物质，不是形而上的东西** — 现代人一听「圣灵」就自动理解成柏拉图式的非物质，但这个理解是后来的产物——基督教在公元二三世纪被柏拉图主义接管之后才形成了物质世界与非物质理念世界的二分，这个二分在保罗那里完全不存在，斯多葛哲学本身也是反对柏拉图(和部分亚里士多德)二元论而发展出来的一元论。保罗在哥林多前书15章讨论复活的身体时，拿太阳、月亮、星辰这些天体作类比，得出存在一种「属灵的身体」的结论，这应该按字面、物质性地理解，而不是隐喻。
+
+[36:41] (Troels Engberg-Pedersen) **神学与哲学的二分是时代错置** — 面对「保罗是神学家不是哲学家，不该进哲学史播客」的质疑，回应是：柏拉图、亚里士多德、斯多葛派都谈论神，也都谈论伦理，两者当时统一在哲学名下，神学与哲学的尖锐对立是后世才出现的分类方式。保罗虽不直接自称在做哲学，但在哥林多前书1章里，他区分了十字架的信息与希腊人追求的智慧、犹太人追求的神的大能之后，仍然说「在成熟的人中间，我们讲的是智慧」。他不是又一个希腊哲学家，而是一个异类，用希腊式的思考方式表达自己的信息。
+
+### 原话 / verbatim quotes
+
+[11:21] Troels Engberg-Pedersen: "God has sent his son Jesus the Christ from above to die on a cross and then to come alive and be resurrected again."
+    译 / zh: 神差遣他的儿子耶稣基督从上面来，死在十字架上，然后复活过来。
+
+[15:26] Troels Engberg-Pedersen: "live here and now as citizens in a manner that is worthy of the gospel about Christ."
+    译 / zh: 此时此地就要以配得上基督福音的方式，作国民而活。
+
+[23:34] Troels Engberg-Pedersen: "let the same mind be in you that was in Christ Jesus, namely when he died and was resurrected for the sake of human beings."
+    译 / zh: 你们当有这样的心志，就是基督耶稣的心志——他为人类的缘故死而复活。
+
+[27:38] Troels Engberg-Pedersen: "in Christ Jesus neither circumcision that is being a Jew nor uncircumcision that is not being a Jew counts for anything. The only thing that counts is faith working through love."
+    译 / zh: 在基督耶稣里，受割礼或不受割礼都算不得什么，唯独那藉着爱发出来的信才算数。
+
+[28:40] Troels Engberg-Pedersen: "the appointed time has grown short. From now on, let even those who have wives be as though they had none, and those who deal with the world as though they had no dealings with it. For the present form of this world is passing away."
+    译 / zh: 定准的时候已经缩短了。从今以后，有妻子的要像没有妻子，与世界打交道的要像不打交道，因为这世界的样子将要过去。
+
+[31:41] Troels Engberg-Pedersen: "That distinction is not found in Paul nor is it at all in stoicism which to a large extent was developed precisely in reaction to the dualism of Plato and to some extent also Aristotle."
+    译 / zh: 这种区分在保罗那里并不存在，在斯多葛哲学里也完全不存在——斯多葛哲学在很大程度上正是为了反对柏拉图(以及部分亚里士多德)的二元论而发展出来的。
+
+[38:45] Troels Engberg-Pedersen: "I'm not saying that Paul was just another great philosopher. I'm asking people to see him as, if you will allow me, an odd man out who, in addition to everything else he does, also employs Greek ways of thinking and quite centrally so to articulate his own message."
+    译 / zh: 我不是说保罗只是又一位伟大的哲学家。我是想让大家把他看作——容我这么说——一个异类，他在做其他事情的同时，也相当核心地运用了希腊式的思维方式来表达自己的信息。
+
+### 数字 / figures
+
+- 保罗书信写作年代: 公元49-55年 [1:10]
+- 早于四福音书成书时间: 15-30年 [1:10]
+- 保罗真实书信数量: 7封 [1:10]
+- 巴迪欧《圣保罗与普世主义的基础》出版年份: 1997年 [2:10]
+- 现代哲学家重读保罗的时间段: 1995-2020年 [2:10]
+
+### 术语 / glossary
+
+- paronesis (道德劝勉): 书信中反复敦促读者实践已知美德的劝诫体裁
+- adiaphora (无关紧要之物): 斯多葛伦理学中善恶之外、本身不具价值的中性事物
+- pneuma (普纽玛/灵): 斯多葛与保罗笔下具物质属性的「灵」，非柏拉图式非物质精神
+- akrasia (意志软弱): 明知正确却无法按其行动的心理状态
+- politeuma (邦籍/国民身份): 保罗借用希腊城邦政治术语，指信徒作为天上之国的国民
+- eudaimonia (幸福): 古希腊伦理学核心概念，指个人行动目标全部实现后的整体状态
+
+谁该听 / who: 对早期基督教思想史、斯多葛伦理学，或「哲学与神学的边界」感兴趣的听众。
+可跳过 / skip: 开场关于播客系列为何此前跳过保罗的寒暄(0:09-1:10)可跳过。
+标签 / tags: 早期基督教, 斯多葛主义, 圣保罗, 新约, 古希腊伦理学
+
+==============================================================================
+
+## AI监管下一步不是管模型，而是像配给电力一样配给算力
+
+- URL: https://ourword.ai/podcast/p/2026-10-02-allin-ai监管下一步不是管模型-而是像配给电力一样配给算力/
+- 节目 / show: All-In (https://ourword.ai/podcast/s/allin/)
+- 原集标题 / original episode: Trump's Super Intelligence Summit, AI Safety Accord, GDP Beats, Midterm Predictions
+- 发布 / published: 2026-10-02 · 时长 / duration: 1:22:29
+- 文稿来源 / transcript: 音频转写 · 15683 words · timestamps are exact
+- 校验 / verification: 8 quotes matched verbatim, 8 numbers traced to the transcript, review score 8/10
+
+**弗里德伯格认为，模型每11天就迭代一代，根本管不住；真正能卡脖子的是GPU和服务器数量，政府迟早要出手分配算力。**
+
+为什么听 / why: 能看到白宫AI协议签署前后的权力博弈、中期选举前罕见的正面经济数据解读，以及对劫机报道用词的较真，信息密度不低。
+
+### 核心论点 / points
+
+[3:03] (Sacks) **协议自愿签署，问责却是法定的** — Sacks 说明《白宫超级智能协议》怎么三周内谈成：特朗普把六家头部模型公司的CEO召到白宫，这些公司平时互相打官司也不说话，但都坐下来谈了。协议分三层——公司先承认自己是责任主体，建立内部管控；外部审计机构核验这些内部管控是否真实有效；董事会设独立委员会接收审计报告，一旦收到报告却不作为，董事高管责任险（D&O）可能被取消，这把「自愿签署」变成了对董事会有法律约束力的东西。背后还有FTC、SEC兜底执法。整个流程不需要新立法，也不需要等不可能达成的国际协议。
+
+[8:15] **达里奥本来不想来，特朗普亲自拉他回桌** — Anthropic的Dario公开反特朗普，组织里96%的人政治立场偏左，此前从不参加这类活动。Sacks透露，特朗普注意到前几次活动都没邀请Dario，主动打电话说这是疏漏，请他来吃晚饭，两人在峰会前两天单独共进晚餐。到了正式场合，特朗普还把站在后排的Dario拉到台前发言。Sacks说第一次当面见Dario时，对方开玩笑叫他「我的死对头」。Chamath则形容那个房间像在拍《X战警》——一屋子立场、性格都不同的「天才」，却被拢在一起为同一件事表态。
+
+[22:33] (Friedberg) **下一步监管不是管模型，是配给算力** — Friedberg预测，12到18个月后，围绕「监管模型、给模型打分」的讨论会整体过时——因为开源权重模型已经扩散到任何地方都能跑，根本管不住，而且现在平均每11天就有新模型发布，模型层面的管控规则跟不上迭代速度。他认为真正会发生的是：政府转而管制数据中心的算力分配，按国家安全需要决定金融系统、国防系统等各拿多少GPU、多少推理算力、多少服务器——因为网络防御的胜负最终取决于你能调配多少台机器，这是一场纯粹的军备竞赛逻辑。
+
+[41:02] (Chamath) **末日论被当成选举工具在用** — Chamath透露，峰会前后台，一位知名民主党人士在台上大谈AI末日论，甚至把在场所有人都算进「要失业」的名单里，他当场反驳说这完全不是基于数据。他的判断是：末日论对不在权力结构里的一方（他指民主党）是极好的恐惧动员工具，能在中期选举和2028年把恐慌转化为选票。Jcal补充了一个细节佐证末日论确实已经渗透到普通人：他在达美航空的航班上，一位准备退休的空乘跟他说自己很庆幸能在AI抢工作之前退休。Friedberg指出这类说法最早是达里奥和马斯克自己放出来的，现在反而被用来对付整个行业。
+
+[45:21] (Sacks) **GDP、就业全面上修，却没人信** — Sacks列了一串刚公布的数据反驳「K型复苏」说法：二季度GDP从1.5%上修到2.2%，一季度从2.1%上修到2.5%，亚特兰大联储对三季度的实时预测在3.7%左右；8月非农新增16.2万，远超市场预期的5.5万；核心PCE通胀3.0%，低于预期的3.3%。他还给出收入数据：2025年美元计价的家庭收入中位数接近9万美元，扣税后家庭收入在特朗普第二任期年均增长3.1%（拜登任期是负1.2%），贫困率10.2%，是历史最低。他的结论是穷人和中产都在受益，只是感受没跟上数据。
+
+[49:34] (Friedberg) **95家银行10月30日要爆雷式亏损** — Friedberg用ChatGPT当「财务分析师」测算利率上升对银行的冲击：全美有4295家上报FDIC报表、净资产为正的银行，按它们目前的资产负债表测算，大约95家将在过去30天的利率变动中出现超过20%净资产的减值。这些银行的9月报表要到10月30日才公布，恰好撞上中期选举前的最后关口。他的判断是：利率问题不只是消费者买车买房的融资成本问题，很可能通过这批银行的减值在选举季掀起一波金融系统的连锁冲击。
+
+[1:00:17] (Sacks) **2022年的教训：民调和真实结果不是一回事** — Chamath看Polymarket赔率：民主党拿下参议院63%、拿下众议院93%，两院全拿64%。Sacks则提醒2022年他犯过同样的错——当时坚信会有「红色浪潮」，结果只是「红色细流」，原因是只盯着拜登支持率和9%的通胀这类感受指标，却没看GDP和失业率这些实际数据。他的判断是这次会反过来：共和党保住参议院，民主党即便拿下众议院也会是极窄多数，众议院议长哈基姆·杰弗里斯可能会像凯文·麦卡锡一样，被自己党内少数派绑架到难以施政。
+
+[1:11:54] (Friedberg) **多家媒体统一用「争执」形容一起劫机未遂** — 迪拜航空一名阿曼籍副驾驶持刀刺伤机长并试图效仿9/11撞机，机上174名乘客靠非值勤飞行员和几名乘客合力制服了他，安全备降。Friedberg发现事发第二天，《纽约时报》称其为「争执」，《华尔街日报》叫「争斗」，BBC叫「飞行员之间的打斗」，Sky News叫「互殴」，AFP说他们在「打架」——用词高度一致。Chamath的判断是这种统一措辞不是巧合，而是同一套话术层层下发的结果；更离谱的是，第二天《纽约时报》头版把其中一条重点放在「以色列政客借此在选举中博取政治分数」上。
+
+### 原话 / verbatim quotes
+
+[5:12] Sacks: "So although this agreement was entered into voluntarily, the governance that follows from it is not voluntary."
+    译 / zh: 这份协议虽然是自愿签署的，但由此而来的治理约束却不是自愿的。
+
+[9:15] Chamath: "He says, whoever wins superintelligence wins. And then he just stopped talking."
+    译 / zh: 他说，谁赢得超级智能，谁就赢了。然后他就不说话了。
+
+[22:33] Friedberg: "What I think is going to end up happening, and this is a prediction no one may like, but I do think we're going to end up in a world where governments are going to regulate data center access and usage."
+    译 / zh: 我认为最终会发生的——这是个没人会喜欢的预测——是我们会走向一个政府来监管数据中心准入和使用的世界。
+
+[27:46] Sacks: "He said, oh, my nemesis. You know, he sort of joked."
+    译 / zh: 他开玩笑说，哦，我的死对头。
+
+[41:02] Chamath: "There's an incredibly important incentive for folks that are not in the power structure today, i.e. Democrats. To take up the doomerism call to action, because it is a very straightforward way to whip up fear and to then catalyze that to power in the midterms and then in 28."
+    译 / zh: 对那些现在不在权力结构里的人——也就是民主党——来说，拿起末日论这面旗帜有极强的动机，因为这是煽动恐惧、再把恐惧在中期选举和28年大选中转化为权力的一条最直接的路径。
+
+[45:21] Sacks: "q2 gdp was revised up to 2.2 percent up from 1.5 percent so that's basically a 50 percent increase economists had expected no revision"
+    译 / zh: 二季度GDP从1.5%上修到2.2%，相当于上修了50%，而经济学家原本预期是不会有任何上修的。
+
+[49:34] Friedberg: "There's 4,295 banks that have positive equity that report FDIC, their balance sheets every month. Based on the actual reported balance sheet of these banks, about 95 banks are going to see an impairment of more than 20% of their equity in the last 30 days"
+    译 / zh: 全美有4295家净资产为正、每月向FDIC上报资产负债表的银行。根据这些银行实际上报的资产负债表测算，大约95家银行将在过去30天里出现超过20%净资产的减值。
+
+[1:11:54] Friedberg: "the first one was new york times come came out and said it was an altercation and then the journal called it a struggle the bbc called it a fight between pilots sky news called it a brawl between pilots afp called it you know said they were fighting"
+    译 / zh: 第一家《纽约时报》出来说这是一场「争执」，《华尔街日报》称之为「争斗」，BBC说是「飞行员之间的打斗」，Sky News说是「飞行员互殴」，法新社说他们在「打架」。
+
+### 数字 / figures
+
+- 二季度GDP修正值: 从1.5%上修到2.2% [45:21]
+- 核心PCE通胀: 3.0%，预期3.3% [46:25]
+- 美国贫困率: 10.2%，历史最低 [47:27]
+- 净资产为正且上报FDIC的银行数: 4295家 [49:34]
+- 预计净资产减值超20%的银行数: 约95家 [49:34]
+- 短期国债利率30天内涨幅: 60个基点，为2002年以来最高 [49:34]
+- 伊朗战争以来汽油价格涨幅: 50% [57:06]
+- Polymarket预测民主党两院全拿概率: 64% [1:00:17]
+
+### 术语 / glossary
+
+- White House Accord on Superintelligence (白宫超级智能协议): 六家头部模型公司联合签署的AI安全自律框架
+- D&O policy (董事高管责任险): 董事会若收到审计问题报告却不作为，该保险可能被取消
+- K-shaped recovery (K型复苏): 高收入群体受益、低收入群体受损的分化式经济复苏
+- Polymarket (预测市场平台Polymarket): 靠真实下注反映事件发生概率的交易平台
+- Atlanta Fed GDPNow (亚特兰大联储GDP实时预测模型): 根据高频数据滚动估算当季GDP增速的模型
+
+谁该听 / who: 关注AI政策与合规、想看懂中期选举前经济数据博弈，以及对媒体叙事如何被塑造感兴趣的创业者和投资人。
+可跳过 / skip: 开场聊Starlink能当UFO探测器的部分，纯闲聊，可直接跳到2分钟后的正题。
+标签 / tags: AI监管, 算力配给, 中期选举, 宏观经济, 媒体叙事
 
 ==============================================================================
 
@@ -540,6 +1003,163 @@
 
 ==============================================================================
 
+## 自研芯片是场豪赌：架构一变，九个月内就可能被对手甩开
+
+- URL: https://ourword.ai/podcast/p/2026-10-02-nopriors-自研芯片是场豪赌-架构一变-九个月内就可能被对手甩开/
+- 节目 / show: No Priors (https://ourword.ai/podcast/s/nopriors/)
+- 原集标题 / original episode: Frontier Chips for Frontier AI Labs, with Walter Goodwin, Founder/CEO of Fractile
+- 发布 / published: 2026-10-02 · 时长 / duration: 35:38
+- 文稿来源 / transcript: 音频转写 · 6944 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 7 numbers traced to the transcript, review score 7/10
+
+**一旦对手摸到只在自家芯片上生效的新架构，押注自研芯片的实验室可能在几个月内就被清出赛场——这正是前沿玩家不敢把身家全压在一款专属芯片上的原因。**
+
+为什么听 / why: 创始人罕见地讲透内存带宽、SRAM/DRAM取舍与芯片市场博弈逻辑，干货密度高，全程值得听。
+
+### 核心论点 / points
+
+[1:01] (Walter Goodwin) **押注推理速度而非训练规模** — Fractile 2022年夏天成立，当时行业还在被「教育」什么是推理。Walter 的判断是押注部署时代而非训练时代：模型会像AlphaGo一样，通过在测试时投入更多算力变得超越人类水平。这个判断比同行早很多——他提到一家最近上市的推理芯片公司，直到18个月前做的其实还是训练芯片，说明「押对方向」本身就是稀缺能力，而不是事后看起来那么显而易见。
+
+[3:02] (Walter Goodwin) **芯片市场看似多元实则同质** — Walter 指出，今天的AI芯片市场表面上有一个极其丰富的选项「动物园」,但谷歌TPU、Meta MTIA、微软Maya、OpenAI Jalapeno这些自研芯片，最终都要交给Broadcom这类市值2万亿美元的代工交付商完成从架构到流片的落地。它们用的都是同一种HBM内存、同一种张量核心做矩阵乘法、同一套台积电先进封装——真正打通架构层到物理设计层全栈的团队极少，这是一个结构性的行业特征。
+
+[11:24] (Walter Goodwin) **放弃SRAM转投高带宽DRAM** — 公司前两年像Grok、Cerebrus一样押注SRAM芯片——计算单元和权重/KV缓存同片，带宽极高，能把语言模型推到每秒数千token。但2023年底到2024年，Walter开始担心这条路线的可扩展性：AI领域同时在增长的不只是参数量，还有正变得越来越重要的上下文长度，而SRAM容量天然有限。于是团队转向和内存厂商、代工厂联合研发DRAM的超高带宽方案，这套平台将在明年下半年量产爬坡。
+
+[12:25] (Walter Goodwin) **更快聊天机器人是更快的马** — Walter 用福特的类比反驳「推理加速=更丝滑的聊天体验」这个浅层叙事：亨利·福特问人们想要什么，得到的回答是更快的马，而不是汽车。同理，「更快的聊天机器人」只是快推理领域的「更快的马」。他认为速度真正撬动能力的地方，是把万亿参数模型跑到每秒数千token,从而让长时间运行的智能体被彻底提速——这才是快推理芯片真正该瞄准的场景，而不是对话延迟。
+
+[22:12] (Walter Goodwin) **护城河是提前三到六个月下注** — Walter 把芯片竞争类比成前沿模型竞赛：没人能永远拥有精准匹配当下工作负载的芯片，六个月后需求又会变。真正的优势来自于保持一个「随时可触发量产」的技术路线储备——如果能在架构判断上结构性地领先竞争对手三到六个月，就足以拿下这段时间里所有的新部署。这也是为什么Fractile要自己掌握从架构设计到流片的全栈能力，而不是依赖外部合作方的节奏。
+
+[28:28] (Walter Goodwin) **带宽增长远落后于算力增长** — Fractile内部在探索「带宽的scaling law」:过去20年算力提升了约一百万倍，而内存带宽只提升了约40倍。这个失衡留出了空间——如果芯片带宽足够高，MOE模型可以做得更稀疏(比如从1/16稀疏度提到1/128、1/256)来换取同等智能水平下更低的计算量，但现有HBM芯片在超高稀疏度下会严重带宽瓶颈，利用率很低。Fractile押注的25倍带宽优势，本质是想反过来牵引模型架构往更稀疏的方向走。
+
+[31:35] (Walter Goodwin) **自研芯片主要用来压价英伟达** — 行业有个段子：大厂自研芯片的主要作用是压低付给英伟达的价格，而不是实现英伟达做不到的能力，因为这些自研芯片在架构上和主流方案高度相似。Walter认为今天几乎所有大规模部署方都在尽量多接入不同芯片平台，原因之一就是算力这件事变得过于关乎生死，必须保有供应多样性，而不是单纯相信某一条技术路线能笑到最后。
+
+[33:36] (Walter Goodwin) **全押自研芯片是危险赌注** — Walter认为前沿实验室不会把身家全押在自研芯片上，深层原因是一场不对称博弈——如果某个实验室押注了专属芯片，而对手发现了只在他们所选芯片上才生效的新突破，能带来数倍的计算效率提升，自己可能在还没来得及部署足够多专属芯片之前就被淘汰出局。所以这些前沿玩家反而需要彼此部署相同的平台，因为他们是在模型层面竞争，而不是在芯片层面押生死注。这正是第三方前沿芯片公司长期存在的理由。
+
+### 原话 / verbatim quotes
+
+[0:00] Walter Goodwin: "Right now we're trying to build a single chip. If you crack open an NVIDIA system, it has anywhere between kind of six and nine custom chips, all built by NVIDIA, to come together to build something that is really, really potent. So there's already a gap there."
+    译 / zh: 我们现在还在努力造出一颗芯片。而如果你拆开一套英伟达系统，会发现里面有六到九颗由英伟达自己打造的定制芯片组合在一起，才造就了这么强悍的东西。差距已经摆在这里了。
+
+[1:01] Walter Goodwin: "we need to find a way to pour more compute into these models at test time"
+    译 / zh: 我们需要找到办法，在测试时给这些模型注入更多算力。
+
+[3:02] Walter Goodwin: "one of the things that I think is very striking is there's a lot of relatively identikit chips out there."
+    译 / zh: 我觉得很惊人的一点是，市面上有大量彼此高度相似、几乎像复制粘贴出来的芯片。
+
+[12:25] Walter Goodwin: "when Henry Ford sort of asked the rhetorical question of what people would have said they wanted and, you know, faster horses rather than a car. The snappier chatbot is kind of the faster horses of kind of fast inference."
+    译 / zh: 就像亨利·福特那个反问：如果问人们想要什么，他们会说想要更快的马，而不是汽车。更丝滑的聊天机器人，就是快推理领域的「更快的马」。
+
+[22:12] Walter Goodwin: "if you can just find a way to structurally carve out a three to six months advantage, you will be winning all of those deployments."
+    译 / zh: 只要你能找到办法，结构性地建立起三到六个月的领先优势，你就会赢下这段时间里所有的部署。
+
+[30:32] Walter Goodwin: "We've scaled flops like a million fold in the last 20 years. Memory bandwidth has gone up about 40x in the same time frame."
+    译 / zh: 过去20年里，我们把算力(flops)提升了大约一百万倍，而同一时期内存带宽只提升了大约40倍。
+
+[34:36] Walter Goodwin: "I could die in the nine months before I get to deploy enough of that chip that I've also now gained that kind of 5x in computational efficiency."
+    译 / zh: 我可能在还没来得及部署足够多那种芯片、从而获得那五倍计算效率提升之前，就已经死在了那九个月里。
+
+### 数字 / figures
+
+- NVIDIA系统内定制芯片数量: 6到9颗 [21:09]
+- Broadcom市值: 2万亿美元 [3:02]
+- Fractile员工规模: 约150人 [8:19]
+- 芯片流片周期: 3到5个月 [18:42]
+- 芯片摊销回本周期: 3到5年 [18:42]
+- Fractile芯片带宽优势: 比HBM芯片高25倍 [28:28]
+- 20年来内存带宽增长倍数: 约40倍 [30:32]
+
+### 术语 / glossary
+
+- HBM (高带宽内存): 与GPU/TPU等芯片同封装的高速DRAM,是当前主流AI芯片的标配内存
+- ASIC house (芯片代工交付商): 如Broadcom,帮大厂把芯片架构设计落地为可流片版图的后端合作方
+- GDS2 (版图文件格式): 芯片设计最终提交给晶圆厂的文件，记录每个晶体管和金属层的物理位置
+- DRC/LVS clean (设计规则/版图一致性签核): 版图通过晶圆厂规则检查且与电路图一致，是流片前的最终签核标准
+- MFU (模型算力利用率): 芯片实际有效算力占理论峰值算力的比例
+- RSI (递归自我改进): AI利用自身能力迭代改进研发流程的概念，此处类比芯片设计自动化
+
+谁该听 / who: 关注AI推理芯片技术路线、算力采购与半导体创业格局的工程师和投资人。
+标签 / tags: 推理芯片, 内存带宽, 芯片架构, 半导体创业, AI基础设施, 市场格局
+
+==============================================================================
+
+## 被判违法的关税，换个法律条文就原样续命
+
+- URL: https://ourword.ai/podcast/p/2026-10-02-chinatalk-被判违法的关税-换个法律条文就原样续命/
+- 节目 / show: ChinaTalk (https://ourword.ai/podcast/s/chinatalk/)
+- 原集标题 / original episode: Section 301 and the Spice Man who Sued Trump Over Them
+- 发布 / published: 2026-10-02 · 时长 / duration: 1:05:14
+- 文稿来源 / transcript: 音频转写 · 12791 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 8 numbers traced to the transcript, review score 7/10
+
+**美国贸易代表办公室援引《贸易法》301条，对占美国贸易额99%的60个经济体加征10%或12.5%关税，税率安排与去年被最高法判违法的关税几乎相同。**
+
+为什么听 / why: 该集少见地把关税诉讼的法律机制、具体税率和小企业视角讲清楚，适合想看懂关税官司走向的人。
+
+### 核心论点 / points
+
+[2:01] (Peter Harrell) **最高法判违法后换个法条重收** — 最高法二月裁定Learning Resources案中，特朗普依据IEEPA征收的第一轮关税违法，但政府没有放弃，而是先后祭出两套备用关税：先是150天有效期、目前也在被诉的《1974年贸易法》122条关税，到期当天无缝切换成现在正在征收的301条关税。Burlap and Barrel是301条诉讼的主力原告之一，核心主张是这轮加税既没走301条要求的程序，范围也宽到超出法律授权。
+
+[10:33] (Ethan) **香料关税没有本土产业可保护** — 黑胡椒、肉桂、香草这类经典香料美国本土根本种不出来，不存在需要保护的国内产业，这和钢铁、半导体类关税的逻辑完全不同。公司目前从约28个国家采购香料，越南的皇家肉桂、桑给巴尔的黑胡椒都是当地几十年甚至几代人种出来的品种，不可能靠在美国「建一个肉桂农场」替代。而且多数香料本身历史上就是免税的，只有越南大蒜这类和加州本土产业直接竞争的少数品类才被征过税。
+
+[21:23] (Ethan) **关税日反而成了一次成功营销** — 解放日关税生效后，公司很快判断香料原料只占成本很小一部分，财务冲击可控，于是两天内宣布关税特卖，并承诺既不涨零售价，也不让合作农户分摊关税成本，自己把这部分开支扛下来——这个承诺坚持了近两年。消费者被这个表态打动，一次关税特卖短时间内带来约25万美元销售额，公司顺势把一次关税新闻变成了供应链话题的免费曝光。
+
+[29:50] (Ethan) **大公司躲在场边，小企业冲在前面** — 目前几乎所有挑战关税的诉讼原告都是小企业或个别民主党州政府，真正每年为关税掏出几十亿美元的大公司反而全部按兵不动。Ethan的判断是：政府在此前的关税案里说过不少狠话，但从未点名任何一家公司或个人进行报复；公司自己没有外部投资人、夫妻二人持股100%，不用说服董事会；再加上公司本来就靠媒体曝光做营销，参与诉讼带来的公关价值是正的——这是小企业敢冲、大企业不敢冲的真实原因。
+
+[38:15] (Peter Harrell) **301条从谈判工具变永久关税** — Peter拆解301条的历史用法：过去约130次使用，都是针对单一国家或欧盟某项具体不公平贸易行为，作为谈判杠杆逼对方让步，比如80年代对日本半导体、特朗普一期对中国知识产权，事后要么达成协议要么结束。这一次USTR对60个经济体几乎是复制粘贴同一份调查文本，目的是把这套税率永久固定下来，而不是谈出一个结果，庭审中三名法官对政府「法院应对行政部门保持尊让」的论证提出了不少质疑。
+
+[45:36] (Peter Harrell) **强制劳动是借口，税率和它无关** — 301条本轮加税的法律依据是「贸易伙伴未能阻止强制劳动产品流入」，统一开出10%或12.5%两档税率：有禁令但执法不力的收10%，没有禁令的收12.5%。但中国公认是全球最严重的强制劳动问题国家，税率也只是12.5%，和另外三分之二完全没有强制劳动问题的国家一样，税率本身和各国实际的强制劳动状况没有对应关系。
+
+[47:41] (Peter Harrell) **赢了官司也要再等一两年拿钱** — 关税不是开支票，而是CBP直接从企业账户划走，没有协商空间。即便Burlap and Barrel在国际贸易法院这一审赢了，政府历史上的做法是上诉期间继续照收关税，而上诉通常要12到18个月，还可能一路打到联邦巡回上诉法院乃至最高法院。Peter判断，下一任民主党总统大概率会取消相当一部分关税以兑现「降低生活成本」的承诺，但也可能保留一部分作为谈判筹码，关税不会随换届自动清零。
+
+[57:02] (Ethan) **农户自己报价，公司从不还价** — 公司对合作农户采用「农户定价」：几乎从不还价，因为香料原料成本在整个单位成本里占比很小，真正最大的一块成本是从仓库寄到消费者家里的运费。多给农户一美元一公斤，对公司利润几乎无感，但对农户的生活是完全不同的数量级——危地马拉一位长期合作的小豆蔻农户，靠这笔收入盖了一栋带自来水的两层小楼，这是他以前从没有过的条件。
+
+### 原话 / verbatim quotes
+
+[10:33] Ethan: "Most spices don't grow in the US. You know, we're talking about the classics like black pepper or cinnamon or vanilla. You just can't grow them here. We mean, not yet, you know, like maybe in 10 years we'll have the climate for it, but we don't have the climate for it today."
+    译 / zh: 大多数香料本来就不在美国生长。像黑胡椒、肉桂、香草这些经典品类，你就是没法在美国种出来。嗯，至少现在不行，也许十年后气候会变，但今天不行。
+
+[21:23] Ethan: "We committed not to raise our prices to consumers, which we have followed through on in the almost two years since. And and not to cut our payments to partner farmers, not to ask our partner farmers to absorb the cost of the tariff."
+    译 / zh: 我们承诺不上调消费者价格——这个承诺我们坚持了快两年；也不削减给合作农户的付款，不让合作农户去承担关税成本。
+
+[29:50] Ethan: "To be honest, I don't really understand what everybody is scared of. Yes, okay, fine, retaliation from the president or others close to him, but actually it has not happened in any of the tariff cases at all."
+    译 / zh: 说实话，我不太理解大家在怕什么。是，好吧，担心总统或他身边人的报复，但实际上在任何一起关税案里，这种报复都没有发生过。
+
+[33:02] Peter Harrell: "But, you know, the big companies you would ordinarily expect to kind of be the lead plaintiffs on this sort of thing, because they're paying billions in tariffs. Yeah. I've just been sitting on the sidelines."
+    译 / zh: 按理说那些每年缴纳数十亿关税的大公司，本该是这类诉讼的主力原告，但他们一直就是在场边看着。
+
+[45:36] Peter Harrell: "China has a 12 and a half percent tariff. China is probably the biggest forced labor problem in the world. It has a 12 and a half percent tariff in the 12 and a half percent tariff. So do like two thirds of the other countries."
+    译 / zh: 中国的税率是12.5%。中国大概是全世界最严重的强制劳动问题国家，税率也是12.5%——而另外三分之二的国家也是同样的12.5%。
+
+[47:41] Ethan: "Yeah, they just pull the money directly out of our bank account. By the way, we don't even write a check. We don't have the opportunity to, excuse me, to haggle or any, you know, like it just comes out direct deposit from our account straight to CBP, as it does for everybody."
+    译 / zh: 他们就是直接从我们银行账户里把钱划走。我们连支票都不用开。我们没有机会去讨价还价，它就是直接从账户划转给CBP，每个人都是这样。
+
+[57:02] Ethan: "Yeah, I mean, we pay, I don't track the commodity price that closely, but we pay farmers whatever they ask. We call it farmer led pricing. But essentially, we don't negotiate because the cost of the spice, as I said earlier, is a very small percentage of our total unit cost."
+    译 / zh: 我们不太盯大宗商品价格，基本是农户要多少我们就付多少，我们管这个叫「农户定价」。我们不还价，因为就像我之前说的，香料本身的成本只占我们总单位成本很小一部分。
+
+### 数字 / figures
+
+- 301条关税税率: 10%或12.5% [3:03]
+- 301条历史使用次数: 约130次 [38:15]
+- 本轮301调查覆盖经济体: 60个，占美国贸易额99% [39:17]
+- 公司收到的IEEPA关税退款: 低六位数，外加3.5%利息 [23:30]
+- 预计上诉耗时: 12到18个月 [47:41]
+- 直接面向消费者销售占比: 约70% [19:18]
+- 香料采购来源国数量: 约28个国家 [11:39]
+- 桑给巴尔黑胡椒合作社年采购量: 从几百公斤增至至少5吨 [12:46]
+
+### 术语 / glossary
+
+- Section 301 (301条): 《1974年贸易法》第301条，授权政府就外国不公平贸易行为加征关税。
+- IEEPA (国际紧急经济权力法): 特朗普第一轮全面关税的依据，已被最高法认定不适用于关税。
+- Section 122 (122条): 《1974年贸易法》第122条，允许总统因国际收支危机征收最长150天的临时关税。
+- Court of International Trade (国际贸易法院): 专门审理关税与进出口贸易争议的联邦法院。
+- amicus brief (法庭之友意见书): 非诉讼当事人向法院提交的立场陈述文件。
+
+谁该听 / who: 关注中美贸易政策、关税诉讼走向，或在做小企业跨境供应链、出海业务的人。
+可跳过 / skip: 15:00-20:00聊具体香料风味和烹饪建议，只关心关税官司可以跳过。
+标签 / tags: 关税, 贸易政策, 强制劳动, 香料供应链, 诉讼, 小企业
+
+==============================================================================
+
 ## 家庭作业超过两小时后，再多也不会让孩子学得更好
 
 - URL: https://ourword.ai/podcast/p/2026-10-02-raisinggh-家庭作业超过两小时后-再多也不会让孩子学得更好/
@@ -1001,6 +1621,80 @@
 谁该听 / who: 适合觉得待办清单、邮箱和人情请求越堆越多，想找具体可执行的减法而非鸡汤的创业者和管理者。
 可跳过 / skip: 25:04-28:08和41:39之后是8Sleep、AG1等赞助广告，可以跳过。
 标签 / tags: 简化人生, 禀赋效应, 边界感, 中年转型, GTD
+
+==============================================================================
+
+## 更大光罩不是技术问题，是TSMC和ASML算的经济账
+
+- URL: https://ourword.ai/podcast/p/2026-10-01-asianometry-更大光罩不是技术问题-是tsmc和asml算的经济账/
+- 节目 / show: Asianometry (https://ourword.ai/podcast/s/asianometry/)
+- 原集标题 / original episode: EUV Photomasks Are Getting Bigger
+- 发布 / published: 2026-10-01 · 时长 / duration: 17:42
+- 文稿来源 / transcript: YouTube 字幕 · 2653 words · timestamps are exact
+- 校验 / verification: 5 quotes matched verbatim, 8 numbers traced to the transcript, review score 9/10
+
+**高NA EUV把曝光面积砍半，两次拼接让芯片设计师受不了；TSMC和ASML索性把光罩做大一倍，用更贵的供应链换回满场曝光。**
+
+为什么听 / why: 半导体设备/封装链里的经济账如何决定技术路线，是这期的核心，信息密度中等偏技术向。
+
+### 核心论点 / points
+
+[2:04] **视场砍半逼出两次曝光拼接** — 为了把数值孔径从0.33拉到0.55,高NA EUV必须把光锥放大八倍，代价是单次曝光的视场只剩标准全场33×26mm的一半(约16.5×26mm)。要印一整颗AI芯片，就得把两次曝光A、B拼在一起。十多年前光罩厂不愿在没有芯片厂承诺的情况下押注大光罩，芯片厂又不愿在还没用上低NA EUV时就砸钱，于是行业默认了视场减半这个妥协，现在才来补课。
+
+[3:05] **TSMC嫌3.5亿美元太贵的真实原因** — TSMC SVP Kevin Tang说高NA EUV机台成本报价3.5亿美元、对应20到40兆瓦算力，他不喜欢这个价签。主讲人认为这句抱怨背后真正说的是拥有成本(cost of ownership):视场减半让吞吐量大跌，以至于用老办法做多重曝光反而更划算。换句话说，嫌贵不是在嫌机台本身，而是在嫌视场减半拖累了产能经济账。
+
+[4:06] **拼接在技术上行，工程师和设计师都不买账** — IMEC、ASML都发过论文证明拼接在技术上可行，但主讲人说TSMC工程师一听拼接，表情就像他爸让他减肥时他的表情——写满了不情愿。芯片设计师更反感，因为拼接相当于在设计中间砌一道「朝鲜非军事区」,把原本完整的版图硬生生切成两半，牺牲设计灵活性。这正是行业宁可砸钱换大光罩也不愿将就拼接的情绪基础。
+
+[5:06] **大光罩才是真正解药，不是拼接补丁** — 6×12英寸光罩能让高NA EUV恢复满场曝光，按Intel的说法可把扫描仪产能提升23%到50%(主讲人猜更可能靠近高位),把与低NA EUV的成本差距砍掉一半，还顺带拿回芯片设计的自由度。ASML CEO(字幕转写作Kristoff Fuket,即Christophe Fouquet)早在2024年10月就公开说这是「no-brainer」,但真正难的是说服整个产业链跟上这个显而易见的选择。
+
+[6:06] **连低NA机台都想蹭大光罩的产能红利** — 一旦6×12英寸光罩做成，ASML一定会把它也装进现有的低NA EUV机台——同样0.33的数值孔径下，光罩面积翻倍意味着能塞下更大的AI芯片设计，或者把同一个设计复制两份、以双倍速度印刷。据估算，配备6×12英寸光罩的低NA EUV机台理论产能可以做到每小时450片晶圆甚至更高，再搭配三脉冲光源，产能还能往上冲。
+
+[9:09] **光罩难的不是做出一片完美品，是量产** — 光罩毛坯要在玻璃基板上镀40对钼硅交替多层膜(每对约7纳米厚),用离子束溅射沉积，再叠绝缘层、吸收层、保护膜，整套工序要在近乎零缺陷下完成。主讲人强调，做出一片、两片甚至几片完美无缺陷的光罩并不难，真正的难点是把这套工艺稳定复制到高良率、大批量生产，这才是光罩厂和一整条上游供应链接下来要攻克的硬骨头。
+
+[13:15] **一整条产业链几乎都是单一供应商** — 从光罩毛坯玻璃、保护膜、光刻写入设备到缺陷检测与修复，大光罩生态里几乎每一环都只有一两家供应商。主讲人点名这是最大的风险：只要任何一家出现技术失误或供应链问题，整条产业链都可能被拖累，造成实质性延误。眼下距离2031年试产线还有5到7年，供应链已经在动，但几乎每一环都是单一供应商这件事本身没变。
+
+[16:16] **光罩本来就不便宜，谁来为翻倍买单** — 据Micron 2025/2026的经济预测，EUV光罩套比传统光学光罩贵六倍，寿命却只有后者的五分之一，而且一套里需要的光罩数量还在增加。换新光罩厂设备又要比6英寸老设备贵20%到100%。主讲人把这笔账甩给晶圆代工厂和它们的客户——Nvidia、AMD甚至OpenAI、Anthropic——但也承认眼下EUV市场有多热，没人知道几年后AI产业的泡沫还在不在。
+
+### 原话 / verbatim quotes
+
+[2:04] : "My informal evaluation is that it sucks to start."
+    译 / zh: 我的非正式评价是：这个方案一开始就很糟糕。
+
+[4:06] : "the looks on the faces of TSMC people when I mention stitching are much like the look that I make when my dad tells me that I should just lose a few kilograms."
+    译 / zh: 我一提拼接，TSMC那边人脸上的表情，就跟我爸让我减几公斤时我脸上的表情一模一样。
+
+[4:06] : "ASML has been publicly banging a double-sized mass drum as early as October 2024 when CEO Kristoff Fuket said that it was a no-brainer."
+    译 / zh: ASML早在2024年10月就公开为大光罩摇旗呐喊，当时CEO Kristoff Fuket(即Christophe Fouquet)说这是显而易见的选择。
+
+[13:15] : "Virtually everything is going to have a single source."
+    译 / zh: 几乎每一样东西都只会有单一供应来源。
+
+[16:16] : "UV massets not only cost six times that of regular optical mass sets, but also last a fifth as long."
+    译 / zh: EUV光罩套不仅成本是普通光学光罩套的六倍，寿命还只有后者的五分之一。
+
+### 数字 / figures
+
+- 低NA EUV数值孔径: 0.33 [1:02]
+- 高NA EUV数值孔径: 0.55 [1:02]
+- 高NA EUV机台传闻成本: 3.5亿美元，对应20到40兆瓦算力 [3:05]
+- 6×12in光罩带来的扫描仪产能提升: 23%到50% [5:06]
+- 配6×12in光罩的低NA EUV理论产能: 每小时450片晶圆或更高 [6:06]
+- 新光罩厂设备涨价幅度: 比6英寸老设备贵20%到100% [13:15]
+- EUV光罩套成本与寿命(对比传统光学光罩): 贵6倍、寿命仅为1/5 [16:16]
+- 大光罩量产时间表: 2031年试产线，2033年全面量产 [0:02]
+
+### 术语 / glossary
+
+- NA (numerical aperture) (数值孔径): 衡量光学系统收集聚焦光线能力的无量纲数值，越高分辨率越好
+- High NA EUV (高数值孔径极紫外光刻): ASML下一代光刻机，分辨率更高但单次曝光视场更小
+- stitching (拼接曝光): 把两次半场曝光拼成一个完整芯片图案的做法
+- photomask blank (光罩毛坯): 尚未刻上芯片图案的空白光罩基板
+- pellicle (保护膜): 覆盖光罩表面、防止颗粒落尘导致印刷错误的薄膜
+- LTEM (low thermal expansion material) (低热膨胀材料玻璃): 光罩基板用的耐高温变形玻璃材料
+
+谁该听 / who: 关心先进制程产能瓶颈的芯片行业从业者、半导体投资人，及想懂EUV光罩经济学的工程师。
+可跳过 / skip: 7:09-9:09光罩镀膜工艺细节可跳，不影响理解产业逻辑。
+标签 / tags: 半导体, EUV光刻, TSMC, ASML, 光罩, 供应链
 
 ==============================================================================
 
@@ -8521,6 +9215,79 @@
 
 ==============================================================================
 
+## 私募股权学不会这套打法：团队和技术焊死后就没法转卖
+
+- URL: https://ourword.ai/podcast/p/2026-09-23-allin-私募股权学不会这套打法-团队和技术焊死后就没法转卖/
+- 节目 / show: All-In (https://ourword.ai/podcast/s/allin/)
+- 原集标题 / original episode: Luca Ferrari, Bending Spoons CEO: The $40K Origin Story, Buying Product-Market Fit & Why Private Equity Can't Compete
+- 发布 / published: 2026-09-23 · 时长 / duration: 25:30
+- 文稿来源 / transcript: 音频转写 · 4655 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 5 numbers traced to the transcript, review score 8/10
+
+**创始人光环不是必需品：Bending Spoons靠统一技术底座和小团队把收购来的产品跑到10分，这套打法PE学不来，因为PE要把公司分开养肥了卖，不敢把团队和技术打通。**
+
+为什么听 / why: 创始人用40美元东山再起的故事背后，是一套可复制的收购逻辑和对私募股权结构性优势的拆解，信息密度高。
+
+### 核心论点 / points
+
+[2:02] (Luca Ferrari) **前一次创业烧光后，4万美元重启** — Luca和合伙人2010年做的一家AI公司烧钱失败，VC不愿走清算流程，把股份以1美元象征性价格转让给他们，还把账上剩下的约4万美元留给了他们。他们没有去度假，而是把这笔钱直接变成了Bending Spoons的种子资金。核心判断是：自己不擅长找到产品市场契合，但三年时间练出了工程、设计、变现、营销的硬功夫，所以干脆去买别人已经验证过的产品市场契合，再用这套能力把它做大。
+
+[4:03] (Luca Ferrari) **第一笔收购：买用户，不买收入** — 公司第一次收购只花了大约1万美元，买下一个iPhone键盘个性化应用，卖家是单人开发者，应用本身几乎没有变现，收入可以忽略不计。Luca说当时买的其实是「一堆用户和在App Store上的好位置」,这套逻辑十几年没变：找到有用户、有品牌、有渠道位置的资产，再靠自己的工程和变现能力把它做值钱，只是现在规模大了很多。
+
+[5:05] (Luca Ferrari) **自建50多套专有技术，收购后统一换底座** — 公司核心团队约800人，其中四分之三是工程师、AI研究员或产品经理。他们把多年积累打磨成一套「代码操作系统」,里面有50多项专有技术，涵盖AI模型编排、招聘工具、A/B测试平台等。每次收购一家公司，都会把它的技术底座整体替换成这套系统，调过去的人也都按同一套工具和规则工作，团队之间可以互相流动，效率更高。
+
+[8:16] (Luca Ferrari) **不是故意裁员，是意外摸出的小团队模型** — 被问到如何敢把团队砍到两成规模，Luca说这不是提前设计好的策略，而是意外发现的规律：早期收购小公司时，卖家往往只卖产品不卖团队，他们只能用小团队重新搭建；后来收购有完整团队的公司，又发现按之前经验配置的小团队同样能跑起来，于是沉淀出一个判断——团队足够小、人才密度足够高、责任感足够强，才更容易把业务做到「10分」水准。
+
+[10:23] (Luca Ferrari) **加杠杆当助推器：9%的债息压不垮25%的回报** — 公司从2017年前后开始用债务加速收购，目前综合债务成本约9%且已完全对冲，2031年到期，杠杆率约2.5倍。Luca的底气是：公司历史上无杠杆的回报率持续高于25%,所以哪怕借债成本从9%涨到12%,也不会伤到商业模式本身。他还认为利率真上涨时，收购标的的估值会跟着下降，作为连续收购者反而可能是净利好，只是新增债务会变贵。
+
+[14:28] (Luca Ferrari) **并购筛选三条：规模、可预测性、价值空间** — 筛选标准先看规模——深度整合一家公司要投入大量运营精力，而这份精力并不随营收线性增加，所以宁可买少数几家大公司，不买一堆小公司。第二看盈利的可预测性，他们偏好能对未来五六年做出方向性预测的生意。第三看能不能靠技术、组织、产品、变现、营销等维度创造出实打实的增量价值，理想情况下这几条能同时满足。
+
+[19:49] (Luca Ferrari) **米兰不是劣势：80万份申请只招不到300人** — 公司去年收到80万份求职申请，最终录用不到300人。Luca认为吸引人才的最大优势，是员工可以在同一家公司、同一批同事里，一年重建AOL的邮件基础设施，接下来几个月又去重新设计Vimeo的订阅体系，再去搭建支付平台——这种跨业务的技术广度和职业机会，是很多单一业务公司给不了的，高人才密度又会反过来吸引更多高密度人才，形成正循环。
+
+[24:59] (Luca Ferrari) **PE学不会这招：团队技术焊死了就没法转卖** — Luca认为私募股权永远复制不了这套模式，根本原因是结构性的：PE收购公司后大多保持各公司独立运营，为的是将来能单独把公司卖掉。但如果把统一的技术底座和共享工程团队焊进一家公司，等要把这家公司卖给另一个PE买家时就麻烦了——团队要不要跟着卖？技术要不要授权给买家？这些问题PE模式无解，所以他们永远做不到Bending Spoons那样的回报率，尽管PE能调动的资本量通常更大。
+
+### 原话 / verbatim quotes
+
+[2:02] Luca Ferrari: "But the biggest failures were in the previous startup. So with my co-founders, we launched an AI company in 2010, very early, too early, clearly. Crashed and burned."
+    译 / zh: 但最大的失败都发生在上一次创业。我和合伙人们在2010年做了一家AI公司，太早了，显然太早了。然后就崩了。
+
+[3:03] Luca Ferrari: "we should be able to be among the best in the world at that. And we should be able to buy product market fit from people. And they get a good price. We get a good asset."
+    译 / zh: 我们应该能在这方面做到世界最好。所以我们应该能从别人那里买来产品市场契合。他们拿到一个好价钱，我们拿到一个好资产。
+
+[8:16] Luca Ferrari: "we want our businesses to be run at a 10 out of 10 level. And we find that generally you're more likely to get that level of performance if you have very, very small teams, super high bar for talent and sense of ownership."
+    译 / zh: 我们希望每一块业务都跑到10分的水准。我们发现，团队越小、人才门槛越高、责任感越强，就越容易达到这个水准。
+
+[10:23] Luca Ferrari: "the blended cost is about nine percent give or taken it's fully hedged so increases in in interest rates would not impact our cost of debt"
+    译 / zh: 综合成本大概是9%左右，而且已经完全对冲了，所以利率上涨不会影响我们的债务成本。
+
+[11:23] Luca Ferrari: "our returns unlevered historically have been pretty high consistently above 25 percent"
+    译 / zh: 我们历史上无杠杆的回报率一直很高，持续在25%以上。
+
+[19:49] Luca Ferrari: "Last year, 800,000 applications. We hired fewer than 300 people."
+    译 / zh: 去年收到了80万份求职申请，我们录用的人不到300个。
+
+[24:59] Luca Ferrari: "they keep these companies separate for the most part to sell them. And so they could never have that technological foundation because once you plug it in in a company, what do you do when you sell it to your private equity competitor?"
+    译 / zh: 他们让这些公司大多保持独立，为的是以后能卖掉。所以他们永远不可能有那种统一的技术底座——因为一旦你把它接入一家公司，等你要把这家公司卖给另一个私募股权竞争对手时，你怎么办？
+
+### 数字 / figures
+
+- 核心团队规模: 约800人(四分之三为工程师/AI研究员/产品岗) [5:05]
+- 自研专有技术数量: 50多项 [5:05]
+- 债务情况: 综合成本约9%,杠杆约2.5倍，2031年到期 [10:23]
+- 历史无杠杆回报率: 持续高于25% [11:23]
+- 并表Miro后营收年化: 约40亿美元 [17:44]
+
+### 术语 / glossary
+
+- TLB (Term Loan B) (B类定期贷款): 面向机构投资者、偿还结构固定的银行贷款工具，常用于杠杆收购融资
+- unlevered returns (无杠杆回报率): 剔除债务影响后计算的投资回报率，衡量业务本身的真实盈利能力
+
+谁该听 / who: 关注收购型成长公司、私募股权与杠杆收购结构性差异的创业者、投资人。
+可跳过 / skip: 开场互相调侃环节(0:00-1:56)信息量低，可以跳过。
+标签 / tags: 并购, 私募股权, 杠杆收购, 人才密度, 欧洲科技, 产品市场契合
+
+==============================================================================
+
 ## 好阿姨永远在户上，家政顾问卖的不是信息
 
 - URL: https://ourword.ai/podcast/p/2026-09-23-bizthisway-好阿姨永远在户上-家政顾问卖的不是信息/
@@ -11327,6 +12094,79 @@
 谁该听 / who: 被长辈逼孩子表演困扰的父母；想理解「连接」到底指什么、如何和婴幼儿建立真实关系的照护者。
 可跳过 / skip: 开头 0:00-1:04 的书籍推广和节目介绍可以跳过。
 标签 / tags: 育儿, 亲子连接, 祖辈关系, 幼儿心理
+
+==============================================================================
+
+## 快乐是运气，喜悦才是妈妈真正该追求的东西
+
+- URL: https://ourword.ai/podcast/p/2026-09-22-goodinside-快乐是运气-喜悦才是妈妈真正该追求的东西/
+- 节目 / show: Good Inside (https://ourword.ai/podcast/s/goodinside/)
+- 原集标题 / original episode: Resentment, Joy, and Why Moms Don't Believe They're Allowed Either
+- 发布 / published: 2026-09-22 · 时长 / duration: 37:11
+- 文稿来源 / transcript: 音频转写 · 7381 words · timestamps are exact
+- 校验 / verification: 8 quotes matched verbatim, 1 numbers traced to the transcript, review score 8/10
+
+**心理学家 Kate Bowler 说，快乐的本质是「运气」——很多事情恰好顺了而已；但喜悦不需要任何条件就能在最糟的日子里找到你。**
+
+为什么听 / why: 如果你睡前总在想孩子今天开不开心、却总觉得不够好，这期提供了一个更容易得到肯定答案的新问题。
+
+### 核心论点 / points
+
+[4:08] (Dr. Becky / Kate Bowler) **「孩子不开心我就不配开心」该停了** — Becky 抛出一句很多妈妈默认成立的话：你只能跟你最不开心的孩子一样开心。Kate 的回应是，这不该是真的。她指出很多妈妈已经把自己的情绪状态，变成要靠不断扫描、校准孩子的情绪才能确定——这种持续的情绪计算正是现在养育让人筋疲力尽的来源之一。
+
+[6:11] (Kate Bowler) **「希望孩子快乐」等于要求自己制造轻松** — Kate 拆解「happiness」这个词：它的心理学画像本质是「ease」（轻松、顺遂）。一旦快乐等于轻松，制造轻松就变成了女性/母亲的工作——要不要点心、温度合不合适——需要上千个细节都被照顾到，才能让身边每个人都处在「轻松」状态，这几乎是不可能完成的任务。
+
+[9:19] (Kate Bowler) **快乐这个词，词源就是「运气」** — Kate 说快乐更像数学：很多件小事恰好同时顺了，你才会感到可以放松下来。她进一步指出 happiness 源自古诺斯语 hap，就是 happenstance（偶然、运气）的词根——所以快乐本质上是「很多事碰巧对齐了」，并不完全在自己的掌控之中。把「我希望孩子快乐」换成「我希望一切永远都顺着孩子」，这句话立刻就没那么诱人了。
+
+[11:26] (Kate Bowler) **喜悦能和难过同时存在，快乐不能** — Kate 把喜悦和快乐彻底分开：快乐让人放松，喜悦则是一种「被唤醒」的强烈感觉。更关键的是，喜悦不只激活多巴胺奖赏系统，还会同时激活压力系统——这意味着一个人无法同时快乐又难过，却可以同时喜悦又难过。也就是说，一个生活并不总是顺利的孩子，依然可以拥有强大的、不依赖条件的喜悦能力。
+
+[14:30] (Kate Bowler) **追求喜悦不需要先改好外部条件** — 如果目标是让孩子快乐，家长就被绑定在「必须不断调整、控制条件」的角色里；但追求喜悦完全不需要先把条件安排好。喜悦的前提只有两点：像孩子一样活在当下（因为惊喜找不到一个心不在焉的人），以及相信世界上到处藏着值得发现的小惊喜——哪怕只是从后院土里捡出的一个易拉罐拉环。
+
+[18:46] (Kate Bowler) **很多妈妈不相信喜悦也该轮到自己** — Kate 做这本书的研究时发现，很多女性和妈妈愿意为孩子不惜一切制造「高光时刻」——花大钱买演唱会门票、忍着陌生人的孩子吵闹也要陪同——但一旦反问她们「什么会让你自己发光、让你快乐」，她们却答不上来。原因很简单：已经太久没人问过、自己也没想过，生活本该让自己也感到这么鲜活。
+
+[27:13] (Kate Bowler) **没处理的怨气，是喜悦最大的拦路虎** — Kate 坦承自己写这本关于喜悦的书写到一半才意识到，自己攒了大量「钙化」的怨气——为别人制造舒适和轻松到了下意识的地步，比如在飞机上看到像父亲的陌生男乘客就下意识帮他开零食袋。她说这种为所有人提供情绪舒适的能力被训练得太深，而这些没说出口的怨气，恰恰挡住了喜悦能找到自己的空间。
+
+[29:31] (Kate Bowler) **列一张「怨气清单」，不许美化** — 具体做法是：和最好的朋友一起，写下所有让自己付出代价的事，不美化、不强行升华成教训、指名道姓。判断一件事该不该写进去的标准很简单——如果你发现自己不止一两次反复讲起同一个故事，那大概率说明这件事还没被真正处理好，而这会让你很难相信好事还会再找上你。
+
+[32:43] (Kate Bowler / Dr. Becky) **把「今天开心吗」换成「有喜悦瞬间吗」** — Becky 发现自己睡前复盘时习惯问「我/孩子今天开心吗」，任何一点不顺都会被算作「失败」的证据。Kate 建议换一个问题：今天有没有喜悦的瞬间？这几乎总能得到肯定答案——因为喜悦常常就藏在打翻的牛奶、临时起意的瞎编段子、一场不完美的旅行照片里，而不需要整整一天都顺遂才算数。
+
+### 原话 / verbatim quotes
+
+[4:08] Dr. Becky: "You are only as happy as your unhappiest child."
+    译 / zh: 你只能跟你最不开心的那个孩子一样开心。
+
+[6:11] Kate Bowler: "Well, because happiness has such a distinct psychological profile. It's supposed to feel like ease. And if you think about happiness as ease, and then suddenly it's women's job to guarantee ease, it's wild when you think about all the things that would have to fall under that list for that to be true."
+    译 / zh: 因为快乐有非常独特的心理画像，它应该感觉像是轻松。如果把快乐理解成轻松，那突然之间保证轻松就变成了女性的工作——想想要满足这份清单得做多少事，简直疯狂。
+
+[9:19] Kate Bowler: "In that way, happiness is much more like math than other things. It's small, incremental, tiny things that really on the whole, if you look at it, happiness is what luck feels like."
+    译 / zh: 这么看快乐更像数学题，是很多细小、渐进的事情累加起来。归根结底，快乐就是运气的感觉。
+
+[13:30] Kate Bowler: "It engages your stress system, which means that while you can't be happy and sad at the same time, you can be joyful and sad, which is a very neat trick."
+    译 / zh: 喜悦会同时激活你的压力系统，这意味着你没法同时快乐又难过，但你可以同时喜悦又难过——这是个很巧妙的把戏。
+
+[18:46] Kate Bowler: "it kind of almost made me sad when I was doing this joy research, realizing how many particularly women and moms don't believe that joy is for them."
+    译 / zh: 做喜悦这个研究的时候，我意识到有多少女性、尤其是妈妈，不相信喜悦也该轮到自己，这几乎让我感到难过。
+
+[27:13] Kate Bowler: "But also what I did was I made a list of my resentments. I made it with my best friend."
+    译 / zh: 我还做了一件事：列了一张我的怨气清单，是和我最好的朋友一起列的。
+
+[31:41] Kate Bowler: "And I always think the most confidence building words you can ever say to a kid are just, I believe you. That is what confidence is. It's believing your own experience."
+    译 / zh: 我一直认为你能对一个孩子说的最能建立自信的话就是「我相信你」。那就是自信的本质——相信自己的亲身经历。
+
+[32:43] Dr. Becky: "Were there moments of joy? Like, oh, yes, yes, yes. It's so much easier to get to the affirmative about joy than it is about happiness."
+    译 / zh: 今天有喜悦的瞬间吗？哦，有，有，有。得到关于喜悦的肯定答案，比得到关于快乐的肯定答案要容易太多。
+
+### 数字 / figures
+
+- Kate Bowler 患癌诊断分期: 四期（stage four） [10:19]
+
+### 术语 / glossary
+
+- hap (happenstance) (机遇、运气): happiness 一词源自古诺斯语 hap，即「碰巧发生的事」，意味着快乐本质上并不完全可控。
+
+谁该听 / who: 总想方设法让孩子开心、却说不出自己上次真正开心是什么时候的家长，尤其是习惯性为他人制造舒适的妈妈。
+可跳过 / skip: 开头的 Skylight 日历广告、Boundaries 课程广告，以及中段 Girl Scouts、Yodo 广告片段都可以跳过。
+标签 / tags: 养育, 母职, 情绪管理, 积极心理学, 家庭沟通
 
 ==============================================================================
 
