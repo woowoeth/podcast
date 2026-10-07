@@ -1,0 +1,115 @@
+{
+ "slug": "2026-10-06-unsupervised-谁做好后训练-谁就赢下推理这门更大生意",
+ "of": "unsupervised-8e99ad89ca",
+ "source_lang": "en",
+ "title": "Post-training prowess determines who wins the inference business",
+ "dek": "AI spending flows primarily to inference rather than training, but what truly determines inference efficiency and cost is post-training optimization—this is why training and inference should be run by the same company.",
+ "why": "A former core member of OpenAI's Codex team breaks down the real economics of post-training: when to build your own model, where the actual moat lies, and when data truly becomes scarce.",
+ "who": "Founders and enterprise AI leaders deciding whether to build or fine-tune their own models, and investors tracking the business models of inference infrastructure.",
+ "skip": "Around 4:35, a discussion of the OpenAI-Baseten partnership has low information density and transcription gaps; you can skip it.",
+ "tags": [
+  "Post-training",
+  "Reinforcement learning",
+  "AI infrastructure",
+  "Inference",
+  "Enterprise AI",
+  "Moat"
+ ],
+ "points": [
+  {
+   "h": "Building your own model isn't about protecting against labs, it's about control",
+   "body": "Yash explicitly rejects framing ‘owning your own intelligence’ as protection against lab misconduct—he believes labs are staffed by good people and bound by contracts. The real reason is flexibility and control: where models run, how they deploy, whether optimization targets cost, latency, or domain-specific performance. This narrative only emerged once open-source models became genuinely useful. The more immediate risk is practical: models have repeatedly been removed from products, especially in programming; and as labs increasingly enter vertical markets, whether they'll continue serving customers who directly compete with them remains uncertain."
+  },
+  {
+   "h": "Post-training can beat frontier models, but only when data is genuinely out-of-distribution",
+   "body": "Post-training can exceed frontier model performance only if a company's data is genuinely out-of-distribution compared to what labs trained on. But most companies doing post-training aren't after capability gains at all—they're using cheaper models to match frontier performance, optimizing for price-to-performance rather than capability ceiling. The more pressing question: how long can a domain's data remain out-of-distribution? Labs are now saturating programming; other domains will follow."
+  },
+  {
+   "h": "Continuous learning is bottlenecked by data efficiency, not algorithm design",
+   "body": "Pretraining has poor data efficiency but strong generalization; supervised fine-tuning has better data efficiency but limited gains; reinforcement learning with verifiable rewards trades quantity for quality using reproducible environments and validators, yet remains data-inefficient. Yash is blunt: the true blocker for ‘continuous learning’ isn't algorithm choice—it's how to learn efficiently from sparse rewards, a problem that remains unsolved."
+  },
+  {
+   "h": "Not every company needs pre-training, but all companies have reasoning worth modeling",
+   "body": "Responding to Satya's ‘as many models as companies’ framing, Yash doesn't believe every company should pre-train or mid-train its own model, but does believe every company has proprietary decision loops worth capturing. Pharma is the clearest example—each company focuses on different conditions and accumulates distinct experimental data; building your own model is natural. But with banking, Jacob immediately pushed back: how different can one bank's financial data really be from another's? Yash didn't fully engage the objection, instead appealing to different processes and risk preferences, and cited accounting firms—businesses that naturally fragment but then consolidate—as a counterexample."
+  },
+  {
+   "h": "Guard your evaluation sets as fiercely as you guard departing employees",
+   "body": "Reinforcement learning works even in unverifiable domains when you convert judgment calls into scoring rubrics—provide expert answers and score against them, and the results are surprisingly good. Different companies find different experts, so their trained models diverge. This makes ‘evaluation sets’ themselves a competitive asset: any public benchmark eventually gets gamed, so Yash argues companies should guard their evaluation sets with the same fierceness they prevent core employees from joining competitors, not share them with labs."
+  },
+  {
+   "h": "Post-training, not infrastructure, is the real moat in inference",
+   "body": "Applied Compute screens customers for just two things: either capability gains are exceptionally valuable, or inference volume is especially large—because the real spend is inference, not training. The more crucial insight: the largest, most expensive workloads should post-train first, because efficiency gains scale as a power law to everything else. Training choices even dictate inference architecture—to enable better parallel tool calls, inference needs prefill-decode separation in its deployment."
+  },
+  {
+   "h": "The AI hyperscaler's stack is an inverted pyramid, hardest at the base",
+   "body": "Yash positions the company as AWS/GCP/Azure for the GPU era: not just inference—which is currently the first sticky layer in the AI software stack—but the full stack of training, inference, routing, safety monitoring, and agent sandboxing. He compares the structure to an inverted pyramid: at the base, training, which only a handful can do; above it, inference, routing, context and harness engineering, with each layer having lower barriers to entry and more practitioners. Sixteen months old, the company deliberately started with training and is now expanding to inference."
+  },
+  {
+   "h": "Reinforcement learning gains don't generalize across domains like pretraining does",
+   "body": "Empirically, capabilities trained on math datasets transfer almost nowhere when moved to law—reinforcement learning gains lack pretraining's cross-domain generalization. Yash uses a metaphor: intelligence is more like a bumpy sphere, where nearby points generalize to each other, but distant regions barely connect at all, nothing like pretraining's holistic reach."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Out-of-distribution (OOD) data",
+   "def": "Data types unseen during model training that determine whether post-training can deliver genuine capability gains."
+  },
+  {
+   "term": "RL with verifiable rewards (RLVR)",
+   "def": "Training models on tasks with clear right answers using validators, trading data quantity for quality."
+  },
+  {
+   "term": "TCO",
+   "def": "Total cost of ownership; here, the full cost of continuous post-training and online training for a model."
+  },
+  {
+   "term": "Harness",
+   "def": "Tool-calling, prompt engineering, and context work layered around a model—does not include modifying the model itself."
+  },
+  {
+   "term": "Hyperscaler",
+   "def": "A provider of end-to-end infrastructure like AWS, GCP, or Azure."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Applied Compute founding to interview",
+   "v": "16 months"
+  },
+  {
+   "k": "Online training customer base",
+   "v": "tens of thousands to hundreds of thousands of users"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "But I do think the idea of owning your intelligence really is about flexibility and control.",
+   "translated": false
+  },
+  {
+   "text": "I basically think like what's blocking continual learning is basically like extremely data efficient training from sparse rewards, which is an unsolved problem.",
+   "translated": false
+  },
+  {
+   "text": "Like you wouldn't, your employees are not fungible. You would not like be comfortable with them going to another company and doing work there. Same thing with these models.",
+   "translated": false
+  },
+  {
+   "text": "And so, so what we, what our view is, is that the most post training actually wins inference.",
+   "translated": false
+  },
+  {
+   "text": "Our big bet was, hey, post training is a massively underlooked part of the stack.",
+   "translated": false
+  },
+  {
+   "text": "intelligence is some sort of sphere or circle. It's got jagged points on it. The points that are closer together, you'll see more generalization there.",
+   "translated": false
+  },
+  {
+   "text": "It's like water. They find the path of least resistance.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
