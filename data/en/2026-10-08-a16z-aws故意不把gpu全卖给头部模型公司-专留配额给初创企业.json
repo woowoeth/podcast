@@ -1,0 +1,139 @@
+{
+ "slug": "2026-10-08-a16z-aws故意不把gpu全卖给头部模型公司-专留配额给初创企业",
+ "of": "a16z-7ce82e95de",
+ "source_lang": "en",
+ "title": "AWS deliberately doesn't sell all GPUs to top AI labs; it reserves allocations for startups",
+ "dek": "AWS revenue contains 30–40% from companies that were once startups; this is Garman's explanation for why AWS deliberately reserves GPU quotas for small companies even when compute is scarce and could all be sold in a day to large AI labs.",
+ "why": "Density concentrates in the middle and later sections: GPU allocation logic, supply-chain bottleneck whack-a-mole dynamics, the origins of custom chips, and enterprise agent trust barriers. The first ten minutes lean toward historical review and can be fast-forwarded.",
+ "who": "Founders, investors, and technical leaders focused on how hyperscale cloud providers allocate GPU capacity, custom chip strategy, and enterprise-agent deployment barriers.",
+ "skip": "The opening review of AWS's early history and startup landscape changes has low information density and can be skipped.",
+ "tags": [
+  "Compute allocation",
+  "Custom silicon",
+  "Enterprise agent deployment",
+  "Capital expenditure",
+  "Supply-chain constraints",
+  "Bedrock"
+ ],
+ "points": [
+  {
+   "h": "Today's startups are tomorrow's big customers",
+   "body": "Early on, AWS conducted internal research concluding that the customers most worth serving were startups. Garman notes that 30–40% of AWS revenue today comes from companies that were once startups. This is the business logic behind AWS's deliberate decision to reserve GPU quotas for small companies even when compute is scarce—not charity, but because today's two-or-three-person team might become tomorrow's major bank or government customer willing to pay premium prices for performance, and also the source through which AWS learns new requirements from large enterprises."
+  },
+  {
+   "h": "Forgo revenue now to reserve GPU quota for startups",
+   "body": "Garman admits AWS could sell every single GPU to top AI labs and clear inventory in a day, but the company deliberately doesn't, to keep the ecosystem healthy. He reveals that for GPU requests from customers, AWS ultimately fulfills roughly 60% in some form—sometimes by changing the region, configuration, or delivery timing. Simultaneously, AWS announced plans to acquire 2 million NVIDIA GPUs over the coming years, the largest single compute expansion announced to date."
+  },
+  {
+   "h": "Customer diversification is AWS's defense against AI bubble claims",
+   "body": "When asked whether AI is a bubble, Garman's answer is concentration data: some cloud providers tie 30–60% of their capacity to one or two major customers. AWS's largest single-customer share is only single-digit percentage, usually less. His logic: even if some venture-backed startups valued at $1 billion ultimately fail, most of AWS's compute revenue comes from production workloads that have already proven positive return on investment. That demand won't disappear if a few companies collapse."
+  },
+  {
+   "h": "Bottlenecks shift endlessly; they're never fully resolved",
+   "body": "Garman mentions reading *The Goal* in college, which taught him that there's never a single bottleneck, only the latest one at any given moment. Power might be the constraint this month, then next month it shifts to memory, TSMC capacity, HBM, or networking components—even a connector shortage. He also recalls Thailand's 2011 flooding that triggered a global hard-drive shortage, illustrating how AWS manages its supply chain four or five vendors deep, tracking thousands of individual parts and replenishing whatever gets tight."
+  },
+  {
+   "h": "Custom silicon started with virtualization tax, not AI hype",
+   "body": "The Trainium and Graviton story didn't start with AI; it began thirteen or fourteen years ago when customers complained about the \"virtualization tax\" and wanted bare-metal performance. AWS first offloaded network virtualization to a separate card, then acquired the Annapurna team (which built ARM processor cards) and offloaded storage virtualization too—and ended up with Graviton as a side effect. Today Graviton costs 20% less and runs 20% faster than competing chips; over 90% of the top 100 customers use it. Trainium followed the same \"prove it, then scale\" path; the third generation is already in production through next year. Garman admits the name was a miss—a chip called \"training\" now runs more inference than training."
+  },
+  {
+   "h": "Most enterprise agents today still lack autonomy by design",
+   "body": "Garman observes that most agents deployed in enterprises today are simple and non-autonomous; someone remains in the loop to sign off. He finds that enterprises commonly make the mistake of handing agents five human steps as-is, when they should instead tear it down and rebuild: let agents run many approaches in parallel and converge on the answer, solving problems the way computers do rather than copying human workflows. What really stops enterprises from letting go isn't lack of technical capability—it's trust. They fear agents with unchecked permissions will accidentally delete production databases. Garman finds this caution \"probably pretty reasonable.\""
+  },
+  {
+   "h": "Bedrock's moat: customer data never leaves their VPC or reaches model makers",
+   "body": "Garman reiterates that Bedrock has promised since its inception that customer data never leaves their VPC and model providers never see prompt content—a position criticized three years ago as \"AWS moving too slowly on AI.\" But as customers shift from proof-of-concept to production, this conservative architecture choice has become an advantage. OpenAI and Anthropic workloads are now migrating to Bedrock because enterprises view their own data as their most valuable asset and won't hand it to model vendors."
+  },
+  {
+   "h": "Inside AWS: engineers manage agent teams, not code directly",
+   "body": "Inside AWS's own \"frontier teams,\" writing code is no longer assistant autocompletion—it's fully handed to agents. Engineers now manage an agent team instead, which has fundamentally changed how fast new products ship. Organization structure is shifting too: where it once took ten people long-term to own a product direction, now three or four people deliver the same output. Whether teams should stay smaller and switch projects more often is an experiment AWS is running internally. Garman's conclusion is measured: humans managing agents and agents managing humans will coexist long-term."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Firecracker",
+   "def": "AWS's custom lightweight virtualization technology with strong security isolation and fast startup; commonly used by agent sandboxing vendors."
+  },
+  {
+   "term": "Bedrock",
+   "def": "AWS's managed foundation model service that guarantees customer data never leaves their VPC and is not shared with model providers."
+  },
+  {
+   "term": "Graviton",
+   "def": "AWS's custom ARM-based server processor, designed to deliver 20% lower cost and 20% higher performance than competing chips."
+  },
+  {
+   "term": "Trainium",
+   "def": "AWS's custom AI acceleration chip originally designed for training but now predominantly used for inference workloads."
+  },
+  {
+   "term": "FDE (Frontier Deployment Engineer)",
+   "def": "AWS technical teams deployed on-site at customer locations to teach them self-assessment frameworks over weeks, then withdraw."
+  }
+ ],
+ "facts": [
+  {
+   "k": "AWS revenue from companies that began as startups",
+   "v": "30–40%"
+  },
+  {
+   "k": "AWS 2026 capital expenditure",
+   "v": "$220 billion"
+  },
+  {
+   "k": "GPU request fulfillment rate",
+   "v": "Approximately 60% of requests ultimately fulfilled in some form"
+  },
+  {
+   "k": "NVIDIA GPUs planned for acquisition in coming years",
+   "v": "2 million"
+  },
+  {
+   "k": "Graviton cost and performance advantage",
+   "v": "20% lower cost, 20% higher performance"
+  },
+  {
+   "k": "Top 100 customers using Graviton",
+   "v": "Over 90%"
+  },
+  {
+   "k": "Annual per-capita tax reduction in data center counties",
+   "v": "Approximately $5,000 less per person annually"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "That's why agentic workflows tend to perform better on AWS than anywhere else.",
+   "translated": false
+  },
+  {
+   "text": "I saw recently that we say, you know, yes, in some way, shape or form to something like 60% of the requests we eventually get.",
+   "translated": false
+  },
+  {
+   "text": "we recently announced we're going to be buying, you know, 2 million NVIDIA GPUs over the next couple of years",
+   "translated": false
+  },
+  {
+   "text": "We're, you know, single digit percentages at the highest and usually it's less than that.",
+   "translated": false
+  },
+  {
+   "text": "it turns out there's never one constraint. There's always just the latest constraint.",
+   "translated": false
+  },
+  {
+   "text": "We have a guarantee that your data never leaves your VPC.",
+   "translated": false
+  },
+  {
+   "text": "It really is agent first, the agents write all of the code. You're just managing a team of agents and driving that.",
+   "translated": false
+  },
+  {
+   "text": "I'll say that agents manage people, people manage agents.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
