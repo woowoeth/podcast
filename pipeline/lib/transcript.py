@@ -860,7 +860,8 @@ def from_audio(ep: dict, lang: str) -> dict | None:
             segs = _local_chunked(ep, src, mb, td, lang)
             if segs:
                 return {"segments": segs, "source": "asr",
-                        "detail": "local:" + LOCAL_MODEL.split("/")[-1], "url": src_url}
+                        "detail": "local:" + LOCAL_MODEL.split("/")[-1], "url": src_url,
+                        "own_audio": raw is not None}
             return None
         chunks = _split(src, mb, td)
         if chunks is None:
@@ -874,7 +875,8 @@ def from_audio(ep: dict, lang: str) -> dict | None:
             for s in got:
                 segs.append({"t": int(s["t"] + offset), "text": s["text"]})
         if segs:
-            return {"segments": segs, "source": "asr", "detail": ASR_MODEL, "url": src_url}
+            return {"segments": segs, "source": "asr", "detail": ASR_MODEL, "url": src_url,
+                    "own_audio": raw is not None}
     return None
 
 
@@ -1324,8 +1326,12 @@ def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
                 f"episode's transcript, rejected")
             continue
         # 归属校验：拿到的文稿必须能和这一集的标题对上，否则就是配错了集。
-        # 官方 feed 里带的逐字稿天然属于这一集，不必验。
-        if tier != "feed":
+        # 官方 feed 里带的逐字稿天然属于这一集，不必验；**转写的是这一集自己 RSS 附件里的
+        # 音频，也不必验** —— 配错集只会发生在「按标题去 YouTube 搜」那条路上。
+        # 起因（2026-10-09）：小天章 EP4「王强：AI 狂飙时代，一个古典的人」，本集附件音频
+        # 转出的正确文稿被判「不属于这一集」：王强两个字够不着 3-gram，「狂飙时代」「古典的人」
+        # 是标题措辞、不会被念出来。判错的文稿不进缓存，每次重试再白转 9 分钟、再判错，永远发不出来。
+        if tier != "feed" and not got.get("own_audio"):
             ok = belongs_to(text, ep.get("title", ""))
             if ok is False:
                 attempts.append(f"{tier}:wrong-episode")
@@ -1429,7 +1435,9 @@ def pipeline_id() -> str:
     # 原来这几个旋钮里没有它：改了 belongs_to、结果变了，而 id 没变，
     # 于是被旧判据误杀的集一个都捞不回来 —— 指纹漏了一段，等于这段没有指纹。
     knobs = "|".join(str(x) for x in
-                     (TRANSCRIPT_GEN, ORDER, CHUNK_SEC, LOCAL_MODEL,
+                     # own-audio：本集附件音频的转写不做归属校验（改变了结果，旧的
+                     # 「不属于这一集」判决要作废重来）
+                     ("own-audio",) + (TRANSCRIPT_GEN, ORDER, CHUNK_SEC, LOCAL_MODEL,
                       ASR_MAX_MB, sorted(MIN_WORDS.items()),
                       _TWO_CHAR_MIN, sorted(_TITLE_FURNITURE),
                       ALIGN_TOLERANCE))

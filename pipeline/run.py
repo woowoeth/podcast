@@ -512,7 +512,7 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
         if v is not None:
             _last_triage[key] = v
             core = s.get("tier", 3) in NO_FILTER_TIERS
-            blocked = _core_blocks(v) if core else v["score"] < _triage["min"]
+            blocked = _core_blocks(v, s) if core else v["score"] < _triage["min"]
             mark = "不做" if blocked else "通过"
             if core and not blocked and v["score"] < _triage["min"]:
                 mark = "通过（优质源，不看分只看是不是广告）"
@@ -819,14 +819,20 @@ def _verdict_is_stale(prior: dict, s: dict, rubric: str) -> bool:
         return False
     if prior.get("rubric") != rubric:
         return True
-    return (s.get("tier", 3) in NO_FILTER_TIERS) and not _core_blocks(prior)
+    return (s.get("tier", 3) in NO_FILTER_TIERS) and not _core_blocks(prior, s)
 
 
-def _core_blocks(v: dict) -> bool:
-    """核心源的那一集要不要拦：只拦广告。"""
+def _core_blocks(v: dict, s: dict | None = None) -> bool:
+    """核心源的那一集要不要拦：只拦广告。
+
+    **用户钉住的必读源（pinned）连 3 分线也不看，只拦广告。** 选题这一步只读简介：罗永浩的
+    十字路口「祖传的势利眼」那集按简介判成「闲聊」3 分被拦（2026-10-09），而用户点名要的是
+    这档的全集。好不好由后面的成稿评分对照原文去判，选题不替用户否决他点名要的节目。"""
     kind = str(v.get("kind") or "")
     if any(a in kind for a in AD_KINDS):
         return True
+    if (s or {}).get("pinned"):
+        return False
     return float(v.get("score") or 0) <= 3.0
 
 

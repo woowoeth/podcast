@@ -7330,7 +7330,7 @@ class CoreSourcesAreNotFilteredExceptForAds(unittest.TestCase):
         i = src.index('mark = "不做" if blocked else "通过"')
         blk = src[max(0, i - 400):i + 200]
         self.assertIn("NO_FILTER_TIERS", blk, "没有区分优质源")
-        self.assertIn("_core_blocks(v) if core else", blk,
+        self.assertIn("_core_blocks(v, s) if core else", blk,
                       "非核心源也走了「只拦广告」—— 那是把闸门整个关掉了")
 
     def test_core_episodes_get_the_budget_first(self):
@@ -11243,6 +11243,56 @@ class AWrongLanguageIsNotAVerdict(unittest.TestCase):
             with mock.patch.object(gu, "DATA", d), mock.patch.object(self.R, "_weaker_tiers", lambda t: False):
                 dead = gu.dead({"fail": {"x-1": dict(rec, lang="en"), "x-2": dict(rec, lang="zh"), "x-3": dict(rec)}})
         self.assertEqual(sorted(dead), ["x-2", "x-3"], "语言改对之后会被重试的集，被体检报成「再也不会被尝试」")
+
+
+class OwnAudioIsNeverAnotherEpisode(unittest.TestCase):
+    """转写这一集自己 RSS 附件里的音频，不做「是不是这一集」的归属校验；YouTube 搜来的照验。
+
+    小天章 EP4「王强：AI 狂飙时代，一个古典的人」：正确的转写被判 wrong-episode（王强两字够不着
+    3-gram，标题措辞不会被念出来），判错的不进缓存，每次重试白转 9 分钟再判错，永远发不出来。"""
+
+    def _acquire(self, own):
+        import tempfile, unittest.mock as mock, os as _os
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib import transcript as T
+        text = "我们今天聊聊教育和投资里那些真正难的取舍，比如什么时候该坚持，什么时候该放手。" * 60
+        segs = [{"t": i * 10, "text": text[i * 40:(i + 1) * 40]} for i in range(len(text) // 40)]
+        got = {"segments": segs, "source": "asr", "detail": "local:test", "url": "u", "own_audio": own}
+        ep = {"title": "EP4 王强：AI 狂飙时代，一个古典的人", "duration": len(segs) * 10, "guid": f"g-{own}"}
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(_os.environ, {"PODCAST_CACHE": tmp}), \
+             mock.patch.object(T, "from_audio", lambda ep, lang: dict(got)):
+            return T.acquire(ep, "zh", allow=("asr",))
+
+    def test_own_audio_passes_youtube_audio_is_still_checked(self):
+        self.assertIsNotNone(self._acquire(True), "本集附件音频的正确转写被当成别的集丢掉了")
+        self.assertIsNone(self._acquire(False), "YouTube 搜来的音频不再做归属校验 —— 配错集的事会再出")
+
+    def test_the_change_is_in_the_pipeline_fingerprint(self):
+        """改了结果就要进指纹：旧的「不属于这一集」判决才会作废重来。"""
+        src = (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
+        i = src.index("def pipeline_id(")
+        self.assertIn('"own-audio"', src[i:i + 1200])
+
+
+class PinnedSourcesOnlyLoseAdsAtTriage(unittest.TestCase):
+    """用户钉住的必读源，选题只拦广告 —— 按简介打的低分不替用户否决他点名要的节目。"""
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.R = importlib.import_module("run")
+
+    def test_the_rule(self):
+        chat, ad = {"kind": "闲聊", "score": 3.0}, {"kind": "广告", "score": 3.0}
+        self.assertTrue(self.R._core_blocks(chat), "普通核心源的 3 分照旧拦")
+        self.assertFalse(self.R._core_blocks(chat, {"pinned": True}), "钉住的必读源被选题按 3 分拦了")
+        self.assertTrue(self.R._core_blocks(ad, {"pinned": True}), "钉住的源连广告也放过了")
+
+    def test_an_old_low_score_verdict_is_reopened_for_a_pinned_source(self):
+        prior = {"skip": "off-brief", "kind": "闲聊", "score": 3.0, "rubric": "r"}
+        self.assertTrue(self.R._verdict_is_stale(prior, {"tier": 1, "pinned": True}, "r"),
+                        "钉住之后，以前按 3 分判掉的集不会重判 —— 全集补不齐")
+        self.assertFalse(self.R._verdict_is_stale(prior, {"tier": 1}, "r"))
 
 
 class BackfillUsesTheLeanModels(unittest.TestCase):
