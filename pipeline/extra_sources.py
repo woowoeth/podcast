@@ -369,4 +369,29 @@ EXTRA: list[dict] = [
        # （run.py 的 NO_FILTER_TIERS），这几类靠成稿评分 7 分把关；真发出来一篇合辑再加标题过滤。
        # 不放 tier 3：haiku 选题只看简介，扎实的 #884 Kevin Ryan 也只给 6 分，tier 3 会把正片一起挡掉。
        residential=True, desc="Tim Ferriss 把各行顶尖者的具体做法问到可照做的细节，选题跨商业、健康与学习"),
+  # ---- 2026-10-09：用户点名「小天章」进必读，并要求找罗永浩的十字路口一类的中文长访谈 ----
+  dict(id="xiaotianzhang", name="小天章", zh="小天章", cat="ideas", tier=1, lang="zh",
+       itunes=1868296281, feed="https://feed.xyzfm.space/8em7j4cybdtj",
+       # 用户点名的必读（2026-10-09）。约两个月一期、嘉宾偏人物故事；钉住，自动规则不按产出降它
+       residential=True, desc="章泽天的个人播客，和企业家、名人长谈一手经历与关键抉择"),
+  dict(id="jiaxiaojie", name="甲小姐对话", zh="甲小姐对话", cat="ai", tier=2, lang="zh",
+       itunes=1752808344, feed="https://feed.xyzfm.space/nmyf7uktrc6a",
+       # 近期单集 2～3 小时；更新稀（10 集，曾停 15 个月）
+       residential=True, desc="甲子光年创始人张一甲的长访谈，嘉宾多是 AI、数学与硬科技一线的人"),
+  dict(id="guijilichang", name="硅基立场", zh="硅基立场", cat="ai", tier=2, lang="zh",
+       itunes=1762774314, feed="https://feed.xyzfm.space/hnetc83hllku",
+       # 约每月一集，偶有圆桌
+       residential=True, desc="硅星人的 AI 创始人长访谈，一手讲技术路线与公司判断"),
+  dict(id="tanpai", name="摊牌｜创业观察", zh="摊牌｜创业观察", cat="biz", tier=2, lang="zh",
+       itunes=1788511214, feed="https://feed.xyzfm.space/tqpa3llamdd6",
+       # 单集 60～90 分钟、约每月一集
+       residential=True, desc="投资人王晶（A姐）与云鲸创始人张峻彬对话创业者，讲一手决策与踩过的坑"),
+  dict(id="linkstart", name="开始连接 LinkStart", zh="开始连接 LinkStart", cat="ai", tier=3, lang="zh",
+       itunes=1693180879, feed="https://feed.xyzfm.space/q9a6lueucj6a",
+       # 更新勤但混着新闻讨论，tier 3：只做特别强的那几集
+       residential=True, desc="极客公园的科技访谈，创业者与开发者讲 AI 产品一线"),
+  dict(id="nengzheduolao", name="能者多唠｜商业原声", zh="能者多唠｜商业原声", cat="biz", tier=3, lang="zh",
+       itunes=1705871666, feed="https://feed.xyzfm.space/qlenc4cdh48c",
+       # 有软广风险（主持方做电商营销），tier 3：只做特别强的那几集
+       residential=True, desc="天下网商 CEO 对话消费品牌创始人，拆生意怎么做起来"),
 ]

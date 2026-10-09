@@ -293,6 +293,19 @@ def _transcript_bound(why: str | None) -> bool:
     return "no-transcript" in w or w.startswith("gate:")
 
 
+def _wrong_lang(f: dict, s: dict) -> bool:
+    """记这条「取不到文稿」时用的语言，和这档源现在登记的语言不一样。
+
+    **语言错了，转写就是错的。** AI Odyssey 是中文节目、却登记成 en（curate 早期的 bug：
+    「中文节目归到 AI/技术 就拿到 lang=en」），本机转写被强制按英文识别中文音频，
+    出来 1440 个「词」、34 wpm，被判太稀 —— 两集都这样出局，其中一集还被人以
+    「五层取稿均无可用文稿」放弃了。改对语言之后，旧判决说明不了什么，重试一次。
+    没记语言的老记录不动（按「不知道」处理），免得一次改动把几百条旧判决全捞回来抢名额。
+    """
+    rec = f.get("lang")
+    return bool(rec) and rec != (s.get("lang") or "en")
+
+
 def _weaker_tiers(recorded: str | None) -> bool:
     """记这条判决时，可用的取稿层是不是比现在少。
 
@@ -397,7 +410,7 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
                 state["done"].pop(key, None)
             f = state["fail"].get(key)
             if f and "no-transcript" in (f.get("why") or "") \
-                    and _weaker_tiers(f.get("tiers")):
+                    and (_weaker_tiers(f.get("tiers")) or _wrong_lang(f, s)):
                 # **「云端取不到」不等于「取不到」。**
                 # 云端定时跑批是 --tiers feed,notes,page，**不含 asr**；
                 # 本机线有 ASR 和住宅 IP。同一条 no-transcript，
@@ -578,7 +591,9 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
         else:
             rec = {"n": prev.get("n", 0) + 1, "soft": prev.get("soft", 0),
                    "why": "no-transcript", "gen": T.pipeline_id(),
-                   "tiers": ",".join(_tiers["allow"])}
+                   "tiers": ",".join(_tiers["allow"]),
+                   # 用哪种语言转写的：源的语言改过之后，这条判决就不算数（_wrong_lang）
+                   "lang": s.get("lang") or "en"}
             log(f"    not published: no usable transcript "
                 f"(attempt {rec['n']}/{MAX_FAILS})")
         rec.update(at=iso(now()), title=ep["title"][:120], src=s["id"])

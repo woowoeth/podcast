@@ -489,11 +489,35 @@ STALE_RECHECK_DAYS = 75
 ABANDONED_DAYS = 180
 
 
+def _feed_lang(feed: str) -> str:
+    """feed 声明的语言代码（zh / en / de …）；没有声明或取不到返回空串。和 curate.feed_lang 同一个读法。"""
+    if not feed or "youtube.com" in feed:
+        return ""
+    try:
+        xml = net.get_text(feed, timeout=25, cache_ttl=3600)
+    except Exception:
+        return ""
+    m = re.search(r"<language>\s*([A-Za-z\-_]+)", xml) or re.search(r'xml:lang="([A-Za-z\-_]+)"', xml)
+    return m.group(1).split("-")[0].split("_")[0].lower() if m else ""
+
+
+def _carry_feed_lang(new: dict, old: dict | None) -> None:
+    """这一轮没量到 feed 声明的语言（超时、DNS 抖一下），就沿用上一轮的。
+
+    probe 每次整个替换 status：不沿用的话，一次网络抖动就让 feed_lang 消失，守护
+    LanguageComesFromTheOriginalName 退回按名字判，名字是英文的中文节目（AI Odyssey）
+    立刻被要求登记成 en，CI 红 —— 而语言根本没变。"""
+    if not new.get("feed_lang") and (old or {}).get("feed_lang"):
+        new["feed_lang"] = old["feed_lang"]
+
+
 def probe(s: dict) -> dict:
     """Fetch a source once: recency, cadence, artwork, transcript coverage."""
     st = {"ok": False}
     try:
-        eps = feeds.fetch(s, cache_ttl=0)
+        # cache_ttl=60 而不是 0：0 不写缓存，下面 _feed_lang 读 <language> 时要把整个 feed
+        # 再下一遍（有的 12 MB）。60 秒内的缓存就是这一刻的 feed，不会读到旧的。
+        eps = feeds.fetch(s, cache_ttl=60)
     except Exception as e:
         st["error"] = f"{type(e).__name__}: {e}"[:120]
         return st
@@ -516,6 +540,12 @@ def probe(s: dict) -> dict:
             st["max_gap_days"] = round(max(gaps), 1)
     head = eps[:12]
     st["official_transcripts"] = sum(1 for e in head if e["transcripts"])
+    # feed 自己声明的语言（<language>zh-cn</language>）。比名字可靠：AI Odyssey 是中文节目、
+    # 名字是英文，照名字判成 en，本机转写按英文识别中文音频，两集都被判「文稿太稀」出局。
+    # 守护 LanguageComesFromTheOriginalName 有这个字段就以它为准。
+    fl = _feed_lang(s.get("feed") or "")
+    if fl:
+        st["feed_lang"] = fl
     st["image"] = next((e["image"] for e in head if e["image"]), "")
     return st
 
@@ -696,6 +726,7 @@ def main() -> int:
                 st["fail_streak"] = 0 if st.get("ok") else prev + 1
             if st["fail_streak"] > 1:
                 log(f"     ↳ 连续失败 {st['fail_streak']} 次")
+            _carry_feed_lang(st, old_status.get(s["id"]))
             s["status"] = st
             # 别把"从这里取不到"打成 DEAD：日志会误导下一个看日志的人（大概是我），
             # 而这四档从住宅 IP 取全都正常。
@@ -729,6 +760,7 @@ def main() -> int:
             # 没有任何人会知道。这正是"新增的源要能及时抓到"栽的那一处。
             if a.check:
                 st = probe(s)
+                _carry_feed_lang(st, s.get("status"))
                 s["status"] = st
                 flag = "ok " if st["ok"] else ("skip" if st.get("blocked_here")
                                                else "DEAD")

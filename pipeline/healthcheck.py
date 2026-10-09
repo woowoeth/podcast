@@ -765,6 +765,10 @@ def check_source_coverage(r: Report) -> None:
         r.note(f"{len(nocheck)} 档从没体检过（status.ok 是 None，不是坏）："
                f"{'、'.join(x['id'] for x in nocheck[:6])}"
                f" —— 跑 python3 pipeline/resolve_sources.py --check")
+    fresh = c.get("刚收录") or []
+    if fresh:
+        r.note(f"{len(fresh)} 档刚收录、还没轮到：{'、'.join(x['id'] for x in fresh[:8])}"
+               f"（宽限 {_cov.NEW_GRACE_DAYS} 天，过了还没被碰过就报硬伤）")
     untried = c.get("从没被尝试过") or []
     # 实探结果（srccoverage.py --probe --write 写的）：**原因是算出来的，
     # 不是一张"已知不可达"的名单**。名单会过期，而且下一个人看不出它当初

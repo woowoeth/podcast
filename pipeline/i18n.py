@@ -129,6 +129,8 @@ UI: dict[str, str] = {
     "降级": "downgraded",
     "休眠": "dormant",
     "恢复": "restored",
+    "提级": "promoted",
+    "钉住": "pinned",
     "抓取异常": "fetch failing",
     "试用": "on trial",
     "还没有信源变动": "No show changes yet",
@@ -165,6 +167,8 @@ UI: dict[str, str] = {
     '热门信源': 'Popular shows',
     '上次更新': 'Last updated',
     'HOT_NOTE': 'The {n} shows with the most deep-reads here, most first. Every piece passed our topic, fact and quality checks. Tap a show for all of them.',
+    'HOT_NOTE_MUST': '{n} shows. The {m} marked Must-read are our picks; the rest have the most deep-reads here, most first. Every piece passed our topic, fact and quality checks. Tap a show for all of them.',
+    "必读": "Must-read",
     '还有': '',
     'MORE_LEFT_UNIT': 'more',
     '再看一批': 'Show more',
@@ -303,6 +307,8 @@ _missed: set[str] = set()
 # 直接印到页面上——线上真出过：日志页显示 "LOG_LEDE_1"，首页显示
 # "BLURB_HEADBLURB_TAIL"。是同伴写的一条守护测试抓到的。
 ZH: dict[str, str] = {
+    "HOT_NOTE_MUST": "共 {n} 个节目：标「必读」的 {m} 个是我们指定必听的，其余是本站深读最多的，按篇数排；"
+                     "每篇都过了选题、事实和成稿评分几道关。点节目名，看它在本站的全部深读。",
     "HOT_NOTE": "本站深读最多的 {n} 个节目，按篇数排；每篇都过了选题、事实和成稿评分几道关。"
                 "点节目名，看它在本站的全部深读。",
     "MORE_LEFT_UNIT": "篇",

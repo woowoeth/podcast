@@ -74,7 +74,8 @@ def dead(state: dict | None = None) -> dict[str, dict]:
         # 检查喊狼，下次就没人认真看它了。判据直接调 run 里那个函数，
         # 不在这儿另写一遍。
         if "no-transcript" in str(v.get("why") or "") \
-                and R._weaker_tiers(v.get("tiers")):
+                and (R._weaker_tiers(v.get("tiers"))
+                     or R._wrong_lang(v, _registry().get(v.get("src")) or {})):
             continue
         # **源都已经不在册了，那不是「我们发不出去的集」，是退役源留下的残渣。**
         # 拿它报硬伤，只会让人学会忽略这个检查。
@@ -84,12 +85,16 @@ def dead(state: dict | None = None) -> dict[str, dict]:
     return out
 
 
-def _registered() -> set[str]:
+def _registry() -> dict[str, dict]:
     try:
-        return {s["id"] for s in
+        return {s["id"]: s for s in
                 json.loads((DATA / "sources.json").read_text())["sources"]}
     except Exception:
-        return set()
+        return {}
+
+
+def _registered() -> set[str]:
+    return set(_registry())
 
 
 def unaccepted(state: dict | None = None) -> dict[str, dict]:

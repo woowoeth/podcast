@@ -1603,6 +1603,15 @@ class LanguageComesFromTheOriginalName(unittest.TestCase):
         self.assertEqual(curate._lang_of("ChinaTalk", "cn"), "en")
         self.assertEqual(curate._lang_of("十字路口Crossing", "cn"), "zh")
 
+    def test_the_probe_records_what_the_feed_declares(self):
+        import importlib, unittest.mock as mock, datetime as dt
+        R = importlib.import_module("resolve_sources")
+        ep = {"published": dt.datetime.now(dt.timezone.utc), "transcripts": [], "image": ""}
+        with mock.patch.object(R.feeds, "fetch", lambda s, cache_ttl=0: [ep]), \
+             mock.patch.object(R.net, "get_text", lambda *a, **k: "<rss><channel><language>zh-cn</language></channel></rss>"):
+            st = R.probe({"id": "x", "name": "AI Odyssey", "feed": "https://feed.example/x"})
+        self.assertEqual(st.get("feed_lang"), "zh", "探测没记下 feed 声明的语言 —— 名字是英文的中文节目又会被判成 en")
+
     def test_entry_uses_the_helper(self):
         src = (ROOT / "pipeline" / "curate.py").read_text()
         i = src.index("def discover(")
@@ -1610,10 +1619,13 @@ class LanguageComesFromTheOriginalName(unittest.TestCase):
         self.assertNotIn('"lang": "zh" if v["cat"] == "cn" else "en"', src[i:])
 
     def test_every_source_on_file_agrees_with_the_helper(self):
+        """feed 自己声明了语言（探测时记在 status.feed_lang）就以它为准，没声明才看原名字形 ——
+        和 curate.feed_lang 同一个顺序。只看名字的话，名字是英文的中文节目（AI Odyssey）
+        永远被要求登记成 en，而那正是它两集出局的原因。"""
         import curate
         srcs = json.loads((ROOT / "data" / "sources.json").read_text())["sources"]
-        bad = [f'{s["name"]}: {s.get("lang")}' for s in srcs
-               if s.get("lang") != curate._lang_of(s["name"], s.get("cat", ""))]
+        want = lambda s: (s.get("status") or {}).get("feed_lang") or curate._lang_of(s["name"], s.get("cat", ""))
+        bad = [f'{s["name"]}: {s.get("lang")}' for s in srcs if s.get("lang") != want(s)]
         self.assertEqual(bad, [], f"这些源的 lang 和判据不一致：{bad}")
 
 
@@ -9074,6 +9086,9 @@ class TierHasOneWriter(unittest.TestCase):
         # 每一档都改成和硬编码表不一样的等级 —— 包括账本里 promoted 过的 a16z／allin
         for s in prev:
             s["tier"] = 3 if table[s["id"]] != 3 else 1
+            # 真实数据里 curate 降过的源本来就带 tier_base（09-29 之后十几档）。不清掉的话
+            # 下面「凭空多出了 tier_base」量到的是数据里原有的，而不是重新生成加出来的。
+            s.pop("tier_base", None)
         prev[0]["tier_base"] = table[prev[0]["id"]]
         # 挑一档当成新源（sources.json 里还没有），避开账本里 promoted 过的
         ov = self.R.overrides()
@@ -11169,8 +11184,14 @@ class TheHotTabListsTheMostReadShows(unittest.TestCase):
             sid = r["src"]["id"]
             want = sum(1 for x in eps if x.get("source_id") == sid and (x.get("published") or "")[:10] >= cut)
             self.assertEqual(want, r["recent"], f"{sid} 的「近 7 天」算错了")
-        key = [(r["n"], r["latest"]) for r in rows]
-        self.assertEqual(key, sorted(key, reverse=True), "热门没按本站篇数排")
+        # 必读（用户指定的 pinned 源）排在最前；两组各自按本站篇数排
+        flags = [bool(r.get("must")) for r in rows]
+        self.assertEqual(flags, sorted(flags, reverse=True), "必读没有排在最前")
+        for grp in (True, False):
+            key = [(r["n"], r["latest"]) for r in rows if bool(r.get("must")) == grp]
+            self.assertEqual(key, sorted(key, reverse=True), "热门没按本站篇数排")
+        must_ids = {r["src"]["id"] for r in rows if r.get("must")}
+        rows = [r for r in rows if not r.get("must")]
         # 「最多」要名副其实：名单外还在更新的节目，篇数不许比名单里最少的那个多
         fresh = (self.b.now() - dt.timedelta(days=self.b.HOT_FRESH_DAYS)).date().isoformat()
         per = {}
@@ -11180,10 +11201,78 @@ class TheHotTabListsTheMostReadShows(unittest.TestCase):
                 p = per.setdefault(sid, [0, ""]); p[0] += 1; p[1] = max(p[1], d)
         inside = {r["src"]["id"] for r in rows}
         floor = min(r["n"] for r in rows)
-        over = [(sid, n) for sid, (n, last) in per.items() if sid not in inside and last >= fresh and n > floor]
+        over = [(sid, n) for sid, (n, last) in per.items()
+                if sid not in inside and sid not in must_ids and last >= fresh and n > floor]
         self.assertEqual([], over, f"这些节目本站篇数比热门里最少的（{floor}）还多，却不在热门里")
         html, _ = self._links("")
         self.assertNotRegex(html, r"\d+ 天前", "写了相对日期 —— 页面放几天就说错了")
+
+
+class AWrongLanguageIsNotAVerdict(unittest.TestCase):
+    """源的语言登记错了，转写就是错的，「取不到文稿」的判决说明不了什么。
+
+    AI Odyssey 是中文节目、登记成 en：本机转写被强制按英文识别，出来 34 wpm、被判太稀，
+    两集出局，一集还被以「五层取稿均无可用文稿」放弃了。改对语言之后要重试 ——
+    而 state.json 按并集合并，手动删记录会被另一边带回来，所以靠判决里记下的语言来作废。"""
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.R = importlib.import_module("run")
+
+    def test_the_rule(self):
+        w = self.R._wrong_lang
+        self.assertTrue(w({"lang": "en"}, {"lang": "zh"}), "按英文转写的判决，源改成中文后还算数")
+        self.assertFalse(w({"lang": "zh"}, {"lang": "zh"}))
+        self.assertFalse(w({}, {"lang": "zh"}), "没记语言的老记录被作废 —— 会把几百条旧判决全捞回来抢名额")
+        self.assertFalse(w({"lang": "en"}, {}), "源没写语言按 en 处理")
+
+    def test_the_record_says_which_language_it_tried(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index('"why": "no-transcript", "gen": T.pipeline_id(),')
+        self.assertIn('"lang": s.get("lang")', src[i:i + 400], "「取不到文稿」的记录没记用哪种语言转写的")
+
+    def test_giveup_does_not_count_it_as_dead(self):
+        import tempfile, importlib, unittest.mock as mock
+        gu = importlib.import_module("giveup")
+        rec = {"n": self.R.MAX_FAILS, "soft": 0, "why": "no-transcript", "tiers": ",".join(self.R._tiers["allow"]) or "feed",
+               "src": "x"}
+        with tempfile.TemporaryDirectory() as tmp:
+            d = pathlib.Path(tmp)
+            (d / "sources.json").write_text(json.dumps({"sources": [{"id": "x", "lang": "zh"}]}))
+            with mock.patch.object(gu, "DATA", d), mock.patch.object(self.R, "_weaker_tiers", lambda t: False):
+                dead = gu.dead({"fail": {"x-1": dict(rec, lang="en"), "x-2": dict(rec, lang="zh"), "x-3": dict(rec)}})
+        self.assertEqual(sorted(dead), ["x-2", "x-3"], "语言改对之后会被重试的集，被体检报成「再也不会被尝试」")
+
+
+class NewSourcesGetAGracePeriodNotARedBuild(unittest.TestCase):
+    """刚收录的源还没轮到第一轮跑批，必然「从没被尝试过」。tier1 的这一类是硬伤 ——
+    于是每加一档必收源，体检和 CI 就红一次（2026-10-09 加小天章）。宽限只给账本里
+    刚 added 的；过了宽限还没碰过，照常是硬伤。"""
+
+    def test_fresh_additions_wait_and_stale_ones_still_fail(self):
+        import tempfile, importlib, datetime as dt, unittest.mock as mock
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        cov = importlib.import_module("srccoverage")
+        now = dt.datetime.now(dt.timezone.utc)
+        iso = lambda d: (now - dt.timedelta(days=d)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        st = {"ok": True, "age_days": 2.0, "cadence_days": 7.0}
+        srcs = [{"id": "fresh", "tier": 1, "status": st}, {"id": "stale", "tier": 1, "status": st},
+                {"id": "nolog", "tier": 1, "status": st}]
+        with tempfile.TemporaryDirectory() as tmp:
+            d = pathlib.Path(tmp)
+            (d / "episodes").mkdir()
+            (d / "sources.json").write_text(json.dumps({"sources": srcs}))
+            (d / "state.json").write_text(json.dumps({"fail": {}, "done": {}}))
+            (d / "curation.json").write_text(json.dumps([
+                {"at": iso(0.2), "kind": "added", "id": "fresh"},
+                {"at": iso(10), "kind": "added", "id": "stale"}]))
+            with mock.patch.object(cov, "DATA", d):
+                c = cov.classify()
+        ids = lambda k: sorted(x["id"] for x in c.get(k) or [])
+        self.assertEqual(ids("刚收录"), ["fresh"], "刚收录的源没有宽限 —— 每加一档 tier1 体检就红一次")
+        self.assertEqual(ids("从没被尝试过"), ["nolog", "stale"],
+                         "过了宽限（或账本里没有收录记录）还没被碰过，必须照常报")
 
 
 class TheHotListIsCompleteAndItsMarksAreTrue(unittest.TestCase):
@@ -11211,14 +11300,21 @@ class TheHotListIsCompleteAndItsMarksAreTrue(unittest.TestCase):
         # 独立算一遍：还在更新的里，篇数最多的 HOT_N 个。打平时按最后一篇的发布时刻、
         # 再按 id —— 原来这里没写打平规则，隐含的是「集的读取顺序」，而构建隐含的是
         # sources.json 的顺序，两边在 14 篇对 14 篇时各排各的（2026-09-28）。
-        live = sorted((sid for sid, v in per.items() if v[1] >= fresh))
-        want = sorted(live, key=lambda sid: tuple(per[sid]), reverse=True)[:self.b.HOT_N]
+        # 必读：用户钉住的源，本站有稿就在、排最前；其余按篇数补满 HOT_N
+        pinned = {x["id"] for x in srcs.get("sources") or [] if x.get("pinned")}
+        must = sorted(sorted(sid for sid in per if sid in pinned), key=lambda sid: tuple(per[sid]), reverse=True)
+        live = sorted((sid for sid, v in per.items() if v[1] >= fresh and sid not in pinned))
+        want = must + sorted(live, key=lambda sid: tuple(per[sid]), reverse=True)[:self.b.HOT_N - len(must)]
         html = "".join(json.loads((ROOT / "hot.json").read_text()))
         items = re.findall(r'<a class="hot-src" href="/podcast/s/([^/"]+)/">(.*?)</a>', html)
         self.assertEqual(want, [i for i, _ in items], "热门名单不是「本站深读最多的那几个」，或者顺序不对")
-        top = max(per.items(), key=lambda kv: kv[1][0])[0]
+        rest = [i for i, _ in items if i not in pinned]
+        top = max(((sid, v) for sid, v in per.items() if sid not in pinned), key=lambda kv: kv[1][0])[0]
         if per[top][1] >= fresh:
-            self.assertEqual(top, items[0][0], f"本站深读最多的 {top} 不在热门第一位")
+            self.assertEqual(top, rest[0], f"本站深读最多的 {top} 不在必读之后的第一位")
+        for sid, body in items:
+            self.assertEqual(sid in pinned, 'class="hot-must"' in body,
+                             f"{sid}：{'是' if sid in pinned else '不是'}用户指定的必读，页面上「必读」标记不对")
         for sid, body in items:
             k = sum(1 for x in eps if x.get("source_id") == sid and (x.get("published") or "")[:10] >= cut)
             on = 'class="hot-up on"' in body
@@ -11228,6 +11324,29 @@ class TheHotListIsCompleteAndItsMarksAreTrue(unittest.TestCase):
             else:
                 self.assertRegex(body, r"\d+月\d+日", f"{sid}：没更新却没写上次更新的日期")
             self.assertIn(f"本站 {per[sid][0]} 篇", body, f"{sid}：篇数写错了")
+
+    def test_must_read_shows_are_always_there_and_never_404(self):
+        """用户点名的必读源（pinned）：本站有稿就一定在名单里、排最前、标「必读」，
+        不管篇数多少、最近有没有更新；本站还没有稿的不列（节目页没建，点进去是 404）。
+        用一份合成数据验，不依赖今天的名单恰好长什么样。"""
+        import datetime as dt
+        today = self.b.now().date()
+        d = lambda days: (today - dt.timedelta(days=days)).isoformat() + "T08:00:00Z"
+        srcs = {"sources": [{"id": f"big{i}", "name": f"Big {i}", "cat": "ai"} for i in range(30)]
+                + [{"id": "pin_old", "name": "Pinned stale", "cat": "biz", "pinned": True},
+                   {"id": "pin_none", "name": "Pinned, no posts yet", "cat": "biz", "pinned": True}]}
+        eps = [{"source_id": f"big{i}", "published": d(1)} for i in range(30) for _ in range(10 + i)]
+        eps += [{"source_id": "pin_old", "published": d(200)}]          # 1 篇、200 天前
+        rows = self.b.hot_sources(eps, srcs)
+        ids = [r["src"]["id"] for r in rows]
+        self.assertEqual(ids[0], "pin_old", "必读源没排在最前（它只有 1 篇、200 天没更新，照样该在）")
+        self.assertTrue(rows[0].get("must"))
+        self.assertNotIn("pin_none", ids, "本站还没有稿的必读源被列出来了 —— 点进去是 404")
+        self.assertEqual(len(rows), self.b.HOT_N, "名单总数不再是 HOT_N")
+        self.assertEqual(ids[1], "big29", "必读之后应该是篇数最多的")
+        html = self.b.hot_panel(rows)
+        self.assertEqual(html.count('class="hot-must"'), 1)
+        self.assertRegex(html, r'class="hot-note">[^<]*?' + str(len(rows)), "名单上方的总数和名单对不上")
 
     def test_the_order_does_not_depend_on_the_registry_order(self):
         """名单顺序只由集决定。sources.json 倒过来排，热门必须一字不差 ——
@@ -11488,7 +11607,7 @@ class SourcesKeepUpdatingWhenOneLineStops(unittest.TestCase):
         only, scope, catch, limit = self._run_block(start, end, {**base, "ONLY": "sv101", "CLOUD_DOWN": "云端深读关着"})
         self.assertEqual(scope, "only", "手动 ONLY= 只跑几档，却记成了全站都管")
         sh = self._local()
-        self.assertIn('python3 pipeline/run.py --catchup 30 $CATCHUP_ONLY', sh, "补课没跟着放开范围")
+        self.assertIn('python3 pipeline/run.py --catchup 180 $CATCHUP_ONLY', sh, "补课没跟着放开范围")
         self.assertIn('heartbeat.py local "$rc" --scope "$SCOPE"', sh, "心跳没记这一轮管了哪些源")
 
     def test_rerunning_the_new_script_starts_from_the_launchd_environment(self):

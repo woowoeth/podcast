@@ -342,7 +342,10 @@ PYEOF
   # 补课（给新源补存量）是 token 大头：有 API key 时一轮 24；走订阅额度时按「最省 token」只放 4，
   # 额度先给新集（2026-09-26 用户要求）。新集排在补课之前，补课撞上上限也挤不掉新集。
   if [ -n "${LLM_API_KEY:-}" ]; then : "${CATCHUP_LIMIT:=24}"; else : "${CATCHUP_LIMIT:=4}"; fi
-  python3 pipeline/run.py --catchup 30 $CATCHUP_ONLY --no-build \
+  # 回溯 180 天，不是 30：更新慢的新源（小天章约两个月一集、摊牌一个多月）最新一集常常
+  # 已经在 30 天外，30 天的窗口里一集都没有 —— 加进来的源永远建不起档，用户点名的必读
+  # 也进不了「热门」（2026-10-09）。每轮篇数仍由 CATCHUP_LIMIT 卡着，窗口宽不多花 token。
+  python3 pipeline/run.py --catchup 180 $CATCHUP_ONLY --no-build \
       --per-source 2 --limit "$CATCHUP_LIMIT" --triage-min 7 --review-min 7 $EXTRA || true
 
   # ---- 每周一趟：YouTube 观察名单 ----

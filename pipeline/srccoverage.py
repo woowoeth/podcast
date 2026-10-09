@@ -11,6 +11,10 @@
   从没体检过      status.ok 是 None。跑 resolve_sources.py --check。
                   这一类和"坏了"必须分开：我第一版混在一起，把 8 档好的
                   源报成了坏的，而它们要的动作完全不同。
+  刚收录          账本里 added 不到 NEW_GRACE_DAYS 天、还没轮到。只报数：刚加的
+                  tier1 源（比如用户点名的必读）在第一轮跑批之前必然「从没被尝试过」，
+                  报成硬伤的话每加一档源就红一次（2026-10-09 加小天章时就这样）。
+                  过了宽限还没被碰过，回到下面这一类、照常报硬伤。
   从没被尝试过    feed 是新鲜的，却连一条 fail 记录都没有。**要查**——
                   云端只跑 feed/notes/page 三层，拿不到文稿的源在云端
                   结构上不可达，只有本机那条线（带 asr）才碰得到。
@@ -43,6 +47,20 @@ DATA = ROOT / "data"
 # 三个更新周期——只看天数会把季播节目误判成故障。
 QUIET_MIN_DAYS = 60
 QUIET_CADENCE_MULT = 3
+# 本机线一天两轮，新源排得进建档队列：三天还没被碰过就是真没轮到，不是「刚加」
+NEW_GRACE_DAYS = 3
+
+
+def _added_at() -> dict[str, str]:
+    """账本里每档源最近一次 added 的时间（ISO）。读不出就当没有（宽限不生效，照常报）。"""
+    out: dict[str, str] = {}
+    try:
+        for row in json.loads((DATA / "curation.json").read_text()):
+            if row.get("kind") == "added" and row.get("id") and row.get("at"):
+                out[row["id"]] = max(out.get(row["id"], ""), row["at"])
+    except Exception:
+        pass
+    return out
 
 
 def classify() -> dict:
@@ -64,6 +82,8 @@ def classify() -> dict:
         if pub > newest.get(sid, ""):
             newest[sid] = pub
 
+    added = _added_at()
+    grace = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=NEW_GRACE_DAYS)).strftime("%Y-%m-%dT%H:%M:%S")
     out: dict[str, list] = collections.defaultdict(list)
     for s in srcs:
         sid = s["id"]
@@ -95,6 +115,9 @@ def classify() -> dict:
         elif age is not None and age > max(QUIET_MIN_DAYS, cad * QUIET_CADENCE_MULT):
             row["detail"] = f"{age:.0f} 天没更新（周期 {cad:.0f} 天）"
             out["源自己安静了"].append(row)
+        elif added.get(sid, "")[:19] >= grace:
+            row["detail"] = f"{added[sid][:10]} 刚收录，还没轮到（宽限 {NEW_GRACE_DAYS} 天）"
+            out["刚收录"].append(row)
         else:
             row["detail"] = (f"feed {age:.0f} 天前还在更新（周期 {cad:.0f} 天）"
                              if age is not None else "feed 时间未知")
@@ -181,7 +204,7 @@ def probe_untried(rows: list[dict], days: int = 21) -> list[dict]:
     return out
 
 
-ORDER = ["抓取坏了", "从没体检过", "从没被尝试过", "拿不到文稿", "闸门没过",
+ORDER = ["抓取坏了", "从没体检过", "从没被尝试过", "刚收录", "拿不到文稿", "闸门没过",
          "源自己安静了", "有产出"]
 
 

@@ -1228,6 +1228,11 @@ def hot_sources(eps: list[dict], srcs: dict) -> list[dict]:
     —— 每篇都过了选题、事实、成稿评分几道关，篇数多说明它持续出好内容、我们也一直在跟。
 
     「有没有更新」用和「最新」同一个窗口（近 NEW_DAYS 天，构建期算）。
+
+    **用户指定的必读源排在最前，标「必读」。** 就是 sources.json 里 pinned 的那几档（用户点名的
+    优先源：All-In、a16z、罗永浩的十字路口……），不管本站篇数多少、最近有没有更新都在名单里 ——
+    它们是人的明确指示，不该被「篇数最多」挤掉。条件只有一个：本站至少有一篇，否则节目页
+    还没建、点进去是 404。其余位置照旧按篇数排，总数仍是 HOT_N。
     """
     import datetime as _dt
     cut = (now() - _dt.timedelta(days=NEW_DAYS)).date().isoformat()
@@ -1242,15 +1247,23 @@ def hot_sources(eps: list[dict], srcs: dict) -> list[dict]:
         r["recent"] += d >= cut
         r["latest"] = max(r["latest"], d)
         r["ts"] = max(r["ts"], x.get("published") or "")
-    rows = [{"src": src, **per[src["id"]]} for src in srcs.get("sources") or []
-            if per.get(src["id"]) and per[src["id"]]["latest"] >= fresh]
+    def key(r):
+        return (r["n"], r["latest"], r["ts"])
+
+    must = [{"src": src, "must": True, **per[src["id"]]} for src in srcs.get("sources") or []
+            if src.get("pinned") and per.get(src["id"])]
+    must.sort(key=lambda r: r["src"]["id"])
+    must.sort(key=key, reverse=True)
+    picked = {r["src"]["id"] for r in must}
+    rows = [{"src": src, "must": False, **per[src["id"]]} for src in srcs.get("sources") or []
+            if src["id"] not in picked and per.get(src["id"]) and per[src["id"]]["latest"] >= fresh]
     # **排序必须是全序。** 原来只按（篇数，最后更新日）排，打平时落回 sources.json
     # 的顺序 —— 一次 curate 调整名单，首页热门就可能换位，守护照着集的顺序独立算，
     # 两边对不上（2026-09-28：asianometry 和 cogrev 都是 14 篇、最后一篇都在 9 月 27 日）。
     # 打平时先看最后一篇的发布时刻（更近的在前），再看 id。
     rows.sort(key=lambda r: r["src"]["id"])
-    rows.sort(key=lambda r: (r["n"], r["latest"], r["ts"]), reverse=True)
-    return rows[:HOT_N]
+    rows.sort(key=key, reverse=True)
+    return must + rows[:max(0, HOT_N - len(must))]
 
 
 def hot_panel(rows: list[dict]) -> str:
@@ -1260,11 +1273,14 @@ def hot_panel(rows: list[dict]) -> str:
         nm = src_display(s)
         up = (f'<span class="hot-up on">{e(i18n.recent(r["recent"]))}</span>' if r["recent"]
               else f'<span class="hot-up">{e(T("上次更新"))} {e(i18n.md(r["latest"]))}</span>')
+        must = f'<span class="hot-must">{e(T("必读"))}</span>' if r.get("must") else ""
         items.append(f'<li><a class="hot-src" href="{BASE}/s/{e(s["id"])}/">'
-                     f'<span class="hot-name"{zh_attr(nm)}>{e(nm)}</span>'
+                     f'<span class="hot-name"><span{zh_attr(nm)}>{e(nm)}</span>{must}</span>'
                      f'<span class="hot-meta">{e(T(CAT_LABEL.get(s.get("cat"), "")))} · {e(i18n.here_n(r["n"]))}</span>'
                      f'{up}</a></li>')
-    return (f'<p class="hot-note">{e(T("HOT_NOTE").replace("{n}", str(len(rows))))}</p>'
+    m = sum(1 for r in rows if r.get("must"))
+    note = (T("HOT_NOTE_MUST").replace("{m}", str(m)) if m else T("HOT_NOTE")).replace("{n}", str(len(rows)))
+    return (f'<p class="hot-note">{e(note)}</p>'
             f'<ol class="hot-list">{"".join(items)}</ol>')
 
 
@@ -1953,10 +1969,10 @@ def cat_nav(counts: dict, here: str = "") -> str:
 # ---------------------------------------------------------------- 更新日志
 
 KIND_LABEL = {"added": "收录", "removed": "移除", "demoted": "降级", "dormant": "休眠",
-              "restored": "恢复"}
+              "restored": "恢复", "promoted": "提级", "pinned": "钉住"}
 # 用 T() 取，别在字典里存两套：字典是常量，语言是运行时决定的
 KIND_TONE = {"added": "add", "removed": "drop", "demoted": "down", "dormant": "down",
-             "restored": "add"}
+             "restored": "add", "promoted": "add", "pinned": "add"}
 
 
 def zt_topics() -> list[dict]:
@@ -2029,7 +2045,7 @@ def log_page(eps: list[dict], srcs: dict) -> str:
             flag = f'<em class="ev-flag">{T("试用")}</em>' if r.get("probation") else ""
             sc = i18n.score(f"{r['score']:.1f}")
             extra = f'<span class="ev-score">{sc}{flag}</span>'
-        elif kind in ("demoted", "dormant", "restored") and r.get("from_tier"):
+        elif kind in ("demoted", "dormant", "restored", "promoted") and r.get("from_tier"):
             extra = f'<span class="ev-score">T{r["from_tier"]} → T{r["to_tier"]}</span>'
         items.append(f"""<li class="ev {tone}">
 <span class="ev-when">{e((r.get('at') or '')[:10])}</span>
