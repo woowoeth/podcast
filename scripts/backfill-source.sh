@@ -20,12 +20,20 @@
 #
 #   scripts/backfill-source.sh zhangxiaojun
 set -u
+# **先把自己复制一份再跑。** bash 是边读边执行的；补存量一跑十几个钟头，中间日更会 git pull，
+# 要是正好改了这个文件，正在跑的这一份会从半截读到新内容、做出说不清的事。
+if [ -z "${BACKFILL_COPY:-}" ]; then
+  export BACKFILL_REPO="$(cd "$(dirname "$0")/.." && pwd)"
+  _copy="$(mktemp -t backfill-source)"
+  cp "$0" "$_copy"
+  BACKFILL_COPY=1 exec bash "$_copy" "$@"
+fi
 SRC="${1:?用法：backfill-source.sh <source-id>}"
 BATCH="${BATCH:-8}"
 GAP="${GAP:-150}"
 DAYS="${DAYS:-1700}"
 STEPS="${STEPS:-60 90 120 180 0}"
-cd "$(dirname "$0")/.."
+cd "${BACKFILL_REPO:?}"
 set -a; . ~/.config/podcast/env 2>/dev/null; set +a
 export JOBS="${JOBS:-4}"
 
@@ -45,7 +53,9 @@ fi
 # 补出来的稿也就没人提交上线（发布靠日更那一班的 git add + 建站 + 推送）。只歇 GAP 秒是碰运气 ——
 # 一批长集要一个钟头。所以：日更前后的窗口里不开新批，日更在跑的时候也不开。
 # 窗口按本机时间，覆盖 launchd 的 10:30 / 21:30 加上一批最长的耗时。
-QUIET="${QUIET:-09:30-11:45 20:30-22:45}"
+# 默认不再设窗口：日更开头会先等这边这一批跑完（pipeline/runlock.py），这边看到日更在跑就不开新批。
+# 想手动留空档（比如白天要用 GPU）就设 QUIET="09:30-11:45 …"。
+QUIET="${QUIET:-}"
 in_quiet() {
   local now a b w
   now=$((10#$(date +%H%M)))
@@ -58,7 +68,9 @@ in_quiet() {
 }
 wait_turn() {
   local said=""
-  while in_quiet || pgrep -f "scripts/local-daily.sh" >/dev/null; do
+  # 只认真正在跑的日更（launchd 起的是 /bin/bash …/scripts/local-daily.sh）。原来 pgrep -f 只要命令行里
+  # 出现这串字就算 —— 一个 grep、一个监控循环、一条带着这个路径的命令都会让补存量无限期等下去。
+  while in_quiet || pgrep -f '^(/bin/)?bash .*scripts/local-daily\.sh( |$)' >/dev/null; do
     [ -z "$said" ] && echo "----- $(date +%H:%M) 日更的窗口／日更在跑，先让出来 -----" && said=1
     sleep 120
   done

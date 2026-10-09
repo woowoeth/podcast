@@ -95,7 +95,7 @@ _STATE_LOCK = Lock()
 # 不同标题的文件、同一个 ep["id"]。短链目录按 id 建，后写的把前一个覆盖掉，
 # 于是 299 篇正文页只有 297 个短链，其中一篇的分享链接指向另一篇。
 # 表面症状（短链数不对）离真因（没有跨进程锁）很远。
-_LOCK_FILE = DATA / ".run.lock"
+from runlock import LOCK_FILE as _LOCK_FILE          # noqa: E402  锁的位置只写一处（日更开头的等待也用它）
 _lock_fh = None
 
 
@@ -119,7 +119,6 @@ def acquire_run_lock(wait: bool = False) -> bool:
     _lock_fh.write(f"{os.getpid()}\n")
     _lock_fh.flush()
     return True
-
 
 
 def save_state(s: dict) -> None:

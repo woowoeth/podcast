@@ -11295,6 +11295,89 @@ class PinnedSourcesOnlyLoseAdsAtTriage(unittest.TestCase):
         self.assertFalse(self.R._verdict_is_stale(prior, {"tier": 1}, "r"))
 
 
+class DailyAndBackfillTakeTurns(unittest.TestCase):
+    """日更和补存量按顺序来，不再靠每天 4.5 小时的让出窗口。
+
+    跑批锁是「拿不到就退出」：日更撞上补存量正在跑的一批，就整轮跳过、什么都不提交。原来靠
+    补存量在 10:30／21:30 前后各让两个多钟头来躲，GPU 一天闲 4.5 小时（2026-10-10 补罗永浩全集）。
+    现在日更开头先等这一批跑完（run.py --wait-lock）再动 git/data，补存量看到日更在跑就不开新批。"""
+
+    def test_wait_lock_waits_for_a_holder_and_returns_when_free(self):
+        import fcntl, subprocess
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        rl, run = importlib.import_module("runlock"), importlib.import_module("run")
+        self.assertEqual(run._LOCK_FILE, rl.LOCK_FILE, "run.py 拿的锁和日更等的不是同一把")
+        cmd = [sys.executable, str(ROOT / "pipeline" / "runlock.py"), "0.02"]
+        with open(rl.LOCK_FILE, "a") as fh:
+            fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+            held = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=60)
+            fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+        free = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=60)
+        self.assertEqual(held.returncode, 1, "锁被占着却说空出来了 —— 日更会和补存量同时动 data/")
+        self.assertEqual(free.returncode, 0, "锁空着却没返回")
+
+    def test_the_daily_waits_before_touching_git(self):
+        sh = (ROOT / "scripts" / "local-daily.sh").read_text()
+        body = sh[sh.index("\n{\n"):]
+        i = body.index("pipeline/runlock.py")
+        first_git = min(body.index(w) for w in ("git config", "git pull", "git rebase", "git fetch") if w in body)
+        self.assertLess(i, first_git, "日更先动了 git 才等补存量 —— 两边同时写 data/ 会把账本写乱")
+
+    def test_the_backfill_yields_only_to_a_real_daily_run(self):
+        """命令行里提到 scripts/local-daily.sh 的别的进程（grep、监控循环）不算日更在跑。"""
+        import subprocess, tempfile, time
+        sh = (ROOT / "scripts" / "backfill-source.sh").read_text()
+        fn = sh[sh.index("in_quiet() {"):sh.index('    echo "----- $(date -u +%H:%M:%SZ) 批次开始')]
+        fn = fn[:fn.index("total=0")] if "total=0" in fn else fn
+        probe = 'QUIET=""\n' + sh[sh.index("in_quiet() {"):sh.index("\ntotal=0")] + '\nwait_turn; echo done\n'
+        with tempfile.TemporaryDirectory() as tmp:
+            fake = pathlib.Path(tmp) / "scripts" / "local-daily.sh"
+            fake.parent.mkdir()
+            fake.write_text("sleep 30\n")
+            bystander = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)", "scripts/local-daily.sh"])
+            try:
+                t = time.time()
+                r = subprocess.run(["bash", "-c", probe], capture_output=True, text=True, timeout=20)
+                self.assertEqual(r.stdout.strip(), "done")
+                self.assertLess(time.time() - t, 5, "一个命令行里提到 local-daily.sh 的旁观进程让补存量停下来等")
+                daily = subprocess.Popen(["/bin/bash", str(fake)])
+                try:
+                    with self.assertRaises(subprocess.TimeoutExpired, msg="真正的日更在跑，补存量却没让"):
+                        subprocess.run(["bash", "-c", probe], capture_output=True, text=True, timeout=3)
+                finally:
+                    daily.kill()
+            finally:
+                bystander.kill()
+
+    def test_the_backfill_runs_from_a_copy_in_the_right_repo(self):
+        """补存量一跑十几个钟头，中间日更会 git pull：脚本要从副本执行，工作目录还是原仓库。"""
+        import tempfile, subprocess, shutil
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = pathlib.Path(tmp) / "repo"
+            (repo / "scripts").mkdir(parents=True); (repo / "pipeline").mkdir(); (repo / "data" / "episodes").mkdir(parents=True)
+            shutil.copy(ROOT / "scripts" / "backfill-source.sh", repo / "scripts" / "backfill-source.sh")
+            # 桩：记下工作目录和模型，然后**就地改写**原脚本（同一个 inode，像编辑器保存那样），
+            # 改成一堆「往 trace 里写 BAD」的行。直接读原文件的 bash 会接着从改写后的内容往下执行。
+            (repo / "pipeline" / "run.py").write_text(
+                "import os, sys, pathlib\n"
+                "t = pathlib.Path(os.environ['TRACE'])\n"
+                "if not t.exists(): t.write_text(os.getcwd() + '|' + os.environ.get('LLM_MODEL_TRIAGE', ''))\n"
+                "f = open(os.environ['ORIG'], 'r+'); n = len(f.read()); f.seek(0)\n"
+                "f.write(('echo BAD >> \"$TRACE\"\\n' * (n // 10 + 50))); f.truncate(); f.close()\n")
+            trace = pathlib.Path(tmp) / "trace"
+            r = subprocess.run(["bash", str(repo / "scripts" / "backfill-source.sh"), "x"], capture_output=True, text=True,
+                               timeout=60, env={"PATH": "/usr/bin:/bin", "HOME": tmp, "TRACE": str(trace),
+                                                "ORIG": str(repo / "scripts" / "backfill-source.sh"),
+                                                "STEPS": "0", "GAP": "0", "QUIET": ""})
+            self.assertEqual(r.returncode, 0, r.stderr[-300:])
+            out = trace.read_text()
+        self.assertNotIn("BAD", out, "跑到一半原脚本被改写，正在跑的这一份跟着执行了新内容 —— 没有从副本跑")
+        cwd, triage = out.split("|")
+        self.assertEqual(pathlib.Path(cwd).resolve(), repo.resolve(), "从副本执行之后跑到别的目录去了")
+        self.assertEqual(triage, "haiku", "补存量没用上省 token 的模型")
+
+
 class BackfillUsesTheLeanModels(unittest.TestCase):
     """补存量和日更用同一套省 token 的模型，并且让出日更的窗口。
 

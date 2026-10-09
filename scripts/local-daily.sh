@@ -92,6 +92,14 @@ export LLM_MODEL
   command -v claude >/dev/null || { echo "找不到 claude CLI，PATH=$PATH"; exit 1; }
   command -v python3 >/dev/null || { echo "找不到 python3"; exit 1; }
 
+  # **补存量的一批还在跑，就先等它跑完，再动 git 和 data/。** 它占着 data/.run.lock 写 state.json
+  # 和集文件；这时候 pull／commit 会把账本写乱，run.py 拿不到锁又会「这一轮跳过」、什么都不提交。
+  # 补存量那边看到日更在跑就不开下一批（backfill-source.sh 的 wait_turn），所以这里等到的空档归日更。
+  # 原来是补存量在日更前后各让出两个多钟头 —— 一天 4.5 小时 GPU 闲着（2026-10-10 补罗永浩全集时改）。
+  # 只等不拿锁（pipeline/runlock.py）；不走 run.py，免得「run.py 被调用过」被守护算成一次深读。
+  python3 pipeline/runlock.py "${WAIT_FOR_BACKFILL_MIN:-180}" \
+    || echo "补存量等了 ${WAIT_FOR_BACKFILL_MIN:-180} 分钟还没让出来，照常往下走（run.py 拿不到锁会跳过这一轮）"
+
   # state.json 是两条线唯一会真冲突的数据文件。没有这个驱动，冲突会在工作区
   # 留下标记，之后每次 git pull --rebase 都报 "unmerged files"，重试循环
   # 从此全撞在同一面墙上（真出过一次，那轮产出全废）。
