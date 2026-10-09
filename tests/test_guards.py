@@ -11245,6 +11245,38 @@ class AWrongLanguageIsNotAVerdict(unittest.TestCase):
         self.assertEqual(sorted(dead), ["x-2", "x-3"], "语言改对之后会被重试的集，被体检报成「再也不会被尝试」")
 
 
+class BackfillUsesTheLeanModels(unittest.TestCase):
+    """补存量和日更用同一套省 token 的模型，并且让出日更的窗口。
+
+    backfill-source.sh 原来不设模型：没有 API key 时 CLI 每个角色都落到默认的 opus。
+    补罗永浩全集（36 集、124 小时音频）差一点就全程 opus 跑了（2026-10-09）。"""
+
+    @staticmethod
+    def _defaults(text):
+        return dict(re.findall(r':\s*"\$\{(LLM_MODEL\w*):=(\w+)\}"', text))
+
+    def test_both_scripts_agree(self):
+        daily = self._defaults((ROOT / "scripts" / "local-daily.sh").read_text())
+        back = self._defaults((ROOT / "scripts" / "backfill-source.sh").read_text())
+        self.assertTrue(daily, "local-daily.sh 里找不到模型默认值")
+        self.assertEqual(back, daily, "补存量和日更的模型配置不一致 —— 补跑会用别的（可能是默认的 opus）")
+
+    def test_the_backfill_yields_before_every_batch(self):
+        sh = (ROOT / "scripts" / "backfill-source.sh").read_text()
+        i, j = sh.index("wait_turn\n"), sh.index("python3 pipeline/run.py")
+        self.assertLess(i, j, "开新批之前没有先让出日更的窗口 —— 补跑占着锁，那一班日更整轮跳过")
+
+    def test_the_quiet_window_logic(self):
+        import subprocess
+        sh = (ROOT / "scripts" / "backfill-source.sh").read_text()
+        fn = sh[sh.index("in_quiet() {"):sh.index("wait_turn() {")]
+        def quiet(hhmm):
+            code = f'date() {{ echo {hhmm}; }}\nQUIET="09:30-11:45 20:30-22:45"\n{fn}\nin_quiet && echo yes || echo no'
+            return subprocess.run(["bash", "-c", code], capture_output=True, text=True).stdout.strip()
+        self.assertEqual([quiet(t) for t in ("0929", "0930", "1030", "1144", "1145", "2130", "0800", "2300")],
+                         ["no", "yes", "yes", "yes", "no", "yes", "no", "no"])
+
+
 class NewSourcesGetAGracePeriodNotARedBuild(unittest.TestCase):
     """刚收录的源还没轮到第一轮跑批，必然「从没被尝试过」。tier1 的这一类是硬伤 ——
     于是每加一档必收源，体检和 CI 就红一次（2026-10-09 加小天章）。宽限只给账本里

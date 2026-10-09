@@ -29,11 +29,47 @@ cd "$(dirname "$0")/.."
 set -a; . ~/.config/podcast/env 2>/dev/null; set +a
 export JOBS="${JOBS:-4}"
 
+# 没有 API key 时和本机日更（local-daily.sh）用同一套省 token 的模型。不设的话 CLI 后端每个角色
+# 都落到默认的 opus：补罗永浩 36 集（124 小时音频）全程 opus，比省 token 的配置贵几倍
+# （2026-10-09 用户要补全集时查出）。守护 BackfillUsesTheLeanModels 盯着两边一致。
+if [ -z "${LLM_API_KEY:-}" ]; then
+  : "${LLM_MODEL:=sonnet}"
+  : "${LLM_MODEL_DIGEST:=sonnet}"
+  : "${LLM_MODEL_TRIAGE:=haiku}"
+  : "${LLM_MODEL_MAP:=haiku}"
+  : "${LLM_MODEL_REVIEW:=haiku}"
+  export LLM_MODEL LLM_MODEL_DIGEST LLM_MODEL_TRIAGE LLM_MODEL_MAP LLM_MODEL_REVIEW
+fi
+
+# **定时线前后让出来。** 跑批锁是「拿不到就退出」：补跑正占着锁时 launchd 那一班日更整轮跳过，
+# 补出来的稿也就没人提交上线（发布靠日更那一班的 git add + 建站 + 推送）。只歇 GAP 秒是碰运气 ——
+# 一批长集要一个钟头。所以：日更前后的窗口里不开新批，日更在跑的时候也不开。
+# 窗口按本机时间，覆盖 launchd 的 10:30 / 21:30 加上一批最长的耗时。
+QUIET="${QUIET:-09:30-11:45 20:30-22:45}"
+in_quiet() {
+  local now a b w
+  now=$((10#$(date +%H%M)))
+  for w in $QUIET; do
+    a=${w%-*}; b=${w#*-}
+    a=$((10#${a/:/})); b=$((10#${b/:/}))
+    [ "$now" -ge "$a" ] && [ "$now" -lt "$b" ] && return 0
+  done
+  return 1
+}
+wait_turn() {
+  local said=""
+  while in_quiet || pgrep -f "scripts/local-daily.sh" >/dev/null; do
+    [ -z "$said" ] && echo "----- $(date +%H:%M) 日更的窗口／日更在跑，先让出来 -----" && said=1
+    sleep 120
+  done
+}
+
 total=0
 for cap in $STEPS; do
   label=$([ "$cap" = 0 ] && echo "不限时长" || echo "≤${cap} 分钟")
   echo "########## $(date -u +%H:%M:%SZ) 这一档：$label ##########"
   while :; do
+    wait_turn
     echo "----- $(date -u +%H:%M:%SZ) 批次开始（累计 $total 篇）-----"
     # **边跑边写，不要收进变量。** 上一版用 out=$(...)，整批跑完才落盘，
     # 于是一小时里日志只有 51 字节，问「跑到哪了」只能去数文件。
