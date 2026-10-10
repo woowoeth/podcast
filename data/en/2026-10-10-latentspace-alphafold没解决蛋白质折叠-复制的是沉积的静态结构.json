@@ -1,0 +1,119 @@
+{
+ "slug": "2026-10-10-latentspace-alphafold没解决蛋白质折叠-复制的是沉积的静态结构",
+ "of": "latentspace-c14524d66e",
+ "source_lang": "en",
+ "title": "AlphaFold Didn't Solve Protein Folding — It Copies Deposited Static Structures",
+ "dek": "AlphaFold merely recreates the single protein conformation that humans already solved and deposited in the PDB. It never learned actual dynamics, disorder regions, or folding pathways — nowhere near scientifically 'solving' protein folding.",
+ "why": "The two researchers openly discuss AlphaFold's limitations and the data and architecture tradeoffs, far more honest than headlines proclaiming 'folding solved' — but the substance is concentrated in the later half.",
+ "who": "Researchers in protein design, drug development, or AI for science who want clarity on whether to invest next in modeling or data.",
+ "skip": "Skip the opening pleasantries at 0:00; real content begins at 1:00.",
+ "tags": [
+  "AI for science",
+  "Protein structure prediction",
+  "AlphaFold",
+  "Scaling laws",
+  "Interpretability",
+  "Drug development"
+ ],
+ "points": [
+  {
+   "h": "Scaling Laws Aren't Universal — You Have to Find Yours",
+   "body": "Sal corrects a common misunderstanding: scaling laws aren't universal. Most of the work is finding the regime where adding compute and data actually improves results. Once you identify it, the problem becomes pure engineering—keep optimizing. He gives an example: training protein language models on low-quality metagenomic sequences (many not even complete proteins) actually boosted their ability to design real proteins. This shows dirty data can work under the right scaling law, but only after you've identified that law, not through blind data accumulation."
+  },
+  {
+   "h": "Bitter Lesson Isn't That Data Beats Modeling",
+   "body": "Pushmeet reframes Rich Sutton's bitter lesson—it's not saying data trumps modeling, but a rejection of tribal thinking (\"I'm a modeler\" or \"I'm a data person\"). The right approach: diagnose the problem first, then decide whether to invest in modeling, compute, or data collection. During AlphaFold development, the team lacked resources to scale PDB, so they bet on architecture. Pursuing a ‘virtual cell’ revealed their genomic data was insufficient, forcing them to admit data infrastructure wasn't ready."
+  },
+  {
+   "h": "AlphaFold's Hand-Crafted Architecture Encodes Deep Biological Intuition",
+   "body": "AlphaFold2's carefully designed features weren't arbitrary—they embed biophysical intuition directly into the model. Amino acid residues don't act independently; they influence each other. Encoding this prior knowledge gave the model an unfair advantage, eliminating the need to learn it from scratch and dramatically improving data efficiency. Pushmeet also emphasizes data curation is itself a craft: copying the same data mindlessly is pointless. What matters is coverage, not volume."
+  },
+  {
+   "h": "Proteins Aren't Building Blocks — Folding Problem Is Unsolved",
+   "body": "Media coverage claims protein folding is solved, but Pushmeet says that's misleading. He often calls proteins the building blocks of life, but admits he doesn't truly believe it—proteins are extraordinarily complex, become disordered, and change shape depending on context. He and John Jumper discussed how AlphaFold never learned the actual ground state or conformational distribution of proteins. It simply recreates a single structure that someone solved and deposited in the PDB. This is useful but doesn't mean humanity understands protein dynamics. Calling it ‘solved’ is easy marketing; protein structure prediction and dynamics research are just beginning."
+  },
+  {
+   "h": "Skip PDB — Model Directly from Cryo-EM Raw Images",
+   "body": "If Pushmeet could make one wish, it would be models running directly on cryo-EM micrographs to extract dynamics and distributions, rather than relying on PDB structures already processed and curated by humans. He suspects those PDB structures lose information during handling. He's attempted this approach himself but admits it requires more work—perhaps someone more capable will eventually open this door."
+  },
+  {
+   "h": "Build the Whole Bicycle, Not Just One Spoke",
+   "body": "Sal illustrates the current limitation with an analogy: today's protein models are like someone trying to understand how a bicycle works but only modeling a single spoke. Models keep improving, but what we actually want to understand is how the wheel—and eventually the whole bike—operates, and use that understanding to design something larger, like a truck part. That requires returning proteins to their biological system context instead of studying them in isolation. But he emphasizes folding models themselves deserve continued investment, as they'll keep improving."
+  },
+  {
+   "h": "Trustworthiness Beats Interpretability — Calibration Failure Is Real Risk",
+   "body": "Pushmeet distinguishes two layers of ‘understanding a model.’ AlphaFold2's GDT score was around 90 on its training data, but he says even at 95, if the confidence metric (pLDDT) isn't well-calibrated, nobody will trust it. Picture a model giving correct answers while expressing high confidence—you follow its guidance for a year before discovering it was all wrong. They did achieve good calibration and understood AlphaFold2's behavior boundaries. But internal interpretability—how the model arrives at answers—is separate. Interpretable to whom? Human brains might not grasp it, but perhaps stronger future models could explain how AlphaFold2 works."
+  },
+  {
+   "h": "Cure All Disease Means 10x Thinking, Not 10% Thinking",
+   "body": "Sal recalls his Google experience: facing a problem, asking ‘how do we achieve 10x improvement’ is sometimes easier than asking ‘how do we get 10% improvement’—not because the 10x path is simpler, but because it forces you outside the current framework back to first principles. Both paths have value; pursue both. But Biohub's mission—curing all disease—demands finding that 10x breakthrough, not settling for incremental gains."
+  }
+ ],
+ "terms": [
+  {
+   "term": "GDT score",
+   "def": "Global Distance Test; standard metric measuring how closely a predicted protein structure matches the true experimental structure."
+  },
+  {
+   "term": "pLDDT (confidence score)",
+   "def": "Per-residue confidence metric AlphaFold assigns to each amino acid in its prediction, indicating how certain the model is about that position."
+  },
+  {
+   "term": "Cryo-EM micrographs",
+   "def": "Raw electron microscopy images used to solve protein structures; unprocessed visual data before conversion to structural models."
+  },
+  {
+   "term": "Metagenomic data",
+   "def": "DNA sequences recovered directly from environmental samples; unfiltered sequence collections not necessarily corresponding to known complete proteins."
+  },
+  {
+   "term": "Bitter lesson",
+   "def": "Rich Sutton's thesis that general methods leveraging compute and data scale ultimately outperform human-engineered specialized knowledge."
+  },
+  {
+   "term": "Inductive bias",
+   "def": "Embedding prior domain knowledge directly into a model's architecture, allowing it to learn effectively with less training data."
+  }
+ ],
+ "facts": [
+  {
+   "k": "AlphaFold2 GDT score",
+   "v": "approximately 90"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "One misconception of scaling laws is that scaling laws are everywhere and they always exist.",
+   "translated": false
+  },
+  {
+   "text": "A concrete example is training a protein language model on metagenomic sequences, which are not the highest-quality data.",
+   "translated": false
+  },
+  {
+   "text": "Sometimes when we’re looking at problems, we think about solutions in a very religious way: “I’m a modeler,” or “I’m a data generation person.” I think that is the bitter lesson.",
+   "translated": false
+  },
+  {
+   "text": "Proteins aren’t blocks, and they don’t act as blocks. I say proteins are the building blocks all the time, but I don’t actually believe it.",
+   "translated": false
+  },
+  {
+   "text": "So when you ask me that question, the computer vision researcher in me gets very excited about cryo-EM micrographs.",
+   "translated": false
+  },
+  {
+   "text": "I think of the models we’re building now as someone who’s trying to understand how a bicycle works, but is modeling a spoke on it.",
+   "translated": false
+  },
+  {
+   "text": "But even if it had a GDT score of 95, if its pLDDT score were completely uncalibrated, who would trust it?",
+   "translated": false
+  },
+  {
+   "text": "sometimes it’s easier to approach a problem by asking what it would take to make a 10x improvement rather than a 10% improvement.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
