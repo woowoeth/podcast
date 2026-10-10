@@ -29,6 +29,11 @@ from .util import hhmmss, log, squeeze
 MIN_SCORE = float(os.environ.get("REVIEW_MIN", "7"))
 WINDOW = 45          # 每个引用时间戳前后取多少秒的原文
 EVIDENCE_CHARS = 6000
+# 长集的证据预算按全文长度放宽（上限 EVIDENCE_CAP）。6000 字对一集三四个小时的中文访谈只够
+# 十几个引用点，后面的全被截掉，评审就把写对的细节判成「原文找不到」（2026-10-10 罗永浩那两集：
+# 「请举手」「腿毛……移植」「把外卖给机器人送上来」都在全文里，成稿评分照样给 5 分拦下）。
+EVIDENCE_SHARE = 0.3
+EVIDENCE_CAP = 16000
 SWEEP_CHARS = 4000   # 另外均匀抽取全篇，让"有没有漏掉更值钱的"这条有据可依
 
 SYSTEM = """你是这个中文播客深读站的审稿人。你的唯一职责是把不够好的稿子拦下来，
@@ -112,29 +117,88 @@ def _sweep(tr: dict) -> str:
     return "\n".join(picks)
 
 
+# 两字片段里太常见、说明不了出处的
+_COMMON2 = set("我们 你们 他们 就是 这个 那个 一个 什么 没有 因为 所以 但是 然后 如果 可以 不是 还是 自己 "
+               "大家 现在 时候 其实 觉得 知道 这样 那样 一些 已经 非常 特别 真的 可能 问题 东西 事情 "
+               "一下 一种 这种 那种 都是 也是 不会 不要 只是 之后 之前 以后 怎么 为什么 能够 应该 需要".split())
+
+
+def _grams(text: str) -> set[str]:
+    """一段话里的识别性片段：中文两字片段（去掉常用词）、数字、拉丁词。用来在全文里找它真正的出处。
+
+    两字而不是三字：成稿是改写过的，「连胡子、腿毛都能算作移植的资源」对原话「几处腿毛……
+    胡子肯定是好的……你移植」，三字片段几乎一个都对不上，两字的「胡子」「腿毛」「移植」都在。"""
+    import re
+    t = squeeze(text or "")
+    out = {m for m in re.findall(r"[0-9][0-9.,%万亿千百]*", t) if len(m) >= 2}
+    out |= {w.lower() for w in re.findall(r"[A-Za-z]{3,}", t)}
+    for run in re.findall(r"[\u4e00-\u9fff]{2,}", t):
+        out |= {run[i:i + 2] for i in range(len(run) - 1)}
+    return {g for g in out if g not in _COMMON2}
+
+
+def _window(segs: list[dict], m: int) -> str:
+    return squeeze(" ".join(s["text"] for s in segs if m - WINDOW <= s["t"] <= m + WINDOW))
+
+
+def _flat(text: str) -> str:
+    """去空白后小写：转写的词之间有空格，片段跨空格就对不上。"""
+    return "".join((text or "").split()).lower()
+
+
+def _best_anchor(segs: list[dict], grams: set[str]) -> tuple[int, int] | None:
+    """全文里和这些片段重合最多的那个时间点（按 WINDOW 秒为一格扫）。返回 (时间, 命中数)。"""
+    if not grams or not segs:
+        return None
+    best, step = None, max(15, WINDOW // 2)
+    end = int(segs[-1]["t"]) + 1
+    for m in range(0, end, step):
+        w = _flat(_window(segs, m))
+        if not w:
+            continue
+        hit = sum(1 for g in grams if g in w)
+        if best is None or hit > best[1]:
+            best = (m, hit)
+    return best
+
+
 def _evidence(tr: dict, d: dict) -> str:
-    """成稿引用到的每个时间点，取原文前后各 WINDOW 秒。"""
+    """成稿引用到的每个时间点，取原文前后各 WINDOW 秒；**标的时间点上找不到这条要点的内容时，
+    再按内容到全文里找它真正的出处一并给出。**
+
+    长集是分段写的（map-reduce），要点标的时间常常和真正说出来的地方差一两分钟，±45 秒的
+    窗口够不着；评审只看得到这一小段，就把写对的细节判成「原文找不到」，整篇拦下 ——
+    被拦的稿不进产物，这种误伤在任何地方都看不见。"""
     segs = tr.get("segments") or []
     if not segs:
         return ""
-    marks = sorted({int(p["t"]) for p in (d.get("points") or []) if p.get("t") is not None}
-                   | {int(q["t"]) for q in (d.get("quotes") or []) if q.get("t") is not None})
-    if not marks:
+    items = [(int(x["t"]), " ".join(str(x.get(k) or "") for k in ("h", "body", "raw", "zh")))
+             for x in (d.get("points") or []) + (d.get("quotes") or []) if x.get("t") is not None]
+    if not items:
         return ""
-    out, used = [], 0
-    for m in marks:
-        lo, hi = m - WINDOW, m + WINDOW
-        chunk = " ".join(s["text"] for s in segs if lo <= s["t"] <= hi)
-        chunk = squeeze(chunk)
-        if not chunk:
-            continue
-        room = EVIDENCE_CHARS - used
-        if room <= 200:
-            out.append("……（原文片段已截断）")
-            break
-        piece = f"[{hhmmss(m)}] {chunk[:room]}"
-        out.append(piece)
-        used += len(piece)
+    total = sum(len(s["text"]) for s in segs)
+    budget = max(EVIDENCE_CHARS, min(EVIDENCE_CAP, int(total * EVIDENCE_SHARE)))
+    out, used, shown = [], 0, set()
+    for m, claim in sorted(items):
+        pieces = []
+        chunk = _window(segs, m)
+        if chunk and m not in shown:
+            pieces.append(f"[{hhmmss(m)}] {chunk}")
+            shown.add(m)
+        grams = _grams(claim)
+        here = sum(1 for g in grams if g in _flat(chunk))
+        alt = _best_anchor(segs, grams)
+        # 标的地方几乎没对上、别处对得上明显更多：把别处那段也给评审
+        if alt and abs(alt[0] - m) > WINDOW and alt[1] >= max(3, 2 * here) and alt[0] not in shown:
+            pieces.append(f"[{hhmmss(alt[0])}]（按内容找到的出处，成稿标的是 {hhmmss(m)}）{_window(segs, alt[0])}")
+            shown.add(alt[0])
+        for piece in pieces:
+            room = budget - used
+            if room <= 200:
+                out.append("……（原文片段已截断）")
+                return "\n\n".join(out)
+            out.append(piece[:room])
+            used += len(piece[:room])
     return "\n\n".join(out)
 
 
@@ -167,7 +231,8 @@ def check(d: dict, tr: dict, ep: dict, src: dict) -> dict | None:
     user = (f"节目：{src.get('zh') or src['name']}\n原集标题：{ep.get('title')}\n"
             f"时长：{hhmmss(ep.get('duration'))}\n\n"
             f"=== 成稿 ===\n{_draft(d)}\n\n"
-            f"=== 证据一：成稿引用处的原文（判断有没有写歪）===\n"
+            f"=== 证据一：成稿引用处的原文（判断有没有写歪；标着「按内容找到的出处」的，是成稿标的"
+            f"时间点上没对上、按内容在全文别处找到的那一段 —— 内容对得上就不算编造，只是时间标偏了）===\n"
             f"{ev or '（拿不到）'}\n\n"
             f"=== 证据二：全篇等距抽样（判断有没有漏掉更值钱的；"
             f"这不是全文，抽样之外的内容不构成遗漏指控）===\n"

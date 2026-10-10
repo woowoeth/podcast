@@ -11295,6 +11295,43 @@ class PinnedSourcesOnlyLoseAdsAtTriage(unittest.TestCase):
         self.assertFalse(self.R._verdict_is_stale(prior, {"tier": 1}, "r"))
 
 
+class ReviewSeesWhereAClaimWasReallySaid(unittest.TestCase):
+    """成稿评分的证据：标的时间点上找不到这条要点时，按内容到全文里找它真正的出处一并给评审。
+
+    长集分段写，要点标的时间常和真正说出的地方差一两分钟；评审只看 ±45 秒、总共 6000 字，
+    就把写对的细节判成「原文找不到」整篇拦下（2026-10-10 罗永浩「精神病」那集：「请举手」
+    「腿毛……移植」都在全文里，照样 5 分）。被拦的稿不进产物，这种误伤在别处看不见。"""
+
+    def _tr(self):
+        filler = "我们今天继续聊这个话题 其实大家都知道的 然后就是说 这个事情很复杂"
+        segs = [{"t": t, "text": filler} for t in range(0, 3 * 3600, 10)]
+        for t in range(5000, 5030, 10):          # 真正说出那件事的地方
+            segs[t // 10] = {"t": t, "text": "医生说植发的时候 几处腿毛可以用 胡子肯定是好的 你移植过去长得也行"}
+        return {"segments": segs}
+
+    def test_the_real_passage_is_shown_when_the_stamp_is_off(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib import review as R
+        d = {"points": [{"t": 1000, "h": "胡子腿毛都是资源", "body": "医生说植发时连胡子、腿毛都能算作移植的资源"}], "quotes": []}
+        ev = R._evidence(self._tr(), d)
+        self.assertIn("腿毛", ev.replace(" ", ""), "标的时间点偏了，评审看不到真正的出处 —— 写对的细节会被判成编造")
+        self.assertIn("按内容找到的出处", ev)
+
+    def test_no_extra_passage_when_the_stamp_is_right(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib import review as R
+        d = {"points": [{"t": 5010, "h": "胡子腿毛都是资源", "body": "医生说植发时连胡子、腿毛都能算作移植的资源"}], "quotes": []}
+        self.assertNotIn("按内容找到的出处", R._evidence(self._tr(), d), "时间点本来就对，又塞了一段多余的")
+
+    def test_long_episodes_get_a_bigger_budget(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib import review as R
+        tr = self._tr()
+        d = {"points": [{"t": t, "h": "要点", "body": "这个事情很复杂"} for t in range(0, 3 * 3600, 400)], "quotes": []}
+        self.assertGreater(len(R._evidence(tr, d)), R.EVIDENCE_CHARS + 2000,
+                           "三小时的集证据还卡在 6000 字 —— 后面的引用点全被截掉")
+
+
 class DailyAndBackfillTakeTurns(unittest.TestCase):
     """日更和补存量按顺序来，不再靠每天 4.5 小时的让出窗口。
 
