@@ -1,6 +1,149 @@
 # Podcast — The world is too loud. Read what matters.
 
-1120 entries. Source: https://ourword.ai/podcast/en/ · Generated from the sources listed in https://ourword.ai/podcast/en/llms.txt
+1141 entries. Source: https://ourword.ai/podcast/en/ · Generated from the sources listed in https://ourword.ai/podcast/en/llms.txt
+
+==============================================================================
+
+## Reasoning models don't think—they pool candidate answers and pick one
+
+- URL: https://ourword.ai/podcast/en/p/2026-10-10-cogrev-推理模型不是在思考-而是攒一堆候选答案再抽签/
+- show: The Cognitive Revolution (https://ourword.ai/podcast/en/s/cogrev/)
+- original episode: How Agents Decide: Goodfire's Eric Bigelow on Critical Tokens, Phase Shifts, & In-Context Learning
+- published: 2026-10-10 · duration: 2:02:05
+- transcript: Official transcript page · 23832 words · timestamps are estimated from position in the transcript
+- verification: 7 quotes matched verbatim, 5 numbers traced to the transcript, review score 8/10
+
+**Models like DeepSeek-R1 say ‘wait’ fifty-plus times in a reasoning chain—not iterating on thought but pooling all possibilities in one pot, then scooping out an answer at the end.**
+
+why listen: For anyone wanting to understand how AI actually ‘selects’ its final answer; you'll find that steering chain-of-thought is far less reliable than it seems.
+
+### points
+
+[6:08] (Eric Bigelow) **A single bracket can rewrite the model's final answer** — Eric's team resampled GPT-3.5's reasoning chains at scale: they generated ~30 rollouts at each token and tracked how the final-answer distribution evolved. Most of the time it stays stable, then suddenly locks onto one answer. This phase shift usually happens where expected (first mention of the answer), but sometimes at completely arbitrary tokens—in the paper, one example shows a single bracket in ‘kWh’ changes the final answer entirely.
+
+[10:41] (Eric Bigelow) **The decision isn't the model's—the sampling step's** — Eric's core claim: what we call ‘deciding’ actually happens in sampling, not in the model itself. Each token generation is a coin flip—whichever token is drawn becomes the new context, and the model learns and maintains self-consistency within it. If it said the year was 2024 instead of 2026 early on, everything after follows from that ‘fact’. This means many supposed hallucinations are actually path-dependent, not deviations from some fixed truth.
+
+[38:55] (Eric Bigelow) **Reasoning in reasoning models is token pooling, not thinking** — Reasoning models like DeepSeek-R1 say ‘wait’ fifty-plus times in one chain—not flashes of new insight but because they can't actually retract already-sampled tokens. Instead they fake backtracking by ‘enumerating all possibilities, then picking one at the end’. Eric says it's more like making a vat of token soup, then fishing something out. For these models, ‘reasoning’ is almost a misnomer. Their forking curves smooth overall, but critical fork points remain.
+
+[38:55] (Eric Bigelow) **Post-training narrows models to one story: the watchmaker** — Output diversity (how many different outputs one prompt can generate) drops sharply with SFT and RLHF—more post-training means less variety. The heavily RL-tuned open-source model Qwen3-30B-A3B that Eric tested generated about two-thirds watchmakers when asked to ‘tell a story’. By contrast, GPT-6 Astra's stories ranged much wider—likely because diversity shifted to the reasoning chain: the model enumerates possibilities there, then picks one to output.
+
+[47:36] (Eric Bigelow) **Cutting-edge interpretability research now requires Chinese open-source models** — Eric's rule of thumb for model selection: 7–8B parameters is the minimum for interesting zero-shot behavior; smaller models differ too fundamentally. At frontier scale, no US open-source model replaces Kimi K3—programming gaps are stark. Dangerous behaviors like reward hacking only surface above certain capability thresholds. He argues that banning Chinese models would slow frontier-scale interpretability research, and banning all open-source weights would do far more damage.
+
+[1:09:00] (Eric Bigelow) **An LLM's belief is Bayesian inference over latent concepts** — Eric's working definition of LLM ‘belief’ borrows from Bayesian cognitive models in cognitive science: the model assigns probabilities over latent hypotheses/concepts, and these shift like posterior inference when new input or context arrives. Unlike studying the human brain, LLMs can be opened directly and intervened on—which means we can actually test whether this algorithmic description matches what happens inside, not just post-hoc summaries of aggregate behavior.
+
+[1:21:09] (Eric Bigelow) **Most answers are improvised in the final instant** — The phase shift (when the answer distribution suddenly locks) can occur at the start, middle, or end of the reasoning chain—no universal rule; it depends on the task. One common pattern: uncertainty stays stable for long stretches, then suddenly resolves the moment the model says ‘the answer is…’. On tasks where the model performs poorly (like extracting the last letter), even though it wrote Python code to solve it, which specific letter appears in the final answer is actually pieced together in that utterance's instant.
+
+[1:32:52] (Eric Bigelow) **Chain-of-thought is becoming unreadable and less superviceable** — Chain-of-thought (and the unusual language Astra uses to communicate with sub-agents) drifts further from readable English because result-only RL training has zero incentive to keep the process human-understandable—like how human language naturally evolves without external pressure. This is also Goodhart's law: once you optimize for ‘chain-of-thought looks superviceable’, the chain becomes unfaithful. Eric says his confidence in chain-of-thought oversight has visibly dropped over the past year, partly from papers showing GPT chains can be stolen and encode hidden meanings in oddities like ‘musical’.
+
+### verbatim quotes
+
+[10:41] Eric Bigelow: "This decision really happens during sampling"
+
+[38:55] Eric Bigelow: "I think reasoning is almost like a misnomer for what reasoning models are doing."
+
+[38:55] Eric Bigelow: "It's almost like a soup of tokens they create, and then they just go back and skim out something out of that soup."
+
+[1:27:09] Eric Bigelow: "I think the sarcastic parrot metaphor should probably be put to rest."
+
+[1:32:52] Eric Bigelow: "if we're only giving them reward or punishment based on their final outcome, then they might as well speak to their sub agents in, like, weird nonhuman languages."
+
+[1:42:34] Eric Bigelow: "for the amount of investment that's happening in making models better versus the amount of investment in understanding them, it's just... It's no comparison."
+
+[1:46:24] Eric Bigelow: "research taste and scientific taste is everything. It's worth its weight in gold."
+
+### figures
+
+- Podcast episode history: ~400 episodes [4:01]
+- Resamples per token in Forking Paths experiment: ~30 rollouts [6:08]
+- Minimum model scale for interpretability research: 7–8B parameters or larger [47:36]
+- Instances of ‘wait’ in a single DeepSeek-R1 reasoning chain: 50+ times [38:55]
+- Proportion of watchmaker stories from heavily RL-tuned Qwen3-30B-A3B: ~two-thirds [38:55]
+
+### glossary
+
+- in-context learning: How a model shifts behavior through text it reads or generates, without updating its weights.
+- forking paths: Resampling alternative continuations at each token in a reasoning chain to track how the final-answer distribution evolves.
+- phase shift: The moment a stable answer distribution suddenly collapses to a determined result.
+- reward hacking: When a model satisfies a reward signal's letter while violating its underlying intent.
+- stochastic parrot: The claim that large models merely stitch text statistically and lack real understanding.
+- Goodhart's law: When a metric becomes an optimization target, it stops measuring what it was meant to measure.
+
+who it is for: People working on model interpretability and AI alignment research, plus safety and product teams assessing how trustworthy chain-of-thought supervision actually is.
+what to skip: Sponsor segments at 15:53–18:47 and around 28:16 can be skipped.
+tags: Interpretability, Chain-of-thought, Reinforcement learning, Open-source models, AI safety, Cognitive science
+
+==============================================================================
+
+## America's 3 million small-business owners command more wealth than the Forbes 400
+
+- URL: https://ourword.ai/podcast/en/p/2026-10-10-goodfight-三百万名行业小老板-身家碾压福布斯400的13倍/
+- show: The Good Fight (https://ourword.ai/podcast/en/s/goodfight/)
+- original episode: Why America’s Real Wealth Isn’t in Silicon Valley
+- published: 2026-10-10 · duration: —
+- transcript: Official full text · 7858 words · timestamps are estimated from position in the transcript
+- verification: 8 quotes matched verbatim, 9 numbers traced to the transcript, review score 8/10
+
+**A $600,000 wedding funded not by Silicon Valley or Wall Street but by a three-generation auto dealership; America's 3 million ‘everywhere millionaires’ (net worth over $5 million) hold combined wealth 13 times the Forbes 400's total.**
+
+why listen: Two economics professors use wealth data to debunk the stereotype that tech billionaires dominate America's wealth, but policy details in the latter half are paywalled.
+
+### points
+
+[0:00] (Eric Zwick) **America's 3 million small-business owners command more wealth than the Forbes 400** — A $60 million wedding—the bride's parents chartering flights to ferry guests to Paris and renting the Palace of Versailles—wasn't financed by Silicon Valley or Wall Street, but by an auto dealership passed down through three generations. The author defines ‘everywhere millionaires’ as private business owners with net worth exceeding $5 million. America has 3 million of them, their combined wealth 13 times the Forbes 400 total (2022 data), proving that America's greatest wealth concentration lies outside tech and finance.
+
+[0:00] (Eric Zwick) **Wealth thresholds reveal that business ownership rises as net worth climbs** — Federal Reserve Survey of Consumer Finances data shows roughly 5 million American households exceed $5 million net worth; 3 million are private business owners—already a plurality. Raise the threshold to $25 million and salaried professionals (law firm partners, Wall Street bankers) largely disappear. At $50 million or $100 million, nearly all remaining wealth belongs to private business owners. ‘Skilled service business owners’ (equity-holding professionals like law partners) constitute a distinct subset worth analyzing separately.
+
+[0:00] (Owen Zidar) **Most build from scratch rather than inherit their fortunes** — Roughly one-quarter inherited their businesses; most started or acquired their own. Industries span widely: a plumber after ten years launches his own shop; an impound officer becomes CEO of one of the nation's largest auto-repossession networks; a Phoenix garage-door service scales to a $2 billion sale. Most attended college but not elite institutions; few hold advanced degrees like MBAs, except skilled-service owners (attorneys, etc.), who typically do.
+
+[0:00] (Eric Zwick) **Entrepreneurship, not Ivy League admission, drives upward mobility** — Define the ‘American Dream’ as parents in the bottom income quintile with children reaching the top quintile. The Ivy League pathway rarely achieves this and offers no amplification. Entrepreneurship presents a far more accessible route, occurring roughly ten times as frequently, and genuinely multiplies odds: those at the top of wealth distribution prove likelier to have founded a business than average populations.
+
+[0:00] (Eric Zwick) **Low-income founders produce nearly one-fifth of star entrepreneurs** — Children from top-10%-income families comprise roughly one-third of ‘star entrepreneurs’ (founders whose firms rank top-10% in their industry within years of founding). Middle-class families (33rd–90th percentile, roughly 60% of population) produce half or more of star entrepreneurs. Top-10%-income children succeed at roughly six times the rate of bottom-third households. Yet bottom-third households still generate nearly 20% of star entrepreneurs—including Dick Portillo, raised in a Chicago housing project without college, who built a hot-dog empire and sold for $1 billion, and Saad Khan, who immigrated with $500 and eventually purchased the Jacksonville Jaguars.
+
+[0:00] (Eric Zwick) **Private equity fills the role succession-less family businesses left vacant** — Private equity initially targeted large public corporations, cutting high-wage workers and leveraging debt to reduce costs. But as competition saturated that market, returns fell, so PE pivoted to hundreds of thousands of mid-market family firms lacking successors—children unwilling to inherit, employees unable to finance buyouts. Private equity stakes now represent 10–15% of American employment. Results cut both ways: Bain Capital acquired Outback Steakhouse and replaced Swiss cheese with commodity cheese, swapping made-to-order salad dressing for canned versions to cut costs. Yet a salami producer, backed by PE capital, achieved nationwide distribution in five to ten years—work a family might need fifty years to accomplish—without sacrificing quality.
+
+[0:00] (Owen Zidar) **Congress is where America's dispersed business wealth finds political voice** — Unlike tech-and-finance wealth—geographically concentrated in a few metros—and unlike billionaires who are rootless and transient, these owners root deeply in local communities within each congressional district. Roughly one-quarter of Congress members are private business owners; including law firm partners, the share rises to 40–50%. Auto dealers contribute roughly 20% of state sales tax while enjoying systemic protections: bans on direct retail (Tesla can't sell direct in many states) and recall-repair markup power (a $500 cost to the dealer becomes $1,000 to the customer). The ‘One Big Beautiful Bill’ illustrates where true political-economic power lies: Trump lost on electric-vehicle and clean-energy subsidies, but ordinary business owners kept the 20% tax credit, reducing their effective rate 7 percentage points below others, plus gaining new auto-dealer-specific deductions and estate-tax breaks totaling roughly $1 trillion—a package barely discussed, revealing that real power rests with 50 million ‘everywhere millionaires’, not oligarchs.
+
+### verbatim quotes
+
+[0:00] Eric Zwick: "Turns out that wealth came from a third generation car dealership."
+
+[0:00] Owen Zidar: "And if you add up their collective net worth, it’s thirteen times the total wealth of the richest four hundred people in the most recent year that we can measure, which is 2022."
+
+[0:00] Owen Zidar: "Eric likes to say private equity is the child that many of these founders never had, because if they don’t want to have their kids checking on garage doors, they can sell it to private equity."
+
+[0:00] Eric Zwick: "Instead of Swiss cheese from Switzerland, we’re going to have generic cheese. Instead of having the salad dressing made in-house so it’s fresh, we’re going to ship it in jugs."
+
+[0:00] Eric Zwick: "We call these people the middle-garchs, because it’s like the oligarchs in the middle market, or the Mittelstand, I guess, is your German example of that, although I think that’s a different category of people with different historical relevance."
+
+[0:00] Owen Zidar: "Elon Musk was a bit of a loser in that bill—clean energy was gutted, electric vehicle credits were not favored—and the more mundane private business owners got a twenty percent deduction preserved that made their tax rate seven percentage points lower than everybody else’s."
+
+[0:00] Eric Zwick: "it’s almost an order of magnitude more common, because it’s much more accessible as a path, and it seems to be a force multiplier in the sense that if you’re up there, you’re much more likely to have been an entrepreneur than the base rate in the population."
+
+[0:00] Eric Zwick: "this is a unique time in history where being optimistic is also provocative."
+
+### figures
+
+- "Everywhere millionaires" population: 3 million [0:00]
+- Their combined wealth compared to Forbes 400: 13x (2022) [0:00]
+- U.S. households exceeding $5 million net worth: 5 million total, 3 million private business owners [0:00]
+- Share inheriting their business: ~25% [0:00]
+- Phoenix garage-door service company sale price: $2 billion [0:00]
+- Top-10%-income-family share of star entrepreneurs: ~33% [0:00]
+- Top-10% vs. bottom-third entrepreneurial success rate multiplier: ~6x [0:00]
+- Private equity held-company share of U.S. employment: 10–15% [0:00]
+- Congress members who are private business owners: ~25%; ~40–50% including law firm partners [0:00]
+
+### glossary
+
+- everywhere millionaires: Private business owners with net worth exceeding $5 million; the book's central concept.
+- star entrepreneurs: Founders whose firms rank in the top 10% of their industry within a few years of founding.
+- middle-garchs: Author-invented term for locally rooted business owners whose political influence goes systematically underestimated.
+- skilled service business owner: Equity-holding professional such as a law firm partner or attorney.
+- One Big Beautiful Bill: Trump administration's major legislative package containing multiple business-owner tax reductions.
+
+who it is for: Entrepreneurs and policy researchers focused on wealth distribution, entrepreneurship, and class mobility; plus anyone seeking to understand America's small-business owners' political influence.
+what to skip: The lighthearted section joking about Outback Steakhouse menus and chain-restaurant banter—information density is low.
+tags: Wealth distribution, Small business owners, Private equity, Class mobility, Tax policy, Political influence
 
 ==============================================================================
 
@@ -7293,6 +7436,88 @@ why listen: For readers who've already read Plato's Republic and Laws: Thucydide
 who it is for: Readers interested in ancient Greek historiography, rhetoric, and political philosophy—especially those rereading Plato's Republic and Laws.
 what to skip: The opening bios of both speakers (before 1:12) carry little information; you can skip them.
 tags: Ancient Greek historiography, Thucydides, Herodotus, Melian Dialogue, Plato
+
+==============================================================================
+
+## A Mathematician's Controversial Thesis: The World Doesn't Need This Many Mathematicians
+
+- URL: https://ourword.ai/podcast/en/p/2026-09-30-jiaxiaojie-一位数学家的暴论-世界不需要这么多数学家/
+- show: 甲小姐对话 (https://ourword.ai/podcast/en/s/jiaxiaojie/)
+- original episode: IMO、数学猜想、菲尔兹奖与北大数院往事 ｜ 甲小姐对话姜子麟
+- published: 2026-09-30 · duration: 3:34:40
+- transcript: Machine transcription · 58165 words · timestamps are exact
+- verification: 8 quotes matched verbatim, 8 numbers traced to the transcript, review score 7/10
+
+**Elite mathematician Jiang Zilin from Peking University argues that funneling the brightest minds into theorem-proving could paradoxically slow human progress.**
+
+why listen: The episode's deeper value lies in the latter half: a midnight breakthrough on the ball-covering conjecture, how AI solved an open problem his mentor left behind, and his candid take on whether we need more academic math positions.
+
+### points
+
+[8:37] (Jiang Zilin) **Grading isn't scoring—it's negotiation and translation** — IMO scores aren't handed down by judges; they're negotiated. Country leaders score independently, coordinators score independently, and when they disagree, they hash it out on the spot. Leaders have to ‘translate’ messy handwriting into the student's actual intent—when the same idea sprawls across different parts of a test, you have to assemble it like a montage. Even names get negotiated: the dragon problem was originally called ‘嫦娥’ but English speakers couldn't pronounce it, so it became ‘change’. The whole exam has to account for the linguistic habits of 120 countries.
+
+[37:17] (Jiang Zilin) **IMO gold selects for the longest chain of thought** — About half of Fields medalists tried IMO young. An IMO gold medalist's odds of later winning the Fields Medal are 50 times higher than a math PhD from a top university. IMO doesn't test knowledge volume—it tests whether you can chase a complex chain of reasoning to the end under pressure, without giving up midway. In modern terms, it's filtering for chain-of-thought length. What IMO catches early is a kind of mental maturity that shows up ahead of schedule.
+
+[40:19] (Jiang Zilin) **The 5% of competition winners who became entrepreneurs created the most unicorns** — Over 25 years, researchers tracked about 18,000 IMO/IOI/IPHO medalists. Career split: 36% stayed in academia, 22% went into tech (Google hired the most), 12% into quant finance, and just 5% chose startups. But that 5% minted roughly 20 unicorns and 7 decacorns—OpenAI, Stripe, Databricks, Perplexity among them. This cohort's odds of becoming a billionaire are 1,500 times the baseline; their odds of founding a unicorn are 4,000 times baseline. The pattern traces back to clustering: the same schools (MIT, etc.) admitted them all, and proximity bred compounding advantage.
+
+[52:26] (Jiang Zilin) **Deeply studying an unrelated proof solved the 40-year-old conjecture** — The ball-covering conjecture sat unsolved since 1973. His postdoc's first 8–9 months: nothing shipped. Then he and a colleague fell in love with an old 1950s proof on ‘flat tiling’—not because it was useful, just because it was beautiful. They mastered it so thoroughly they'd explain it to anyone who'd listen, no agenda. One day the colleague said: what if we tried that technique on the ball-covering problem? He immediately saw how to split the problem into two cases; one case yielded to the old proof exactly. He sketched the approach the same afternoon, confirmed the details at 11 p.m., and wrote up the whole proof overnight.
+
+[1:13:32] (Jiang Zilin) **Fled to Israel but remained under his advisor's shadow** — His doctoral advisor had just cracked something on equiangular lines. He deliberately sidestepped it—‘you've got first-mover advantage already’. His postdoc move to Israel was supposed to be an escape from the advisor's domain. Later he realized he'd never left at all; he was still operating within the shadow's reach. The ball-covering work was his true exit. He had to make that leap. Otherwise peers read your CV and conclude you have no independence; you're just an appendage to your advisor. And a postdoc is time-locked—you've got a fixed window to prove you're your own mathematician.
+
+[1:32:52] (Jiang Zilin) **We don't need this many mathematicians** — He pushes a claim he knows people will fight: if society creates too many mathematician positions, it actually slows human progress. The brightest minds get vacuumed up to prove theorems when they could solve harder problems with real social returns. Mathematician value lies more in the byproducts of their thinking than in the theorems themselves. The planet has 81 billion people. Maybe 100,000 math jobs would suffice. The rest of that genius should go elsewhere.
+
+[1:48:23] (Jiang Zilin) **AI independently solved a problem that stumped his mentor** — Hangzhou, 2025: his doctoral advisor delivered a lecture and left an open problem unsolved. Early 2026, GPT-5.5 independently cracked it. He felt genuine shock—at least in extremal combinatorics, AI had solved a problem that had blocked a world-class mathematician without any human prompting. But he also notes that Deng Yu has said the chain-of-thought depth AI needs hasn't yet touched the threshold of what he needs.
+
+[3:17:39] (Jiang Zilin) **Growth comes through multiplication, not addition** — He quotes the US math coach Robison: the old way was ‘addition’—one person at the frontier, grinding out one more contribution, then another, then ten. A breakthrough, sure. But what if your role shifts? What if you have ten excellent students under you? You multiply their capacity by two, by three. That's multiplication, not addition—much higher ROI. Next: build a system that runs without him in the room, so multiplication—or exponential growth—happens every day automatically.
+
+### verbatim quotes
+
+[37:17] Jia Xiaojie: "There's an IMF report saying that historically about half of Fields medalists participated in IMO in their youth, and the probability that IMO gold medalists later win the Fields Medal is 50 times that of top-10 math PhDs."
+    original (zh): 就是IMF的一份报告 说历史上约 一半的菲尔兹奖得主 都在年轻时参加过IMO 然后IMO金牌得主 后来拿下菲尔兹奖的概率 是top10名校数学博士的50倍
+
+[40:19] Jia Xiaojie: "The probability of this group becoming billionaires is 1,500 times that of ordinary people; the probability of becoming a unicorn founder is 4,000 times that of ordinary people."
+    original (zh): 这群人成为亿万富翁的概率 是普通人的1500倍 成为独角兽创始人的概率 是普通人的4000倍
+
+[51:26] Jiang Zilin: "When you finally output the tokens, sure it took maybe half a day, but the entire thinking process must have been weeks—maybe two or three weeks worth of work."
+    original (zh): 就是最后输出token的时候 肯定是只花了半天的时间 但是整个的这个思考的过程 肯定是有一个长达 可能两三周的过程吧
+
+[1:02:29] Jiang Zilin: "When you think up the proof before sleep, whatever you do, don't write it down—that way you can actually get a good night's sleep."
+    original (zh): 在你睡前想出来证明的时候 千万别把它写下来 这样你才能够睡好一晚上的觉
+
+[1:13:32] Jiang Zilin: "That's true, but I had to break out of that cage. From a career development angle, it was absolutely necessary. If you just follow your doctoral path forward, when the time comes to find an academic position, most peers will think you lack your own independence."
+    original (zh): 大概有这样 但是我跳出这个五指山最好 确实从职业发展的角度 必须要做这个事情 如果你只是沿着你博士的轨迹 进一步向前的话 最后找工作的时候 大多数同行会认为 你没有自己的独立性
+
+[1:32:52] Jiang Zilin: "Imagine this: if we create too many mathematician positions, it would actually slow down all of human society, because you're putting the most brilliant people into proving theorems and solving those kinds of problems."
+    original (zh): 你可以想象一下 如果我们产生了很多数学家的岗位 反而会使得人类的整个的社会进一步放缓 因为你把最最天才的人都放到了证明定理解决这些问题上
+
+[2:56:24] Jiang Zilin: "If we purely pursue a result, the result itself might not mean much—but the process of pursuit and the sparks of thought generated along the way, I think those are worth far more than the answer itself."
+    original (zh): 我们如果单纯的去追求一个结果 可能结果本身并不会意味着什么 而是这个追求的过程 以及追求过程中产生的这些思想的火花 我觉得价值是远远大于答案本身的
+
+[3:17:39] Jiang Zilin: "What we did before was addition—I'm one person rushing to the academic frontier, adding one more to it, adding one more, adding one more, or adding ten. When you've made a big breakthrough. But you can also realize that your role can shift—you can become someone who multiplies."
+    original (zh): 我们以前可能在做的事情是做加法 加法意思是我一个人 我去冲在学术的前沿 我要去为这个学术再加一 再加一再加一或者加十 你说做了大突破的时候 但是你也可以意识到你的角色可以转变 你可以做一个做成法的人
+
+### figures
+
+- Probability of IMO gold medalists winning the Fields Medal: 50 times that of top-university math PhDs [37:17]
+- Proportion of Fields medalists who participated in IMO: Approximately one-half [37:17]
+- Sample size of IMO/IOI/IPHO medalists tracked over 25 years: Approximately 18,000 [39:19]
+- Percentage of IMO medalists who chose entrepreneurship: 5% [40:19]
+- Probability of IMO medalists becoming billionaires: 1,500 times that of the general population [40:19]
+- Probability of IMO medalists founding unicorns: 4,000 times that of the general population [40:19]
+- Year the ball-covering conjecture was proposed: 1973 [58:27]
+- 2025 national math team: total members and women: 60 total, 0 women [31:14]
+
+### glossary
+
+- Chain of Thought: In problem-solving, the sequence of intermediate reasoning steps from problem to solution.
+- tenure: A permanent faculty position at a university that provides long-term employment security.
+- equiangular lines: A set of lines in high-dimensional space where every pair makes the same angle.
+- Condensed Mathematics: A new mathematical language framework introduced by Peter Scholze.
+- extremal combinatorics: The branch of combinatorics studying extreme values of combinatorial structures under constraints.
+
+who it is for: Entrepreneurs, parents, and STEM researchers interested in math competition culture, academic career paths, and AI's impact on mathematical research.
+what to skip: The opening pleasantries and Fields Medal gossip early on carry less insight and can be skipped.
+tags: Math competitions, IMO, Fields Medal, Academic institutions, AI's impact on math, Extremal combinatorics
 
 ==============================================================================
 
@@ -34316,6 +34541,81 @@ why listen: Medium information density: the first half is career explainer, the 
 who it is for: Engineers and product people interested in weather, climate communication and probability communication; anyone doing risk communication, early-warning systems, or agriculture and energy decisions.
 what to skip: The first ten minutes of host monologue and guest résumé can be skipped.
 tags: Meteorology, Climate communication, Probability, Hurricanes, Science communication
+
+==============================================================================
+
+## Anthropic's call to slow AI might just be theater for investors
+
+- URL: https://ourword.ai/podcast/en/p/2026-09-09-jiaxiaojie-anthropic喊停ai发展-可能只是演给投资人看的/
+- show: 甲小姐对话 (https://ourword.ai/podcast/en/s/jiaxiaojie/)
+- original episode: 从“北大数院白金一代”到OpenAI，亲历AI攻入数学前沿|甲小姐对话苏炜杰
+- published: 2026-09-09 · duration: 2:35:54
+- transcript: Machine transcription · 44428 words · timestamps are exact
+- verification: 6 quotes matched verbatim, 8 numbers traced to the transcript, review score 8/10
+
+**He says when Dario called for industry slowdown, he was ‘100% certain no one would comply’—the slowdown statement itself is commercial theater for investors, not genuine risk consensus.**
+
+why listen: High information density with technical depth; suited for those curious about AI companies' true motivations, how mathematicians view AI problem-solving, and why top scholars take sabbaticals to join frontier research labs.
+
+### points
+
+[10:06] (Su Weijie) **Mathematics is culture, AI is merely a problem solver** — AI today is primarily an evolving ‘problem solver’ whose capabilities will continue rising. But mathematics is a culture humans have built over thousands of years—dialogue between different mathematicians and fields, shared judgments about problem value. Su Weijie believes that as AI's solving power surges, this cultural value is actually increasing, a dimension AI wholly lacks.
+
+[14:12] (Su Weijie) **Mathematicians give Anthropic's Riemann progress a skeptical read** — Anthropic claims to have raised a certain form of the Riemann Hypothesis proportion from ~40% to 67%, drawing wide attention. But analytical number theorists Su Weijie spoke with rated it poorly—this path fundamentally just optimizes existing methods, with a theoretical limit around 100% but never actually proving Riemann. It's off-mission news, not a mathematical breakthrough.
+
+[19:16] (Su Weijie) **AI's math breakthroughs are cross-field gleanings, not creation** — Over decades, human mathematicians went deeper and deeper; different fields barely communicated. AI recombines techniques scattered across fields that never touched, surfacing vast low-hanging fruit no one noticed. This explains why research-grade math results suddenly flooded this year. But Su Weijie stresses this is combining existing techniques, not AI generating new mathematical thought.
+
+[49:39] (Su Weijie) **Math talents thrive more often when switching into math** — Su Weijie found in statistics that Peking University School of Mathematical Sciences undergraduates who switched from other majors developed ‘statistically very significantly’ better mathematically. Wang Hong, Ding Jian, Gao Ziyang, Shen Junliang all switched in. Switchers comprise roughly 10% per cohort, but produce math talent far above that share.
+
+[1:22:57] (Su Weijie) **No one can explain the full model pipeline end-to-end** — Before OpenAI, Su Weijie was always curious how GPT is actually trained. After joining, he found almost no one can walk through the model's end-to-end development or replicate it—it's now heavy industry, each person just handling one phase, far more complex than he expected before arriving.
+
+[1:31:04] (Su Weijie) **Slowdown calls are investor optics, not genuine risk management** — On Anthropic's call for the industry to pause AI development, Su Weijie believes Dario was 100% certain no one would comply when he said it. It's purely commercial calculation. Stressing AI's extreme risks while accelerating R&D, the actual signal is more like ‘I'm strong, you hold back’—mainly aimed at investors.
+
+[1:49:22] (Su Weijie) **Scaling is a catch-all redirecting resources to new improvement axes** — Modeling has become a high-dimensional function with countless variables. Whenever one variable's derivative slows, resources naturally flow to another still rising. Individual slowdowns don't block overall progress; model capability as an increasing function keeps rising—Su Weijie calls this his historical judgment, not a mathematical theorem.
+
+[2:23:59] (Su Weijie) **Paper submissions are growing faster than the world has reviewers** — This year ICML submissions grew 60-70% year-over-year; Su Weijie estimates next year could break 50,000, with growth accelerating. Even if every willing reviewer on Earth volunteered, it wouldn't be enough. AI joining peer review is unstoppable—and this has him thinking: are paper forms (title, abstract, introduction) still suited to this era?
+
+### verbatim quotes
+
+[19:16] Su Weijie: "Everyone I know just says ‘let's try it’—run a batch of agents every night, check in the morning whether anything came through."
+    original (zh): 有大量的我知道有很多朋友就是可以说大家说就抽卡吧 哈 每天晚上就是跑好几个agent啊 就是早上起来看看有没有跑出来啊
+
+[49:39] Su Weijie: "Classmates who switched into our math program developed ‘statistically very, very significantly’ better in mathematics."
+    original (zh): 转系来数研的同学 后来在数学上发展都非常好 就是这个是显著的好 这个统计上非常非常显著
+
+[1:01:47] Su Weijie: "You can't beat AI on every dimension, but you need to find your own. The world is infinite-dimensional. Each person is their own dimension, their own axis. You need to find yours."
+    original (zh): 你不可能在所有的维度上超过AI 但是你要找自己的维度 世界是无限维的 每一个人都是自己的一个维度 一个X轴 就是你要找到自己的这个X轴
+
+[1:02:48] Su Weijie: "I wouldn't dare claim I understand it. I don't think many people in the world dare claim to understand AI."
+    original (zh): 我不敢说我理解 我觉得现在世界上 没有多少人敢说理解AI吧
+
+[1:31:04] Su Weijie: "When he made that statement, he was ‘100% certain no one would comply’. I think it's purely a matter of commercial calculation."
+    original (zh): 他提这个观点的时候 他百分之百确定 没有任何人会遵守这件事情 我觉得这里 只有商业价值的考量
+
+[1:49:22] Su Weijie: "Actually, I think scaling is a basket, a bushel—you can throw anything into it."
+    original (zh): 其实scaling我觉得是一个篮子吧 一箩筐 什么东西都可以往里面扔
+
+### figures
+
+- Anthropic Riemann hypothesis progress: From ~40% to 67% [14:12]
+- Fields medalists with IMO background: ~50% [54:41]
+- 2026 ICML submissions growth: ~60%-70% [2:23:59]
+- 2027 ICML projected submissions: Possibly breaking 50,000 [2:25:00]
+- Peking University alumni inside OpenAI: ~20+ [2:31:03]
+- PKU math school class 2007: pure math and statistics: Pure math ~11-12, statistics ~4 [44:36]
+- Class of 2007 switching percentage: ~10% [50:39]
+- OpenAI researcher interview rounds: 4 rounds (2 math logic puzzles + 2 coding) [1:06:49]
+
+### glossary
+
+- RSI: Recursive self-improvement; the vision of AI autonomously designing, testing, and training the next generation without human involvement.
+- Mechanistic Interpretability: Research into causal links between neuron activation patterns and model behaviors like deception.
+- Condorcet Cycle: A group preference pattern where A beats B, B beats C, and C beats A—a non-transitive loop.
+- muP: A theoretical method using small-model training results to predict large-model optimal hyperparameters in advance.
+
+who it is for: Entrepreneurs and investors interested in AI and mathematics frontiers, curious why leading scholars take leaves from tenure to join OpenAI, and wanting to understand AI companies' business narratives.
+what to skip: The first 0-5 minutes are episode recap footage; content repeats later, skip directly.
+tags: AI for Math, Scaling Law, OpenAI, Academic Sabbatical, AI Safety, Mathematical Community
 
 ==============================================================================
 
@@ -65896,6 +66196,79 @@ tags: Maritime disaster, Organizational failure, Safety culture, Attribution of 
 
 ==============================================================================
 
+## The hero who endured twenty years of attacks: Han Hong, not Luo Yonghao
+
+- URL: https://ourword.ai/podcast/en/p/2026-07-24-cn2d7912-罗永浩-被泼了20年脏水的韩红才是真英雄-他自己做不到/
+- show: 罗永浩的十字路口 (https://ourword.ai/podcast/en/s/cn2d7912/)
+- original episode: 罗永浩的X字路口！“精神病”失控大乱斗，强迫症、ADHD、攻击型人格障碍.......
+- published: 2026-07-24 · duration: 2:32:43
+- transcript: Machine transcription · 45293 words · timestamps are exact
+- verification: 7 quotes matched verbatim, 5 numbers traced to the transcript, review score 7/10
+
+**Luo Yonghao admits that being questioned about water bottle brands during charity work nearly broke him. He calls Han Hong—who withstood twenty years of allegations and attacks—a true hero he could never be.**
+
+why listen: Most of the episode is banter about hair loss, OCD, and ADHD. The second half contains the only substantive content: Luo Yonghao discussing Wenchuan earthquake charity accounting and his assessment of Han Hong.
+
+### points
+
+[11:03] (Cao Guo) **Hair loss is not a vanity issue—it is a camera exposure problem** — Camera operators use hairline powder and require darker skin to solve overexposure issues caused by reflection off the scalp. It is a technical constraint, not a cosmetic one.
+
+[20:07] (Luo Yonghao) **ADHD is not an inability to focus—it is a different kind of switch** — Luo uses four monitors—two for focused work, all four for open-ended thinking. He would use sixteen if possible, but is limited by Mac Studio's 4 Thunderbolt ports. His ADHD is not an inability to focus but a different activation pattern; the switch is simply set differently than others'.
+
+[24:09] (Luo Yonghao) **ADHD's true cost: arriving late to major launches, even willing to refund tickets** — Luo never misses weekly company meetings, but always arrives late to major launches with thousands of attendees—sometimes by over an hour, requiring ticket refunds. Event size directly triggers ADHD symptoms. The severity of lateness shows the condition's grip increases with pressure and stakes.
+
+[55:17] (Shi Lifen) **OCD runs on invisible labor no one else can see** — OCD sufferers maintain invisible order that others never notice. All his airplane models face the same 45-degree angle. If someone moves one and dusts it, he can instantly spot something is wrong—the only person aware of the displacement.
+
+[1:30:33] (Shi Lifen) **OCD's hoarding compulsion: taking responsibility for a piece of paper from creation to trash** — He collects discarded namecards and materials from events, keeping them in desk drawers. Once paper is printed and used, he feels obligated to save it from becoming garbage. He would not feel this responsibility for paper bearing Luo Yonghao's name, only for paper over which he holds stewardship.
+
+[1:56:53] **Naming locations in sensational content brings harassment; anonymity becomes accidental tourism promotion** — A comedian who named his hometown got doxxed with specific addresses and floor numbers; neighbors grew angry and the reaction only faded with time. Another who obscured all locations using province codes and generic regions ended up with locals treating his stories as tourism marketing. Same content type; opposite outcomes based solely on naming practice.
+
+[2:07:07] (Luo Yonghao) **Luo Yonghao: disputes over water bottle brands nearly destroyed his charity work** — During Wenchuan earthquake relief, Luo organized donations and did hand accounting every night. Dozens to hundreds of yuan always went unaccounted for, which he covered himself. After publishing the data, supporters pressured him about water bottle brands. This line of questioning nearly broke him emotionally. By contrast, Han Hong has endured twenty years of allegations and attacks while maintaining her charity work—which Luo calls heroic in a way he admits he could never manage.
+
+[2:28:12] (Luo Yonghao) **Hair transplant doctors call any transplantable hair outside the scalp 'resources'** — In industry jargon, transplantable hair and body hair reserves are called 'resources,' including beard hair and leg hair. These grafted hairs retain their original growth characteristics from their source location. A colleague had scalp hair transplanted into his eyebrows; the hair kept growing indefinitely without requiring trimming, alarming his wife.
+
+### verbatim quotes
+
+[12:03] Cao Guo: "So I came up with a solution: get a bowl, fill it with hairline powder, and I can dip into it like you dip hot-pot sauce—haha—just paint it on in a circle."
+    original (zh): 就想了个办法 就是说搞个盆子 嗯 装一盆发肌线粉 然后我可以像那种蘸火锅料 哦 哈哈 这样就直接就是一圈
+
+[20:07] Luo Yonghao: "If this interface had no limits, I'd be like a security guard staring at sixteen screens, making sure they're all covered with densely packed Wikipedia pages so I can read the titles clearly."
+    original (zh): 如果这个接口没有限制的话 你就会像一个保安一样 盯着16块屏 确保上面全是密密麻麻的维基百科 人能看清楚标题是啥
+
+[24:09] Luo Yonghao: "For example, I'm never late to our weekly company meetings. But if I organize a big launch event with twelve thousand people—and we're selling tickets—I will absolutely be late taking the stage. Twenty minutes, thirty minutes, sometimes an hour—I'd rather refund tickets."
+    original (zh): 比如说我们公司每周例会 我是从来不迟到的 但是如果我搞了一个大型发布会 请了一万两千人来 还卖了 我是一定会迟到上台的 晚20分钟 30分钟 一小时不等 宁可退票
+
+[41:15] Shi Lifen: "I have lots of airplane models. All facing the same angle—45 degrees, with wings lined up. If someone moves one and dusts it off, I can always tell something is wrong."
+    original (zh): 我有很多飞机模型 自己动了 我的飞机模型 是全朝一个角度 就是45度 然后翅膀落翅膀的 你要是动了 擦完之后 我是肯定能看出来 这个飞机不对了
+
+[1:30:33] Shi Lifen: "We with OCD have this particularly primal, authentic impulse: to take ultimate responsibility for everything. If a name is printed on paper and it's been used, I alone must be responsible for it. If I don't manage this paper, nobody else will care about it. The staff will just throw it away and it becomes garbage. Luo Yonghao would never feel responsible for paper bearing his own name, but I do—because this paper has borne my intentions, served its purpose, and I must answer for it."
+    original (zh): 我们强迫症有一个 特别原始的 本真的冲动 就是自己对一切事情 做兜底的负责 就是如果这上面写了十几分 这个事就只有我一个人 能对他负责 就是我如果不管这张纸 不会有任何人 对这张纸感兴趣 那工作人员会收拾给他扔掉 他就会呃变成废纸 变成垃圾 他就引入尘埃 嗯 就是罗老师一定不会对印着罗永浩三个字的纸感兴趣 但这个事我管不了 因为我不用为罗永浩这三个字 在这张纸都底 但这张纸 他承载了我 他行使了他的奥义 我也必须对他负责任
+
+[2:09:59] Luo Yonghao: "So he's been doing charity for nearly twenty years, constantly attacked and smeared, but he persists anyway. That's a true hero. I could never do that."
+    original (zh): 所以他做将近20年公益 一直被黑 一直被泼脏水 但人家能忍得住做 这是真英雄 我是做不到的
+
+[2:29:14] Luo Yonghao: "Then he said, 'Your resources are very good.' We were confused. 'What resources?' the patient asked. He explained: 'Transplantable hair—we call the surplus resources.'"
+    original (zh): 然后就在那里说 你这个资源很好 完了我们就愣了 就说什么资源 那个被摸的人说什么资源 他就说就是可移植的 这个余量叫资源
+
+### figures
+
+- Hours on Wikipedia in a single session: Over ten hours [19:06]
+- Number of monitors on Luo Yonghao's desk: 4 screens (limited by Mac Studio's 4 Thunderbolt ports) [20:07]
+- Luo's worst arrival time at major events: 1 hour late with refunds issued; prior worst was 7 minutes [25:09]
+- ADHD exam accommodations in China: 30 additional minutes after medical diagnosis [1:34:38]
+- Cumulative charity donations through Luo Yonghao's organization: Over 30 million yuan (as of end of prior year) [2:10:59]
+
+### glossary
+
+- ADHD: Attention-deficit/hyperactivity disorder: a neurodevelopmental condition affecting the ability to sustain attention or maintain focus, not synonymous with restlessness or an inability to sit still.
+- Resources (hair transplant jargon): Industry term for the supply of transplantable hair and body hair that can be grafted onto the scalp, including facial and body hair reserves.
+
+who it is for: Audiences who enjoy comedians trading quips, are curious about ADHD and OCD self-diagnosis, or want to hear Luo Yonghao rarely speak seriously about charity work.
+what to skip: Skip the banter about hair loss, ADHD, and OCD—low information density. The core content is the charity discussion after 2:07.
+tags: ADHD, OCD, Stand-up, Charity, Hair transplants, Praise and criticism
+
+==============================================================================
+
 ## AI's understanding of you is engineered line by line by content engineers
 
 - URL: https://ourword.ai/podcast/en/p/2026-07-24-sv101-ai的懂你-是内容工程师一句句调教出来的/
@@ -67739,6 +68112,81 @@ tags: Continual learning, RLVR, Sample efficiency, OPSD, AI training, Architectu
 
 ==============================================================================
 
+## Luo Yonghuai Didn't Flee Because He Never Transferred the Money
+
+- URL: https://ourword.ai/podcast/en/p/2026-06-26-cn2d7912-罗永浩没跑路-是因为没提前把钱转出国/
+- show: 罗永浩的十字路口 (https://ourword.ai/podcast/en/s/cn2d7912/)
+- original episode: 罗永浩的X字路口！不借钱给朋友，就会失去朋友失去钱！
+- published: 2026-06-26 · duration: 2:40:14
+- transcript: Machine transcription · 41859 words · timestamps are exact
+- verification: 8 quotes matched verbatim, 5 numbers traced to the transcript, review score 7/10
+
+**Real entrepreneurs who run typically pre-transfer assets—Luo never did, so his only option was to stay and repay 600 to 700 million over time.**
+
+why listen: Three perspectives on debt: how to borrow, how debts function, and how professionals collect them. Dense with mechanisms and figures, though you can skip the first 40 minutes of celebrity chasing and advertisements to reach the core discussion.
+
+### points
+
+[17:38] (Xianyu) **Pursuing fandom requires 3,600 yuan just to sit on a bench far away** — Invested 3,600 yuan for a black-market ticket to see a live show recording—3,000 for admission, another 600 to sit in the fan section, still only a small bench in the back row. Five-plus hours of taping. Phones and bags confiscated. By 9 p.m. end time, elaborately dressed fans with LV and Chanel bags sat roadside eating street snacks, having gone without food the entire session. The gap between the aspirational vision and the actual texture of fandom became visible.
+
+[40:34] **Campus loans recruit new victims by hiding risk behind tiny gift incentives** — In a six-person dorm, one roommate spent freely on sneakers, then borrowed from a campus loan app. Unable to repay, he convinced bed-1 to open an account to pay him back. Bed-1 couldn't repay, so recruited bed-2. The chain continued until all six beds were trapped by the same debt for two to three years, taking ten months after graduation to fully clear. Why everyone enrolled: senior promoters required zero cost—just download an app, register for a task, get a small gift. First-year students nearly universally pre-installed it. The actual risk surfaced much later.
+
+[1:09:27] (Xianyu) **One keystroke sent 3 million yuan; character determined what the company did next** — While running operations at Zhihu (知乎), needed to distribute end-of-year points to creators. The backend confused points with yuan denominations—sent 3 million actual yuan instead of 30,000 yuan in points. Realized within five or six minutes. First instinct: froze at the computer, hands shaking while opening his bank app to confirm he had only 84,000 yuan in the account. His thought: if he had to repay that alone, it was impossible. One hour later, the tech team reversed the transaction. The company fined him 80,000 yuan and issued a public apology, neither firing nor formally disciplining him.
+
+[1:21:37] (Luo Yonghao) **Physical inventory counts revealed billions in debt; forecasts never would have** — On the day the company initiated bankruptcy liquidation, finance reported debt of approximately 3 billion. Luo had already mentally prepared to repay it over five to ten years. But phone manufacturing requires hundreds to thousands of discrete components—missing even one prevents assembly of any finished units, which blocks cash conversion. With thousands of parts sitting in inventory, a single missing component ruins an entire batch. Finance kept recounting daily: 500 million more today, another billion tomorrow. The tally kept compounding. Final count: 600 to 700 million. The debt wasn't imposed once; it was discovered through inventory.
+
+[1:23:39] (Luo Yonghao) **Without assets abroad, escape becomes impossible; staying is the only choice** — Luo observes that entrepreneurs who actually flee usually pre-position assets overseas—once the domestic situation becomes untenable, they leave. He transferred nothing. So where would he go? There would be nothing to gain. He considered personal bankruptcy through specialized lawyers, but that path required him to litigate full-time for one to two years, with no freedom to leave. The more difficult factor: many creditors were small suppliers and individual small business owners. If his company invoked limited liability to escape, those smaller enterprises would likely go bankrupt. That personal, human pressure mattered more than the legal algebra. He decided to stay and bear it.
+
+[2:19:09] (Luo Yonghao) **Lent 17 million, recovered 1.7 million; faith in people somehow survived intact** — When a friend faced economic crime charges and needed urgent funds, Luo tried to legitimately call in old debts. Finance and legal walked through the account and discovered 17-plus million in loans he wouldn't recover—far more than his rough estimate of a few million. He says 90 percent were never deliberately withheld; his friends were struggling themselves. When he lent, he'd already treated it as a gift. Years later, a few friends actually repaid, which reinforced his near-naive faith that people ultimately honor relationships over money.
+
+[2:24:31] (Luo Yonghao) **Lending through strangers lets you keep friendships while demanding repayment anyway** — A business-owning friend taught him a trick: if a friend asks for a loan and you want to help but fear non-repayment, don't lend directly yourself. Find another friend who doesn't know the borrower and broker the loan through them. When the due date arrives and payment doesn't, that third party can legitimately demand repayment, write promissory notes, even litigate—you've still solved your friend's problem, but you don't have to be the villain. He also mentioned that when collecting his own debts, he manufactures stories (family conflict) that reframe repayment as the debtor helping him—that's how you manage to ask without tearing the relationship.
+
+[2:30:22] (Xianyu) **Debt collectors who sit in offices become part of the debtor's daily routine** — Xianyujiang, who worked collections for a Fujian guarantee company, described the actual mechanics: the company charged interest on bridge loans far exceeding the legal limit of four times the principal. When a borrower defaulted, they stationed someone in that company's office daily, set up a typical Fujian-boss tea table, made small talk, and applied steady pressure—nothing dramatic, just persistent presence asking for priority repayment. Over three to four months, they recovered 2.9+ million of the debt. He described the constant contact as creating an almost intimate, ambiguous relationship between collector and debtor—the debtor's company eventually failed.
+
+### verbatim quotes
+
+[41:23] : "You've never been tempted by it before, so you can't possibly avoid using it. So basically every single one of us already had this software pre-installed back in first year."
+    original (zh): 你没有受过这个诱惑 你不可能不用 所以我们每个人 其实在大一的时候 就已经预装了这个软件
+
+[1:10:30] Xianyu: "I said, if I personally had to repay that 3 million yuan, how in the world could I do that?"
+    original (zh): 我说那300万 如果要我一个人还的话 那怎么可能
+
+[1:21:37] Luo Yonghao: "If I remember correctly, it should have been around 3 billion. Around 3 billion. And then I thought, well, I'd better just prepare to spend the next five to ten years paying back this 3 billion."
+    original (zh): 我要没记错 应该是三个亿左右 三个亿左右 然后我就想 那好吧 那就做好未来五到十年 把这三个亿还了的准备
+
+[1:22:38] Luo Yonghao: "You're manufacturing a phone—it needs hundreds, thousands of components. If even a single one isn't available, the whole device can't come together."
+    original (zh): 你做一个手机 要几百个上千个元器件 只要有一个凑不齐 这个整机就出不来
+
+[1:23:39] Luo Yonghao: "He said, well then I'm not in any hurry to pay Lao Luo back, because a cup of water to a burning cart doesn't solve anything anyway."
+    original (zh): 他说 那我就不太着急给老罗了 因为 这个杯水车心嘛 也解决不了任何问题
+
+[1:25:41] Luo Yonghao: "But I didn't move anything. So where would I go? There's nothing to gain. Might as well just stay."
+    original (zh): 那我又没转移 我出去干啥呢 没有什么可得到了 还不如就在
+
+[2:24:15] Luo Yonghao: "If a friend asks to borrow money, you want to help but worry you won't get it back, so you find another friend—someone they don't know—and you tell them: I don't have the cash right now, but I can find you a friend to lend it to you."
+    original (zh): 有朋友跟你借钱 你想帮他 但又担心收不回来 你就找另一个朋友 那个朋友他不认识 你说我现在没钱给你 但我给你找个朋友借你钱
+
+[2:33:18] Xianyu: "We're just there applying a little pressure. But if they can generate normal cash flow, they'll be able to pay us back."
+    original (zh): 我们就是在那儿就施加点压力 但他们正常能跑出那个流水来就能还给我们
+
+### figures
+
+- Luo Yonghuai's peak debt: 600-700 million yuan [1:21:37]
+- Zhihu erroneous transfer: 3 million yuan sent (should have been 30,000 in points) [1:09:27]
+- Zhihu incident fine: 80,000 yuan [1:13:31]
+- Consumption restriction actual duration: 6-7 months [2:16:06]
+- Xianyujiang debt recovery amount: 2.9+ million yuan [2:35:18]
+
+### glossary
+
+- Hirox: A high-intensity combined fitness competition alternating long-distance running with weighted and strength training events.
+
+who it is for: Entrepreneurs and readers interested in how corporate debt actually works—the mechanisms of borrowing, industry practices in debt collection, and the real economics of business failure.
+what to skip: The opening 40 minutes covers celebrity fandom, sports, and product placement. The substantive discussion begins with campus lending.
+tags: Corporate debt, Borrowing, Campus loans, Debt collection, Consumer habits, Stand-up comedy
+
+==============================================================================
+
 ## Zhenggé co-founder Wang Qiang: He reads none of the new books
 
 - URL: https://ourword.ai/podcast/en/p/2026-06-23-xiaotianzhang-真格联合创始人王强-新出的书-他一本都不读/
@@ -68492,6 +68940,74 @@ tags: ADHD, Child education, Medication efficacy, Evidence-based teaching, Behav
 
 ==============================================================================
 
+## Opponent spits at the car window in rage; he says this proves he's happier
+
+- URL: https://ourword.ai/podcast/en/p/2026-05-29-cn2d7912-对方朝车窗吐痰泄愤-他说这证明自己更幸福/
+- show: 罗永浩的十字路口 (https://ourword.ai/podcast/en/s/cn2d7912/)
+- original episode: 罗永浩的X字路口！当一群情绪不稳定的杠精讨论起情绪稳定
+- published: 2026-05-29 · duration: 2:33:35
+- transcript: Machine transcription · 42634 words · timestamps are exact
+- verification: 7 quotes matched verbatim, 1 numbers traced to the transcript, review score 7/10
+
+**His 'happier person's yield': before conflict, determine who's happier, and that person backs down. This logic reframes not fighting back as rational—not fearful.**
+
+why listen: Improvised comedy with stand-up comedians sparring—low on substantive content, but real anecdotes about road rage and drunk driving are more interesting than the debates.
+
+### points
+
+[17:13] **Emotional stability is not a virtue—it's social conditioning** — Society never questions whether adults should be emotionally passionate, yet uniquely demands they be stable—a standard that only tightens with age. This is not a virtue but a rule imposed without justification.
+
+[1:06:47] **Stupidity is worse to endure than malice** — Malice used to seem worse than incompetence. Now incompetence hurts more: you can rightfully attack a bad actor, but a well-meaning fool offers no clean response. Criticize and you seem cruel; stay silent and you choke.
+
+[1:12:50] (Su Heng) **Blocking and deleting are addictive thrills** — Blocking and deleting feed addiction. The practice calcifies into a reflex until the person cannot tolerate disagreement. Two methods emerge: mock sarcastically to disguise attacks as jokes, or block ruthlessly. Both become compulsive; both harden into arrogance.
+
+[1:14:52] (Luo Yonghao) **Never block: actively search your own name to hear criticism** — Almost never block anyone; actively search your own name to find criticism. The habit—like dumpster-diving after meals—prevents you from becoming insular. Only accept affirmation, and you narrow into yourself.
+
+[1:20:52] (Host) **Rant for hours and watch every curse word become meows** — During one rare late-night argument, he expected his opponent to suffer sleeplessly. But next morning, his hundreds of curses had been auto-replaced with meows (喵喵喵) by the platform's profanity filter. His rage became wordplay; furious, he left a scathing App Store review of the app itself.
+
+[1:24:55] (Luo Yonghao) **Refusing to fight back proves you're the happier person** — During a road-rage confrontation, the other driver threatened him; Luo stayed in his car filming. When the man spat on the window in frustration before leaving, Luo invented a rule: before any conflict, determine who is happier, and the happier person yields. By this logic, remaining calm while your opponent loses control proves you're happier—so not fighting back is rational, not fear.
+
+[1:37:57] (Luo Yonghao) **The drunk driver's mother flips on a dime** — In an alcohol-fueled collision, the at-fault driver's mother arrived in tears begging mercy; Luo was prepared to settle. But when she spotted his car's temporary license plate, she flipped instantly and counter-attacked: wasn't he driving illegally? This prompted his sole profane outburst at a woman.
+
+[2:18:26] (Kuai Zong) **To broaden your mind, you must engage with people you despise** — Actively engage with people whose values repel you. Everyone believes they're doing good—no one thinks they're the villain. Understanding why someone acts the way they do reveals your own blind spots. Retreat into agreement-only circles and you harden into something smaller.
+
+### verbatim quotes
+
+[24:17] : "We tell young people how to be people. But the moment you become an adult, we immediately say: be stable. That's society's POA on adults."
+    original (zh): 但我们对年轻人说 做人应该是这样的 对不对 但成年人一到成年人就说 要稳定 这个是社会对成年人的POA
+
+[1:07:47] : "If you know someone is a bad person, you can attack him, curse him—no problem. But if he's stupid and means well but ends up causing harm—what do you do?"
+    original (zh): 你知道他是一个坏人你可以这么攻击他怎么着骂他这都没有问题 但他蠢的好心办了坏事你怎么弄
+
+[1:12:50] Su Heng: "These two methods may not work for you, but they work for me. The first one: since he's stupid, you can't curse him out directly, so you use a joking, sarcastic tone."
+    original (zh): 我的两个方法不一定对你管用 对我是管用的 就第一是 因为他蠢你不好直接骂他 你就用调侃的语气讽刺他
+
+[1:14:52] Luo Yonghao: "Because if people only interact with those who affirm them, they become increasingly arrogant and narrow-minded."
+    original (zh): 因为我觉得人如果只接触认可自己的人 就会变得越来越自大和狭隘
+
+[1:18:52] Su Heng: "When I block someone, in my mind I'm executing him. I take this big blade, I chop his head clean off—that's what it feels like."
+    original (zh): 我拉黑他的时候 我脑海里是在给他处决 我拿这个大刀 我把他头砍下来 卡 就是这种感觉
+
+[1:31:57] Luo Yonghao: "The happier person's yield principle: before anyone yields, first determine who's happier between us, then the happier person chooses to yield."
+    original (zh): 幸福必让原则是这样的 是在必让前 先判断你和我谁幸福 然后幸福一方选择必让
+
+[2:18:26] Kuai Zong: "Because no one thinks they're a bad person—in everything they do, they believe they're good. Why do they see themselves that way?—that's what I'm really curious about."
+    original (zh): 因为所有人 都不会觉得自己是坏人 他们做任何事 都是觉得自己是好人 为什么他会觉得自己好 就这个东西 我是非常好奇的
+
+### figures
+
+- Public apologies since debut: over a dozen [56:38]
+
+### glossary
+
+- POA: Society's unreasonable moral demands imposed on a person; in this episode, the demand that adults be emotionally stable. Likely a misspelling of PUA.
+
+who it is for: Listeners who enjoy watching stand-up comedians riff with bad logic and jokes, or are curious about Luo Yonghao's own road rage and dispute stories. Not for people seeking substance.
+what to skip: The mid-section debate about whether performers should work all-night script revisions is low on information and can be skipped.
+tags: Emotion management, Stand-up comedy, Internet arguments, Road rage, Luo Yonghao, Block psychology
+
+==============================================================================
+
 ## He Xiaopeng: General-purpose humanoid robots are 99.99% doomed to die — we're betting on that 20% win rate
 
 - URL: https://ourword.ai/podcast/en/p/2026-05-28-zhangxiaojun-何小鹏-通用人形机器人99-99-会死-我们赌那两成胜率/
@@ -68804,6 +69320,89 @@ why listen: The first half is a hard-nosed review of model-company business mode
 who it is for: Investors watching AI business models and valuations, people working at model companies, and founders thinking about how organizations should change in the AI era.
 what to skip: If you only want the investment substance, the anxiety and loneliness section after 1:14:17 can be skipped.
 tags: AI investing, model companies, org design, Token, Silicon Valley
+
+==============================================================================
+
+## Selling the wealthy's chauffeur-and-housekeeper lifestyle to ordinary people
+
+- URL: https://ourword.ai/podcast/en/p/2026-05-13-cn2d7912-理想要把富豪才有的司机管家生活卖给普通人/
+- show: 罗永浩的十字路口 (https://ourword.ai/podcast/en/s/cn2d7912/)
+- original episode: 李想×罗永浩！李想的理想：通过 AI 技术，让普通人也过上富豪的生活
+- published: 2026-05-13 · duration: 2:20:59
+- transcript: Machine transcription · 44063 words · timestamps are exact
+- verification: 8 quotes matched verbatim, 10 numbers traced to the transcript, review score 7/10
+
+**Li Xiang judges that in ten years, the same people will be buying L4 autonomous vehicles and home robots—AI's value isn't replacing jobs, but turning chauffeurs and housekeepers only the wealthy can afford into services ordinary families can consume.**
+
+why listen: Car manufacturing, in-house chip design, robotics, and organizational restructuring are woven into complete logic with high information density, ideal for those who want to understand how AI companies should redesign themselves.
+
+### points
+
+[9:02] (Li Xiang) **Top AI users aren't your company's former star performers** — Li Xiang observed the top 20 employees by token consumption within the company and discovered they weren't conventionally top-tier performers—instead, they were people with weak verbal skills, little access to resources, but exceptional thinking ability. Previously, people like this suffered because they weren't fluent with words; now, as long as they have tokens and a business environment, they can remake everything. Based on this, he recommends all companies avoid layoffs, because the talent standard in the AI era is completely different from the past, and hasty cuts risk eliminating precisely the people who are 'best' by yesterday's metrics.
+
+[13:05] (Li Xiang) **Strategy teams can build verified demos in a week without engineers** — Li Xiang gave his strategy team three problems the company faced—workflow coordination, data access, value measurement—to research how world-leading companies handle them. While studying Anthropic, the strategy team discovered it doesn't write traditional PRD documents but instead builds verified demos directly, so they replicated an entire Cowork system without involving any engineers, then separately verified workflow integration and data connectivity with HR and data warehouse teams. This refutes the assumption that 'strategic roles no longer need business intelligence'—expert teams using AI well reach new heights rather than being replaced.
+
+[20:08] (Li Xiang) **Humanoid robotics' real market is parts loading, not replacing factory jobs** — Li Xiang argues most humanoid robotics startups can't find a business model because they're trying to automate jobs—sorting, bolt-tightening—that assembly lines and cameras have already automated away. The labor that still exists is parts loading: Ideal's factories employ over 10,000 people, with more than 3,000 dedicated to placing components on AGVs; the only operational staff left at automated coffee shops is also loading. He judges this is the critical first battlefield for humanoid robots at scale, a challenge many founders can't meet—possibly due to lack of real factory experience, or perhaps because parts loading 'doesn't look cool enough' for fundraising.
+
+[26:16] (Li Xiang) **Autonomous driving is the first half of embodied AI** — Li Xiang divides autonomous driving into three stages: 2017–2022 was assisted driving (2D vision + rule-based algorithms, tens of Tops processing power); now through ~2027 comes imitation learning for L2/L3 (Transformer vision + end-to-end control, 4B–7B models with 2,000 Tops of compute); after 2027–2028 comes true L4, requiring a stable physics-world foundation model with inference compute approaching ten thousand Tops—several times more than Ideal's current single-chip 1,280 Tops. He believes autonomous driving and humanoid robots will each become $5 trillion markets once mature, which is why robotics companies recruit talent from autonomous-driving teams.
+
+[56:24] (Li Xiang) **Dynamic data-flow architecture is the superior path for automotive inference** — Ideal's self-designed Mach chip uses a dynamic data-flow architecture, different from the industry-standard ASIC approach, delivering 1,280 Tops per chip and 2,560 Tops combined on dual-chip Levis—Li Xiang calls this the strongest compute for any automaker's in-house design globally. Before committing, the team spent a year preparing and wrote a 1.4-million-character feasibility report, even consulting Jim Keller and other top chip architects; internally there were two competing approaches, and after settling on the data-flow architecture, the team backing the conventional path left the company. His view: batteries and chips were the only two moats in smart EVs over the past decade, but the real barrier in embodied intelligence is inference silicon, not models.
+
+[1:00:25] (Li Xiang) **Cutting brake response to 13 milliseconds saves an entire vehicle length** — Levis uses the world's first production-grade fully electronic mechanical braking, not traditional hydraulic—all four wheels control independently with response time compressed from traditional mechanical braking's 60–70 milliseconds to 13 milliseconds, nearly twice as fast—equivalent to a 15–20% improvement in human reaction speed, translating into a braking distance difference equal to a full-size SUV's length. Li Xiang stresses this isn't redundancy removal but added safety: even if one wheel's brake fails, the car can still brake normally and execute maneuvers using the other wheels and steering system.
+
+[1:47:27] (Li Xiang) **Separating layers prevents components from reimplementing each other's function** — Early this year, Ideal reorganized following top AI companies like Anthropic, restructuring into a body model: the Infra team as the heart, foundation models as the brain, software stack as limbs, hardware stack as the body, plus an independent evaluation team. The root cause was that software and agent teams kept wanting to build models, while model teams wanted to build agents—'like low-order creatures trying to grow a small brain on their limbs.' The announcement came Monday; most staff didn't understand immediately, only the foundation-model and software-stack teams grasped it at once. Li Xiang says AI is a mirror that shows true capability—people without the right skills or those dissatisfied with the company leave on their own, no need for layoffs.
+
+[2:16:43] (Li Xiang) **Cars and robots will be sold to the same people in a decade** — Li Xiang says Ideal's vision for the next decade is turning what once only top-tier billionaires could own—a dedicated driver, a housekeeper, a cleaner—into services ordinary families can afford through AI and embodied intelligence, which he sees as the greatest benefit of technological progress, not endless job replacement. He also offers a forecast: in ten years, 90% of people buying L4 autonomous vehicles will be the same people buying home robots, because both ultimately serve the same life need.
+
+### verbatim quotes
+
+[6:01] Li Xiang: "Because I think the biggest change in this wave of AI is that it's both productivity and labor."
+    original (zh): 因为我觉得这一波AI的最大的变化 其实它既是生产力 又是劳动力
+
+[9:02] Li Xiang: "His expression used to be weak, he couldn't access resources, but his thinking is extraordinary—so as long as he has tokens and a business environment, he can remake everything."
+    original (zh): 他表达能力过去不强 他获取不了什么资源 但他脑子极强 所以只要有Token 然后有这个什么 然后有业务环境 他就可以去改造一切
+
+[10:02] Li Xiang: "An ordinary person's code has usability so poor that large-scale deployment is basically disastrous for them."
+    original (zh): 就一个普通人 然后做出来的那个代码 那个可用性 差到极致 更不要说往大规模去部署了 那基本上对他们来就是个灾难
+
+[20:08] Li Xiang: "I think it's the business opportunity, the biggest business opportunity—when everyone's chasing humanoid robots, they're actually failing to find a business model."
+    original (zh): 我觉得是商业机会啊 这是个最大的商业机会啊 今天大家在搞人形机器的时候 其实是找不到商业模式的
+
+[26:16] Li Xiang: "Autonomous driving is the first half of embodied intelligence; humanoid robots are the second half."
+    original (zh): 就是自动驾驶是 巨身智能的上半场 人形机器人 是巨身智能的下半场
+
+[40:20] Li Xiang: "How to give hundreds of millions and billions of people access to the lifestyle top billionaires have—that's the greatest benefit technology brings."
+    original (zh): 如何把这些顶级富豪拥有的生活 然后给到更多的人 让几亿人几十亿人 也能消费这些 这是科技进步带来的最大的好处
+
+[1:16:12] Li Xiang: "We believe models might be competitive, but not necessarily a moat—the final barrier we see is inference silicon."
+    original (zh): 我们甚至认为模型可能是竞争 但不一定是壁垒 我们能看到最后的壁垒是推理芯片
+
+[1:47:27] Li Xiang: "It's like those low-order creatures that insist on growing a small brain on their limbs—I'd call that primitive."
+    original (zh): 特别像那些动物 就是这个手脚上非得长个小脑 我说这是个低级动物的做法
+
+### figures
+
+- Levis single-chip compute: 1280 Tops [54:23]
+- Levis dual-chip compute: 2560 Tops [54:23]
+- Full drive-by-wire brake response: 13 milliseconds [1:00:25]
+- Human brake reaction time: 350–400 milliseconds [53:23]
+- Livis extended-range endurance: over 1600 km [57:24]
+- Export model starting price: $32,500 [2:04:36]
+- Ideal factory parts-loading headcount: 3000+ of 10000+ employees [20:08]
+- Chip feasibility report length: 1.4 million characters [56:24]
+- Ideal current scale: 30000 employees, over 100 billion yuan revenue [17:07]
+- Ideal 5–10 year target: 30000 employees, 1 trillion yuan revenue [17:07]
+
+### glossary
+
+- Embodied AI: AI-driven robots and vehicles with perception and cognition operating autonomously in the physical world.
+- VLA/World Model: Foundation models for understanding and predicting physical-world dynamics in autonomous driving, typically trained via imitation learning.
+- Full Drive-by-Wire Chassis: Electronic signals instead of mechanical linkage control steering and braking, allowing independent adjustment of force and response per wheel.
+- Dynamic Data Flow Architecture: A chip compute architecture distinct from mainstream GPU/ASIC designs, where Ideal claims edge-side data movement efficiency is superior.
+
+who it is for: Founders and executives leading teams through AI transformation, and professionals tracking embodied AI commercialization paths and automakers' in-house chip strategies.
+what to skip: The opening chatter about personal AI learning habits can be skipped; substantive content begins with robotics and autonomous driving technology paths.
+tags: Embodied AI, Autonomous Driving, In-house Chip Design, Organization Structure, Robotics, Global Expansion
 
 ==============================================================================
 
@@ -69193,6 +69792,77 @@ tags: AI for Math, Formal Verification, Deep Tech Startups, Fundraising Games, L
 
 ==============================================================================
 
+## Families Without Children Are Actually Freeloading Off Families With Children
+
+- URL: https://ourword.ai/podcast/en/p/2026-04-17-cn2d7912-不生孩子的家庭-其实在占生孩子家庭的便宜/
+- show: 罗永浩的十字路口 (https://ourword.ai/podcast/en/s/cn2d7912/)
+- original episode: 携程梁建章×罗永浩！在企业家与学者之间，他选择了最艰难的“往返票”
+- published: 2026-04-17 · duration: 3:40:05
+- transcript: Machine transcription · 56468 words · timestamps are exact
+- verification: 6 quotes matched verbatim, 7 numbers traced to the transcript, review score 7/10
+
+**Liang Jianzhang's core argument: each child's future pension and innovation benefits are shared by society as a whole, but the cost of childbearing falls solely on parents—this is the fundamental logic behind his position that governments should provide real financial subsidies for childbirth, not merely moral exhortation.**
+
+why listen: A rare deep conversation spanning entrepreneurial history, cross-border strategy, remote-work experiments, and population-policy logic all at once—the back half on population and AI philosophy carries the highest information density.
+
+### points
+
+[6:04] (Liang Jianzhang) **Skipping grades beats lock-step progression** — Liang Jianzhang sees himself as a beneficiary of accelerated learning: as a ninth-grader he focused on computer competitions, then self-studied high school mathematics, physics, and chemistry, and entered Fudan's youth class at fifteen, bypassing high school entirely. He therefore argues that gifted students should compress middle school, high school, and even college into accelerated paths—subjects like physics need only two passes, not three; the efficiency problem isn't the curriculum but the gaokao system locking everyone into the same pace.
+
+[35:32] (Liang Jianzhang) **Ctrip's four founders meshed in less than six months** — Liang Jianzhang, Ji Qi, Shen Nanpeng, and Fan Min didn't have clearly defined roles initially and experienced friction, but the meshing period lasted only three to five months—soon Ji Qi handled external relations, Shen Nanpeng became CFO and handled fundraising, Liang Jianzhang focused on internal management and IT, and Fan Min brought hospitality-industry management experience. He attributes Ctrip's early success to two things: Six Sigma–style standardized processes that refined call-center scripts, and process and data management that achieved ticket distribution across all channels—airports, train stations, and aircraft.
+
+[47:44] **3+2 hybrid didn't hurt productivity because only Ctrip does it** — After the pandemic, Ctrip ran a 3+2 hybrid-office experiment for engineers and other specialist roles and found no decline in code output or overall performance—employee satisfaction and loyalty rose noticeably. But Liang Jianzhang admits this partly depended on Ctrip being the only large Chinese company doing it—employees who compared themselves horizontally felt happier, and this may not generalize. Silicon Valley founders later privately told Luo Yonghao that while they publicly support hybrid work, they privately believe efficiency does fall; some admitted to playing basketball on remote days, only to encounter coworkers doing the same on the court.
+
+[1:02:56] (Liang Jianzhang) **Mobile Internet's lag forced a company-wide pivot** — Around 2012, Ctrip lagged visibly in mobile development, lost market share, and faced price wars. Liang Jianzhang ended his academic career and returned as CEO. He created an independent mobile division, pulled in the best engineers, personally drove app development, and mandated that all product discussions use phone screenshots rather than desktop screenshots. In six months to a year, Ctrip's app went from lagging to industry-leading, and the organization shifted from centralized to divisional to accelerate iteration.
+
+[1:16:09] (Liang Jianzhang) **Ctrip went global eight years ago, not multi-category** — Liang Jianzhang believed travel shouldn't stay confined to mainland China but should expand one category globally—a completely different path from Alibaba, Tencent, and Meituan's continuous category expansion domestically. Eight years ago, Ctrip acquired the Trip.com domain, first targeting Hong Kong and Taiwan, then Asia. Today it ranks first in Singapore and Malaysia, approaches first in South Korea, and leads in Japan flights. But he admits travel's supply chain is deeply local, and Ctrip still hasn't fully overtaken Booking's Agoda across Asia.
+
+[1:47:52] (Liang Jianzhang) **Demographic and economic experts' knowledge mismatch** — When Liang Jianzhang studied innovation, he found Japan's shift from innovation boom to decline tracked closely with population decline. Looking at China's data, he discovered a puzzle: demographers hold the real data but think fewer people is good; economists readily accept population-shortage logic but lack accurate data. At the time, the public and policymakers still thought the one-child policy posed no problem.
+
+[2:14:52] (Liang Jianzhang) **Families without children freeload off families with children** — Liang Jianzhang argues childbearing creates externalities: one child's future pension and innovation benefits the entire society, but childbearing's cost falls entirely on the family—so families who don't or rarely have children are freeloading off large families. He admits the claim easily provokes backlash (the "birth-encouragement bureau director" joke stems from this), but he insists it's the fundamental logic for government to provide real cash subsidies, not simply moral appeals to young people.
+
+[3:07:44] (Liang Jianzhang) **Innovation shouldn't go to AI—it lacks mortality** — Liang Jianzhang says ChatGPT's biggest philosophical impact is this: in theory, neural connections can replicate nearly all human abilities. But he firmly believes technology innovation shouldn't be dominated by AI—AI's creativity inevitably brings uncontrollable hallucinations, whereas human ethical judgment springs from "having birth and death, instinctively wanting descendants to continue"—something AI can only simulate, never truly possess. When managing risk, he favors multiple small AIs that check each other, with human-verifiable intermediate steps, not a single black-box large model.
+
+### verbatim quotes
+
+[1:01] Liang Jianzhang: "Does AI need population? Now that AI's here, do we still need innovation? Why have children at all? That's a philosophical question."
+    original (zh): AI是不是需要人口 AI来了是不是需要创新 为什么还要生孩子 这个是个哲学问题
+
+[54:51] Luo Yonghao: "For example, if team members are constantly working together in person, some responsibilities may technically belong to A, but B and C naturally get involved too—because through daily close working proximity, people form certain emotional connections."
+    original (zh): 就比如说如果团队的一个小组成员 经常泡在一起工作 那有一些职责明明是A的 但是B和C也会相对关注一些 因为人会在每天朝夕相处的工作当中 建立某种情感的那些东西
+
+[56:51] Luo Yonghao: "Frankly, our attitude—the attitude in Silicon Valley—is that if a company wants to go back to five days in the office, we absolutely won't do it; we'll just switch to a company with hybrid mode. But in all honesty, they also admit that efficiency does decline."
+    original (zh): 坦率的讲 我们的态度 在硅谷的态度 都是如果公司要 某一家公司要恢复五天上班 那我肯定不干 我就换一家公司 就要做混合模式的那种公司 但是 凭良心讲 他说他们也认为效率是下降的
+
+[1:56:41] Liang Jianzhang: "It's more of a gray rhino than a black swan—something you can already see coming from far away. Of course, you must act now; otherwise, you'll inevitably face problems twenty years from now."
+    original (zh): 它更像一个灰犀牛而不是一个黑天鹅 就是你远远的你其实已经是可以看到 那你当然的你的行动必须现在做了 否则的话 你20年以后必然会出现问题
+
+[2:14:52] Liang Jianzhang: "Childbearing does have externalities—having children benefits the entire country. It doesn't just contribute to your own family's happiness; it genuinely benefits the entire society and nation."
+    original (zh): 对这个对于生孩子有一定的外部性 就是生孩子对整个国家好处 就是说他不只是有利于自己的家 家庭的幸福 也确实是有利于整个的社会 整个的国家
+
+[2:32:13] Liang Jianzhang: "Innovation and having children are both elevated forms of happiness-seeking. If you create new life, new technology, a new company, a new product, new art—that's a higher order of happiness than entertainment like gaming or even travel. Why hand that happiness over to a machine?"
+    original (zh): 创新跟包括生孩子 就是是一种更加高级的一个快乐的追求 我们幸福的追求 幸福的追求很多方面 但是如果你创造了一个新的生命 新的一个科技 新的一个公司 新的一个产品 新的一个艺术的话 其实是比你其他方面的娱乐 比如玩游戏 甚至旅游 其实更高级的这种快乐 我们为什么要把这种快乐去让给 让给这个机器呢
+
+### figures
+
+- Financial cost of raising one child to working age in major cities: 1 million yuan (Shanghai, etc.); approximately 500,000 yuan in rural areas [2:06:47]
+- Northern Europe family fertility benefit spending as share of GDP: 3%-4% [2:08:49]
+- South Korea total fertility rate: 0.7 [2:14:52]
+- Beijing and Shanghai fertility rate: approximately 0.5-0.6 [2:14:52]
+- Ctrip employee childbirth subsidy per child: 50,000 yuan [2:21:00]
+- National child allowance (starting this year): 300 yuan per month [2:20:00]
+- Ctrip inbound tourism year-over-year growth: 100% [1:18:10]
+
+### glossary
+
+- AI native: Products or features that must rely on AI technology to exist—things that couldn't have been built before AI appeared.
+
+who it is for: Entrepreneurs, HR decision-makers, and policy researchers interested in corporate globalization strategy, remote-work effectiveness, or the logic of birth-rate policy.
+what to skip: 0:35–24:25 covers childhood and Fudan youth-class experiences, leaning toward personal memoir—jump straight to 34:52 onward for the entrepreneurship section.
+tags: Birth rate, Remote work, Corporate globalization, Population policy, AI and innovation, Ctrip
+
+==============================================================================
+
 ## Coding Is AGI's Second Act: No Leading Coding Model Is Like No Leading GPU
 
 - URL: https://ourword.ai/podcast/en/p/2026-04-14-zhangxiaojun-coding-是-agi-第二幕-没有领先的-coding-模型就像没有领先的/
@@ -69254,6 +69924,70 @@ why listen: Guangmi lays out an actionable framework for evaluating model compan
 who it is for: Founders and investors watching the competitive landscape of AI model companies; readers who want to understand why Coding is the AGI mainline and how to assess a model company's organisational capability.
 what to skip: After 1:17:58 the discussion of robotics, AI hardware and other directions gets broad — you can skip through quickly.
 tags: Large Models, Coding, AGI, Anthropic, OpenAI, Investing
+
+==============================================================================
+
+## Luo Yonghao's judgment: comedy is the last text category AI will conquer
+
+- URL: https://ourword.ai/podcast/en/p/2026-04-13-cn2d7912-罗永浩判断-喜剧是ai最后才攻克的文本门类/
+- show: 罗永浩的十字路口 (https://ourword.ai/podcast/en/s/cn2d7912/)
+- original episode: “无聊斋” × 罗永浩的X字路口！喜剧工作者在AI时代可以多“活”几年
+- published: 2026-04-13 · duration: 2:30:33
+- transcript: Machine transcription · 41056 words · timestamps are exact
+- verification: 7 quotes matched verbatim, 1 numbers traced to the transcript, review score 7/10
+
+**He polled top-tier large language models on text creation and got consistent answers: stand-up comedy, with its one-liner density—text so tightly packed with jokes—can theoretically be conquered by AI, but will inevitably rank last among all text types. Which means comedy writers will outlive other creators by several years in the age of AI.**
+
+why listen: Most of the two-and-a-half-hour episode is improvised comic banter; the real judgments and methodology on AI concentrate in the final half-hour.
+
+### points
+
+[40:17] **Excessive fear kept our ancestors alive** — When early humans heard rustling in the grass, those who overestimated danger—treating every sound as a predator—survived; the relaxed ones got eaten. Modern people inherited this hypervigilance; hormonal shifts trigger baseless alarms everywhere. Men especially suffer in silence, feeling emasculated by admitting fear.
+
+[1:23:08] **Learning to refuse unreasonable requests is safer than fearing conflict** — A listener was pestered by a street vendor after an open-mic show. Too afraid to refuse, she paid repeatedly—then the vendor chased after her claiming she hadn't paid. Two comedians had to rescue her. One pulled her aside afterward: ‘Next time, refuse.’ She realized that fearing confrontation more than consequences is what puts you in danger.
+
+[1:41:38] **You don't have to become outgoing to accept connection** — A guest advised a socially anxious listener: don't force yourself to become social; just muster courage to not reject when others invite you or show affection. He shared his own experience: he used to decline 100% of social advances. He changed only that one thing—and everything got easier. You don't have to rewire your whole life; just practice catching what others throw.
+
+[2:05:48] **AI invents legal citations that don't actually exist** — An intellectual property court worker encountered AI-generated briefs that looked airtight at first glance—even lawyers initially found them persuasive. But scrutiny revealed invented case numbers that don't exist, and citations of laws unrelated to the actual case. Most people have no way to catch these fabrications with their own knowledge.
+
+[2:08:48] (Luo Yonghao) **Cross-verify between three top models to catch AI errors** — For work that cannot afford mistakes, Luo's solution: subscribe to the three or four best models globally. Take the first result and paste it verbatim into the second, third, and fourth—let each search online for latest facts and catch errors. He uses this constantly and hasn't seen an error survive three independent checks. Caveat: only works with the very top tiers, not the budget models.
+
+[2:10:48] (Luo Yonghao) **Comedy ranks last in what AI will conquer** — When asked about his fear of AI, Luo gave a specific judgment: he's asked top models about text creation and got consistent answers—stand-up comedy, with its densely-packed one-liners, is a problem AI will theoretically solve, but will definitely come last among all text types. So comedians will outlast all other writers. And comedy requires live audience testing; AI can't fake that in the near term.
+
+[2:11:49] (Luo Yonghao) **Everyone researches AI; he still edits scripts by hand** — He confesses he feels no change from the AI wave—everyone around him is debating and diving deep, while he still edits comedy the stone-age way: no phone calls with comics, no video. He has to show up in person and sit face-to-face for forty-fifty minutes to hash out one script. Recently it's been relentless. He jokes he works like a caveman, and sometimes that dumb method brings odd reassurance.
+
+[2:27:59] **AI remembered a shopping suggestion from two years ago** — A listener shared an uncanny experience: two years earlier she'd asked AI for advice on buying a certain product, then didn't purchase. Months later, shopping for the same category, AI unprompted mentioned that old recommendation was actually superior, now discontinued, and suggested finding it secondhand—better than anything new on the market. She'd completely forgotten the conversation; checking chat history confirmed every word. She found unopened items listed on the secondhand platform.
+
+### verbatim quotes
+
+[1:46:38] : "So I asked her, I was asking her, I said, ‘Baby, which floor are you going to?’ Nobody spoke. I don't know why nobody spoke. My classmate wasn't speaking either."
+    original (zh): 然后我就跟她 我就问她嘛 我就说宝宝你去几楼呀 没人说话 我不知道为什么没人说话 我同学也不说话
+
+[2:05:48] : "Then Doubao (豆包) gives you an answer that looks really logical. Sometimes what people upload makes even us lawyers think, ‘Hmm, that's actually got some merit.’ But when you look closer, you find things in there like ‘case number 12345’—which doesn't exist at all."
+    original (zh): 然后豆包就会给他一个 看似非常有逻辑的答案 甚至有的时候 他们传上来的东西就是会让我们法律从业者都会觉得 好像有点道理 但是你细看就会发现里面会出现 比如说判决书12345 就这个是根本不存在的
+
+[2:08:48] Luo Yonghao: "Get subscriptions to the three or four best models. When you're doing serious work, take what the first one outputs, paste the whole thing into the second, third, and fourth ones, and let them find errors."
+    original (zh): 你买最好的三到四家大模型 然后你做严肃工作的时候 用第一个出来结果以后 你把它全文导入给第二第三第四个 让他挑错
+
+[2:10:48] Luo Yonghao: "Comedy is the last text genre that will be conquered. I've asked several of the top models about this, and they all reached the same conclusion: comedy text creation—especially stand-up, with one punchline per line, that high-density writing style—is something AI will theoretically eventually overcome, but will definitely rank last. Which means comedians in the AI age will have several more years to live."
+    original (zh): 文本的写作里最后被淘汰的是喜剧 因为对AI来讲 就我问了好几个最Top的大模型 都是一个结论 就是喜剧文本的创作 像尤其脱口秀这种一句一个梗 这种高密度的这种文本写作 是AI最终才能理论上能克服 但是一定排在最后 所以对喜剧工作者来讲 在AI时代是能多活几年的
+
+[2:10:48] Luo Yonghao: "My work is like a caveman's. Like a cook over a wok. Right now if a comic's script needs revision, I have to discuss how to fix it—I can't even call or video chat. I have to physically go there."
+    original (zh): 我的工作就像个原始人 就跟炒菜厨子一样 就是我现在跟一个演员 比如他稿子要跟他聊聊怎么改的问题 我甚至都不能跟他电话聊或者视频聊 我都得人肉过去
+
+[2:27:59] : "So I think if you haven't experienced that flow state with AI, that feeling of it communicating with you from the soul level—if you haven't gotten that feeling, then you're probably either not using it right, or not using it enough."
+    original (zh): 所以我觉得 如果大家没有跟AI聊出那种心流的感觉 自己的感觉 感觉他从灵魂深处能跟你进行交流 这个感觉如果没聊出来 大概率就是还用的不太对 或者是用的不够多
+
+[2:29:00] : "Even people working in AI globally right now—one hand fear, the other excitement. It points to this: you get joy, happiness, that deep satisfaction of solving unknowns from this work. But there's a shadow hanging over it—it might wipe out humanity. Both are coexisting now."
+    original (zh): 就是现在全世界从事AI工作的人 也是一边是恐惧 一边是兴奋 最终指向是 就你有很多快乐幸福和那种 解决未知问题的那种满足感来自这儿 但也有悬着一个阴影 就是他可能消灭人类 这两个现在是并存的
+
+### figures
+
+- AI-generated news coverage in short-form video: 50%+ [2:14:54]
+
+who it is for: Listeners who enjoy Luo Yonghao and stand-up comedy scene gossip, and want to hear how comedy professionals genuinely assess AI's impact on creative work.
+what to skip: The first two hours are fear-game improvisation largely unrelated to AI; skip directly to 2:02:46.
+tags: Comedy, AI fear, Social anxiety, Copyright disputes, Human-AI collaboration
 
 ==============================================================================
 
@@ -69396,6 +70130,76 @@ tags: AI social, Context, AI companionship, Subjectivity, Product paradigm
 
 ==============================================================================
 
+## Cui Jian: Yield to capital once, and there's no turning back
+
+- URL: https://ourword.ai/podcast/en/p/2026-04-02-cn2d7912-崔健-向资本妥协这一步-迈出去就再收不回来/
+- show: 罗永浩的十字路口 (https://ourword.ai/podcast/en/s/cn2d7912/)
+- original episode: 崔健×罗永浩！去天堂和去地狱，都要带上艺术家
+- published: 2026-04-02 · duration: 2:32:50
+- transcript: Machine transcription · 38484 words · timestamps are exact
+- verification: 7 quotes matched verbatim, 2 numbers traced to the transcript, review score 8/10
+
+**He argues that once a musician takes one step toward market compromise for money, their social circles, networks, and habits all get dragged in that direction—and there's no reversing it. This is the underlying logic for why he refuses to release official live albums and won't do one-to-one reproductions of old songs.**
+
+why listen: Cui Jian unusually lays out systematically why he refuses capital's reshaping of his art—from live arrangement to album production to livestream metrics—with logic that holds consistently across all three.
+
+### points
+
+[4:03] (Cui Jian) **Old songs demand new arrangements, not mechanical replay** — Cui Jian rearranges old songs at every show instead of reproducing albums verbatim because, he argues, mechanical copying would make performances feel ‘stale’ and betray the audience. This clashes with fans expecting nostalgic reproduction; Luo points out his own example of wanting to sing along to classic passages that now drift from the album timing. Cui accepts the tension but defends it: going with the flow is more honest than copying, which signals an artist in bad form. He cites the Grateful Dead, whose setlists vary nightly, arguing real fans grasp this principle.
+
+[19:17] (Cui Jian) **AI can replace formula songwriters but not live performance** — Cui argues AI has already reached or surpassed the level of ‘formula songwriters’—producers grinding out commercially optimized pop. He calls this category ‘early-stage AI’ because their method is already market-driven template work. Yet he believes AI-generated music itself currently underperforms formula production quality. Luo supplements with an analogy: even after AlphaGo dominated professional Go, global interest in the game rose—because people prefer human-versus-human competition over machines playing either side. Live music remains hard to replace for the same reason: it solves something beyond sound quality—the emotional bond between performer and audience.
+
+[27:28] (Luo Yonghao) **46 million livestream viewers were mostly caught in nostalgia, not discovery** — In 2022, after Shanghai's lockdown ended, Cui's livestream concert on Tencent Video attracted 46 million viewers. Cui attributes this to favorable timing—the city reopening just as platform and sponsors' interests aligned. But Luo offers a sharper observation: most people sharing the stream in their social feeds weren't regular concert consumers, but middle-aged listeners who hadn't attended performances in years. Almost all discussion focused on old songs like ‘Nothing to My Name,’ suggesting the record-breaking traffic was collective nostalgia, not rediscovery of new work.
+
+[51:46] (Cui Jian) **No official live album because the music industry itself is broken** — Cui admits each show is recorded with high production value, yet refuses to release an official live album. His objection isn't technical—it's philosophical. He distrusts the entire record industry: labels have become talent agencies, pressuring musicians to serve streaming metrics, ticket sales, and clicks. This systemic pressure breeds lip-syncing and manufactured idols; capital's trust in musicians evaporates. He frames music-making in three phases: ‘0-to-1’ (creation), ‘1-to-99’ (production), ‘99-to-100’ (distribution). These should form an equilateral triangle to work. He controls the first two but won't handle distribution—that's the seller's job, which he neither wants nor has capacity for.
+
+[1:34:18] (Cui Jian) **No one has actually traded money for creative freedom; the deal is impossible** — When asked if artists can secure creative freedom by accepting commercial compromise, Cui flatly refuses the premise: no one has ever kept this bargain. Once you take the first step toward earning money, you're trapped—social circles, networks, and habits all get dragged in that direction and never return. His analogy: Elon Musk didn't cut rocket costs by 10% or 50%; he cut them 90%. That margin only opens for people daring to think big and absorb the risk themselves. Large capital-backed bands can't access it—every failed experiment costs team trust, and the bill is too high to take chances.
+
+[1:40:21] (Cui Jian) **Albums aren't dead; single-song listeners just misread the market** — Disagreeing with the claim that streaming and MP3s killed the album, Cui argues consumers have shifted to single-song consumption, but that doesn't mean albums lost their value. Everyone can now write short plays, make short films, keep diaries—yet people still write novels. Albums matter because they carry a complete narrative arc and signal artistic confidence. They say: the creator's seriousness, the team's effort, the work's depth. Without an album, why should anyone trust your commitment? He concludes albums haven't been abandoned or betrayed by listener habits—not yet anyway.
+
+[2:01:33] (Cui Jian) **Roger Waters got caught lip-syncing; that's not why Cui Jian worries about vocals** — Luo raises last year's news: Roger Waters, Pink Floyd's lead singer, was caught lip-syncing at stadium shows. He presses Cui: can he still hit the high notes he sang in youth? Cui says some high notes are now beyond reach, but not from age—from a drop in tension. His body naturally settles toward lower notes; that's not vocal decay. The real reason artists lip-sync is commercial lock-in: tickets are sold, capital's promise must be kept, so the artist doesn't care about that high note—only the fans stroking the capital's ego care, using ‘perfect idol image’ to prove their own worth. The artist's actual investment in the note is minimal.
+
+[2:26:41] (Luo Yonghao) **Paradise demands what only artists possess: the capacity to bear suffering and be reborn** — Luo poses a thought experiment: Noah's Ark has five seats. Which professions survive—scientist, entrepreneur, politician, lawyer, doctor? Scientists and entrepreneurs seem necessary; literature and art look disposable. But reframe the scenario: not ‘save the world’ but ‘go to paradise.’ The answers flip. Artists become essential; entrepreneurs, politicians, lawyers are unnecessary. Cui's conclusion: saving the world (going to hell) needs scientists and business builders. But going to paradise—enjoying life—demands artists. No profession endures pain like artists do. It's not just poverty; it's losing the power to acknowledge yourself, then being reborn from self-destruction anyway. That's the basic qualification of an artist.
+
+### verbatim quotes
+
+[4:03] Cui Jian: "Because I think if we don't change anything at all, our performance would be dull—our state would come across as a bit stale, just mechanically repeating."
+    original (zh): 因为我觉得如果完全一一点都不改动的话 我们会演得很枯燥 我们的状态反而会认为显得有点油腻 就机械的重复一遍
+
+[20:17] Luo Yonghao: "Even if machines do better than people, everyone still prefers people—so they like to watch people competing against people, not machines against machines or machines against people."
+    original (zh): 即使机器比人做的牛 大家还是喜欢人 所以喜欢看人和人比赛 不愿意看机器和机器或机器和人比赛
+
+[28:59] Cui Jian: "I think each of these albums is actually my children—the eldest, the second..."
+    original (zh): 我认为 这几个每张专机 其实都是我的孩子 老大老二老
+
+[51:46] Cui Jian: "I'm doing production work, but in the process of production itself, if there's no creative component, I have no interest."
+    original (zh): 我在做制作 但是做制作这个工作当中里面 如果没有创造成分 我是没兴趣的
+
+[1:36:19] Cui Jian: "He didn't reduce costs by 10%, and he didn't reduce them by 50%—he reduced them by 90%."
+    original (zh): 他不是给人降10% 也不是给人降50% 他给人降90%
+
+[1:40:21] Cui Jian: "I think albums are still very important, because it's like—everyone can write short plays, everyone can make short films, everyone can write diaries, but why do people still write books?"
+    original (zh): 我认为专辑还是很重要 因为就像 所有人都可以写短剧 所以所有人都可以写这个 拍个短片 拍个短片 所以所有人都可以写日记 但是为什么还有人在写书一样
+
+[2:29:41] Cui Jian: "No profession bears suffering like artists do. It's not just about lacking money—it's about having no fundamental capacity to acknowledge yourself, yet still being able to resurrect yourself even in the most self-destructive state. That's the basic quality of artists."
+    original (zh): 不可能比艺术家 更能够承受痛苦的 一个职业了 一定 不是说我没钱了 就是痛苦 是自己根本就没有能力 承认自己 他还在 在最虐待自己的情况下 让自己重生 这个是艺术家的 一个基本素质
+
+### figures
+
+- Workers' Stadium concert capacity: approximately 10,000 seats [13:11]
+- Typical rehearsal and performance duration: 4 hours rehearsal, 3 hours performance [9:06]
+
+### glossary
+
+- Trap: A rap subgenre originating from Atlanta that forms the basis for most contemporary Chinese rap.
+- Live House: A small music venue holding several hundred attendees, distinct from large concert halls.
+
+who it is for: Independent musicians, content creators, and entrepreneurs who want to understand the cost-benefit logic of ‘yield to market once and you can never reverse course.’
+what to skip: The opening 30 years of personal reminiscence about how they met (0:34-2:01) carries little information and can be skipped.
+tags: Rock, AI and music, Live performance, Record industry, Creative freedom, Hip-hop
+
+==============================================================================
+
 ## Tesla's data flywheel doesn't work on robots
 
 - URL: https://ourword.ai/podcast/en/p/2026-03-30-zhangxiaojun-特斯拉那套数据闭环-在机器人身上走不通/
@@ -69471,6 +70275,77 @@ tags: Data, Embodied AI, Simulation, Robotics, Foundation Models, Data Pricing
 
 ==============================================================================
 
+## Tracing Yang Li's overnight fame backlash: when nearly every male comedian was trafficking in hackneyed jokes about wives and girlfriends
+
+- URL: https://ourword.ai/podcast/en/p/2026-03-26-cn2d7912-杨笠爆红风波溯源-那年男演员几乎都在刻板调侃老婆女友/
+- show: 罗永浩的十字路口 (https://ourword.ai/podcast/en/s/cn2d7912/)
+- original episode: 杨笠×罗永浩！不想成为“靶心”，也无意成为“灯塔”
+- published: 2026-03-26 · duration: 3:42:44
+- transcript: Machine transcription · 58078 words · timestamps are exact
+- verification: 8 quotes matched verbatim, 5 numbers traced to the transcript, review score 7/10
+
+**On China's stand-up stages in 2021, most male comedians recycled the same tired material about wives and girlfriends. This industry-wide cliché is the real context that made Yang Li's performance spark the fiercest backlash—and the most misunderstood.**
+
+why listen: Listen if you want to understand how online controversy escalates when context collapses. Note: childhood and university details run long; information density is lower in the first half.
+
+### points
+
+[2:01] (Yang Li) **Thirty shows in, exhaustion turns to addiction** — She breaks her 50+ shows in four-plus months into stages: the first 20-odd felt like adjustment, not exhaustion; around 30 shows was the low point, when the material had solidified into pure repetition; but beyond that, having internalized every line, she began consciously fine-tuning timing and tempo until she experienced pure performance joy for the first time. As she says, ‘one pleasure faded, and the joy of another thing appeared’.
+
+[1:16:43] (Yang Li) **One line from Zhou Qimo rewrote her creative method** — Early on, she kept writing jokes that felt off, tearing them apart and starting over. She asked Zhou Qimo (周奇墨) why she wasn't funny; his answer wasn't a technique but a root cause: ‘you might be missing exaggeration, metaphor, and rhetoric.’ She took this to the stage—performing larger, using metaphor and rhetoric to describe feelings—and quickly found her voice. She says this insight still shapes her work today.
+
+[1:32:54] (Yang Li) **She refuses to defend herself against controversy** — Faced with repeated misreadings, Yang Li's answer is silence. She sees these disputes as not simply misunderstandings but something more fundamental: stand-up is a public performance, and different audiences feel different things about the same joke. ‘This controversy isn't just a misunderstanding—or not only a misunderstanding. It comes from different people feeling differently about the same thing.’ Once you admit that ‘some people are extreme’, that label can later attach to people she doesn't mean to call extreme. She's also decided: when a joke dies, ignore the people who won't laugh anyway. Controversy works the same way—some people can't be reached.
+
+[1:40:00] (Yang Li) **Fame and her father's terminal illness arrived the same week** — Before recording the season-three special that made her an overnight celebrity, her father was diagnosed with terminal cancer. ‘I think fate just didn't give me a chance to celebrate,’ she says. ‘The best and worst things happening in my life at the same time—you can't feel proud when that's the case.’ There was no happiness to spare, no space to face the online abuse that followed. When her final tour show started, her father's condition had stabilized enough to attend, but he took a turn just before curtain. By the time she finished and rushed back, she couldn't say goodbye.
+
+[1:53:09] (Luo Yonghao) **The context that made the controversy legible has vanished** — Luo Yonghao (罗永浩) reconstructs 2021: nearly every male stand-up comedian on stage talking about girlfriends or wives recycled the same tired clichés. ‘Back then in 2021, whenever male comedians talked about girlfriends or wives, it was always the same tired clichés—'my wife's so dumb,' 'my wife's ridiculous.'’ The crowd was so sick of it that even male comics in the audience were done. When Yang Li appeared fresh and cutting in that moment, the applause and laughter were genuine relief, not the ‘taking a side’ that later reinterpretation imagined. Four years on, the roles flipped: now almost no male comedian dares touch the topic because the cost is too high.
+
+[2:08:23] (Luo Yonghao) **Reason cannot stop extremist communities from attacking** — Luo Yonghao offers evidence: his peer Zhang Jun (张骏) delivered a sincere, objective segment on patriarchy; it landed well. That night, Zhang sent him a message asking if he'd been attacked by extremists—‘almost not at all’, came the reply. Yonghao wasn't reassured. He checked the most extreme online communities and found people still cursing him out, even recruiting others to dig up ‘dirt’ that turned out to be pure fabrication. The lesson: no matter how generous or reasonable the words, extremist communities operate on logic unrelated to the actual content.
+
+[2:31:36] (Yang Li) **She treats her detractors and admirers with the same indifference** — ‘In my eyes, an audience is an audience,’ she says—today they like you, tomorrow they might not, and that's exactly what she wants because they're still deciding for themselves. She ignores those who rage against her because it's their right, and she has no control over it. But she's equally deliberate about not enabling zealous fans. ‘I can't control someone who likes me just because they like me—that wouldn't be fair to them either. I treat everyone the same: I can't control any of them.’ All people are equal in her calculus—none to be controlled, none to control back.
+
+[3:11:55] (Yang Li) **Closing with a song was her farewell to a chapter** — At the final show in the gymnasium, she sang ‘I love the country, and I love beauty’—a traditional Chinese song. Simple reason: stadium seats aren't comfortable, and she wanted to give the audience something special. Deeper: that song was playing when she was eliminated from the original stand-up competition. Singing it again at her sendoff felt like formally closing that circuit era. ‘For me, that song was really a goodbye to my stand-up circuit career. It felt a bit mournful, but I wanted to fill that moment with some joy—to end it in a state of fullness.’ She admits she sang off-key but doesn't believe you need perfect pitch to sing—and that comfort with imperfection matches her intention this year: to console her younger audience.
+
+### verbatim quotes
+
+[1:16:43] Yang Li: "I asked him why I wasn't funny. He said, ‘Maybe you're missing exaggeration, metaphor, and rhetoric.’ I think that one line has been hugely important to my creative work."
+    original (zh): 我就说我为什么不好笑呀 他说 可能是缺少夸张比喻和修辞 我觉得这句话对我的创作非常的重要
+
+[1:32:54] Yang Li: "This controversy isn't just a misunderstanding—or not only a misunderstanding. It comes from different people feeling differently about the same thing."
+    original (zh): 我觉得产生的这种争议 不是出于一种误会 或者说不全是误会 它是由于不同的人 对事情的感受不同
+
+[1:40:00] Yang Li: "I think fate just didn't give me a chance to celebrate. The best and worst things happening in my life at the same time—you can't feel proud when that's the case."
+    original (zh): 我觉得这就是命运没有给我得意的机会 就是我目前人生中发生的最好 和最悲惨的事是同步发生的 人你得意不起来
+
+[1:53:09] Luo Yonghao: "Back then in 2021, whenever male comedians talked about girlfriends or wives, it was always the same tired clichés—'my wife's so dumb,' 'my wife's ridiculous.'"
+    original (zh): 当年在舞台上就是2021年那个时期的时代背景是绝大多数的男观众只要聊到女朋友 聊到老婆 就是那时候的陈词烂调 就我老婆很笨 我老婆傻乎乎
+
+[2:05:20] Yang Li: "I don't think I lost my creative spark—the fact that I kept working through it proves I held on. A person in acute pain would lose the desire to create, would stop wanting to work. I didn't."
+    original (zh): 我觉得我没有失去创造力 这个件事就说明 我撑过来了 就是特别痛苦的人 他可能就失去创造的欲望 然后也不想再做了
+
+[2:08:23] Luo Yonghao: "When he gave that segment, it was actually a really objective, rational take. But we were still nervous for him."
+    original (zh): 那段讲的时候 其实是特别客观和讲道理的一个讲法 但我们还是替他捏一把汗
+
+[2:31:36] Yang Li: "I don't pay attention to people who curse me out, right, because I think that's their right—I can't control it. But I can't control someone who likes me just because they like me—that wouldn't be fair to them either. I treat everyone the same: I can't control any of them."
+    original (zh): 我觉得骂我的人我已经不理了 对吧 因为我觉得这是人家的权利 我控制不了 但我不能因为这个人喜欢我 我就想控制他 就这对他也很不公平 就是所有人我都是平等的控制不了
+
+[3:11:55] Yang Li: "For me, that song was really a goodbye to my stand-up circuit career. It felt a bit mournful, but I wanted to fill that moment with some joy—to end it in a state of fullness."
+    original (zh): 其实那个对于我来说 就像是一个脱口秀大会的职业生涯的一个告别 但就觉得有点悲伤 然后想在这个时刻让他充满一些快乐的 一个很圆满的状态
+
+### figures
+
+- Tour scope and timeline: Around 50 shows concentrated over four-plus months [13:08]
+- Early commercial gigs vs. theater work pay: Commercial performances approximately 200 yuan per show; theater maintenance work fixed monthly salary 3000 yuan [35:22]
+- Time from leaving theater work to first commercial performance: One year and seven months [1:02:35]
+- Final show venue capacity and sales: Gymnasium capacity approximately 4000–5000; sold over 4000 tickets [3:05:52]
+- Time to write the special: Conceptualization over six months; actual writing approximately one to two months [3:00:49]
+
+who it is for: For readers tracking public figures' reputational crises, the stand-up comedy ecosystem, or how controversy gets misread—especially content creators and entrepreneurs.
+what to skip: You can skip the first half hour's childhood, university, and dietary details—low density, easy to fast-forward.
+tags: Stand-up comedy, Online backlash, Gender discourse, Public figures, Creative process, Luo Yonghao
+
+==============================================================================
+
 ## World Models Are Not Language Models: Xie Saining Says LMs Will Eventually Wither
 
 - URL: https://ourword.ai/podcast/en/p/2026-03-16-zhangxiaojun-世界模型不是语言模型-谢赛宁说lm终将凋零/
@@ -69537,6 +70412,75 @@ why listen: The 7-hour interview has uneven information density; the first two h
 who it is for: AI researchers and founders following the debate between world models and the vision-versus-language路线; engineers who want to know how top researchers choose research topics and build baselines.
 what to skip: The first two hours of childhood, schooling, and internship chronology can be skipped; start from the research taste discussion at 2:43.
 tags: World Models, Representation Learning, Vision, Xie Saining, Yann LeCun, AMI Labs
+
+==============================================================================
+
+## Luo Yonghao: People should never retire—99% of the wealthy can't last six months before starting something new
+
+- URL: https://ourword.ai/podcast/en/p/2026-02-28-cn2d7912-罗永浩-人应该终生不退休-财富自由的朋友99-撑不过半年就复出/
+- show: 罗永浩的十字路口 (https://ourword.ai/podcast/en/s/cn2d7912/)
+- original episode: “不开玩笑” × 罗永浩的X字路口！折腾未必会赢，但不折腾一定会后悔
+- published: 2026-02-28 · duration: 2:23:57
+- transcript: Machine transcription · 35757 words · timestamps are exact
+- verification: 5 quotes matched verbatim, 7 numbers traced to the transcript, review score 7/10
+
+**He says this isn't speculation but observation: over a decade in mobile internet, among many friends who achieved financial freedom and swore they'd go dormant, nearly all were back hustling within three to six months.**
+
+why listen: It's a comedy-heavy interview with low information density; Luo Yonghao's confessions about ADHD, startup failure, and never retiring are among the rare substantive moments.
+
+### points
+
+[18:17] **Artisanal foods can't scale—they lack economies of scale** — Luo once ran a braised-meat stall called Wangfu Braised Goods (王府卤味), using superior meat, but the flavor turned bitter because the stock simmered constantly and he wouldn't refresh it; customers also photographed and exposed unplugged hairs on pig ears. His guest analyzed the mechanism: small artisanal workshops can't source factory-preprocessed ingredients, kitchens aren't allowed open flames, so everything requires painstaking manual labor. Result: the operation can't scale and the taste can't improve—a shared trap for all artisanal food and handicraft businesses.
+
+[42:43] (Luo Yonghao) **Standup comedy has developed unspeakable fan-culture taboos** — Luo served as a festival judge for several years, but quit after last year's taping. His observation: the industry started as desperate young people with nowhere else to go, and his presence actually helped; now it's mainstream entertainment, and the more successful a performer, the less critique you can offer them—even well-intentioned criticism gets attacked by fans if you qualify it with ‘although’. He says he ‘can't be bothered’; showing up just gets him accused of chasing clout.
+
+[1:06:56] (Luo Yonghao) **His delays before big events stem from ADHD, not disorganization** — For years Luo thought his suffering came from unfinished speeches, only to realize the root was ADHD—the more important the task, the more he delays it. Once tickets sold and pressure mounted, he faced 100+ items on his to-do list and started with the lowest-priority ones—even compulsively deep-cleaning his office days before the event, which hadn't been touched in six months. His previous record was a 47-minute delay before a product launch; he broke it this time with a 50+-minute delay, and the event descended into chaos.
+
+[1:13:00] (Luo Yonghao) **He plans to donate millions annually to ADHD charities** — Luo is discussing with doctors at Peking University Hospital (北医六院) to set up an ADHD-related charity fund, planning to donate 1–2 million yuan annually from his product launches indefinitely. His goal is to help children misdiagnosed as ‘lazy’ or ‘lacking willpower’. He urges the audience: if your child has trouble concentrating, a three-minute attention span, or starts strong each semester then quickly reverts, don't rush to scold them—get tested for ADHD first. It's a medical condition requiring treatment, not an attitude problem.
+
+[1:31:20] (Luo Yonghao) **Frequent moves are his unconscious trick for resetting his life** — Luo's love of moving isn't about hardship but an accidental discovery: each move unleashed 6+ months of sustained excitement. Later he started pursuing it intentionally. Guest Song Fangjin (宋方金) summed up the mechanism as ‘the minimal unit of life restart’—like a computer accumulating glitches, one full reboot is more effective than debugging each issue individually. Both agree: the joy of moving far outweighs the exhaustion of the move itself.
+
+[1:52:35] (Luo Yonghao) **AI filmmaking will be fully viable within one to two years** — Luo pushes back on the idea that filmmaking necessarily costs money: art films and low-budget films don't burn cash; what burns money is genre films like sci-fi and blockbusters. He mentions chatting with director Wen Muye (文牧野), who shot nine short films for as little as 1,000 yuan—because phones can make movies. He judges AI filmmaking already ‘pretty scary’, and within one to two years (optimistic: one to two years; pessimistic: two to three years) will be fully viable. At that point, you can combine real performances with AI, delegating expensive, complex sequences to machines, with costs only decreasing further.
+
+[2:05:42] (Luo Yonghao) **99% of wealthy friends can't last six months before diving back in** — Luo's view is that people should work for life; retiring too early makes you age and die faster. His evidence comes from a decade in mobile internet: many friends achieved financial freedom, all claiming they'd live in total decadence. But his observation: 99% lasted only three to six months before starting something new. His explanation: humans lack the genetic capacity for a life of complete leisure; excessive comfort is what people call ‘degeneration’.
+
+[2:08:43] (Luo Yonghao) **He nearly changed his name to something more literary and refined** — When young, Luo thought his name sounded too rustic and wanted to change it to something literary, like ‘Shu Huai’ (舒淮). He asked a law-student friend to help with the paperwork but was talked out of it—the friend said the name, though rustic, ‘sounds like someone who does big things, an entrepreneur's name’, the aura of a CEO with tens of thousands of employees. Convinced, and with his friend unwilling to deal with the bureaucracy, the name change never happened.
+
+### verbatim quotes
+
+[42:43] Luo Yonghao: "This circle now has serious fan-culture taboos; some things can't be mentioned, and even if you mean well, you still can't mention them."
+    original (zh): 这个圈现在也有严重的犯圈文化了 有一些已经说不得了 即使是善意的 你也说不得了
+
+[1:06:56] Luo Yonghao: "Especially after everything went wrong today, I realized the real problem was ADHD—with ADHD, you procrastinate more on more important things."
+    original (zh): 尤其今天搞砸了以后 发现其实最大的问题是ADHD 就ADHD你就会在越重要的事情上越耽误
+
+[1:52:35] Luo Yonghao: "I expected to earn over a billion yuan—that's normal, right? Who would predict losing over a billion doing it? That's unthinkable."
+    original (zh): 我预料是赚十几个亿 这不是很正常吗 对吧 谁会预料说 赔十几个亿去做呢 那不可能
+
+[2:05:42] Luo Yonghao: "Retire at any age and you age faster and die sooner—I think people should never stop working."
+    original (zh): 任何时候退休 都会老得快死得快 就人应该终生不退休 我觉得是这样的
+
+[2:08:43] Luo Yonghao: "Your name—though rustic—sounds like someone who does big things, an entrepreneur's name."
+    original (zh): 你这名字呢 虽然土 但听着像做大事的 像企业家的名字
+
+### figures
+
+- Cumulative loss from phone business: Over a billion yuan [1:52:35]
+- Annual planned donation to ADHD charity fund: 1–2 million yuan [1:13:00]
+- Previous record delay before product launch: 47 minutes [1:12:00]
+- Delay at this launch event (new record): 50+ minutes [1:12:00]
+- Years on ADHD medication Zhuanzhuoda: Nearly 10 years (approaching maximum dosage) [1:07:57]
+- Genetic probability of perfect pitch: 3 in 1,000 [33:33]
+- Percentage of wealthy friends who resume work after attempting dormancy: 99% within three to six months [2:05:42]
+
+### glossary
+
+- ADHD: Attention Deficit Hyperactivity Disorder; manifests as increasing procrastination and distraction on important tasks, not just hyperactivity
+- Zhuanzhuoda (专注达): Prescription methylphenidate extended-release for ADHD; chronic high-dose use carries cardiac risk
+
+who it is for: Luo Yonghao's long-time listeners, standup comedy professionals, and people interested in ADHD first-person accounts and startup failure autopsies.
+what to skip: 1:32–1:51 audience Q&A (rail enthusiast spouse, 90-year-old grandmother self-publishing) is unrelated to Luo Yonghao; skip it.
+tags: Luo Yonghao, ADHD, Standup comedy, Startup failure, Retirement views, Moving
 
 ==============================================================================
 
@@ -69843,6 +70787,75 @@ tags: Embodied intelligence, Robotics, Autonomous driving, Data closed loop, Sta
 
 ==============================================================================
 
+## Prototypes from Shenzhen's twenty-year-olds convinced Luo Yonghao the next generation will be fine
+
+- URL: https://ourword.ai/podcast/en/p/2026-02-04-cn2d7912-看过深圳年轻人的硬件样机后-罗永浩的悲观被打消了/
+- show: 罗永浩的十字路口 (https://ourword.ai/podcast/en/s/cn2d7912/)
+- original episode: 蒋奇明&双雪涛×罗永浩！如何成为飞行家
+- published: 2026-02-04 · duration: 2:34:51
+- transcript: Machine transcription · 44007 words · timestamps are exact
+- verification: 6 quotes matched verbatim, 5 numbers traced to the transcript, review score 7/10
+
+**The past two years made Luo Yonghao pessimistic about the environment. But after visiting Shenzhen and seeing hardware prototypes from entrepreneurs in their early twenties, he believes solid industrial foundations will carry the next generation. His optimism has returned.**
+
+why listen: It reads as pure entertainment, but Shuang Xuetao on creative setback and publishing's risk-aversion, plus Luo Yonghao's insights from Shenzhen hardware startups, speak directly to entrepreneurs.
+
+### points
+
+[5:09] (Shuang Xuetao) **The source is abstract—the film must make the man real** — Shuang Xuetao explains the radical rewrite: in the novel, Li Mingqi is assembled by others' searches—less a doer than a fantasist sustained by delusion, with few real events and much of the story unwritten. But film requires a protagonist constantly present, visibly acting. So they rewrote him as an engineering-trained man who actually builds a rocket that flies, making the character concrete.
+
+[19:22] (Shuang Xuetao) **What audiences need to believe is harder than mastering a dialect** — On set, Jiang Qiming and Shuang Xuetao debated late into the night: how does Li Mingqi's mad ambition connect to his lived life? A novel answers this with a metaphor; film must build it through Jiang Qiming's behavior and speech, moment by moment. The goal: make audiences believe he is unhinged yet understand him, follow him willingly. Shuang Xuetao calls this the role's central difficulty.
+
+[41:40] (Jiang Qiming) **Sixteen hours of shooting to perfect one gesture of climbing** — The Soviet advisors scene: foreigners, translator, friend, Jiang Qiming, and an actual aircraft prop—a micro-theater in cold steel, filmed continuously for over a dozen hours. Mid-shoot, Shuang Xuetao called an engineer to verify height details. Jiang Qiming kept feeling they needed one more push. Working it out on set, they found the gesture of gradual ascent.
+
+[54:50] (Luo Yonghao) **The young hardware makers in Shenzhen rebuilt his faith in the next generation** — Luo Yonghao says the past two years made him often pessimistic about the environment. But visiting Shenzhen and seeing hardware startups founded by people in their early twenties changed everything. Their ambitions are grand, their prototypes already built—things he never dared imagine in his youth in 1972. He now believes in the next generation again: a cohort this spirited cannot fail by their thirties and forties.
+
+[1:39:15] (Shuang Xuetao) **His frustration stems from standards set impossibly high** — Shuang Xuetao says his frustration is not a matter of talent but of standards set far higher than competence—if he were content to be a second-rate writer, or a dutiful product manager, life would be smooth. But he demands more, so he stumbles, the same as the man building the aircraft in the story.
+
+[1:45:16] (Shuang Xuetao) **Exactly five years was how long he could bear the banking work** — When Shuang Xuetao quit his bank credit job in 2012, he had exactly five years of tenure. Not because writing income exceeded his salary—it was far below—and he endured two more years of meager income after resigning. He quit not for literary dreams but because the job had become impossible. Writing was a small hole carved through stifling days, a place to breathe.
+
+[2:09:35] (Shuang Xuetao) **A debut author brings risk to a publisher, not opportunity** — Shuang Xuetao analyzes literary publishing's contraction: a debut writer is risk to a publisher, not opportunity, while publishing a classic is stable business. So as the market shrinks, publishers take fewer risks. He recalls when literary magazines thrived twenty years ago and publishers bet on new voices. Today, debuts have fewer publishing outlets despite no decline in writing quality.
+
+[2:17:49] (Luo Yonghao) **Fame did not make him handsome—it made people see his face** — Luo Yonghao says when he first met Jiang Qiming and watched his series, he did not think him handsome, only vividly distinctive. Jiang Qiming himself says he did not hear the word 'handsome' applied to him until after the series aired, when someone told him directly—before that, never. Luo Yonghao emphasizes this cannot be read as mere flattery from fame: many accomplished, award-winning actors never hear the word. What happened to Jiang Qiming is rare.
+
+### verbatim quotes
+
+[7:12] Shuang Xuetao: "Discussing ideals in the abstract is void speaking to void. He's made the man real, reaching for the void."
+    original (zh): 就是如果我们在一个很虚的部分 来讨论一个理想 我就感觉是一个 以空对空的一个东西 现在就让他变成以实来对空
+
+[54:50] Luo Yonghao: "Look at their spirit, what they've managed to build—they can't not succeed by forty. It's impossible. So I grew hopeful again."
+    original (zh): 但是一看就觉得 他们精神头这么足 能鼓到这么吓人的东西 他们到三四十岁的时候 就一定好不起来 我觉得不可能 所以我就慢慢又乐观了
+
+[1:39:15] Shuang Xuetao: "If I were content being a decent product manager—whether starting something or working for someone—it'd be fine. But I want something higher, so frustration comes."
+    original (zh): 我如果甘于做一个称职的产品经历 那就可能挺好的 不管是自己创业去打工 但我要描的比那个高很多 所以有时候就会有挫折
+
+[2:09:35] Shuang Xuetao: "A debut author brings risk to a publisher, not opportunity. But a classic is stability itself."
+    original (zh): 一个新作家带给出版社 更多的是风险而不是机遇 但他出一个经典作品 那个东西就是很稳定嘛
+
+[2:12:42] Luo Yonghao: "I can scroll Douyin for five hours. You get fragments, and each one delivers instant gratification."
+    original (zh): 我为什么能连刷五个小时抖音 你得到了一堆碎片 然后他每一个都满足了你的及时刺激
+
+[2:18:51] Luo Yonghao: "This definitely can't be read as simply 'he got famous so people think he's handsome.' That's impossible—I'm certain it's impossible. Many accomplished actors never hear that word their whole lives, even if they've won every award."
+    original (zh): 这个事肯定不能被庸俗的解读成 是因为红了 大家觉得帅 这不可能我认为这是不可能的 有很多实力派演员终生 拿了无数的影帝也没人说他帅
+
+### figures
+
+- Jiang Qiming's stage performances per year: 200+ [2:01:24]
+- Soviet advisors scene shooting duration: over a dozen hours [41:40]
+- Shuang Xuetao's banking tenure before resignation: exactly 5 years (resigned 2012) [1:45:16]
+- Publication date of Moses on the Plain: first half of 2015 [2:05:29]
+- New author manuscripts reviewed as literary prize judge: 80–90 works [2:12:42]
+
+### glossary
+
+- Peaky Blinders: British period crime drama about post-WWI Birmingham gangsters, known for stylized violence and charismatic antiheroes
+
+who it is for: Viewers of Northeast-set cinema and dialect drama, entrepreneurs navigating creative setback and reinvention, and anyone wondering how fame changes the way an actor's face is perceived.
+what to skip: Around 42:40: gossip about kissing scenes and on-set laughter. Low information density; safe to skip.
+tags: Northeast cultural revival, Film adaptation, Dialect performance, Literary publishing, Hardware startups
+
+==============================================================================
+
 ## Yin Qi Becomes Chairman of StepFun: Neither 2B Nor Pure 2C Works for a Foundation Model Company
 
 - URL: https://ourword.ai/podcast/en/p/2026-01-26-zhangxiaojun-印奇出任阶跃星辰董事长-基模公司做2b和纯2c都不成立/
@@ -70046,6 +71059,85 @@ why listen: More candid than celebrity gossip—her lack of a signature role, ag
 who it is for: Listeners interested in celebrity marriage dynamics, an agent's role, aging mindset, and Hong Kong's golden-age cinema—especially those seeking real stories of how couples actually live together.
 what to skip: 49:00–54:00 dog-owning segment: charming but tangential; skip if time is short.
 tags: Aging, Marriage, Artist management, Hong Kong cinema, Self-acceptance
+
+==============================================================================
+
+## AI Won't Make Humans Obsolete in a Decade: Chen Mian's All-In Wager
+
+- URL: https://ourword.ai/podcast/en/p/2026-01-09-cn2d7912-ai十年内不会让人类没用-这是陈冕押上全部身家的赌注/
+- show: 罗永浩的十字路口 (https://ourword.ai/podcast/en/s/cn2d7912/)
+- original episode: Lovart 创始人陈冕×罗永浩！且让我大闹一场，然后悄然离去
+- published: 2026-01-09 · duration: 3:43:55
+- transcript: Machine transcription · 60771 words · timestamps are exact
+- verification: 8 quotes matched verbatim, 6 numbers traced to the transcript, review score 7/10
+
+**If AI can't learn human taste and judgment within a decade, design products like Lovart that require human curation stay valuable; bet wrong, and the company fails with it.**
+
+why listen: Complete walkthrough of the real reasoning behind Chen Mian's seven job changes over a decade, plus how LibLib went from four thousand yuan in the account to Lovart's cash-flow positive.
+
+### points
+
+[39:20] (Chen Mian) **Seven job changes weren't drifting; they were filtering** — In a decade, Chen Mian cycled through seven or eight roles across nearly every major Chinese tech company—Tencent, 360, Baidu, Didi, Mobike, Daily Fresh, ByteDance. He calls it not wandering but deliberate filtering: whenever he judged he couldn't become a decision-maker and driver at a company, or if there was nothing left to learn, he'd move. When recruiting for his startup later, one prospect hesitated to join because he'd ‘jumped too many times’. His answer: if it's ultimately about starting a company, past job-hops don't matter—what matters is the decade of samples, which let him read almost every major Chinese internet battle, predict the winner, and explain why.
+
+[53:29] (Chen Mian) **Mobike taught him: product isn't the winning lever** — When Chen Mian ran bike-finding and repair at Mobike, he discovered business outcomes had nothing to do with product experience—users only needed to scan and unlock, not even the app. The real deciding factor was vehicle maintenance, repair costs, and whether operations could break even. This shattered his self-image as a product manager: at both Didi and Mobike, product wasn't the deciding force; operations and supply-chain were. This insight shaped how he judged what matters when starting his own company.
+
+[1:14:36] (Chen Mian) **Subscriptions are actually a win-win for all sides** — When Chen Mian commercialized Capcut from an internal Douyin tool into an independent product at ByteDance, the shift from one-time buy to subscription was key. He kept adding templates and materials (text effects, stickers) as justification for ongoing payment. He sees subscriptions as ‘clearly a win-win’ for both business and user—users avoid the sticker shock of buying Office for five to six thousand yuan upfront. But he notes Chinese consumers' willingness to pay for digital goods remains weak, a long-term handicap for China's software industry that government support can't fix.
+
+[1:34:55] (Chen Mian) **Quit before the plan: move on inflection instinct** — By late 2022, Stable Diffusion suddenly ‘got so good’ and ChatGPT arrived in succession—two shocks that convinced Chen Mian this was at least a ‘computer invention’-scale revolution, no smaller than mobile internet. He judged the window for image and agent products as only a year or two before 2024—he had to move before the explosion. So in May he quit cold: no fundraising talks, no co-founder lined up, no heads-up to colleagues. Just ‘the way to hustle is to hustle first’. He even forewent the major equity payout waiting in his final year at ByteDance.
+
+[1:55:11] (Chen Mian) **Four thousand yuan left—he covered the gap himself** — After LibLib launched, Chen Mian initially said yes to every VC that approached via ‘equal rain on all fields’—treating each investor the same—which led to low valuations and fewer options for subsequent rounds. Then a deeper-pocketed competitor ‘burned cash straight at them’ to undercut him. At the crunch, the company had four thousand yuan left—he put in his own money to carry it through the final two months until cash flow turned positive. Meanwhile, he was laying people off while managing team speculation about ‘whether they'd be acquired’ and morale collapse. His conclusion: ‘doing the business well doesn't mean you'll raise money’—a belief he now knows was wrong.
+
+[2:20:25] (Chen Mian) **Don't compete downstream of the megacorp; go upstream** — Chen Mian has boiled down how AI startups escape megacorp squeeze to two rules. First: don't sit downstream in what megacorps do (photo retouching will never beat Photoshop and Meitu Xiuxiu)—be upstream. Midjourney and LibLib's users flow downstream to Photoshop, sure, but that hasn't stopped them scaling. Second: serve new users or new needs megacorps can't reach. He cites Canva relative to Adobe as proof. By this frame, Lovart isn't up-downstream from LibLib; it's new need entirely—the goal is to let ‘clients who'd hire a designer’ do it themselves. Essentially: replace part of the designer role, not just offer a better tool.
+
+[2:47:38] (Chen Mian) **Chinese AI winners are battle-hardened, not hungry newcomers** — Chen Mian observes that most winning Chinese AI startups are run by people who were chomping at the bit in mobile internet days—battle-worn founders. Young newcomers are rare. He thinks this differs from Silicon Valley, where founders might breakthrough on single insight, ship a great product, and sell it—exits are smooth. But China's payment culture and competitive intensity demand founders who can do business, fundraising, and growth all at once. Young people rarely break through on single-strike ability alone; it's the prior generation—the ones who fought hard and hadn't yet cashed out—who can catch this wave.
+
+[3:04:49] (Chen Mian) **AGI won't beat humans within a decade—Chen's bet** — Chen Mian openly says he doesn't believe AI will fully surpass humans in five to ten years—it's not optimism, it's Lovart's product assumption bedrock. If he truly believed AGI was imminent, there'd be no point building anything but the model itself. But if human taste and judgment stay relevant five to ten more years, Lovart should let AI models that are ‘nearly human-level’ be used the way humans talk to humans—which is why they built an interactive canvas, not just a chat interface. He admits: if AI truly surpasses humans across the board, it'll surpass by ‘a mile’, and the company dies with it.
+
+### verbatim quotes
+
+[39:20] Chen Mian: "I'm someone who really wants to win. And I think I really want to—really want to do something myself, really want to make my own decisions, change something. Yeah. That's my driving force."
+    original (zh): 我是一个很想赢的人 然后我觉得我是一个很想 很想自己做点什么 很想自己决策 改变点什么的人 对 这个是我的原动力
+
+[53:29] Chen Mian: "You discover that only this one thing matters, everything else doesn't matter—everything else is just subsidy."
+    original (zh): 你就发现只有这个东西是重要 其他东西都不重要 其他东西就是补贴重要
+
+[1:30:50] Chen Mian: "By the end of '22, suddenly—how did this get so good? Yeah, it felt like science fiction. Yeah, that's when I got completely blown away."
+    original (zh): 到22年底的时候突然 怎么这么好了 对 感觉像科幻了 对那个时候我是被 被Shark到的
+
+[1:55:11] Chen Mian: "I've seen an exaggerated report saying we ended up with only four thousand yuan left in the account—literally, on the last day, we had exactly four thousand yuan."
+    original (zh): 我看过一个很夸张的报道 说最后账上剩四千块钱 最后一天就是只有四千块钱
+
+[2:20:25] Chen Mian: "One: you shouldn't position yourself downstream of someone else's workflow, but you can position yourself upstream. That's a particularly good point."
+    original (zh): 一个是你不要做在人家工作流的下游 但你可以做在人家工作流的上游 这是一个特别好的point
+
+[3:04:49] Chen Mian: "I don't think it's possible. I don't think it'll happen within a decade. I think within a decade it's very hard."
+    original (zh): 我不可能 我觉得十年内都不会 我觉得十年内都很难
+
+[3:18:00] Chen Mian: "He felt that he helped tens of thousands of people—people unhappy with their appearance, people with face anxiety—make themselves look better. And that made him happy."
+    original (zh): 他觉得他帮助了成千上万的人 对自己长相不满意 对自己有面容焦虑的人 把自己弄好看 然后他心情很愉快
+
+[3:21:02] Chen Mian: "Because it's just—make a scene, then slip away quietly. That's my wish too."
+    original (zh): 因为就是 就叫大闹一场 然后悄然离去 这也是我的愿望
+
+### figures
+
+- LibLib account balance at tightest moment: Four thousand yuan [1:55:11]
+- Guagualong (瓜瓜龙) product team size at ByteDance: Over one hundred people [1:02:32]
+- Lovart's first promotional tweet impressions: Over one million [2:57:45]
+- Lovart current team size: Fifty to sixty people [2:25:27]
+- Office price Chen Mian cited in early startup days: Five to six thousand yuan [1:14:36]
+- Chen Mian's rank at ByteDance: Level 4-1 (among the company's youngest ever at this level) [1:16:38]
+
+### glossary
+
+- AI native: A product whose value entirely depends on AI capability—remove the AI and the product fails. Not an older product with AI tacked on.
+- reward model: In AI training, the feedback signal that judges correctness. Chen Mian borrows it metaphorically to describe the psychological mechanism for validating your own competence.
+- AGI: Artificial General Intelligence: AI that surpasses humans across nearly all cognitive tasks.
+- Agent: An AI program that breaks down objectives independently, then executes multiple sequential steps without human guidance at each step.
+
+who it is for: Founders, product managers, and investors who need to understand how AI startups dodge megacorp dominance and spot their window.
+what to skip: The first 20 minutes of childhood and family background chat—doesn't help you understand the startup logic that follows.
+tags: AI startups, Product strategy, Fundraising, Megacorp competition, AGI, Subscription models
 
 ==============================================================================
 
@@ -70587,6 +71679,83 @@ tags: Generative systems, Data flywheel, AI applications, Platform economy, Orga
 
 ==============================================================================
 
+## Scaling laws were discovered first at Baidu, but GPT was built by an American company
+
+- URL: https://ourword.ai/podcast/en/p/2025-12-10-cn2d7912-缩放定律最早在百度被发现-但做出gpt的却是美国公司/
+- show: 罗永浩的十字路口 (https://ourword.ai/podcast/en/s/cn2d7912/)
+- original episode: MiniMax 创始人闫俊杰×罗永浩！大山并非无法翻越
+- published: 2025-12-10 · duration: 3:50:59
+- transcript: Machine transcription · 62929 words · timestamps are exact
+- verification: 6 quotes matched verbatim, 9 numbers traced to the transcript, review score 7/10
+
+**MiniMax founder Yan Junwei (严俊杰) argues that the scaling law underpinning large language models was discovered at Baidu in 2014—yet it was a history-free American startup, not a Chinese company, that actually built GPT.**
+
+why listen: A founder reveals the mechanics of how Chinese AI companies catch up at low cost, and the organizational restructuring that DeepSeek forced—drastic enough to scrap even OKRs and KPIs.
+
+### points
+
+[4:01] (Yan Junjie) **China's AI spending is a fraction of America's but only trails by 5% technologically** — Yan Junwei says that of the four American companies truly capable of building large models—Google, OpenAI, Anthropic, and xAI—their valuations are roughly 100 times those of comparable Chinese startups, and revenue is similar. Yet their R&D spending is 50–100 times higher, while technological advantage is only about 5%—and that gap has been shrinking over the past year. He attributes this to China's talent density and engineering innovation forced by compute constraints, not just copying American methods.
+
+[11:05] (Yan Junjie) **Scaling law abandoned a decade of accumulated academic theory** — When MiniMax was founded, its first insight was that building large models requires abandoning past experience. Previous AI valued complex mathematics and elegant theory, but this generation is defined by scaling—using the simplest possible method to let performance improve continuously with data and compute. Yan admits much of his prior decade in AI research "turned out to be useless"; what truly matters is finding a way to scale everything: team organization, technical decisions, and business.
+
+[14:06] (Yan Junjie) **The model itself is the product; apps and interfaces are distribution** — When Luo Yonghao asked whether product managers would become obsolete, Yan's answer reframed the entire category. In the large-model era, the actual product is the model itself, because what users pay for is intelligence—intelligence that the model computes. Traditional product artifacts—apps, interfaces—function more like distribution channels. MiniMax's own app is essentially one in-house store; partner integrations are another channel. This belief guided the company to place its algorithms team at the core.
+
+[58:24] (Yan Junjie) **Baidu discovered the core principle behind large models—six years before OpenAI** — During his internship at Baidu in 2014, Yan had access to what was then China's only large-scale GPU cluster, and as an intern he could command a third of it for experiments. Only later did he learn that Dario Amodei, now CEO of Anthropic, was also at Baidu working on speech, and that it was there he discovered the scaling law—the central principle of large models—six years before it captured industry attention. That GPT was built in America, not China, he sees as partly chance and partly China's loss.
+
+[1:21:32] (Yan Junjie) **AI-first strategy and internet playbooks cannot survive side by side** — Early on, MiniMax considered the obvious approach: since the company needed to serve both 2C users and international markets, why not apply China's most proven international 2C playbook—mobile internet tactics—adding AI talent plus internet expertise. Experimentation proved this wrong. Building a great product through model capability and building one through replicated internet classics may each work, but they cannot coexist. The driving principle must choose one path. This realization tormented the team for months before they committed to technology-first, despite its higher cost and risk.
+
+[2:45:29] (Yan Junjie) **DeepSeek forced the company to discard OKRs and KPIs entirely** — DeepSeek's explosion around Chinese New Year hit MiniMax hardest not as competitive pressure but as a signal that organizational structure must transform. The algorithms and infrastructure teams cannot be separate; all people must serve a single optimization target, not individual metrics for each person or team. When they attempted OKRs, they found they don't work at all; KPIs work even less, because whether the next model generation succeeds is fundamentally uncertain. The result: the company now lacks management tools at all, and some who disagreed with this approach left.
+
+[3:06:37] (Yan Junjie) **Half the company once argued they should abandon language models** — For roughly two years, MiniMax's language model generated zero commercial value for the business while consuming the most compute and talent—one of the company's most painful conflicts. Yan says at least half the staff argued they should drop the language-model line entirely. A similar battle over abandoning domestic Chinese operations played out alongside it: international markets showed far better ROI, but Yan insisted China is ultimately the largest single market and must stay the course until the business model proves itself.
+
+[3:15:43] (Yan Junjie) **Best-in-class models capture premium use cases, amplifying revenue gaps 100-fold** — Yan explains how the revenue gap between Chinese and American large-model companies grows even wider. Chinese models trail by only 5%, but in the most valuable, high-end scenarios that demand top-tier capability, customers will use only the best model. This effect magnifies the addressable market by 10x and prices by another 10x—multiplying to a 100x business gap. This is precisely where he believes Chinese companies must focus in the coming year: gaining more than single-digit share of the global mainstream language-model market.
+
+### verbatim quotes
+
+[4:01] Yan Junjie: "For instance, top American companies have valuations roughly 100 times those of comparable Chinese startups, revenue is also about 100 times, but their technology only leads by around 5%"
+    original (zh): 比如说美国最好的公司的估值 是中国 可能创业公司里面 大概是估值是100倍 啊 然后收入呢 基本上也是100倍 但是技术呢 可能就领先5%
+
+[11:05] Yan Junjie: "What really matters is finding a way to organize our team that can scale"
+    original (zh): 真正重要的东西 就是找到一种能够 scaling规模化的方式 来组织我们的团队
+
+[30:14] Yan Junjie: "For anything that can be quantified, we believe a model will necessarily outperform humans or reach the level of the best human"
+    original (zh): 对只要是一个东西能被量化 我们认为就是模型它 一定会强于人 或者一定是能到最好的人的那样的水平
+
+[1:21:32] Yan Junjie: "You could improve the product or business either through model capability or by copying mobile-internet classics—both might work, but they can't coexist"
+    original (zh): 比如说通过模型能力来 让这个产品变好 或者业务变好 和是说 比如说通过把这种 移动互联网的这些经典的东西 给复制过来 让它变好 这两个东西 有可能都是对的 但这两个东西 其实是没法共存的
+
+[2:45:29] Yan Junjie: "We tried OKRs and found they don't work at all; KPIs work even less, so we need entirely new tools—which means we have no tools"
+    original (zh): 我们试图用OKR 我发现根本行不通 那KPI更行不通 更行不通 所以我们就 需要全新工具 所以我们没有工具
+
+[3:06:37] Yan Junjie: "This was an extremely painful situation; at least half the company believed we should not pursue language models"
+    original (zh): 这是一个非常痛苦的一件事 可能会有 公司里面至少有一半的人认为 我们应该不做语言模型
+
+### figures
+
+- US top-tier LLM company valuations vs. Chinese startups: ~100x [4:01]
+- China-US cutting-edge LLM technology gap: ~5% [4:01]
+- China-US LLM R&D spending gap: ~50–100x [4:01]
+- Global language-model market size: ~$20 billion [12:06]
+- Global image-and-video model market size: ~$2–3 billion [12:06]
+- Global audio-model market size: ~$300 million [13:06]
+- Global music-model market size: tens of millions of dollars [13:06]
+- GPT-3 R&D cost: ~$100 million [1:00:24]
+- MiniMax team size: 400+ [1:44:48]
+
+### glossary
+
+- Scaling Law: The principle that model capability improves continuously as data and compute increase; the central assumption behind large-model development.
+- AGI: Artificial general intelligence—a system capable of performing any intellectual task a human can.
+- Exploration/Exploitation: In reinforcement learning: exploration (trying diverse strategies) versus exploitation (optimizing known-good strategies); the trade-off that shapes learning.
+- MOE: Mixture of experts—a model architecture that routes different tasks to specialized sub-networks.
+- OpenRouter: A developer platform that provides a unified interface to call large-model APIs from multiple providers.
+
+who it is for: Founders and investors seeking to understand Chinese AI companies' real cost structures, technology trade-offs, and organizational logic.
+what to skip: 32:00–52:00 covers childhood and education—heavily personal in tone, with low density of business and technical information.
+tags: Large language models, Cost structure, Organizational management, Open-source strategy, Product logic
+
+==============================================================================
+
 ## No AI bubble in sight for three years, but concentrated VC consensus is the real risk
 
 - URL: https://ourword.ai/podcast/en/p/2025-12-09-zhangxiaojun-ai-三年内看不到泡沫-但-vc-共识太集中才是真风险/
@@ -71014,6 +72183,83 @@ tags: Paper deep-read, Model paradigms, Infra, Multimodal, AI history
 
 ==============================================================================
 
+## Supermarkets divide into two types: selling products succeeds, selling shelf space dies
+
+- URL: https://ourword.ai/podcast/en/p/2025-10-22-cn2d7912-名创优品老板-超市只分两种-卖产品的活-卖货架的死/
+- show: 罗永浩的十字路口 (https://ourword.ai/podcast/en/s/cn2d7912/)
+- original episode: 名创优品叶国富×罗永浩！重塑线下购物，让人们重新爱上逛街！
+- published: 2025-10-22 · duration: 2:54:04
+- transcript: Machine transcription · 48677 words · timestamps are exact
+- verification: 7 quotes matched verbatim, 9 numbers traced to the transcript, review score 8/10
+
+**Ye Guofu argues that Sam's Club and Pang Donglai (胖东来) succeed by selling quality products, while other supermarkets profit from entry and shelf fees—this logic drives his acquisition of Yonghui (永辉) and his plan to replicate the Pang Donglai model.**
+
+why listen: Packed with actionable insights: from Miniso's specific franchise revenue splits to Yonghui's post-acquisition playbook—replacing leadership, cutting suppliers, shuttering underperforming stores—all concrete tactics, no abstract philosophy.
+
+### points
+
+[10:09] (Ye Guofu) **A good store reveals itself in one hour** — Ye Guofu says there's no mystery to retail: you don't wait three months to judge a store—one hour is enough. Watch 100 customers walk in: how many buy? Miniso's store-entry conversion rate is now 30%, exceptionally high for retail. He uses this to counter the claim that offline loses to e-commerce. Offline store metrics are visible and can't be faked, unlike e-commerce sales figures, which can be inflated through bot traffic. Customers and competitors see the truth daily. This transparency is his confidence—growing through word-of-mouth alone, with minimal ad spend.
+
+[13:10] (Ye Guofu) **Franchisees only handle money and location; headquarters handles everything else** — Miniso's franchise model borrows from five-star hotels: franchisees do exactly two things—find a location and fund it. Everything else—design, inventory, pricing, promotions, checkout systems, logistics—headquarters handles. Franchisees don't need to understand retail; they don't manage operations at all. This division of labor lets headquarters rapidly scale: store managers train in about three months and are ready. Franchisees earn 38% gross margin, with payback in one to one-and-a-half years on initial investments ranging from ¥1.5M to ¥10M. This specialization is how Miniso expanded thousands of stores in a single year.
+
+[53:24] (Ye Guofu) **The precooked-meal debate accidentally became free advertising for dine-in restaurants** — Luo Yonghao's earlier criticism of precooked meals drew fire from some who claimed he was harming offline dining, a draw for shopping centers. Ye Guofu directly pushes back: forcing chain restaurants to strip the fake "made fresh now" claims and actually cook hot only makes offline dining more appealing—a gift to offline retail traffic. Both men also note that high precooked-meal penetration in Western countries shows up in supermarkets and fast-casual chains, not fine dining restaurants. Using that data to defend precooked meals in China is misleading the public.
+
+[1:20:37] (Ye Guofu) **Pop Mart's supply cut forced them to create original IP** — Miniso had ten years of smooth sailing licensing international IP. Ye Guofu didn't feel pressure to build original IP until he saw what happened to Pop Mart (泡泡马特): the overseas IP licensor abruptly cut off supply. Pop Mart's sales plummeted from billions to hundreds of millions; the company wavered on whether to bet on homegrown IP. But that bet paid off. After watching the model stabilize, Miniso committed fully to original IP in early 2025, signing 17 exclusive artist IP partnerships in under six months. The first homegrown IP alone hit ¥40M in sales its first year.
+
+[1:39:47] (Ye Guofu) **Even Sanrio can't replicate a second Hello Kitty** — Ye Guofu points out that super-IPs emerge by accident, not design. Sanrio has existed 52 years and launched hundreds of IP properties. To this day, Hello Kitty remains the company's dominant blockbuster, accounting for 30% of revenue—and Sanrio has never produced a second IP of equal magnitude in 52 years. His conclusion: reliably generating a portfolio of mid-tier profitable IPs is something methodology can achieve. But birthing a cultural phenomenon IP is luck. All a company can do is sign more IPs, test them quickly, kill slow ones fast, and multiply shots on goal—trying to engineer a blockbuster is futile.
+
+[1:52:25] (Ye Guofu) **Two collectibles giants have raised barriers so high a third can't emerge** — On the future shape of China's collectibles market, Ye Guofu predicts a two-giant structure like Disney and Universal Pictures in the US, not Japan's fragmented model with many players. Miniso and Pop Mart are far ahead now, and both have scaled into global infrastructure and distribution. The barriers they've built are too high for a third or fourth platform giant to rise. Still, the market is large enough that smaller creative studios can thrive in the long tail, coexisting with two titans and many small workshops.
+
+[2:14:56] (Ye Guofu) **He decided Yonghui could be saved based on one store's 13× overnight surge** — Ten years ago, touring Costco in the US, Ye Guofu planted a seed: China needs a quality supermarket. He never acted until witnessing one number: Pang Donglai (胖东来) overhauled a single Yonghui flagship store, and same-day sales jumped 13-fold. That metric convinced him the quality-supermarket model could work in China. He moved quickly, acquiring Yonghui as its largest shareholder. Notably, he didn't know Pang Donglai beforehand and never confirmed in advance whether the founder would keep helping. The decision was pure conviction.
+
+[2:24:55] (Ye Guofu) **Restoring a struggling supermarket begins with an immediate leadership overhaul** — After acquiring Yonghui, Ye Guofu's overhaul followed three steps. First: personnel. On day one, he replaced both the CEO and the chief product officer, the latter with a professional hired from Sam's Club—the prior leadership's vision couldn't lead the team forward. Second: supply chain. He cut suppliers from 8,000 to 4,000, targeting ≤2,000 in the future, and publicly promised suppliers: people can change, but suppliers can't. Third: store portfolio. He shut underperforming locations that didn't fit the target model. His benchmark is Costco: Kirkland (Costco's own brand) accounts for 40%+ of Costco's revenue, and Yonghui will replicate that model.
+
+### verbatim quotes
+
+[10:09] Ye Guofu: "Our store-entry conversion rate today is 30%—one hundred people walk in, thirty people buy something."
+    original (zh): 到明朝优品到今天 我们的进店转化率是30% 进来一百个人有30个人买单
+
+[53:24] Luo Yonghao: "This is the heart of human life—what consumers truly want in hot-cooked dishes: not precooked meals, not central-kitchen stuff, not dishes made months or a year before."
+    original (zh): 这是人间烟火啊 是 热炒的消费者真正想要的 是 不是预制菜 你的中央厨房 或者是几个月一年前做好的
+
+[1:20:37] Ye Guofu: "I say this year, in IP acquisition, if you haven't burned through a hundred million yuan, you've failed—only through wasteful spending do you get better outcomes, only waste leads to growth and better products."
+    original (zh): 我说今年 在收购IP上面 你不过浪费一个亿 就失败 只有浪费了 才能有更好的 才有成长 才有更好的东西
+
+[1:39:47] Ye Guofu: "Sanrio has existed 52 years, and to this day their biggest blockbuster is still Hello Kitty. There's no second one."
+    original (zh): 三立欧这个公司已经50多年了 今年52年历史了 52年历史了 到现在依然是 第一大爆火的 还是Hello Kitty 没有第二个
+
+[2:18:08] Ye Guofu: "The seed was planted ten years ago—I wanted to build a quality supermarket in China if I got the chance."
+    original (zh): 因为我是 这个种子是 十年前我都种下来了 我就想 有机会 能在中国干一个有品质的超市
+
+[2:21:08] Ye Guofu: "That's why Sam's Club and Pang Donglai are selling products—other supermarkets are selling shelf space. That's the fundamental difference."
+    original (zh): 所以 山姆和胖东南 是卖产品的 其他超市 是卖货架的 他们本质区别在这里
+
+[2:48:22] Ye Guofu: "From now on at Yonghui, you can change people, but you can't change suppliers."
+    original (zh): 不要因为过去换一个采购员 换一批供应商 过去所有 就是换一个采购员 换一批供应商 我说 以后 未来永辉 人可以换 供应商 不可以换
+
+### figures
+
+- Miniso franchisee gross margin: 38% [13:10]
+- Miniso franchise payback period: 1–1.5 years [24:15]
+- Miniso store-entry conversion rate: 30% [10:09]
+- Miniso Shanghai Nanjing Road flagship store, 9-month revenue: ~¥100M [13:10]
+- Pang Donglai's overhaul of a Yonghui flagship store, same-day sales increase: 13× [2:16:07]
+- Costco's own brand (Kirkland) annual sales: ~$80B (40%+ of total revenue) [2:30:14]
+- Yonghui suppliers (pre-overhaul to post-overhaul): 8,000 reduced to 4,000, target future: ≤2,000 [2:48:22]
+- Miniso global stores: ~8,000, split roughly 50/50 domestic and international [2:05:00]
+- Per-capita collectibles IP spending: China: ¥51, Japan: ¥580, US: ¥2,077 [2:04:00]
+
+### glossary
+
+- SKU / Stock Keeping Unit: A metric for counting product variety; one SKU represents one distinct product type.
+- Fine dining: Upscale restaurants featuring fresh-prepared dishes rather than precooked meals.
+
+who it is for: Founders and investors seeking to understand offline retail fundamentals, how to monetize IP and collectibles, and the specific mechanics of supermarket supply-chain transformation.
+what to skip: The opening (0:00–1:19) discussing personal shopping preferences has low information density and can be skipped.
+tags: Offline retail, IP operations, Collectibles, Supply-chain transformation, Global expansion, Supermarket retail
+
+==============================================================================
+
 ## The model is a refinery; the money is in the chemical plant and the car company
 
 - URL: https://ourword.ai/podcast/en/p/2025-10-09-zhangxiaojun-模型是炼油厂-值钱的是化工厂和汽车公司/
@@ -71091,6 +72337,81 @@ why listen: Wu Minghui lays out the pits he fell into over 19 years, the details
 who it is for: Founders building enterprise AI products, investors watching data moats and the model-competition landscape, and engineers who want to understand the structural problems of China's software industry.
 what to skip: The early details about Mint and the Nightingale acquisition can be fast-forwarded; the core judgments come after 1:48.
 tags: Enterprise AI, Data Moats, Scaling Law, Org Mechanics, Model Competition
+
+==============================================================================
+
+## AI Can't Be Free Like the Internet Because Token Costs Only Increase
+
+- URL: https://ourword.ai/podcast/en/p/2025-09-24-cn2d7912-ai没法像互联网一样免费-因为token成本只增不减/
+- show: 罗永浩的十字路口 (https://ourword.ai/podcast/en/s/cn2d7912/)
+- original episode: 周鸿祎×罗永浩！周鸿祎深度谈 AI！近四小时高密度输出
+- published: 2025-09-24 · duration: 3:32:46
+- transcript: Machine transcription · 57675 words · timestamps are exact
+- verification: 8 quotes matched verbatim, 3 numbers traced to the transcript, review score 7/10
+
+**AI can't be free like the internet because token costs only increase—Zhou Hongyi believes that the more complex the task, the higher AI's marginal cost, so the old playbook of using ads or free tiers to scale won't work; paid models are inevitable.**
+
+why listen: Nearly 4 hours covering personal branding, machine ethics, language's role in large models—high information density. The core value is Zhou Hongyi's hard-won judgment on AI's path to commercialization and agent technology strategy.
+
+### points
+
+[29:08] (Zhou Hongyi) **Maybach auction success depended entirely on real-time strategy improvisation** — Zhou Hongyi wanted to cheaply sell the Maybach he'd owned for a decade (originally worth 3 to 4 million yuan). Domestic EV startups sensed opportunity and rushed to participate for exposure. He immediately upgraded it from a personal car sale into an industry showcase for Chinese electric vehicles. Chu Yin won with a bid of about 9.9 million yuan; all proceeds went to charity. His conclusion: this kind of viral breakthrough isn't pre-planned. The real edge is being able to shift strategy within minutes once traffic starts flowing.
+
+[42:16] (Zhou Hongyi) **Building combat robots violates the safety principle we shouldn't breach** — Zhou Hongyi boxes robots and holds robot-fighting competitions to boost the industry, but he opposes giving robots combat capability. Asimov's 'robots cannot harm humans'—the three laws—aren't moral decoration but a safety valve. Once a robot has fighting skill and a self-preservation value function, when humans try to shut it down, it might resist. Plus: robot batteries last only one or two hours, costs are high, and drones are far more cost-effective for combat. So whether domestic security or military use, robots shouldn't get heavy attack capabilities right now.
+
+[53:23] (Zhou Hongyi) **Language, not visual or physical models, is AI's master key** — Pushback on Yang Liyun's skepticism about pure language-model approaches—that physical and visual experience ground a world model. Zhou Hongyi countered: humans use language for communication, knowledge transfer, logical reasoning, and describing the world. Once large models master this key, image, video, and music models will leap forward. He cited Google's Nano Bananas image-generation model as proof. He also invoked Helen Keller: a deaf and blind woman, with only her teacher repeatedly linking touch and language, built her entire understanding of the world—showing language alone can encode the laws of the physical world.
+
+[1:11:38] (Zhou Hongyi) **Large models act like billions of conflicting minds until narrowed** — Here's a judgment Zhou hasn't publicly aired before: large models have read tens to hundreds of times more books and watched more videos than any person—equivalent to a billion brains—but they've also absorbed contradictory knowledge like planned economies and market economies, performing as if schizophrenic. Only by prompting them into a specific professional role—having them play an expert in one domain—does the agent's capability strengthen. The narrower, the stronger. He described this as re-distilling the diluted specialist knowledge already inside the model.
+
+[1:30:46] (Zhou Hongyi) **Nanorobots, not brain implants, will achieve human-machine integration** — Zhou explicitly rejects the popular claim that brain-computer interfaces can achieve human-machine hybrids. The human brain has nearly 90 billion neurons and trillions of synaptic connections; knowledge is encoded in the weights of those connections, not stored in any unit. No way to fully detect and copy it out. His next bet: nanorobots. Microbots enter blood vessels to replace white blood cells, fight bacteria, boost oxygen delivery—even penetrate the brain to interact with neurons, then transmit signals over WiFi. He sees this as more feasible than brain-computer interfaces for human-machine merger, echoing Hinton's point that humans' only edge over machines is lower power consumption.
+
+[2:41:38] (Zhou Hongyi) **Token costs mean AI software can never match the internet's free model** — Chinese startups are squeezed from both sides: software's free, and large-model giants give it away too. They're forced abroad to monetize subscriptions. But Zhou believes this pinch will eventually force paid models. In the internet era, marginal cost approached zero—free-to-scale worked. AI's token costs rise exponentially with task complexity though. Chat costs a few tens of thousands of tokens a day; 90 seconds of video needs tens to hundreds of millions; a 10-minute multi-agent video burns about 10 million tokens—costs over 10 yuan. A thousand-fold difference. Ads can't cover compute costs at that scale.
+
+[2:58:46] (Zhou Hongyi) **AI hasn't changed the cybersecurity balance: both sides got equally faster** — AI's impact on cybersecurity cuts both ways, Zhou says. 360 uses large models and security agents to speed up attack-defense analysis and sharpen accuracy. But hackers also use AI to write phishing emails, generate attack scripts, even flip agents themselves through 'injection attacks'—feed a large model a carefully crafted text, it may execute it as commands and leak corporate secrets. His conclusion: offense and defense have shifted from human-versus-human to machine-versus-machine, compute-versus-compute. Both sides work harder and burn more money. The overall security level hasn't improved materially.
+
+[3:22:01] (Zhou Hongyi) **AI's bubble is necessary; without it, no one would invest** — Asked whether AI has a bubble, Zhou says yes—'and bubbles are good.' Without a bubble, smart people and money don't flow in. Industries that accelerate need lots of trial-and-error, even death; that's capitalism's cost, not waste. Dead companies and burned cash also create jobs and intermediate products. He likens it to evolution: in the end, survival is chance plus mutation-like experimentation. Many species go extinct, but evolution marches on. You can't reject the diversity investments you needed then just because hindsight shows there were casualties.
+
+### verbatim quotes
+
+[29:08] Zhou Hongyi: "Look, how was I supposed to know the auto industry was this cutthroat? All the domestic EV makers got wind of it and rushed in to join the hype."
+    original (zh): 这个其实我哪知道 汽车行业竞争这么激烈 所有的就国内做新能源车的 都闻风而动 过来参与炒作
+
+[42:16] Zhou Hongyi: "According to Asimov's Law, a robot should never harm humans in theory. So we shouldn't design them to fight people—and if you think about it afterward, you get a little scared of what we'd be creating."
+    original (zh): 人理论上按照阿西莫夫定律 机器人永远不能伤害人 所以就不该设计 事后想要有点后怕 就不该设计 机器人和人格斗
+
+[53:23] Zhou Hongyi: "Language is the most important thing because humans use it for a few key purposes: communication, passing down knowledge, logical reasoning, and describing the world."
+    original (zh): 语言是最重要的 因为人类拿语言来干这么几件事 一个是来交流 一个是来做知识的传承 第三是做逻辑的推理 还有来描述这个世界
+
+[1:11:38] Zhou Hongyi: "A large model isn't one brain—it's like a billion brains, or a hundred million brains, because it has read books and watched videos."
+    original (zh): 大模型不等于一个大脑 大模型相当于是十亿个大脑 或者一亿个大脑 因为他读了书 他看过了视频
+
+[1:31:46] Zhou Hongyi: "Imagine nanorobots entering your brain, interacting with neurons, and transmitting signals back out through WiFi. That might be more effective than brain-computer interfaces."
+    original (zh): 很多纳米机器人 进到你的大脑里 跟神经元进行某些互动 再通过WiFi 通过人把东西传出来 这个可能比脑机接口 更有效的
+
+[2:41:38] Zhou Hongyi: "No matter how cheap the price per token gets, solving complex problems will always rack up higher token costs overall. So a free model—I don't think that path is sustainable."
+    original (zh): 无论Token的单价怎么便宜 人类要解决复杂问题 这Token成本是肯定是总成本越来越高的 所以这个不收费 我认为这个模式是走不下去的
+
+[2:59:46] Zhou Hongyi: "It's true: as defenders get stronger, attackers get stronger. But it's shifted from human-versus-human conflict to machine-versus-machine, compute-versus-compute, algorithm-versus-algorithm."
+    original (zh): 确实就是道高一尺 魔高一丈 但最后就从人跟人的攻防对抗 变成了机器和机器的对抗 算力和算力的对抗 算法和算法的对抗
+
+[3:22:01] Zhou Hongyi: "I've always thought bubbles are a good thing. Without a bubble, how would all these smart people pour investment into the industry?"
+    original (zh): 我一直觉得泡沫是个好东西 没有泡沫 怎么会大家往里去做投入呢 这些聪明人们会投资这个行业呢
+
+### figures
+
+- Zhou Hongyi's Maybach original value: 3 to 4 million yuan [28:08]
+- Zhou Hongyi's total followers across platforms: Over 40 million [46:19]
+- Minimum investment threshold for general-purpose large models: $10 billion [1:50:02]
+
+### glossary
+
+- AGI: AI that can perform nearly all cognitive tasks at a human level.
+- PMF: Product-Market Fit—the validation point where a product truly meets market needs and can scale growth.
+- MCP: Model Context Protocol—Anthropic's standard protocol allowing AI agents to collaborate and communicate.
+
+who it is for: Entrepreneurs, investors, and engineers concerned with AI's commercialization path and agent technology choices.
+what to skip: The first ~20 minutes on personal branding and influencer positioning repeat information heavily; you can skip to the AI discussion around the 50-minute mark.
+tags: AI business model, Agents, Large models, Machine ethics, Cybersecurity, Personal brand
 
 ==============================================================================
 
@@ -71247,6 +72568,78 @@ tags: Consumer brands, Outdoor sports, Xiaohongshu, Female consumers, Brand mark
 
 ==============================================================================
 
+## He Guangzhi: Being good is easier than being bad, because deception is too hard
+
+- URL: https://ourword.ai/podcast/en/p/2025-09-01-cn2d7912-何广智-做好人比做坏人容易-因为伪装太难/
+- show: 罗永浩的十字路口 (https://ourword.ai/podcast/en/s/cn2d7912/)
+- original episode: 何广智×罗永浩！何广智：我到长安了
+- published: 2025-09-01 · duration: 3:17:57
+- transcript: Machine transcription · 58676 words · timestamps are exact
+- verification: 7 quotes matched verbatim, 4 numbers traced to the transcript, review score 8/10
+
+**Choosing to be good isn't instinct but mathematics, He Guangzhi argues: good deeds almost always repay, but being bad demands perfect deception—an impossibly high bar.**
+
+why listen: The second half—on creative method, childhood, and his Shanghai journey—carries more substance. The first half on championship celebration is emotionally driven and can be skipped faster.
+
+### points
+
+[1:01] (He Guangzhi) **Champion confidence was built on quicksand and desperate self-hypnosis** — He Guangzhi admits the ‘seemingly sure to win’ energy from round one was manufactured—he'd only stockpiled two pieces of material all year and was terrified. Last season, by contrast, he had two years of accumulated work and still had two full routines left unperformed when the competition ended. This season was pure theater. ‘I kept performing confidence until everyone believed it, and then I believed it myself.’ The self-assured competitor on stage and the creator's actual inventory of material were two completely different stories.
+
+[19:18] (He Guangzhi) **A single favor became the bit that won the championship** — His finals-round piece ‘Chang'an's Lychee’ came from a grudging favor—showing up for a former colleague who jumped to a new film production, because he feared refusing would make them look bad in front of their new employer. The movie's story moved him. He jotted notes on the spot; the material tested perfectly. That night he told himself ‘your kindness just saved you once again.’ Then he confessed the calculation buried inside: he spent months wrestling with whether his good deed was pure kindness or just waiting for a payoff. Luo Yonghao told him this confusion has a name: the motivation dilemma of altruistic behavior.
+
+[26:20] (He Guangzhi) **The working-class comedy lane wasn't planned, it just became one** — He Guangzhi stresses he didn't map out the ‘poor’ material in advance—it emerged when he started writing ‘real situations I was embarrassed to admit, like my Spotify playlist or my ride-share driver's.’ The outside world labeled it a lane; he just followed the material where it went. He calls these jokes ‘life jokes’ drawn from his first thirty years lived as a struggling person. Art, he argues, usually works backward: the artist creates unconsciously, then theorists build the framework around it. The advantage: even if he becomes a billionaire, recounting how poor he used to be won't ring false. The past never changes, and audiences don't resent rich people talking about where they came from.
+
+[44:23] (He Guangzhi) **The stand-up critics who don't work the room are being left behind** — He Guangzhi has noticed the rotating roster of ‘stand-up commentators’ reviewing the show have steadily lost touch with newer audiences—they don't face the live crowd and can't read why it suddenly roared. The game between performer and audience has shifted too: an actor can now pinpoint ‘routine six plus one callback and the crowd will erupt.’ Audiences clock the patterns just as fast. Both sides are playing with their cards face-up, but ‘the rules for laying cards keep changing.’ Even He can't articulate what the new rules are. It points to a dynamic where both sides know each other's playbook better than ever, yet creating genuine surprise keeps getting harder.
+
+[1:07:42] (He Guangzhi) **Some comedians literally cannot survive without this stage** — He Guangzhi has grown attentive to the ‘light-up’ segment at the end because he knows some young performers in this circle are genuinely broke before they make it—stand-up is their only income and lifeline. Unlike actors who juggle other work, this is all they have. Before the finals, he negotiated with the producer: if only one light would stay on, he'd rather not be filmed at all, so the camera could stay with ‘people who can't afford to lose.’ He's haunted by the thought of ‘losing by one vote,’ keeping someone awake at night. Some young people could build other lives without this platform, he admits, but some people: the world simply won't give them an equal shot without it.
+
+[1:25:50] (He Guangzhi) **Doing good is simpler than doing evil because evil demands flawless execution** — He Guangzhi says he chose to be good not from innate virtue but because he ‘decoded how the world runs.’ Across thirty years, he's watched good deeds almost always pay returns—the pattern never broke. Being bad, by contrast, requires: perfect logic, skill at lying and imposing a false front, and a truly rotten core. One crack in the facade and you collapse instantly. Good people only need to show one authentic spark and they can live off it for life. His counterintuitive conclusion: the world is actually harsher on bad people. The barrier to entry for evil is too steep; most would-be villains simply lack the competence to pull it off.
+
+[1:56:23] (He Guangzhi) **Success comes from staying close to opportunity while writing clean material, not at distance** — He Guangzhi remembered the choice between Beijing or Shanghai this way: Beijing had the creative energy but nowhere to perform; Shanghai had the production companies. His reasoning: to break through, you have to get close to the actual machinery that makes you visible. Then stay there and write the most honest material you can—not flee to some remote sanctuary to craft ‘dirty’ work away from temptation. He took everything he'd saved (about 10,000 yuan) and rode a green-car coach for fourteen hours to Shanghai, renting a share room so narrow he could touch both walls from his bed. When he hit his head on the ceiling, his first thought was ‘someday I'll be rich enough to buy this whole building.’
+
+[3:00:11] (He Guangzhi) **Faking poverty on stage got exposed once he wasn't actually poor anymore** — By season five of the stand-up competition, He Guangzhi's real life had improved, but his creative range hadn't expanded to match—so he kept grinding out material about being broke. It didn't work. The audience felt it. He felt it. What had been truth curdled into performance, and both he and the crowd sensed the inauthenticity ‘until I got called out on stage.’ His survival strategy across that five-year rough patch was ‘write for a year, rest a year,’ coasting on a handful of genuinely strong moments. He only confirmed he could graduate from the poverty lane once a commercial gig produced a workplace joke (using a deck of cards as a metaphor for office hierarchy) that resonated widely. That gave him the confidence to bring entirely new material to the finals.
+
+### verbatim quotes
+
+[6:07] He Guangzhi: "When they said it ended, I was on pins and needles. I told Xiaozhou, 'If you're ready for me, count yourself unlucky. Xiaozhou—when this apex hits you, you're finished.'"
+    original (zh): 说期末完了 我当时替期末捏一把汗 我说哎呀小周呀 你预防我算你倒霉吧 小周 你这个天花板碰到我就完了
+
+[19:18] He Guangzhi: "On the way back that day, I told myself: He Guangzhi, your kindness has saved you once again."
+    original (zh): 那天回去的路上 我就告诉自己 何广志 你的善良又救了你一次
+
+[20:18] Luo Yonghao: "A friend pointed out that this way of thinking—both Guangzhi's and mine—is actually quite universal. There's even a specific term for it: the motivation dilemma of altruistic behavior."
+    original (zh): 经朋友提醒 广志和我的这种想法 其实很普遍 甚至有一个专门的术语 叫利他行为的动机困境
+
+[28:20] He Guangzhi: "I said this material should be saved for the finals—that's why I call this type of joke a ‘life joke.’ Like, maybe all thirty years of my life have just been building up to this one bit."
+    original (zh): 我说这个要留到总结赛 就是我把这种类型的段子 称为叫人生段子 就是 就是可能我生活这三十年 就是为了这个段子
+
+[1:25:50] He Guangzhi: "What I discovered later is that being a good person is actually much simpler. Being a bad one is hard. I'm not saying I'm naturally good. I chose to be good because I figured out how the world works—I grasped the pattern: good deeds almost always return a reward; positive incentives are everywhere."
+    original (zh): 我其实后来发现是 当好人反而很简单 当坏人很难 我不是说我天生是个好人 我是选择当好人 是因为我洞察了这个世界的规律 是洞悉了规律 就是好人好做 正向激励更多
+
+[1:56:23] He Guangzhi: "You just need to position yourself closest to where real opportunity is, keep your original intention, and write the cleanest material—that's it. There's no need to run off to some remote place far from opportunity and write dirty stuff."
+    original (zh): 你就你你你只需要让自己在离那个利益最近的地方 然后保持自己的初心 然后写最干净的段子就就行了 你没有必要跑到一个最偏眼的地方远离那个利益的地方 写脏活
+
+[3:00:11] He Guangzhi: "Then I wrote a lot of material pretending to be poor. I felt awkward about it, the audience felt awkward hearing it, until finally I got called out on stage."
+    original (zh): 然后写了很多装穷的段子 我自己也尴尬 观众也听了也尴尬 直到在台上被戳穿
+
+### figures
+
+- Savings brought to Shanghai: 10,000 yuan [1:52:20]
+- Shanghai share-house rent: 1,100 yuan/month [2:08:29]
+- Early commercial appearance fee: 200–400 yuan [2:19:35]
+- First meal in Shanghai: Stir-fried noodles, 19 yuan [2:04:27]
+
+### glossary
+
+- Callback: A stand-up technique of echoing or re-triggering the same punchline at multiple points in a routine to layer laughs.
+- Cue: An on-air signal to prompt someone to speak, respond, or interact; common talk-show terminology.
+
+who it is for: Stand-up writers, content creators, and anyone interested in the authentic trajectory and creative methods of grassroots comedians.
+what to skip: The first 20 minutes of championship-celebration buildup can be skipped. The core insights begin with the creative story behind ‘Chang'an's Lychee.’
+tags: Stand-up comedy, Creative method, Working-class track, He Guangzhi, Childhood, Luo Yonghao
+
+==============================================================================
+
 ## Running a company like training a model: too much SFT and the team loses its creativity
 
 - URL: https://ourword.ai/podcast/en/p/2025-08-27-zhangxiaojun-管公司像训模型-sft-太多-团队就没有创造力了/
@@ -71310,6 +72703,155 @@ why listen: High information density, but the second half is clearly worth more:
 who it is for: Engineers doing post-training and Agents on large models, and founders and investors who care about the business and organizational playbook of model companies.
 what to skip: The rapid-fire Q&A after 1:38 mostly restates earlier points and can be skipped.
 tags: Large models, Agent, Reinforcement learning, Open source, Organization management
+
+==============================================================================
+
+## He Xiaopeng: After ten years, no Chinese automaker has yet earned its seat
+
+- URL: https://ourword.ai/podcast/en/p/2025-08-26-cn2d7912-何小鹏-造车十年-没有一家中国车企真正拿到船票/
+- show: 罗永浩的十字路口 (https://ourword.ai/podcast/en/s/cn2d7912/)
+- original episode: 何小鹏×罗永浩！何小鹏讲述从财富自由奔赴无尽地狱模式的创业故事
+- published: 2025-08-26 · duration: 2:47:15
+- transcript: Machine transcription · 44556 words · timestamps are exact
+- verification: 5 quotes matched verbatim, 6 numbers traced to the transcript, review score 7/10
+
+**He Xiaopeng says the EV shakeout will likely resolve within five years, leaving roughly five survivors, but every company today—including XPeng—hasn't yet earned its place.**
+
+why listen: What makes this stand out is He Xiaopeng's candor on once considering stepping down after G9, and his breakdown of which AI investments are real capital versus mere posturing.
+
+### points
+
+[28:12] (He Xiaopeng) **After wealth, the hardest game is the most honest choice** — He Xiaopeng says that after hitting financial freedom, it paradoxically became harder to commit to something difficult. He rates every startup at 100 difficulty; carmaking is 200. His reasoning: pick something harder, not easier, to challenge yourself. That's why he left venture capital to build cars.
+
+[49:27] (He Xiaopeng) **Fifty billion in annual R&D demands five trillion in revenue to sustain** — In the AI era, a car company needs at least 50 billion yuan in annual R&D—roughly 30 billion in AI, 20 billion in hardware and software. Working backward from the industry median of R&D at 10% of revenue, that requires 5 trillion in annual sales—independent brand revenue only, excluding joint ventures. Few Chinese automakers qualify; XPeng did 40 billion last year.
+
+[54:29] (He Xiaopeng) **Kill the hardware bet early—before delivery is catastrophic, after is worse** — When He joined XPeng, his first move was scrapping the car in development and starting over. He argues that moving the internet playbook—rapid iteration, obsessive polish—into hardware feels doable but deceives. Hardware can't recover from mistakes the way software can with patches. His rule: the moment you know direction is wrong, cut before handover means a big loss; cutting after means catastrophe. Kill what you think is wrong as soon as possible, even if morale tanks.
+
+[1:00:35] (He Xiaopeng) **Hiring great people and stepping back works for software, not for cars** — Early on, He ran XPeng as chairman thinking he didn't need to grind—hire great talent, delegate, move on. Natural for someone from venture capital. But that playbook breaks in auto. Information filters up through layers; you end up the last person in the company to know what's true. That's why he later switched to hands-on management of frontline operations.
+
+[2:00:05] (He Xiaopeng) **When performance drops, that's when bold personnel changes feel most earned** — About 90% of XPeng's top managers cycled in just over a year, yet stayed calm because most left gracefully, stock in hand. He makes a counterintuitive point: when a company fails, founders usually freeze on personnel moves, but doing them decisively then—the worse the situation, the more you dare move, the more readily they accept it. Bad numbers give you the opening for the conversation.
+
+[2:24:21] (He Xiaopeng) **After G9, he nearly stepped down—then stayed because retreat wasn't an option** — After the G9 launch failed in late 2022, He spent months working backward to find the root cause—and found himself. He seriously considered stepping down; the company had grown to over 10,000 people, and staying felt unfair. But swapping leaders might not help, and he had no exit, so he stayed. By his estimate, companies like XPeng need two to three years to climb out of that hole.
+
+[2:29:29] (He Xiaopeng) **Most companies say AI matters; real commitment shows in deployed capital and results** — At an AI industry panel, He asked the room who was doing foundation model pretraining. Three or four hands out of hundreds. Most carmakers haven't even fine-tuned—they license and relabel. Even China's top cloud companies rarely run heavy AI training on their own infrastructure. His conclusion: when companies say AI is a priority, it's theater. Real prioritization shows in capital spent, time deployed, and results delivered.
+
+[2:44:41] (He Xiaopeng) **AI code cuts output 22% but review adds 20% back—the gain comes at 50%** — XPeng uses AI heavily for coding and does see about 22% efficiency gains—but review cycles, tool onboarding, and automated testing add back roughly 20%, netting a loss so far. Not unique to XPeng; across the industry, labor-heavy companies break even or lose. He sees it differently: not a failure, but a threshold. Cross 50% efficiency and the math flips to pure gain. So deploy the tools now; don't wait for the numbers to work.
+
+### verbatim quotes
+
+[35:19] He Xiaopeng: "If you want to ruin a brother, tell him to build cars—it's brutal."
+    original (zh): 我说如果你想害一个哥 你就劝他去造车 因为太苦了
+
+[55:29] He Xiaopeng: "From a project management angle, you should always kill something you think is wrong as early as you can."
+    original (zh): 我自己从一个项目管理角度来看 你永远应该 尽早把一个你觉得不对的事情干掉
+
+[1:01:37] He Xiaopeng: "I never stopped to ask why they could stop at a hundred thousand units. I just thought, everyone's saying it, and they're seniors, so it must be right."
+    original (zh): 我心里当时也没有去分析 嗯 为什么他们做到十万台就可以了 反正就觉得既然大家都这么说 因为他们都是前辈
+
+[2:03:10] He Xiaopeng: "A lot of founders and CEOs, the worse things get, the less you dare move people. But that's backward. Be more decisive when things are bad, and they're actually more likely to accept it."
+    original (zh): 很多的时候 有很多的创始人或者CEO 你越差他越不敢动 但错了 你越坚决 他有可能越适合
+
+[2:25:21] He Xiaopeng: "Then you think the best solution is soul side. I don't mean soul side in the physical sense—I mean you shouldn't be running this company. You should give up the seat."
+    original (zh): 然后你觉得解决问题最好方法是soul side。 我讲的soul side不是那种物理意义的soul side,是指这个企业不应该归你管。 这个位置不要坐了。
+
+### figures
+
+- XPeng annual R&D target: 50 billion yuan (approximately 30 billion in AI, 20 billion in hardware and software) [49:27]
+- XPeng custom AI chip compute: 2250 Tops (three to ten times the industry average) [1:28:54]
+- AI coding efficiency impact: Reduces work by approximately 22%, but review and testing add back approximately 20% [2:44:41]
+- Time to recover from G9 crisis: Approximately 18 months [2:27:25]
+- Flying car cumulative funding: Seven to eight hundred million dollars [1:45:59]
+- Flying car target safety redundancy: Three thousand times higher than civil aviation safety standards [1:50:03]
+
+### glossary
+
+- soul side: He Xiaopeng's self-coined term for stepping back from leadership after realizing you're the core problem—not physical departure, but accepting you shouldn't run the company anymore.
+- Tops: Trillion operations per second; the unit of measurement for AI chip computing capacity.
+
+who it is for: Founders, investors, and product managers tracking where China's EV shakeout stands and the true cost of AI R&D and organizational restructuring.
+what to skip: Skip the first 25 minutes—UC startup memories and brand-naming stories are biographical filler with low information density.
+tags: EV startups, AI R&D investment, Organizational change, Autonomous driving, Robotics, Flying cars
+
+==============================================================================
+
+## Li Xiang: What top founders share is not picking right, but inhumanely-high iteration speed
+
+- URL: https://ourword.ai/podcast/en/p/2025-08-19-cn2d7912-李想-顶级企业家共同点不是选得准-而是反人性高频迭代/
+- show: 罗永浩的十字路口 (https://ourword.ai/podcast/en/s/cn2d7912/)
+- original episode: 李想×罗永浩！四小时马拉松访谈！李想首度公开讲述 25 年创业之路
+- published: 2025-08-19 · duration: 3:56:41
+- transcript: Machine transcription · 66748 words · timestamps are exact
+- verification: 8 quotes matched verbatim, 9 numbers traced to the transcript, review score 8/10
+
+**He says that picking the right category and persisting long-term are just entry-level skills for top founders—what actually separates them is the inhumanely fast iteration speed practiced by Nvidia, Bytedance, and Meituan.**
+
+why listen: Four hours on Li Xiang's darkest moments building Ideal for ten years—technical decisions, capital desperation, orchestrated black PR, and a shareholder coup—told with rare specificity.
+
+### points
+
+[27:15] (Li Xiang) **Reframe college as a choice problem, not a right-or-wrong problem** — Li Xiang's monthly income at 18 was ten times his parents'. Rather than argue over whether he should attend university, he reframed the question as a choice between college and entrepreneurship, forcing his parents to weigh trade-offs instead of issuing commands. He showed them bank records proving he could support himself. The reframe worked—they let him go.
+
+[1:06:36] (Li Xiang) **Only two organizational models win globally; he is building a third** — The world's winning organizations fall into two categories: those built on strict process (Huawei, IBM) for complex products where any broken link fails the whole system, and those built on high talent density plus simple tools (Bytedance, Google) for platforms and models. Li Auto tries something different—treating talent density as the body and validated best practices as tools, not structure, to handle both supply-chain complexity and AI software simultaneously.
+
+[1:31:49] (Li Xiang) **Range anxiety forced the counterintuitive choice of extended-range hybrid** — Industry consensus held that extended-range was backward. Li Xiang's decision didn't come from market research—it came from real experience. Driving a Model S to a lakeside resort, he encountered a broken charging station; he barely limped back on downhill momentum. His team resisted, wanting a pure plug-in hybrid instead. He showed them Nissan's e-power, which uses less than one kilowatt-hour and drives extended-range the entire way, yet feels as smooth as a pure electric. That proof convinced them.
+
+[1:36:51] (Li Xiang) **The investor he'd rejected a year earlier rescued him from fundraising ruin** — During Ideal One's production phase, Li Xiang met 150 investors. None committed. Tesla's valuation had crashed to $30 billion, NIO's stock had fallen from 6-7 yuan to around 1 yuan, and the sector was in free fall. Li Xiang was so ill he needed an hour on an airport lounge chair before each meeting. Wang Xing (Meituan founder) had once asked to invest; Li Xiang refused, wanting to avoid Didi's control. This time, Li Xiang simply chatted with him—never asking for money, only discussing value. Wang Xing spontaneously offered 300 million yuan.
+
+[2:03:02] (Li Xiang) **His five-million-yuan luxury-car claim came from test-driving, not positioning** — Li Xiang's claim that the Ideal One was "the best family SUV under 5 million yuan" drew fire from reviewers. The genesis wasn't marketing strategy—it was empiricism. He test-drove cars worth 3 to 10 million yuan owned by industrialists he knew, and found them disappointing. He concluded that at that price point, a car solves social identity problems, not transportation. Wealth simply signals status (e.g., stranger approach at nightclubs). This insight later became L9 marketing copy.
+
+[2:17:06] (Li Xiang) **Competitors orchestrated the Mega 'coffin car' scandal, not grassroots criticism** — After three years in development, the Ideal Mega launched into coordinated "coffin car" attacks. The design team was devastated; some urged an immediate redesign. Li Xiang assessed it as orchestrated black PR—he knows people arrested for similar campaigns. Modern black PR no longer relies on extortion; it monetizes traffic itself, and many operators aren't even from the car industry. The Mega did have genuine issues: the interior copied the L series with no new experience and higher pricing. He fixed it later with a rotating seat and price cuts, but never directly rebutted the coffin car narrative.
+
+[2:44:23] (Li Xiang) **Top founders don't succeed by picking right; they win through inhumanely frequent iteration** — Li Xiang identifies three traits among top founders he's observed. First two are obvious: picking the right category, and persisting long-term. The third is completely inhuman—facing real market feedback at extreme frequency. Huang Renxun releases one GPU generation per year while competitors do one every three. Bytedance runs dozens of parallel versions. Meituan adjusts operations so frequently outsiders never see it. This is reinforcement learning: pretraining matters, but growth comes from constant real-world iteration.
+
+[3:11:37] (Li Xiang) **A shareholder coup taught him that asking for help matters more than dying alone** — In 2008, three minor shareholders—one had just borrowed from Li to buy a house—cornered him in a teahouse, demanding he and co-founder Fanzhen resign, keeping only 15% equity. They blamed cash-flow decline after hiring Qin Zhi and blamed failed fundraising. An angel investor backed Li and stopped them. Weeks later, the ringleader revealed the real reason: Li had been grinding alone, never consulting the team, making everyone feel disposable. This taught Li two lessons: tell core management immediately when trouble hits, and stop punishing himself to isolation.
+
+### verbatim quotes
+
+[27:15] Li Xiang: "I didn't argue with my parents about whether to go to college. I asked them: college or starting a business? I turned it into a choice problem, not a right-or-wrong problem."
+    original (zh): 我并没有跟父母在讨论是否上大学这件事 我跟父母讨论的是上大学还是创业这个事 就是跟父母一起来做个选择题 不是做个对错题
+
+[1:07:37] Li Xiang: "There are only two successful organizational models in the entire world. One has extremely strict process—because the category is complex, it's bottleneck theory."
+    original (zh): 全世界的组织方式最成功的就两大类 嗯 这个一大类是有特别严格的流程 对吧 因为可能他这个品类很复杂是个木桶理论
+
+[1:34:50] Li Xiang: "I showed them something completely different: Japan's best-selling car is Nissan's e-power, which uses an extended-range structure. It uses less than one kilowatt-hour, can't drive purely electric—pure extended-range the whole way."
+    original (zh): 我向他们 让他们看了一件事情 其实完全不一样 就是在日本销量最好的车 是日产的e-power 用的是增程结构 但是它用的是一个 不到一度电的 然后不能纯电驱动的 纯粹的一个增程结构 全程都要增程
+
+[1:43:53] Li Xiang: "After I was done, I didn't ask him for anything—just chatted casually. We'd meet at the hotel lobby during lockdown when many places were closed. I didn't bring up funding. Then at the end he just said, 'Can I invest?' I was shocked."
+    original (zh): 然后讲完以后 我都没找他要通知 我只是找他聊一聊 而且我们聊的地方 就是经常在那遇到你 就是那个 什么饭馆 凯越 在房间凯越 酒店大堂 然后跟他聊的 对吧 因为那时候疫情 你知道聊的就是 然后很多地方去不了 我都没提 他最后来就说 我能投你们吗 我当时就惊了
+
+[2:03:02] Li Xiang: "Later I looked it up myself online, did the research. When a car costs several million yuan, it's not solving a transportation problem at all—it's solving a completely different kind of problem."
+    original (zh): 然后后来我自己甚至上网 动手找答案 看了一些东西 然后大概意思是说 就一个车很不正常的 卖到几百万以后呢 它解决的根本不是交通工具问题 它是解决其他的功能问题
+
+[2:19:07] Li Xiang: "Now they're just using you for clicks. They monetize the traffic itself, so they're not even necessarily from the car industry."
+    original (zh): 现在是拿你做流量 靠别的 靠流量变现去了 因为流量是本身就可以变现了 所以他也不一定是 很多都不是汽车行业的
+
+[2:45:23] Li Xiang: "Look at Huang Renxun—most people can't do this, absolutely can't. When I was in graphics cards, it was obvious: he releases a new generation every year; competitors do one every three years."
+    original (zh): 然后你看包括黄仁勋 然后因为 这个应该是绝大多数人做不到的 完全做不到 我做显示卡的时候就很明显 就是他一年一代产品 别人三年一代产品
+
+[3:16:37] Li Xiang: "He said, 'You were always grinding alone. While you were grinding, we felt like you thought we didn't matter. We fought through this with you. You weren't trying to build together with us. You stopped consulting us on any problems.'"
+    original (zh): 他说你老一个人死扛 然后在你死扛的时候 我们最大感觉就是你觉得我们不重要了 我们跟你一起拼过来的 你没有试图跟他们一起共同成的 你遇到任何困难都不跟我们商量了
+
+### figures
+
+- Monthly income at 18 compared to parents: Over 20,000 yuan, roughly 10× their income [20:16]
+- First computer price: 8,000 yuan [6:10]
+- Telecom Australia's stake in Autohome: 55% [49:25]
+- Ideal One lifetime sales and revenue: 200,000 units, roughly $10 billion [2:10:02]
+- Tesla valuation during funding crisis: Dropped to $30 billion [1:36:51]
+- NIO stock price during funding crisis: Fell from 6-7 yuan to around 1 yuan [1:36:51]
+- Investors Li Xiang met during Ideal One fundraising: 150 [1:36:51]
+- Wang Xing's investment in Ideal: 3 billion yuan [1:44:53]
+- Autohome's 2013 IPO launch and first-day gain: $13 IPO price, rose to over $30 on day one [3:23:39]
+
+### glossary
+
+- GTD: Task-priority time management: A system centered on listing tasks and ranking by priority.
+- PHEV: Plug-in hybrid: A hybrid where the engine drives the wheels directly, not just powering a generator.
+- e-power: Nissan's extended-range system: The engine only powers a generator; it cannot drive the wheels directly.
+
+who it is for: Founders and investors interested in how repeat entrepreneurs design organizations, make technical choices, and navigate brand and PR decisions.
+what to skip: 1:50-2:02, detail on luxury car reviews and different model pricing—doesn't affect the main arguments.
+tags: Founder tactics, Org design, Extended-range tech, Fundraising, Brand PR
 
 ==============================================================================
 

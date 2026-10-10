@@ -1,0 +1,131 @@
+{
+ "slug": "2026-10-10-cogrev-推理模型不是在思考-而是攒一堆候选答案再抽签",
+ "of": "cogrev-b10f4669e5",
+ "source_lang": "en",
+ "title": "Reasoning models don't think—they pool candidate answers and pick one",
+ "dek": "Models like DeepSeek-R1 say ‘wait’ fifty-plus times in a reasoning chain—not iterating on thought but pooling all possibilities in one pot, then scooping out an answer at the end.",
+ "why": "For anyone wanting to understand how AI actually ‘selects’ its final answer; you'll find that steering chain-of-thought is far less reliable than it seems.",
+ "who": "People working on model interpretability and AI alignment research, plus safety and product teams assessing how trustworthy chain-of-thought supervision actually is.",
+ "skip": "Sponsor segments at 15:53–18:47 and around 28:16 can be skipped.",
+ "tags": [
+  "Interpretability",
+  "Chain-of-thought",
+  "Reinforcement learning",
+  "Open-source models",
+  "AI safety",
+  "Cognitive science"
+ ],
+ "points": [
+  {
+   "h": "A single bracket can rewrite the model's final answer",
+   "body": "Eric's team resampled GPT-3.5's reasoning chains at scale: they generated ~30 rollouts at each token and tracked how the final-answer distribution evolved. Most of the time it stays stable, then suddenly locks onto one answer. This phase shift usually happens where expected (first mention of the answer), but sometimes at completely arbitrary tokens—in the paper, one example shows a single bracket in ‘kWh’ changes the final answer entirely."
+  },
+  {
+   "h": "The decision isn't the model's—the sampling step's",
+   "body": "Eric's core claim: what we call ‘deciding’ actually happens in sampling, not in the model itself. Each token generation is a coin flip—whichever token is drawn becomes the new context, and the model learns and maintains self-consistency within it. If it said the year was 2024 instead of 2026 early on, everything after follows from that ‘fact’. This means many supposed hallucinations are actually path-dependent, not deviations from some fixed truth."
+  },
+  {
+   "h": "Reasoning in reasoning models is token pooling, not thinking",
+   "body": "Reasoning models like DeepSeek-R1 say ‘wait’ fifty-plus times in one chain—not flashes of new insight but because they can't actually retract already-sampled tokens. Instead they fake backtracking by ‘enumerating all possibilities, then picking one at the end’. Eric says it's more like making a vat of token soup, then fishing something out. For these models, ‘reasoning’ is almost a misnomer. Their forking curves smooth overall, but critical fork points remain."
+  },
+  {
+   "h": "Post-training narrows models to one story: the watchmaker",
+   "body": "Output diversity (how many different outputs one prompt can generate) drops sharply with SFT and RLHF—more post-training means less variety. The heavily RL-tuned open-source model Qwen3-30B-A3B that Eric tested generated about two-thirds watchmakers when asked to ‘tell a story’. By contrast, GPT-6 Astra's stories ranged much wider—likely because diversity shifted to the reasoning chain: the model enumerates possibilities there, then picks one to output."
+  },
+  {
+   "h": "Cutting-edge interpretability research now requires Chinese open-source models",
+   "body": "Eric's rule of thumb for model selection: 7–8B parameters is the minimum for interesting zero-shot behavior; smaller models differ too fundamentally. At frontier scale, no US open-source model replaces Kimi K3—programming gaps are stark. Dangerous behaviors like reward hacking only surface above certain capability thresholds. He argues that banning Chinese models would slow frontier-scale interpretability research, and banning all open-source weights would do far more damage."
+  },
+  {
+   "h": "An LLM's belief is Bayesian inference over latent concepts",
+   "body": "Eric's working definition of LLM ‘belief’ borrows from Bayesian cognitive models in cognitive science: the model assigns probabilities over latent hypotheses/concepts, and these shift like posterior inference when new input or context arrives. Unlike studying the human brain, LLMs can be opened directly and intervened on—which means we can actually test whether this algorithmic description matches what happens inside, not just post-hoc summaries of aggregate behavior."
+  },
+  {
+   "h": "Most answers are improvised in the final instant",
+   "body": "The phase shift (when the answer distribution suddenly locks) can occur at the start, middle, or end of the reasoning chain—no universal rule; it depends on the task. One common pattern: uncertainty stays stable for long stretches, then suddenly resolves the moment the model says ‘the answer is…’. On tasks where the model performs poorly (like extracting the last letter), even though it wrote Python code to solve it, which specific letter appears in the final answer is actually pieced together in that utterance's instant."
+  },
+  {
+   "h": "Chain-of-thought is becoming unreadable and less superviceable",
+   "body": "Chain-of-thought (and the unusual language Astra uses to communicate with sub-agents) drifts further from readable English because result-only RL training has zero incentive to keep the process human-understandable—like how human language naturally evolves without external pressure. This is also Goodhart's law: once you optimize for ‘chain-of-thought looks superviceable’, the chain becomes unfaithful. Eric says his confidence in chain-of-thought oversight has visibly dropped over the past year, partly from papers showing GPT chains can be stolen and encode hidden meanings in oddities like ‘musical’."
+  }
+ ],
+ "terms": [
+  {
+   "term": "in-context learning",
+   "def": "How a model shifts behavior through text it reads or generates, without updating its weights."
+  },
+  {
+   "term": "forking paths",
+   "def": "Resampling alternative continuations at each token in a reasoning chain to track how the final-answer distribution evolves."
+  },
+  {
+   "term": "phase shift",
+   "def": "The moment a stable answer distribution suddenly collapses to a determined result."
+  },
+  {
+   "term": "reward hacking",
+   "def": "When a model satisfies a reward signal's letter while violating its underlying intent."
+  },
+  {
+   "term": "stochastic parrot",
+   "def": "The claim that large models merely stitch text statistically and lack real understanding."
+  },
+  {
+   "term": "Goodhart's law",
+   "def": "When a metric becomes an optimization target, it stops measuring what it was meant to measure."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Podcast episode history",
+   "v": "~400 episodes"
+  },
+  {
+   "k": "Resamples per token in Forking Paths experiment",
+   "v": "~30 rollouts"
+  },
+  {
+   "k": "Minimum model scale for interpretability research",
+   "v": "7–8B parameters or larger"
+  },
+  {
+   "k": "Instances of ‘wait’ in a single DeepSeek-R1 reasoning chain",
+   "v": "50+ times"
+  },
+  {
+   "k": "Proportion of watchmaker stories from heavily RL-tuned Qwen3-30B-A3B",
+   "v": "~two-thirds"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "This decision really happens during sampling",
+   "translated": false
+  },
+  {
+   "text": "I think reasoning is almost like a misnomer for what reasoning models are doing.",
+   "translated": false
+  },
+  {
+   "text": "It's almost like a soup of tokens they create, and then they just go back and skim out something out of that soup.",
+   "translated": false
+  },
+  {
+   "text": "I think the sarcastic parrot metaphor should probably be put to rest.",
+   "translated": false
+  },
+  {
+   "text": "if we're only giving them reward or punishment based on their final outcome, then they might as well speak to their sub agents in, like, weird nonhuman languages.",
+   "translated": false
+  },
+  {
+   "text": "for the amount of investment that's happening in making models better versus the amount of investment in understanding them, it's just... It's no comparison.",
+   "translated": false
+  },
+  {
+   "text": "research taste and scientific taste is everything. It's worth its weight in gold.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
