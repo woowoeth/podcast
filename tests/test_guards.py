@@ -11323,6 +11323,26 @@ class ReviewSeesWhereAClaimWasReallySaid(unittest.TestCase):
         d = {"points": [{"t": 5010, "h": "胡子腿毛都是资源", "body": "医生说植发时连胡子、腿毛都能算作移植的资源"}], "quotes": []}
         self.assertNotIn("按内容找到的出处", R._evidence(self._tr(), d), "时间点本来就对，又塞了一段多余的")
 
+    def test_the_reviewer_gets_the_whole_transcript_when_it_fits(self):
+        """按内容补出处之后，三四个小时的集仍被判「原文找不到」（郑执：高圆圆、乔山、宋小宝都在全文里）。
+        全文放得下就整篇给评审；放不下才回到按引用点取窗口。"""
+        import unittest.mock as mock
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib import review as R
+        tr = self._tr()
+        tr["segments"][700] = {"t": 7000, "text": "高圆圆那次来片场 乔山和宋小宝都在"}   # 没有任何要点引用这里
+        d = {"points": [{"t": 1000, "h": "片场", "body": "高圆圆来片场，乔山、宋小宝都在"}], "quotes": []}
+        seen = {}
+        def fake(system, user, **kw):
+            seen["user"] = user
+            return {"score": 8, "dims": {}, "verdict": "过", "why": "", "worst": ""}
+        with mock.patch.object(R.llm, "available", lambda: True), mock.patch.object(R.llm, "call_json", fake):
+            R.check(d, tr, {"title": "t", "duration": 3 * 3600}, {"name": "x"})
+            self.assertIn("宋小宝", seen["user"].replace(" ", ""), "全文放得下却没给评审 —— 写对的细节还会被判成编造")
+            with mock.patch.object(R, "FULL_TEXT_MAX", 1000):
+                R.check(d, tr, {"title": "t", "duration": 3 * 3600}, {"name": "x"})
+                self.assertNotIn("全文逐字稿", seen["user"], "超长的也整篇塞进去了")
+
     def test_long_episodes_get_a_bigger_budget(self):
         sys.path.insert(0, str(ROOT / "pipeline"))
         from lib import review as R

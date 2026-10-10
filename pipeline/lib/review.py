@@ -34,6 +34,11 @@ EVIDENCE_CHARS = 6000
 # 「请举手」「腿毛……移植」「把外卖给机器人送上来」都在全文里，成稿评分照样给 5 分拦下）。
 EVIDENCE_SHARE = 0.3
 EVIDENCE_CAP = 16000
+# 全文不超过这么多字就**整篇**给评审，不再抽窗口。按内容补出处（_evidence）之后，三四个小时的集
+# 仍然被判「原文找不到」：郑执那集的高圆圆、乔山、宋小宝、螃蟹，王晶那集的新闻局、金像奖提名，
+# 贾樟柯那集的七遍、木头、两万，全在全文里（2026-10-10，四集都是三次判死出局）。评审是最便宜的
+# 模型，一集五万字的输入，比每误杀一次就整篇重写一遍便宜得多。
+FULL_TEXT_MAX = int(os.environ.get("REVIEW_FULL_TEXT_MAX", "90000"))
 SWEEP_CHARS = 4000   # 另外均匀抽取全篇，让"有没有漏掉更值钱的"这条有据可依
 
 SYSTEM = """你是这个中文播客深读站的审稿人。你的唯一职责是把不够好的稿子拦下来，
@@ -202,6 +207,23 @@ def _evidence(tr: dict, d: dict) -> str:
     return "\n\n".join(out)
 
 
+def _full_text(tr: dict) -> str:
+    """整篇逐字稿，每分钟一段、带时间戳 —— 评审可以逐条核对，不靠抽样。"""
+    segs = tr.get("segments") or []
+    out, cur, start = [], [], None
+    for s in segs:
+        t = int(s.get("t") or 0)
+        if start is None:
+            start = t
+        if t - start >= 60 and cur:
+            out.append(f"[{hhmmss(start)}] {squeeze(' '.join(cur))}")
+            cur, start = [], t
+        cur.append(s.get("text") or "")
+    if cur:
+        out.append(f"[{hhmmss(start)}] {squeeze(' '.join(cur))}")
+    return "\n".join(out)
+
+
 def _draft(d: dict) -> str:
     L = [f"标题：{d.get('title')}", f"导语：{d.get('dek')}", f"为什么听：{d.get('why')}", ""]
     L.append("要点：")
@@ -226,6 +248,14 @@ def check(d: dict, tr: dict, ep: dict, src: dict) -> dict | None:
     """返回 {"score","dims","verdict","why","worst"}；模型不可用时返回 None。"""
     if not llm.available():
         return None
+    total = sum(len(s.get("text") or "") for s in (tr.get("segments") or []))
+    if 0 < total <= FULL_TEXT_MAX:
+        user = (f"节目：{src.get('zh') or src['name']}\n原集标题：{ep.get('title')}\n"
+                f"时长：{hhmmss(ep.get('duration'))}\n\n"
+                f"=== 成稿 ===\n{_draft(d)}\n\n"
+                f"=== 证据：全文逐字稿（机器转写，带时间戳，可能有同音错字；成稿写的内容在这里能找到就不算编造，"
+                f"时间标偏一两分钟不算错）===\n{_full_text(tr)}\n\n{SCHEMA}")
+        return _ask(user)
     ev = _evidence(tr, d)
     sw = _sweep(tr)
     user = (f"节目：{src.get('zh') or src['name']}\n原集标题：{ep.get('title')}\n"
@@ -237,6 +267,10 @@ def check(d: dict, tr: dict, ep: dict, src: dict) -> dict | None:
             f"=== 证据二：全篇等距抽样（判断有没有漏掉更值钱的；"
             f"这不是全文，抽样之外的内容不构成遗漏指控）===\n"
             f"{sw or '（拿不到）'}\n\n{SCHEMA}")
+    return _ask(user)
+
+
+def _ask(user: str) -> dict | None:
     try:
         r = llm.call_json(SYSTEM, user, max_tokens=900, temperature=0.1,
                           retries=1, role="review")
