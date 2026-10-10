@@ -24,7 +24,8 @@ set -u
 # 要是正好改了这个文件，正在跑的这一份会从半截读到新内容、做出说不清的事。
 if [ -z "${BACKFILL_COPY:-}" ]; then
   export BACKFILL_REPO="$(cd "$(dirname "$0")/.." && pwd)"
-  _copy="$(mktemp -t backfill-source)"
+  # 模板里要有 X：GNU mktemp（CI 的 Linux）不认 BSD 的 `mktemp -t 前缀`，直接报错
+  _copy="$(mktemp "${TMPDIR:-/tmp}/backfill-source.XXXXXX")"
   cp "$0" "$_copy"
   BACKFILL_COPY=1 exec bash "$_copy" "$@"
 fi
