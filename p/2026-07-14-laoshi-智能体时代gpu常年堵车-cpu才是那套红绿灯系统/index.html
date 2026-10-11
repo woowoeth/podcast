@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>智能体时代GPU常年堵车，CPU才是那套红绿灯系统 — 老石谈芯 · 原声</title>
+<meta name="description" content="智能体把AI工作方式从并行概率预测变成串行任务执行，GPU因为缺乏分支预测和乱序执行能力而频繁空转，CPU的逻辑调度能力因此成了数据中心新的稀缺资源。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/p/2026-07-14-laoshi-智能体时代gpu常年堵车-cpu才是那套红绿灯系统/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原声">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="智能体时代GPU常年堵车，CPU才是那套红绿灯系统 — 老石谈芯 · 原声">
+<meta property="og:description" content="智能体把AI工作方式从并行概率预测变成串行任务执行，GPU因为缺乏分支预测和乱序执行能力而频繁空转，CPU的逻辑调度能力因此成了数据中心新的稀缺资源。">
+<meta property="og:url" content="https://ourword.ai/podcast/p/2026-07-14-laoshi-智能体时代gpu常年堵车-cpu才是那套红绿灯系统/">
+<meta property="og:image" content="https://ourword.ai/podcast/assets/cover/5956a359adfacff7.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-07-14T04:26:55Z">
+<meta property="article:modified_time" content="2026-10-11T14:16:10Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="智能体时代GPU常年堵车，CPU才是那套红绿灯系统 — 老石谈芯 · 原声">
+<meta name="twitter:description" content="智能体把AI工作方式从并行概率预测变成串行任务执行，GPU因为缺乏分支预测和乱序执行能力而频繁空转，CPU的逻辑调度能力因此成了数据中心新的稀缺资源。">
+<meta name="twitter:image" content="https://ourword.ai/podcast/assets/cover/5956a359adfacff7.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原声" href="/podcast/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-07-14-laoshi-智能体时代gpu常年堵车-cpu才是那套红绿灯系统/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-07-14-laoshi-智能体时代gpu常年堵车-cpu才是那套红绿灯系统/">
+<link rel="alternate" hreflang="en" href="https://ourword.ai/podcast/en/p/2026-07-14-laoshi-智能体时代gpu常年堵车-cpu才是那套红绿灯系统/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-07-14-laoshi-智能体时代gpu常年堵车-cpu才是那套红绿灯系统/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=6982a60148">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-07-14-laoshi-智能体时代gpu常年堵车-cpu才是那套红绿灯系统/#episode", "name": "智能体时代GPU常年堵车，CPU才是那套红绿灯系统", "headline": "智能体时代GPU常年堵车，CPU才是那套红绿灯系统", "description": "智能体把AI工作方式从并行概率预测变成串行任务执行，GPU因为缺乏分支预测和乱序执行能力而频繁空转，CPU的逻辑调度能力因此成了数据中心新的稀缺资源。", "abstract": "智能体把AI工作方式从并行概率预测变成串行任务执行，GPU因为缺乏分支预测和乱序执行能力而频繁空转，CPU的逻辑调度能力因此成了数据中心新的稀缺资源。", "datePublished": "2026-07-14T04:26:55Z", "dateModified": "2026-10-11T14:16:10Z", "url": "https://ourword.ai/podcast/p/2026-07-14-laoshi-智能体时代gpu常年堵车-cpu才是那套红绿灯系统/", "timeRequired": "PT22M", "partOfSeries": {"@type": "PodcastSeries", "name": "老石谈芯", "url": "https://ourword.ai/podcast/s/laoshi/"}, "inLanguage": "zh-CN", "isBasedOn": "https://www.youtube.com/watch?v=LTOe_QScVQw", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "CPU, 智能体, AI基础设施, 英特尔, x86生态, 推理算力, KV Cache, RAS, AMX, PD分离, RDMA, IDC预测2031年活跃智能体数量, IDC预测2026-2027年中国活跃智能体数量增速, 至强6 Clearwater Forest单芯片能效核数, 英特尔方案单机柜CPU算力密度, 云箭科技机柜CPU核心数, 云箭科技机柜可运行轻量Agent数量", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}}, {"@type": "Article", "@id": "https://ourword.ai/podcast/p/2026-07-14-laoshi-智能体时代gpu常年堵车-cpu才是那套红绿灯系统/#deepread", "headline": "智能体时代GPU常年堵车，CPU才是那套红绿灯系统", "description": "智能体把AI工作方式从并行概率预测变成串行任务执行，GPU因为缺乏分支预测和乱序执行能力而频繁空转，CPU的逻辑调度能力因此成了数据中心新的稀缺资源。", "articleBody": "智能体把AI工作方式从并行概率预测变成串行任务执行，GPU因为缺乏分支预测和乱序执行能力而频繁空转，CPU的逻辑调度能力因此成了数据中心新的稀缺资源。\n[1:01] 聊天像点餐，智能体像办一桌席。聊天AI的流程是一问一答：输入提示词，模型预测下一个词，整个过程像食堂点餐——说要牛肉面，阿姨直接盛一碗。这种单步并行的概率计算，正好是GPU用上百个计算核心和TensorCore做矩阵乘法的强项。但智能体不一样：给它一个调研任务，它要自己拆解步骤、上网搜资料、写代码、查bug、改方案，复杂时还会派生子智能体分工——像让阿姨自己列菜单、指挥后厨做一桌麻辣香锅加烧烤。工作方式从单步并行变成了多步串行。\n[3:03] GPU堵车了，CPU才是红绿灯。智能体的任务里充满条件判断和异常处理，需要不断切换逻辑、一环扣一环地串行执行，这恰恰戳中GPU的架构短板——GPU天生擅长同时做成千上万件简单重复的事，却缺少处理复杂逻辑的能力，流水线一旦被打断，海量计算单元就只能闲置等待，这被称为「算力交通管制」。CPU核心数量虽少，但每个核心都有庞大的分支预测电路和乱序执行引擎，专门处理这种条件判断和任务调度，甚至能提前预测下一步走向。\n[6:03] 喂饱GPU，靠堆CPU核心密度。当成千上万个智能体同时工作、需要无缝给GPU喂数据时，算力提供商的解法是在数据中心大幅增加CPU核心密度——相当于多雇些人备菜，让GPU这个大厨一直有活干。英特尔至强6 Clearwater Forest单颗芯片集成最多288个能效核，一台两路服务器能提供2304个核心，单机柜算力密度可达46080个核心；云箭科技的整机柜（36U，每U最多装6颗CPU）配合至强6 Plus能支持六万多个核，理论上可同时运行24万个轻量级Agent。\n[8:05] 推理超过训练后，CPU成瓶颈。2025年大模型推理带来的算力需求已占AI算力总需求的半壁江山，2026年这一比例还会提升到2/3。但推理阶段单个请求的运算量其实不大，真正的性能瓶颈转移到了时延敏感的杂活上——序列化反序列化、KV cache缓存管理、提示词组装、检索增强生成的路由调度，这些脏活累活全部靠CPU完成。Gary把这个差异总结为：GPU解决的是「智能的程度」，CPU解决的是「智能的密度」。\n[11:08] AI工厂不是一台机器，是三台。AI基础设施正从粗放堆硬件的算力仓库，重构成以CPU为调度大脑的「智能工厂」：一台是GPU服务器负责生成Token；一台是高密度CPU集群，专门承载成千上万甚至上百万个跑在CPU上的智能体；还有一台高性能存储服务器，负责暂存GPU推理产生的KV cache——下次遇到类似问题可以直接调出已经算好的结果，不用重新计算。三台机器的公约数，都是强大的处理器。\n[12:09] 算力存力连接力保障力，CPU全占。Gary把AI工厂的硬指标拆成四块：算力——CPU要做机头给GPU喂数据，至强6 Plus靠AMX直接做AI数据预处理和向量加速；存力——KV cache膨胀后HBM显存装不下，就要卸载到CPU内存或存储系统，这个过程被比作《哈利波特》里邓布利多把记忆抽出来存进冥想盆；保障力——CPU的RAS特性能在内存颗粒出故障前预警、甚至修复比特错误；连接力——新一代E835网卡提供200G的RDMA连接，让CPU集群访问GPU和存储集群时速度最快。\n[18:12] CPU:GPU配比正逼近1比1。把算力、存力、连接力、保障力合在一起看，结论很直接：AI越复杂、智能体越多，CPU要干的活就越多。这也是为什么数据中心里CPU和GPU的比例正在从1比8，进化到1比4、1比2，甚至接近1比1——不是CPU变强到能替代GPU，而是为了维持整个数据通路不被GPU空转卡住，需要成倍增加CPU去配合。\n[19:12] 企业换架构，怕的不是性能是迁移。到2030年全球存量服务器里x86占比仍将高达80%，数量从2025年的6300万台涨到7600万台。Gary提到一个容易被忽略的事实：英特尔在PCIe 5.0这类新标准出来后，总是最先把和SSD、网卡的兼容性适配做完，系统厂商用x86做设计常常事半功倍，换其他架构则要在多个厂家之间反复沟通。对企业来说，换底层架构不是换个芯片那么简单，而是要让十几年积累的业务系统、开源组件、私有数据库全部重新编译测试，这个试错成本才是x86生态几十年积累下来的真正护城河。\n[0:00] 老石：「但你有没有想过，这智能体带来的这波CPU的爆发，到底是真趋势还是伪需求呢？」\n[3:03] 老石：「就好像一个城市只有极宽的高速公路，却没有红绿灯和交通指挥系统，当遇到复杂的交叉口时，所有车辆都会死死地堵在路上——我们就把它叫做智能体时代出现的「算力交通管制」现象。」\n[11:08] Gary：「那么为了产生Token，在这个「抽机」工厂里头，你可以想象有三台机器，三台巨大的机器：一台机器就是我们传统的、所谓GPU的服务器。」\n[14:11] Gary：「这有点像《哈利波特》里，邓布利多总会把一些记忆从脑子里抽出来，放到小瓶子里，需要的时候再放到冥想盆里去查看。」\n[20:14] 老石：「企业真正购买的从来都不只是一块冷冰冰的芯片，而是一整套能够确保业务稳定运行的生产环境。」\n[5:03] IDC预测2031年活跃智能体数量：3.5亿个\n[5:03] IDC预测2026-2027年中国活跃智能体数量增速：200%\n[6:03] 至强6 Clearwater Forest单芯片能效核数：288个\n[6:03] 英特尔方案单机柜CPU算力密度：46,080个核心\n[7:05] 云箭科技机柜CPU核心数：6万多个核\n[7:05] 云箭科技机柜可运行轻量Agent数量：24万个\n[8:05] 2026年大模型推理算力需求占比：2/3\n[18:12] 数据中心CPU:GPU配比演变：从1:8到1:4、1:2，甚至接近1:1", "wordCount": 1741, "inLanguage": "zh-CN", "datePublished": "2026-07-14T04:26:55Z", "dateModified": "2026-10-11T14:16:10Z", "url": "https://ourword.ai/podcast/p/2026-07-14-laoshi-智能体时代gpu常年堵车-cpu才是那套红绿灯系统/", "about": {"@id": "https://ourword.ai/podcast/p/2026-07-14-laoshi-智能体时代gpu常年堵车-cpu才是那套红绿灯系统/#episode"}, "isBasedOn": "https://www.youtube.com/watch?v=LTOe_QScVQw", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "isAccessibleForFree": true}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首页", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "老石谈芯", "item": "https://ourword.ai/podcast/s/laoshi/"}, {"@type": "ListItem", "position": 3, "name": "智能体时代GPU常年堵车，CPU才是那套红绿灯系统"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/"><span class="wordmark">原声<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<button class="pill ghost" id="lang-toggle" type="button" data-en="1" data-sc="繁體" data-tw="简体"></button>
+<button class="icon-btn" data-theme-toggle aria-label="切换深浅色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，来原声听播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/">首页</a><span class="sep">/</span>
+<a href="/podcast/c/ai/">AI / 技术</a><span class="sep">/</span><a href="/podcast/s/laoshi/">老石谈芯</a>
+<span class="sep">/</span><span>2026-07-14</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">老石谈芯</span>
+<time class="date" datetime="2026-07-14T04:26:55Z">2026-07-14</time>
+<button class="share-btn" type="button" data-share data-share-title="智能体时代GPU常年堵车，CPU才是那套红绿灯系统" data-share-url="https://ourword.ai/podcast/e/laoshi-033f958ff3/" data-share-text="智能体时代GPU常年堵车，CPU才是那套红绿灯系统&#10;老石谈芯 · 22 分钟 · 原声深读&#10;&#10;智能体把AI工作方式从并行概率预测变成串行任务执行，GPU因为缺乏分支预测和乱序执行能力而频繁空转，CPU的逻辑调度能力因此成了数据中心新的稀缺资源。&#10;&#10;https://ourword.ai/podcast/e/laoshi-033f958ff3/" aria-label="复制分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>智能体时代GPU常年堵车，CPU才是那套红绿灯系统</h1>
+<p class="dek-lead">智能体把AI工作方式从并行概率预测变成串行任务执行，GPU因为缺乏分支预测和乱序执行能力而频繁空转，CPU的逻辑调度能力因此成了数据中心新的稀缺资源。</p>
+<div class="ep-meta"><span class="tag">CPU</span><span class="tag">智能体</span><span class="tag">AI基础设施</span><span class="tag">英特尔</span><span class="tag">x86生态</span><span class="tag">推理算力</span></div>
+</div>
+<div class="player" data-player-box>
+  <button class="video-facade" data-yt="LTOe_QScVQw" type="button"
+          aria-label="播放原节目视频">
+    <span class="frame">
+      <img src="https://i.ytimg.com/vi/LTOe_QScVQw/hq720.jpg" alt="" loading="lazy" width="1280"
+           onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/LTOe_QScVQw/hqdefault.jpg'">
+      <span class="play" aria-hidden="true"><svg viewBox="0 0 44 44" width="44" height="44" focusable="false"><circle cx="22" cy="22" r="21" fill="rgba(18,16,13,.55)" stroke="rgba(255,255,255,.92)" stroke-width="1.5"/><path d="M17 14.5 32 22 17 29.5Z" fill="#fff"/></svg></span>
+    </span>
+  </button>
+</div>
+
+<section class="section"><div class="why">三层逻辑环环相扣：智能体的串行需求、AI工厂供给侧重构、x86生态护城河，信息密度高，但中段有两段转写乱码需要跳过。</div></section>
+
+<section class="section"><h2>核心论点 · 点时间戳可跳到原声</h2><div class="point" id="p0"><a class="ts" data-t="61" href="https://www.youtube.com/watch?v=LTOe_QScVQw&amp;t=61s" target="_blank" rel="noopener">1:01</a><div><h4>聊天像点餐，智能体像办一桌席</h4>
+<p class="body">聊天AI的流程是一问一答：输入提示词，模型预测下一个词，整个过程像食堂点餐——说要牛肉面，阿姨直接盛一碗。这种单步并行的概率计算，正好是GPU用上百个计算核心和TensorCore做矩阵乘法的强项。但智能体不一样：给它一个调研任务，它要自己拆解步骤、上网搜资料、写代码、查bug、改方案，复杂时还会派生子智能体分工——像让阿姨自己列菜单、指挥后厨做一桌麻辣香锅加烧烤。工作方式从单步并行变成了多步串行。</p>
+<span class="spk">— 老石</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="183" href="https://www.youtube.com/watch?v=LTOe_QScVQw&amp;t=183s" target="_blank" rel="noopener">3:03</a><div><h4>GPU堵车了，CPU才是红绿灯</h4>
+<p class="body">智能体的任务里充满条件判断和异常处理，需要不断切换逻辑、一环扣一环地串行执行，这恰恰戳中GPU的架构短板——GPU天生擅长同时做成千上万件简单重复的事，却缺少处理复杂逻辑的能力，流水线一旦被打断，海量计算单元就只能闲置等待，这被称为「算力交通管制」。CPU核心数量虽少，但每个核心都有庞大的分支预测电路和乱序执行引擎，专门处理这种条件判断和任务调度，甚至能提前预测下一步走向。</p>
+<span class="spk">— 老石</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="363" href="https://www.youtube.com/watch?v=LTOe_QScVQw&amp;t=363s" target="_blank" rel="noopener">6:03</a><div><h4>喂饱GPU，靠堆CPU核心密度</h4>
+<p class="body">当成千上万个智能体同时工作、需要无缝给GPU喂数据时，算力提供商的解法是在数据中心大幅增加CPU核心密度——相当于多雇些人备菜，让GPU这个大厨一直有活干。英特尔至强6 Clearwater Forest单颗芯片集成最多288个能效核，一台两路服务器能提供2304个核心，单机柜算力密度可达46080个核心；云箭科技的整机柜（36U，每U最多装6颗CPU）配合至强6 Plus能支持六万多个核，理论上可同时运行24万个轻量级Agent。</p>
+<span class="spk">— 老石</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="485" href="https://www.youtube.com/watch?v=LTOe_QScVQw&amp;t=485s" target="_blank" rel="noopener">8:05</a><div><h4>推理超过训练后，CPU成瓶颈</h4>
+<p class="body">2025年大模型推理带来的算力需求已占AI算力总需求的半壁江山，2026年这一比例还会提升到2/3。但推理阶段单个请求的运算量其实不大，真正的性能瓶颈转移到了时延敏感的杂活上——序列化反序列化、KV cache缓存管理、提示词组装、检索增强生成的路由调度，这些脏活累活全部靠CPU完成。Gary把这个差异总结为：GPU解决的是「智能的程度」，CPU解决的是「智能的密度」。</p>
+<span class="spk">— Gary</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="668" href="https://www.youtube.com/watch?v=LTOe_QScVQw&amp;t=668s" target="_blank" rel="noopener">11:08</a><div><h4>AI工厂不是一台机器，是三台</h4>
+<p class="body">AI基础设施正从粗放堆硬件的算力仓库，重构成以CPU为调度大脑的「智能工厂」：一台是GPU服务器负责生成Token；一台是高密度CPU集群，专门承载成千上万甚至上百万个跑在CPU上的智能体；还有一台高性能存储服务器，负责暂存GPU推理产生的KV cache——下次遇到类似问题可以直接调出已经算好的结果，不用重新计算。三台机器的公约数，都是强大的处理器。</p>
+<span class="spk">— Gary</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="729" href="https://www.youtube.com/watch?v=LTOe_QScVQw&amp;t=729s" target="_blank" rel="noopener">12:09</a><div><h4>算力存力连接力保障力，CPU全占</h4>
+<p class="body">Gary把AI工厂的硬指标拆成四块：算力——CPU要做机头给GPU喂数据，至强6 Plus靠AMX直接做AI数据预处理和向量加速；存力——KV cache膨胀后HBM显存装不下，就要卸载到CPU内存或存储系统，这个过程被比作《哈利波特》里邓布利多把记忆抽出来存进冥想盆；保障力——CPU的RAS特性能在内存颗粒出故障前预警、甚至修复比特错误；连接力——新一代E835网卡提供200G的RDMA连接，让CPU集群访问GPU和存储集群时速度最快。</p>
+<span class="spk">— Gary</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="1092" href="https://www.youtube.com/watch?v=LTOe_QScVQw&amp;t=1092s" target="_blank" rel="noopener">18:12</a><div><h4>CPU:GPU配比正逼近1比1</h4>
+<p class="body">把算力、存力、连接力、保障力合在一起看，结论很直接：AI越复杂、智能体越多，CPU要干的活就越多。这也是为什么数据中心里CPU和GPU的比例正在从1比8，进化到1比4、1比2，甚至接近1比1——不是CPU变强到能替代GPU，而是为了维持整个数据通路不被GPU空转卡住，需要成倍增加CPU去配合。</p>
+<span class="spk">— 老石</span></div></div>
+<div class="point" id="p7"><a class="ts" data-t="1152" href="https://www.youtube.com/watch?v=LTOe_QScVQw&amp;t=1152s" target="_blank" rel="noopener">19:12</a><div><h4>企业换架构，怕的不是性能是迁移</h4>
+<p class="body">到2030年全球存量服务器里x86占比仍将高达80%，数量从2025年的6300万台涨到7600万台。Gary提到一个容易被忽略的事实：英特尔在PCIe 5.0这类新标准出来后，总是最先把和SSD、网卡的兼容性适配做完，系统厂商用x86做设计常常事半功倍，换其他架构则要在多个厂家之间反复沟通。对企业来说，换底层架构不是换个芯片那么简单，而是要让十几年积累的业务系统、开源组件、私有数据库全部重新编译测试，这个试错成本才是x86生态几十年积累下来的真正护城河。</p>
+<span class="spk">— Gary</span></div></div></section>
+<section class="section"><h2>原话 · 已逐字校验</h2><blockquote class="quote"><p class="raw">但你有没有想过 这智能体带来的这波CPU的爆发 到底是真趋势还是美需求呢</p>
+<p class="zh">但你有没有想过，这智能体带来的这波CPU的爆发，到底是真趋势还是伪需求呢？</p>
+<div class="attrib"><b>老石</b><a class="ts" data-t="0" href="https://www.youtube.com/watch?v=LTOe_QScVQw&amp;t=0s" target="_blank" rel="noopener">0:00</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">就好像一个城市只有极宽的高速公路 却没有红绿灯和交通指挥系统 当遇到复杂的交叉口的时候 所有的车辆都会死死的堵在路上 我们就把它叫做智能体时代出现的算力交通管制现象</p>
+<p class="zh">就好像一个城市只有极宽的高速公路，却没有红绿灯和交通指挥系统，当遇到复杂的交叉口时，所有车辆都会死死地堵在路上——我们就把它叫做智能体时代出现的「算力交通管制」现象。</p>
+<div class="attrib"><b>老石</b><a class="ts" data-t="183" href="https://www.youtube.com/watch?v=LTOe_QScVQw&amp;t=183s" target="_blank" rel="noopener">3:03</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">那么为了产生Token 在这个抽机工厂里头 你可以想象有三台机器 三台巨大的机器 一台机器就是我们传统的 所谓GPU的服务器</p>
+<p class="zh">那么为了产生Token，在这个「抽机」工厂里头，你可以想象有三台机器，三台巨大的机器：一台机器就是我们传统的、所谓GPU的服务器。</p>
+<div class="attrib"><b>Gary</b><a class="ts" data-t="668" href="https://www.youtube.com/watch?v=LTOe_QScVQw&amp;t=668s" target="_blank" rel="noopener">11:08</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">这有点像哈利波特里 邓比利多总会把一些记忆从脑子里给抽出来 然后放到小瓶子里 需要的时候再把它放到冥想盆里去查看</p>
+<p class="zh">这有点像《哈利波特》里，邓布利多总会把一些记忆从脑子里抽出来，放到小瓶子里，需要的时候再放到冥想盆里去查看。</p>
+<div class="attrib"><b>Gary</b><a class="ts" data-t="851" href="https://www.youtube.com/watch?v=LTOe_QScVQw&amp;t=851s" target="_blank" rel="noopener">14:11</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">企业真正购买的从来都不只是一块冷冰冰的芯片 而是一整套能够确保业务稳定运行的生产环境</p>
+<p class="zh">企业真正购买的从来都不只是一块冷冰冰的芯片，而是一整套能够确保业务稳定运行的生产环境。</p>
+<div class="attrib"><b>老石</b><a class="ts" data-t="1214" href="https://www.youtube.com/watch?v=LTOe_QScVQw&amp;t=1214s" target="_blank" rel="noopener">20:14</a></div>
+</blockquote></section>
+<section class="section"><h2>数字与实体</h2><table class="facts"><tr><td class="k">IDC预测2031年活跃智能体数量</td><td class="v">3.5亿个</td><td class="t"><a class="ts" data-t="303" href="https://www.youtube.com/watch?v=LTOe_QScVQw&amp;t=303s" target="_blank" rel="noopener">5:03</a></td></tr>
+<tr><td class="k">IDC预测2026-2027年中国活跃智能体数量增速</td><td class="v">200%</td><td class="t"><a class="ts" data-t="303" href="https://www.youtube.com/watch?v=LTOe_QScVQw&amp;t=303s" target="_blank" rel="noopener">5:03</a></td></tr>
+<tr><td class="k">至强6 Clearwater Forest单芯片能效核数</td><td class="v">288个</td><td class="t"><a class="ts" data-t="363" href="https://www.youtube.com/watch?v=LTOe_QScVQw&amp;t=363s" target="_blank" rel="noopener">6:03</a></td></tr>
+<tr><td class="k">英特尔方案单机柜CPU算力密度</td><td class="v">46,080个核心</td><td class="t"><a class="ts" data-t="363" href="https://www.youtube.com/watch?v=LTOe_QScVQw&amp;t=363s" target="_blank" rel="noopener">6:03</a></td></tr>
+<tr><td class="k">云箭科技机柜CPU核心数</td><td class="v">6万多个核</td><td class="t"><a class="ts" data-t="425" href="https://www.youtube.com/watch?v=LTOe_QScVQw&amp;t=425s" target="_blank" rel="noopener">7:05</a></td></tr>
+<tr><td class="k">云箭科技机柜可运行轻量Agent数量</td><td class="v">24万个</td><td class="t"><a class="ts" data-t="425" href="https://www.youtube.com/watch?v=LTOe_QScVQw&amp;t=425s" target="_blank" rel="noopener">7:05</a></td></tr>
+<tr><td class="k">2026年大模型推理算力需求占比</td><td class="v">2/3</td><td class="t"><a class="ts" data-t="485" href="https://www.youtube.com/watch?v=LTOe_QScVQw&amp;t=485s" target="_blank" rel="noopener">8:05</a></td></tr>
+<tr><td class="k">数据中心CPU:GPU配比演变</td><td class="v">从1:8到1:4、1:2，甚至接近1:1</td><td class="t"><a class="ts" data-t="1092" href="https://www.youtube.com/watch?v=LTOe_QScVQw&amp;t=1092s" target="_blank" rel="noopener">18:12</a></td></tr></table></section>
+<section class="section"><h2>术语</h2><dl class="terms"><div><dt>KV Cache<span>KV缓存</span></dt><dd>大模型推理时缓存的中间计算结果，相当于模型的短期工作记忆或小抄。</dd></div>
+<div><dt>RAS<span>可靠可用可维护性</span></dt><dd>英特尔CPU的可靠性特性，即高可靠、高可用、高可维护。</dd></div>
+<div><dt>AMX<span>高级矩阵扩展</span></dt><dd>英特尔CPU内置的指令集，用于加速AI相关的矩阵运算。</dd></div>
+<div><dt>PD分离<span>预填充-解码分离</span></dt><dd>大模型推理中把输入处理和生成输出两个阶段拆开部署的架构方式。</dd></div>
+<div><dt>RDMA<span>远程直接内存访问</span></dt><dd>服务器间绕过CPU直接读写内存的高速数据传输技术。</dd></div></dl></section>
+<section class="section"><h2>收听指南</h2>
+<div class="panel guide">
+<div><span class="k">谁该听</span><p>关注AI基础设施、半导体投资或数据中心架构的人，想理解智能体热潮如何反向带动CPU需求的从业者。</p></div>
+<div><span class="k">可跳过</span><p>4:03-6:03、9:05-10:07附近有大段转写乱码（重复词句堆叠），13:11附近一段中英混杂乱码，可直接跳过不影响理解。</p></div>
+</div></section>
+<section class="related"><h2 class="sec-title">顺着这个话题</h2><ul class="rel-list"><li><a href="/podcast/p/2026-10-09-a16z-芯片设计正被ai加速-造芯-供电-连接却越来越难/"><span class="rel-t">芯片设计正被AI加速，造芯、供电、连接却越来越难</span><span class="rel-s">a16z</span></a></li><li><a href="/podcast/p/2026-10-06-unsupervised-谁做好后训练-谁就赢下推理这门更大生意/"><span class="rel-t">谁做好后训练，谁就赢下推理这门更大生意</span><span class="rel-s">Unsupervised Learning</span></a></li><li><a href="/podcast/p/2026-10-05-empire-万亿美元的算力交易-现在还靠短信和电话撮合/"><span class="rel-t">万亿美元的算力交易，现在还靠短信和电话撮合</span><span class="rel-s">Empire（Blockworks）</span></a></li><li><a href="/podcast/p/2026-10-03-twentyvc-数据中心推高电价是误解-数据显示周边电价反而下降/"><span class="rel-t">数据中心推高电价是误解：数据显示周边电价反而下降</span><span class="rel-s">20VC</span></a></li><li><a href="/podcast/p/2026-10-02-nopriors-自研芯片是场豪赌-架构一变-九个月内就可能被对手甩开/"><span class="rel-t">自研芯片是场豪赌：架构一变，九个月内就可能被对手甩开</span><span class="rel-s">No Priors</span></a></li></ul></section>
+<nav class="prevnext"><a href="/podcast/p/2026-07-15-latetalk-智驾好和更好的行业-只容得下两三家/"><span class="lbl">← 更新</span><strong>智驾供应商终局只剩两三家，窗口年底关闭</strong></a><a class="r" href="/podcast/p/2026-07-13-statquest-线性规划最优解不在内部-单纯形法只沿边界顶点爬/"><span class="lbl">更早 →</span><strong>线性规划最优解不在内部：单纯形法只沿边界顶点爬</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原节目</h4>
+<div class="row"><span>节目</span><span>老石谈芯</span></div>
+<div class="row"><span>原标题</span><span>CPU这个老登，竟然在智能体时代重新翻身了？</span></div>
+<div class="row"><span>发布</span><span>2026-07-14</span></div>
+<div class="row"><span>时长</span><span>22:51</span></div>
+<a class="row" href="https://www.youtube.com/watch?v=LTOe_QScVQw" target="_blank" rel="noopener"><span>原页面</span><span>打开 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇结构</h4><nav class="toc"><a href="#p0"><span class="t">1:01</span><span>聊天像点餐，智能体像办一桌席</span></a>
+<a href="#p1"><span class="t">3:03</span><span>GPU堵车了，CPU才是红绿灯</span></a>
+<a href="#p2"><span class="t">6:03</span><span>喂饱GPU，靠堆CPU核心密度</span></a>
+<a href="#p3"><span class="t">8:05</span><span>推理超过训练后，CPU成瓶颈</span></a>
+<a href="#p4"><span class="t">11:08</span><span>AI工厂不是一台机器，是三台</span></a>
+<a href="#p5"><span class="t">12:09</span><span>算力存力连接力保障力，CPU全占</span></a>
+<a href="#p6"><span class="t">18:12</span><span>CPU:GPU配比正逼近1比1</span></a>
+<a href="#p7"><span class="t">19:12</span><span>企业换架构，怕的不是性能是迁移</span></a></nav></div>
+
+<div class="panel"><h4>这篇是怎么来的</h4>
+<div class="row"><span>成稿评分</span><span>8 / 10</span></div>
+<div class="row"><span>文稿来源</span><span>音频转写</span></div>
+<div class="row"><span>文稿字数</span><span>7350</span></div>
+<div class="row"><span>语速核验</span><span>321.7 wpm</span></div>
+<div class="row"><span>逐字校验金句</span><span>5 条</span></div>
+<div class="row"><span>回溯校验数字</span><span>8 条</span></div>
+<div class="row"><span>质检剔除</span><span>2 处</span></div>
+<p class="note">金句在逐字稿里逐字比对过，数字回原文核对过；对不上的当场删掉，不上站。
+成稿另经一道独立评审（信息密度／忠实度／选择力／具体性／中文），低于 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原声 · <a href="https://ourword.ai">OurWord.ai</a>的播客线。内容为原播客的中文深读，
+版权归各节目所有；每篇都附原节目链接，请去支持原作者。</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/" lang="zh">人类世界生存法则</a> · <a href="/podcast/">原声</a></div>
+<div class="links"><a href="/podcast/">首页</a><a href="/podcast/zt/founders/">专题</a><a href="/podcast/sources/">信源</a>
+<a href="/podcast/log/">更新日志</a><a href="/podcast/feed.xml">RSS</a>
+<a href="/podcast/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源码</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=2457e29027" defer></script>
+</body></html>

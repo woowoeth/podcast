@@ -1,0 +1,126 @@
+{
+ "slug": "2026-07-28-laoshi-理想判断算力将成为整车最贵部件-这是它自研芯片的核心赌注",
+ "of": "laoshi-e42a70adbe",
+ "source_lang": "zh",
+ "title": "Computing power is becoming the costliest part of the car—this is the core wager driving Li Xiang's chip investment",
+ "dek": "Li Xiang projects per-vehicle compute costs have already exceeded $2,000 and continue climbing toward $4,000, $8,000, or $10,000; once AI computing power becomes the car's core capability, both that cost and capability must remain in the automaker's own hands.",
+ "why": "To see how automakers truly cost out custom chip development: cost curves, architectural tradeoffs, and organizational mechanisms are explained concretely, not in slogans.",
+ "who": "Auto executives and chip architects, plus investors tracking embodied intelligence and self-driving hardware roadmaps.",
+ "skip": "Around the 29-minute mark, the analogy about dimensions is a bit convoluted and can be skipped without affecting the core argument.",
+ "tags": [
+  "Custom chips",
+  "Dataflow architecture",
+  "Embodied intelligence",
+  "Automotive chips",
+  "Team management"
+ ],
+ "points": [
+  {
+   "h": "Computing power costs approach battery costs, forcing the self-research decision",
+   "body": "Xie Yan says Li Xiang calculates that compute costs alone for a single vehicle will exceed $2,000 and keep rising—becoming $4,000, $8,000, even $10,000—potentially matching battery costs as the vehicle's largest component. More fundamentally, if AI capability is the core of an embodied-intelligence car, then the automaker must control its foundation itself—just as leading automakers in the fuel-engine era didn't fully outsource engines and chassis to suppliers. Otherwise there's no differentiation from competitors."
+  },
+  {
+   "h": "Publishing the chip architecture publicly is not a replication risk",
+   "body": "Li Xiang published M100's reconfigurable dataflow architecture to the ISCA conference. Internally, some questioned why proprietary work should go public. Xie's reasoning: the gap from paper to actually building the chip, running large models efficiently, and perfecting the compiler and operators is huge—others cannot easily replicate it. Besides, technology advances regardless; keeping secrets won't prevent others from catching up. The only way is to move faster ourselves. Publishing also attracts peer feedback and brings more people together to develop this path."
+  },
+  {
+   "h": "Removing all caches shifts complexity entirely to the compiler",
+   "body": "The M100 NPU has no traditional multi-level caches; all on-chip storage is SRAM managed by software logic, with no hardware automation. The benefit: eliminates the scheduling and cache-coherence logic that consumes 30–40% of CPU transistors, yielding simpler, more efficient hardware. The cost: the compiler must do what hardware normally does, becoming extremely difficult to write. Xie summarizes this as: dataflow architecture transfers the complexity von Neumann hardware bears into software and the compiler, solving problems at the static compilation stage."
+  },
+  {
+   "h": "Dataflow chips have no state machines, like Schrödinger's chip",
+   "body": "Xie explains the fundamental difference between dataflow architecture and Turing-machine-style von Neumann: the latter has a definite state each cycle and can pause to inspect at any time; dataflow chips compute on data arrival, not time or cycle triggers. Slice the system at any moment and its state is uncertain—he calls this 'Schrödinger's chip.' Debugging becomes much harder than traditional architectures, yet the final computation's precision requirements remain identical."
+  },
+  {
+   "h": "A 45-billion-transistor chip succeeded on its first tape-out",
+   "body": "M100 is a large 5-nanometer, 400-square-millimeter chip with 45 billion transistors, using an entirely novel architecture—it lit up on first tape-out. From tape-out return to running Linux took under 12 hours; the team refused to leave the lab, even at midnight. Xie calls this single success remarkable, not because iteration was minor, but because architecture, compiler, OS, and model teams were bound together in co-design from day one."
+  },
+  {
+   "h": "Model algorithms converge; competitive moats ultimately rest on hardware",
+   "body": "Xie predicts that over time, model-algorithm ideas will converge—one person's insight is another's, and talent movement pushes everyone the same direction. Software-level moats are at best training costs, not thought leadership. True future differentiation comes from hardware, or software designed with hardware as one. This moat resembles Apple: everyone knows Apple is great, but replication is hard because Apple controls its own chip, OS, and application ecosystem. Even with the chip, you can't build iPhone."
+  },
+  {
+   "h": "The chip compresses end-to-end response time to 0.28 seconds",
+   "body": "On M100, Xie says the vehicle runs Mach's native multimodal VLA model with end-to-end response down to 0.28 seconds. He compares this to human reaction time from photon to retina to action: faster reaction means safer. With fine-grained processing and small intervals, braking and steering become fluid without jank—comfort and safety tie directly to response speed."
+  },
+  {
+   "h": "Small teams enable paradoxically better collaboration than large ones",
+   "body": "On hardware-software co-development, Xie makes a counterintuitive point: keep teams small. Large teams want to become self-contained and resist collaboration, having enough internal power. If a task theoretically needs 10 people, the optimal configuration is 8 or fewer—each person's efficiency peaks. At 15–20 people, internal sub-units emerge and collaboration fractures. He likens this resource-gathering problem-solving to lighting a campfire."
+  }
+ ],
+ "terms": [
+  {
+   "term": "dataflow architecture",
+   "def": "Chip architecture where computation is triggered by data arrival rather than instruction sequence execution"
+  },
+  {
+   "term": "test time training (TTT)",
+   "def": "A technique where models continue training or updating parameters during inference and runtime operation"
+  },
+  {
+   "term": "just in time compiler",
+   "def": "Dynamic compilation of code during program runtime, rather than static compilation before execution"
+  },
+  {
+   "term": "software hardware co-design",
+   "def": "Simultaneous design and iteration of chip hardware and software systems from inception"
+  }
+ ],
+ "facts": [
+  {
+   "k": "M100 peak compute",
+   "v": "1280 TOPS"
+  },
+  {
+   "k": "M100 actual efficiency",
+   "v": "~82%"
+  },
+  {
+   "k": "NPU compute units",
+   "v": "56 fully homogeneous"
+  },
+  {
+   "k": "CPU cores",
+   "v": "24 A78 cores"
+  },
+  {
+   "k": "Memory bandwidth",
+   "v": "LPDDR5X, 273 GB/s"
+  },
+  {
+   "k": "End-to-end latency",
+   "v": "0.28 seconds"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "In a dataflow architecture, if you cut through it at any given moment, its state is not fixed—it's a bit like Schrödinger's chip.",
+   "translated": true
+  },
+  {
+   "text": "A single vehicle might already face compute costs exceeding $2,000, and we believe it will keep climbing—it's not just $2,000, not even a starting point. It could become $4,000, maybe $8,000, maybe $10,000.",
+   "translated": true
+  },
+  {
+   "text": "How are we qualified to make a chip? And from the start, we set extremely high targets—not just to clone or replicate. Our goal was several times better performance and lower cost than buying off-the-shelf, achieving that level of leadership. Honestly, most people weren't certain we could pull it off.",
+   "translated": true
+  },
+  {
+   "text": "I've always believed that technology keeps advancing regardless of whether we keep things hidden—others will catch up anyway. So the only way is for us to run faster.",
+   "translated": true
+  },
+  {
+   "text": "Once you've figured something out from first principles, if it can be done, it will inevitably be done.",
+   "translated": true
+  },
+  {
+   "text": "This kind of moat is a bit like Apple. Everyone knows Apple is great, but it's extremely hard to replicate Apple, because Apple has its own chip, its own operating system, its own application ecosystem. To replicate the entire package is extremely difficult.",
+   "translated": true
+  },
+  {
+   "text": "The approach is that teams should be small. Once teams grow large, they want to become self-contained and don't want to collaborate with others, because they have enough power on their own.",
+   "translated": true
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
