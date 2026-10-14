@@ -51,6 +51,10 @@ class Walkthrough(Harness):
             p.fill(".search input", "半导体")
             p.wait_for_timeout(500)
             narrowed = p.evaluate(vis)
+            # 搜索搜的是全站（下面那条测试），首屏只是最近一段。拿「搜索前首屏的数」当分母，
+            # 全站讲半导体的一过 31 篇就红（2026-10-13 起：31 → 41），而搜索一点没坏。
+            # 筛没筛掉东西，要和搜索时补进 DOM 的全站卡片比。
+            total = p.evaluate("() => document.querySelectorAll('[data-card]').length")
             seen = ("() => [...document.querySelectorAll('[data-card]')]"
                     ".filter(e => e.offsetParent).length")
             shown = p.evaluate(seen)          # 读者真看得见的（计数是代码自己写的，看不见空屏）
@@ -62,8 +66,9 @@ class Walkthrough(Harness):
             self.assertGreater(shown, 0, f"{w}px 搜「半导体」计数有 {narrowed}，屏幕上一张都没有")
             self.assertGreater(shown_after, 0, f"{w}px 清空搜索后屏幕上一张卡都没有")
             self.assertGreater(before, 0, f"{w}px 首屏一张卡片都没有")
-            self.assertLess(narrowed, before,
-                            f"{w}px 搜索没有筛掉任何东西（{before} → {narrowed}）")
+            self.assertGreater(total, before, f"{w}px 搜索没把全站卡片补进来（{before} → {total}），尺子量不了")
+            self.assertLess(narrowed, total,
+                            f"{w}px 搜索没有筛掉任何东西（全站 {total} 张 → {narrowed}）")
             self.assertGreater(narrowed, 0, f"{w}px 搜「半导体」一条都没有")
             # 搜索会把全部卡片补进 DOM（要能搜到全站），所以清空后**不会**
             # 回到首屏那 24 张。正确的期望是"至少回到搜索前的量"。
