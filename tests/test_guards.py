@@ -1875,8 +1875,9 @@ class HeartbeatFilesMustNeverBlockTheCommit(unittest.TestCase):
         # 必须在第一次 git commit 之前
         self.assertLess(first, sh.index("git -c user.name"),
                         "脱身逻辑在提交之后，卡住的路径救不了")
-        # abort 救不回来时要能以远端为准重来
-        self.assertIn("reset -q --hard origin/main", sh)
+        # abort 救不回来时回到本机 HEAD —— 不是远端：`reset --hard origin/main` 会把没推送的提交
+        # 一起扔掉（2026-10-13 扔掉了 4 篇）。行为由 test_the_escape_hatch_keeps_unpushed_commits 真跑核对。
+        self.assertNotIn("reset -q --hard origin/main", sh)
 
 
 class DatacenterBlocksMustNotDeleteGoodSources(unittest.TestCase):
@@ -8528,6 +8529,36 @@ class ThroughputKnobsMustBeMeasuredNotInherited(unittest.TestCase):
         [t.join() for t in ts]
         return errs
 
+    def _auth_cli(self, fail_first):
+        import types
+        box = {"calls": 0}
+        def run(cmd, **kw):
+            box["calls"] += 1
+            if box["calls"] <= fail_first:
+                return types.SimpleNamespace(returncode=1, stdout="",
+                                             stderr="Failed to authenticate. API Error: 403 Request not allowed")
+            return types.SimpleNamespace(returncode=0, stdout="ok", stderr="")
+        return box, run
+
+    def test_a_cli_auth_blip_is_retried(self):
+        """2026-10-13 晚上 claude CLI 三次「Failed to authenticate. API Error: 403」，同一轮前后的调用都成功 ——
+        偶发的。原来不重试（_TRANSIENT 不认它），每次白丢一集。"""
+        import unittest.mock as mock
+        self._gate_reset()
+        box, run = self._auth_cli(fail_first=2)
+        with mock.patch.object(self.llm.subprocess, "run", run), mock.patch.object(self.llm.time, "sleep", lambda s: None):
+            self.assertEqual("ok", self.llm._cli("s", "u", model="haiku"))
+        self.assertEqual(3, box["calls"])
+
+    def test_a_cli_login_that_stays_broken_stops_the_run(self):
+        """连续都被拒才是登录真失效：抛 AuthError 停掉整轮，不拿剩下每一集去撞（原来是普通 RuntimeError）。"""
+        import unittest.mock as mock
+        self._gate_reset()
+        box, run = self._auth_cli(fail_first=99)
+        with mock.patch.object(self.llm.subprocess, "run", run), mock.patch.object(self.llm.time, "sleep", lambda s: None):
+            with self.assertRaises(self.llm.AuthError):
+                self.llm._cli("s", "u", model="haiku")
+
     def test_the_cli_backend_runs_in_parallel_behind_a_gate(self):
         """CLI 后端原来写死一次一个，理由是旧版 claude -p 并发会无输出退出；现在的 CLI 在本机
         翻译那步 4 路并发 0 失败（09-25 晚起）。并发由 _cli 里的信号量兜住，不靠压住线程数 ——
@@ -12544,13 +12575,18 @@ class LocalLineLeavesNothingTheHealthcheckReadsUncommitted(unittest.TestCase):
     桩跟着就写，这里跟着就查。
     """
 
-    REAL = ("gitsync.py", "mergestate.py", "merge_usage.py", "checkdata.py", "heartbeat.py")
+    REAL = ("gitsync.py", "mergestate.py", "merge_usage.py", "checkdata.py", "heartbeat.py", "atload.py")
 
     STUB = r'''
 import datetime, json, os, pathlib, subprocess, sys
 NAME, WRITES = {name!r}, {writes!r}
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 args = sys.argv[1:]
+die = os.environ.get("STUB_DIE_ON")
+if NAME == "run.py" and die and die in args:
+    # 模拟跑到这一步时 Mac 重启：整个进程组（bash、tee、桩）一起被杀，什么收尾都不做
+    import signal
+    os.killpg(os.getpgid(0), signal.SIGKILL)
 if NAME == "translate.py" and "--pending" in args:
     print(0); sys.exit(0)
 if NAME == "run.py" and "--reconcile" in args:
@@ -12599,7 +12635,7 @@ if NAME == "build.py":
         open(race + ".done", "w").close()
 '''
 
-    def _sandbox(self, tmp, publish=True, race=False, leftover=None, upstream=None):
+    def _sandbox(self, tmp, publish=True, race=False, leftover=None, upstream=None, prep=None, die_on=None):
         sh = (ROOT / "scripts" / "local-daily.sh").read_text()
         reads = _healthcheck_reads()
         writers = {k: sorted(v & reads) for k, v in _state_writers(reads).items()}
@@ -12660,14 +12696,21 @@ if NAME == "build.py":
         for f, body in (leftover or {}).items():
             # 上一轮留在工作区、没提交的改动
             (box / "data" / f).write_text(body)
+        if prep:
+            # 上一轮被打断留下的现场（没推送的提交、没提交的建站产物、恢复失败的 stash……）
+            prep(box, origin, tmp, git)
         env = {"PATH": f"{bin_}:{os.environ.get('PATH', '')}", "HOME": str(home),
+               "BOOT_AGE_S": "99999",     # 不是开机拉起的：atload 不拦（否则刚开机的机器上跑测试会被跳过）
                "PODCAST_REPO": str(box), "PODCAST_REEXEC": "1", "STUB_LOG": str(tmp / "writes.jsonl"),
                "STUB_PUBLISH": "1" if publish else "0", "STUB_ORIGIN": str(origin),
                "GIT_CONFIG_NOSYSTEM": "1", "LANG": "en_US.UTF-8"}
         if race:
             env["STUB_RACE"] = str(tmp / "race")
+        if die_on:
+            env["STUB_DIE_ON"] = die_on
+        # 自成一个进程组：桩模拟重启时 killpg 只杀这一轮，不杀测试进程
         r = subprocess.run(["bash", str(box / "scripts" / "local-daily.sh")], cwd=box, env=env,
-                           capture_output=True, text=True, timeout=240)
+                           capture_output=True, text=True, timeout=240, start_new_session=True)
         return r, box, origin, tmp / "writes.jsonl", reads
 
     def _left_behind(self, r, box, origin, log, reads):
@@ -12750,6 +12793,146 @@ if NAME == "build.py":
         rows = {k for d in show("usage.json").values() for k in d}
         self.assertIn("cloud/other", rows, "重试分支把另一条线记的用量盖掉了")
         self.assertIn("stub/run.py", rows, "重试分支丢了本机这一轮记的用量")
+
+    # ---- 被打断的一轮（2026-10-12～14：两次重启、一次关机，站上停了两天半，4 篇差点丢掉）----
+
+    @staticmethod
+    def _on_origin(origin, path):
+        return subprocess.run(["git", "--git-dir", str(origin), "cat-file", "-e", f"main:{path}"],
+                              capture_output=True).returncode == 0
+
+    @staticmethod
+    def _cloud_rebuilt_index(origin, tmp, git):
+        """被打断这段时间里，云端也建过站、推了 index.html。"""
+        other = tmp / "cloud"
+        subprocess.run(["git", "clone", "-q", str(origin), str(other)], check=True)
+        (other / "index.html").write_text("<!-- cloud build -->\n")
+        git("-c", "user.name=c", "-c", "user.email=c@c", "commit", "-qam", "build: regenerate site", cwd=other)
+        git("push", "-q", "origin", "HEAD:main", cwd=other)
+
+    def test_a_run_killed_during_catchup_has_already_pushed_its_main_episodes(self):
+        """主轮发完先推。原来整轮只在最后推一次：补课一两个小时里 Mac 一重启，
+        主轮的稿只躺在本地提交里（10-12 上午 4 篇）。"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            r, box, origin, log, reads = self._sandbox(tmp, die_on="--catchup")
+            self.assertNotEqual(0, r.returncode, "尺子坏了：补课那一步没被杀掉\n" + r.stdout[-1500:])
+            local = sorted(p.name for p in (box / "data" / "episodes").glob("ep-*.json"))
+            self.assertTrue(local, "尺子坏了：主轮的桩没发出集\n" + r.stdout[-1500:])
+            lost = [n for n in local if not self._on_origin(origin, f"data/episodes/{n}")]
+            self.assertEqual([], lost, "补课时被杀，主轮发的集没推上去 —— 只在本地提交里")
+
+    def test_the_run_after_an_interruption_neither_stalls_nor_drops_unpushed_work(self):
+        """10-12 → 10-13 那一串：上一轮留下一个没推送的 digest 提交 + 一套没提交的建站产物，
+        云端这期间也建过站。原来 autostash 收走建站产物、恢复必然冲突，这一轮拒绝深读。"""
+        import tempfile
+
+        def prep(box, origin, tmp, git):
+            (box / "data" / "episodes" / "lost.json").write_text('{"slug": "lost"}\n')
+            git("add", "data/episodes/lost.json")
+            git("-c", "user.name=b", "-c", "user.email=b@b", "commit", "-qm", "digest: 1 new (local)")
+            (box / "index.html").write_text("<!-- interrupted local build -->\n")
+            self._cloud_rebuilt_index(origin, tmp, git)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            r, box, origin, log, reads = self._sandbox(tmp, prep=prep)
+            self.assertEqual(0, r.returncode, "被打断之后的这一轮没跑通：\n" + r.stdout[-2500:] + r.stderr[-800:])
+            self.assertTrue(self._on_origin(origin, "data/episodes/lost.json"), "上一轮没推送的集没推上去")
+            stash = subprocess.run(["git", "stash", "list"], cwd=box, capture_output=True, text=True).stdout
+            self.assertEqual("", stash, "上一轮的建站产物又被收进 stash、恢复冲突")
+
+    def test_the_escape_hatch_keeps_unpushed_commits(self):
+        """10-13 晚上：工作区卡在 stash pop 的冲突里，脱身逻辑 `reset --hard origin/main`
+        把没推送的 digest 提交（4 篇）整个扔掉，只剩 reflog。"""
+        import tempfile
+
+        def prep(box, origin, tmp, git):
+            idt = ("-c", "user.name=b", "-c", "user.email=b@b")
+            (box / "index.html").write_text("<!-- stashed -->\n")
+            git(*idt, "stash", "-q")
+            (box / "data" / "episodes" / "lost.json").write_text('{"slug": "lost"}\n')
+            (box / "index.html").write_text("<!-- committed -->\n")
+            git("add", "-A", "data/episodes", "index.html")
+            git(*idt, "commit", "-qm", "digest: 1 new (local)")
+            subprocess.run(["git", *idt, "stash", "pop"], cwd=box, capture_output=True)
+            self.assertTrue(git("ls-files", "-u").stdout, "尺子坏了：没造出未合并的工作区")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            r, box, origin, log, reads = self._sandbox(tmp, prep=prep)
+            self.assertIn("先脱身", r.stdout, "尺子坏了：没走到脱身逻辑\n" + r.stdout[-1500:])
+            self.assertEqual(0, r.returncode, "脱身之后没跑通：\n" + r.stdout[-2500:] + r.stderr[-800:])
+            self.assertTrue(self._on_origin(origin, "data/episodes/lost.json"),
+                            "脱身逻辑把没推送的提交扔掉了 —— 那几篇只剩 reflog 里一份")
+
+    def test_unpushed_commits_that_cannot_rebase_are_folded_not_a_dead_end(self):
+        """没推送的提交里带着建站产物（推送重试五次都失败的那种），rebase 必然撞上云端的建站。
+        原来「同步失败、本轮不深读」，下一轮还是同一个提交、同一面墙。"""
+        import tempfile
+
+        def prep(box, origin, tmp, git):
+            (box / "data" / "episodes" / "lost.json").write_text('{"slug": "lost"}\n')
+            (box / "index.html").write_text("<!-- local build -->\n")
+            git("add", "-A", "data/episodes", "index.html")
+            git("-c", "user.name=b", "-c", "user.email=b@b", "commit", "-qm", "digest + build (local)")
+            self._cloud_rebuilt_index(origin, tmp, git)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            r, box, origin, log, reads = self._sandbox(tmp, prep=prep)
+            self.assertEqual(0, r.returncode, "rebase 不上去就停线了：\n" + r.stdout[-2500:] + r.stderr[-800:])
+            self.assertTrue(self._on_origin(origin, "data/episodes/lost.json"), "折回远端时丢了本机的集")
+            rescue = subprocess.run(["git", "for-each-ref", "refs/rescue/"], cwd=box,
+                                    capture_output=True, text=True).stdout
+            self.assertTrue(rescue, "折之前没把原提交挂到 refs/rescue/ —— 折坏了就找不回来")
+
+
+class AMissedSlotIsRunAfterBoot(unittest.TestCase):
+    """本机线跑在笔记本上：关着机，到点那一班整班错过；跑到一半被重启，要等下一班。
+    2026-10-12～14 两次重启、一次关机，站上停了两天半，每次开机后机器都闲着。
+    plist 改成 RunAtLoad，由 pipeline/atload.py 判断开机后要不要补。"""
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.a = importlib.import_module("atload")
+
+    def _t(self, s):
+        import datetime as dt
+        return dt.datetime.fromisoformat(s)
+
+    def test_an_interrupted_slot_is_rerun_after_boot(self):
+        # 10-14 10:30 那一班跑到 10:40 被重启；10:42 登录。心跳还停在前一天
+        run, why = self.a.decide(self._t("2026-10-14T10:42:00+08:00"), 120, self._t("2026-10-13T10:30:08+08:00"))
+        self.assertTrue(run, why)
+
+    def test_a_slot_missed_while_powered_off_is_run_after_boot(self):
+        # 10-12 20:51 关机，10-13 09:28 开机：21:30 那一班整班错过
+        run, why = self.a.decide(self._t("2026-10-13T09:28:00+08:00"), 60, self._t("2026-10-12T10:57:00+08:00"))
+        self.assertTrue(run, why)
+
+    def test_a_slot_that_already_ran_is_not_run_again(self):
+        run, why = self.a.decide(self._t("2026-10-14T15:00:00+08:00"), 60, self._t("2026-10-14T11:40:00+08:00"))
+        self.assertFalse(run, "开机就把刚跑过的那一班又跑一遍 —— 白花额度")
+
+    def test_only_boot_time_launches_are_judged(self):
+        # 定时触发、唤醒补跑、手动 kickstart：开机早就过了 20 分钟，一律照跑
+        run, _ = self.a.decide(self._t("2026-10-14T15:00:00+08:00"), 99999, self._t("2026-10-14T11:40:00+08:00"))
+        self.assertTrue(run)
+
+    def test_slots_match_the_plist(self):
+        plist = (ROOT / "scripts" / "com.ourword.podcast.plist").read_text()
+        cal = plist[plist.index("StartCalendarInterval"):plist.index("</array>", plist.index("StartCalendarInterval"))]
+        got = set(zip(map(int, re.findall(r"<key>Hour</key><integer>(\d+)", cal)),
+                      map(int, re.findall(r"<key>Minute</key><integer>(\d+)", cal))))
+        self.assertEqual(set(self.a.SLOTS), got, "atload.SLOTS 和 plist 的定时对不上：补跑会按错的班次判断")
+        self.assertRegex(plist, r"<key>RunAtLoad</key><true/>", "plist 没开 RunAtLoad：开机不会补跑")
+
+    def test_the_script_skips_only_on_the_dedicated_code(self):
+        """atload 自己坏了（异常退出 1）也要照跑：判断坏掉时静默停线，比多跑一轮贵得多。"""
+        sh = (ROOT / "scripts" / "local-daily.sh").read_text()
+        self.assertIn("python3 pipeline/atload.py; [ $? -eq 3 ] && exit 0", sh)
+        self.assertEqual(3, self.a.SKIP)
+        self.assertLess(sh.index("pipeline/atload.py"), sh.index("pipeline/runlock.py"),
+                        "开机补跑的判断要在等锁、同步之前")
 
 
 class StateNotesMergeInsteadOfConflicting(unittest.TestCase):

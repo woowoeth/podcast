@@ -92,6 +92,10 @@ export LLM_MODEL
   command -v claude >/dev/null || { echo "找不到 claude CLI，PATH=$PATH"; exit 1; }
   command -v python3 >/dev/null || { echo "找不到 python3"; exit 1; }
 
+  # 开机补跑（plist 的 RunAtLoad）：开机 20 分钟内被拉起时，最近一班已经跑过就不重跑。
+  # 只认退出码 3 = 不用跑；判断脚本自己坏了（别的非零）照跑 —— 宁可多跑一轮，不能静默停线。
+  python3 pipeline/atload.py; [ $? -eq 3 ] && exit 0
+
   # **补存量的一批还在跑，就先等它跑完，再动 git 和 data/。** 它占着 data/.run.lock 写 state.json
   # 和集文件；这时候 pull／commit 会把账本写乱，run.py 拿不到锁又会「这一轮跳过」、什么都不提交。
   # 补存量那边看到日更在跑就不开下一批（backfill-source.sh 的 wait_turn），所以这里等到的空档归日更。
@@ -115,11 +119,33 @@ export LLM_MODEL
     echo "工作区卡在未合并状态，先脱身：$(git ls-files -u | awk '{print $4}' | sort -u | tr '\n' ' ')"
     git rebase --abort 2>/dev/null || git merge --abort 2>/dev/null || true
     if [ -n "$(git ls-files -u)" ]; then
-      # abort 也救不回来（比如冲突是 stash pop 留下的），就以远端为准重来：
-      # 本机的数据文件名唯一，已推送的不会丢；心跳每轮都会重写。
-      git fetch -q origin main && git reset -q --hard origin/main
+      # abort 也救不回来（冲突是 stash pop 留下的）：丢掉工作区的冲突态，回到**本机的 HEAD**。
+      # 那份改动 stash 里还有一份。**本机没推送的提交一个都不许丢。**
+      # 原来这里是 `reset --hard origin/main`，注释写着「已推送的不会丢」—— 没推送的就丢了：
+      # 2026-10-12 上午那轮发了 4 篇、本地提交了，补课时 Mac 重启，没来得及推；
+      # 10-13 晚上这一步把整个提交扔掉，4 篇只剩 reflog 里一份（10-14 手工找回）。
+      git reset -q --hard HEAD
     fi
   fi
+
+  # 上一轮被打断（Mac 重启 / 关机）留下的建站产物：改回 HEAD，收尾时从数据重建。
+  # 不改回的话，下面的 autostash 把它们收走，云端这期间也建过站，恢复必然冲突，
+  # 这一轮就拒绝深读（2026-10-13 上午）。只动建站产物，data/ 一个字不碰。
+  python3 pipeline/gitsync.py reset-site HEAD \
+    || echo "建站产物改不回 HEAD（不致命：autostash 照常兜着）" >&2
+
+  # 本机没推送的提交 rebase 不上去时用：不 rebase，把它们改过的**数据**折到远端之上、
+  # 留在工作区等这一轮提交；建站产物取远端的，收尾时从数据重建。和推送重试是同一套
+  # （reset --mixed + adopt）。原提交先挂在 refs/rescue/ 下，折坏了也找得回来。
+  fold_onto_origin() {
+    local OURS; OURS=$(git rev-parse HEAD)
+    git update-ref "refs/rescue/$(date +%Y%m%d-%H%M%S)" "$OURS" || return 1
+    git reset -q --mixed origin/main || return 1
+    git checkout -q origin/main -- pipeline scripts tests .github assets 2>/dev/null || true
+    python3 pipeline/gitsync.py reset-site origin/main || return 1
+    python3 pipeline/gitsync.py adopt "$OURS" origin/main data || return 1
+    python3 pipeline/gitsync.py restore-deleted data >/dev/null || return 1
+  }
 
   START_REV=$(git rev-parse HEAD 2>/dev/null)
   # **autostash 恢复失败时 git pull 的退出码仍是 0**：只打一句 "Applying autostash resulted in
@@ -154,8 +180,13 @@ export LLM_MODEL
     done < <(git -c core.quotepath=false status --porcelain -uall |
              awk '/^\?\? /{sub(/^\?\? /,""); print}')
     [ "$moved" -gt 0 ] && echo "挪开 $moved 个挡路的未跟踪产物 → $keep，重试同步"
+    ahead=$(git rev-list --count origin/main..HEAD 2>/dev/null || echo 0)
     if [ "$moved" -gt 0 ] && git pull --rebase --autostash -q origin main; then
       echo "同步成功（第二次）"
+    elif [ "${ahead:-0}" -gt 0 ] && fold_onto_origin && git pull --rebase --autostash -q origin main; then
+      # 没推送的提交里带着建站产物（推送重试五次都失败的那种），rebase 必然撞上云端的建站。
+      # 原来这里直接「同步失败、本轮不深读」，而下一轮还是同一个提交、同一面墙。
+      echo "同步成功：本机 $ahead 个没推送的提交 rebase 不上去，数据已折到远端之上（原提交在 refs/rescue/）"
     else
     echo "同步失败：拉不下 origin/main，本轮不深读（账本是旧的，会重复发）" >&2
     behind=$(git rev-list --count HEAD..origin/main 2>/dev/null || echo "?")
@@ -327,6 +358,16 @@ PYEOF
   n=$(git diff --cached --name-only | grep -c 'data/episodes/' || true)
   git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
       commit -q -m "digest: $n new (local)"
+  # **主轮的稿先推上去，不等补课。** 原来整轮只在最后推一次，补课一跑一两个小时，
+  # 中间 Mac 重启 / 关机，主轮发的稿就只躺在本地提交里（2026-10-12 上午 4 篇，
+  # 下一轮又被脱身逻辑扔掉）。只推不拉：工作区里还有主轮建站的产物没提交，
+  # 这时候 pull --autostash 就是在造 10-13 那次冲突。被拒（远端有新提交）就留给收尾那趟。
+  # 页面在收尾建站时一起上；云端每轮也会从数据重建。
+  if git push -q origin main 2>/dev/null; then
+    echo "主轮 $n 篇的数据已先推上去（页面收尾时一起建）"
+  else
+    echo "主轮先推被拒（远端有新提交），收尾时一起推"
+  fi
   # 新集要译成英文才会进 /en/。**每条发布线都要接**——原来只有云端日更接了，
   # 本机线（住宅 IP 那条，中文播客主要靠它）发的内容在英文站上一直缺。
   # 失败不阻塞：没译的不渲染，宁可少几篇也不要中英混排。

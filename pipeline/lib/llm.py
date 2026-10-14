@@ -467,14 +467,27 @@ def _cli(system: str, user: str, *, model: str = "", tries: int = 4) -> str:
                 serial_retry = True
                 time.sleep(5)
                 continue
-        if i < tries - 1 and _TRANSIENT.search(last):
+        if i < tries - 1 and (_TRANSIENT.search(last) or _CLI_AUTH.search(last)):
             wait = 20 * (2 ** i)
             log(f"    provider busy ({last[:70]}) — retrying in {wait}s "
                 f"({i + 1}/{tries - 1})")
             time.sleep(wait)
             continue
         break
+    if _CLI_AUTH.search(last):
+        # 连着几次都被拒，才是登录真的失效：停掉整轮，别拿剩下的每一集去撞同一面墙
+        raise AuthError(f"claude CLI 连续 {tries} 次鉴权失败：{last[:200]}\n"
+                        f"  本机 claude 的登录多半失效了：在终端里跑一次 `claude`，按提示重新登录。")
     raise RuntimeError(f"claude cli failed: {last[:300]}")
+
+
+# claude CLI 的鉴权失败长这样：「Failed to authenticate. API Error: 403 Request not allowed」。
+# 上面 _AUTH 认的是 HTTP 端点的写法（"HTTP 403"、"authentication"），一个都不命中，
+# 于是它既不重试、也不止损：每一集记一次 digest 失败，接着撞下一集。
+# 而 2026-10-13 晚上那三次是**偶发**的 —— 同一轮前后的调用都成功、发了 2 篇。所以先退避重试，
+# 连续失败才当成登录失效（AuthError 停掉整轮）。
+_CLI_AUTH = re.compile(r"failed to authenticate|API Error: 40[13]\b|invalid api key|"
+                       r"please run /login|not logged in", re.I)
 
 
 _AUTH = re.compile(r"HTTP (401|403)|invalid[ _-]?(x-)?api[ _-]?key|"

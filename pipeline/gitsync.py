@@ -6,6 +6,7 @@
   adopt <ours> <theirs> <前缀>...
                            推送重试 `reset --mixed <theirs>` 之后用：磁盘上那份和远端不一样的文件，
                            本机这轮没动过的取远端的，两边都动过的走 .gitattributes 登记的合并驱动
+  reset-site [ref]         建站产物里已跟踪、和 ref（默认 HEAD）不一样的改回 ref；data/ 不碰
   add-site [额外路径…]     把建站产物（SITE）整套加进索引，加完核对一个没剩
   site-paths [额外路径…]   打印 SITE 此刻真实存在的路径，给 shell 的 git add 用
 
@@ -192,6 +193,28 @@ def site_paths(extra: list[str] | tuple[str, ...] = ()) -> list[str]:
     return out
 
 
+def reset_site(ref: str = "HEAD") -> int:
+    """建站产物里「已跟踪、磁盘上和 ref 不一样」的文件改回 ref 那份（被删的取回）。未跟踪的不碰。
+
+    **为什么同步之前要做这一步。** 本机线的提交在整轮最后：主轮建过站，再补课一两个小时，
+    最后才提交。这中间 Mac 一重启，工作区里就留着一套没提交的 index.html / cards-1.json /
+    hot.json …… 下一轮开头 `git pull --autostash` 把它们收进 stash，而云端这期间也建过站，
+    恢复必然冲突 —— 那一轮拒绝深读（2026-10-13 上午）。建站产物从数据重建，丢掉不损失任何东西；
+    数据（data/）一个字都不碰。返回改回了几个文件。"""
+    paths = site_paths()
+    if not paths:
+        return 0
+    changed = _z(["diff", "-z", "--name-only", ref, "--", *paths])
+    in_ref = set(_z(["ls-tree", "-r", "-z", "--name-only", ref, "--", *changed])) if changed else set()
+    back = [p for p in changed if p in in_ref]
+    for i in range(0, len(back), 200):
+        subprocess.run(["git", "checkout", "-q", ref, "--", *back[i:i + 200]], check=True)
+    left = _z(["diff", "-z", "--name-only", ref, "--", *back]) if back else []
+    if left:
+        raise SystemExit(f"建站产物改不回 {ref}：{left[:5]}")
+    return len(back)
+
+
 def add_site(extra: list[str] | tuple[str, ...] = ()) -> int:
     """把建站产物整套加进索引（增、改、删都算），然后**从磁盘核一遍**：
     这些路径下不许还剩没暂存的改动或未跟踪的文件。剩了就报错，不许推半套站。
@@ -223,6 +246,11 @@ def main(argv: list[str]) -> int:
     if len(argv) >= 2 and argv[1] == "add-site":
         n = add_site(argv[2:])
         print(f"建站产物已整套暂存：{n} 个文件有变动")
+        return 0
+    if len(argv) >= 2 and argv[1] == "reset-site":
+        n = reset_site(argv[2] if len(argv) > 2 else "HEAD")
+        if n:
+            print(f"上一轮没提交的建站产物 {n} 个改回 {argv[2] if len(argv) > 2 else 'HEAD'}（收尾时从数据重建）")
         return 0
     if len(argv) >= 2 and argv[1] == "site-paths":
         paths = site_paths(argv[2:])
