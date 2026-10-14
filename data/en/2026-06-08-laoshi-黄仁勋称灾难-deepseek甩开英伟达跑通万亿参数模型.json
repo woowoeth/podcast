@@ -1,0 +1,127 @@
+{
+ "slug": "2026-06-08-laoshi-黄仁勋称灾难-deepseek甩开英伟达跑通万亿参数模型",
+ "of": "laoshi-ee0a763f81",
+ "source_lang": "zh",
+ "title": "Huang calls it catastrophe: DeepSeek surpasses Nvidia on trillion-parameter models",
+ "dek": "DeepSeek V4 coordinated chip-to-model collaboration with Huawei Ascend from design phase, achieving one-seventh the cost of international competitors, proving multiple paths to compute power exist.",
+ "why": "Dissects how domestic models and chips achieve synchronized breakthroughs in compute by coordinating from design stage onward; hard technical details, information-dense, worth watching in full.",
+ "who": "Engineers and investors tracking China's AI compute and chip supply chain who want to understand the technical coordination between Huawei Ascend and DeepSeek.",
+ "skip": "Audio crackles with repetition at 4–5 minutes; skip without losing context.",
+ "tags": [
+  "Domestic AI compute",
+  "Huawei Ascend",
+  "DeepSeek",
+  "CUDA ecosystem",
+  "Supernode",
+  "Open-source ecosystem"
+ ],
+ "points": [
+  {
+   "h": "Huang calls it catastrophe when Chinese chips run independently without Nvidia",
+   "body": "Nvidia CEO Huang Renxiong said in an April 15 interview that if China's top models ran without Nvidia chips, it would be a \"disaster\" for Nvidia. Nine days later, DeepSeek V4 launched—Pro version with 1.6 trillion parameters, Flash version with 284 billion, both supporting million-token context; simultaneously, Huawei announced Ascend 950 completed full adaptation and end-to-end optimization for all V4 versions, successfully migrating inference deployment from Nvidia to domestic chips."
+  },
+  {
+   "h": "This time China chose open-sourcing the complete model plus entire ecosystem",
+   "body": "Unlike Nvidia's \"closed-loop chip plus CUDA ecosystem\" model, this time China chose full open-source for models and ecosystem. DeepSeek V4 delivered full-blood performance on domestic compute infrastructure at one-seventh the cost of international competitors—facing dual pressure of semiconductor constraints and single-card physical compute ceilings, China's AI strategy is to open a crack through open source, not to match on single points."
+  },
+  {
+   "h": "Million-token context windows become hardware's biggest bottleneck",
+   "body": "DeepSeek V4's million-token ultra-long context lets models ingest entire codebases, contracts, or agent operation logs in a single pass—but it's a hardware nightmare: first, VRAM explosion, a single long conversation's KV cache can consume hundreds of gigabytes; second, the memory wall, bandwidth can't keep pace with compute cores, leaving compute idle waiting for data; third, cross-card communication congestion in MoE architecture; fourth, extreme latency requirements from high-concurrency agents. Models can't wait for hardware and hardware can't wait for models—they must be designed in sync."
+  },
+  {
+   "h": "Ascend 950 tackles four critical challenges through microarchitecture alone",
+   "body": "Ascend 950 has no advanced process node to rely on, only microarchitectural innovation: new support for FP8 and FP4 low-precision formats (1PFLOP at FP8, 2PFLOP at FP4), effectively doubling memory and bandwidth; shrank memory access granularity from 512B to 128B, reducing bandwidth waste; fused SIMD and SMT architectures to handle both bulk matrix operations and MoE dynamic scheduling congestion; split chips into PR (inference-optimized) and DT (training-optimized) variants for scenario-specific compute allocation."
+  },
+  {
+   "h": "Ren Zhengfei's principle: use clustering to compensate for single-chip limits",
+   "body": "Ren Zhengfei summarized the strategy: ‘Use mathematics to compensate for physics, use non-Moore to compensate for Moore, use cluster computing to compensate for single chips.’ Since geometric transistor scaling won't work, shift toward system architecture innovation. Ascend 950 supernodes start at 64 cards per cabinet, scaling to 8192 cards maximum, with 2TB/second per-chip interconnect bandwidth and 16,000TB/second total interconnect bandwidth, achieving parity with or surpassing advanced process-node performance through efficient multi-node coordination."
+  },
+  {
+   "h": "CUDA's real moat is the cost of migration, not compute itself",
+   "body": "Nvidia's true barrier isn't GPU compute power, but CUDA ecosystem stacked over a decade-plus—developer code, tools, habits, and community accumulated. Huawei's software foundation CANN faced a past pain point: the chips are good, but environment configuration and code porting require months—small hassles unrelated to core technology that slowly wear developer confidence and are the hardest part to crack."
+  },
+  {
+   "h": "CANN shifted from forcing new learning to accommodating existing practices",
+   "body": "Huawei systematically rebuilt CANN: decomposed massive software packages into 20+ lightweight components for on-demand compilation and independent upgrades; open-sourced 60+ code repositories to community so developers can troubleshoot and modify source code themselves; optimized cross-card communication templates for MoE bottlenecks; maintained compatibility with mainstream ecosystems like Triton and PyTorch, and deployed MindStudio Agent and CANBOT intelligent tools to dramatically lower barriers to operator development and environment setup. Developers report that in 2024 the ecosystem still looked barren, but after half a year, close to 80 percent was already built."
+  },
+  {
+   "h": "US export bans lift within days of Chinese breakthroughs, not before",
+   "body": "In the 1990s, US export controls on high-performance computers to China required installation in a \"glass box\" where Chinese personnel couldn't enter for maintenance. In 1990, researcher Li Guojie led a team of people in their twenties to develop high-performance computers; three years later, China's first independently developed supercomputer was complete, and on its third day, the US lifted export restrictions. History repeats: within a month of DeepSeek and Ascend 950's joint launch, Huang himself confirmed the US has now decontrolled H200 exports to China."
+  }
+ ],
+ "terms": [
+  {
+   "term": "KV cache",
+   "def": "Intermediate computation results stored during generation; long contexts cause exponential VRAM consumption"
+  },
+  {
+   "term": "MoE",
+   "def": "Mixture of Experts—architecture activating only a subset of expert modules per query, reducing compute but increasing cross-card communication"
+  },
+  {
+   "term": "CUDA",
+   "def": "Nvidia's software ecosystem bound to its GPUs; developer code, tools, and community accumulated over decades form the real competitive moat"
+  },
+  {
+   "term": "CANN",
+   "def": "Huawei's software foundation for Ascend chips—includes operator libraries, compiler, and runtime, equivalent to Nvidia's CUDA"
+  },
+  {
+   "term": "SIMD/SMT",
+   "def": "Single Instruction Multiple Data and Symmetric Multi-threading—hybrid architecture handling both bulk matrix operations and dynamic MoE scheduling"
+  }
+ ],
+ "facts": [
+  {
+   "k": "DeepSeek V4 Pro parameter count",
+   "v": "1.6 trillion"
+  },
+  {
+   "k": "Domestic compute cost vs international competitors",
+   "v": "one-seventh"
+  },
+  {
+   "k": "Ascend 950 FP8 compute",
+   "v": "1 PFLOP"
+  },
+  {
+   "k": "Ascend 950 FP4 compute",
+   "v": "2 PFLOP"
+  },
+  {
+   "k": "Ascend 950 supernode scale",
+   "v": "64 cards per cabinet, maximum 8192 cards"
+  },
+  {
+   "k": "CANN open-source code repositories",
+   "v": "60+"
+  },
+  {
+   "k": "Cross-card communication latency improvement",
+   "v": "30x reduction"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "Use mathematics to compensate for physics, use non-Moore to compensate for Moore, use cluster computing to compensate for single chips",
+   "translated": true
+  },
+  {
+   "text": "In the past it was like a black box—tools tangled together, you had to accept it all wholesale, and when problems arose you didn't know which layer they were in or where to optimize",
+   "translated": true
+  },
+  {
+   "text": "In 2024 the ecosystem still looked barren, but after half a year, close to 80 percent was already built",
+   "translated": true
+  },
+  {
+   "text": "In 1990, a researcher named Li Guojie led a team of people in their twenties to develop high-performance computers; three years later, China's first independently developed supercomputer was complete, and on its third day, the US lifted the ban on exporting high-performance computers to China",
+   "translated": true
+  },
+  {
+   "text": "Its greatest significance is not defeating anyone, but proving to the world that the path to AGI is no longer a single-choice question",
+   "translated": true
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
