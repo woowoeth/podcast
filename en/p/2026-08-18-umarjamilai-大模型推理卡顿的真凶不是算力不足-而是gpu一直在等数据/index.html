@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The real culprit behind LLM inference bottlenecks is not compute capacity — it&#x27;s GPUs waiting for data — umarjamilai · Podcast</title>
+<meta name="description" content="H100&#x27;s compute is 600x its memory bandwidth; during decoding, each step produces just one token but must fetch the entire KV cache, so GPUs spend most of their time waiting for data transfer, not computing.">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/en/p/2026-08-18-umarjamilai-大模型推理卡顿的真凶不是算力不足-而是gpu一直在等数据/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Podcast">
+<meta property="og:locale" content="en_US">
+<meta property="og:title" content="The real culprit behind LLM inference bottlenecks is not compute capacity — it&#x27;s GPUs waiting for data — umarjamilai · Podcast">
+<meta property="og:description" content="H100&#x27;s compute is 600x its memory bandwidth; during decoding, each step produces just one token but must fetch the entire KV cache, so GPUs spend most of their time waiting for data transfer, not computing.">
+<meta property="og:url" content="https://ourword.ai/podcast/en/p/2026-08-18-umarjamilai-大模型推理卡顿的真凶不是算力不足-而是gpu一直在等数据/">
+<meta property="og:image" content="https://ourword.ai/podcast/assets/cover/56490659a6c0e055.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-08-18T04:19:10Z">
+<meta property="article:modified_time" content="2026-10-15T09:06:28Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The real culprit behind LLM inference bottlenecks is not compute capacity — it&#x27;s GPUs waiting for data — umarjamilai · Podcast">
+<meta name="twitter:description" content="H100&#x27;s compute is 600x its memory bandwidth; during decoding, each step produces just one token but must fetch the entire KV cache, so GPUs spend most of their time waiting for data transfer, not computing.">
+<meta name="twitter:image" content="https://ourword.ai/podcast/assets/cover/56490659a6c0e055.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="Podcast" href="/podcast/en/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-08-18-umarjamilai-大模型推理卡顿的真凶不是算力不足-而是gpu一直在等数据/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-08-18-umarjamilai-大模型推理卡顿的真凶不是算力不足-而是gpu一直在等数据/">
+<link rel="alternate" hreflang="en" href="https://ourword.ai/podcast/en/p/2026-08-18-umarjamilai-大模型推理卡顿的真凶不是算力不足-而是gpu一直在等数据/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-08-18-umarjamilai-大模型推理卡顿的真凶不是算力不足-而是gpu一直在等数据/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=6982a60148">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/en/p/2026-08-18-umarjamilai-大模型推理卡顿的真凶不是算力不足-而是gpu一直在等数据/#episode", "name": "The real culprit behind LLM inference bottlenecks is not compute capacity — it's GPUs waiting for data", "headline": "The real culprit behind LLM inference bottlenecks is not compute capacity — it's GPUs waiting for data", "description": "H100's compute is 600x its memory bandwidth; during decoding, each step produces just one token but must fetch the entire KV cache, so GPUs spend most of their time waiting for data transfer, not computing.", "abstract": "H100's compute is 600x its memory bandwidth; during decoding, each step produces just one token but must fetch the entire KV cache, so GPUs spend most of their time waiting for data transfer, not computing.", "datePublished": "2026-08-18T04:19:10Z", "dateModified": "2026-10-15T09:06:28Z", "url": "https://ourword.ai/podcast/en/p/2026-08-18-umarjamilai-大模型推理卡顿的真凶不是算力不足-而是gpu一直在等数据/", "timeRequired": "PT1175M", "partOfSeries": {"@type": "PodcastSeries", "name": "umarjamilai", "url": "https://ourword.ai/podcast/en/s/umarjamilai/"}, "inLanguage": "en", "isBasedOn": "https://www.youtube.com/watch?v=XoGvCBRnwLs", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "distributed training, GPU parallelism, MoE, attention mechanisms, memory optimization, large model engineering, RoPE / Rotary Position Encoding, MLA / Multi-Head Latent Attention, FSDP / Fully Sharded Data Parallel, KV cache / Key-Value Cache, MFU / Model FLOPs Utilization, Device mesh / Device mesh, H100 compute throughput, Compute to memory bandwidth ratio, MLA compressed KV dimension, RoPE theta_base parameter, Pre-training maximum sequence length, Communication startup overhead amortization threshold", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}}, {"@type": "Article", "@id": "https://ourword.ai/podcast/en/p/2026-08-18-umarjamilai-大模型推理卡顿的真凶不是算力不足-而是gpu一直在等数据/#deepread", "headline": "The real culprit behind LLM inference bottlenecks is not compute capacity — it's GPUs waiting for data", "description": "H100's compute is 600x its memory bandwidth; during decoding, each step produces just one token but must fetch the entire KV cache, so GPUs spend most of their time waiting for data transfer, not computing.", "articleBody": "H100's compute is 600x its memory bandwidth; during decoding, each step produces just one token but must fetch the entire KV cache, so GPUs spend most of their time waiting for data transfer, not computing.\n[3:06] In the AI era, what's worth learning is not skills but problem-solving ability。When coding agents can handle any concrete task, the author argues what remains worth learning is not specific frameworks or model details, but ‘how to face ambiguous, difficult problems with uncertain answers and solve them’. This builds self-trust — next time you hit a harder problem, you'll dare to try. The entire video follows this logic: not teaching DeepSeek's architecture itself, but using an extremely hard problem to train problem-solving ability. This lasts longer than memorizing any API.\n[19:22] Variable-length token routing in expert parallelism requires two rounds of communication。Under expert parallelism, each GPU must dynamically send how many tokens to each peer — this volume is not known in advance. Standard all-to-all requires pre-allocating fixed receive buffers, so it doesn't work directly. The solution splits into two steps: first all-to-all exchanges only metadata — ‘how many tokens am I sending you’, ‘how many am I receiving from you’; once sizes are set, the second round actually transfers the tokens. This extra communication round lets an all-to-all designed for fixed lengths handle the naturally variable traffic in distributed MoE.\n[1:31:34] RoPE's design flaw gets reverse-engineered by the model itself。RoPE was meant to encode only relative distance between tokens, letting high-frequency dimensions complete multiple full rotations to distinguish nearby tokens. But low-frequency dimensions that never complete a full rotation have angles that monotonically increase with position and never repeat. Models discover this pattern and learn to use it to infer their absolute position in the sequence — even though the designer never intended this. The author's takeaway: deep learning's universal problem is that if any exploitable regularity exists, the model will ruthlessly exploit it to cut loss.\n[2:34:44] GPUs bottleneck on data arrival, not compute — the 600x imbalance shows why。H100 has 2,000 teraflops compute but only 3.35 TB/s memory bandwidth, a ratio of about 600:1. This means GPU compute stays busy only if every byte loaded pairs with about 600 operations. During autoregressive decoding, each step produces one token but must transfer the entire KV cache — the actual compute is far below this threshold. GPU compute units sit idle; the bottleneck is data movement, not arithmetic. This is why MLA, KV compression, and the whole suite of optimization methods exist.\n[6:52:30] Zero-bubble pipelining: weight gradients fill compute during critical-path gaps。In backprop, computing input gradients must flow to the previous layer — this is a hard requirement on the critical path. But weight gradients don't block the next device's backprop; they can always be delayed. Zero-bubble pipelining exploits this: split these two gradient types, prioritize the critical path first, then use weight gradient compute to fill the GPU's idle windows. DeepSeek's dual pipe design makes this symmetric using two model copies from both ends, feeding microbatches in, and squeezes pipeline bubbles nearly to zero.\n[8:54:55] Physical network speed determines how parallelism strategies map to devices。Pipeline parallelism needs only one layer's activations passed between adjacent GPUs, a data volume usually far smaller than total model parameters, so it runs safely over slow cross-node Ethernet. Data parallelism syncs entire gradient vectors — size equals all parameters — and must run on fast intra-node NVLink. This physical constraint works backward to determine device mesh layout: place the highest-communication dimensions on innermost strides, lowest on outer dimensions. It is not ‘design strategy first, then find hardware to fit it’ but ‘hardware topology dictates how algorithms arrange themselves’.\n[10:16:21] FSDP trades communication volume for memory to support trillion-parameter models。DDP requires complete model to fit in a single GPU — impossible for trillion parameters. FSDP shards each layer's parameters uniformly across all GPUs: before entering a layer on forward pass, run all-gather to rebuild complete parameters, compute, then discard; on backprop, same pattern — gather, compute gradients, reduce-scatter to keep only this GPU's shard. Optimizer state only stored locally for each shard. The cost is significantly more communication; the win is dramatically lower per-GPU memory. This is an explicit trade — communication for memory — not a free lunch.\n[17:07:51] Expert-choice routing leaks future information during training, fails at inference。If experts choose tokens instead of tokens choosing experts, each expert sees all tokens in the batch and learns sequential patterns like ‘D is often followed by cat’. But this information comes from tokens appearing later in the same batch — the model trains on data it shouldn't have access to. At inference time, this cross-token global view vanishes, and performance degrades noticeably. This is a fatal design flaw the author names explicitly. This is why mainstream systems stick with token-choice routing: more primitive, but robust.\n[3:06]「the only thing that is worth learning in life is how to take a hard problem and overcome it」\n[12:01] Speaker：「the average of the average is not the average value」\n[2:39:49]「you are still moving a large quantity of memory to produce this one single embedding and that's why we are underutilizing the GPU and this is why we say it's IO bound」\n[6:53:30]「But this one is not necessary to go back in the backward pass because it no other gradients depends on this one」\n[8:54:55] Host：「these two GPU they only need to share the output of one layer and and send it to the next one. But the output of one layer is just the activation of one layer and that may be much smaller than the total parameter of the model.」\n[10:22:24]「we can run the optimizer step only on the shard or the piece of parameters that we have locally in this current rank」\n[17:07:51]「it's a kind of leaking future information inside of previous tokens which should never happen in an autogressive language model」\n[2:34:44] H100 compute throughput：2,000 teraflops\n[2:34:44] Compute to memory bandwidth ratio：600x\n[3:37:55] MLA compressed KV dimension：512\n[1:07:05] RoPE theta_base parameter：10,000\n[1:15:17] Pre-training maximum sequence length：4,000\n[11:29] Communication startup overhead amortization threshold：1 million times\n[15:48:34] Excellent MFU level：50% and above", "wordCount": 1000, "inLanguage": "en", "datePublished": "2026-08-18T04:19:10Z", "dateModified": "2026-10-15T09:06:28Z", "url": "https://ourword.ai/podcast/en/p/2026-08-18-umarjamilai-大模型推理卡顿的真凶不是算力不足-而是gpu一直在等数据/", "about": {"@id": "https://ourword.ai/podcast/en/p/2026-08-18-umarjamilai-大模型推理卡顿的真凶不是算力不足-而是gpu一直在等数据/#episode"}, "isBasedOn": "https://www.youtube.com/watch?v=XoGvCBRnwLs", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "isAccessibleForFree": true}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://ourword.ai/podcast/en/"}, {"@type": "ListItem", "position": 2, "name": "umarjamilai", "item": "https://ourword.ai/podcast/en/s/umarjamilai/"}, {"@type": "ListItem", "position": 3, "name": "The real culprit behind LLM inference bottlenecks is not compute capacity — it's GPUs waiting for data"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/en/"><span class="wordmark">Podcast<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<a class="pill ghost" id="lang-toggle" lang="zh" data-cur="en" data-en="1" href="/podcast/">中文</a>
+<button class="icon-btn" data-theme-toggle aria-label="Toggle light/dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">The world is too loud. Read what matters.</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/en/">Home</a><span class="sep">/</span>
+<a href="/podcast/en/c/ai/">AI &amp; Tech</a><span class="sep">/</span><a href="/podcast/en/s/umarjamilai/">umarjamilai</a>
+<span class="sep">/</span><span>2026-08-18</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">umarjamilai</span>
+<time class="date" datetime="2026-08-18T04:19:10Z">2026-08-18</time>
+<button class="share-btn" type="button" data-share data-share-title="The real culprit behind LLM inference bottlenecks is not compute capacity — it&#x27;s GPUs waiting for data" data-share-url="https://ourword.ai/podcast/en/e/umarjamilai-f10082c005/" data-share-text="The real culprit behind LLM inference bottlenecks is not compute capacity — it&#x27;s GPUs waiting for data&#10;umarjamilai · 1175 min&#10;&#10;H100&#x27;s compute is 600x its memory bandwidth; during decoding, each step produces just one token but must fetch the…&#10;&#10;https://ourword.ai/podcast/en/e/umarjamilai-f10082c005/" aria-label="Copy share text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>Share</span></button></div>
+<h1>The real culprit behind LLM inference bottlenecks is not compute capacity — it&#x27;s GPUs waiting for data</h1>
+<p class="dek-lead">H100&#x27;s compute is 600x its memory bandwidth; during decoding, each step produces just one token but must fetch the entire KV cache, so GPUs spend most of their time waiting for data transfer, not computing.</p>
+<div class="ep-meta"><span class="tag">distributed training</span><span class="tag">GPU parallelism</span><span class="tag">MoE</span><span class="tag">attention mechanisms</span><span class="tag">memory optimization</span><span class="tag">large model engineering</span></div>
+</div>
+<div class="player" data-player-box>
+  <button class="video-facade" data-yt="XoGvCBRnwLs" type="button"
+          aria-label="Play the original video">
+    <span class="frame">
+      <img src="https://i.ytimg.com/vi/XoGvCBRnwLs/hq720.jpg" alt="" loading="lazy" width="1280"
+           onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/XoGvCBRnwLs/hqdefault.jpg'">
+      <span class="play" aria-hidden="true"><svg viewBox="0 0 44 44" width="44" height="44" focusable="false"><circle cx="22" cy="22" r="21" fill="rgba(18,16,13,.55)" stroke="rgba(255,255,255,.92)" stroke-width="1.5"/><path d="M17 14.5 32 22 17 29.5Z" fill="#fff"/></svg></span>
+    </span>
+  </button>
+</div>
+
+<section class="section"><div class="why">This is a hardcore engineering course on building a distributed training framework from scratch, aimed at people who want to understand the mathematical principles behind GPU communication and parallelism, not a casual AI primer.</div></section>
+
+<section class="section"><h2>The argument · tap a timestamp to hear it</h2><div class="point" id="p0"><a class="ts" data-t="186" href="https://www.youtube.com/watch?v=XoGvCBRnwLs&amp;t=186s" target="_blank" rel="noopener">3:06</a><div><h4>In the AI era, what&#x27;s worth learning is not skills but problem-solving ability</h4>
+<p class="body">When coding agents can handle any concrete task, the author argues what remains worth learning is not specific frameworks or model details, but ‘how to face ambiguous, difficult problems with uncertain answers and solve them’. This builds self-trust — next time you hit a harder problem, you&#x27;ll dare to try. The entire video follows this logic: not teaching DeepSeek&#x27;s architecture itself, but using an extremely hard problem to train problem-solving ability. This lasts longer than memorizing any API.</p>
+</div></div>
+<div class="point" id="p1"><a class="ts" data-t="1162" href="https://www.youtube.com/watch?v=XoGvCBRnwLs&amp;t=1162s" target="_blank" rel="noopener">19:22</a><div><h4>Variable-length token routing in expert parallelism requires two rounds of communication</h4>
+<p class="body">Under expert parallelism, each GPU must dynamically send how many tokens to each peer — this volume is not known in advance. Standard all-to-all requires pre-allocating fixed receive buffers, so it doesn&#x27;t work directly. The solution splits into two steps: first all-to-all exchanges only metadata — ‘how many tokens am I sending you’, ‘how many am I receiving from you’; once sizes are set, the second round actually transfers the tokens. This extra communication round lets an all-to-all designed for fixed lengths handle the naturally variable traffic in distributed MoE.</p>
+</div></div>
+<div class="point" id="p2"><a class="ts" data-t="5494" href="https://www.youtube.com/watch?v=XoGvCBRnwLs&amp;t=5494s" target="_blank" rel="noopener">1:31:34</a><div><h4>RoPE&#x27;s design flaw gets reverse-engineered by the model itself</h4>
+<p class="body">RoPE was meant to encode only relative distance between tokens, letting high-frequency dimensions complete multiple full rotations to distinguish nearby tokens. But low-frequency dimensions that never complete a full rotation have angles that monotonically increase with position and never repeat. Models discover this pattern and learn to use it to infer their absolute position in the sequence — even though the designer never intended this. The author&#x27;s takeaway: deep learning&#x27;s universal problem is that if any exploitable regularity exists, the model will ruthlessly exploit it to cut loss.</p>
+</div></div>
+<div class="point" id="p3"><a class="ts" data-t="9284" href="https://www.youtube.com/watch?v=XoGvCBRnwLs&amp;t=9284s" target="_blank" rel="noopener">2:34:44</a><div><h4>GPUs bottleneck on data arrival, not compute — the 600x imbalance shows why</h4>
+<p class="body">H100 has 2,000 teraflops compute but only 3.35 TB/s memory bandwidth, a ratio of about 600:1. This means GPU compute stays busy only if every byte loaded pairs with about 600 operations. During autoregressive decoding, each step produces one token but must transfer the entire KV cache — the actual compute is far below this threshold. GPU compute units sit idle; the bottleneck is data movement, not arithmetic. This is why MLA, KV compression, and the whole suite of optimization methods exist.</p>
+</div></div>
+<div class="point" id="p4"><a class="ts" data-t="24750" href="https://www.youtube.com/watch?v=XoGvCBRnwLs&amp;t=24750s" target="_blank" rel="noopener">6:52:30</a><div><h4>Zero-bubble pipelining: weight gradients fill compute during critical-path gaps</h4>
+<p class="body">In backprop, computing input gradients must flow to the previous layer — this is a hard requirement on the critical path. But weight gradients don&#x27;t block the next device&#x27;s backprop; they can always be delayed. Zero-bubble pipelining exploits this: split these two gradient types, prioritize the critical path first, then use weight gradient compute to fill the GPU&#x27;s idle windows. DeepSeek&#x27;s dual pipe design makes this symmetric using two model copies from both ends, feeding microbatches in, and squeezes pipeline bubbles nearly to zero.</p>
+</div></div>
+<div class="point" id="p5"><a class="ts" data-t="32095" href="https://www.youtube.com/watch?v=XoGvCBRnwLs&amp;t=32095s" target="_blank" rel="noopener">8:54:55</a><div><h4>Physical network speed determines how parallelism strategies map to devices</h4>
+<p class="body">Pipeline parallelism needs only one layer&#x27;s activations passed between adjacent GPUs, a data volume usually far smaller than total model parameters, so it runs safely over slow cross-node Ethernet. Data parallelism syncs entire gradient vectors — size equals all parameters — and must run on fast intra-node NVLink. This physical constraint works backward to determine device mesh layout: place the highest-communication dimensions on innermost strides, lowest on outer dimensions. It is not ‘design strategy first, then find hardware to fit it’ but ‘hardware topology dictates how algorithms arrange themselves’.</p>
+</div></div>
+<div class="point" id="p6"><a class="ts" data-t="36981" href="https://www.youtube.com/watch?v=XoGvCBRnwLs&amp;t=36981s" target="_blank" rel="noopener">10:16:21</a><div><h4>FSDP trades communication volume for memory to support trillion-parameter models</h4>
+<p class="body">DDP requires complete model to fit in a single GPU — impossible for trillion parameters. FSDP shards each layer&#x27;s parameters uniformly across all GPUs: before entering a layer on forward pass, run all-gather to rebuild complete parameters, compute, then discard; on backprop, same pattern — gather, compute gradients, reduce-scatter to keep only this GPU&#x27;s shard. Optimizer state only stored locally for each shard. The cost is significantly more communication; the win is dramatically lower per-GPU memory. This is an explicit trade — communication for memory — not a free lunch.</p>
+</div></div>
+<div class="point" id="p7"><a class="ts" data-t="61671" href="https://www.youtube.com/watch?v=XoGvCBRnwLs&amp;t=61671s" target="_blank" rel="noopener">17:07:51</a><div><h4>Expert-choice routing leaks future information during training, fails at inference</h4>
+<p class="body">If experts choose tokens instead of tokens choosing experts, each expert sees all tokens in the batch and learns sequential patterns like ‘D is often followed by cat’. But this information comes from tokens appearing later in the same batch — the model trains on data it shouldn&#x27;t have access to. At inference time, this cross-token global view vanishes, and performance degrades noticeably. This is a fatal design flaw the author names explicitly. This is why mainstream systems stick with token-choice routing: more primitive, but robust.</p>
+</div></div></section>
+<section class="section"><h2>In their own words · checked verbatim</h2><blockquote class="quote"><p class="raw">the only thing that is worth learning in life is how to take a hard problem and overcome it</p>
+
+<div class="attrib"><a class="ts" data-t="186" href="https://www.youtube.com/watch?v=XoGvCBRnwLs&amp;t=186s" target="_blank" rel="noopener">3:06</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">the average of the average is not the average value</p>
+
+<div class="attrib"><b>Speaker</b><a class="ts" data-t="721" href="https://www.youtube.com/watch?v=XoGvCBRnwLs&amp;t=721s" target="_blank" rel="noopener">12:01</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">you are still moving a large quantity of memory to produce this one single embedding and that&#x27;s why we are underutilizing the GPU and this is why we say it&#x27;s IO bound</p>
+
+<div class="attrib"><a class="ts" data-t="9589" href="https://www.youtube.com/watch?v=XoGvCBRnwLs&amp;t=9589s" target="_blank" rel="noopener">2:39:49</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">But this one is not necessary to go back in the backward pass because it no other gradients depends on this one</p>
+
+<div class="attrib"><a class="ts" data-t="24810" href="https://www.youtube.com/watch?v=XoGvCBRnwLs&amp;t=24810s" target="_blank" rel="noopener">6:53:30</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">these two GPU they only need to share the output of one layer and and send it to the next one. But the output of one layer is just the activation of one layer and that may be much smaller than the total parameter of the model.</p>
+
+<div class="attrib"><b>Host</b><a class="ts" data-t="32095" href="https://www.youtube.com/watch?v=XoGvCBRnwLs&amp;t=32095s" target="_blank" rel="noopener">8:54:55</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">we can run the optimizer step only on the shard or the piece of parameters that we have locally in this current rank</p>
+
+<div class="attrib"><a class="ts" data-t="37344" href="https://www.youtube.com/watch?v=XoGvCBRnwLs&amp;t=37344s" target="_blank" rel="noopener">10:22:24</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">it&#x27;s a kind of leaking future information inside of previous tokens which should never happen in an autogressive language model</p>
+
+<div class="attrib"><a class="ts" data-t="61671" href="https://www.youtube.com/watch?v=XoGvCBRnwLs&amp;t=61671s" target="_blank" rel="noopener">17:07:51</a></div>
+</blockquote></section>
+<section class="section"><h2>Figures</h2><table class="facts"><tr><td class="k">H100 compute throughput</td><td class="v">2,000 teraflops</td><td class="t"><a class="ts" data-t="9284" href="https://www.youtube.com/watch?v=XoGvCBRnwLs&amp;t=9284s" target="_blank" rel="noopener">2:34:44</a></td></tr>
+<tr><td class="k">Compute to memory bandwidth ratio</td><td class="v">600x</td><td class="t"><a class="ts" data-t="9284" href="https://www.youtube.com/watch?v=XoGvCBRnwLs&amp;t=9284s" target="_blank" rel="noopener">2:34:44</a></td></tr>
+<tr><td class="k">MLA compressed KV dimension</td><td class="v">512</td><td class="t"><a class="ts" data-t="13075" href="https://www.youtube.com/watch?v=XoGvCBRnwLs&amp;t=13075s" target="_blank" rel="noopener">3:37:55</a></td></tr>
+<tr><td class="k">RoPE theta_base parameter</td><td class="v">10,000</td><td class="t"><a class="ts" data-t="4025" href="https://www.youtube.com/watch?v=XoGvCBRnwLs&amp;t=4025s" target="_blank" rel="noopener">1:07:05</a></td></tr>
+<tr><td class="k">Pre-training maximum sequence length</td><td class="v">4,000</td><td class="t"><a class="ts" data-t="4517" href="https://www.youtube.com/watch?v=XoGvCBRnwLs&amp;t=4517s" target="_blank" rel="noopener">1:15:17</a></td></tr>
+<tr><td class="k">Communication startup overhead amortization threshold</td><td class="v">1 million times</td><td class="t"><a class="ts" data-t="689" href="https://www.youtube.com/watch?v=XoGvCBRnwLs&amp;t=689s" target="_blank" rel="noopener">11:29</a></td></tr>
+<tr><td class="k">Excellent MFU level</td><td class="v">50% and above</td><td class="t"><a class="ts" data-t="56914" href="https://www.youtube.com/watch?v=XoGvCBRnwLs&amp;t=56914s" target="_blank" rel="noopener">15:48:34</a></td></tr></table></section>
+<section class="section"><h2>Glossary</h2><dl class="terms"><div><dt>RoPE / Rotary Position Encoding<span></span></dt><dd>Encodes relative distance between tokens using complex-number rotation, enabling models to extrapolate to longer sequences than seen during training.</dd></div>
+<div><dt>MLA / Multi-Head Latent Attention<span></span></dt><dd>Compresses KV vectors before storing them in cache, then projects back to original dimension during inference; saves memory without reducing head count.</dd></div>
+<div><dt>FSDP / Fully Sharded Data Parallel<span></span></dt><dd>Shards parameters, gradients, and optimizer state across all GPUs; trades communication volume for memory capacity.</dd></div>
+<div><dt>KV cache / Key-Value Cache<span></span></dt><dd>Stores pre-computed key and value vectors during decoding to avoid recomputation; requires memory and data loading on every step.</dd></div>
+<div><dt>MFU / Model FLOPs Utilization<span></span></dt><dd>Ratio of actual useful compute to hardware peak compute, the standard metric for training efficiency.</dd></div>
+<div><dt>Device mesh / Device mesh<span></span></dt><dd>Organizes GPUs into a multi-dimensional coordinate system; automatically determines which GPU pairs communicate and over which paths.</dd></div></dl></section>
+<section class="section"><h2>How to listen</h2>
+<div class="panel guide">
+<div><span class="k">Who it's for</span><p>ML infrastructure engineers building distributed training frameworks from scratch; people who want to understand the math behind RoPE, MLA, FSDP, and pipeline parallelism.</p></div>
+<div><span class="k">Skip</span><p>The opening section on learning methodology (00:04-09:13) leans motivational; if you only want technical details, skip directly to the architecture section.</p></div>
+</div></section>
+<section class="related"><h2 class="sec-title">More on this</h2><ul class="rel-list"><li><a href="/podcast/en/p/2026-08-26-zhangxiaojun-k3无颠覆性创新-但把模型规模推上一个数量级/"><span class="rel-t" lang="zh">K3 Has No Disruptive Innovation, but Pushes Activated Parameters to the 100B Scale</span><span class="rel-s" lang="zh">张小珺·商业访谈录</span></a></li><li><a href="/podcast/en/p/2025-02-23-zhangxiaojun-deepseek-用暴力美学改架构-把-full-attention-全线压制了/"><span class="rel-t" lang="zh">DeepSeek rewrites the architecture with brute-force aesthetics, pushing Full Attention below the line</span><span class="rel-s" lang="zh">张小珺·商业访谈录</span></a></li><li><a href="/podcast/en/p/2025-02-11-zhangxiaojun-deepseek-用-2000-张卡训出-671b-模型-靠的是敢赌没人做过的技/"><span class="rel-t" lang="zh">DeepSeek trained a 671B model on 2000 GPUs by betting on techniques no one dared try</span><span class="rel-s" lang="zh">张小珺·商业访谈录</span></a></li></ul></section>
+<nav class="prevnext"><a href="/podcast/en/p/2026-08-18-witness-曼德勒战役胜负手-放弃正面突击改用围困/"><span class="lbl">← Newer</span><strong>Mandalay hinged on one call: drop the frontal assault, lay siege</strong></a><a class="r" href="/podcast/en/p/2026-08-17-stuffmissed-苏丹倒过来娶她-得土安女总督不是海盗/"><span class="lbl">Older →</span><strong>The sultan came to her: Tétouan&#x27;s woman governor was no pirate</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>The episode</h4>
+<div class="row"><span>Show</span><span>umarjamilai</span></div>
+<div class="row"><span>Original title</span><span>Building a distributed training framework from first principles</span></div>
+<div class="row"><span>Published</span><span>2026-08-18</span></div>
+<div class="row"><span>Length</span><span>19:35:12</span></div>
+<a class="row" href="https://www.youtube.com/watch?v=XoGvCBRnwLs" target="_blank" rel="noopener"><span>Episode page</span><span>Open ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>On this page</h4><nav class="toc"><a href="#p0"><span class="t">3:06</span><span>In the AI era, what&#x27;s worth learning is not skills but problem-solving ability</span></a>
+<a href="#p1"><span class="t">19:22</span><span>Variable-length token routing in expert parallelism requires two rounds of communication</span></a>
+<a href="#p2"><span class="t">1:31:34</span><span>RoPE&#x27;s design flaw gets reverse-engineered by the model itself</span></a>
+<a href="#p3"><span class="t">2:34:44</span><span>GPUs bottleneck on data arrival, not compute — the 600x imbalance shows why</span></a>
+<a href="#p4"><span class="t">6:52:30</span><span>Zero-bubble pipelining: weight gradients fill compute during critical-path gaps</span></a>
+<a href="#p5"><span class="t">8:54:55</span><span>Physical network speed determines how parallelism strategies map to devices</span></a>
+<a href="#p6"><span class="t">10:16:21</span><span>FSDP trades communication volume for memory to support trillion-parameter models</span></a>
+<a href="#p7"><span class="t">17:07:51</span><span>Expert-choice routing leaks future information during training, fails at inference</span></a></nav></div>
+
+<div class="panel"><h4>How this was made</h4>
+<div class="row"><span>Editorial score</span><span>7 / 10</span></div>
+<div class="row"><span>Transcript</span><span>YouTube captions</span></div>
+<div class="row"><span>Transcript words</span><span>201412</span></div>
+<div class="row"><span>Words per minute</span><span>171.4 wpm</span></div>
+<div class="row"><span>Quotes checked verbatim</span><span>7 quotes</span></div>
+<div class="row"><span>Figures checked against source</span><span>7 figures</span></div>
+<div class="row"><span>Dropped in QA</span><span>4 dropped</span></div>
+<p class="note">Every quote is matched word for word against the transcript and every figure is checked back to the source. Anything that cannot be found is cut, not published.
+A separate model then scores the finished piece on density, fidelity, selection and specificity. Below 7 out of 10 it is not shown.
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>Podcast · <a href="https://ourword.ai">OurWord.ai</a> — the podcast desk. Deep reads of other people's podcasts;
+copyright stays with each show. Every piece links to the original — please go support them.</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/en/">OurWord</a> · <a href="/podcast/en/">Podcast</a></div>
+<div class="links"><a href="/podcast/en/">Home</a><a href="/podcast/en/sources/">Shows</a>
+<a href="/podcast/en/log/">Changelog</a><a href="/podcast/en/feed.xml">RSS</a>
+<a href="/podcast/en/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">Source</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=2457e29027" defer></script>
+</body></html>

@@ -1,6 +1,6 @@
 # 原聲 — 世界太吵，來原聲聽播客
 
-1205 entries. Source: https://ourword.ai/podcast/tw/ · Generated from the sources listed in https://ourword.ai/podcast/tw/llms.txt
+1207 entries. Source: https://ourword.ai/podcast/tw/ · Generated from the sources listed in https://ourword.ai/podcast/tw/llms.txt
 
 ==============================================================================
 
@@ -65433,6 +65433,85 @@
 
 ==============================================================================
 
+## 大模型推理卡頓的真兇不是算力不足，而是GPU一直在等數據
+
+- URL: https://ourword.ai/podcast/tw/p/2026-08-18-umarjamilai-大模型推理卡顿的真凶不是算力不足-而是gpu一直在等数据/
+- 節目 / show: umarjamilai (https://ourword.ai/podcast/tw/s/umarjamilai/)
+- 原集標題 / original episode: Building a distributed training framework from first principles
+- 發布 / published: 2026-08-18 · 時長 / duration: 19:35:12
+- 文稿來源 / transcript: YouTube 字幕 · 201412 words · timestamps are exact
+- 校驗 / verification: 7 quotes matched verbatim, 7 numbers traced to the transcript, review score 7/10
+
+**H100算力是內存帶寬的600倍，解碼階段每步只產一個token卻要搬完整KV緩存，GPU大部分時間不在算數據，而在等數據搬運完成。**
+
+為什麼聽 / why: 這是一堂從零手寫分布式訓練框架的硬核工程課，面向想真正搞懂GPU通信和並行機制數學原理的人，不是泛泛的AI科普。
+
+### 核心論點 / points
+
+[3:06] **AI時代該學的不是技能，而是解題力** — 當coding agent幾乎能做所有具體任務時，作者認為還值得學的不是某個框架或模型細節，而是「如何面對模糊、困難、答案不確定的問題並把它解決掉」。這種能力建立的是self-trust——下次遇到更大的難題時敢於動手。這也是整個視頻的設計邏輯：不是教DeepSeek的架構本身，而是通過拆解一個極難的問題來訓練解決問題的能力，這比記住任何具體API都更持久。
+
+[19:22] **可變長度的token遷移，得靠兩輪通信** — 專家並行下，各GPU間要互相發送多少token是動態的、事先不知道。標準all-to-all要求預先分配好固定大小的接收緩衝區，沒法直接用。解決辦法是拆成兩步：第一輪all-to-all只交換元信息——「我要發給你多少個token」「我要收你多少個」;確定好大小之後，第二輪才真正搬運token本身。多出來的這一輪通信，是為了讓一個為固定長度設計的通信原語，能夠處理分布式MoE裡天然不固定的流量。
+
+[1:31:34] **RoPE的設計漏洞被模型反向利用** — RoPE本意是只編碼token間的相對距離，讓完成多次旋轉的高頻維度幫助區分鄰近token。但那些轉不完一整圈的低頻維度，其旋轉角度會隨位置單調遞增、永不重複，模型發現這個規律後，會主動學會用它來推斷自己在序列中的絕對位置——儘管設計者根本不想讓它這麼用。作者的結論是：深度學習的通病是，只要存在可利用的偏差，模型一定會不擇手段地去利用它來降低損失。
+
+[2:34:44] **算力是帶寬的600倍，解碼被晾著等數據** — H100的計算吞吐量是2,000 teraflops,但內存帶寬只有3.35 TB/s,兩者比值約600:1,意味著GPU每加載一個字節就要配上約600次運算才能讓算力不被浪費。自迴歸解碼時每一步只產出一個token,卻要把整份KV緩存搬運一遍，實際運算量遠低於這個閾值，結果是GPU的計算單元大量空閒、真正卡脖子的是數據搬運而非算力——這正是MLA、KV壓縮等一整套優化方法要解決的問題。
+
+[6:52:30] **零氣泡流水線：權重梯度不卡關鍵路徑** — 反向傳播裡，計算輸入的梯度必須傳給上一層，是「關鍵路徑」上的硬需求；但計算權重梯度不影響後續設備的反向傳播，完全可以往後拖。零氣泡流水線正是利用這一點：把這兩種梯度計算拆開，優先處理關鍵路徑上的部分，再用權重梯度去填滿GPU原本空閒的時間。DeepSeek的dual pipe方案把這個思路做成對稱設計，用兩份模型副本從兩端注入microbatch,把流水線氣泡壓到最小。
+
+[8:54:55] **物理網絡速度反向決定並行策略怎麼擺** — 流水線並行只需要相鄰GPU之間傳一層的激活值，數據量通常遠小於模型總參數，所以可以放心跑在跨節點的慢速以太網上；但數據並行要同步整個梯度向量，體量等於全部參數，必須放在節點內NVLink這種快速鏈路上。這個物理約束反過來決定了設備網格(device mesh)裡各維度該怎麼排：通信需求最高的放在stride最小的內層，需求最低的放外層——不是先設計好並行策略再找硬件遷就，而是硬件拓撲在倒逼算法設計。
+
+[10:16:21] **FSDP:用通信量換顯存，撐起萬億參數** — DDP要求完整模型能塞進單個GPU,這對萬億參數模型行不通。FSDP的做法是把每層參數均勻分片到所有GPU上：前向進入某層前，先用all-gather把完整參數臨時拼回來算完就丟掉；反向同理，算完梯度只用reduce-scatter留下自己那一片。連優化器狀態也只存本地分片這一份。代價是通信量顯著上升，換來的是單卡顯存需求大幅下降——這是一筆「用通信換內存」的明確交易，而非免費午餐。
+
+[17:07:51] **專家選擇路由會偷看未來，推理時露餡** — 如果讓expert去挑token(expert choice)而不是讓token去挑expert,訓練時每個expert能看到同一批次裡所有token,從而學到「有D後面常跟cat」這類序列關聯——但這類信息來自同批次裡排在後面的token,等於讓模型在訓練時偷看了不該看的未來信息。真到推理階段，這種跨token的全局視野不存在了，模型表現會明顯跳水。這是作者點名的致命設計缺陷，也是為什麼主流系統寧可用更樸素的token choice路由。
+
+### 原話 / verbatim quotes
+
+[3:06] : "the only thing that is worth learning in life is how to take a hard problem and overcome it"
+    譯 / zh: 人生唯一值得學的，就是如何面對難問題、克服它
+
+[12:01] 講者: "the average of the average is not the average value"
+    譯 / zh: 平均值的平均值不是平均值
+
+[2:39:49] : "you are still moving a large quantity of memory to produce this one single embedding and that's why we are underutilizing the GPU and this is why we say it's IO bound"
+    譯 / zh: 你仍然在加載大量內存來生成這一個embedding,這就是為什麼我們沒有充分利用GPU,這就是為什麼我們說這是IO bound
+
+[6:53:30] : "But this one is not necessary to go back in the backward pass because it no other gradients depends on this one"
+    譯 / zh: 但這個不是必需的，在反向傳播中沒有其他梯度依賴於它
+
+[8:54:55] 主講人: "these two GPU they only need to share the output of one layer and and send it to the next one. But the output of one layer is just the activation of one layer and that may be much smaller than the total parameter of the model."
+    譯 / zh: 兩個GPU只需要共享一層的輸出，並把它發送給下一個。而一層的輸出只是一層的激活值，這可能比模型的總參數小得多。
+
+[10:22:24] : "we can run the optimizer step only on the shard or the piece of parameters that we have locally in this current rank"
+    譯 / zh: 優化器步驟只在本地參數分片上執行
+
+[17:07:51] : "it's a kind of leaking future information inside of previous tokens which should never happen in an autogressive language model"
+    譯 / zh: 這等於在前面的token內部洩露未來信息，在自迴歸語言模型裡不應該發生
+
+### 數字 / figures
+
+- H100計算吞吐量: 2,000 teraflops [2:34:44]
+- 算力與帶寬比值: 約600倍 [2:34:44]
+- MLA壓縮後的KV維度: 512 [3:37:55]
+- RoPE的theta_base: 10,000 [1:07:05]
+- 預訓練最大序列長度: 4,000 [1:15:17]
+- 為攤銷開銷而避免的通信啟動次數: 100萬次 [11:29]
+- MFU優秀水平: 50%以上 [15:48:34]
+
+### 術語 / glossary
+
+- RoPE (旋轉位置編碼): 用複數旋轉編碼token間相對距離，使模型能外推到更長序列
+- MLA (多頭潛在注意力): 把KV向量壓縮後再存緩存，推理時投影回原維度，省顯存不砍頭數
+- FSDP (全分片數據並行): 把參數、梯度、優化器狀態都分片到各GPU,用通信換顯存
+- KV cache (鍵值緩存): 解碼時緩存已算出的key/value,避免重複計算，但佔用顯存且需加載
+- MFU (模型算力利用率): 實際有效算力佔硬件峰值算力的比例，衡量訓練效率的通用指標
+- device mesh (設備網格): 把GPU組織成多維座標系統，自動決定誰和誰通信、用什麼方式通信
+
+誰該聽 / who: 正在從零搭建分布式訓練框架的ML infra工程師，想搞懂RoPE、MLA、FSDP、流水線並行背後數學原理的人。
+可跳過 / skip: 開篇關於學習方法論的發刊詞(00:04-09:13)偏勵志，只想看技術細節的可以直接跳到架構部分。
+標籤 / tags: 分布式訓練, GPU並行, MoE, 注意力機制, 顯存優化, 大模型工程
+
+==============================================================================
+
 ## 蘇丹倒過來娶她：得土安女總督不是海盜
 
 - URL: https://ourword.ai/podcast/tw/p/2026-08-17-stuffmissed-苏丹倒过来娶她-得土安女总督不是海盗/
@@ -73625,6 +73704,89 @@
 誰該聽 / who: 關注中國開源模型商業化、閉源實驗室估值邏輯的創業者和投資人；想判斷蒸餾指控是否成立、開源 license 能否收上錢的工程師。
 可跳過 / skip: 1:04:01 之後關於開源閉源誰更容易被濫用的部分，與前文安全討論重複度較高。
 標籤 / tags: 開源模型, 蒸餾, Kimi K3, 商業模式, AI 安全
+
+==============================================================================
+
+## 波斯帝國兩百年裡，一百五十年沒派出過中央軍隊
+
+- URL: https://ourword.ai/podcast/tw/p/2026-07-31-hardcore-波斯帝国两百年里-一百五十年没派出过中央军队/
+- 節目 / show: Hardcore History (https://ourword.ai/podcast/tw/s/hardcore/)
+- 原集標題 / original episode: Show 74 - Mania for Subjugation IV
+- 發布 / published: 2026-07-31 · 時長 / duration: 4:01:20
+- 文稿來源 / transcript: YouTube 字幕 · 42690 words · timestamps are exact
+- 校驗 / verification: 8 quotes matched verbatim, 10 numbers traced to the transcript, review score 8/10
+
+**波斯靠總督自治撐起龐大疆域，卻從沒打造出能統一應戰的中央軍隊——亞歷山大打來時，沒人有經驗知道該怎麼辦，這才是真正的致命傷。**
+
+為什麼聽 / why: 第四集信息密度在後半段集中爆發：圍城工程戰、糧食決定戰爭規模、指揮鏈一斷全線崩潰，適合完整聽完。
+
+### 核心論點 / points
+
+[8:14] (Dan Carlin) **一件戰利品如何操縱三族輿論** — 亞歷山大把300套繳獲的波斯盔甲送回雅典衛城，銘文宣稱這是對150年前波斯戰爭的復仇。300這個數字不是巧合——雅典因馬拉松聞名，斯巴達因溫泉關「300勇士」聞名，但銘文明確寫著「希臘人，斯巴達人除外」。同一個舉動討好了雅典的虛榮、羞辱了斯巴達、還把一場個人征服重新包裝成「希臘對蠻族」的民族大義。這就是他口中的「三維棋局」：一次公關動作同時操縱三方認知。
+
+[1:06:59] (Dan Carlin) **敵將一死，波斯就沒了大腦** — 波斯將領Memnon在圍攻一座島嶼城市時病逝，這被稱為「波斯的棺材釘」，原因不是兵力，而是結構性的：波斯帝國從未培養出能與亞歷山大匹敵的將領。Memnon曾擊敗亞歷山大的父親腓力，也是唯一有效阻擋過亞歷山大的人。他一死，波斯再也找不到能接替指揮大腦角色的人——不是戰術損失，而是戰略性癱瘓。
+
+[1:14:02] (Dan Carlin) **戈爾迪之結：把解放戰爭變成征服戰爭** — 戰爭本來的名義是解放愛奧尼亞的希臘城邦，這是站得住腳的泛希臘大義。但愛奧尼亞已基本解放，繼續打下去的理由是什麼？答案就是戈爾迪之結的傳說：誰解開它，誰就註定統治整個亞洲。一劍斬斷繩結，表面是個人英雄主義時刻，實際上是用神話給帝國野心背書，把地區解放戰爭悄悄轉換成了征服戰爭。
+
+[1:27:18] (Dan Carlin) **波斯帝國150年沒見過自己的軍隊** — 波斯帝國只有200年歷史，但150年裡從沒出現過皇家軍隊。這意味著帝國大多數地區和人民終其一生都沒見過中央直接派來的大軍。波斯的統治模式是徹底分權：各地總督自治，中央極少干預，只有真正的危機才會動員皇家軍隊——類似公司放權給地方總經理、總部常年不插手。結果是亞歷山大打來時，整個帝國沒有應對中央軍隊直接威脅的經驗，反應遲鈍。
+
+[1:40:27] (Dan Carlin) **決定戰爭規模的是糧食，不是人數** — 歷史學家Donald Engels計算過，亞歷山大的軍隊從Gordium行軍到Issus約一個月，要消耗4000噸糧食。這解釋了為什麼史料記載的波斯軍力數字能從25萬跳到60萬——這些數字是迷霧，補給鏈才是真相。另一位學者George Cawkwell指出，古代根本不需要百萬大軍：漢尼拔用2萬步兵加6千騎兵就在意大利未敗16年。亞歷山大用4到5萬人就敢挑戰整個波斯帝國。
+
+[1:55:38] (Dan Carlin) **大流士被諂媚者騙進死亡通道** — 大流士收到的情報說亞歷山大在拖延，是因為害怕；一名希臘-馬其頓顧問警告他別輕舉妄動，但大流士聽不進去，身邊圍滿了阿諛奉承者。他選擇相信「對方害怕」，主動帶兵進入一條僅2英里寬的狹窄通道去找亞歷山大——放棄了波斯騎兵賴以稱雄的開闊平原，換成了對亞歷山大最有利的地形。更荒唐的是，亞歷山大完全不知道這支十幾萬人的大軍已經繞到自己身後僅13英里處，雙方的誤判在這一刻碰到了一起。
+
+[3:06:30] (Dan Carlin) **方陣不是被打穿的，是指揮鏈斷了** — 號稱無敵的馬其頓方陣在Issus戰役中瞬間崩潰，不是因為被突破，而是因為軍官托勒密當眾被殺，試圖重組陣型的下級軍官也依次被長矛刺死，「一個編隊接一個編隊地瓦解」。一旦沒人下令，即使每個士兵仍在拼命抵抗，有組織的隊形也會在瞬間變成一群各自為戰的散兵。這揭示了大型組織最脆弱的地方從來不在前線，而在指揮系統能不能連續運轉。
+
+[3:54:00] (Dan Carlin) **讓你成功的品質，失控後就是災難** — 亞歷山大和他父親腓力本質上有相同的野心——都想擴張。區別在於「停止條件」不同：腓力拿下小亞細亞、讓波斯勢力大幅縮水後大概率會滿足於做區域霸主；亞歷山大玩的卻是「歷史最偉大」這個沒有上限的遊戲。同樣的擴張慾望，在有約束時造就了腓力的成就，在沒有約束時就把亞歷山大一路推向了毀滅自己的方向——這是權力最經典的陷阱。
+
+### 原話 / verbatim quotes
+
+[25:29] Dan Carlin: "In general, these um navies from the ancient world, these triremes and everything, they would find a place to camp every night. Pull the ships up onto the beach, the crews would camp and eat and find water then."
+    譯 / zh: 總的來說，古代世界的這些海軍，這些三層槳船之類的，每晚都得找地方紮營。把船拉上沙灘，船員紮營、吃飯、取水。
+
+[1:00:53] Diodorus: "He was by far the strongest man on the field, and everyone who came up against him lost his life."
+    譯 / zh: 他是戰場上迄今為止最強悍的人，每個與他交手的人都丟了性命。
+
+[1:06:59] Dan Carlin: "this is like the nail in the coffin for the poor Persians cuz they have no good generals themselves"
+    譯 / zh: 這對可憐的波斯人來說就像棺材上的釘子，因為他們自己沒有好將領。
+
+[1:14:02] Dan Carlin: "if Now, the person who's able to deal with that Gordian knot situation is the one destined to rule all of Asia, well, there you go. There's your rationale right there."
+    譯 / zh: 如果說，能解開戈爾迪之結的人註定要統治整個亞洲——好了，這就是戰爭理由了。
+
+[1:57:39] Dan Carlin: "I find it hard enough to believe that if the Persians are running with an army of 100,000, 120,000, how that can get within 13 mi of Alexander and he not know about it."
+    譯 / zh: 我實在很難相信，一支十萬到十二萬人的波斯軍隊，怎麼能摸到距亞歷山大13英里的地方而他毫不知情。
+
+[2:06:45] Dan Carlin: "They aren't part-time warriors and they aren't anytime farmers. They're professional soldiers."
+    譯 / zh: 他們不是兼職戰士，也完全不是農民。他們是職業軍人。
+
+[3:06:30] Frank Niden: "Square by square, the companies disintegrated. Most of Ptolemy's hundred or so officers were now slain, fatally wounded, or trampled to death."
+    譯 / zh: 一個方塊接一個方塊地瓦解。托勒密手下一百多名軍官，大多已被殺、重傷或踩踏致死。
+
+[3:20:40] Diodorus: "Seeing their king in this state, the Persians with him turned to flee, and as each adjacent unit in turn did the same, the whole Persian cavalry was soon in full retreat… they clashed and trampled on one another and many died without having received a blow from the enemy."
+    譯 / zh: 看到國王如此狼狽，身邊的波斯人轉身逃亡，相鄰的每支部隊也依次效仿，整支波斯騎兵很快全線潰退……他們相互衝撞、踩踏，很多人甚至沒挨敵人一下就已經死了。
+
+### 數字 / figures
+
+- 波斯帝國歷史: 200年 [1:27:18]
+- 波斯未派出皇家軍隊的年限: 150年 [1:27:18]
+- 亞歷山大軍隊一個月糧食消耗: 4,000噸 [1:44:29]
+- 波斯軍隊距亞歷山大的距離: 13英里 [1:57:39]
+- Cardaces步兵人數: 60,000 [2:03:43]
+- 波斯希臘傭兵人數: 30,000 [2:04:43]
+- 馬其頓方陣規模: 約12,000人，長0.8-1.2英里 [2:43:14]
+- 波斯方傷亡估計: 20,000人以上 [3:25:42]
+- 馬其頓方傷亡估計: 1,000-1,500人 [3:34:47]
+- Halicarnassus最後突圍兵力: 2,000精銳 [57:51]
+
+### 術語 / glossary
+
+- phalanx (馬其頓方陣): 士兵持長矛緊密排列的重步兵方陣，靠整體隊形而非單兵格鬥取勝
+- trireme (三層槳船): 古代地中海主力戰船，每晚須靠岸紮營取水補給，續航受制於陸地資源
+- Gordian Knot (戈爾迪之結): 傳說解開它的人將統治整個亞洲，被亞歷山大用作征服東方的藉口
+- Cardaces (卡爾達克斯步兵): 波斯仿照希臘樣式訓練的重裝步兵，戰力不及真正的希臘職業傭兵
+
+誰該聽 / who: 對組織如何在擴張中保持指揮連續性感興趣的創業者、投資人，以及喜歡古代軍事史裡藏著的管理學隱喻的人。
+可跳過 / skip: 海戰與圍城工程細節段落（25:00-1:00:00之間）偏戰術，趕時間可以跳過直奔後勤與Issus決戰部分。
+標籤 / tags: 古代戰爭, 組織結構, 權力真空, 後勤補給, 領導力, 亞歷山大
 
 ==============================================================================
 
