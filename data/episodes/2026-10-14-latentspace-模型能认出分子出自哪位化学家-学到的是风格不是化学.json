@@ -1,0 +1,245 @@
+{
+ "id": "latentspace-5f41d4c676",
+ "slug": "2026-10-14-latentspace-模型能认出分子出自哪位化学家-学到的是风格不是化学",
+ "fingerprint": "5b738c7184acef67",
+ "source_id": "latentspace",
+ "source": "Latent Space",
+ "source_zh": "Latent Space",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "讲机器学习模型的可解释性陷阱和数据质量对训练的影响，应用场景",
+ "tier": 1,
+ "lang": "en",
+ "title_original": "Lab-in-the-Loop at Compute Speed — Ian Quigley, Leash Bio",
+ "published": "2026-10-14T20:35:09Z",
+ "duration": 6596,
+ "audio": "https://api.substack.com/feed/podcast/220316507/1d6b651c13311431fbd1537315902da6.mp3",
+ "link": "https://www.latent.space/p/lab-in-the-loop-at-compute-speed",
+ "image": "https://substackcdn.com/feed/podcast/1084089/post/220316507/ab34b38f95dba52b87e6473a4d9636cd.jpg",
+ "youtube_id": "",
+ "video_len": 0,
+ "transcript_url": "https://api.substack.com/feed/podcast/220316507/1d6b651c13311431fbd1537315902da6.mp3",
+ "digest": {
+  "title": "模型能认出分子出自哪位化学家，学到的是风格不是化学",
+  "dek": "给1815位化学家的分子做分类，模型靠作者风格就能猜中六成，却学不到真实结合物理——这正是Leash坚持只用自产DEL数据训练模型的原因。",
+  "why": "方法论密度极高，少见地用具体实验拆穿了分子结合预测模型到底在学什么，而不是停留在「AI做药」的口号层面。",
+  "points": [
+   {
+    "t": 242,
+    "h": "DNA条形码让百万分子一管混着筛",
+    "body": "DNA编码库（DEL）的做法是给每种小分子挂上一段DNA条形码，把成百上千万种分子混进同一管液体，用磁珠把目标蛋白当鱼钩「钓」出结合的分子，再靠测序读出条形码身份，省去逐管逐孔筛选的物理成本。目前做过的最大DEL库含40万亿个分子，而传统逐管筛选的最大化合物库也才百万级别。但这个行业里几乎人人都说这项技术做过都有心理创伤：假阳性（蛋白粘DNA而非粘分子）、建筑块标签错误率高是常见坑。",
+    "spk": "Ian Quigley"
+   },
+   {
+    "t": 1913,
+    "h": "最难的测试集上，没人比瞎猜准",
+    "body": "两年前Leash自费做了一场Kaggle竞赛测试业界到底能不能预测小分子结合，故意设计三档难度：共享building block（简单）、只共享triazine骨架（中等）、完全不同的化学库（最难，且赛前未公开）。2000支队伍参赛后，在最难的一档上没有一个人比瞎猜准——包括那些尝试3D图、球形卷积网络等「更高级」分子表示法的队伍，最朴素的SMILES文本表示反而效果最好。这让Leash确信，整个领域对真正跨化学空间的结合预测几乎还处于零理解阶段。",
+    "spk": "Ian Quigley"
+   },
+   {
+    "t": 2848,
+    "h": "模型认出化学家，认不出结合位点",
+    "body": "Ian和联合创始人在Recursion看一个分子时，一位化学家一眼认出是谁做的，这让他们怀疑模型会不会也在学化学家本人的风格而非化学规律。他们下载了Chemble上1815位发表过30篇以上论文、600个以上分子的化学家的全部数据，训练分类器仅凭分子结构预测作者身份，top5准确率达到60%。更关键的是，把这个1800维的「作者概率向量」当作分子的唯一表示，预测活性的效果和用真实化学结构一样好，两者结合也没有明显提升——说明模型学到的几乎全是化学家的个人风格和社会学痕迹，而不是真实的结合物理。",
+    "spk": "Ian Quigley"
+   },
+   {
+    "t": 3533,
+    "h": "结构模型满分，可能只是认出了晶体库",
+    "body": "Leash用蛋白嵌入和分子嵌入做了极简交叉注意力模型Hermes，专门用来快速做对照实验。按building block相似度聚类划分训练测试集后，XGBoost性能随分布外程度增加持续下降，Hermes却保持相对稳定，这是泛化能力的证据。但另一组对照同样揭穿了问题：当测试分子和蛋白（BRD4）恰好在PDB晶体库里出现过，结构模型Boltz几乎满分，而Hermes表现差，说明Boltz很可能只是记住了那张晶体结构，而不是真的理解了结合物理。",
+    "spk": "Ian Quigley"
+   },
+   {
+    "t": 4030,
+    "h": "用基因编辑主动打断口袋来验证因果",
+    "body": "为了证明模型是否真懂物理而非记忆，Leash会主动打断结合口袋：先筛一遍野生型蛋白确认哪些分子能结合，再买一个已知占据该口袋的竞争性小分子高浓度加进去，看哪些分子系列被挤出来，最后直接在DNA层面突变口袋里的氨基酸、重新表达蛋白再筛一遍。如果同一批被竞争分子挤出去的分子系列，在口袋被突变后也消失了，而口袋以外结合的分子都还在，就有很强证据证明这些分子确实结合在那个具体口袋里。这是他们一周能跑上百次的规模化实验，而不是传统药化一辈子才验证几次的个例。",
+    "spk": "Ian Quigley"
+   },
+   {
+    "t": 4347,
+    "h": "注意力机制在给蛋白记外号而非学化学",
+    "body": "团队原本期望Hermes的交叉注意力会聚焦在蛋白的结合口袋，结果发现模型根本没看那里，而是盯着蛋白里一小段非保守、因蛋白而异的氨基酸序列——这段序列和结合功能无关，只是恰好能唯一标识「这是哪个蛋白」。他们意识到Hermes其实是在给每个蛋白记一个外号，而不是学结合化学。解决办法是制造大量突变体：当两个蛋白序列几乎一样、只有口袋里一处不同、行为却天差地别时，外号策略就彻底失效，模型被迫重新去看所有氨基酸，重新训练后注意力确实变得均匀很多。",
+    "spk": "Ian Quigley"
+   },
+   {
+    "t": 4547,
+    "h": "转向用自然语言做化学推理的强化学习",
+    "body": "Leash最近把思路转向用自然语言而不是数值向量做化学推理。他们先教开源语言模型用英文描述分子结构、描述两个分子的差异，再给它binder和non-binder的对比数据做推理，最后放手让它在真实筛选数据库里自主挑分子做虚拟实验、拿到结果后更新假设，反复迭代找最佳结合物。他们认为自然语言是比堆参数更强的记忆正则化器，更不容易走捷径，而且这是一个物理锚定、可规模化的强化学习环境，不同于传统做分子生成的自回归方法。",
+    "spk": "Ian Quigley"
+   },
+   {
+    "t": 5950,
+    "h": "壁垒不是算法，是撞坑撞出来的流程文化",
+    "body": "面对「既然能靠海量筛选找到好分子，为什么还需要模型」的质疑，Ian的回答是目标不同：如果只想给单个靶点找化学材料，确实不需要模型；但想让模型学会跨蛋白、跨化学空间泛化就不一样。Leash已做过约2000种蛋白构建体、约5000次筛选，覆盖至少650万个分子，若找CRO逐个做，一次筛选大约10万美元。真正的壁垒不是算法，而是多年撞上各种「实验作弊模式」后积累的流程文化——比如他们发现库里一类长得像蛋白折叠矫正药Lumacaftor的分子，专门命中的全是折叠失败的蛋白，这类坑只有长期盯数据的团队才抓得到，砸钱买不来。",
+    "spk": "Ian Quigley"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 0,
+    "spk": "Ian Quigley",
+    "raw": "Mike was like, hey, looks like a Stuart Shribert molecule. And then we were like, oh no, you can tell just by walking by? You're like, who made this? That's horrifying.",
+    "zh": "Mike说，这看着像Stuart Shribert做的分子。我们当时就想，不是吧，你光看一眼就能认出来？你是说谁做的这个？这太可怕了。"
+   },
+   {
+    "t": 60,
+    "spk": "Ian Quigley",
+    "raw": "When you train models on the exhaust, you might be in trouble.",
+    "zh": "当你用废气（副产物痕迹）训练模型时，你可能有麻烦了。"
+   },
+   {
+    "t": 1913,
+    "spk": "Ian Quigley",
+    "raw": "And then when you go to the most challenging eval, no one did better than chance.",
+    "zh": "而当你看最难的那一档测试集时，没有一个人比瞎猜更准。"
+   },
+   {
+    "t": 3160,
+    "spk": "Ian Quigley",
+    "raw": "It's well known that things like molecular weight will just – you know, all you have to do is sort by molecular weight. That's like one of the single biggest predictors you can possibly have.",
+    "zh": "大家都知道像分子量这种东西——你只要按分子量排序就行，这几乎是你能拥有的单一最强预测因子之一。"
+   },
+   {
+    "t": 3533,
+    "spk": "Ian Quigley",
+    "raw": "Our models did kind of bad on that molecule. It was a distant chemical library. They weren't very good at it. And Bolts was perfect at it.",
+    "zh": "我们的模型在那个分子上表现挺差，那是个很远的化学库，模型搞不定它；而Boltz在上面表现完美。"
+   },
+   {
+    "t": 4347,
+    "spk": "Ian Quigley",
+    "raw": "we realized that Hermes was probably coming up with a nickname for the protein. It's not thinking about, oh, this is the functional part. It's like, I don't need to learn that. I can remember, you know, 10 or 12 amino acids that are different here than everyone else. And I can just memorize it.",
+    "zh": "我们意识到Hermes很可能是在给蛋白起了个外号。它不是在想「这是功能区域」，而是「我不需要学那个，我只要记住这里有10到12个和别人不一样的氨基酸」，然后直接死记硬背就行。"
+   },
+   {
+    "t": 4547,
+    "spk": "Ian Quigley",
+    "raw": "And what we are currently doing is we're using readable, interpretable English to represent the small molecules and the proteins and their behaviors.",
+    "zh": "我们现在在做的是，用可读、可解释的英语来表示小分子、蛋白质以及它们的行为。"
+   },
+   {
+    "t": 6321,
+    "spk": "Ian Quigley",
+    "raw": "We have a bunch of chemicals in our chemical library that looks like Luma-Captor, this thing whose job it is to refold misfolded proteins. Guess what kind of proteins it hits when we screen them?",
+    "zh": "我们化学库里有一批长得像Lumacaftor（一种负责给错误折叠蛋白重新折叠的药）的分子。猜猜我们筛选时它们命中的是哪种蛋白？"
+   }
+  ],
+  "facts": [
+   {
+    "k": "预测化学家身份的top5准确率",
+    "v": "60%",
+    "t": 2848
+   },
+   {
+    "k": "用于身份预测的化学家数量",
+    "v": "1815位（Chemble数据库，每人30篇以上论文、600个以上分子）",
+    "t": 2848
+   },
+   {
+    "k": "已造出的最大DEL库规模",
+    "v": "40万亿个分子",
+    "t": 242
+   },
+   {
+    "k": "传统逐管排列化合物库的标签错误率",
+    "v": "20%-30%",
+    "t": 1599
+   },
+   {
+    "k": "Leash发布的Kaggle数据集规模 vs 此前最大公开数据集BindingDB",
+    "v": "约40亿次物理相互作用 vs 不到300万次",
+    "t": 1663
+   },
+   {
+    "k": "Kaggle竞赛参赛队伍数",
+    "v": "2000支",
+    "t": 1848
+   },
+   {
+    "k": "Leash迄今的筛选规模",
+    "v": "约2000种蛋白构建体、约5000次筛选，每次覆盖至少650万个分子",
+    "t": 5950
+   },
+   {
+    "k": "从DEL命中到小鼠体内良好PKPD的用时",
+    "v": "约6个月（少量药化迭代周期）",
+    "t": 5283
+   }
+  ],
+  "terms": [
+   {
+    "term": "DEL (DNA-Encoded Library)",
+    "zh": "DNA编码化合物库",
+    "def": "给每个小分子挂一段DNA条形码，上千万分子混在一管里同时筛选结合活性"
+   },
+   {
+    "term": "SMILES",
+    "zh": "分子线性表示法",
+    "def": "用纯文本字符串表示分子结构的方法，不携带三维坐标信息"
+   },
+   {
+    "term": "Clever Hans effect",
+    "zh": "聪明汉斯效应",
+    "def": "模型看似学会了任务，实则在读取无关线索而非任务本身的规律"
+   },
+   {
+    "term": "activity cliff",
+    "zh": "活性悬崖",
+    "def": "分子结构只有极小差异，但结合活性却发生剧烈变化的现象"
+   },
+   {
+    "term": "cross-attention",
+    "zh": "交叉注意力机制",
+    "def": "让模型显式关联两种输入（如蛋白序列和分子结构）不同部分的架构设计"
+   },
+   {
+    "term": "ADMET",
+    "zh": "成药性五项指标",
+    "def": "药物的吸收、分布、代谢、排泄与毒性，决定一个分子能否真正成药"
+   }
+  ],
+  "who": "做药物发现机器学习、生物数据质量把控或early-stage biotech投资的人，尤其关心模型是否在学到「伪影」而非真实物理规律的人。",
+  "skip": "DEL实验流程中PCR扩增、条形码设计等偏湿实验室细节的段落可跳过。",
+  "tags": [
+   "药物发现",
+   "机器学习",
+   "DNA编码库",
+   "可解释性",
+   "数据质量",
+   "强化学习"
+  ],
+  "quality": {
+   "transcript_source": "asr",
+   "transcript_detail": "local:whisper-large-v3-turbo",
+   "words": 23671,
+   "wpm": 215.3,
+   "timed": true,
+   "verified_quotes": 8,
+   "grounded_facts": 8,
+   "points": 8,
+   "pruned": 2,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-10-15T03:27:54Z",
+ "triage": {
+  "score": 7.0,
+  "why": "亲历者讲 DEL+AI agents 的机制与产业化、具体踩坑、新发现（分子作者信号），论文与开放数据集可核。",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 8,
+   "faithful": 8,
+   "selection": 8,
+   "concrete": 9,
+   "chinese": 7
+  },
+  "verdict": "上站",
+  "why": "方法论拆解清晰，要点都有判断或机制支撑。导语表述「给1815位化学家的分子做分类」不准，应为「用这些分子训练身份分类器」；中文数处可精准。",
+  "worst": "导语『给1815位化学家的分子做分类』——应改为『用1815位化学家发表的分子训练分类器』，避免误解为「把分子分配给化学家」"
+ },
+ "model": "claude-cli:sonnet"
+}
