@@ -1,0 +1,147 @@
+{
+ "slug": "2026-10-14-latentspace-模型能认出分子出自哪位化学家-学到的是风格不是化学",
+ "of": "latentspace-5f41d4c676",
+ "source_lang": "en",
+ "title": "Models identify chemists from molecules — but learn style, not chemistry",
+ "dek": "Classifying 1,815 chemists' molecules, AI predicts authorship with 60% top-5 accuracy based on style alone, yet fails to learn actual binding physics — why Leash trains models exclusively on proprietary DEL data.",
+ "why": "Methodology-dense, with concrete experiments that expose what molecular binding models actually learn — moving beyond ‘AI for drug discovery’ slogans to test whether models grasp real physics or exploit shortcuts.",
+ "who": "Machine learning researchers in drug discovery, those managing biological data quality, and early-stage biotech investors — especially anyone concerned whether models learn artifacts rather than true physical laws.",
+ "skip": "Sections on wet-lab details within the DEL workflow, such as PCR amplification and barcode design, can be skipped.",
+ "tags": [
+  "Drug discovery",
+  "Machine learning",
+  "DNA-encoded libraries",
+  "Interpretability",
+  "Data quality",
+  "Reinforcement learning"
+ ],
+ "points": [
+  {
+   "h": "DNA barcodes enable screening millions of molecules in one tube",
+   "body": "DNA-encoded libraries (DEL) tag each small molecule with a unique DNA barcode, allowing hundreds of millions to mix in a single tube. Target proteins act like hooks — magnetic beads pull out bound molecules, then sequencing identifies them by barcode — eliminating well-by-well screening costs. The largest DEL library built contains 40 trillion molecules, vastly exceeding traditional screening at only the million-molecule scale. The industry is infamous for hard-won scars: false positives (protein binding DNA instead of the molecule) and building-block labeling errors running 20-30%."
+  },
+  {
+   "h": "On the hardest test set, no one beats random guessing",
+   "body": "Two years ago Leash ran a Kaggle competition to test whether the industry could predict molecular binding. They designed three difficulty tiers: shared building blocks (easy), shared triazine scaffold only (medium), completely different chemical libraries (hard, unrevealed before competition). After 2,000 teams competed, on the hardest tier no one beat random guessing — including teams attempting advanced methods like 3D graphs and spherical convolutional networks. Simple SMILES text representation outperformed fancier molecule encodings. Leash concluded the field is near zero understanding of binding prediction across different chemical spaces."
+  },
+  {
+   "h": "Models identify chemists, not binding sites",
+   "body": "At Recursion, Ian and his co-founder watched a chemist recognize a molecule at a glance and identify who made it — raising suspicion that models learn chemist style rather than chemical rules. They downloaded all data from Chemble for 1,815 chemists with 30+ published papers and 600+ molecules each, trained a classifier to predict authorship from molecular structure alone, and achieved 60% top-5 accuracy. More damning: using only the 1,800-dimensional ‘author probability vector’ as the molecule's sole representation predicted binding activity as well as real chemical structure. Combining both showed no improvement — evidence models learn chemist signature and sociological traces, not binding physics."
+  },
+  {
+   "h": "Perfect-scoring structure models might just memorize the crystal database",
+   "body": "Leash built Hermes, a minimal cross-attention model using protein and molecule embeddings, to run controlled experiments quickly. Clustering the training-test split by building-block similarity showed XGBoost performance degrading steadily as distribution shift increased, while Hermes stayed relatively stable — evidence of superior generalization. But a parallel control exposed a different problem: when test molecules and protein (BRD4) happened to appear in the PDB crystal database, the structure model Boltz scored nearly perfect while Hermes performed poorly. Boltz likely memorized crystal structures rather than understanding binding physics."
+  },
+  {
+   "h": "Mutating binding pockets proves whether models understand physics",
+   "body": "To prove models understand physics rather than memorization, Leash deliberately disrupts binding pockets. First they screen wild-type protein to confirm which molecules bind, then add a known competitor for that pocket at high concentration to see which molecules get displaced, finally mutate the pocket amino acids at the DNA level, re-express the protein, and screen again. If the same molecules displaced by competition also vanish after pocket mutation — while molecules binding elsewhere remain — it's strong evidence those molecules truly bind that specific pocket. They run this at scale: hundreds of experiments per week, compared to traditional medicinal chemistry validating a handful of examples in a lifetime."
+  },
+  {
+   "h": "Attention mechanisms nickname proteins instead of learning chemistry",
+   "body": "The team expected Hermes' cross-attention to focus on the binding pocket. Instead, the model fixated on a small, non-conserved, protein-specific amino acid sequence — a region unrelated to binding function, merely unique to that protein. Hermes was giving each protein a nickname, not learning binding chemistry. The fix: generate many mutants. When two proteins have almost identical sequence except for one pocket amino acid — yet behave completely differently — the nickname strategy fails entirely. The model is forced to examine all amino acids; retraining makes attention far more uniform."
+  },
+  {
+   "h": "Shifting to natural language for chemistry reasoning via reinforcement learning",
+   "body": "Recently Leash shifted to using natural language rather than numerical vectors for chemical reasoning. They train open-source language models to describe molecular structures in English and articulate differences between molecules, give them binder/non-binder comparisons for reasoning, then let the model autonomously pick molecules from a real database to test, update hypotheses after results, and iterate toward the best binder. Leash believes natural language is a stronger memory regularizer than stacking parameters — harder to exploit — and creates a physics-grounded, scalable reinforcement learning environment, unlike traditional autoregressive molecular generation methods."
+  },
+  {
+   "h": "Moat is institutional process culture, not algorithms",
+   "body": "When asked why models matter if massive screening can find good molecules, Ian explains: finding chemicals for a single target doesn't require models, but teaching models to generalize across proteins and chemical space does. Leash has built roughly 2,000 protein constructs, run about 5,000 screens covering at least 6.5 million molecules. A contract research organization would charge ~$100,000 per screen. The real moat isn't algorithm — it's process culture built by hitting every conceivable ‘experimental cheat mode’ over years. For instance, they found a class of molecules resembling the protein-folding drug Lumacaftor that exclusively hit misfolded proteins. Only teams staring at data long-term catch those traps; money cannot buy institutional memory."
+  }
+ ],
+ "terms": [
+  {
+   "term": "DNA-encoded library (DEL)",
+   "def": "Millions of small molecules each tagged with a unique DNA barcode, mixed in a single tube to screen binding via magnetic bead selection and barcode sequencing."
+  },
+  {
+   "term": "SMILES",
+   "def": "Linear text representation of molecular structure using ASCII characters; encodes connectivity without 3D coordinates."
+  },
+  {
+   "term": "Clever Hans effect",
+   "def": "Model appears to solve a task but actually exploits unrelated signals; named after the horse that could ‘count’ by reading human body language, not math."
+  },
+  {
+   "term": "Activity cliff",
+   "def": "Small structural change in a molecule produces drastic swing in binding affinity or other biological activity."
+  },
+  {
+   "term": "Cross-attention",
+   "def": "Architecture component that explicitly links different parts of two inputs (e.g. protein sequence and molecule structure) so the model weights their relevance."
+  },
+  {
+   "term": "ADMET",
+   "def": "Five pharmacokinetic properties — absorption, distribution, metabolism, excretion, toxicity — that determine whether a molecule can become a real drug."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Chemist identification (top-5 accuracy)",
+   "v": "60%"
+  },
+  {
+   "k": "Chemists in Chemble dataset (30+ papers, 600+ molecules each)",
+   "v": "1815"
+  },
+  {
+   "k": "Largest DEL library ever built",
+   "v": "40 trillion molecules"
+  },
+  {
+   "k": "Building-block labeling error rate",
+   "v": "20-30%"
+  },
+  {
+   "k": "Binding interactions: Leash Kaggle dataset vs BindingDB",
+   "v": "~4 billion vs fewer than 3 million"
+  },
+  {
+   "k": "Teams in Kaggle competition",
+   "v": "2000"
+  },
+  {
+   "k": "Leash screening scale to date",
+   "v": "~2000 protein constructs, ~5000 screens, at least 6.5 million molecules per screen"
+  },
+  {
+   "k": "Time from DEL hit to mouse in vivo PKPD",
+   "v": "~6 months"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "Mike was like, hey, looks like a Stuart Shribert molecule. And then we were like, oh no, you can tell just by walking by? You're like, who made this? That's horrifying.",
+   "translated": false
+  },
+  {
+   "text": "When you train models on the exhaust, you might be in trouble.",
+   "translated": false
+  },
+  {
+   "text": "And then when you go to the most challenging eval, no one did better than chance.",
+   "translated": false
+  },
+  {
+   "text": "It's well known that things like molecular weight will just – you know, all you have to do is sort by molecular weight. That's like one of the single biggest predictors you can possibly have.",
+   "translated": false
+  },
+  {
+   "text": "Our models did kind of bad on that molecule. It was a distant chemical library. They weren't very good at it. And Bolts was perfect at it.",
+   "translated": false
+  },
+  {
+   "text": "we realized that Hermes was probably coming up with a nickname for the protein. It's not thinking about, oh, this is the functional part. It's like, I don't need to learn that. I can remember, you know, 10 or 12 amino acids that are different here than everyone else. And I can just memorize it.",
+   "translated": false
+  },
+  {
+   "text": "And what we are currently doing is we're using readable, interpretable English to represent the small molecules and the proteins and their behaviors.",
+   "translated": false
+  },
+  {
+   "text": "We have a bunch of chemicals in our chemical library that looks like Luma-Captor, this thing whose job it is to refold misfolded proteins. Guess what kind of proteins it hits when we screen them?",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
