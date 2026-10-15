@@ -394,4 +394,26 @@ EXTRA: list[dict] = [
        itunes=1705871666, feed="https://feed.xyzfm.space/qlenc4cdh48c",
        # 有软广风险（主持方做电商营销），tier 3：只做特别强的那几集
        residential=True, desc="天下网商 CEO 对话消费品牌创始人，拆生意怎么做起来"),
+  # ---- 2026-10-15：用户转来的三条推荐，逐条核实后收录（三档都只能走本机线）----
+  dict(id="ideasofindia", name="Ideas of India", zh="Ideas of India", cat="ideas", tier=2, lang="en",
+       itunes=1525952293, feed="https://rss.libsyn.com/shows/288629/destinations/2249435.xml",
+       # 官网 mercatus.org 单集页是带说话人的全文逐字稿，但在 Cloudflare 后面（非浏览器 403），
+       # RSS notes 里的稿链接写成 href= "…"（等号后多一个空格）取稿层也认不出 —— 只能本机转写。
+       # YouTube 版比 RSS 音频长约 50 秒，字幕对不齐被拒。和 theseenandtheu 题材重叠最多（2023 年以来约 11 位共同嘉宾）。
+       # 每年 9–12 月求职季系列是博士生讲单篇论文（38–57 分钟）；年终合辑一集靠成稿评分把关。
+       residential=True, desc="Mercatus 经济学者 Shruti Rajagopalan 对着论文和新书，追问印度的劳动、土地、城市与议会制度怎么运转"),
+  dict(id="foundmyfitness", name="FoundMyFitness", zh="FoundMyFitness", cat="sci", tier=2, lang="en",
+       itunes=818198322, feed="https://rss.libsyn.com/shows/51714/destinations/184296.xml",
+       # 官网逐字稿免费全文（Transcription 标签；Member Exclusives 才上锁），但取稿层够不着 libsyn 之外的页。
+       # 文稿靠 show notes 里自带的 YouTube 链接（近 30 集 28 集有）：YouTube 版普遍比音频短 4–8 分钟，
+       # 按标题搜索兜底近 10 集命中 0 —— 哪天 notes 不带链接了，就会每集掉到本机转写。
+       # #088「Special Preview」、#105「Premium Member Q&A」这类 SKIP_TITLE 拦不住，靠成稿评分把关（近 14 个月没有）。
+       # 和 thepeterattiad、huberman、stemtalk 同题材，嘉宾圈重叠。
+       residential=True, desc="Rhonda Patrick 与研究者长谈或独自精读文献，讲衰老、运动、营养与睡眠，把结论落到试验、队列数据和剂量"),
+  dict(id="calnewport", name="Deep Questions with Cal Newport", zh="Cal Newport", cat="ai", tier=3, lang="en",
+       itunes=1515786216, feed="https://feeds.megaphone.fm/BVLLC6571400024",
+       # 09-13 自动发现评 6 分没收（passed_over 记的是 pdrl 跳转地址）；记 itunes 防止再按 id 重评。
+       # feed 搬过两次家（buzzsprout → simplecast → megaphone）。周一 AI × 认知那半集是站上没有的；
+       # 周四 AI 短评和 eightythousand、ezra、hardfork 追同一批新闻。一半是听众问答、口播约 8%，所以 tier 3。
+       residential=True, desc="计算机教授 Cal Newport 独白拆新论文与 AI 新闻，判断 AI 和手机怎样改变注意力与思考，后半集答听众问"),
 ]
