@@ -1,0 +1,135 @@
+{
+ "slug": "2026-10-15-oddlots-想装下全部金融的hyperliquid-靠27个验证节点运行",
+ "of": "oddlots-62c54adc20",
+ "source_lang": "en",
+ "title": "Hyperliquid's Plan to Hold All Finance—Running on 27 Validation Nodes",
+ "dek": "The founder's goal is to hold all finance on one chain, but the network has just 30-odd validation nodes—only the top 27 by stake actually run the network—and running a node requires only 128GB of consumer hardware.",
+ "why": "The founder unpacks how perpetual contracts are deployed, how liquidations work, how the oracle feeds prices, and where regulation might cut in. Information density concentrates on the mechanism discussion in the middle section.",
+ "who": "Investors and engineers interested in on-chain derivatives, perpetual futures market structure, or how traditional financial institutions and regulators might interface with crypto infrastructure.",
+ "skip": "25:59–28:01 covers the founder's personal background and entrepreneurial motivations at low information density; you can skip it.",
+ "tags": [
+  "Perpetual futures",
+  "Oracle mechanisms",
+  "Decentralized validation",
+  "Crypto regulation",
+  "Hyperliquid",
+  "On-chain finance"
+ ],
+ "points": [
+  {
+   "h": "Finance has flipped its pyramid upside down",
+   "body": "The comparison works like this: in traditional media, original reporting forms the pyramid's largest base, with commentary and derivatives built on top. Today's financial markets invert this structure—the underlying asset has become the smallest layer, while derivatives, futures, options, and now prediction markets stack atop it in ever-growing volume. This ‘inverted pyramid’ framework explains why platforms like Hyperliquid can expand so rapidly: they're not creating new assets, but stacking new tradable expressions onto the same underlying."
+  },
+  {
+   "h": "Anyone can issue contracts—if they stake 500,000 tokens first",
+   "body": "Perpetual contracts for assets like NVIDIA and SK Hynix aren't issued by the protocol itself; they're deployed by ‘deployers’ like TradeXYZ. To become a deployer, you must stake 500,000 HYPE tokens—not the dollar equivalent, but the token itself. This stake unlocks deployment permission. The deployer then defines an oracle (price source), sets contract specifications, and automatically inherits the protocol's existing order book, clearing system, and USDC infrastructure. No need to build an exchange from scratch."
+  },
+  {
+   "h": "Deployment slots go to Dutch auction every 31 hours",
+   "body": "Deployment slots are scarce—each new order book and clearing system consumes chain compute. Hyperliquid allocates slots via Dutch auction (price falls linearly from high to low, first bidder wins) rather than English auction, which tends to spawn gamesmanship like last-minute sniping. The 31-hour cycle was chosen to shift auction opening times across time zones. Starting price resets to double the previous round's clearing price, creating a natural convergence toward market-clearing value."
+  },
+  {
+   "h": "The network runs on 30-odd validators, 27 of which actually show up",
+   "body": "When asked about data center scale and computing investment, Jeff's numbers clash with the public narrative of ‘holding all finance’: there are roughly 30 validation nodes total, and by stake weight, the top 27 are actively running the network at any moment. He frames this not as a deficit but as design intent. The system should not be so capital-intensive that only giants can run validators."
+  },
+  {
+   "h": "Global clearing runs on 128GB of consumer hardware",
+   "body": "A validator operator once tweeted their surprise: this ‘modest’ machine could run the entire system. No exclusive GPU contracts with NVIDIA needed, just consumer-grade equipment. Jeff specifies the threshold: 128GB of RAM to operate a validator node. Not the cheapest laptop config, but well within reach for regular people—no football-field data center required."
+  },
+  {
+   "h": "When perpetuals outgrow their underlying, oracle prices become manipulable",
+   "body": "A real risk emerged when perpetual trading volume exceeded the underlying asset's actual scale. On Solana, Mango Markets saw perpetual volumes dwarf token liquidity, allowing traders to move the spot price easily, then profit by feeding that manipulated price back through the oracle into the contract. Hyperliquid encountered a similar incident this year: TradeXYZ's SK Hynix contract suffered abnormal pricing in the oracle feed, causing large losses. TradeXYZ published a detailed postmortem and reimbursed traders. Jeff classifies this as an ‘implementation bug’ rather than a protocol design flaw."
+  },
+  {
+   "h": "The protocol never asks whether an oracle makes sense",
+   "body": "What happens if a deployer submits an obviously unreliable oracle—one tracking an illiquid asset or a price that can't be followed? The protocol has no semantic concept of ‘whether this oracle is reasonable’. It executes only hardcoded math: oracle price updates cannot move more than 1% between updates. If a deployer tries to push a 2% move, the protocol force-limits it to 1% and requires batching further updates. The protocol enforces constraints; it never judges business logic."
+  },
+  {
+   "h": "When Iran escalated on Sunday at 1 a.m., who set the oil price?",
+   "body": "When geopolitical tension spiked this spring, Hyperliquid's 24/7 WTI and Brent futures attracted scrutiny: Sunday at 1 a.m. has no spot market open, no real trading, so whose price is this? Jeff's answer: entirely up to the deployer's contract specifications, not a protocol-level rule. He adds a counterintuitive point: perpetual oracles need not track spot 24/7. Funding rate mechanisms let trading float freely over intervals, then funding-rate settlement pulls price back toward spot value—just slower convergence. The deployer chooses the tradeoff."
+  },
+  {
+   "h": "Regulation will probably target deployers, not the protocol",
+   "body": "Asked how CFTC or CME oversight might work, Jeff endorses this frame: the regulated entity will likely be deployers, not the protocol itself—much like TCP/IP networking isn't regulated, but applications running on it are. The protocol stays a neutral network and liquidity layer. The deployer, who controls the oracle, leverage, and contract specs—the actual control points—becomes the natural target for regulation."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Oracle",
+   "def": "Mechanism that feeds on-chain contract data from off-chain real prices"
+  },
+  {
+   "term": "Deployer",
+   "def": "Entity that stakes tokens to gain permission to issue new contracts on the protocol"
+  },
+  {
+   "term": "Dutch auction",
+   "def": "Auction where the price decreases linearly from high to low, and the first bidder wins"
+  },
+  {
+   "term": "Perpetual futures (perps)",
+   "def": "Derivatives with no expiration date that use funding rates to anchor to spot price"
+  },
+  {
+   "term": "HIP3",
+   "def": "Hyperliquid Improvement Proposal 3; the feature module enabling third-party deployers to build markets on the protocol"
+  }
+ ],
+ "facts": [
+  {
+   "k": "Deployer stake requirement",
+   "v": "500,000 HYPE tokens"
+  },
+  {
+   "k": "Deployment slot Dutch auction cycle",
+   "v": "Every 31 hours"
+  },
+  {
+   "k": "Validation nodes",
+   "v": "30-odd on the network, top 27 actually operating it"
+  },
+  {
+   "k": "Minimum hardware to run a node",
+   "v": "128GB RAM"
+  },
+  {
+   "k": "Maximum oracle price change per update",
+   "v": "1% (protocol hard-caps anything beyond)"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "I often think about finance today in those terms in the sense that the underlying is kind of the smallest part of the market now.",
+   "translated": false
+  },
+  {
+   "text": "Yeah, they have to stake 500,000 currently. Hype. Not $500,000 worth of hype, but 500,000 hype coins.",
+   "translated": false
+  },
+  {
+   "text": "The incentives are a bit odd. So you're kind of incentivized to penny the other bidders.",
+   "translated": false
+  },
+  {
+   "text": "the set of validators is 30 something and the top 27 of them by stake at any moment in time operate the network.",
+   "translated": false
+  },
+  {
+   "text": "There's no three-year line or exclusive contract needed with NVIDIA or anything like that. Like anyone can procure one of these. It's basically consumer hardware. You can run the global financial system on it.",
+   "translated": false
+  },
+  {
+   "text": "it was something, I forget the token, but the size of the PERP trading relative to the underlying token, it got so extreme that it was very easy to manipulate the underlying price that transmitted through the Oracle, and then you'd make a lot of money because then the thing moves price.",
+   "translated": false
+  },
+  {
+   "text": "The protocol does not even understand what that means. There's kind of like no semantic encoding in the protocol.",
+   "translated": false
+  },
+  {
+   "text": "there's a constraint at the protocol level where between two Oracle price updates, the relative difference between those two prices cannot be more than 1%.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
