@@ -16,7 +16,7 @@ data/followup.json：
   src       {源 id: {eid, title, pub, first_seen, lost, tries, last, seen_at}}
             lost  = **连续**几轮看得见、没被选（被选中一次就清零）
             tries = 被选中处理过的轮数；last = 最近一轮的结果
-  unseen    这一轮没量到的该跟的源（feed 失败，或不在本机这一轮的范围）
+  unseen    这一轮没量到的该跟的源（feed 失败，或不在本机这一轮的范围；安静的源不算）
   aged_out  没做完就离开账本的集：掉出回溯窗口（window），或在红的时候被更新的一集顶掉
             （superseded）。后来做完了自动消掉；人决定不做了用 --ack。保留 14 天。
   acked     人确认过的 aged_out（eid → 理由）
@@ -113,13 +113,14 @@ def red(e: dict, now: dt.datetime) -> str | None:
 
 def update(prev: dict | None, *, newest: dict, cands: dict, outcomes: dict, done: dict,
            fail: dict, max_fails: int, srcs: dict, now: dt.datetime,
-           cutoff: dt.datetime) -> dict:
+           cutoff: dt.datetime, fetched: set | None = None) -> dict:
     """算出这一轮之后的账。
 
     newest   {源 id: 这档源窗口内最新一集的 key}（这一轮 feed 取到了的源才有）
     cands    {key: 候选集}（这一轮合格、可以做的）
     outcomes {key: 结果}（这一轮被选中的：process() 的结果，崩了是 error，没轮到是 not-run）
     done     state["done"]；fail state["fail"]；max_fails = run.MAX_FAILS
+    fetched  这一轮 feed 取到了的源（不给就当成都没取到）
     """
     prev = prev or {}
     old = prev.get("src") or {}
@@ -143,8 +144,10 @@ def update(prev: dict | None, *, newest: dict, cands: dict, outcomes: dict, done
         if e and e["eid"] in done:
             e = None                       # 已经做完（这一轮或别的线做的）
         if sid not in newest:
-            # 这一轮没量到（feed 失败，或不在本机这一轮的范围）：账原样留着，不涨也不清
-            unseen.append(sid)
+            # feed 取到了、窗口里没有新集：这档源安静，不是没量到（小天章两个月一集）。
+            # 真没量到（feed 失败，或不在本机这一轮的范围）才进 unseen。账原样留着，不涨也不清
+            if sid not in (fetched or ()):
+                unseen.append(sid)
             if e:
                 if (_parse(e.get("pub")) or now) < cutoff:
                     retire(e, sid, "window")

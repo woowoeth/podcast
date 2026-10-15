@@ -384,6 +384,7 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
         if err:
             log(f"  ! {s['id']}: feed failed — {err}")
             continue
+        _fetched.add(s["id"])
         real = [ep for ep in eps[:max(25, days * 2)]
                 if ep["published"] and ep["published"] >= cutoff
                 and not any(w in ep["title"].lower() for w in SKIP_TITLE)
@@ -480,6 +481,8 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
 _starve: dict = {"on": False, "have": {}, "last_try": {}}
 # 这一轮每档源窗口内最新一集的 key（feed 取到了的才有）。跟随账本拿它判「这档源跟上没有」。
 _newest: dict = {}
+# 这一轮 feed 取到了的源。取到了、窗口里却没有新集的是「安静」，不是「没量到」。
+_fetched: set = set()
 # 该跟的源不设字数上限 —— 只在本机日更主轮（--followup）放开。云端定时班的 --max-words 14000
 # 是为了不让三小时的节目吃掉整班预算（job 超时 150 分钟），那条线恢复出稿时不该被这里绕过。
 _uncap: dict = {"on": False}
@@ -1225,7 +1228,7 @@ def main() -> int:
         for ep in picked:
             outcomes.setdefault(ep["_key"], "not-run")     # 被选中但没轮到（中断、取消）
         fu = FU.update(FU.load(DATA / "followup.json"), newest=_newest, cands=all_cands,
-                       outcomes=outcomes, done=state["done"], fail=state["fail"],
+                       outcomes=outcomes, done=state["done"], fail=state["fail"], fetched=_fetched,
                        max_fails=MAX_FAILS, srcs={s["id"]: s for s in srcs}, now=now(),
                        cutoff=now() - dt.timedelta(days=a.days))
         _save_followup(fu)

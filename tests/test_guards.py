@@ -11290,6 +11290,11 @@ class AFollowedSourceKeepsUp(unittest.TestCase):
     def test_unseen_sources_are_reported_not_called_caught_up(self):
         r = self._round(None, "2026-10-15T02:30:00+00:00", newest={})
         self.assertIn("zhangxiaojun", r["unseen"])
+        quiet = self.fu.update(None, newest={}, cands={}, outcomes={}, done={}, fail={}, max_fails=3,
+                               srcs={"xiaotianzhang": {"id": "xiaotianzhang", "tier": 1}},
+                               now=self._t("2026-10-15T02:30:00+00:00"),
+                               cutoff=self._t("2026-09-24T02:30:00+00:00"), fetched={"xiaotianzhang"})
+        self.assertEqual([], quiet["unseen"], "feed 取到了、只是窗口里没新集，被说成「没量到」")
         self.assertTrue(any("没量到" in n for n in self.fu.judge(r, self._t("2026-10-15T03:00:00+00:00"))[1]))
 
     def test_the_seed_ledger_is_neither_green_nor_red_until_stale(self):
@@ -11331,6 +11336,28 @@ class AFollowedSourceKeepsUp(unittest.TestCase):
         run_src = (ROOT / "pipeline" / "run.py").read_text()
         i = run_src.index('state["done"][key] = {"skip": "off-brief"')
         self.assertIn('"tier": s.get("tier", 3)', run_src[i:i + 400], "跳过判决没记当时的层")
+
+    def test_the_call_sites_match_the_ledger_api(self):
+        """run.py 调账本的那几处，参数要对得上 followup 的函数签名。
+
+        2026-10-15 改「安静的源不算没量到」时，run.py 先传了 fetched=，followup.update 却没改上 ——
+        所有单元测试都是绿的，因为没有一条走到 run.main 里那一行；生产那一轮会在记账时崩掉。"""
+        import ast, inspect
+        tree = ast.parse((ROOT / "pipeline" / "run.py").read_text())
+        seen = 0
+        for n in ast.walk(tree):
+            if (isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                    and isinstance(n.func.value, ast.Name) and n.func.value.id == "FU"):
+                fn = getattr(self.fu, n.func.attr, None)
+                self.assertIsNotNone(fn, f"run.py 调了 FU.{n.func.attr}，followup 里没有")
+                args = [None] * len(n.args)
+                kw = {k.arg: None for k in n.keywords if k.arg}
+                try:
+                    inspect.signature(fn).bind(*args, **kw)
+                except TypeError as ex:
+                    self.fail(f"run.py:{n.lineno} 调 FU.{n.func.attr} 的参数和签名对不上：{ex}")
+                seen += 1
+        self.assertGreaterEqual(seen, 4, "尺子坏了：run.py 里找不到对 FU 的调用")
 
     def test_sources_that_are_not_followed_are_not_tracked(self):
         r = self._round(None, "2026-10-15T02:30:00+00:00", newest={"decoder": "dec-1"},
