@@ -286,7 +286,8 @@ PYEOF
   # 默认只跑云端抓不到的那批，避免和云端重复劳动
   [ -n "$ONLY_RESIDENTIAL" ] && ONLY_ARG="$ONLY_ARG --only-residential"
 
-  python3 pipeline/run.py $ONLY_ARG \
+  # --followup：记跟随账本（该跟的源最新一集有没有被落下），体检读它。只有这一处记 —— 补课不记。
+  python3 pipeline/run.py $ONLY_ARG --followup \
       --limit "$LIMIT" --days "$DAYS" --max-words "$MAX_WORDS" $EXTRA
   rc=$?
   echo "run.py exit=$rc"

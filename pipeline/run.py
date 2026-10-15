@@ -95,6 +95,7 @@ _STATE_LOCK = Lock()
 # 不同标题的文件、同一个 ep["id"]。短链目录按 id 建，后写的把前一个覆盖掉，
 # 于是 299 篇正文页只有 297 个短链，其中一篇的分享链接指向另一篇。
 # 表面症状（短链数不对）离真因（没有跨进程锁）很远。
+import followup as FU                                 # noqa: E402  该跟的源有没有被落下
 from runlock import LOCK_FILE as _LOCK_FILE          # noqa: E402  锁的位置只写一处（日更开头的等待也用它）
 _lock_fh = None
 
@@ -224,7 +225,17 @@ def spread(ranked: list[dict], limit: int, per_source: int) -> list[dict]:
     # 有 14 集**从没被碰过**（sharptech 5、anthropic 4、rationalreminder 4、
     # lennys 1），不是判掉的，是排到预算外面了。
     # 每源仍受 per_source 限制，所以一档源刷屏也吃不掉整轮预算。
-    core = [ep for ep in ranked if ep["_src"].get("tier", 3) == CORE_TIER]
+    # **该跟的源**（钉住、tier 1、降级前是 tier 1 的）都走这条道，不只看此刻的 tier ——
+    # 自动降级把张小珺从 1 改成 2，它就出了这条道，#154 当天没排上（2026-10-15）。
+    # 道内的顺序：上一轮看得见却没排上的（跟随账本的 lost）最先；再是每档源**最新的那一集**
+    # （积压的旧集排后面）；再是钉住的；最后才按分数。名额不够被挤掉的那一集，下一轮排第一。
+    # 钉住不能排在 lost 前面：8 档钉住源各有一集积压，就能让一档 tier 1 的新集连输下去。
+    _lost = {e["eid"]: e.get("lost", 0)
+             for e in ((FU.load(DATA / "followup.json") or {}).get("src") or {}).values()}
+    _head = set(_newest.values())
+    core = [ep for ep in ranked if FU.followed(ep["_src"])]
+    core.sort(key=lambda ep: (-_lost.get(ep.get("_key"), 0), ep.get("_key") not in _head,
+                              not ep["_src"].get("pinned")))
     if core:
         n0 = len(out)
         for ep in core:
@@ -373,6 +384,12 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
         if err:
             log(f"  ! {s['id']}: feed failed — {err}")
             continue
+        real = [ep for ep in eps[:max(25, days * 2)]
+                if ep["published"] and ep["published"] >= cutoff
+                and not any(w in ep["title"].lower() for w in SKIP_TITLE)
+                and not (ep.get("duration") and ep["duration"] < MIN_SECONDS)]
+        if real:
+            _newest[s["id"]] = eid(s["id"], max(real, key=lambda e: e["published"])["guid"])
         kept = 0
         # **每个 feed 看多少条，要跟着回溯窗口走。**
         # 原来写死前 25 条：对日更节目，25 集以前的东西无论 --days 写多大
@@ -434,6 +451,12 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
                 # 软失败撞满之后隔了足够久 —— 那一阵的抖动早过去了，清零重来。
                 f = dict(f, soft=0)
                 state["fail"][key] = f
+            if f and f.get("why") == "too-long" and not _pin["slug"] \
+                    and _cap_words(s) and f.get("cap") == _cap_words(s):
+                # **太长的集，上限没变就别再挑它。** 原来只留痕不拦：每轮被挑中、取一遍稿、
+                # 再跳过一次。latetalk #182（7 万词）两周里被挑了 33 次、占了 11% 的名额，
+                # 一次没上站，最后掉出窗口。上限一改（或这档源成了该跟的源），它就回来。
+                continue
             if f and (f.get("n", 0) >= MAX_FAILS or f.get("soft", 0) >= MAX_SOFT_FAILS) \
                     and not _pin["slug"]:
                 # **--episode 是「我明确点名要这一集」，重试预算不该再挡它。**
@@ -455,6 +478,11 @@ def candidates(srcs: list[dict], state: dict, days: int, only: str | None) -> li
 
 
 _starve: dict = {"on": False, "have": {}, "last_try": {}}
+# 这一轮每档源窗口内最新一集的 key（feed 取到了的才有）。跟随账本拿它判「这档源跟上没有」。
+_newest: dict = {}
+# 该跟的源不设字数上限 —— 只在本机日更主轮（--followup）放开。云端定时班的 --max-words 14000
+# 是为了不让三小时的节目吃掉整班预算（job 超时 150 分钟），那条线恢复出稿时不该被这里绕过。
+_uncap: dict = {"on": False}
 
 
 def score(ep: dict) -> float:
@@ -483,6 +511,18 @@ def score(ep: dict) -> float:
     if d > 4 * 3600:
         v -= 6                                      # multi-hour needs map-reduce
     return v
+
+
+def _save_followup(fu: dict) -> None:
+    """跟随账本落盘。写在 run.py 里、点名文件，本机线的沙盒守护才认得出「run.py 写它」。"""
+    (DATA / "followup.json").write_text(json.dumps(fu, ensure_ascii=False, indent=1) + "\n")
+
+
+def _cap_words(s: dict) -> int:
+    """这档源这一轮的字数上限。**该跟的源不设上限**：它们的长集走 map-reduce 照样做。
+    张小珺 151 篇里 27 篇超过 4.5 万词，#154 是 44,601 词 —— 只差 0.9% 就会被「留给以后再发」，
+    而「以后」对一档每轮都有新候选的源来说就是永远。"""
+    return 0 if (_uncap["on"] and FU.followed(s)) else _ceiling["words"]
 
 
 def process(ep: dict, state: dict, *, dry: bool) -> str:
@@ -538,6 +578,9 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
                         f"这一轮的线是 {_triage['min']:.0f}，站点的线是 "
                         f"{triage.MIN_SCORE:.0f}，日更线还会再看")
                 state["done"][key] = {"skip": "off-brief", "score": v["score"],
+                                      # 判的时候这档源在哪一层：体检只追究按优质源规则判的
+                                      # （源后来升了层，旧尺子判的交给 _verdict_is_stale 重开）
+                                      "tier": s.get("tier", 3),
                                       "why": v["why"], "kind": v["kind"],
                                       # basis 必须落账：不记的话下次没法分辨
                                       # 这条"不做"是按字幕判的还是按广告文案判的，
@@ -560,7 +603,7 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
     _soft_so_far = (state["fail"].get(key) or {}).get("soft", 0)
     tr = T.acquire(ep, s.get("lang", "en"), src=s, allow=_tiers["allow"],
                    asr_after_throttle=_soft_so_far >= YT_THROTTLE_PATIENCE)
-    cap_words = _ceiling["words"]
+    cap_words = _cap_words(s)
     if tr and cap_words and tr["words"] > cap_words:
         # Cost scales with transcript length, and a 35k-word episode costs as
         # much as six ordinary ones. On a small budget, leave it for later
@@ -976,6 +1019,9 @@ def main() -> int:
     ap.add_argument("--reconcile", action="store_true",
                     help="只把 state.json 和磁盘上的 data/episodes 对齐后退出。"
                          "推送重试时用：状态是索引，不做三方合并，从数据重建")
+    ap.add_argument("--followup", action="store_true",
+                    help="记跟随账本 data/followup.json（该跟的源最新一集有没有被落下）。"
+                         "只给本机日更主轮用：补课、钉一集、dry-run 都不记")
     ap.add_argument("--catchup", type=int, nargs="?", const=30, metavar="DAYS",
                     help="只跑「新加进来、还没建起档」的信源，回溯 DAYS 天"
                          "（默认 30）。加了源就该有内容，不该等人来问。")
@@ -999,6 +1045,7 @@ def main() -> int:
 
     _ceiling["words"] = a.max_words
     _ceiling["minutes"] = a.max_minutes
+    _uncap["on"] = bool(a.followup)
     _pin["slug"] = (a.episode or "").strip()
     _triage["on"] = not a.no_triage
     _triage["min"] = a.triage_min
@@ -1116,6 +1163,7 @@ def main() -> int:
         + (f", 限定信源 {a.only}" if a.only else ""))
 
     cands = candidates(srcs, state, a.days, a.only)
+    all_cands = {ep["_key"]: ep for ep in cands}
     cands.sort(key=score, reverse=True)
     cands = spread(cands, a.limit, a.per_source)
     log(f"\n{len(cands)} picked (≤{a.per_source} per source) by tier/freshness/transcript + cat floor")
@@ -1124,13 +1172,19 @@ def main() -> int:
     published = 0
     picked = cands
 
+    outcomes: dict[str, str] = {}
+
     def one(ep):
         try:
-            return process(ep, state, dry=a.dry_run)
+            r = process(ep, state, dry=a.dry_run)
+            outcomes[ep["_key"]] = r
+            return r
         except llm.AuthError:
             raise
         except Exception:
             log("    unhandled:\n" + traceback.format_exc()[-900:])
+            # 崩了也要记：不记的话跟随账本把它算成「没被选上」，体检会把人引到选集规则上去
+            outcomes[ep["_key"]] = "error"
             return "error"
 
     if a.jobs > 1 and len(picked) > 1:
@@ -1167,6 +1221,17 @@ def main() -> int:
             save_state(state)
     save_state(state)
     _write_catchup_note(published)
+    if a.followup and not a.dry_run and not a.catchup and not _pin["slug"]:
+        for ep in picked:
+            outcomes.setdefault(ep["_key"], "not-run")     # 被选中但没轮到（中断、取消）
+        fu = FU.update(FU.load(DATA / "followup.json"), newest=_newest, cands=all_cands,
+                       outcomes=outcomes, done=state["done"], fail=state["fail"],
+                       max_fails=MAX_FAILS, srcs={s["id"]: s for s in srcs}, now=now(),
+                       cutoff=now() - dt.timedelta(days=a.days))
+        _save_followup(fu)
+        bad, _ = FU.judge(fu, now())
+        log(f"跟随账本：{len(fu['src'])} 档该跟的源最新一集还没做成"
+            + (f"，其中 {len(bad)} 条到了硬伤线" if bad else ""))
 
     log("\n" + " · ".join(f"{k}={v}" for k, v in sorted(tally.items())) or "nothing to do")
 

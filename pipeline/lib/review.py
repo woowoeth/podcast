@@ -246,8 +246,29 @@ def _draft(d: dict) -> str:
     return "\n".join(L)
 
 
+def rubric_id(evidence: str) -> str:
+    """这一代评审尺子的指纹：提示词、证据口径、评审模型，任何一样变了分数就不可比。
+
+    2026-10-15 查「成稿中位 7.0 降级」时，同一档源的 7 分率在三个时期是 6% / 51% / 48%，
+    10-10 换成全文证据之后又成了 32% —— 而成稿里只记了写稿模型，哪一代评审给的分
+    只能翻日志去猜。按源聚合评审分之前，先按这个指纹分开。"""
+    import hashlib
+    raw = "\x00".join([SYSTEM, SCHEMA, evidence, str(FULL_TEXT_MAX), str(EVIDENCE_SHARE),
+                        str(EVIDENCE_CAP), llm.model_name("review")])
+    return hashlib.sha1(raw.encode()).hexdigest()[:10]
+
+
 def check(d: dict, tr: dict, ep: dict, src: dict) -> dict | None:
-    """返回 {"score","dims","verdict","why","worst"}；模型不可用时返回 None。"""
+    """返回 {"score","dims","verdict","why","worst","model","evidence","rubric"}；模型不可用时返回 None。"""
+    v = _check(d, tr, ep, src)
+    if v is not None:
+        total = sum(len(s.get("text") or "") for s in (tr.get("segments") or []))
+        mode = "full" if 0 < total <= FULL_TEXT_MAX else "windows"
+        v.update(model=llm.model_name("review"), evidence=mode, rubric=rubric_id(mode))
+    return v
+
+
+def _check(d: dict, tr: dict, ep: dict, src: dict) -> dict | None:
     if not llm.available():
         return None
     total = sum(len(s.get("text") or "") for s in (tr.get("segments") or []))

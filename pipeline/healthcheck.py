@@ -323,6 +323,48 @@ def check_hot_sources_keep_up(r: Report) -> None:
         r.good(f"热门 {len(rows)} 档都跟上了原平台（差不超过 3 天）")
 
 
+def check_must_follow(r: Report) -> None:
+    """该跟的源（钉住、tier 1、降级前是 tier 1 的），最新一集有没有被落下。
+
+    2026-10-15 张小珺出了 #154，10:30 那一轮扫到了、没排上；是用户先发现的。上面那条
+    「热门跟上原平台」拿缓存里的日期比、差 3 天才算、只是提醒 —— 量的是日期差，
+    不是「这一集被没被做」。这里读本机日更选集那一刻记下的账（pipeline/followup.py）：
+    看得见、合格、连着两轮没被选，第二轮就红；被选过却三天没做成，也红。
+    """
+    import sys as _s
+    _s.path.insert(0, str(ROOT / "pipeline"))
+    import followup as _fu
+    d = _fu.load(DATA / "followup.json")
+    bad, note = _fu.judge(d, now())
+    behind = _commits_behind()
+    for m in bad:
+        if behind > 0:
+            # 和心跳检查同一个规矩：这份副本落后 origin，账本可能是旧的，先 pull 再判
+            r.note(f"{m}（本地落后 origin {behind} 个提交，账本可能是旧的 —— 先 git pull 再判断）")
+        else:
+            r.fail(m)
+    for m in note:
+        r.note(m)
+    if d is not None and not bad:
+        n = len(d.get("src") or {})
+        r.good("该跟的源最新一集都跟上了" + (f"（{n} 集在路上，见提醒）" if n else ""))
+
+
+def check_core_quality_proposals(r: Report) -> None:
+    """核心源的质量判决只提案、不自动执行（curate.core_holds）。列出来，人看了再决定。"""
+    import sys as _s
+    _s.path.insert(0, str(ROOT / "pipeline"))
+    try:
+        import curate as _c
+        held = _c.core_holds(_c.performance())
+    except Exception as ex:
+        r.note(f"核心源的质量提案没算成（{type(ex).__name__}）")
+        return
+    if held:
+        r.note(f"{len(held)} 档核心源被质量规则判了、按规定不自动降，等人看："
+               + "；".join(f"{sid}（{act}：{why[:40]}）" for sid, act, why in held[:4]))
+
+
 def check_content_freshness(r: Report) -> None:
     """内容还在更新吗。四道闸门可能把一整轮都拦下来，那是正常的；
     但连着三天一篇都没有，说明不是内容问题就是管线问题。"""
@@ -663,9 +705,12 @@ def check_core_sources(r: Report) -> None:
         _blocks = importlib.import_module("run")._core_blocks
     except Exception:
         _blocks = lambda v: "宣传" in str(v.get("kind") or "")
+    # 只追究**判的时候**就在优质层的（记了 tier 的）。源后来才升上来的，旧判决是按当时的
+    # 7 分线判的，不是闸门坏了 —— run.py 的 _verdict_is_stale 下一轮扫到就重开。不分开的话，
+    # curate 每恢复一档源，这里就红到本机下一轮（2026-10-15 审查：unruffled 恢复到 T2）。
     wrong = [v for v in done.values()
              if isinstance(v, dict) and v.get("skip") == "off-brief"
-             and v.get("src") in ids and not _blocks(v)]
+             and v.get("src") in ids and v.get("tier") in (1, 2) and not _blocks(v)]
     if wrong:
         r.fail(f"{len(wrong)} 集优质源的稿被**分数**判掉了（判词不是「宣传」）——"
                f"核心源只该拦广告：" + "；".join(
@@ -1469,6 +1514,8 @@ def main(argv: list[str] | None = None) -> int:
     check_heartbeats(r)
     check_every_source_has_a_producer(r)
     check_hot_sources_keep_up(r)
+    check_must_follow(r)
+    check_core_quality_proposals(r)
     check_content_freshness(r)
     check_build_consistency(r)
     check_sources(r)

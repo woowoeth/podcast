@@ -2056,7 +2056,8 @@ def log_page(eps: list[dict], srcs: dict) -> str:
     body = ("<ul class=\"evlist\">" + "".join(items) + "</ul>") if items else (
         '<div class="empty"><b>还没有信源变动</b>'
         '<p>信源清单每三天自动复查一次：feed 失效、停更超过 120 天、选题通过率低于 25%、'
-        '或成稿评分中位不高于 7 的会被降级或移除；同时从近期内容里挖新源，只收 8 分以上。'
+        '或成稿合格率低于三分之一的会被降级或移除（一级信源只提案、不自动降）；'
+        '同时从近期内容里挖新源，只收 8 分以上。'
         '任何一次改动都会记在这里。</p></div>')
 
     ld = _ld({"@context": "https://schema.org", "@type": "CollectionPage",

@@ -192,7 +192,7 @@ UI: dict[str, str] = {
     'BLURB_HEAD': 'Every day, the judgements worth remembering from {n} Chinese- and English-language podcasts. ',
     'BLURB_HEAD_NONE': 'Every day, the judgements worth remembering from the podcasts worth reading. ',
     'BLURB_TAIL': 'Points and quotes carry timestamps — tap one and you are back at the second it was said. Quotes are checked word for word and figures back to the source; anything unverifiable is cut, not published.',
-    'LOG_LEDE_1': 'The show list is re-checked every three days, on measured data rather than impressions: whether the feed still resolves, how many days since the last episode, the triage pass rate, the median editorial score. New candidates are mined from recent episodes (shows that get mentioned, guests who recur), scored after actually testing whether a transcript is obtainable, and only taken at 8+.',
+    'LOG_LEDE_1': 'The show list is re-checked every three days, on measured data rather than impressions: whether the feed still resolves, how many days since the last episode, the triage pass rate (published episodes count as passes), and how often drafts are rejected by the editorial score. For tier-1 shows, quality verdicts are only proposed, never applied automatically. New candidates are mined from recent episodes (shows that get mentioned, guests who recur), scored after actually testing whether a transcript is obtainable, and only taken at 8+.',
     'LOG_LEDE_2A': 'Anything marked ',
     'LOG_LEDE_2B': " is newly added: that score comes from the title, the show notes and a transcript sample — no finished piece has been through all four gates yet. After a run, the ones that produce get promoted and the ones that don't get removed. Both outcomes are recorded below.",
     'LOG_LEDE_3': 'An aggregator that quietly swaps out its sources quietly swaps out its taste, so every change is on the record here. Full list on the ',
@@ -323,7 +323,8 @@ ZH: dict[str, str] = {
                   "会自动从 Apple 目录重新解析，所以不会悄悄断更。",
     "SRC_LEDE_2": "T1 表示每集必读，T2 有实质内容时收，T3 只在特别强的一集时收。",
     "LOG_LEDE_1": "信源清单每三天自动复查一次。判据全部来自实测数据，不靠印象："
-                  "feed 是否失效、停更多少天、选题闸门的通过率、成稿评分的中位数。"
+                  "feed 是否失效、停更多少天、选题闸门的通过率（已发布的集算通过）、"
+                  "写出来的稿被成稿评分拦下的比例。一级信源的质量判决只提案，不自动降级。"
                   "同时从近期发布的内容里挖新线索（被提到的其他节目、反复出现的"
                   "受访者），实测文稿可得性后打分，只收 8 分以上。",
     "LOG_LEDE_2A": "标着",

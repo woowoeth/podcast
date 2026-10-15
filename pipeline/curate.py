@@ -12,9 +12,10 @@
 
 判据全部来自落盘数据，不靠印象：
   feed 健康        resolve_sources --check 写进 sources.json 的 status
-  选题通过率        triage 打过分的集里有多少过线 —— 直接反映"这档节目还值不值得看"
-  成稿评分中位      过线的稿子实际写出来什么水平
+  选题通过率        triage 打过分的集里有多少过线（已发布的集算过线）—— "这档节目还值不值得看"
+  成稿合格率        写出来的稿有多少过了成稿评分（被拦下的也算分母）
   取稿成功率        一直取不到文稿的源占着名额却产不出内容
+核心源（tier 1，或被降之前是 tier 1）的质量判决只提案、不自动执行（core_holds，体检列出来）。
 每次改动都追加进 data/curation.json，并渲染成站上的更新日志。
 """
 from __future__ import annotations
@@ -42,16 +43,15 @@ LEDGER = DATA / "curation.json"
 MIN_TRIAGE_EVALS = 6        # 少于这个次数不作判断，样本太小
 NEVER_PASSED_EVALS = 4      # 判过这么多次、一次都没过、一篇都没发 → 移除
 MIN_TRIAGE_PASS = 0.25      # 选题通过率低于此 → 降级
-# **判「这档源不行」要有足够证据。**
-# 原来 3 篇就下判决，而发得出来的稿必然 ≥ 评审及格线 7，
-# 所以「中位 ≤ 7.0」这条只可能在**刚好及格**这个值上触发 ——
-# 3 篇都刚好 7 分是噪音，不是信号。
-# 实测：142 档有产出的源里中位 8.0 的 111 档、7.5 的 16 档、7.0 的 15 档；
-# 门槛 3 篇会判掉 3 档，6 篇只判掉 1 档 —— 另外两档是刚收进来还没跑开的新源
-# （The Good Fight 3 篇、Empire 3 篇，都是用户提名或刚建档的）。
-# 一档源刚进来就被 3 篇判死，等于从来没给过它机会。
-MIN_PUBLISHED_FOR_REVIEW = 6
-MIN_REVIEW_MEDIAN = 7.0     # 成稿评分中位不高于此 → 降级
+# **「成稿评分中位 ≤ 7.0 → 降级」这条规则删了（2026-10-15）。** 它量的是我们自己的模型，不是节目：
+# 发得出来的稿只可能是 7/8/9 分，「中位 7.0」= 一半以上的稿刚好卡在及格线，而这个比例
+# 跟着**写稿模型**走 —— 同一批节目，deepseek-chat 写的 52% 是 7 分，deepseek-reasoner 写的 7%；
+# 张小珺 143 篇 chat 稿里 93 篇 7 分，7 篇 reasoner 稿里只有 1 篇 7 分。打乱「7 分 / 非 7 分」重排，
+# 这条规则照样判 5–11 档（实际 12 档），62 档里按 FDR 10% 一档都不显著。
+# 它闯过三次用户看得见的祸：09-15 把刚提级的 All-In 降回去；09-25 张小珺掉出「热门」；
+# 10-15 张小珺 #154 当天没排上（tier 1 → 2 就出了「核心源先取」，8 个名额全给了别人）。
+# 09-29 之前 resolve_sources 每次把 tier 抄回硬编码表，降级留不住，所以一直没露出来。
+# 稿子质量还有两道：单集评审 ≥7 才上站；源级的「成稿合格率」（被拦的也算分母）。
 MIN_DRAFT_TRIES = 4         # 至少试过这么多次，才谈得上合格率
 MIN_DRAFT_PASS = 0.34       # 成稿合格率低于此 → 降级（三次里过不了一次）
 STALE_DAYS = 120            # 停更超过此 → 休眠
@@ -97,8 +97,11 @@ def performance() -> dict[str, dict]:
         if isinstance(sc, (int, float)):
             p["review"].append(float(sc))
         t = (r.get("triage") or {}).get("score")
-        if isinstance(t, (int, float)):
-            p["triage"].append(float(t))
+        # **发出去的集就是「选题过了」**，不管选题当时给几分。tier 1/2 选题只拦广告
+        # （run.py NO_FILTER_TIERS），低分照样做、照样过评审上站 —— 原来把这些集按
+        # 选题分算成「没通过」，Skeptics Guide 发了 4 篇、评审中位 8，选题通过率却是 0%，
+        # 被降到 tier 3。换成 haiku 选题后 ≥7 的占比从 67% 掉到 36%，这条也跟着模型走。
+        p["triage"].append(max(float(t), 7.0) if isinstance(t, (int, float)) else 7.0)
     for v in state.get("done", {}).values():
         if v.get("skip") == "off-brief" and v.get("src") in per:
             per[v["src"]]["triage"].append(float(v.get("score") or 0))
@@ -159,6 +162,8 @@ def performance() -> dict[str, dict]:
             # judge 要用它决定"删掉"还是"改派本机线"
             "residential": bool(s.get("residential")),
             "pinned": bool(s.get("pinned")),
+            # 核心源：现在是 tier 1，或者被降之前是（tier_base）。质量类判决不自动执行，见 judge()。
+            "core": s.get("tier", 3) == 1 or s.get("tier_base") == 1,
             # 出过稿的，稿子是从哪一层来的。只靠 asr 的必须走本机线。
             "asr_only": bool(p["tr"]) and set(p["tr"]) == {"asr"},
             "age_days": st.get("age_days"),
@@ -179,7 +184,7 @@ def judge(sid: str, m: dict) -> tuple[str, str] | None:
     钉住的源仍然会被改派本机线、仍然会报 feed 失效；
     不许的只是「按产出质量降级／休眠」这一类判断。
     """
-    if m.get("pinned"):
+    if m.get("pinned") or m.get("core"):
         # 只挡质量类判断，不挡「取不到」「feed 死了」这类事实
         forbid = {"demote", "dormant", "drop_quality"}
     else:
@@ -188,6 +193,21 @@ def judge(sid: str, m: dict) -> tuple[str, str] | None:
     if got and got[0] in forbid:
         return None
     return got
+
+
+# **核心源（tier 1）的质量判决只提案，不自动执行。** 降一级的代价不是「少几分」：
+# tier 1 → 2 就出了「核心源先取」，打分底分 100 → 55（≈ 11 天的新鲜度），
+# 当天的新集排不上 —— 张小珺 #154 就是这样。判据错一次，代价是用户先发现。
+# 判据还在（体检列出来等人看），只是不许它自己动手。
+def core_holds(perf: dict) -> list[tuple[str, str, str]]:
+    """被「核心源保护」挡下的质量判决：(源, 动作, 判词)。钉住的不列 —— 那是人已经拍过板的。"""
+    out = []
+    for sid, m in perf.items():
+        if m.get("core") and not m.get("pinned"):
+            got = _judge(sid, m)
+            if got and got[0] in ("demote", "dormant", "drop_quality"):
+                out.append((sid, got[0], got[1]))
+    return out
 
 
 def _judge(sid: str, m: dict) -> tuple[str, str] | None:
@@ -273,11 +293,6 @@ def _judge(sid: str, m: dict) -> tuple[str, str] | None:
             and m["triage_pass"] < MIN_TRIAGE_PASS):
         return "demote", (f"选题通过率 {m['triage_pass']*100:.0f}%"
                           f"（{m['triage_n']} 次评估），选题质量下降")
-    if (m["published"] >= MIN_PUBLISHED_FOR_REVIEW and m["review_median"] is not None
-            and m["review_median"] <= MIN_REVIEW_MEDIAN):
-        # 判词要说它真正的意思：中位等于及格线 = 每一篇都只是刚好及格。
-        return "demote", (f"成稿评分中位 {m['review_median']:.1f}"
-                          f"（{m['published']} 篇），每一篇都只是刚好及格")
     # 成稿合格率：被拦下的稿子也算分母。只看"已发布稿子的评分中位"会漏掉整整一类
     # 源——Y Combinator 发 0 篇、被评审拦 4 篇（评分 3、3、4、4），产出全不合格，
     # 却永远不会被降级，因为那 4 次根本没进统计。
@@ -299,10 +314,17 @@ def audit(perf: dict) -> list[tuple[str, str, str]]:
         v = judge(sid, m)
         mark = {"drop": "移除", "drop_quality": "移除", "demote": "降级",
                 "dormant": "休眠"}.get(v[0], "") if v else ""
+        if not v and m.get("core") and not m.get("pinned"):
+            held = _judge(sid, m)
+            if held and held[0] in ("demote", "dormant", "drop_quality"):
+                mark = "核心源·只提案"          # 不执行，体检列出来等人看
+                v_note = held[1]
         rev = f"{m['review_median']:.0f}" if m["review_median"] is not None else "—"
         tp = f"{m['triage_pass'] * 100:.0f}%" if m["triage_pass"] is not None else "—"
         ag = f"{m['age_days']:.0f}d" if m["age_days"] is not None else "—"
         note = f"{mark}{' · ' + v[1] if v else ''}"
+        if not v and mark:
+            note = f"{mark} · {v_note}"
         log(f"{m['name'][:23]:<24}T{m['tier']:>2}{m['published']:>5}{rev:>6}"
             f"{tp:>9}{ag:>7}  {note}")
         if v:
@@ -368,6 +390,22 @@ def apply_actions(actions: list[tuple[str, str, str]], dry: bool = False) -> lis
     return entries
 
 
+def _restore_reason(sid: str, m: dict) -> str:
+    """恢复的理由要说真话 —— 它会印在站上的更新日志里。"""
+    held = _judge(sid, m) if m.get("core") else None
+    if held and held[0] in ("demote", "dormant", "drop_quality"):
+        # 判据其实还成立，只是核心源不再自动执行：别写成「不再成立」
+        return f"核心源的质量判决改为只提案、等人决定，撤回此前的自动降级（判据仍在：{held[1]}）"
+    last = next((r for r in reversed(load_ledger())
+                 if r.get("id") == sid and r.get("kind") in ("demoted", "dormant")), None)
+    w = str((last or {}).get("why") or "")
+    if "成稿评分中位" in w:
+        return "降级依据的「成稿评分中位 7.0」这条规则删了：它量的是写稿模型，不是节目（2026-10-15）"
+    if "选题通过率" in w:
+        return "选题通过率改为把已发布的集算作通过之后，降级的判据不再成立"
+    return "降级的判据这一轮不再成立，回到降级前的等级"
+
+
 def restore_lifted(perf: dict, actions: list[tuple[str, str, str]],
                    dry: bool = False) -> list[dict]:
     """自动降过级、这一轮又没有任何判决的源，回到降级前的等级。
@@ -401,10 +439,10 @@ def restore_lifted(perf: dict, actions: list[tuple[str, str, str]],
         del s["tier_base"]
         s["tier"] = base
         name = s.get("zh") or s["name"]
+        why = _restore_reason(sid, m)
         entries.append({"at": iso(now()), "kind": "restored", "id": sid, "name": name,
-                        "cat": s["cat"], "from_tier": old, "to_tier": base,
-                        "why": "降级的判据这一轮不再成立，回到降级前的等级"})
-        log(f"  恢复 {name} T{old}→T{base}：降级的判据这一轮不再成立")
+                        "cat": s["cat"], "from_tier": old, "to_tier": base, "why": why})
+        log(f"  恢复 {name} T{old}→T{base}：{why}")
     if entries and not dry:
         blob["generated"] = iso(now())
         path.write_text(json.dumps(blob, ensure_ascii=False, indent=1) + "\n")

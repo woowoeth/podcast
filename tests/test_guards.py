@@ -318,7 +318,7 @@ class DailyUpdateStaysWired(unittest.TestCase):
         sys.path.insert(0, str(ROOT / "pipeline"))
         import curate
         self.assertGreaterEqual(curate.MIN_TRIAGE_EVALS, 5)
-        self.assertGreaterEqual(curate.MIN_PUBLISHED_FOR_REVIEW, 3)
+        self.assertGreaterEqual(curate.MIN_DRAFT_TRIES, 4)
 
     def test_source_removal_needs_a_persistent_failure(self):
         """第五次踩同一个坑：抖动被当成永久失效。YouTube 会对密集请求返 404、
@@ -9185,8 +9185,9 @@ class TierHasOneWriter(unittest.TestCase):
     def test_a_standing_verdict_demotes_once(self):
         now = self._registry([self._src("t1", 1), self._src("t2", 2),
                               self._src("idle", 3), self._src("floor", 3)])
-        weak = dict(review_median=7.0)                      # 张小珺那种：150 篇中位刚好及格
-        perf = {"t1": self._m(**weak), "t2": self._m(**weak),
+        # 成稿合格率 20%（10 次里 8 次被评审拦下）—— 真的质量信号，不是「中位 7.0」
+        weak = dict(published=2, review_rejected=8, draft_pass=0.2)
+        perf = {"t1": self._m(core=True, **weak), "t2": self._m(**weak),
                 "idle": self._m(age_days=916, max_gap_days=77), "floor": self._m()}
         first = self._curate(perf)
         later = self._curate(perf) + self._curate(perf)
@@ -9194,12 +9195,11 @@ class TierHasOneWriter(unittest.TestCase):
         for sid in ("t1", "t2"):
             self.assertIn(sid, reg, f"同一条判决跑了三轮，{sid} 被一路降到移除了"
                                     f"（一轮降一级、到 T3 再判就移除）")
-        self.assertEqual((reg["t1"]["tier"], reg["t1"].get("tier_base")), (2, 1),
-                         "同一条判决跑了三轮，T1 不该降到 T2 以下")
+        self.assertEqual((reg["t1"]["tier"], reg["t1"].get("tier_base")), (1, None),
+                         "核心源被质量规则自动降了 —— 只许提案，不许自己动手（张小珺 #154）")
         self.assertEqual((reg["t2"]["tier"], reg["t2"].get("tier_base")), (3, 2))
         self.assertNotIn("tier_base", reg["idle"], "本来就在 T3 的休眠，不该记 tier_base")
-        self.assertEqual(sorted((e["kind"], e["id"]) for e in first),
-                         [("demoted", "t1"), ("demoted", "t2")])
+        self.assertEqual(sorted((e["kind"], e["id"]) for e in first), [("demoted", "t2")])
         self.assertEqual(later, [], "判决没变，后两轮不该再往更新日志里记（原来每轮一条）")
 
         # 判据不成立了（成稿中位回到 8.0）—— 回到降级前的等级，记一条「恢复」
@@ -9208,10 +9208,10 @@ class TierHasOneWriter(unittest.TestCase):
         self.assertEqual((reg["t1"]["tier"], reg["t2"]["tier"]), (1, 2),
                          "判据不成立了还留在降级后的等级 —— 过期的判决成了永久的")
         self.assertEqual(sorted((e["kind"], e["id"], e["to_tier"]) for e in back),
-                         [("restored", "t1", 1), ("restored", "t2", 2)])
+                         [("restored", "t2", 2)])
 
         # 本来就在最低层、又判降级 —— 移除，这条老规矩不变
-        gone = self._curate(dict(perf, floor=self._m(review_median=7.0)))
+        gone = self._curate(dict(perf, floor=self._m(**weak)))
         self.assertIn(("removed", "floor"), [(e["kind"], e["id"]) for e in gone])
         self.assertNotIn("floor", now())
 
@@ -10855,10 +10855,10 @@ class AnAutoRuleMustNotOverrideAPersonsDecision(unittest.TestCase):
 
     @staticmethod
     def _m(**kw):
-        base = {"feed_ok": True, "fail_streak": 0, "published": 8, "no_transcript": 0,
+        base = {"feed_ok": True, "fail_streak": 0, "published": 2, "no_transcript": 0,
                 "age_days": 1.0, "max_gap_days": 7.0, "triage_n": 0, "triage_pass": None,
-                "review_median": 7.0, "review_rejected": 6, "gate_rejected": 0,
-                "draft_pass": 0.57, "official_transcripts": 0, "tier": 1,
+                "review_median": 8.0, "review_rejected": 8, "gate_rejected": 0,
+                "draft_pass": 0.2, "official_transcripts": 0, "tier": 2,
                 "asr_only": False, "residential": True, "pinned": False}
         base.update(kw)
         return base
@@ -11005,18 +11005,14 @@ class AnUnfixableExternalBlockMustNotHoldUpEveryRelease(unittest.TestCase):
 
 
 class JudgingASourceNeedsEnoughEvidence(unittest.TestCase):
-    """判「这档源不行」要有足够证据。
+    """判「这档源不行」，判据量的必须是这档源，不是我们自己的模型。
 
-    **发得出来的稿必然 ≥ 评审及格线 7**，所以「成稿中位 ≤ 7.0」这条
-    只可能在**刚好及格**这个值上触发 —— 而原来 3 篇就下判决。
-    3 篇都刚好 7 分是噪音，不是信号。
+    「成稿评分中位 ≤ 7.0 → 降级」删了（2026-10-15）：发得出来的稿只有 7/8/9 分，
+    「中位 7.0」只是「一半以上刚好及格」，而这个比例跟着写稿模型走 —— 同一批节目，
+    deepseek-chat 写的 52% 是 7 分，reasoner 写的 7%。它三次闯祸（All-In 被降回、
+    张小珺掉出热门、张小珺 #154 当天没排上），每次只修了表面。
 
-    实测代价：用户刚提名、我刚收进来的 The Good Fight，发了 3 篇
-    （每篇都通过评审），下一次 curate 就把它移除了，理由「产出质量偏低」。
-    一档源刚进来就被 3 篇判死，等于从来没给过它机会。
-
-    142 档有产出的源里中位 8.0 的 111 档、7.5 的 16 档、7.0 的 15 档；
-    门槛 3 篇判掉 3 档，6 篇只判掉 1 档 —— 另外两档都是刚建档的新源。
+    还留着的质量判据要真的会判：成稿合格率（被拦的也算分母）。
     """
 
     def _curate(self):
@@ -11024,38 +11020,322 @@ class JudgingASourceNeedsEnoughEvidence(unittest.TestCase):
         import importlib
         return importlib.import_module("curate")
 
-    def test_three_episodes_is_not_enough_to_condemn_a_source(self):
-        c = self._curate()
-        base = {"feed_ok": True, "fail_streak": 0, "no_transcript": 0,
-                "age_days": 1.0, "max_gap_days": 7.0, "triage_n": 0,
-                "triage_pass": None, "review_median": 7.0, "review_rejected": 0,
-                "gate_rejected": 0, "draft_pass": 1.0, "official_transcripts": 0,
-                "tier": 3, "asr_only": False, "residential": True, "pinned": False}
-        self.assertIsNone(c.judge("x", {**base, "published": 3}),
-                          "3 篇刚好及格就把源判死 —— 新源永远活不过建档期")
-        got = c.judge("x", {**base, "published": 8})
-        self.assertEqual("demote", (got or (None,))[0],
-                         "证据够了也不判 —— 这条规则等于废了")
+    BASE = {"feed_ok": True, "fail_streak": 0, "no_transcript": 0, "age_days": 1.0,
+            "max_gap_days": 7.0, "triage_n": 0, "triage_pass": None, "gate_rejected": 0,
+            "official_transcripts": 0, "tier": 2, "asr_only": False, "residential": True,
+            "pinned": False, "core": False}
 
-    def test_the_reason_says_what_it_actually_means(self):
-        """中位等于及格线，意思是「每一篇都只是刚好及格」，不是「质量偏低」。"""
+    def test_a_source_shaped_like_zhangxiaojun_is_not_demoted(self):
+        """150 篇、94 篇 7 分 56 篇 8 分、没被拦过 —— 每一篇都过了评审。"""
         c = self._curate()
-        # **锚在真正那条判据上。** 第一版从常量定义往下找第一个
-        # `return "demote"`，找到的是「选题通过率」那条 —— 又一次匹配错了地方。
-        src = (ROOT / "pipeline" / "curate.py").read_text()
-        i = src.index('and m["review_median"] <= MIN_REVIEW_MEDIAN')
-        j = src.index('return "demote"', i)
-        self.assertIn("刚好及格", src[j:j + 220],
-                      "判词还写着「产出质量偏低」—— 它们每一篇都通过了评审")
+        m = {**self.BASE, "published": 150, "review_median": 7.0,
+             "review_rejected": 4, "draft_pass": 150 / 154}
+        self.assertIsNone(c.judge("zhangxiaojun", m),
+                          "每篇都过了评审的源，因为「一半刚好 7 分」被降级 —— 量的是写稿模型")
 
-    def test_the_bar_and_the_rule_use_the_same_number(self):
-        """降级线不能低于评审及格线，否则这条规则永远不会触发。"""
+    def test_the_real_zhangxiaojun_numbers_are_not_demoted_without_the_pin(self):
+        """拿站上真实的数，摘掉钉住和核心源保护再判 —— 钉住不许是唯一挡着它的东西。"""
         c = self._curate()
-        sys.path.insert(0, str(ROOT / "pipeline" / "lib"))
+        perf = c.performance()
+        if "zhangxiaojun" not in perf or perf["zhangxiaojun"]["published"] < 100:
+            self.skipTest("站上没有张小珺的数据")
+        m = dict(perf["zhangxiaojun"], pinned=False, core=False, tier=2)
+        self.assertIsNone(c.judge("zhangxiaojun", m),
+                          f"摘掉钉住，张小珺又会被降：{c._judge('zhangxiaojun', m)}")
+
+    def test_a_source_whose_drafts_keep_failing_review_is_still_demoted(self):
+        """反向注入：删掉中位那条之后，真不行的源仍然要被判。"""
+        c = self._curate()
+        m = {**self.BASE, "published": 2, "review_median": 8.0,
+             "review_rejected": 8, "draft_pass": 0.2}
+        self.assertEqual("demote", (c.judge("x", m) or (None,))[0],
+                          "10 次里 8 次被评审拦下的源没被判 —— 质量判据全成了摆设")
+        few = {**self.BASE, "published": 1, "review_median": 8.0,
+               "review_rejected": 2, "draft_pass": 1 / 3}
+        self.assertIsNone(c.judge("x", few), "3 次就下判决 —— 样本太小")
+
+    def test_published_episodes_count_as_passing_triage(self):
+        """tier 1/2 选题只拦广告，低分照样做、照样过评审上站。把它们按选题分算成「没通过」，
+        Skeptics Guide 发了 4 篇、评审中位 8，选题通过率 0%，被降到 tier 3。"""
+        import tempfile, unittest.mock as mock
+        c = self._curate()
+        with tempfile.TemporaryDirectory() as td:
+            data = pathlib.Path(td)
+            (data / "episodes").mkdir()
+            (data / "sources.json").write_text(json.dumps({"sources": [
+                {"id": "sk", "name": "sk", "cat": "sci", "tier": 2, "status": {"ok": True}}]}))
+            done = {}
+            for i in range(4):
+                (data / "episodes" / f"e{i}.json").write_text(json.dumps(
+                    {"source_id": "sk", "review": {"score": 8.0}, "triage": {"score": 4.0}}))
+            for i in range(2):
+                done[f"sk-ad{i}"] = {"skip": "off-brief", "src": "sk", "score": 2}
+            (data / "state.json").write_text(json.dumps({"done": done, "fail": {}}))
+            with mock.patch.object(c, "DATA", data):
+                m = c.performance()["sk"]
+        self.assertAlmostEqual(4 / 6, m["triage_pass"], places=3,
+                               msg="发出去的 4 集按选题分算成了没通过")
+        self.assertIsNone(c.judge("sk", m), "发了 4 篇都过评审的源，被「选题通过率」降级")
+
+    def test_a_core_source_is_only_proposed_never_auto_demoted(self):
+        """核心源的质量判决只提案：tier 1 → 2 就出了「核心源先取」，当天新集排不上。"""
+        c = self._curate()
+        m = {**self.BASE, "tier": 1, "core": True, "published": 2, "review_median": 8.0,
+             "review_rejected": 8, "draft_pass": 0.2}
+        self.assertIsNone(c.judge("t1", m), "核心源被自动降级")
+        held = c.core_holds({"t1": m, "t2": {**m, "core": False, "tier": 2}})
+        self.assertEqual([("t1", "demote")], [(h[0], h[1]) for h in held],
+                         "被挡下的判决没列出来等人看 —— 挡住就等于看不见了")
+
+
+class AFollowedSourceKeepsUp(unittest.TestCase):
+    """该跟的源出了新集，当天就要排上；排不上，体检要比用户先知道。
+
+    2026-10-15：张小珺凌晨出了 #154（Dyna 创始人 3 小时访谈），10:30 那一轮扫到了，
+    8 个名额全给了别人 —— 自动降级把它从 tier 1 改成 2，它就出了「核心源先取」。
+    是用户先问「张小珺更新了，你为啥还不更新」。三层都要管：
+    选集（该跟的源走核心道、输过一轮的排第一）、字数上限（该跟的源不设）、
+    体检（跟随账本：看得见、合格、连着两轮没被选就红）。
+    """
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
         import importlib
-        rv = importlib.import_module("lib.review")
-        self.assertGreaterEqual(c.MIN_REVIEW_MEDIAN, rv.MIN_SCORE,
-                                "降级线低于评审及格线 —— 发得出来的稿不可能低于它")
+        self.run = importlib.import_module("run")
+        self.fu = importlib.import_module("followup")
+
+    @staticmethod
+    def _ep(sid, tier, key=None, **src):
+        return {"_src": {"id": sid, "tier": tier, "cat": "ai", **src},
+                "_key": key or f"{sid}-k", "title": sid}
+
+    def _spread(self, ranked, limit=8, followup=None):
+        import unittest.mock as mock
+        with mock.patch.object(self.fu, "load", lambda *a, **k: followup):
+            return [e["_src"]["id"] for e in self.run.spread(ranked, limit, 2)]
+
+    # ---- 选集 ----
+
+    def test_a_demoted_former_core_source_still_gets_its_new_episode_picked(self):
+        """10-15 的形状：7 集 tier 1 的候选、3 集分数更高的 tier 2，最后才是降成 tier 2 的张小珺。"""
+        ranked = ([self._ep(f"t1{i}", 1) for i in range(7)]
+                  + [self._ep(f"t2{i}", 2) for i in range(3)]
+                  + [self._ep("zhangxiaojun", 2, tier_base=1)])
+        got = self._spread(ranked)
+        self.assertIn("zhangxiaojun", got, f"降级前是 tier 1 的源当天新集没排上：{got}")
+
+    def test_the_episode_that_lost_last_run_goes_first(self):
+        ranked = [self._ep(f"t1{i}", 1) for i in range(9)]
+        lost = {"src": {"t18": {"eid": "t18-k", "lost": 1}}}
+        self.assertNotIn("t18", self._spread(ranked), "尺子坏了：没有账本时第 9 集也排上了")
+        self.assertIn("t18", self._spread(ranked, followup=lost),
+                      "上一轮看得见却没排上的那一集，这一轮还是排不上 —— 会一直输")
+
+    def test_followed_sources_have_no_word_cap_on_the_local_main_run(self):
+        was, on = self.run._ceiling["words"], self.run._uncap["on"]
+        try:
+            self.run._ceiling["words"] = 45000
+            self.run._uncap["on"] = True                  # 本机日更主轮（--followup）
+            self.assertEqual(0, self.run._cap_words({"tier": 1}))
+            self.assertEqual(0, self.run._cap_words({"tier": 2, "tier_base": 1}))
+            self.assertEqual(0, self.run._cap_words({"tier": 3, "pinned": True}))
+            self.assertEqual(45000, self.run._cap_words({"id": "nobody", "tier": 2}))
+            self.run._uncap["on"] = False                 # 云端定时班：--max-words 照样管
+            self.assertEqual(45000, self.run._cap_words({"tier": 1}),
+                             "云端的字数上限被该跟的源绕过 —— 三小时的节目会吃掉整班预算")
+        finally:
+            self.run._ceiling["words"], self.run._uncap["on"] = was, on
+
+    def test_the_daily_main_run_keeps_the_ledger(self):
+        sh = (ROOT / "scripts" / "local-daily.sh").read_text()
+        main = sh[sh.index("python3 pipeline/run.py $ONLY_ARG"):]
+        self.assertIn("--followup", main[:200], "本机日更主轮不记跟随账本 —— 体检那道判据永远是红的")
+        catch = sh[sh.index("python3 pipeline/run.py --catchup"):]
+        self.assertNotIn("--followup", catch[:200], "补课也记账 —— 会把建档的候选当成该跟的源")
+
+    # ---- 账本和判据 ----
+
+    def _t(self, s):
+        import datetime as dt
+        return dt.datetime.fromisoformat(s)
+
+    def _round(self, prev, at, *, newest=None, cands=None, outcomes=None, done=None, srcs=None,
+               fail=None):
+        import datetime as dt
+        now = self._t(at)
+        ep = {"title": "154. 对Dyna创始人Lindon的3小时访谈", "published": self._t("2026-10-15T00:00:00+00:00")}
+        srcs = srcs or {"zhangxiaojun": {"id": "zhangxiaojun", "tier": 2, "tier_base": 1},
+                        "decoder": {"id": "decoder", "tier": 2}}
+        return self.fu.update(prev, newest={"zhangxiaojun": "zxj-154"} if newest is None else newest,
+                              cands={"zxj-154": ep} if cands is None else cands,
+                              outcomes=outcomes or {}, done=done or {}, fail=fail or {},
+                              max_fails=3, srcs=srcs, now=now, cutoff=now - dt.timedelta(days=21))
+
+    def test_two_runs_not_picked_is_red_one_is_only_a_note(self):
+        r1 = self._round(None, "2026-10-15T02:30:00+00:00")
+        bad, note = self.fu.judge(r1, self._t("2026-10-15T03:00:00+00:00"))
+        self.assertEqual([], bad, "名额满一轮就红 —— 下一轮它排第一，这是误报")
+        self.assertTrue(note)
+        r2 = self._round(r1, "2026-10-15T13:30:00+00:00")
+        bad, _ = self.fu.judge(r2, self._t("2026-10-15T14:00:00+00:00"))
+        self.assertTrue(any("连着 2 轮" in b for b in bad), f"连着两轮没排上还是绿的：{bad}")
+
+    def test_published_clears_and_backlog_is_not_tracked(self):
+        r1 = self._round(None, "2026-10-15T02:30:00+00:00")
+        r2 = self._round(r1, "2026-10-15T13:30:00+00:00", outcomes={"zxj-154": "published"})
+        self.assertEqual({}, r2["src"], "发出去了还挂在账上")
+        # 最新一集已经做了，窗口里还有一集旧的没做 —— 跟上了，不记
+        old = {"title": "153. 曾鸣", "published": self._t("2026-09-30T00:00:00+00:00")}
+        r3 = self._round(None, "2026-10-15T13:30:00+00:00", cands={"zxj-153": old},
+                         done={"zxj-154": {"pub": "2026-10-15"}})
+        self.assertEqual({}, r3["src"], "积压的旧集被当成「没跟上」—— 日更节目会天天红")
+        self.assertEqual([], self.fu.judge(r3, self._t("2026-10-15T14:00:00+00:00"))[0],
+                         "最新一集做完了还报硬伤")
+
+    def test_too_long_stuck_and_aged_out_are_red(self):
+        tl = self._round(None, "2026-10-15T02:30:00+00:00", outcomes={"zxj-154": "too-long"})
+        self.assertTrue(self.fu.judge(tl, self._t("2026-10-15T03:00:00+00:00"))[0], "该跟的源因为太长被跳过，没报")
+        stuck = self._round(None, "2026-10-15T02:30:00+00:00", outcomes={"zxj-154": "no-transcript"})
+        self.assertTrue(self.fu.judge(stuck, self._t("2026-10-18T03:00:00+00:00"))[0], "三天没做成，没报")
+        gone = self._round(stuck, "2026-11-10T02:30:00+00:00", newest={})
+        self.assertTrue(gone["aged_out"], "掉出窗口就悄悄消失了")
+        self.assertTrue(self.fu.judge(gone, self._t("2026-11-10T03:00:00+00:00"))[0], "掉出窗口是绿的")
+
+    def test_a_missing_or_stale_ledger_is_red(self):
+        self.assertTrue(self.fu.judge(None, self._t("2026-10-15T03:00:00+00:00"))[0],
+                        "账本不存在是绿的 —— 判据被跳过就算通过")
+        r1 = self._round(None, "2026-10-15T02:30:00+00:00", outcomes={"zxj-154": "published"})
+        self.assertTrue(self.fu.judge(r1, self._t("2026-10-17T03:00:00+00:00"))[0],
+                        "账本两天没更新还是绿的")
+
+    # ---- 2026-10-15 对抗审查查出来的洞，每条一个反例 ----
+
+    def test_an_episode_cooling_after_soft_failures_stays_on_the_books(self):
+        """软失败撞满、冷却中，不在候选里也没做 —— 原来当成「跟上了」，红一阵就自己绿了。"""
+        r1 = self._round(None, "2026-10-15T02:30:00+00:00", outcomes={"zxj-154": "review-unavailable"})
+        r2 = self._round(r1, "2026-10-19T02:30:00+00:00", cands={},
+                         fail={"zxj-154": {"n": 0, "soft": 8, "why": "review-unavailable"}})
+        self.assertIn("zhangxiaojun", r2["src"], "冷却中的最新一集从账上消失了")
+        self.assertEqual(r1["src"]["zhangxiaojun"]["first_seen"], r2["src"]["zhangxiaojun"]["first_seen"],
+                         "first_seen 被重置 —— 三天的钟又从头走")
+        self.assertTrue(self.fu.judge(r2, self._t("2026-10-19T03:00:00+00:00"))[0], "冷却了四天还是绿的")
+        r3 = self._round(r1, "2026-10-19T02:30:00+00:00", cands={},
+                         fail={"zxj-154": {"n": 3, "why": "review:6"}})
+        self.assertEqual({}, r3["src"], "硬失败出局归「放弃没人看」那道检查管，这里不该重复报")
+
+    def test_a_stuck_episode_is_not_whitewashed_by_a_newer_one(self):
+        r1 = self._round(None, "2026-10-15T02:30:00+00:00", outcomes={"zxj-154": "no-transcript"})
+        new = {"zxj-155": {"title": "155", "published": self._t("2026-10-19T00:00:00+00:00")}}
+        r2 = self._round(r1, "2026-10-19T02:30:00+00:00", newest={"zhangxiaojun": "zxj-155"},
+                         cands=new, outcomes={"zxj-155": "published"})
+        self.assertTrue(r2["aged_out"], "卡了四天的那集被新集顶掉，就悄悄没了")
+        # 后来补上了：下一轮自动消掉，不红 14 天
+        r3 = self._round(r2, "2026-10-19T13:30:00+00:00", newest={"zhangxiaojun": "zxj-155"},
+                         cands={}, done={"zxj-154": {"skip": None}, "zxj-155": {}})
+        self.assertEqual([], r3["aged_out"], "补上了还挂在 aged_out 里 —— 正常操作之后必红两周")
+
+    def test_aged_out_can_be_acknowledged(self):
+        import unittest.mock as mock, tempfile, contextlib
+        stuck = self._round(None, "2026-10-15T02:30:00+00:00", outcomes={"zxj-154": "no-transcript"})
+        gone = self._round(stuck, "2026-11-10T02:30:00+00:00", newest={})
+        with tempfile.TemporaryDirectory() as td:
+            path = pathlib.Path(td) / "followup.json"
+            path.write_text(json.dumps(gone))
+            with mock.patch.object(self.fu, "PATH", path), contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(2, self.fu.main(["--ack", "zxj-154"]), "不写理由也能确认")
+                self.assertEqual(0, self.fu.main(["--ack", "zxj-154", "--why", "官方删了这一集"]))
+            d = json.loads(path.read_text())
+        self.assertEqual([], self.fu.judge(d, self._t("2026-11-10T03:00:00+00:00"))[0],
+                         "人确认过不补了，还是红的")
+        again = self._round(d, "2026-11-10T13:30:00+00:00", newest={})
+        self.assertEqual([], again["aged_out"], "确认过的又回来了")
+
+    def test_lost_counts_consecutive_rounds_and_retries_are_not_blamed_on_selection(self):
+        r1 = self._round(None, "2026-10-15T02:30:00+00:00")
+        r2 = self._round(r1, "2026-10-15T13:30:00+00:00", outcomes={"zxj-154": "no-transcript"})
+        self.assertEqual(0, r2["src"]["zhangxiaojun"]["lost"], "选上了，lost 还挂着")
+        bad, note = self.fu.judge(r2, self._t("2026-10-15T14:00:00+00:00"))
+        self.assertEqual([], bad)
+        self.assertFalse(any("没排上" in n for n in note), "在重试的集被说成「名额满了没排上」")
+
+    def test_a_crash_is_recorded_as_an_error_not_as_not_picked(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        body = src[src.index("    def one(ep):"):src.index("    if a.jobs > 1 and len(picked) > 1:")]
+        self.assertIn('outcomes[ep["_key"]] = "error"', body,
+                      "process() 崩了不记账 —— 跟随账本算成「没被选上」，体检指错方向")
+        self.assertIn('outcomes.setdefault(ep["_key"], "not-run")', src)
+
+    def test_a_starved_new_episode_beats_pinned_backlog(self):
+        """8 档钉住源各有一集积压 + 一档 tier 1 的新集上一轮没排上：新集要排上。"""
+        ranked = ([self._ep(f"p{i}", 1, key=f"p{i}-old", pinned=True) for i in range(8)]
+                  + [self._ep("dwarkesh", 1, key="dw-new")])
+        lost = {"src": {"dwarkesh": {"eid": "dw-new", "lost": 1}}}
+        self.assertIn("dwarkesh", self._spread(ranked, followup=lost),
+                      "钉住源的积压集挤掉了上一轮没排上的新集 —— 会一直输")
+
+    def test_the_newest_episode_of_each_source_goes_before_backlog(self):
+        import unittest.mock as mock
+        ranked = ([self._ep(f"t{i}", 1, key=f"t{i}-old") for i in range(8)]
+                  + [self._ep("fresh", 1, key="fresh-new")])
+        with mock.patch.dict(self.run._newest, {"fresh": "fresh-new"}, clear=True):
+            self.assertIn("fresh", self._spread(ranked), "积压的旧集排在最新一集前面")
+
+    def test_hot_sources_are_followed(self):
+        """用户：「不要再漏信息源」—— 首页热门那一批（篇数最多）也要跟，不只看 tier。"""
+        import unittest.mock as mock
+        with mock.patch.dict(self.fu._hot, {"ids": {"restishistory"}}):
+            self.assertTrue(self.fu.followed({"id": "restishistory", "tier": 2}))
+            self.assertFalse(self.fu.followed({"id": "decoder", "tier": 2}))
+
+    def test_unseen_sources_are_reported_not_called_caught_up(self):
+        r = self._round(None, "2026-10-15T02:30:00+00:00", newest={})
+        self.assertIn("zhangxiaojun", r["unseen"])
+        self.assertTrue(any("没量到" in n for n in self.fu.judge(r, self._t("2026-10-15T03:00:00+00:00"))[1]))
+
+    def test_the_seed_ledger_is_neither_green_nor_red_until_stale(self):
+        seed = {"at": "2026-10-15T08:00:00Z", "seed": True, "src": {}, "aged_out": []}
+        bad, note = self.fu.judge(seed, self._t("2026-10-15T09:00:00+00:00"))
+        self.assertEqual([], bad, "刚提交的种子账本就红 —— 引入这次改动的推送会被拦")
+        self.assertTrue(any("种子" in n for n in note))
+        self.assertTrue(self.fu.judge(seed, self._t("2026-10-17T09:00:00+00:00"))[0],
+                        "种子放了两天本机还没记过账，还是不红")
+
+    def test_a_checkout_behind_origin_only_gets_notes(self):
+        import unittest.mock as mock
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import healthcheck as H
+        r = H.Report()
+        with mock.patch.object(self.fu, "load", lambda *a, **k: None), \
+                mock.patch.object(H, "_commits_behind", lambda: 6):
+            H.check_must_follow(r)
+        self.assertEqual([], r.bad, "副本没 pull 被报成硬伤 —— 心跳检查同样情况只报提醒")
+
+    def test_restore_reasons_tell_the_truth(self):
+        import unittest.mock as mock
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import curate as C
+        m = {"feed_ok": True, "fail_streak": 0, "published": 1, "no_transcript": 0, "age_days": 1.0,
+             "max_gap_days": 7.0, "triage_n": 6, "triage_pass": 1 / 6, "review_rejected": 0,
+             "gate_rejected": 0, "draft_pass": 1.0, "official_transcripts": 0, "tier": 2,
+             "asr_only": False, "residential": True, "pinned": False, "core": True}
+        self.assertIn("判据仍在", C._restore_reason("anthropic", m),
+                      "核心源保护挡下的判决，恢复时写成「判据不再成立」—— 会印在站上的更新日志里")
+        led = [{"id": "x", "kind": "demoted", "why": "成稿评分中位 7.0（150 篇），每一篇都只是刚好及格"}]
+        with mock.patch.object(C, "load_ledger", lambda: led):
+            self.assertIn("规则删了", C._restore_reason("x", dict(m, core=False, triage_pass=None)))
+
+    def test_a_verdict_from_a_lower_tier_is_not_a_core_gate_failure(self):
+        """源升了层（curate 恢复），它在 T3 时按 7 分线判掉的集不是闸门坏了 —— 下一轮就重开。"""
+        src = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        self.assertIn('v.get("tier") in (1, 2) and not _blocks(v)', src)
+        run_src = (ROOT / "pipeline" / "run.py").read_text()
+        i = run_src.index('state["done"][key] = {"skip": "off-brief"')
+        self.assertIn('"tier": s.get("tier", 3)', run_src[i:i + 400], "跳过判决没记当时的层")
+
+    def test_sources_that_are_not_followed_are_not_tracked(self):
+        r = self._round(None, "2026-10-15T02:30:00+00:00", newest={"decoder": "dec-1"},
+                        cands={"dec-1": {"title": "d", "published": self._t("2026-10-15T00:00:00+00:00")}})
+        self.assertEqual({}, r["src"], "tier 2 的源也记进了跟随账本")
 
 
 class UsageLedgerMergesByAddingWhatEachSideAdded(unittest.TestCase):
