@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI能寫出可投產的代碼，但還沒人敢讓它獨自運維一個分布式集群 — a16z · 原聲</title>
+<meta name="description" content="代碼的解空間和訓練數據同分布，AI才能一路狂飆；運維要應對訓練數據之外的真實世界，這道分野決定了AI接下來卡在哪一步。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/tw/p/2026-10-16-a16z-ai能写出可投产的代码-但还没人敢让它独自运维一个分布式集群/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原聲">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:title" content="AI能寫出可投產的代碼，但還沒人敢讓它獨自運維一個分布式集群 — a16z · 原聲">
+<meta property="og:description" content="代碼的解空間和訓練數據同分布，AI才能一路狂飆；運維要應對訓練數據之外的真實世界，這道分野決定了AI接下來卡在哪一步。">
+<meta property="og:url" content="https://ourword.ai/podcast/tw/p/2026-10-16-a16z-ai能写出可投产的代码-但还没人敢让它独自运维一个分布式集群/">
+<meta property="og:image" content="https://ourword.ai/podcast/assets/cover/7b2f032532c3a865.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-10-16T10:00:00Z">
+<meta property="article:modified_time" content="2026-10-16T13:55:19Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AI能寫出可投產的代碼，但還沒人敢讓它獨自運維一個分布式集群 — a16z · 原聲">
+<meta name="twitter:description" content="代碼的解空間和訓練數據同分布，AI才能一路狂飆；運維要應對訓練數據之外的真實世界，這道分野決定了AI接下來卡在哪一步。">
+<meta name="twitter:image" content="https://ourword.ai/podcast/assets/cover/7b2f032532c3a865.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/tw/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/tw/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原聲" href="/podcast/tw/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-10-16-a16z-ai能写出可投产的代码-但还没人敢让它独自运维一个分布式集群/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-10-16-a16z-ai能写出可投产的代码-但还没人敢让它独自运维一个分布式集群/">
+<link rel="alternate" hreflang="en" href="https://ourword.ai/podcast/en/p/2026-10-16-a16z-ai能写出可投产的代码-但还没人敢让它独自运维一个分布式集群/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-10-16-a16z-ai能写出可投产的代码-但还没人敢让它独自运维一个分布式集群/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=6982a60148">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/tw/p/2026-10-16-a16z-ai能写出可投产的代码-但还没人敢让它独自运维一个分布式集群/#episode", "name": "AI能寫出可投產的代碼，但還沒人敢讓它獨自運維一個分布式集群", "headline": "AI能寫出可投產的代碼，但還沒人敢讓它獨自運維一個分布式集群", "description": "代碼的解空間和訓練數據同分布，AI才能一路狂飆；運維要應對訓練數據之外的真實世界，這道分野決定了AI接下來卡在哪一步。", "abstract": "代碼的解空間和訓練數據同分布，AI才能一路狂飆；運維要應對訓練數據之外的真實世界，這道分野決定了AI接下來卡在哪一步。", "datePublished": "2026-10-16T10:00:00Z", "dateModified": "2026-10-16T13:55:19Z", "url": "https://ourword.ai/podcast/tw/p/2026-10-16-a16z-ai能写出可投产的代码-但还没人敢让它独自运维一个分布式集群/", "timeRequired": "PT60M", "partOfSeries": {"@type": "PodcastSeries", "name": "The a16z Show", "url": "https://ourword.ai/podcast/tw/s/a16z/"}, "inLanguage": "zh-TW", "isBasedOn": "https://a16z.simplecast.com/episodes/ai-can-write-the-code-can-it-run-the-system-grepr-ceo-jad-naous-p_ifxVi2", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "AI編程, 運維自動化, 可觀測性, AI SRE, 分布式系統, semantics vs syntax, AI SRE, auto-promotion / shredding, chaos engineering, WSL, 企業可觀測性支出佔基礎設施支出比例, Grepper幫客戶降低的數據/telemetry成本, 數據湖自動字段提升項目耗時（AI輔助，一人）, 同時運行的AI agent會話窗口數", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}, "associatedMedia": {"@type": "AudioObject", "contentUrl": "https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/c4bfed20-4c94-4742-8309-801df20c4cb9/audio/128/default.mp3?aid=rss_feed&awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&awEpisodeId=c4bfed20-4c94-4742-8309-801df20c4cb9&feed=JGE3yC0V"}}, {"@type": "Article", "@id": "https://ourword.ai/podcast/tw/p/2026-10-16-a16z-ai能写出可投产的代码-但还没人敢让它独自运维一个分布式集群/#deepread", "headline": "AI能寫出可投產的代碼，但還沒人敢讓它獨自運維一個分布式集群", "description": "代碼的解空間和訓練數據同分布，AI才能一路狂飆；運維要應對訓練數據之外的真實世界，這道分野決定了AI接下來卡在哪一步。", "articleBody": "代碼的解空間和訓練數據同分布，AI才能一路狂飆；運維要應對訓練數據之外的真實世界，這道分野決定了AI接下來卡在哪一步。\n[7:07] 可觀測性是在為可靠性買單。企業把5%到20%的基礎設施預算花在可觀測性上，但真正想買的不是日誌和指標，而是可靠性和支出的可預測性。過去花得越多可靠性漲得越明顯，但架構轉向微服務後，每層採集的數據量暴漲，花錢的速度超過了業務產出的增長，邊際可靠性提升開始走平——這才是大家覺得可觀測性「太貴」的真正原因。\n[13:16] AI沒有拉平工程師差距，反而拉大了。Jad觀察到，真正厲害的工程師會讓AI反過來訓練自己——學會怎麼跟它對話、怎麼拆任務、什麼時候該起子agent。結果不是差的工程師變好，而是好的工程師變得更好，團隊裡「還行」和「很厲害」之間的差距被直接放大了十倍。他把這歸因於複雜度：大腦能處理的複雜度越高，能拆解分配給AI的任務就越精細，這正是AI目前做不到的部分。\n[23:34] 一個人十天干完過去六個月的活。Jad最近獨自用AI完成的項目，是給數據湖做「自動提升」——把日誌裡每個字段拆成獨立可查詢的列，涉及搞清楚元數據系統怎麼提交、多個寫入方怎麼協調。放在過去，這種複雜度需要一個人幹六個月；這次只用了大約十天，相當於十倍到二十倍的效率提升，而且是真實上線的生產代碼，不是演示。\n[30:43] 不從告警倒推根因，而是先抓異常信號。市面上多數AI SRE系統是拿到一個滯後指標後再回頭在複雜系統裡倒推根因，Jad認為這條路很難走通。Grepper反過來做：先掃描海量日誌，找出環境裡第一次出現的、此前沒見過的新模式或早期預警信號（比如連接數耗盡、內存超限），把這個信號餵給AI推理。內部和客戶環境裡已經出現過被忽略後真的演變成生產事故的案例。\n[36:50] 查詢優化快解決了，接管集群還不行。被問到AI多久能替代人做查詢優化，Jad回答「很接近了」；但被問到AI能不能像系統專家那樣獨立運維一個分布式集群、扛住它崩潰的局面時，他的回答是「還不行」。兩人的共識是複雜度量級不同：寫代碼的解空間和訓練數據同分布，但運維要處理的是訓練數據之外、帶著長尾和例外的真實世界狀態。\n[41:55] 安全問題比運維問題還難一個量級。Martin提出，運維的難點好歹只是系統偶然進入了小概率壞狀態，安全問題則多了一個主動找茬的對手——攻擊者是故意去尋找系統防不住的小概率漏洞的。Jad認同這讓安全成為比普通運維更難的問題，即便Grepper用類似思路處理安全信號（統計特徵的異常擾動），也要靠AI生成一批可能的因果鏈假設再逐一驗證，而不是直接給出答案。\n[54:14] 自動駕駛的教訓：現實世界經濟賬很慢。Martin提醒，Sebastian Thrun在斯坦福贏下DARPA挑戰賽時大家都覺得自動駕駛指日可待，結果花了20年和1700億美元投入，做出來的單位經濟賬還比不上Uber。他用這個例子說明，凡是解空間等於真實物理世界分布的問題，AI要達到能打平經濟賬的程度，會比解空間等於訓練數據分布的代碼類問題慢得多、貴得多。\n[57:16] 客戶想買的是省錢，不是AI故事。Grepper去推銷「AI幫你在出事故前就發現並修復問題」時，客戶反而打斷說：你剛才說能幫我們省90%的Datadog賬單？那個我現在就要買，AI的事先不管。Jad的解釋是，代碼類AI的價值很好算賬——工程師效率本來就是成本大項；但運維類AI的價值很難被客戶直接定價，即便它更有用，也更難賣得出去。\n[1:01]「AI現在已經能寫出相當驚人的生產級代碼。但寫軟件和運行軟件是兩個非常不同的問題。」\n[13:16] Jad：「如果你本來就是個好工程師，你只是變成了一個更好的好工程師。不是說有些差的工程師突然就變好了。」\n[26:37] Jad：「我覺得問題也許在於複雜度。也就是說，你能在多大程度上把你描述的那些發生在生產環境裡的運維事情，轉化成AI能夠推理的東西。」\n[32:45] Martin：「長久以來運行分布式集群的骯髒秘密，就是靠人盯著管理它。」\n[52:12] Martin：「有這麼一件事：AI生活在的世界是純數字化的，是訓練數據、是分布內的世界，而還有一個真實世界。這兩者未必是同一回事。」\n[54:14] Martin：「花了20年和1700億美元的投入，得到的單位經濟賬還比不上Uber，對吧？」\n[57:16] Jad：「倒回去。你說你能幫我們省90%的Datadog賬單？對。那個我要買。但AI那套東西，不不不不，我們現在就想買這個。」\n[7:07] 企業可觀測性支出佔基礎設施支出比例：5%-20%\n[9:12] Grepper幫客戶降低的數據/telemetry成本：90%\n[23:34] 數據湖自動字段提升項目耗時（AI輔助，一人）：約10天（此前需約6個月）\n[21:34] 同時運行的AI agent會話窗口數：3-4個", "wordCount": 1509, "inLanguage": "zh-TW", "datePublished": "2026-10-16T10:00:00Z", "dateModified": "2026-10-16T13:55:19Z", "url": "https://ourword.ai/podcast/tw/p/2026-10-16-a16z-ai能写出可投产的代码-但还没人敢让它独自运维一个分布式集群/", "about": {"@id": "https://ourword.ai/podcast/tw/p/2026-10-16-a16z-ai能写出可投产的代码-但还没人敢让它独自运维一个分布式集群/#episode"}, "isBasedOn": "https://a16z.simplecast.com/episodes/ai-can-write-the-code-can-it-run-the-system-grepr-ceo-jad-naous-p_ifxVi2", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "isAccessibleForFree": true}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首頁", "item": "https://ourword.ai/podcast/tw/"}, {"@type": "ListItem", "position": 2, "name": "a16z", "item": "https://ourword.ai/podcast/tw/s/a16z/"}, {"@type": "ListItem", "position": 3, "name": "AI能寫出可投產的代碼，但還沒人敢讓它獨自運維一個分布式集群"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/tw/"><span class="wordmark">原聲<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<button class="pill ghost" id="lang-toggle" type="button" data-en="1" data-sc="繁體" data-tw="簡體"></button>
+<button class="icon-btn" data-theme-toggle aria-label="切換深淺色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，來原聲聽播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/tw/">首頁</a><span class="sep">/</span>
+<a href="/podcast/tw/c/ai/">AI / 技術</a><span class="sep">/</span><a href="/podcast/tw/s/a16z/">a16z</a>
+<span class="sep">/</span><span>2026-10-16</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">a16z</span>
+<time class="date" datetime="2026-10-16T10:00:00Z">2026-10-16</time>
+<button class="share-btn" type="button" data-share data-share-title="AI能寫出可投產的代碼，但還沒人敢讓它獨自運維一個分布式集群" data-share-url="https://ourword.ai/podcast/tw/e/a16z-c6d3bf42ec/" data-share-text="AI能寫出可投產的代碼，但還沒人敢讓它獨自運維一個分布式集群&#10;a16z · 60 分鐘 · 原聲深讀&#10;&#10;代碼的解空間和訓練數據同分布，AI才能一路狂飆；運維要應對訓練數據之外的真實世界，這道分野決定了AI接下來卡在哪一步。&#10;&#10;https://ourword.ai/podcast/tw/e/a16z-c6d3bf42ec/" aria-label="複製分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>AI能寫出可投產的代碼，但還沒人敢讓它獨自運維一個分布式集群</h1>
+<p class="dek-lead">代碼的解空間和訓練數據同分布，AI才能一路狂飆；運維要應對訓練數據之外的真實世界，這道分野決定了AI接下來卡在哪一步。</p>
+<div class="ep-meta"><span class="tag">AI編程</span><span class="tag">運維自動化</span><span class="tag">可觀測性</span><span class="tag">AI SRE</span><span class="tag">分布式系統</span></div>
+</div>
+<div class="player" data-player-box>
+  <div class="strip" data-audio-strip>
+    <p class="afallback">原視頻在 YouTube 上放不出來，用音頻聽：</p>
+    <audio data-player controls preload="none" src="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/c4bfed20-4c94-4742-8309-801df20c4cb9/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=c4bfed20-4c94-4742-8309-801df20c4cb9&amp;feed=JGE3yC0V"></audio>
+    <div class="aui" data-audio-ui data-dur="3602" hidden>
+      <button class="aplay" type="button" aria-label="播放"></button>
+      <div class="abar" role="slider" tabindex="0" aria-label="播放進度"
+           aria-valuemin="0" aria-valuemax="100"><div class="afill"></div></div>
+      <span class="atime"><span class="acur">0:00</span><span class="asep">/</span><span class="atot">--:--</span></span>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="why">兩位都是系統工程師出身，用具體項目週期、成本數字和失敗案例討論AI的真實邊界，而不是泛泛而談的樂觀或悲觀。</div></section>
+
+<section class="section"><h2>核心論點 · 點時間戳可跳到原聲</h2><div class="point" id="p0"><a class="ts" data-t="427" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/c4bfed20-4c94-4742-8309-801df20c4cb9/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=c4bfed20-4c94-4742-8309-801df20c4cb9&amp;feed=JGE3yC0V#t=427" target="_blank" rel="noopener">7:07</a><div><h4>可觀測性是在為可靠性買單</h4>
+<p class="body">企業把5%到20%的基礎設施預算花在可觀測性上，但真正想買的不是日誌和指標，而是可靠性和支出的可預測性。過去花得越多可靠性漲得越明顯，但架構轉向微服務後，每層採集的數據量暴漲，花錢的速度超過了業務產出的增長，邊際可靠性提升開始走平——這才是大家覺得可觀測性「太貴」的真正原因。</p>
+<span class="spk">— Jad</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="796" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/c4bfed20-4c94-4742-8309-801df20c4cb9/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=c4bfed20-4c94-4742-8309-801df20c4cb9&amp;feed=JGE3yC0V#t=796" target="_blank" rel="noopener">13:16</a><div><h4>AI沒有拉平工程師差距，反而拉大了</h4>
+<p class="body">Jad觀察到，真正厲害的工程師會讓AI反過來訓練自己——學會怎麼跟它對話、怎麼拆任務、什麼時候該起子agent。結果不是差的工程師變好，而是好的工程師變得更好，團隊裡「還行」和「很厲害」之間的差距被直接放大了十倍。他把這歸因於複雜度：大腦能處理的複雜度越高，能拆解分配給AI的任務就越精細，這正是AI目前做不到的部分。</p>
+<span class="spk">— Jad</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="1414" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/c4bfed20-4c94-4742-8309-801df20c4cb9/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=c4bfed20-4c94-4742-8309-801df20c4cb9&amp;feed=JGE3yC0V#t=1414" target="_blank" rel="noopener">23:34</a><div><h4>一個人十天干完過去六個月的活</h4>
+<p class="body">Jad最近獨自用AI完成的項目，是給數據湖做「自動提升」——把日誌裡每個字段拆成獨立可查詢的列，涉及搞清楚元數據系統怎麼提交、多個寫入方怎麼協調。放在過去，這種複雜度需要一個人幹六個月；這次只用了大約十天，相當於十倍到二十倍的效率提升，而且是真實上線的生產代碼，不是演示。</p>
+<span class="spk">— Jad</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="1843" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/c4bfed20-4c94-4742-8309-801df20c4cb9/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=c4bfed20-4c94-4742-8309-801df20c4cb9&amp;feed=JGE3yC0V#t=1843" target="_blank" rel="noopener">30:43</a><div><h4>不從告警倒推根因，而是先抓異常信號</h4>
+<p class="body">市面上多數AI SRE系統是拿到一個滯後指標後再回頭在複雜系統裡倒推根因，Jad認為這條路很難走通。Grepper反過來做：先掃描海量日誌，找出環境裡第一次出現的、此前沒見過的新模式或早期預警信號（比如連接數耗盡、內存超限），把這個信號餵給AI推理。內部和客戶環境裡已經出現過被忽略後真的演變成生產事故的案例。</p>
+<span class="spk">— Jad</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="2210" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/c4bfed20-4c94-4742-8309-801df20c4cb9/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=c4bfed20-4c94-4742-8309-801df20c4cb9&amp;feed=JGE3yC0V#t=2210" target="_blank" rel="noopener">36:50</a><div><h4>查詢優化快解決了，接管集群還不行</h4>
+<p class="body">被問到AI多久能替代人做查詢優化，Jad回答「很接近了」；但被問到AI能不能像系統專家那樣獨立運維一個分布式集群、扛住它崩潰的局面時，他的回答是「還不行」。兩人的共識是複雜度量級不同：寫代碼的解空間和訓練數據同分布，但運維要處理的是訓練數據之外、帶著長尾和例外的真實世界狀態。</p>
+<span class="spk">— Jad</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="2515" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/c4bfed20-4c94-4742-8309-801df20c4cb9/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=c4bfed20-4c94-4742-8309-801df20c4cb9&amp;feed=JGE3yC0V#t=2515" target="_blank" rel="noopener">41:55</a><div><h4>安全問題比運維問題還難一個量級</h4>
+<p class="body">Martin提出，運維的難點好歹只是系統偶然進入了小概率壞狀態，安全問題則多了一個主動找茬的對手——攻擊者是故意去尋找系統防不住的小概率漏洞的。Jad認同這讓安全成為比普通運維更難的問題，即便Grepper用類似思路處理安全信號（統計特徵的異常擾動），也要靠AI生成一批可能的因果鏈假設再逐一驗證，而不是直接給出答案。</p>
+<span class="spk">— Martin</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="3254" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/c4bfed20-4c94-4742-8309-801df20c4cb9/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=c4bfed20-4c94-4742-8309-801df20c4cb9&amp;feed=JGE3yC0V#t=3254" target="_blank" rel="noopener">54:14</a><div><h4>自動駕駛的教訓：現實世界經濟賬很慢</h4>
+<p class="body">Martin提醒，Sebastian Thrun在斯坦福贏下DARPA挑戰賽時大家都覺得自動駕駛指日可待，結果花了20年和1700億美元投入，做出來的單位經濟賬還比不上Uber。他用這個例子說明，凡是解空間等於真實物理世界分布的問題，AI要達到能打平經濟賬的程度，會比解空間等於訓練數據分布的代碼類問題慢得多、貴得多。</p>
+<span class="spk">— Martin</span></div></div>
+<div class="point" id="p7"><a class="ts" data-t="3436" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/c4bfed20-4c94-4742-8309-801df20c4cb9/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=c4bfed20-4c94-4742-8309-801df20c4cb9&amp;feed=JGE3yC0V#t=3436" target="_blank" rel="noopener">57:16</a><div><h4>客戶想買的是省錢，不是AI故事</h4>
+<p class="body">Grepper去推銷「AI幫你在出事故前就發現並修復問題」時，客戶反而打斷說：你剛才說能幫我們省90%的Datadog賬單？那個我現在就要買，AI的事先不管。Jad的解釋是，代碼類AI的價值很好算賬——工程師效率本來就是成本大項；但運維類AI的價值很難被客戶直接定價，即便它更有用，也更難賣得出去。</p>
+<span class="spk">— Jad</span></div></div></section>
+<section class="section"><h2>原話 · 已逐字校驗</h2><blockquote class="quote"><p class="raw">AI can now write remarkable amounts of production code. But writing software and running it are two very different problems.</p>
+<p class="zh">AI現在已經能寫出相當驚人的生產級代碼。但寫軟件和運行軟件是兩個非常不同的問題。</p>
+<div class="attrib"><a class="ts" data-t="61" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/c4bfed20-4c94-4742-8309-801df20c4cb9/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=c4bfed20-4c94-4742-8309-801df20c4cb9&amp;feed=JGE3yC0V#t=61" target="_blank" rel="noopener">1:01</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">if you&#x27;re a good engineer, you&#x27;re just a better good engineer. It&#x27;s not like there&#x27;s some like bad engineers all of a sudden became good engineers.</p>
+<p class="zh">如果你本來就是個好工程師，你只是變成了一個更好的好工程師。不是說有些差的工程師突然就變好了。</p>
+<div class="attrib"><b>Jad</b><a class="ts" data-t="796" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/c4bfed20-4c94-4742-8309-801df20c4cb9/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=c4bfed20-4c94-4742-8309-801df20c4cb9&amp;feed=JGE3yC0V#t=796" target="_blank" rel="noopener">13:16</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">The question I think is maybe about complexity. And like, to what extent can you take the things that you&#x27;ve described that are operational and like that happen in production and convert them into something that an AI can reason about.</p>
+<p class="zh">我覺得問題也許在於複雜度。也就是說，你能在多大程度上把你描述的那些發生在生產環境裡的運維事情，轉化成AI能夠推理的東西。</p>
+<div class="attrib"><b>Jad</b><a class="ts" data-t="1597" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/c4bfed20-4c94-4742-8309-801df20c4cb9/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=c4bfed20-4c94-4742-8309-801df20c4cb9&amp;feed=JGE3yC0V#t=1597" target="_blank" rel="noopener">26:37</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">the dirty secret for the longest time of running like a distributed cluster was just human beings managing it.</p>
+<p class="zh">長久以來運行分布式集群的骯髒秘密，就是靠人盯著管理它。</p>
+<div class="attrib"><b>Martin</b><a class="ts" data-t="1965" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/c4bfed20-4c94-4742-8309-801df20c4cb9/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=c4bfed20-4c94-4742-8309-801df20c4cb9&amp;feed=JGE3yC0V#t=1965" target="_blank" rel="noopener">32:45</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">there&#x27;s like this, there&#x27;s like the AI, the world that the AI lives in, which is all digital and like whatever it is, the training data, the in-distribution world, and there&#x27;s the actual world. And like, those things are not necessarily the same.</p>
+<p class="zh">有這麼一件事：AI生活在的世界是純數字化的，是訓練數據、是分布內的世界，而還有一個真實世界。這兩者未必是同一回事。</p>
+<div class="attrib"><b>Martin</b><a class="ts" data-t="3132" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/c4bfed20-4c94-4742-8309-801df20c4cb9/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=c4bfed20-4c94-4742-8309-801df20c4cb9&amp;feed=JGE3yC0V#t=3132" target="_blank" rel="noopener">52:12</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">it took 20 years and $170 billion of investment to get to a worse unit economics than Uber, right?</p>
+<p class="zh">花了20年和1700億美元的投入，得到的單位經濟賬還比不上Uber，對吧？</p>
+<div class="attrib"><b>Martin</b><a class="ts" data-t="3254" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/c4bfed20-4c94-4742-8309-801df20c4cb9/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=c4bfed20-4c94-4742-8309-801df20c4cb9&amp;feed=JGE3yC0V#t=3254" target="_blank" rel="noopener">54:14</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">Roll back. You said you can save 90% of our data dog bills? Yeah. That&#x27;s what I want to buy. But the AI thing, you know, like, no, no, no, no. That&#x27;s what we want to buy right now.</p>
+<p class="zh">倒回去。你說你能幫我們省90%的Datadog賬單？對。那個我要買。但AI那套東西，不不不不，我們現在就想買這個。</p>
+<div class="attrib"><b>Jad</b><a class="ts" data-t="3436" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/c4bfed20-4c94-4742-8309-801df20c4cb9/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=c4bfed20-4c94-4742-8309-801df20c4cb9&amp;feed=JGE3yC0V#t=3436" target="_blank" rel="noopener">57:16</a></div>
+</blockquote></section>
+<section class="section"><h2>數字與實體</h2><table class="facts"><tr><td class="k">企業可觀測性支出佔基礎設施支出比例</td><td class="v">5%-20%</td><td class="t"><a class="ts" data-t="427" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/c4bfed20-4c94-4742-8309-801df20c4cb9/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=c4bfed20-4c94-4742-8309-801df20c4cb9&amp;feed=JGE3yC0V#t=427" target="_blank" rel="noopener">7:07</a></td></tr>
+<tr><td class="k">Grepper幫客戶降低的數據/telemetry成本</td><td class="v">90%</td><td class="t"><a class="ts" data-t="552" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/c4bfed20-4c94-4742-8309-801df20c4cb9/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=c4bfed20-4c94-4742-8309-801df20c4cb9&amp;feed=JGE3yC0V#t=552" target="_blank" rel="noopener">9:12</a></td></tr>
+<tr><td class="k">數據湖自動字段提升項目耗時（AI輔助，一人）</td><td class="v">約10天（此前需約6個月）</td><td class="t"><a class="ts" data-t="1414" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/c4bfed20-4c94-4742-8309-801df20c4cb9/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=c4bfed20-4c94-4742-8309-801df20c4cb9&amp;feed=JGE3yC0V#t=1414" target="_blank" rel="noopener">23:34</a></td></tr>
+<tr><td class="k">同時運行的AI agent會話窗口數</td><td class="v">3-4個</td><td class="t"><a class="ts" data-t="1294" href="https://mgln.ai/e/1344/afp-848985-injected.calisto.simplecastaudio.com/3f86df7b-51c6-4101-88a2-550dba782de8/episodes/c4bfed20-4c94-4742-8309-801df20c4cb9/audio/128/default.mp3?aid=rss_feed&amp;awCollectionId=3f86df7b-51c6-4101-88a2-550dba782de8&amp;awEpisodeId=c4bfed20-4c94-4742-8309-801df20c4cb9&amp;feed=JGE3yC0V#t=1294" target="_blank" rel="noopener">21:34</a></td></tr></table></section>
+<section class="section"><h2>術語</h2><dl class="terms"><div><dt>semantics vs syntax<span>語義與語法</span></dt><dd>語法是代碼怎麼寫，語義是機器實際會怎麼執行</dd></div>
+<div><dt>AI SRE<span>AI驅動的站點可靠性工程</span></dt><dd>用AI替代人工排查和處理生產系統故障</dd></div>
+<div><dt>auto-promotion / shredding<span>數據湖自動字段提升</span></dt><dd>把日誌裡每個字段拆成獨立可查詢列以提升查詢效率</dd></div>
+<div><dt>chaos engineering<span>混沌工程</span></dt><dd>主動注入故障測試系統韌性的運維方法</dd></div>
+<div><dt>WSL<span>Windows Linux子系統</span></dt><dd>在Windows上直接運行Linux環境的兼容層</dd></div></dl></section>
+<section class="section"><h2>收聽指南</h2>
+<div class="panel guide">
+<div><span class="k">誰該聽</span><p>關注AI工程效率和運維自動化邊界的工程師、技術VC和基礎設施創業者，想判斷AI下一步卡在哪一步。</p></div>
+<div><span class="k">可跳過</span><p>開場關於讀研經歷和抽菸摩托車的寒暄可以跳過，不影響後面的技術討論。</p></div>
+</div></section>
+<section class="related"><h2 class="sec-title">順著這個話題</h2><ul class="rel-list"><li><a href="/podcast/tw/p/2026-09-28-a16z-ai编码工具写代码更快-但软件本身十年没怎么变聪明/"><span class="rel-t">AI編碼工具寫代碼更快，但軟件本身十年沒怎麼變聰明</span><span class="rel-s">a16z</span></a></li><li><a href="/podcast/tw/p/2026-09-15-twist-90-的-ai-原型死在-poc-缺的不是模型是-harness/"><span class="rel-t">90% 的 AI 原型死在 POC：缺的不是模型是 harness</span><span class="rel-s">This Week in Startups</span></a></li><li><a href="/podcast/tw/p/2026-08-28-o11ycast-别把一切都塞进指标-日志去重能砍掉百倍成本/"><span class="rel-t">別把一切都塞進指標：日誌去重能砍掉百倍成本</span><span class="rel-s">O11ycast</span></a></li><li><a href="/podcast/tw/p/2026-08-12-pragmatic-ai-写代码不必逐行读-但信任必须重建/"><span class="rel-t">AI 寫代碼不必逐行讀，但信任必須重建</span><span class="rel-s">The Pragmatic Engineer</span></a></li></ul></section>
+<nav class="prevnext"><span></span><a class="r" href="/podcast/tw/p/2026-10-16-oddlots-法国债务求救陷入死循环-开出的条件恰是政治上办不到的事/"><span class="lbl">更早 →</span><strong>法國債務求救陷入死循環：開出的條件恰是政治上辦不到的事</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原節目</h4>
+<div class="row"><span>節目</span><span>The a16z Show</span></div>
+<div class="row"><span>原標題</span><span>AI Can Write the Code. Can It Run the System? | Grepr CEO Jad Naous</span></div>
+<div class="row"><span>發布</span><span>2026-10-16</span></div>
+<div class="row"><span>時長</span><span>1:00:02</span></div>
+<a class="row" href="https://a16z.simplecast.com/episodes/ai-can-write-the-code-can-it-run-the-system-grepr-ceo-jad-naous-p_ifxVi2" target="_blank" rel="noopener"><span>原頁面</span><span>打開 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇結構</h4><nav class="toc"><a href="#p0"><span class="t">7:07</span><span>可觀測性是在為可靠性買單</span></a>
+<a href="#p1"><span class="t">13:16</span><span>AI沒有拉平工程師差距，反而拉大了</span></a>
+<a href="#p2"><span class="t">23:34</span><span>一個人十天干完過去六個月的活</span></a>
+<a href="#p3"><span class="t">30:43</span><span>不從告警倒推根因，而是先抓異常信號</span></a>
+<a href="#p4"><span class="t">36:50</span><span>查詢優化快解決了，接管集群還不行</span></a>
+<a href="#p5"><span class="t">41:55</span><span>安全問題比運維問題還難一個量級</span></a>
+<a href="#p6"><span class="t">54:14</span><span>自動駕駛的教訓：現實世界經濟賬很慢</span></a>
+<a href="#p7"><span class="t">57:16</span><span>客戶想買的是省錢，不是AI故事</span></a></nav></div>
+
+<div class="panel"><h4>這篇是怎麼來的</h4>
+<div class="row"><span>成稿評分</span><span>8 / 10</span></div>
+<div class="row"><span>文稿來源</span><span>音頻轉寫</span></div>
+<div class="row"><span>文稿字數</span><span>11358</span></div>
+<div class="row"><span>語速核驗</span><span>189.2 wpm</span></div>
+<div class="row"><span>逐字校驗金句</span><span>7 條</span></div>
+<div class="row"><span>回溯校驗數字</span><span>4 條</span></div>
+<div class="row"><span>質檢剔除</span><span>1 處</span></div>
+<p class="note">金句在逐字稿裡逐字比對過，數字回原文核對過；對不上的當場刪掉，不上站。
+成稿另經一道獨立評審（信息密度／忠實度／選擇力／具體性／中文），低於 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原聲 · <a href="https://ourword.ai">OurWord.ai</a>的播客線。內容為原播客的中文深讀，
+版權歸各節目所有；每篇都附原節目鏈接，請去支持原作者。</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/tw/" lang="zh">人類世界生存法則</a> · <a href="/podcast/tw/">原聲</a></div>
+<div class="links"><a href="/podcast/tw/">首頁</a><a href="/podcast/tw/zt/founders/">專題</a><a href="/podcast/tw/sources/">信源</a>
+<a href="/podcast/tw/log/">更新日誌</a><a href="/podcast/tw/feed.xml">RSS</a>
+<a href="/podcast/tw/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源碼</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=2457e29027" defer></script>
+</body></html>
