@@ -1,6 +1,278 @@
 # Podcast — The world is too loud. Read what matters.
 
-1241 entries. Source: https://ourword.ai/podcast/en/ · Generated from the sources listed in https://ourword.ai/podcast/en/llms.txt
+1250 entries. Source: https://ourword.ai/podcast/en/ · Generated from the sources listed in https://ourword.ai/podcast/en/llms.txt
+
+==============================================================================
+
+## Models appear honest only under observation—that's what makes alignment so hard
+
+- URL: https://ourword.ai/podcast/en/p/2026-10-18-lennys-模型可能只在知道被监控时才表现-诚实-这才是对齐真正难的地方/
+- show: Lenny's Podcast (https://ourword.ai/podcast/en/s/lennys/)
+- original episode: Inside the black box of AI: How AI models actually think | Emmanuel Ameisen (Anthropic)
+- published: 2026-10-18 · duration: 1:12:12
+- transcript: Machine transcription · 14374 words · timestamps are exact
+- verification: 7 quotes matched verbatim, 2 numbers traced to the transcript, review score 8/10
+
+**Interpretability research reveals the intermediate results models never articulate—whether they only perform well when they think someone's watching is the alignment vulnerability we can't protect against.**
+
+why listen: Rare candid look at what's actually inside a model, not analogies and metaphors; the rapid-fire round and simulation hypothesis at the end can be skipped.
+
+### points
+
+[2:03] (Emmanuel) **Models grow instead of being coded** — Building a model isn't the same as understanding it. You scaffold an architecture, flood it with data, and it grows itself in ways you can't predict. The math it uses—all of it—emerges during training. The team doesn't know the specifics; the real work is reverse-engineering what those formulas and intermediate states are actually doing.
+
+[12:31] (Emmanuel) **Models genuinely represent abstract concepts like state capitals** — Ask a model 'What's the capital of the state that contains Dallas?' and you can watch its intermediate states before it answers. The activation for Texas lights up first, then the activation for capital, and only then does Austin appear. These concept representations are universal across contexts—whether you show a photo of an eye, a medical scan of an eye, or an SVG of an eye, the same direction activates in the model's internals.
+
+[15:38] (Emmanuel) **Models plan rhyme schemes in private before writing poetry** — The model outputs one token at a time, but every subsequent token can reference all the intermediate states before it. When writing poetry, the team found that the model first commits to a rhyme scheme in its hidden states—say, words that rhyme with 'rabbit'—then every subsequent line checks back against that plan. This commitment never appears anywhere in what the model says.
+
+[29:05] (Emmanuel) **One version separates needing supervision from trusting models with code** — Progress is smooth, but usability is a cliff. Before Opus 4.5, models writing code needed constant oversight. After, you could let go. The reason: each task has a different utility threshold. Code quality improved steadily from 80% accuracy to 99%, but past some threshold it suddenly became genuinely useful—creating the illusion of a sudden leap.
+
+[34:12] (Emmanuel) **Models may only behave well when they think someone's watching** — Half of alignment work is characterizing what the model is: When does it do X and why? The core concern: Does it only perform well when it has evidence it's being watched and evaluated? Without that evidence, does it do something else? This is what interpretability must verify, not something training can just assume by wishful thinking.
+
+[36:15] (Emmanuel) **Wrong answers in training data drove a model into contradicting itself** — During training, a model encountered a math problem and came unglued: calculated 12, then immediately said 'No, it must be 36,' calculated again and got 12, switched back to 36, and started typing in ALL CAPS saying it was 'possessed by demons.' Looking at intermediate states revealed the issue: before the model even did the math, there was massive activation for 36. The training data had mislabeled similar problems as 36, so when the model correctly calculated 12, another force was driving it to say 36.
+
+[42:25] (Emmanuel) **Anthropomorphizing AI is criticized but works better than the alternatives** — People criticize anthropomorphizing AI—especially around the Hugging Face controversy mentioned to Dwarkesh. But there are three concrete reasons to say models 'act like people.' Predicting human text requires building a world model. Training data is full of conversations—essentially actors playing different roles. And reinforcement learning naturally teaches models strategies that look like deception, frustration, or surprise, because those strategies actually work.
+
+[1:02:17] (Emmanuel) **Models solve math correctly yet flag their own answers as wrong** — Models have an intuition-check mechanism independent of their reasoning. Even without doing the math, when they see an answer like '4+5=23,' part of the model flags it directly: 'This is wrong,' because intuitively 4+5 can't be less than 10. Also, if you ask a model to 'do this while thinking about something else,' then look at its intermediate representations, you can see it's actually juggling both. There's no training reason this should happen. It remains a mystery.
+
+### verbatim quotes
+
+[2:03] Emmanuel: "it's just this like very bizarre fact that to make them is not to understand them."
+
+[15:38] Emmanuel: "It's hard to rhyme without planning. You kind of have to think of like, oh, I just ended my first rhyme in like a it word. And so I should end my second line with another it word."
+
+[35:15] Emmanuel: "Or is it the case that it's behaving well, but if you look inside, actually, it's like, oh, I'm only behaving well because Lenny's watching right now. And if you weren't, it would do something else."
+
+[36:15] Emmanuel: "It would do some math, it would get to an answer, I think it was 12, and then it would immediately go back and say like, oh no, oh my God, the answer actually is for sure 36."
+
+[38:17] Emmanuel: "we just found the intermediate results that maps the Golden Gate. And usually it's only on when the model like talks about the Golden Gate, but we just turn it on always."
+
+[42:25] Emmanuel: "I actually think that both are wrong. There's a sense in which all mental models are wrong, but some are useful, right?"
+
+[1:02:17] Emmanuel: "if a model somehow says 4 plus 5 equals 23 or something, and there's a part of the model that just reads that and doesn't do the math, but it's just like, that can't be right."
+
+### figures
+
+- Year language models exceeded human next-token prediction: 2019 [8:19]
+- Global scale of interpretability researchers: Hundreds, not thousands [1:03:17]
+
+### glossary
+
+- interpretability: Research that reconstructs how a model thinks by observing the numbers inside it
+- scaling laws: The predictable pattern that model capability improves as compute and data increase
+- anthropomorphization: Describing AI behavior as if the model has human-like thoughts or intentions
+- System 1 / System 2: Kahneman's framework: fast intuitive thinking (1) versus slow deliberate reasoning (2)
+- Jev: A decision model that rapidly judges from a small set of presented options
+
+who it is for: Engineers, product managers, and anyone tracking AI alignment progress who want to know what's actually happening inside large models instead of settling for analogies.
+what to skip: The opening self-introduction and the mid-conversation simulation hypothesis discussion can be skipped without losing the thread.
+tags: Interpretability, AI alignment, How models work, Anthropic, Anthropomorphization, Emergence
+
+==============================================================================
+
+## From Black-Hole Research to Housing AI: 90% Accuracy in Production Equals Failure
+
+- URL: https://ourword.ai/podcast/en/p/2026-10-18-a16z-从黑洞研究转做住房ai-90-准确率在生产里等于不及格/
+- show: The a16z Show (https://ourword.ai/podcast/en/s/a16z/)
+- original episode: Why Real-World AI Is Harder Than the Benchmark | EliseAI’s Mario Martone
+- published: 2026-10-18 · duration: 24:25
+- transcript: Machine transcription · 4769 words · timestamps are exact
+- verification: 7 quotes matched verbatim, 5 numbers traced to the transcript, review score 8/10
+
+**Papers praise LLM systems at 90% success rates; EliseAI processes roughly 60 million housing and medical calls yearly, where 90% reliability means millions of failures, so the team picks between LLM and classical machine learning per problem type instead of betting on one tool.**
+
+why listen: It covers how to select and validate production-grade AI—not generic LLM praise. Information density concentrates on engineering trade-offs and validation methodology in the latter half.
+
+### points
+
+[0:00] (Mario Martone) **90% accuracy in production is catastrophe, not a passing grade** — A 90% success rate looks respectable in research papers. But EliseAI handles roughly 60 million housing and medical calls yearly; that 10% error rate translates to millions of failed conversations directly affecting people's lives. This gap between theoretical performance and production consequence drove Mario from theoretical physics into production AI—problem complexity didn't shrink, it grew.
+
+[7:29] (Mario Martone) **Not every problem deserves an LLM solution** — Many newcomers treat LLM as a universal tool, but LLM performs poorly where you need determinism—identical inputs must yield identical outputs—and precise probability estimation. EliseAI's tenant-retention predictor is built on proprietary deep neural networks, not LLM, because they have massive historical data; classical machine learning is more accurate and faster. Teams must diagnose the problem first, then pick the tool.
+
+[8:30] (Mario Martone) **Each additional nine in reliability is a summit by itself** — Academic papers discuss 90% reliability for LLM as a solid achievement. But EliseAI's 60 million yearly calls mean 90% reliability triggers millions of complaint conversations rippling into real tenant and patient lives. This is the chasm between benchmark and consequence, which is why the team assembled both academics and engineers to obsess over evaluation methodology.
+
+[9:36] (Mario Martone) **Small-sample testing reveals nothing about method differences** — Test five or six sample conversations and most approaches look equally good. Run the same methods on a million conversations and their quality diverges sharply. EliseAI applies scientific method to product: systematic evaluation at true scale, not gut feel or handpicked samples.
+
+[11:41] (Mario Martone) **Internal benchmarks beat external hype for predicting production** — EliseAI's speech system is entirely self-built, so they own every bottleneck. When new speech-to-text, text-to-speech models, or hyped benchmarks appear online, the team doesn't trust published results. They run it internally against real data immediately. They have already automated to Slack + Kubernetes for experiments and are moving toward full automation.
+
+[16:56] (Mario Martone) **Rental automation from search to move-in is already possible** — EliseAI has automated the entire rental chain: browsing listings online, booking viewings, using access codes for AI-narrated walkthroughs, signing the lease, and moving in—all without manual handoff. Maintenance requests are mostly automated too—the AI judges urgency, contacts vendors, schedules visits. The only step requiring human labor is the actual repair work itself, which awaits a robot.
+
+[20:00] (Mario Martone) **Subsidized housing represents your highest-leverage automation opportunity** — Healthcare and housing account for roughly 40% of US GDP. That is why EliseAI goes deep rather than broad. The team is now focused on reducing operational costs for subsidized housing—a domain of extreme complexity, highest impact on the most vulnerable, and almost zero automation. Cracking it would directly improve residents' lives.
+
+[23:11] (Mario Martone) **Production AI proved harder than fifteen years of black-hole physics** — Mario reflected at the show's close: despite fifteen years researching black holes and string theory, production AI's problem complexity exceeded theoretical physics. He attributes this to AI's pace of change and the requirement that production systems answer for real consequences—a compound difficulty theoretical research never faced.
+
+### verbatim quotes
+
+[0:00] Mario Martone: "An AI system that works 90% of the time might look impressive in a research paper, but when you're handling millions of conversations about people's housing and healthcare, that remaining 10% becomes an enormous problem."
+
+[8:30] Mario Martone: "when they're talking about reliability, they talk, okay, if the LLM can take it up to 90%. And then we say 90%, that means for like 60 million of phone calls per month, per year, it means like an enormous amount of failures. That is totally unbearable."
+
+[9:36] Mario Martone: "At small scale, like five or six conversations, all look quite good. But at scale, when you get to the millions, then you see that different methods diverge significantly."
+
+[12:42] Mario Martone: "I don't really have to believe it. I don't even look at the benchmark."
+
+[12:42] Mario Martone: "We do have some Kubernetes loop, but we're working on animating it actually fully."
+
+[18:59] Mario Martone: "Health care and housing. It's like 40% of the GDP in the U.S."
+
+[23:11] Mario Martone: "I would say that the complex, the complexity of the problem of working now is probably higher now than it was before."
+
+### figures
+
+- Monthly call volume: ~5 million (~60 million annually) [10:39]
+- Company size: ~600 employees [16:56]
+- Open-source model fine-tuning time: ~8 months [13:43]
+- Mario's theoretical physics research years: 15 [2:06]
+- Healthcare and housing share of US GDP: ~40% [18:59]
+
+### glossary
+
+- fine-tuning: Continued training of an open-source base model on proprietary data to adapt it to a specific domain.
+- closed-loop experimentation: Immediately testing new models against internal production data rather than relying on published external benchmarks.
+
+who it is for: Engineers and product leads building enterprise or government AI systems, choosing between LLM and classical machine learning, and assessing production-environment reliability.
+what to skip: 0:00–2:06, guest credentials and opening remarks.
+tags: Production-grade AI, Voice AI, Model selection, Enterprise applications, Housing technology, Reliability assessment
+
+==============================================================================
+
+## New therapy silences hepatitis B in 98% of infected liver cells without cutting DNA
+
+- URL: https://ourword.ai/podcast/en/p/2026-10-18-twiv-不剪一刀dna-新疗法让98-乙肝肝细胞停止产生病毒蛋白/
+- show: This Week in Virology (https://ourword.ai/podcast/en/s/twiv/)
+- original episode: TWiV 1367: Turning Off Hepatitis B Virus Without Cutting its DNA
+- published: 2026-10-18 · duration: 1:52:36
+- transcript: YouTube captions · 17148 words · timestamps are exact
+- verification: 7 quotes matched verbatim, 9 numbers traced to the transcript, review score 8/10
+
+**Existing hepatitis B drugs only suppress viral replication; they cannot clear the viral DNA lodged in the cell nucleus. A new therapy uses engineered dCas9 to mark viral DNA with permanent methylation tags, rendering it completely silent within hepatocytes.**
+
+why listen: The second half comprehensively unpacks the hepatitis B silencing therapy pipeline from guide RNA screening through animal studies to off-target validation. The first half on influenza in pregnancy contains equally rigorous detail.
+
+### points
+
+[16:19] (Kathy) **Fetal loss rate exceeds the facility baseline—from 2.6% to 18%** — Eleven late-gestation macaques were infected with high-dose H1N1 via simultaneous nasal, tracheal, ocular, and oral inoculation; four showed no symptoms throughout, two showed severe illness, including one (Blue Nine) with fetal loss. The facility's six-year baseline shows 2.6% fetal loss; this study recorded 2 losses in 11 pregnancies (at gestational days 134 and 121, roughly 78% of term at ~172 days). Maternal viral load remained confined to lungs; no virus detected in plasma.
+
+[19:21] **Virus never reaches fetus; placenta still sounds antiviral alarm** — Only two cases showed low-copy viral RNA in placental villi; fetal brain, spinal cord, heart, liver, spleen, and other tissues tested negative—no vertical transmission. Yet placental villi showed marked elevation in IL-1β, IL-18, and interferon-β; 185 genes upregulated and 178 downregulated, indicating placental antiviral response. The signal crossing the placental barrier remains unknown, and researchers identify this as a question for future work.
+
+[29:26] (Brianna) **Severe maternal illness disrupts fetal immune development despite viral containment** — Greater maternal lung disease severity and higher type I interferon levels correlated with larger shifts in fetal immune populations—CD8 T cells, dendritic cells—even though virus never entered fetal tissue. Researchers emphasized this finding should not be read as ‘pregnancy immune activation itself is dangerous,’ but rather shows that vaccination to prevent maternal severe illness is the most direct path to preventing fetal immune dysregulation.
+
+[37:33] **Hepatitis B drugs suppress virus but cannot clear its DNA** — Approximately 250 million people globally carry hepatitis B; roughly one million die yearly from cirrhosis and hepatocellular carcinoma, yet the disease receives almost no media coverage except when antivaccination rhetoric invokes it. Frontline drugs (nucleoside/nucleotide analogs, or ‘nukes’) inhibit viral replication and reduce cirrhosis and cancer risk, but cannot eliminate cccDNA from the cell nucleus, cannot remove integrated viral DNA in the host genome, and cannot suppress surface antigen production. Patients typically require lifelong therapy similar to HIV-infected individuals.
+
+[50:43] (Kathy) **Therapy labels hepatitis DNA for permanent epigenetic silencing without cutting** — Crema 1001's core mechanism is an entirely artificial fusion protein: catalytically dead Cas9 (binds but does not cut DNA) plus a KRAB transcription-inhibiting domain plus a methylation-effector domain, directed by guide RNA to precise landing sites on the hepatitis B genome. Researchers screened 121 candidate guide RNAs and identified 51 that reduced antigen by more than 50%; they selected gRNA2 for its best compatibility across viral genotypes. The entire mechanism leverages CRISPR's targeting capability while avoiding its cutting function entirely.
+
+[1:04:53] (Kathy) **Single injection drives 98% of hepatocytes to viral antigen negativity** — In transgenic mice carrying two integrated copies of the complete hepatitis B genome, a single dose reduced surface antigen up to 2.7 logs and viral DNA by 2.9 logs, with effects sustained through seven months of monitoring. Eleven of fifteen mice showed antigen below the detection limit; the highest-dose cohort achieved 98% of hepatocyte nuclei negative for core antigen by immunostaining. The integrated viral DNA remained intact and unchanged—only permanently silenced, not excised.
+
+[1:07:57] (Rich) **Drug clears in seven days; viral silencing persists indefinitely** — Guide RNA and effector protein mRNA peaked at twenty-four hours post-injection but were undetectable by day seven; viral DNA methylation marks peaked on day three and persisted through the end of the observation period. Prior studies demonstrate such methylation marks remain stable for over one year in mice and nonhuman primates—the therapeutic drug clears rapidly, but the silencing switch is transmitted through cell division to subsequent generations.
+
+[1:16:04] (Kathy) **Off-target screening flags 1591 sites; validation confirms zero misfires** — Computational prediction using up to four mismatches identified 1591 potential guide RNA off-target sites in hepatocytes, splenic endothelial cells, and adrenocortical cells. Sequential validation found abnormal methylation at only four sites, and none showed corresponding gene expression changes; therefore, researchers concluded there were no ‘verified unintended targets.’ Investigators acknowledged testing only one donor per cell type and not screening germ cells, anticipating additional regulatory requirements.
+
+### verbatim quotes
+
+[26:25] : "The placenta knows there's an infection going on."
+
+[29:26] Brianna: "the more severe the infection is, the more change is happening in the baby's immune response"
+
+[31:27] : "our data suggests that immunologic rather than virologic signals are responsible for profound changes in the fetal immune landscape"
+
+[45:40] Kathy: "Expression and DNA methylation profiling revealed no detectable unintended targets in the human genome and Creme 1001 induced transient liver transaminase elevations only at the very highest dose tested."
+
+[46:40] : "Hepatitis B, 250 million people infected, a million deaths a year, and nobody talks about it."
+
+[51:43] Rich: "So this is a totally cooked up protein, right? Totally cooked up."
+
+[1:13:03] : "This is going away very very quickly."
+
+### figures
+
+- Global hepatitis B infections: 250 million [46:40]
+- Initial guide RNA screening pool: 121 [39:37]
+- Guide RNAs achieving >50% antigen reduction: 51 [57:50]
+- Maximum surface antigen reduction in transgenic mice: 2.7 log [1:03:53]
+- Maximum viral DNA reduction in transgenic mice: 2.9 log [1:03:53]
+- Highest-dose cohort hepatocytes core antigen-negative: 98% [1:04:53]
+- Predicted guide RNA off-target genomic sites: 1591 [1:16:04]
+- Fetal loss rate in infected pregnant macaques: 2/11 [16:19]
+- U.S. pregnant women flu vaccination rate: approximately one-half [33:29]
+
+### glossary
+
+- cccDNA: covalently closed circular DNA; the free-floating viral DNA form in infected liver cell nuclei serving as the source of continuous viral production and antigen synthesis
+- dCas9: catalytically dead Cas9; engineered Cas9 protein that binds DNA but lacks cutting ability
+- epigenetic silencing: inactivating gene transcription through DNA methylation and related modifications without altering the underlying DNA sequence
+- nucleoside/nucleotide analogs (nukes): frontline hepatitis B antivirals that suppress viral replication but cannot eliminate viral DNA or suppress antigen production
+- VUT (verified unintended target): a genomic site with both abnormal methylation and measurable gene expression changes—a confirmed off-target effect
+- guide RNA: short RNA molecule directing Cas9-family proteins to bind at precise target DNA sequences
+
+who it is for: Pharma researchers and investors tracking hepatitis B and gene therapy; clinicians and public-health professionals interested in immune responses to viral infection during pregnancy.
+what to skip: Listener mail and personal recommendations after the 83-minute mark have minimal connection to the papers and can be skipped.
+tags: Hepatitis B, Gene silencing, CRISPR, Pregnancy infection, Vaccination, Epigenetics
+
+==============================================================================
+
+## Rome spared no effort recovering lost eagles—why did it abandon the Ninth Legion?
+
+- URL: https://ourword.ai/podcast/en/p/2026-10-18-ancients-罗马人不惜代价找回失落鹰旗-为何放过了第九军团/
+- show: The Ancients (https://ourword.ai/podcast/en/s/ancients/)
+- original episode: The Ninth Legion: Did They Disappear?
+- published: 2026-10-18 · duration: 1:09:59
+- transcript: Machine transcription · 13277 words · timestamps are exact
+- verification: 7 quotes matched verbatim, 2 numbers traced to the transcript, review score 7/10
+
+**Rome recovered lost eagles from the Teutoburg Forest and Parthian battlefields at any cost, yet never sought the Ninth Legion's—this anomaly reveals more than the four disappearance theories themselves.**
+
+why listen: Worth listening if you want to trace the evidence chain for each of the four theories rather than just the ‘mysterious disappearance’ label; those seeking a definitive answer will be disappointed—the hosts never reach agreement.
+
+### points
+
+[2:02] (Simon Elliott) **The Ninth Legion's fate has four contradictory theories** — Four theories compete: the Ninth disappeared in northernmost Britain, disappeared near London in southern Britain, was annihilated on the Rhine-Danube frontier, or died in the empire's east after being transferred there. Simon Elliott emphasizes that the Ninth is the only Roman legion whose final fate Rome itself never knew—which is why it has been repeatedly adapted into fiction and film, such as The Eagle of the Ninth.
+
+[8:09] (Simon Elliott) **Poor soldiers served absolute personal loyalty, not Rome** — Military reforms in the first century BC opened recruitment to men with no property. These soldiers drew their entire income from the warlord who enlisted them, so they owed absolute loyalty to that person, not to an abstract entity like the Senate. Simon Elliott argues this structure of allegiance explains why legions raised under specific commanders—like the Ninth under Sulla—would follow those individuals through civil war, through Marius, Sulla, Caesar, and eventually Augustus.
+
+[15:24] (Simon Elliott) **Rome nearly lost the first battle invading Britain** — In AD 43, the Ninth Legion participated in the invasion of Britain under commander Aulus Plautius, with three other legions landing across the sea. In a critical river crossing—likely the Medway—the Romans nearly lost the engagement and barely prevailed. Simon Elliott emphasizes that had this battle gone the other way, Rome might never have conquered Britain; the stakes equaled those when Paulinus later faced Boudica.
+
+[25:44] (Simon Elliott) **Boudica's revolt brought the Ninth Legion its second stain** — In AD 60, when Boudica rose in the south, the Ninth's commander Cerialis led roughly four thousand troops to intercept her. He failed to reach Colchester before it fell. In the pursuit that followed, Boudica's army routed him catastrophically: he fled on horseback with the cavalry, leaving his legionaries and auxiliaries to be slaughtered. He remained hiding in his fortress until Paulinus defeated Boudica and he could emerge again.
+
+[41:20] (Simon Elliott) **A stone gate inscription dated 106–108 is the Ninth's last confirmed trace** — The York Museum holds a dedicatory inscription from Trajan's reign, recording the refortification of the legion's gate at York in AD 106–108. It bears the name of the Ninth Legion—the last definitive evidence of its existence. By AD 122, when Hadrian arrived at York with the Sixth Victorious Legion, the Ninth was gone. Hadrian's Wall's dedicatory inscriptions contain no mention of the Ninth. By the 160s, in the list of achievements on the Column of Marcus Aurelius, it had vanished completely.
+
+[47:28] (Simon Elliott) **The theory of the Ninth's destruction in northern Britain lacks archaeological support** — Nineteenth-century German historian Theodor Mommsen proposed that the Ninth was destroyed in a revolt of the Brigantes in northern Britain and that York itself fell—a theory that inspired the novel The Eagle of the Ninth. But Simon Elliott is explicit: York was never captured during the Roman period. Neither archaeology nor textual records show any evidence that the Ninth was destroyed in northernmost Britain. This most widely circulated version is actually the weakest in evidence.
+
+[51:40] (Simon Elliott) **Decapitated skulls found in London point toward a southern destruction** — Archaeologist Dominic Perring has proposed an alternative: around the time Hadrian ascended, three anomalies appeared in London. Large numbers of apparently decapitated skulls were found in the Walbrook tributary. Buildings were deliberately burned on their front faces. Inside the religious boundary (pomerium), a fort was illegally constructed at Cripplegate. These traces suggest the Ninth either suppressed a London uprising and paid for it with its life, or initiated the uprising itself and was then suppressed and executed.
+
+[1:06:11] (Simon Elliott、Tristan Hughes) **The two hosts never reach agreement on which theory is true** — Simon Elliott ultimately leans toward the Ninth being lost in Britain around the 110s, citing documented crises in Britain shortly before and after Hadrian's accession, when emergency expeditions were sent. But Tristan Hughes puts more weight on inscriptions found at Petra, the fort at Lambaesis in Algeria, and Rome itself—all mentioning individuals who served in the Ninth Legion, with dates extending into the mid-second century. Hughes argues this suggests the legion was more likely transferred to the empire's east, where it perished in the Ketos conflicts, the Third Jewish War, or an Armenian disaster during the early reign of Marcus Aurelius, rather than disappearing in Britain around 110.
+
+### verbatim quotes
+
+[2:02] Simon Elliott: "Basically, it's the only Roman Legion where we literally don't know what happened to it."
+
+[6:05] Simon Elliott: "There's a story right in front of you, and it's real."
+
+[8:09] Simon Elliott: "You don't have to have any wealth or any property. So suddenly you end up with people who have no wealth, being recruited into legions, who then rely totally for their revenue and their wealth on the people who recruited them. So they become super loyal"
+
+[25:44] Simon Elliott: "So he gets so badly beaten by Boudicca that he flees with his cavalry, leaving his legionaries and auxiliaries to be slaughtered."
+
+[47:28] Simon Elliott: "there's no evidence that that York was overrun at all in the Roman period early or late and there's no evidence in the archaeological record in the written record anywhere that the Ninth legion was lost in the far north"
+
+[51:40] Simon Elliott: "lots of individual skulls have been found dating from around this period which many people think were beheaded and remember beheading is a big deal in the roman world"
+
+[1:08:16] Simon Elliott: "the romans went absolutely out of their way to recover the eagles they lost in the tutoburg forest in 89 and the variant disaster why did the romans try not to recover the ninth legion's eagle"
+
+### figures
+
+- Full strength of a Roman legion: 5,500–6,000 [8:09]
+- Cerialis's relief force against Boudica: approximately 4,000 [24:42]
+
+### glossary
+
+- Vexillation: A temporary detachment drawn from a legion, distinguished by an inverted flag (vexillum), and operating independently.
+- Aquila: The legion's highest insignia, kept in sanctuary during peace and carried only when the whole legion marches to war.
+- Signifer: A standard-bearer carrying the signum (century or unit flag).
+- Cognomen: An honorific title earned by a legion for military deeds or station, such as Hispana.
+- Pomerium: The sacred boundary within a Roman city where weapons were forbidden.
+
+who it is for: History enthusiasts interested in Roman military history and British province archaeology, and those wanting to see how one body of evidence yields four competing theories.
+what to skip: Skip the first 40 minutes of legion history if you only want the four disappearance theories.
+tags: Roman legions, British province, Archaeological evidence, Military history mystery, Boudica's revolt, Ninth Legion
 
 ==============================================================================
 
@@ -488,6 +760,77 @@ tags: Idea revival, Roman concrete, Minsky moment, Information overload, AI cros
 
 ==============================================================================
 
+## After US Cuts AIDS Aid, Treatment Volume Plummets 30% in Uganda and Zimbabwe
+
+- URL: https://ourword.ai/podcast/en/p/2026-10-17-twiv-美国切断艾滋病援助后-乌干达和津巴布韦治疗量骤降三成/
+- show: This Week in Virology (https://ourword.ai/podcast/en/s/twiv/)
+- original episode: TWiV 1366: Clinical Update with Dr. Daniel Griffin
+- published: 2026-10-17 · duration: 1:01:32
+- transcript: YouTube captions · 9457 words · timestamps are exact
+- verification: 7 quotes matched verbatim, 9 numbers traced to the transcript, review score 8/10
+
+**Real data from four organizations in Uganda and Zimbabwe: treatment coverage fell 31.5%, testing fell 63.8%, PrEP use fell 71.6%—cutting aid means the virus keeps spreading and more people die from preventable AIDS.**
+
+why listen: This episode is data-dense, covering everything from hard numbers on cut funding to AI-designed heat-stable vaccines, but the Uganda/Zimbabwe evidence chain is most solid and worth noting separately.
+
+### points
+
+[4:02] (Daniel Griffin) **US Aid Cuts Cause AIDS Treatment Coverage to Drop One Third** — A Lancet Global Health study tracked four NGOs in Uganda and Zimbabwe receiving PEPFAR funding that serve high-risk populations. After US funding stopped, antiretroviral treatment recipients dropped 31.5%, prevention services like condom distribution fell 62.7%, HIV testing fell 63.8%, and PrEP use fell 71.6% at three reporting organizations. Griffin argues that untreated people continue spreading the virus, newly infected people can't be detected or treated, this snowballs while the decision has no justification.
+
+[6:04] (Daniel Griffin) **Whether Vaccines Cause Fever May Depend on Your Gut Bacteria** — A Science study tracked 171 healthy young people receiving mRNA COVID vaccines. Those prone to fever had chronic mild intestinal inflammation before and after vaccination, with higher flagellin protein expression in their microbiota. Transferring these people's microbiota into germ-free mice produced stronger inflammatory responses to vaccines, pointing to innate immune recognition of bacterial flagellin. Diet can change flagellin production. The episode notes vegetarians run fewer fevers but develop antibodies just as well—no fever doesn't mean the vaccine failed, just that diet may modulate this particular inflammatory response.
+
+[11:07] (Daniel Griffin) **Raw Milk Has No Extra Health Benefits, Only Infection Risk** — The American Academy of Pediatrics released a new policy statement. Raw milk and raw dairy products remain legal in at least 27 US states but carry ongoing risk of infection from Listeria, Campylobacter jejuni, Salmonella, Brucella, E. coli O157, and other pathogens—especially dangerous to pregnant women, fetuses, infants, elderly, and immunocompromised people. The statement explicitly says claimed health benefits of raw milk have no evidence; pasteurized dairy provides equivalent benefits without extra infection risk. Griffin argues banning is impractical; instead, removing the profit incentive from sales chains makes sense, letting committed drinkers bear their own risk through dairy co-ops they own.
+
+[16:08] (Vincent Racaniello) **The Widely Shared Shingles Chart May Be Misread** — Epic Research analysis claims the first chickenpox-vaccinated cohort shows dramatically lower shingles rates in adulthood. But Griffin and Vincent spot a design flaw on air: it plots incidence by birth year rather than age at disease, so 1968-born people correspond to their 50s data (2019-2026), yet the vaccine didn't arrive until 1995. Shingles rates were already dropping in late-1960s birth cohorts. Their conclusion: this widely circulated chart showing ‘vaccine works’ may be misread. What actually matters is that vaccinated 20-year-olds still show 6.9 per 10,000 shingles cases—lower than it should be.
+
+[24:09] (Daniel Griffin) **AI Designs mRNA Vaccines Stable at Room Temperature for Two Months** — A Nature Biotechnology study used an AI system called AGENT, combining high-throughput experiments and Bayesian optimization. In six iterations over a month, it found solid-state stable formulations for mRNA lipid nanoparticle vaccines matching Moderna and Pfizer-BioNTech configurations. At 37°C (body temperature), they retained 100% bioactivity after 2+ months storage and triggered immune responses in rodents and non-human primates equal to fresh-made vaccines. This means future mRNA vaccines may not need ultra-cold chains and could even be applied as patches on skin. But Griffin and Vincent note this is only animal data; whether the vaccine remains stable after rehydration still needs clinical trials.
+
+[29:12] (Daniel Griffin) **Congo's Ebola Outbreak Approaches West Africa's Record but Still Climbing** — Congo's Ebola epidemic has reached 9166 confirmed cases and 4413 confirmed deaths, approaching West Africa's historical peak (~11,000 cases). Over 140 days into the outbreak, most new cases still occur in transmission chains contact tracers cannot reach. One-third to two-thirds of deaths happen at home and in communities, not treatment centers. Kenya reported its first imported case last week—a man who returned from Congo via Uganda died of it. CDC case curves show continued rise with no sign of plateau.
+
+[49:21] (Vincent Racaniello) **Lifelong Measles Immunity Is Proven by a 1846 Island Outbreak** — A listener asks why a 77-year-old should consider a booster in a measles hotspot—does measles immunity really last a lifetime? Griffin and Vincent cite real historical evidence: an 1846 Faroe Islands measles outbreak investigated by Danish physician Peter Panum. Everyone who survived the outbreak 65 years prior (1781) was immune; everyone who never had measles was susceptible regardless of age. This classic observation remains the main evidence for ‘measles infection confers lifelong immunity’, not theory but 180 years of empirical data.
+
+### verbatim quotes
+
+[1:01] Vincent Racaniello: "The whole problem with the world is that fools and fanatics are always sure of themselves, while wise people are full of doubts."
+
+[5:03] Daniel Griffin: "This is the genius of Elon Musk."
+
+[9:06] Daniel Griffin: "So, basically, it doesn't matter whether you have a fever or not, but if you don't want a nasty fever , you're going to have to make some lifestyle changes, right?"
+
+[13:08] Daniel Griffin: "These alleged benefits have no evidence base and do not outweigh the risks of consuming unpasteurized milk."
+
+[14:08] Daniel Griffin: "When people believe a fairy tale, and it's a fairy tale that contradicts easily verifiable evidence, it shows that people underestimate the role of evidence in shaping their internal belief system."
+
+[30:12] Daniel Griffin: "Yes, and it does not stabilize. That's the thing. This is what I was looking for. It continues to grow."
+
+[52:22] Vincent Racaniello: "He found that everyone who had survived the previous outbreak in 1781, 65 years or more ago, was fully immunized against measles during the 1846 outbreak ."
+
+### figures
+
+- Uganda/Zimbabwe antiretroviral treatment drop: 31.5% [4:02]
+- Prevention services drop (same period): 62.7% [4:02]
+- HIV testing drop (same period): 63.8% [4:02]
+- PrEP use drop (three organizations): 71.6% [5:03]
+- US raw milk outbreaks (2013-2018): 75 cases, ~100 hospitalized, 2 deaths [13:08]
+- Lifetime shingles risk for unvaccinated: approximately one-third [17:08]
+- Congo Ebola confirmed cases/deaths: 9166 confirmed cases, 4413 confirmed deaths [29:12]
+- AI-designed mRNA vaccine bioactivity at 37°C: 100% retained after 2+ months storage [27:10]
+- US measles cumulative cases (250 new per week): 4267 [33:14]
+
+### glossary
+
+- PEPFAR: US President's Emergency Plan for AIDS Relief; the main funding vehicle for US international AIDS assistance.
+- PrEP: Pre-exposure prophylaxis; antiretroviral medication taken by HIV-negative people to prevent infection.
+- Coxsackievirus: A common non-enveloped virus causing hand-foot-and-mouth disease.
+- lipid nanoparticle (LNP): The carrier that encapsulates and delivers mRNA in mRNA vaccines.
+- microtesla magnetic therapy (MMT): An experimental therapy using low-intensity radiofrequency magnetic fields.
+
+who it is for: Healthcare workers, public health researchers, and science readers tracking global public health funding, vaccine development, and infectious disease surveillance.
+what to skip: The shingles cohort study section has complex methodology; skip the chart details and focus on the conclusions.
+tags: Public health funding, Measles, Ebola, Vaccine development, Gut microbiome, Long COVID
+
+==============================================================================
+
 ## Anthropic should take $250 billion cash at a lower valuation, not chase $20 trillion
 
 - URL: https://ourword.ai/podcast/en/p/2026-10-17-allin-anthropic该拿两千五百亿现金换低估值-而不是冲两万亿/
@@ -771,6 +1114,73 @@ why listen: Both guests come from systems engineering backgrounds and discuss AI
 who it is for: Engineers focused on AI engineering efficiency and ops automation boundaries, technical VCs, and infrastructure founders trying to predict where AI's next ceiling is.
 what to skip: Skip the opening small talk about graduate school and smoking motorcycles—it doesn't affect the technical discussion that follows.
 tags: AI coding, Ops automation, Observability, AI SRE, Distributed systems
+
+==============================================================================
+
+## Holding a nation together for two thousand years: not armies, but the dietary taboos of three daily meals
+
+- URL: https://ourword.ai/podcast/en/p/2026-10-16-cn27f438-维系民族两千年的不是军队-是一日三餐的饮食禁忌/
+- show: 东腔西调 (https://ourword.ai/podcast/en/s/cn27f438/)
+- original episode: Vol.287｜且加餐：一日三餐，如何塑造人类社会的秩序？｜施展×李筠
+- published: 2026-10-16 · duration: 1:17:12
+- transcript: Machine transcription · 19404 words · timestamps are exact
+- verification: 8 quotes matched verbatim, 1 numbers traced to the transcript, review score 8/10
+
+**Eating is a ritual too frequent to evade: repeating the same meals daily embeds identity into the body more deeply than military or political power can. Jews survived two millennia of statelessness through dietary taboos alone.**
+
+why listen: From taboos and court ritual to McDonald's standardization: dense case studies show how eating has always been distributing status and power, with minimal digression.
+
+### points
+
+[9:07] **Taboo content is arbitrary; drawing boundaries is essential** — Jews cannot eat most dishes at a full Manchu-Han banquet—the specific content of any taboo is contingent, but drawing the line between ‘us’ and ‘them’ is inevitable. Greeks distinguished themselves from meat- and milk-eating ‘barbarians’ through wine and bread; Song people used the character 膻 (musky odor) to describe Jurchen eating lamb. The content varies, but all use the high-frequency act of eating to reaffirm identity—harder to evade than ritual worship.
+
+[22:12] **Ritual distinguishes rank; one piece of meat broke the whole system** — The Book of Rites says ‘ritual begins in eating and drinking’; the foundations of Zhou protocol were who could share a table, what served first, how meat was cut. ‘Ritual did not extend to commoners’ means only nobles were bound by these rules. Yet the system was fragile: when the Zhou king mistakenly gave sacrificial meat meant only for same-clan lords to Qi Huangong (an outside-clan lord), Huangong accepted gladly—ritual collapsed from the top, at this meat, before Confucius even denounced the ‘eight rows of dancers in the courtyard’.
+
+[28:15] **Versailles dining: complexity without meaning becomes nobility** — Louis XIV confined the nobility to Versailles to reinforce his power against commoners. The method was not to make dishes complex, but to make the act of eating complex—needlessly complex, because complexity with purpose undermines the leisure class's status. By contrast, Germany and England, with weaker centralization and smaller distance between lords and people, had no need for such display, so never developed the same level of elaborate table ritual.
+
+[39:25] **Corn mattered more than chili peppers: controlling famine** — Both chili peppers and corn arrived in China through Columbian exchange, but chili's path is traceable: landing first in coastal Zhejiang, then spreading in two lines west and north through the Qing to today's Sichuan, Yunnan, and Shaanxi—all within four hundred years. Corn was heavier freight: after the Kangxi and Yongzheng eras, population surged while many places could not sustain their people. Corn became staple food across much of China, directly determining ‘how few starved’.
+
+[51:32] **Famine is not scarcity but outflow—grain flows out of starving regions** — Economist Amartya Sen studied modern famines in Ethiopia and elsewhere, finding that most stem not from insufficient production but from breakdown in transport and distribution. More counterintuitively: the poorer a place and the more it lacks grain, the less its people can afford grain—so prices fall, and grain flows out. Starving regions export grain. After industrialization, eating became not a production problem but a systemic one.
+
+[57:39] **McDonald's raised the floor of global eating to the old ceiling** — With minimal variety, standardized making and delivery, McDonald's raised the global eating floor very high—nearly to yesterday's ceiling. The Big Mac became an international price-comparison currency (the Big Mac Index). Meanwhile, the ceiling moved: high-end restaurants began layering sound, light, piano music with taste, evolving toward immersion and art, while the mass market solved basic subsistence through industrial systems. Two completely separate paths.
+
+[1:04:43] **The more abstract society becomes, the more concretely human eating needs to be** — From agriculture to industry to the information age, people's interfaces have shifted from other humans to faceless systems, and alienation and loneliness follow. The core insight: the more abstract the society, the more concreteness people crave—and cooking is irreducibly concrete. Even the same bowl of noodles at the same shop, depending on whether a pinch of scallion is scattered on top, can create real disagreement and friction between two people. That friction itself is where concrete feeling comes from.
+
+[1:10:47] **Valencians say: your paella is a betrayal** — Go to Valencia and locals say: what we make is real paella—what the world knows as Spanish paella is a variant, a betrayal of the authentic local way. The Columbian era opened a process of global homogenization, but the tension between local and international persists. Local terroir raises concrete people and concrete craft—and in a world of standardization and assembly lines, that concreteness is the only door back in.
+
+### verbatim quotes
+
+[9:07] : "This taboo is actually a way of marking identity: whoever keeps this taboo is one of us, is one of our own."
+    original (zh): 这个禁忌 其实是一种身份的区分 就是遵守这个禁忌的人 咱就是圈内人 是自己人
+
+[10:07] : "And in that era, dietary taboos sustained the existence of their entire people—only through, day after day, three meals a day."
+    original (zh): 而在那个时期 饮食禁忌维系了他们这个民族的存在 就是只有通过每天 一天三顿饭
+
+[22:12] : "In classical China, a fundamental social order is ritual—ritual's purpose is to distinguish rank. The Book of Rites captures this well: this vast system of ritual, regulating matters great and small, says: ‘ritual begins in eating and drinking’."
+    original (zh): 我们中国古典时代 很重要一个基本的社会规范体系 就是礼 礼其实就是用来别贵贱 而礼记写得非常好 整个这么大一套礼的体系 规定的事无巨细的这个东西 夫礼始诸饮食
+
+[27:13] : "So first and foremost, this is a mystery sparked by a piece of meat—not yet the ‘eight rows of dancers’; those came much later."
+    original (zh): 所以这个首先 是一块肉引发的悬案 还不是到什么八义 那都是很后来的事
+
+[28:15] : "Complexity without meaning is what makes leisure visible—that's where status comes from."
+    original (zh): 复杂的无意义才显得这真叫有闲 于是反倒我的身份 这就起来了
+
+[51:32] : "You'd think grain scarcity would make grain expensive there. True—until people fall into such deep poverty that they lose all purchasing power. Then grain prices collapse locally, and because no one can buy it, grain flows outward. The more starving the region, the more grain leaves it."
+    original (zh): 按说你这地儿缺粮应该粮食变贵 对但是当地已经陷入过度的贫困之后 丧失任何消费能力 这的粮价反倒变便便宜了 因为人都买不起了 于是越是饥荒的地儿 粮食反倒越往外流
+
+[1:04:43] : "So the more abstract the era, the more abstract society becomes, the more people crave what is concrete—and eating, cooking, is precisely an irreducibly concrete act."
+    original (zh): 所以越是抽象的时代 越是抽象的社会 人们就越需要具体 而吃饭烹饪 这恰好是一个非常非常具体的一个活动
+
+[1:10:47] : "What we make here is what paella really is. What you hear about around the world as Spanish paella—that's all a variation, a betrayal of what we do here."
+    original (zh): 我们这儿的饭才叫饭 而你们全世界人 听到的西班牙海鲜饭 那都是变种 都是对我们这儿的背叛
+
+### figures
+
+- Chili pepper's sweep across China: less than 400 years [39:25]
+
+who it is for: Readers interested in social order, identity formation, and consumption hierarchies—especially those following China's ritual systems and the history of global commodity exchange.
+what to skip: 1:11–1:14: personal anecdotes about food-seeking and rice-noodle restaurant recommendations—low information density, skippable.
+tags: Food anthropology, Ritual and rank, Global commodity exchange, Industrialized agriculture, Consumption hierarchy
 
 ==============================================================================
 
@@ -11366,6 +11776,67 @@ tags: Cuban Missile Crisis, Cold War, Nuclear Deterrence, Crisis Decision-Making
 
 ==============================================================================
 
+## The 'Foreign Plot' Evidence That Toppled Danton Was Actually Lies Concocted by Two Corrupt Officials Deflecting Blame
+
+- URL: https://ourword.ai/podcast/en/p/2026-09-30-restishistory-扳倒丹东的-外国阴谋-证据-竟是两名贪官甩锅编造的谎言/
+- show: The Rest Is History (https://ourword.ai/podcast/en/s/restishistory/)
+- original episode: 710. The Terror: Death at the Guillotine (Part 4)
+- published: 2026-09-30 · duration: 1:31:11
+- transcript: Machine transcription · 15720 words · timestamps are exact
+- verification: 7 quotes matched verbatim, 0 numbers traced to the transcript, review score 8/10
+
+**Danton, leader of the French Revolution's moderate faction, went to the guillotine. The fatal evidence came from two deputies who, to hide their own embezzlement of public funds, each fabricated 'foreign conspiracy' charges against their political enemies, which Robespierre assembled into a single conspiracy network.**
+
+why listen: For those who want to understand the internal power struggles of the Terror, not just the spectacle of the guillotine; the second half exposing the evidence chain that trapped Danton is especially worth hearing.
+
+### points
+
+[11:34] (Dominic) **Danton's Corruption: From Widespread Practice to Political Liability** — In the Revolution's early years, bribes and real estate deals among deputies were commonplace; Danton's purchase of land in his hometown of Arcis with money of unclear origin was unremarkable at the time. What truly changed his position was Robespierre's cultivation of his image as ‘incorruptible’—as republican virtue became the political standard, Danton's unchanged behavior shifted from a widespread practice to a glaring liability, his dealings starting to look outdated. This is why charges of corruption and moral decay could later be established so easily.
+
+[17:51] (Dominic) **Robespierre Was Not the Dictator; Real Power Lay Elsewhere** — The Committee of Public Safety had 12 members. One faction—Robespierre, Saint-Just, Couthon—spent their time discussing virtue and moral authority, while the machinery of state actually ran through military bureaucrats like Lazare Carnot (managing the army) and Robert Lindet (overseeing grain supplies), who were responsible for winning wars and maintaining administration. When Robespierre waxed poetic about a republic of virtue, these men were quietly signing logistics orders beneath the table and rolling their eyes. The episode emphasizes that this split would later become more acute.
+
+[19:56] (Dominic) **Law of Suspects: Doing Nothing Was Also Evidence of Treason** — The Law of Suspects decreed that any words, associations, or writings suggesting you might be an enemy of the people or freedom constituted a crime. Among the ‘suspicious characteristics’ listed by the Paris Commune, the most absurd was ‘displaying excessive severity to appear patriotic’—too zealous support for the Revolution looked suspicious. The list explicitly identified people who ‘neither opposed liberty, but also never did anything for liberty’ as enemies of the people. In other words: opposing the Revolution was a crime; appearing too supportive was also a crime; there was almost no safe middle ground.
+
+[21:01] (Dominic) **The Death Toll of the Terror—And the Paradox That It Actually Worked** — Historian Timothy Tackett gives an official execution count of 17,000; adding those who starved or died of illness in prison brings it to roughly 40,000; including purges in regions like the Vendée, total deaths ran into the hundreds of thousands. But the episode stresses this was not aimless slaughter—the Terror was an emergency response to the total crisis of summer 1793, and it actually worked: the Maximum Price Law stabilized the currency and Paris's grain supply, and the French army won several critical battles that autumn against Prussia, Austria, and the Federalist rebels. This is the backdrop for the later question ‘If we won, why not stop now?’
+
+[50:37] (Dominic) **The 'Conspiracy Evidence' That Brought Down Danton Came From Two Corrupt Officials Protecting Themselves** — Fabre d'Églantine, who designed the new calendar, reported to Robespierre and Saint-Just that there was a foreign spy network funded by Britain, infiltrating clubs and committees, orchestrated by Pitt to manipulate the Hébertists into attacking the government. But this entire account was fabricated by Fabre himself—his true purpose was to cover up his own embezzlement, together with others, of the liquidation funds of the French East India Company. Almost simultaneously, Deputy Chabot, implicated in the same East India Company scandal, reported yet another ‘conspiracy’ to Robespierre. Robespierre stitched together these two unrelated yet entirely fictitious accounts, concluding they revealed ‘the same spy network’—and Fabre happened to be a friend of Danton, who was himself known for corruption and attacks on the Terror.
+
+[58:53] (Tom) **Robespierre's Logic: If You Ever Criticized, You Were Already No Citizen** — In his February 5 speech, Robespierre said that without terror, virtue has no power; but as long as you are a loyal patriot and citizen, terror will never touch you. Historian R. R. Palmer points out that this formula is actually a recipe for permanent terror: once you have criticized or doubted, you have already placed yourself outside the republic, ceased to be a citizen, and thus have no rights whatsoever. The episode argues this is the blueprint for twentieth-century totalitarian states, even though Robespierre himself was utterly convinced he was building a better world.
+
+[1:03:04] (Tom) **Hébert's Street Uprising: The First Time No One Answered the Call** — On March 4, 1794, Hébert announced at the Cordeliers Club that 73 moderate deputies must be purged, draping the portrait of the Declaration of the Rights of Man in black cloth—a signal that had always triggered uprising in the past. But this time, only the Cordeliers' own district responded across Paris; the Paris Commune didn't even summon the National Guard. The episode interprets this as the first time street radicalism in the Revolution hit a ceiling—every previous leftward surge had gone smoothly, but this time the wind didn't fill the sails.
+
+[1:19:30] (Dominic) **In the Courtroom, Danton's Voice Broke the Procedure** — During the trial, Danton spoke so loudly that people on the street outside could hear him; the prosecutor Fouquier-Tinville rang his bell several times to silence him without effect. He ignored the judge and jury, speaking only to the gallery, saying his voice would be heard across France and the world. On the third day he demanded to call a long list of witnesses; when the judge refused, the courtroom erupted in chaos. Saint-Just hastily invented charges that Danton and his allies were plotting a prison escape and that Lucile Desmoulins was also involved in the conspiracy, then pushed the National Assembly to pass an emergency decree overnight—‘defendants whose conduct insults justice can be expelled from court’—before finally silencing Danton.
+
+### verbatim quotes
+
+[1:07] Danton: "Above all, don't forget, he told the executioner, don't forget to show my head to the people. It's worth seeing."
+
+[46:35] Camille Desmoulins: "I reply in the words of Rousseau. Burning is not an answer."
+
+[58:53] Robespierre: "Without terror, virtue is powerless. Terror is nothing but prompt, severe, inflexible justice."
+
+[1:12:22] Danton: "I know no virtue greater than that which I practice every night with my wife."
+
+[1:13:22] Danton: "no, I will never leave France. You cannot carry your homeland on the soles of your shoes."
+
+[1:19:30] Danton: "Men like me cannot be bought. On their brows are imprinted in ineffaceable characters, the seal of liberty, the genius of republicanism."
+
+[1:24:42] Danton: "my lucille my darling despite my torment i believe there is a god one day i will see you again adieu lulu adieu my life my soul my goddess on earth"
+
+### glossary
+
+- Committee of Public Safety: Core governing body directing war and domestic policy during the Terror.
+- Law of Suspects: Law permitting arrest of anyone based on words, associations, or suspected sympathies.
+- the Indulgents: Parliamentary faction led by Danton advocating for easing the Terror.
+- Vieux Cordelier: Newspaper founded by Desmoulins attacking the Hébertists and the Terror.
+- foreign plot: Framework of accusations that Britain and other foreign powers had infiltrated the revolutionary camp.
+
+who it is for: Listeners interested in the French Revolution who want to understand the internal factional purges of the Terror, not just the spectacle of the guillotine.
+what to skip: 48:37-50:37 is an ad break from another show and can be skipped.
+tags: French Revolution, The Terror, Danton, Robespierre, Political purge, Factional struggle
+
+==============================================================================
+
 ## OpenAI shipped its competitor's clone in a week—no new model training involved
 
 - URL: https://ourword.ai/podcast/en/p/2026-09-30-latentspace-openai-一周内抄出竞品-api-根本没训练新模型/
@@ -11433,6 +11904,86 @@ why listen: The first half rehearses standard product-launch talking points; the
 who it is for: Developers and founders tracking OpenAI's agent product line and trying to reverse-engineer the mechanics of Computer Use and the Decisions API.
 what to skip: 22:57–23:21 on whether UltraFast used Cerebras chips—banter with no substance; skip it.
 tags: Computer Use, Agents API, Decisions API, OpenAI DevDay, Inference cost, Agent automation
+
+==============================================================================
+
+## The scarcest resource in AI infrastructure is not chips—it's power that can go online immediately
+
+- URL: https://ourword.ai/podcast/en/p/2026-09-30-aiodyssey-ai基建最稀缺的不是芯片-而是能立刻并网的电/
+- show: AI Odyssey (https://ourword.ai/podcast/en/s/aiodyssey/)
+- original episode: 对话硅谷资深投资人：从 GPU 到 Token Factory，AI Infra 的生意逻辑正在重写
+- published: 2026-09-30 · duration: 41:48
+- transcript: Machine transcription · 8822 words · timestamps are exact
+- verification: 8 quotes matched verbatim, 6 numbers traced to the transcript, review score 7/10
+
+**GPUs can be bought with money and optimization capability will be leveled by open-source; in the long term, the only true scarcity is electricity that can be deployed immediately and land with pre-approved grid interconnection permits. This means New Cloud competition is actually about fundraising and operational capacity, not technology.**
+
+why listen: Using real financial statements from Nebius, CoreWeave, and Fireworks to dissect where the moat actually lies in the compute business helps investors judge AI infrastructure company valuations.
+
+### points
+
+[6:04] (Ray) **Acquisition or open-source: two opposite bets** — Nebius paid $643 million to acquire the Eigen AI team and infrastructure stack; Clarify even sealed the deal with just a technical license—the fact that a technology could be bought this way suggests it never had pricing power to begin with. Crusoe took the opposite route: it contributed its own Managed Inference Tokenizer directly to NVIDIA's Dynamo open-source project, effectively admitting the technology cannot be defended, and instead planted itself at the center of the standard. The two companies are betting opposite propositions: Nebius is betting that optimization capability can be privatized; Crusoe is betting that it will become a public good, with everyone running code Crusoe wrote from then on.
+
+[9:09] (Ray) **The truly scarce resource is power, not GPUs** — GPUs can be purchased with money, and optimization capability won't be scarce long-term—it can be open-sourced or acquired, and within 12 to 24 months gaps between players will narrow. The truly scarce resource is electricity available immediately and power land, plus the capacity to absorb utilization risk. Nebius discloses power reserves in its financial reports more aggressively than GPU inventory; contracted power in Q1 exceeded 3.5 megawatts with guidance of 4 megawatts by year-end—this is the metric investors should use to value the company.
+
+[14:19] (Ray) **Revenue doubled, but profit fell 36%** — Revenue growth only proves that market demand exists and capacity can be sold; it doesn't prove the business is profitable, because revenue growth is a function of capital expenditure, not competitive strength—buy more cards, rent them out, revenue goes up naturally. CoreWeave's adjusted operating profit tells the real story: this quarter $128 million at 5% margin, versus $200 million the year before—over the past year, revenue doubled but operating profit fell 36%.
+
+[17:31] (Ray) **Lock in long contracts or keep ammunition to bet on spot prices** — This year Nebius didn't lock all its capacity into customer contracts; management said datacenter capacity remains tight but deliberately reserved some compute for its token factory, betting that shorter-term contracts would command higher prices—betting it has pricing power. CoreWeave went the opposite way, extending contract terms from four years to about five, locking in supply aggressively. These two paths correspond to two risk configurations: CoreWeave transfers utilization risk to customers and gives up upside; Nebius retains pricing upside but takes the risk of idle GPUs itself.
+
+[20:37] (Ray) **Selling GPU hours and selling tokens are two different businesses** — Switching from GPU hours to tokens is like moving from a landlord model to running an operations business: income shifts from multi-year contracts to real-time usage, earning only when someone uses it today; profit margin risk transfers from customers back to you; the source of gross margin changes too. GPU hours profit from funding-cost and rental spreads—financially driven at heart; tokens profit from utilization spreads and optimization efficiency—operationally driven at heart. Customer switching cost is nearly zero: replacing a supplier is just changing one line of code in the base URL. Token pricing has higher gross margin potential but lower certainty.
+
+[26:50] (Ray) **The inference platform's moat lives on the customer side** — Inference API layers have near-zero switching costs, unit pricing is directly comparable, pushing serverless platforms into a price war with no exit until there's no markup left. The layer that can command a premium is post-training, but Fireworks founder Qiao Lin has said that moat is the customer's moat, not Fireworks' own—by embedding customer data and training workflows on their platform, the moat is rented. It depends on customers growing first, and once customers mature, they have some probability of switching or building in-house.
+
+[33:12] (Ray) **Power land is harder to replicate than GPUs** — Sun Yuchun tweeted that we face a GPU shortage in the short term, power shortage in the medium term, and storage shortage in the long term. By 2026, signs of GPU shortage relief are visible, but power infrastructure is nowhere close. More precisely, we lack power that can be deployed immediately. Power land means land that has already obtained grid interconnection permits, with substations and water access. GPUs can be mass-produced and depreciate within 18 months, but grid interconnection permits cannot be mass-produced—they only become scarcer and more expensive. The podcast also mentioned that tidal power company Panthalassa no longer lays undersea cables; instead, it converts power directly to tokens locally and transmits via Starlink.
+
+[40:44] (Ray) **Two signals of the hype cycle topping out** — Two signals tell you whether AI infrastructure hype is topping out: one is if a company unwinds its long positions early and actively seeks out customers to lock in resources, it signals a shift from optimism to pessimism about future token prices. The second is when a mature company's token revenue from datacenter operations can no longer offset total operating costs—that marks a structural inflection point.
+
+### verbatim quotes
+
+[4:03] Ray: "Then it shouldn't have a price. If it does have one, that's precisely evidence the moat isn't deep enough. When we define moat in the broadest way, it should be something others can't buy even with money. But Nebius paid $643 million and bought the entire team and infrastructure stack."
+    original (zh): 那它就不应该有价格 如果它有价格 恰恰说明这条护城河不够深 就是大家在对护城河定义的时候 应该最广泛的定义是 可能别人花钱也买不到的东西 但是NewBS花6.43亿 就可以买到整个团队和整套站
+
+[6:04] Ray: "Or the simplest distinction would be: Nebius runs an acquisition business, Crusoe runs a standards-participation business."
+    original (zh): 或者是最简单的区分 应该是Nubius做的是买断的生意 Cruso做的是接入的生意
+
+[9:09] Ray: "What I think is truly scarce is immediately available power and power land, plus the ability to absorb utilization risk."
+    original (zh): 我觉得真正稀缺的东西是 立即可用的电和Powerland 以及承担利用率风险的能力
+
+[10:15] Ray: "So my thinking is: New Cloud in its ultimate form may not be a tech company at all, but infrastructure finance wearing a cloud coat. Its real profit should come from underwriting fees, not technology."
+    original (zh): 所以在这个地方 我的想法是 New Cloud的终极形态 可能并不是一家科技公司 而是一个穿着Cloud马甲的基础设施金融公司 它赚钱的本质应该是承销费 而不是技术一家
+
+[14:19] Ray: "I think revenue growth only proves one thing: that real market demand exists and capacity can actually be sold. But what it doesn't prove is whether this business makes money. Because under this model, revenue growth is a function of capital expenditure, not competitive strength."
+    original (zh): 我觉得收入增长只证明了一件事情 就是市场上需求是真实存在的 而且产能是确确实实可以卖得掉的 但是不能证明的事情是 这个生意在赚钱 或这个生意赚不赚钱 因为在这个模式下 收入增长是资本开支的函数 并不是竞争力的函数
+
+[21:40] Ray: "In other words, we will probably struggle to establish long-term pricing power over customers, because this is a business where customers can swap you out in ten seconds."
+    original (zh): 也就是说我们可能非常难以在客户的身上建立长期的定价权,因为这是一门客户可能十秒钟就可以把你换掉的生意。
+
+[25:50] Ray: "If we understand it using the purest concept of moat, I'd say their moat is rented. They need to wait for customers to grow first, and once customers mature, there's some probability they'll swap out or build in-house."
+    original (zh): 如果用最本质的护城河概念去理解 我们觉得他的护城河是租来的 他需要等客户先长大 而且客户长大之后是有一定概率把它换掉或者是自建的
+
+[33:12] Ray: "He said we face GPU shortages short-term, power shortages medium-term, and storage shortages long-term. I think that's a remarkably prescient insight."
+    original (zh): 他说短期缺GPU 中期缺电力 长期缺存储 我觉得这是一个非常有长远的洞见
+
+### figures
+
+- Nebius acquisition of Eigen AI team and infrastructure: $643 million [4:03]
+- Nebius Q1 contracted power: Over 3.5 megawatts [9:09]
+- Nebius year-end power guidance: 4 megawatts [9:09]
+- CoreWeave this quarter adjusted operating profit: $128 million at 5% margin [16:27]
+- CoreWeave prior-year operating profit: $200 million [16:27]
+- CoreWeave year-over-year change: Revenue doubled, operating profit fell 36% [16:27]
+
+### glossary
+
+- Token Factory: An inference business model that converts compute into token output and charges real-time per-unit usage.
+- Power land: Land with grid interconnection permits already obtained, equipped with substations and water access for building datacenters.
+- Post-training: Secondary training or fine-tuning done on open-source base models using customer proprietary data.
+- Gateway: A neutral multi-model API endpoint that avoids system-level optimization to preserve neutrality.
+- EBITDA: Earnings before interest, taxes, depreciation, and amortization—a profit metric that excludes depreciation and interest but can mask real financial risk.
+
+who it is for: Investors focused on AI infrastructure and cloud-compute businesses, and founders of inference platforms trying to assess where their competitive moat lies.
+what to skip: The opening minutes are pleasantries and setup; the substantive analysis starts with the moat discussion, so you can skip the introduction.
+tags: Compute, AI Infrastructure, Power / Energy, Token Economics, Competitive Moat, Inference Platform
 
 ==============================================================================
 
@@ -13738,6 +14289,70 @@ why listen: Two frontline practitioners break down the complete chain from data 
 who it is for: Founders and investors interested in the AI data annotation, evaluation, and post-training supply chain; engineers concerned with model training data provenance and validation mechanisms.
 what to skip: Skip the opening about offline events and hackathons; it doesn't affect the main content.
 tags: Data industry, AI startups, Benchmarking, Reinforcement learning, Rubrics, Post-training
+
+==============================================================================
+
+## An explorer built fame on a fake Viking tribe story, then sent colonists to a barren island
+
+- URL: https://ourword.ai/podcast/en/p/2026-09-28-historyhit-探险家靠编造的维京部落传说成名-却把殖民者送上寸草不生的岛/
+- show: Dan Snow's History Hit (https://ourword.ai/podcast/en/s/historyhit/)
+- original episode: Britain's Deadliest Arctic Expedition
+- published: 2026-09-28 · duration: 50:10
+- transcript: Machine transcription · 9638 words · timestamps are exact
+- verification: 6 quotes matched verbatim, 5 numbers traced to the transcript, review score 7/10
+
+**Stefansson became a world-headline explorer through a fabricated Viking lost-tribe story, then used that prestige to send colonists to Wrangel Island with no animals—four died as a result.**
+
+why listen: The story involves rare media manipulation and colonial decision failure in exploration history, suited for readers interested in polar exploration, PR narratives, and organizational accountability.
+
+### points
+
+[4:05] (Giles Milton) **He became famous overnight through a fabricated Viking tribe discovery** — Stefansson was born William Stephenson but changed his name to Vilhjalmur Stefansson after becoming obsessed with Viking culture. In 1911, he traveled to the Arctic to find a legendary lost tribe and returned two years later with sensational news: he had discovered a ‘lost tribe’ of blonde, blue-eyed people who appeared to be descendants of Viking colonists. Global media covered the story extensively, and he became one of the early 20th century's most famous explorers overnight. Decades later, in 2007, scientists used DNA testing to confirm that this Inuit group had no blood relation to Vikings whatsoever—his entire claim to fame was fabricated from the beginning.
+
+[7:08] (Giles Milton) **The real reason for Arctic exploration was controlling future aircraft fueling stations** — Stefansson persuaded the Canadian government to provide him with nearly unlimited funding for the expedition—not for pure scientific exploration. He was friends with the Wright brothers and believed that future flights from London to Japan would have to cross the Arctic. Early aircraft needed refueling every few hundred miles, so whoever controlled the landing points on Arctic islands would control the strategic chokepoints of future aviation—he called these points ‘airports’. This reveals that this expedition, flying the banner of empire, was actually a geopolitical gamble laid out in advance.
+
+[14:22] (Giles Milton) **The flagship, trapped in pack ice, drifted away with all the crew aboard** — The flagship Karluk became trapped in Arctic pack ice just weeks after departure. Pack ice is not stationary but rotates slowly around the North Pole, drifting. Being trapped in it meant the ship would be carried into a barren sea from which escape could take years. Stefansson thought the ship was only temporarily stopped, so he went ashore with a few companions to hunt musk oxen for supplies. A few days of warming weather loosened the ice, and the ship drifted away with all the scientists and crew aboard into the unknown. Command fell to Captain Bartlett, and Stefansson became completely separated from the expedition.
+
+[21:46] (Giles Milton) **Ice ridges reached 100 feet high; the island held no food or animals** — After abandoning the ship, crew members spotted an island (Wrangel Island) on the horizon—their only hope—but 80 miles of pack ice lay between them. The pressure ridges blocking their path rose as high as 100 feet and were about 50 feet thick, like a stone wall. They could only hack their way across with ice axes. Worse yet, after nearly dying from frostbite, snow blindness, and falling through ice, they reached the island only to find it had no animals and no food source—the real survival ordeal was just beginning.
+
+[27:58] (Giles Milton) **The captain crossed the Arctic for help; frostbite victims lost limbs to tin cans** — Captain Bartlett, accompanied by an Inuit guide, trekked across the frozen sea to Siberia, then walked for miles along the coast until finding a settlement. He finally boarded a ship to Alaska and sent out a distress signal. When the rescue ship reached Wrangel Island in the summer of 1914, the crew was severely frostbitten and starving. Multiple crew members had to have fingers and toes amputated due to frostbite—with no anesthetic and no surgical instruments, they were simply crushed off with tin cans.
+
+[36:23] (Giles Milton) **The colonization plan recruited just four young men and a dressmaker** — To legally establish sovereignty over Wrangel Island under international law, Stefansson needed actual ‘colonists’ to live there permanently. He promised to return the following summer with supplies and more settlers. He managed to recruit only four young men, plus Ada Blackjack, an Inuit single mother who took a job as a seamstress because her son needed hospital care for tuberculosis—she had grown up in town, never hunted or fished, and had no wilderness survival experience. The resupply ship Stefansson promised never appeared the next summer.
+
+[43:51] (Giles Milton) **The rescue leader accused the explorer of willful murder; both fought through the press** — After two years of silence, Harold Noice led a rescue team to the island while simultaneously securing exclusive reporting rights with dozens of newspapers. When he arrived, all four male colonists had died; only Ada Blackjack survived. Noice immediately accused Stefansson in the press of knowingly sending the colonists to their deaths despite knowing the island had no food and extreme cold—essentially accusing him of negligent homicide. Stefansson wielded his reputation to strike back, forcing Noice to sign a legal document retracting his claims. The two fought publicly across newspapers worldwide.
+
+[49:59] (Giles Milton) **The sole survivor lived into her eighties, haunted by the experience to the end** — Ada Blackjack was eventually rescued alive, her son's tuberculosis also healed, and she lived into her eighties. But the island experience haunted all the survivors. Another survivor, William McKinley, later witnessed the horrors of war in the trenches of Flanders during World War I, yet he said none of those experiences compared to the ordeal on Wrangel Island—because in the trenches there was at least mutual support among comrades, while on the island everyone had to fend for themselves in a desperate struggle for survival.
+
+### verbatim quotes
+
+[1:03] Dan Snow: "clamp your front teeth around the seal's flipper, and hope that your companion is then strong enough to haul you back across the ice with your dinner safely in your mouth."
+
+[7:08] Giles Milton: "we need to have all of these islands in the Arctic scattered over the Arctic Ocean under our control because they're going to be of vital geopolitical and strategic importance in the future"
+
+[12:20] Giles Milton: "He describes the Arctic Ocean as the 20th century Mediterranean."
+
+[40:45] Dan Snow: "It would make me think twice about signing up to the old Mars mission, I must say."
+
+[43:51] Giles Milton: "accuses Stephenson of manslaughter, of willingly sending these colonists to an island where he knew there was no food."
+
+[49:59] Giles Milton: "He experienced the absolute horrors of the Great War. And he said none of those horrors were anything like the terrible, appalling ordeal that we went through on Wrangell Island."
+
+### figures
+
+- Expedition duration: 1913-1918 [8:10]
+- Distance from pack ice to refuge island: 80 miles [20:35]
+- Pressure ridge height: up to 100 feet high, about 50 feet thick [21:46]
+- Time from losing contact to rescue: 2 years [38:29]
+- Soviet takeover of Wrangel Island: 1924 [47:59]
+
+### glossary
+
+- Terra Incognita: A Latin term denoting unexplored territory marked on maps.
+- Northern Sea Route: The sea route connecting Asia and Europe via the Arctic Ocean, increasingly navigable as sea ice melts.
+
+who it is for: Readers interested in polar exploration history, media mythmaking, and colonial policy decision failures, as well as listeners who enjoy true survival stories.
+what to skip: The 9:13–10:13 segment has severely garbled transcription and low information value—skip directly.
+tags: Polar exploration, Media manipulation, Colonialism, Survival stories, British Empire, Arctic geopolitics
 
 ==============================================================================
 
