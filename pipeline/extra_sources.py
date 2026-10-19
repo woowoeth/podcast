@@ -73,7 +73,7 @@ EXTRA: list[dict] = [
        itunes=256580326, feed="https://feeds.feedburner.com/historyextra",
        desc="BBC History 学者访谈，论断给出处与反方观点"),
   dict(id="hardcore", name="Hardcore History", zh="Hardcore History", cat="hist", tier=3, lang="en",
-       itunes=201671138, feed="https://feeds.feedburner.com/dancarlin/history?format=xml",
+       itunes=201671138, feed="https://www.thisamericanlife.org/podcast/rss.xml",
        desc="Dan Carlin 长篇战争史，叙事密度极高（更新不规律，T3）"),
   # --- parent ---
   dict(id="goodinside", name="Good Inside with Dr. Becky", zh="Good Inside",
