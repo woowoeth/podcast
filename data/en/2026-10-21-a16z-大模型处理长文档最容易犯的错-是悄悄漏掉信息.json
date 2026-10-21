@@ -1,0 +1,139 @@
+{
+ "slug": "2026-10-21-a16z-大模型处理长文档最容易犯的错-是悄悄漏掉信息",
+ "of": "a16z-f2e0e7d554",
+ "source_lang": "en",
+ "title": "Large models' most insidious error in long documents: silently omitting information",
+ "dek": "Benchmark testing reveals a paradox: leading models excel at extracting from long documents, yet silently lose information in ways production systems can't detect.",
+ "why": "For those seeking to understand where AI agents fail in real business and why document processing remains a distinct specialty—the founder shares concrete cases and numbers.",
+ "who": "Product managers and entrepreneurs building enterprise AI for document-heavy industries: contracts, insurance policies, medical records.",
+ "skip": "The opening entrepreneurial pivot story is somewhat broad; jump to 4:10 to start with model technology.",
+ "tags": [
+  "Document processing",
+  "AI agents",
+  "OCR",
+  "Enterprise AI",
+  "Healthcare AI",
+  "Benchmarking"
+ ],
+ "points": [
+  {
+   "h": "The founder pivoted to documents even after securing a YC offer",
+   "body": "Starting in memory augmentation, Reducto received a YC offer but decided to pivot on day one. The reasoning: agents would increasingly handle high-stakes domains like medical records, where accuracy determines patient outcomes. A misread checkbox isn't a small error—it can change treatment decisions. This insight drove the pivot from memory infrastructure to documents as the foundational bottleneck."
+  },
+  {
+   "h": "AI agents' self-correction outperforms human annotation on structured extraction",
+   "body": "Reducto's Deep Extract framework doesn't just extract; it makes agents verify their own output—checking invoice line totals against declared totals, for instance. On many structured extraction benchmarks, agents outperform human annotators. The reason: human taggers skip rows, take shortcuts, or fill partial answers. These errors became embedded in ‘ground truth’ datasets. Adit calls this the first time he's seen agents genuinely beat the human baseline."
+  },
+  {
+   "h": "At one cent per page, processing everything becomes the default strategy",
+   "body": "Reducto's $0.01-per-page pricing emerged after processing 7 billion pages. At this cost, economics flipped: instead of choosing which documents deserve high-precision treatment, you run them all through. The company now processes billions of pages monthly and faces the next challenge—maintaining cost and quality at hundred-billion-page scale. Adit argues past AI products were retrieval-gated chatbots over limited data, but real agents need economic freedom to search widely without cost anxiety."
+  },
+  {
+   "h": "Frontier model labs won't build document infrastructure because they're racing to AGI",
+   "body": "Asked why leading model companies don't solve document processing, Adit points to misaligned incentives: AGI labs are in an arms race for super-intelligence, while document processing—however hard—is infrastructure work. Specialization wins. A general vision encoder must handle selfies-to-Ghibli synthesis and document reading; Reducto's model only needs to excel at one task. This focus delivers extreme cost and speed advantages over frontier models at the same accuracy."
+  },
+  {
+   "h": "Long-document extraction fails on recall, not precision—models silently skip content",
+   "body": "Reducto's independent benchmark with MicroOne produced a counterintuitive finding: on long-document extraction, leading models achieve good precision—what they extract is usually right. They fail on recall: models omit information without flagging anything is missing. Deep Extract solves this by adding agent validation rules that know when to double-check. This silent failure is nearly impossible to catch in production."
+  },
+  {
+   "h": "Published benchmarks are marketing noise; measure on your own data distribution",
+   "body": "Adit critiques how AI benchmarks became marketing theater. Take a public benchmark, rotate documents one degree and add light blur—the vendor degrades while competitors hold steady. Most users never test these perturbations. His advice: use LLMs as judges, test against your actual data distribution rather than published leaderboards. When everyone claims SOTA, benchmarks become useless for real decisions."
+  },
+  {
+   "h": "One word wrong—chest pain vs. pain—and an insurance claim gets denied forever",
+   "body": "Reducto's medical customer faced a real case where OCR confused ‘chest pain’ for ‘pain.’ When doctors queried patient history by keyword, nothing matched; the claim was denied. Understaffed medical systems can't manually verify OCR output across thousands-of-page records. In this scenario, Reducto found OCR accuracy sometimes fell below 50%. A single term error cascades through systems designed to trust extracted data."
+  },
+  {
+   "h": "80% of Medicare appeals overturn original decisions, exposing systematic approval failure",
+   "body": "Millions of Medicare claims face prior-authorization denials yearly; 80% of appeals ultimately reverse the decision. This isn't operator error—it's systemic failure in paper-based workflows. Similar gridlock appears in USCIS immigration backlogs. Adit's insight: if accuracy, cost, and latency approach zero-friction, frontier models could automate these reviews and eliminate the appeals process itself. The reversal rate is evidence of process breakdown waiting for AI."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Vision Language Model (VLM)",
+   "def": "A model that understands both images and text semantics, replacing template-based OCR systems."
+  },
+  {
+   "term": "Intelligent Document Processing (IDP)",
+   "def": "The traditional industry term for document processing; Reducto sees its mission as broader infrastructure work."
+  },
+  {
+   "term": "Harness",
+   "def": "A framework surrounding a model for verification, validation, and self-correction—not a single model call."
+  },
+  {
+   "term": "Recall",
+   "def": "The percentage of information that should be extracted and actually is; long-document extraction's metric most likely to fail silently."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Pages Reducto has processed",
+   "v": "7 billion"
+  },
+  {
+   "k": "Reducto's price per page",
+   "v": "$0.01"
+  },
+  {
+   "k": "Supported file formats",
+   "v": "40+"
+  },
+  {
+   "k": "U.S. paper tax filings",
+   "v": "16%"
+  },
+  {
+   "k": "Medicare appeal reversal rate",
+   "v": "80%"
+  },
+  {
+   "k": "Traditional OCR accuracy range",
+   "v": "70–80%"
+  },
+  {
+   "k": "Reducto accuracy (most scenarios)",
+   "v": "high 90s%"
+  },
+  {
+   "k": "Medical records OCR (some cases)",
+   "v": "<50%"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "nobody thinks about complexity when they upload a document to ChatGPT, right? You just expect it to work.",
+   "translated": false
+  },
+  {
+   "text": "it's the first time where I find that agents can be better at structured extraction than humans on many tests.",
+   "translated": false
+  },
+  {
+   "text": "Today, literally this morning, we crossed our seven billionth page.",
+   "translated": false
+  },
+  {
+   "text": "I remember one of my friends came to dinner with a shaved head. They'd all shaved their heads for a million in ARR.",
+   "translated": false
+  },
+  {
+   "text": "They would silently drop information. That's the kind of thing that is really, really hard to catch in production.",
+   "translated": false
+  },
+  {
+   "text": "benchmarks have become marketing over time. And the downstream side effect is it's really hard to know what is good in your context when everything is like state of the art all the time.",
+   "translated": false
+  },
+  {
+   "text": "We were talking about individual cases where because the initial pipeline read something as pain instead of chest pain, somebody's claim gets rejected",
+   "translated": false
+  },
+  {
+   "text": "one of the craziest stats I learned is that in 80% of appeals, the original decision was overturned, which should be shocking because clearly there's some inefficiency in how the decision was originally made.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
