@@ -40,7 +40,7 @@ OUT = ROOT / "data" / "sources.json"
 CURATED: list[dict] = [
   # ---------- AI / 技术 ----------
   dict(id="latentspace", name="Latent Space", zh="Latent Space", cat="ai", tier=1, lang="en",
-       itunes=1674008350, feed="https://api.substack.com/feed/podcast/1084089.rss", residential=True, desc="AI 工程师视角的技术深访，是把论文和产品接起来的少数节目"),
+       itunes=1674008350, feed="https://podcast.latent.space/feed.xml", residential=True, desc="AI 工程师视角的技术深访，是把论文和产品接起来的少数节目"),
   dict(id="dwarkesh", name="Dwarkesh Podcast", zh="Dwarkesh", cat="ai", tier=1, lang="en",
        itunes=1516093381, feed="https://apple.dwarkesh-podcast.workers.dev/feed.rss", desc="准备最充分的长访谈，逼受访者给出可反驳的具体判断"),
   dict(id="lennys", name="Lenny's Podcast", zh="Lenny's Podcast", cat="ai", tier=1, lang="en",
