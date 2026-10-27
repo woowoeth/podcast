@@ -434,6 +434,24 @@ def _write_back(healed: dict[str, str]) -> None:
         log(f"  ! {sid}: 换了 feed 但在 Python 列表里找不到定义，下轮会再自愈一次")
 
 
+def same_show(s: dict, meta: dict) -> bool:
+    """按 iTunes id 查回来的，是不是这档节目：两边的名字至少有一个实义词重合。
+
+    「有 id 就按 id 查（准）」—— 前提是登记的 id 是对的。2026-10-19 Hardcore History
+    登记的 id 201671138 其实是 This American Life：它更新慢、feed 一过期就按 id 去「修」，
+    换成了 TAL 的 feed，和 tal 共用一个 feed（集会被判重复）。按名字搜那条路有 _name_match，
+    按 id 查这条路一次都没核对过。这里放宽（我们登记的名字常比 iTunes 短：
+    「Hardcore History」对「Dan Carlin's Hardcore History」），但一个词都不重合就不认。"""
+    import re
+    from curate import _name_match
+    stop = {"the", "podcast", "a", "an", "this", "with", "and", "of", "on", "show", "s"}
+    tok = lambda t: {w for w in re.findall(r"[0-9a-z\u4e00-\u9fff]+", (t or "").lower())
+                     if len(w) > 1} - stop
+    cn = meta.get("collectionName") or ""
+    mine = tok(s.get("name")) | tok(s.get("zh"))
+    return bool(mine & tok(cn)) or _name_match((s.get("zh") or s["name"]).lower(), cn.lower())
+
+
 def itunes_find(name: str) -> dict | None:
     """按名字在 iTunes 里找这档节目。
 
@@ -682,6 +700,10 @@ def main() -> int:
                 # 有 id 就按 id 查（准），没有就按名字搜（过 _name_match 校验）
                 meta = (itunes_lookup(s["itunes"]) if s.get("itunes")
                         else itunes_find(s.get("zh") or s["name"]))
+                if meta and s.get("itunes") and not same_show(s, meta):
+                    log(f"  ! {s['id']}: 登记的 iTunes id {s['itunes']} 是「{meta.get('collectionName')}」，"
+                        f"不是这档节目 —— 不换 feed（id 登记错了，人去改 extra_sources.py）")
+                    meta = None
                 if meta and meta.get("feedUrl") and meta["feedUrl"] != s["feed"]:
                     alt = probe(dict(s, feed=meta["feedUrl"]))
                     # 换 feed 必须换到更新的那个，否则可能换成另一个死镜像
