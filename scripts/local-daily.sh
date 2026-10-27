@@ -119,6 +119,14 @@ PYEOF
     [ -n "$script" ] && osascript -e "$script" >/dev/null 2>&1 || true
   }
   trap notify_failure EXIT
+
+  # 体检结果另写一份进仓库（data/health-local.json），跟着这一轮提交。云端的每日手机提醒只能
+  # 克隆仓库读文件 —— 跑不了这里的代码（权限分类器拦「执行外部代码」）、也读不到 issue 和
+  # raw 文件（沙盒代理 403）。日更停了，这份文件就旧了，提醒按「多久没更新」报（2026-10-27）。
+  health_snapshot() {
+    python3 pipeline/healthcheck.py --json data/health-local.json >/dev/null 2>&1 \
+      || [ -s data/health-local.json ] || echo "体检快照没写成（不致命）"
+  }
   command -v claude >/dev/null || { echo "找不到 claude CLI，PATH=$PATH"; exit 1; }
   command -v python3 >/dev/null || { echo "找不到 python3"; exit 1; }
 
@@ -367,6 +375,7 @@ PYEOF
     # 没有新内容也要把心跳推上去：否则"跑了但闸门全拦下"和"根本没跑"分不开，
     # 而这两件事需要完全不同的处理。
     echo "本轮没有新内容，只推心跳和状态"
+    health_snapshot
     # **写了什么就提交什么，整个 data/。** 原来只 add 心跳和 state.json：run.py 写的
     # usage.json 就一直躺在工作区里，下一轮开头被 autostash 收走、恢复时一冲突就留一个 stash。
     git add -A data 2>/dev/null || true
@@ -527,6 +536,7 @@ PYEOF
   # 放在推送之后的话这份留痕永远落在下一轮之外 —— 本机线晚一轮才提交，
   # 云端 runner 一销毁就没了。提交前通知只比推送早几十秒，而 Pages 部署本来就在推送之后。
   python3 pipeline/indexnow.py || echo "indexnow 通知失败（不致命）"
+  health_snapshot
   git add -A data $SITE_FILES 2>/dev/null || true
   git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
       commit -q -m "build: regenerate site" || true

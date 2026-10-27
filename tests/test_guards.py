@@ -11150,6 +11150,31 @@ class ShellVariablesNeverRunIntoChineseText(unittest.TestCase):
         self.assertEqual([], bad, "变量后面紧跟中文，launchd 下会变成另一个（未定义的）变量名")
 
 
+class TheDailyPhoneAlertCanReadTheVerdict(unittest.TestCase):
+    """云端每日提醒只能克隆仓库读文件（跑不了仓库代码、读不到 issue / raw，2026-10-27 两次试跑实测）。
+    所以本机日更收尾时把体检结果写进 data/health-local.json，跟着这一轮提交 —— 尺子还是同一把。"""
+
+    def test_healthcheck_writes_the_verdict_as_json(self):
+        import tempfile, contextlib
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import healthcheck as H
+        with tempfile.TemporaryDirectory() as td:
+            out = pathlib.Path(td) / "h.json"
+            with contextlib.redirect_stdout(io.StringIO()):
+                H.main(["--json", str(out)])
+            d = json.loads(out.read_text())
+        self.assertEqual({"at", "bad", "warn", "ok"}, set(d))
+        self.assertIsInstance(d["bad"], list)
+        self.assertGreater(d["ok"], 0, "尺子坏了：一项正常都没有")
+
+    def test_both_commit_points_take_a_snapshot_first(self):
+        sh = (ROOT / "scripts" / "local-daily.sh").read_text()
+        for anchor in ('echo "本轮没有新内容，只推心跳和状态"', 'python3 pipeline/indexnow.py'):
+            i = sh.index(anchor)
+            j = sh.index("git add -A data", i)
+            self.assertIn("health_snapshot", sh[i:j], f"「{anchor[:20]}」这条路提交之前没写体检快照")
+
+
 class AFollowedSourceKeepsUp(unittest.TestCase):
     """该跟的源出了新集，当天就要排上；排不上，体检要比用户先知道。
 

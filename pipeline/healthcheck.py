@@ -1497,6 +1497,10 @@ def check_dead_episodes(r: Report) -> None:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--online", action="store_true", help="连线上一起查")
+    ap.add_argument("--json", metavar="PATH",
+                    help="把结果（硬伤原文、提醒数、正常数、时间）另写一份 JSON。本机日更收尾时写进 "
+                         "data/health-local.json：云端的每日提醒只能克隆仓库读文件，跑不了这里的代码，"
+                         "也读不到 issue（2026-10-27）")
     ap.add_argument("--only-consistency", action="store_true",
                     help="只查「数据／正文页／短链一样多」。发布线在 push 之前用它："
                          "整套体检里有停更、心跳这类和本轮无关的项，"
@@ -1550,6 +1554,11 @@ def main(argv: list[str] | None = None) -> int:
     for line in r.bad:
         print(f"  坏了  {line}")
     print(f"\n{len(r.bad)} 项硬伤 · {len(r.warn)} 项提醒 · {len(r.ok)} 项正常")
+    if a.json:
+        pathlib.Path(a.json).write_text(json.dumps(
+            {"at": now().astimezone(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+             "bad": r.bad, "warn": len(r.warn), "ok": len(r.ok)},
+            ensure_ascii=False, indent=1) + "\n")
     if r.bad:
         # GitHub Actions 会把 ::error:: 高亮出来，也是 watch.yml 建 issue 的依据
         for line in r.bad:
