@@ -8550,6 +8550,20 @@ class ThroughputKnobsMustBeMeasuredNotInherited(unittest.TestCase):
             self.assertEqual("ok", self.llm._cli("s", "u", model="haiku"))
         self.assertEqual(3, box["calls"])
 
+    def test_an_exhausted_quota_stops_at_once(self):
+        """额度用完不重试（要等重置），立刻停掉整轮 —— 原来按普通失败算，每一集都撞一次。"""
+        import unittest.mock as mock, types
+        self._gate_reset()
+        box = {"calls": 0}
+        def run(cmd, **kw):
+            box["calls"] += 1
+            return types.SimpleNamespace(returncode=1, stdout="",
+                                         stderr="You've hit your weekly limit · resets Oct 23 at 7pm (Asia/Hong_Kong)")
+        with mock.patch.object(self.llm.subprocess, "run", run), mock.patch.object(self.llm.time, "sleep", lambda s: None):
+            with self.assertRaises(self.llm.AuthError):
+                self.llm._cli("s", "u", model="haiku")
+        self.assertEqual(1, box["calls"], "额度用完还在重试")
+
     def test_a_cli_login_that_stays_broken_stops_the_run(self):
         """连续都被拒才是登录真失效：抛 AuthError 停掉整轮，不拿剩下每一集去撞（原来是普通 RuntimeError）。"""
         import unittest.mock as mock
@@ -11088,6 +11102,38 @@ class JudgingASourceNeedsEnoughEvidence(unittest.TestCase):
                          "被挡下的判决没列出来等人看 —— 挡住就等于看不见了")
 
 
+class AnITunesIdIsCheckedBeforeItSwapsAFeed(unittest.TestCase):
+    """2026-10-19：Hardcore History 登记的 iTunes id 其实是 This American Life。它更新慢，
+    feed 一过期就按 id「修」成了 TAL 的 feed —— 两档共用一个 feed，集会被判重复。
+    按名字搜那条路一直有校验，按 id 查这条路从没核对过「查回来的是不是这档节目」。"""
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.R = importlib.import_module("resolve_sources")
+
+    def test_a_different_show_behind_the_id_is_refused(self):
+        hc = {"id": "hardcore", "name": "Hardcore History", "zh": "Hardcore History"}
+        self.assertFalse(self.R.same_show(hc, {"collectionName": "This American Life"}),
+                         "按 id 查回来的是另一档节目，照样认了")
+        self.assertTrue(self.R.same_show(hc, {"collectionName": "Dan Carlin's Hardcore History"}),
+                        "名字比 iTunes 短一截就不认 —— 我们登记的名字常常是简称")
+        tf = {"id": "timferriss", "name": "The Tim Ferriss Show", "zh": "Tim Ferriss"}
+        self.assertTrue(self.R.same_show(tf, {"collectionName": "The Tim Ferriss Show"}))
+
+    def test_the_heal_branch_uses_the_check(self):
+        src = (ROOT / "pipeline" / "resolve_sources.py").read_text()
+        i = src.index('meta = (itunes_lookup(s["itunes"]) if s.get("itunes")')
+        self.assertIn("same_show(s, meta)", src[i:i + 500], "按 id 换 feed 之前没核对节目名")
+
+    def test_no_registered_itunes_id_points_at_another_registered_show(self):
+        """登记表里两档源不许共用一个 iTunes id —— Hardcore History 的错 id 正是 tal 的那档。"""
+        import extra_sources, collections
+        ids = collections.Counter(d.get("itunes") for d in extra_sources.EXTRA if d.get("itunes"))
+        dup = [i for i, n in ids.items() if n > 1]
+        self.assertEqual([], dup, f"这些 iTunes id 被两档源共用：{dup}")
+
+
 class AFollowedSourceKeepsUp(unittest.TestCase):
     """该跟的源出了新集，当天就要排上；排不上，体检要比用户先知道。
 
@@ -12450,7 +12496,9 @@ class LocalRetryPathKeepsTreeAndTranslations(unittest.TestCase):
 
     def _retry_block(self):
         src = (ROOT / "scripts" / "local-daily.sh").read_text()
-        i = src.index("git reset -q --mixed origin/main")
+        # 锚在**推送重试循环**里的那一句 reset：脚本前面还有 fold_onto_origin() 也 reset --mixed，
+        # 从第一句算起，会把中间的开跑探针（只 add 心跳）也算进重试分支（2026-10-27 尺子认错了地方）
+        i = src.index("git reset -q --mixed origin/main", src.index('echo "push 重试 $i"'))
         j = src.index('commit -q -m "digest + build (local)"', i)
         return src[i:j]
 
@@ -12942,7 +12990,8 @@ if NAME == "build.py":
         open(race + ".done", "w").close()
 '''
 
-    def _sandbox(self, tmp, publish=True, race=False, leftover=None, upstream=None, prep=None, die_on=None):
+    def _sandbox(self, tmp, publish=True, race=False, leftover=None, upstream=None, prep=None, die_on=None,
+                 claude_says=""):
         sh = (ROOT / "scripts" / "local-daily.sh").read_text()
         reads = _healthcheck_reads()
         writers = {k: sorted(v & reads) for k, v in _state_writers(reads).items()}
@@ -12952,7 +13001,8 @@ if NAME == "build.py":
         origin, box, home, bin_ = tmp / "origin.git", tmp / "box", tmp / "home", tmp / "bin"
         for d in (box / "pipeline", box / "scripts", box / "data" / "episodes", home, bin_):
             d.mkdir(parents=True)
-        (bin_ / "claude").write_text("#!/bin/sh\nexit 0\n")
+        # claude CLI 的桩：默认什么都不说（探针当成能用）；claude_says 模拟没登录、额度用完
+        (bin_ / "claude").write_text("#!/bin/sh\n" + (f"echo '{claude_says}'\nexit 1\n" if claude_says else "exit 0\n"))
         (bin_ / "claude").chmod(0o755)
         (box / "scripts" / "local-daily.sh").write_text(sh)
         for f in (".gitattributes", ".gitignore"):
@@ -13147,6 +13197,26 @@ if NAME == "build.py":
             self.assertTrue(self._on_origin(origin, "data/episodes/lost.json"), "上一轮没推送的集没推上去")
             stash = subprocess.run(["git", "stash", "list"], cwd=box, capture_output=True, text=True).stdout
             self.assertEqual("", stash, "上一轮的建站产物又被收进 stash、恢复冲突")
+
+    def _model_unusable(self, says, want):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            r, box, origin, log, reads = self._sandbox(tmp, claude_says=says)
+            self.assertNotEqual(0, r.returncode, "模型用不了，这一轮却当成成功跑完了：\n" + r.stdout[-1500:])
+            ran = log.read_text() if log.exists() else ""
+            self.assertNotIn('"by": "run.py"', ran, "模型用不了还去深读了 —— 扫 feed、转写一圈白干")
+            hb = json.loads(subprocess.run(["git", "--git-dir", str(origin), "show", "main:data/heartbeat-local.json"],
+                                           capture_output=True, text=True).stdout or "{}")
+            self.assertNotIn(hb.get("exit"), (0, None), "推上去的心跳不是失败 —— 体检看不出这一轮没出稿")
+            self.assertIn(want, hb.get("why", ""), f"心跳没写清原因：{hb.get('why')}")
+
+    def test_a_logged_out_cli_stops_the_run_and_says_why(self):
+        """2026-10-27：claude CLI 登录掉了。原来要等云端体检 30 小时后报「没心跳」，看不出是登录。"""
+        self._model_unusable("Not logged in · Please run /login", "登录")
+
+    def test_an_exhausted_quota_stops_the_run_and_says_why(self):
+        """2026-10-22：订阅周额度用完，7 集各撞一次，最后只说「error=7，部署有问题」。"""
+        self._model_unusable("You've hit your weekly limit · resets Oct 23 at 7pm (Asia/Hong_Kong)", "额度")
 
     def test_the_escape_hatch_keeps_unpushed_commits(self):
         """10-13 晚上：工作区卡在 stash pop 的冲突里，脱身逻辑 `reset --hard origin/main`

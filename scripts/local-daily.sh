@@ -286,6 +286,31 @@ PYEOF
   # 默认只跑云端抓不到的那批，避免和云端重复劳动
   [ -n "$ONLY_RESIDENTIAL" ] && ONLY_ARG="$ONLY_ARG --only-residential"
 
+  # **开跑前先探一下模型能不能用。** 2026-10-22 订阅周额度用完，10-27 发现 claude CLI 登录掉了 ——
+  # 原来要先扫完两百档 feed、转写一圈，最后以「error=7，部署有问题」收场，心跳也不推，云端体检
+  # 30 小时后才看见「没心跳」，而那时它淹没在一个已经红了五天的 issue 里，用户先发现「几天没更新了」。
+  # 探针只花一次 haiku 调用。探出来的原因写进心跳、**推上去**，体检下一班就报出具体原因。
+  if [ -z "${LLM_API_KEY:-}" ] && [ -z "${SKIP_LLM_PROBE:-}" ]; then
+    probe=$(perl -e 'alarm 120; exec @ARGV' claude -p --model haiku "reply with the single word ok" 2>&1 \
+            | tail -3 | tr '\n' ' ')
+    why=""
+    case "$probe" in
+      *"Not logged in"*|*"/login"*|*"ailed to authenticate"*)
+        why="claude CLI 没登录 —— 在终端里跑 claude，再输入 /login（${probe:0:120}）" ;;
+      *"hit your"*"limit"*|*"limit"*"resets"*|*"usage limit"*)
+        why="Claude 订阅额度用完（${probe:0:120}）" ;;
+    esac
+    if [ -n "$why" ]; then
+      echo "模型用不了，本轮不深读：$why" >&2
+      python3 pipeline/heartbeat.py local 6 --published 0 --why "$why" || true
+      git add data/heartbeat-local.json 2>/dev/null || true
+      git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
+          commit -q -m "heartbeat: local（模型用不了）" 2>/dev/null || true
+      git push -q origin main || echo "心跳推送失败（体检 30 小时后会从「没心跳」看出来）"
+      exit 6
+    fi
+  fi
+
   # --followup：记跟随账本（该跟的源最新一集有没有被落下），体检读它。只有这一处记 —— 补课不记。
   python3 pipeline/run.py $ONLY_ARG --followup \
       --limit "$LIMIT" --days "$DAYS" --max-words "$MAX_WORDS" $EXTRA

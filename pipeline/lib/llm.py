@@ -467,6 +467,9 @@ def _cli(system: str, user: str, *, model: str = "", tries: int = 4) -> str:
                 serial_retry = True
                 time.sleep(5)
                 continue
+        if _CLI_QUOTA.search(last):
+            # 订阅额度用完：重试没用（要等到重置），每一集都会撞同一面墙 —— 停掉整轮
+            raise AuthError(f"Claude 订阅额度用完：{last[:200]}\n  重置之前本机线出不了稿。")
         if i < tries - 1 and (_TRANSIENT.search(last) or _CLI_AUTH.search(last)):
             wait = 20 * (2 ** i)
             log(f"    provider busy ({last[:70]}) — retrying in {wait}s "
@@ -488,6 +491,9 @@ def _cli(system: str, user: str, *, model: str = "", tries: int = 4) -> str:
 # 连续失败才当成登录失效（AuthError 停掉整轮）。
 _CLI_AUTH = re.compile(r"failed to authenticate|API Error: 40[13]\b|invalid api key|"
                        r"please run /login|not logged in", re.I)
+# 2026-10-22：「You've hit your weekly limit · resets Oct 23 at 7pm」。原来按普通失败算，
+# 7 集各撞一次、整轮以「error=7，部署有问题」收场，看不出是额度。
+_CLI_QUOTA = re.compile(r"hit your (?:\w+ )?limit|usage limit reached|limit\s*·\s*resets", re.I)
 
 
 _AUTH = re.compile(r"HTTP (401|403)|invalid[ _-]?(x-)?api[ _-]?key|"
