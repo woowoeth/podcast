@@ -11134,6 +11134,22 @@ class AnITunesIdIsCheckedBeforeItSwapsAFeed(unittest.TestCase):
         self.assertEqual([], dup, f"这些 iTunes id 被两档源共用：{dup}")
 
 
+class ShellVariablesNeverRunIntoChineseText(unittest.TestCase):
+    """`$rc）`、`$keep，`：launchd 拉起的进程没有 UTF-8 locale，bash 把全角字符的字节算进变量名，
+    加上 set -u 就是「rc\\xef: unbound variable」—— 2026-10-27 失败通知因此一次都弹不出来；
+    同步失败的恢复分支里也有一处，走到就崩。变量后面紧跟中文一律写成 ${x}。"""
+
+    def test_no_bare_variable_runs_into_non_ascii(self):
+        bad = []
+        for f in sorted((ROOT / "scripts").glob("*.sh")):
+            for i, line in enumerate(f.read_text().splitlines(), 1):
+                if line.lstrip().startswith("#"):
+                    continue
+                if re.search(r"\$[A-Za-z_][A-Za-z0-9_]*[^\x00-\x7f]", line):
+                    bad.append(f"{f.name}:{i}: {line.strip()[:70]}")
+        self.assertEqual([], bad, "变量后面紧跟中文，launchd 下会变成另一个（未定义的）变量名")
+
+
 class AFollowedSourceKeepsUp(unittest.TestCase):
     """该跟的源出了新集，当天就要排上；排不上，体检要比用户先知道。
 
@@ -12991,7 +13007,7 @@ if NAME == "build.py":
 '''
 
     def _sandbox(self, tmp, publish=True, race=False, leftover=None, upstream=None, prep=None, die_on=None,
-                 claude_says=""):
+                 claude_says="", notify=False):
         sh = (ROOT / "scripts" / "local-daily.sh").read_text()
         reads = _healthcheck_reads()
         writers = {k: sorted(v & reads) for k, v in _state_writers(reads).items()}
@@ -13003,7 +13019,10 @@ if NAME == "build.py":
             d.mkdir(parents=True)
         # claude CLI 的桩：默认什么都不说（探针当成能用）；claude_says 模拟没登录、额度用完
         (bin_ / "claude").write_text("#!/bin/sh\n" + (f"echo '{claude_says}'\nexit 1\n" if claude_says else "exit 0\n"))
+        # osascript 的桩：记下弹了什么通知（macOS 上不真弹，Linux 上本来就没有）
+        (bin_ / "osascript").write_text(f"#!/bin/sh\nprintf '%s\\n' \"$*\" >> '{tmp / 'notified'}'\n")
         (bin_ / "claude").chmod(0o755)
+        (bin_ / "osascript").chmod(0o755) if (bin_ / "osascript").exists() else None
         (box / "scripts" / "local-daily.sh").write_text(sh)
         for f in (".gitattributes", ".gitignore"):
             (box / f).write_text((ROOT / f).read_text())
@@ -13065,6 +13084,8 @@ if NAME == "build.py":
             env["STUB_RACE"] = str(tmp / "race")
         if die_on:
             env["STUB_DIE_ON"] = die_on
+        if notify:
+            env["XPC_SERVICE_NAME"] = "com.ourword.podcast"     # launchd 拉起的那一轮
         # 自成一个进程组：桩模拟重启时 killpg 只杀这一轮，不杀测试进程
         r = subprocess.run(["bash", str(box / "scripts" / "local-daily.sh")], cwd=box, env=env,
                            capture_output=True, text=True, timeout=240, start_new_session=True)
@@ -13209,6 +13230,23 @@ if NAME == "build.py":
                                            capture_output=True, text=True).stdout or "{}")
             self.assertNotIn(hb.get("exit"), (0, None), "推上去的心跳不是失败 —— 体检看不出这一轮没出稿")
             self.assertIn(want, hb.get("why", ""), f"心跳没写清原因：{hb.get('why')}")
+
+    def test_a_failed_scheduled_run_pops_a_notification_with_the_reason(self):
+        """停更 5 天，报警全写进用户不看的 issue。launchd 拉起的那一轮失败，要在 Mac 上弹出来。"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            r, box, origin, log, reads = self._sandbox(tmp, claude_says="Not logged in · Please run /login",
+                                                        notify=True)
+            got = (pathlib.Path(tmp) / "notified").read_text() if (pathlib.Path(tmp) / "notified").exists() else ""
+            self.assertIn("原声日更失败（退出码 6）", got, "定时那一轮失败了，没弹通知：\n" + r.stdout[-800:])
+            self.assertIn("登录", got, f"通知里没说为什么：{got}")
+        with tempfile.TemporaryDirectory() as tmp:
+            self._sandbox(tmp, claude_says="Not logged in · Please run /login")
+            self.assertFalse((pathlib.Path(tmp) / "notified").exists(), "手动跑 / 测试里也弹通知")
+        with tempfile.TemporaryDirectory() as tmp:
+            r, *_ = self._sandbox(tmp, notify=True)
+            self.assertEqual(0, r.returncode, r.stdout[-800:])
+            self.assertFalse((pathlib.Path(tmp) / "notified").exists(), "成功的一轮也弹失败通知")
 
     def test_a_logged_out_cli_stops_the_run_and_says_why(self):
         """2026-10-27：claude CLI 登录掉了。原来要等云端体检 30 小时后报「没心跳」，看不出是登录。"""

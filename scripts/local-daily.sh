@@ -51,7 +51,7 @@ export PATH="/Library/Frameworks/Python.framework/Versions/3.14/bin:/opt/homebre
 ENV_FILE="$HOME/.config/podcast/env"
 if [ -f "$ENV_FILE" ]; then
   set -a; . "$ENV_FILE"; set +a
-  echo "已加载 $ENV_FILE（走 API 账单，不动订阅额度）"
+  echo "已加载 ${ENV_FILE}（走 API 账单，不动订阅额度）"
 fi
 
 : "${ONLY:=}"
@@ -89,6 +89,36 @@ export LLM_MODEL
 
 {
   echo "===== $(date '+%F %T') ====="
+
+  # **失败要让人看得见。** 2026-10-22～27 停更 5 天，体检的报警全写进了用户不看的 GitHub issue。
+  # launchd 拉起的这一轮（XPC_SERVICE_NAME 是任务名）以失败收场时，弹一条 Mac 通知：
+  # 退出码 + 心跳里写的原因（只认 6 小时内写的，早于这一轮的不拿来冒充）。手动跑、测试沙盒里不弹。
+  notify_failure() {
+    local rc=$?
+    [ "$rc" -eq 0 ] && return 0
+    [ "${XPC_SERVICE_NAME:-}" = "com.ourword.podcast" ] || [ -n "${PODCAST_NOTIFY:-}" ] || return 0
+    command -v osascript >/dev/null || return 0
+    # 文案在 Python 里拼：按字符截断、转义引号。bash 里 `$rc）` 会把全角括号的字节算进变量名
+    # （launchd 下没有 UTF-8 locale），`${x:0:180}` 也会从一个汉字中间切开。
+    local script
+    script=$(RC="${rc}" python3 - <<'PYEOF' 2>/dev/null
+import json, os, datetime as dt
+why = ""
+try:
+    d = json.load(open("data/heartbeat-local.json"))
+    at = dt.datetime.fromisoformat(d["at"].replace("Z", "+00:00"))
+    if dt.datetime.now(dt.timezone.utc) - at < dt.timedelta(hours=6):
+        why = d.get("why") or ""
+except Exception:
+    pass
+why = (why or "看日志 .cache/logs/%s.log" % dt.date.today().isoformat())[:180]
+q = lambda t: t.replace("\\", "\\\\").replace('"', '\\"')
+print('display notification "%s" with title "%s"' % (q(why), q("原声日更失败（退出码 %s）" % os.environ["RC"])))
+PYEOF
+)
+    [ -n "$script" ] && osascript -e "$script" >/dev/null 2>&1 || true
+  }
+  trap notify_failure EXIT
   command -v claude >/dev/null || { echo "找不到 claude CLI，PATH=$PATH"; exit 1; }
   command -v python3 >/dev/null || { echo "找不到 python3"; exit 1; }
 
@@ -179,7 +209,7 @@ export LLM_MODEL
       mkdir -p "$keep/$(dirname "$f")" && mv "$f" "$keep/$f" && moved=$((moved+1))
     done < <(git -c core.quotepath=false status --porcelain -uall |
              awk '/^\?\? /{sub(/^\?\? /,""); print}')
-    [ "$moved" -gt 0 ] && echo "挪开 $moved 个挡路的未跟踪产物 → $keep，重试同步"
+    [ "$moved" -gt 0 ] && echo "挪开 $moved 个挡路的未跟踪产物 → ${keep}，重试同步"
     ahead=$(git rev-list --count origin/main..HEAD 2>/dev/null || echo 0)
     if [ "$moved" -gt 0 ] && git pull --rebase --autostash -q origin main; then
       echo "同步成功（第二次）"
@@ -296,9 +326,9 @@ PYEOF
     why=""
     case "$probe" in
       *"Not logged in"*|*"/login"*|*"ailed to authenticate"*)
-        why="claude CLI 没登录 —— 在终端里跑 claude，再输入 /login（${probe:0:120}）" ;;
+        why="claude CLI 没登录 —— 在终端里跑 claude，再输入 /login（${probe}）" ;;
       *"hit your"*"limit"*|*"limit"*"resets"*|*"usage limit"*)
-        why="Claude 订阅额度用完（${probe:0:120}）" ;;
+        why="Claude 订阅额度用完（${probe}）" ;;
     esac
     if [ -n "$why" ]; then
       echo "模型用不了，本轮不深读：$why" >&2

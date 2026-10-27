@@ -38,7 +38,7 @@ LLM_MODEL_REVIEW=claude-opus-5
 EOF
 chmod 600 "$ENV_FILE"
 
-echo "已写入 $ENV_FILE（权限 600，长度 ${#KEY}）"
+echo "已写入 ${ENV_FILE}（权限 600，长度 ${#KEY}）"
 echo
 echo "验证一下这个 key 能不能用："
 cd "$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)" || exit 1
