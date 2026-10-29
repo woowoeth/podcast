@@ -13009,7 +13009,7 @@ class LocalLineLeavesNothingTheHealthcheckReadsUncommitted(unittest.TestCase):
     桩跟着就写，这里跟着就查。
     """
 
-    REAL = ("gitsync.py", "mergestate.py", "merge_usage.py", "checkdata.py", "heartbeat.py", "atload.py")
+    REAL = ("gitsync.py", "mergestate.py", "merge_usage.py", "checkdata.py", "heartbeat.py", "slot.py")
 
     STUB = r'''
 import datetime, json, os, pathlib, subprocess, sys
@@ -13070,7 +13070,7 @@ if NAME == "build.py":
 '''
 
     def _sandbox(self, tmp, publish=True, race=False, leftover=None, upstream=None, prep=None, die_on=None,
-                 claude_says="", notify=False):
+                 claude_says="", notify=False, scheduled=False, hb_local=None):
         sh = (ROOT / "scripts" / "local-daily.sh").read_text()
         reads = _healthcheck_reads()
         writers = {k: sorted(v & reads) for k, v in _state_writers(reads).items()}
@@ -13099,7 +13099,7 @@ if NAME == "build.py":
                 "usage.json": {stamp[:10]: {"seed/x": {"calls": 1, "in": 1, "out": 1, "think": 0}}},
                 "sources.json": {"sources": []},
                 "heartbeat-cloud.json": {"at": stamp, "line": "cloud", "exit": 0},
-                "heartbeat-local.json": {"at": stamp, "line": "local", "exit": 0}}
+                "heartbeat-local.json": hb_local or {"at": stamp, "line": "local", "exit": 0}}
         for f in reads:
             (box / "data" / f).write_text(json.dumps(seed.get(f, {"at": "2026-01-01T00:00:00Z"}), indent=1) + "\n")
         (box / "data" / "episodes" / "seed.json").write_text('{"slug": "seed"}\n')
@@ -13139,7 +13139,6 @@ if NAME == "build.py":
             # 上一轮被打断留下的现场（没推送的提交、没提交的建站产物、恢复失败的 stash……）
             prep(box, origin, tmp, git)
         env = {"PATH": f"{bin_}:{os.environ.get('PATH', '')}", "HOME": str(home),
-               "BOOT_AGE_S": "99999",     # 不是开机拉起的：atload 不拦（否则刚开机的机器上跑测试会被跳过）
                "PODCAST_REPO": str(box), "PODCAST_REEXEC": "1", "STUB_LOG": str(tmp / "writes.jsonl"),
                "STUB_PUBLISH": "1" if publish else "0", "STUB_ORIGIN": str(origin),
                "GIT_CONFIG_NOSYSTEM": "1", "LANG": "en_US.UTF-8"}
@@ -13149,6 +13148,11 @@ if NAME == "build.py":
             env["STUB_DIE_ON"] = die_on
         if notify:
             env["XPC_SERVICE_NAME"] = "com.ourword.podcast"     # launchd 拉起的那一轮
+        if scheduled:
+            # 定时拉起、不是重新执行的那一份：要过 slot.py 的判断（PODCAST_REEXEC 会跳过它）
+            env["PODCAST_SCHEDULED"] = "1"
+            env.pop("PODCAST_REEXEC")
+        self._env = env
         # 自成一个进程组：桩模拟重启时 killpg 只杀这一轮，不杀测试进程
         r = subprocess.run(["bash", str(box / "scripts" / "local-daily.sh")], cwd=box, env=env,
                            capture_output=True, text=True, timeout=240, start_new_session=True)
@@ -13319,6 +13323,92 @@ if NAME == "build.py":
         """2026-10-22：订阅周额度用完，7 集各撞一次，最后只说「error=7，部署有问题」。"""
         self._model_unusable("You've hit your weekly limit · resets Oct 23 at 7pm (Asia/Hong_Kong)", "额度")
 
+    # ---- 每小时的整点（pipeline/slot.py）：真跑脚本，看它碰了什么 ----
+    OLD_HB = {"at": "2026-01-01T00:00:00Z", "line": "local", "exit": 0}
+
+    def _rerun(self, box, env=None):
+        return subprocess.run(["bash", str(box / "scripts" / "local-daily.sh")], cwd=box, env=env or self._env,
+                              capture_output=True, text=True, timeout=240, start_new_session=True)
+
+    def _commits(self, origin):
+        return int(subprocess.run(["git", "--git-dir", str(origin), "rev-list", "--count", "main"],
+                                  capture_output=True, text=True).stdout.strip() or 0)
+
+    def test_a_tick_after_the_slot_has_run_touches_nothing(self):
+        """一天 24 个整点，22 个该什么都不做：不跑 run.py、不提交、不往日志里写一块。"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            r, box, origin, log, reads = self._sandbox(tmp, scheduled=True)   # 种子心跳：刚写的、退出码 0
+            self.assertEqual(0, r.returncode, r.stdout[-800:] + r.stderr[-400:])
+            self.assertFalse(log.exists() and '"by": "run.py"' in log.read_text(), "班次跑完了，整点又跑 run.py")
+            self.assertEqual(1, self._commits(origin), "跳过的整点也提交了东西")
+            self.assertNotIn("=====", r.stdout, "跳过的整点也往日志里写了一块")
+            self.assertIn("skip", (box / ".cache/logs/slot.log").read_text(), "整点来过没留痕：看不出 launchd 在不在拉")
+
+    def test_a_missed_slot_runs_on_the_next_tick_and_only_once(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            r, box, origin, log, reads = self._sandbox(tmp, scheduled=True, hb_local=self.OLD_HB)
+            self.assertEqual(0, r.returncode, r.stdout[-1500:] + r.stderr[-500:])
+            self.assertIn("班次：", r.stdout, "日志里没写这一轮为什么跑")
+            self.assertIn('"by": "run.py"', log.read_text(), "错过的班次，整点没补")
+            n = self._commits(origin)
+            self.assertGreater(n, 1, "补跑了却什么都没推上去")
+            r2 = self._rerun(box)
+            self.assertEqual(0, r2.returncode, r2.stdout[-800:])
+            self.assertNotIn("=====", r2.stdout, "补跑成功之后，下一个整点又跑了一轮")
+            self.assertEqual(n, self._commits(origin))
+
+    def test_hourly_retries_while_logged_out_report_once_then_resume(self):
+        """登录过期期间每小时探一次：第一次推心跳、弹通知，同一个原因之后只记日志；登录后下一个整点接上。"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            r, box, origin, log, reads = self._sandbox(tmp, scheduled=True, notify=True, hb_local=self.OLD_HB,
+                                                        claude_says="Not logged in · Please run /login")
+            self.assertEqual(6, r.returncode, r.stdout[-1500:])
+            n = self._commits(origin)
+            self.assertGreater(n, 1, "第一次探出没登录，心跳没推上去：体检看不见原因")
+            notified = pathlib.Path(tmp) / "notified"
+            self.assertEqual(1, len(notified.read_text().splitlines()), "第一次没弹通知")
+            r2 = self._rerun(box)
+            self.assertEqual(6, r2.returncode, r2.stdout[-1500:])
+            self.assertIn("第 2 次", r2.stdout)
+            self.assertEqual(n, self._commits(origin), "同一个原因每小时推一次心跳：一天二十个提交")
+            self.assertEqual(1, len(notified.read_text().splitlines()), "同一个原因每小时弹一次通知")
+            (pathlib.Path(tmp) / "bin" / "claude").write_text("#!/bin/sh\nexit 0\n")     # 用户登录了
+            r3 = self._rerun(box)
+            self.assertEqual(0, r3.returncode, r3.stdout[-1500:] + r3.stderr[-500:])
+            self.assertIn('"by": "run.py"', log.read_text(), "登录之后的整点没接着跑")
+            hb = json.loads(subprocess.run(["git", "--git-dir", str(origin), "show", "main:data/heartbeat-local.json"],
+                                           capture_output=True, text=True).stdout)
+            self.assertEqual(0, hb.get("exit"), "接上之后推上去的心跳不是成功")
+
+    def test_a_manual_run_never_runs_alongside_another(self):
+        """每小时起一次，就会撞上手动跑的那一份。同一个仓库同一时间只能有一个写入者。"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            r, box, origin, log, reads = self._sandbox(tmp)
+            self.assertEqual(0, r.returncode, r.stdout[-800:])
+            n = self._commits(origin)
+            fake = pathlib.Path(tmp) / "local-daily.sh"
+            fake.write_text("sleep 60\n")
+            other = subprocess.Popen(["bash", str(fake)], stdout=subprocess.DEVNULL,
+                                     stderr=subprocess.DEVNULL, start_new_session=True)
+            try:
+                (box / ".cache" / "daily.pid").write_text(f"{other.pid}\n")
+                env = dict(self._env)
+                env.pop("PODCAST_REEXEC")
+                r2 = self._rerun(box, env)
+                self.assertEqual(1, r2.returncode, "另一轮还在跑，手动这一份照样开跑：\n" + r2.stdout[-800:])
+                self.assertIn("已经有一轮在跑", r2.stdout)
+                self.assertEqual(n, self._commits(origin))
+                os.killpg(other.pid, 9); other.wait()
+                r3 = self._rerun(box, env)
+                self.assertEqual(0, r3.returncode, "那一轮结束了，锁还拦着：\n" + r3.stdout[-800:])
+            finally:
+                if other.poll() is None:
+                    os.killpg(other.pid, 9)
+
     def test_the_escape_hatch_keeps_unpushed_commits(self):
         """10-13 晚上：工作区卡在 stash pop 的冲突里，脱身逻辑 `reset --hard origin/main`
         把没推送的 digest 提交（4 篇）整个扔掉，只剩 reflog。"""
@@ -13363,54 +13453,150 @@ if NAME == "build.py":
             self.assertTrue(rescue, "折之前没把原提交挂到 refs/rescue/ —— 折坏了就找不回来")
 
 
-class AMissedSlotIsRunAfterBoot(unittest.TestCase):
-    """本机线跑在笔记本上：关着机，到点那一班整班错过；跑到一半被重启，要等下一班。
-    2026-10-12～14 两次重启、一次关机，站上停了两天半，每次开机后机器都闲着。
-    plist 改成 RunAtLoad，由 pipeline/atload.py 判断开机后要不要补。"""
+class AMissedSlotIsCaughtUpWithinTheHour(unittest.TestCase):
+    """本机线跑在笔记本上，原来只在 10:30 / 21:30 两个点起（加开机补跑）。到点那一下没跑成，
+    就整整等 11 个小时：2026-10-12～14 两次重启、一次关机，站上停了两天半；10-27～29 claude CLI
+    登录过期，用户 10:45 重新登录，下一班要到 21:30。现在 launchd 每小时 :30 拉一次，
+    pipeline/slot.py 判断「最近一班跑成了没有」。"""
 
     def setUp(self):
         sys.path.insert(0, str(ROOT / "pipeline"))
         import importlib
-        self.a = importlib.import_module("atload")
+        self.s = importlib.import_module("slot")
 
     def _t(self, s):
         import datetime as dt
         return dt.datetime.fromisoformat(s)
 
-    def test_an_interrupted_slot_is_rerun_after_boot(self):
-        # 10-14 10:30 那一班跑到 10:40 被重启；10:42 登录。心跳还停在前一天
-        run, why = self.a.decide(self._t("2026-10-14T10:42:00+08:00"), 120, self._t("2026-10-13T10:30:08+08:00"))
-        self.assertTrue(run, why)
+    def _hb(self, at, code=0, why=""):
+        return {"at": self._t(at), "exit": code, "why": why}
+
+    def _state(self, slot, tries):
+        return {"slot": self._t(slot).isoformat(), "tries": tries}
+
+    def test_a_slot_is_run_on_time(self):
+        run, tries, why = self.s.decide(self._t("2026-10-29T10:30:04+08:00"),
+                                        self._hb("2026-10-28T23:10:00+08:00"), {})
+        self.assertEqual((True, 1), (run, tries), why)
+
+    def test_an_interrupted_slot_is_rerun_on_the_next_tick(self):
+        # 10-14 10:30 那一班跑到 10:40 被重启，没写出心跳；11:30 的整点
+        run, tries, why = self.s.decide(self._t("2026-10-14T11:30:00+08:00"),
+                                        self._hb("2026-10-13T22:51:00+08:00"),
+                                        self._state("2026-10-14T10:30:00+08:00", 1))
+        self.assertEqual((True, 2), (run, tries), why)
 
     def test_a_slot_missed_while_powered_off_is_run_after_boot(self):
         # 10-12 20:51 关机，10-13 09:28 开机：21:30 那一班整班错过
-        run, why = self.a.decide(self._t("2026-10-13T09:28:00+08:00"), 60, self._t("2026-10-12T10:57:00+08:00"))
+        run, tries, why = self.s.decide(self._t("2026-10-13T09:28:00+08:00"),
+                                        self._hb("2026-10-12T10:57:00+08:00"), {})
         self.assertTrue(run, why)
+        self.assertIn("10-12 21:30", why)
 
     def test_a_slot_that_already_ran_is_not_run_again(self):
-        run, why = self.a.decide(self._t("2026-10-14T15:00:00+08:00"), 60, self._t("2026-10-14T11:40:00+08:00"))
-        self.assertFalse(run, "开机就把刚跑过的那一班又跑一遍 —— 白花额度")
+        run, _, why = self.s.decide(self._t("2026-10-14T15:30:00+08:00"),
+                                    self._hb("2026-10-14T11:40:00+08:00"), {})
+        self.assertFalse(run, "整点把刚跑过的那一班又跑一遍 —— 一天二十多轮，额度全烧在重复上")
 
-    def test_only_boot_time_launches_are_judged(self):
-        # 定时触发、唤醒补跑、手动 kickstart：开机早就过了 20 分钟，一律照跑
-        run, _ = self.a.decide(self._t("2026-10-14T15:00:00+08:00"), 99999, self._t("2026-10-14T11:40:00+08:00"))
-        self.assertTrue(run)
+    def test_a_relogin_mid_morning_is_picked_up_within_the_hour(self):
+        """2026-10-29：10:30 那一班探针探出没登录；用户 10:45 登录，11:30 就该接上，不等 21:30。"""
+        why_login = "claude CLI 没登录 —— 在终端里跑 claude，再输入 /login（Failed to authenticate）"
+        hb = self._hb("2026-10-29T10:30:40+08:00", 6, why_login)
+        run, tries, why = self.s.decide(self._t("2026-10-29T11:30:00+08:00"), hb,
+                                        self._state("2026-10-29T10:30:00+08:00", 1))
+        self.assertEqual((True, 2), (run, tries), why)
+        # 一整天都没登录：模型用不了只花一次探针，不设上限，什么时候登录什么时候接上
+        run, _, why = self.s.decide(self._t("2026-10-29T20:30:00+08:00"), hb,
+                                    self._state("2026-10-29T10:30:00+08:00", 10))
+        self.assertTrue(run, "模型用不了也按次数封顶 —— 用户下午登录了，照样等到 21:30")
 
-    def test_slots_match_the_plist(self):
+    def test_other_failures_stop_after_three_tries(self):
+        """一次失败的整轮可能已经转写、深读了一圈。上限写死成 3，不读 slot.MAX_TRIES ——
+        读它就等于拿被量的东西当尺子：有人把它改成 99，这里照样绿。"""
+        hb = self._hb("2026-10-29T10:35:00+08:00", 1, "同步后 data 下有坏掉的 JSON")
+        st = lambda n: self._state("2026-10-29T10:30:00+08:00", n)
+        now = self._t("2026-10-29T13:30:00+08:00")
+        self.assertTrue(self.s.decide(now, hb, st(2))[0])
+        run, _, why = self.s.decide(now, hb, st(3))
+        self.assertFalse(run, "同一面墙每小时撞一次整轮跑批")
+        self.assertIn("留给下一班", why)
+        # 没写出心跳（每次都被打断）也一样封顶
+        old = self._hb("2026-10-28T22:00:00+08:00")
+        self.assertFalse(self.s.decide(now, old, st(3))[0])
+
+    def test_a_new_slot_starts_counting_from_zero(self):
+        run, tries, why = self.s.decide(self._t("2026-10-29T21:30:00+08:00"),
+                                        self._hb("2026-10-29T10:35:00+08:00", 1),
+                                        self._state("2026-10-29T10:30:00+08:00", 3))
+        self.assertEqual((True, 1), (run, tries), why)
+
+    def test_a_tick_while_the_last_run_is_still_going_does_nothing(self):
+        run, _, why = self.s.decide(self._t("2026-10-29T11:30:00+08:00"),
+                                    self._hb("2026-10-28T23:00:00+08:00"), {}, busy=4242)
+        self.assertFalse(run, "上一轮还在跑（主轮 + 补课常常两个小时），整点又起一份")
+
+    def test_only_a_repeat_of_the_same_cause_is_quiet(self):
+        login = "claude CLI 没登录 —— 在终端里跑 claude，再输入 /login（%s）"
+        hb = self._hb("2026-10-29T10:30:40+08:00", 6, login % "Failed to authenticate")
+        now = self._t("2026-10-29T11:30:00+08:00")
+        st = lambda n: self._state("2026-10-29T10:30:00+08:00", n)
+        self.assertTrue(self.s.quiet(now, hb, st(2), login % "OAuth session expired"),
+                        "括号里的原文每次都不一样，同一个原因要认得出来")
+        self.assertFalse(self.s.quiet(now, hb, st(1), login % "x"), "这一班第一次就不报")
+        self.assertFalse(self.s.quiet(now, hb, st(2), "Claude 订阅额度用完（x）"), "原因变了也不报")
+        self.assertFalse(self.s.quiet(self._t("2026-10-29T21:30:00+08:00"), hb, st(5), login % "x"),
+                         "新的一班第一次也不报")
+
+    def test_the_lock_is_a_live_local_daily_process(self):
+        """锁只认「还活着、而且是 local-daily.sh」的 PID：死掉的、被别的进程复用的都不算占着。"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            fake = pathlib.Path(tmp) / "local-daily.sh"
+            fake.write_text("sleep 60\n")
+            other = subprocess.Popen(["bash", str(fake)], stdout=subprocess.DEVNULL,
+                                     stderr=subprocess.DEVNULL, start_new_session=True)
+            lock = self.s.LOCK
+            try:
+                self.s.LOCK = pathlib.Path(tmp) / "daily.pid"
+                self.s.LOCK.write_text(f"{other.pid}\n")
+                self.assertEqual(other.pid, self.s.running(own=1))
+                self.assertIsNone(self.s.running(own=other.pid), "自己（重新执行的那一份）不算别人占着")
+                self.s.LOCK.write_text(f"{os.getpid()}\n")
+                self.assertIsNone(self.s.running(own=1), "活着但不是 local-daily.sh（PID 被复用）也算占着")
+                self.s.LOCK.write_text(f"{other.pid}\n")
+                os.killpg(other.pid, 9); other.wait()
+                self.assertIsNone(self.s.running(own=1), "进程死了锁还算占着 —— 一次崩溃就永远不跑")
+            finally:
+                self.s.LOCK = lock
+                if other.poll() is None:
+                    os.killpg(other.pid, 9)
+
+    def test_the_plist_ticks_every_hour_on_the_slot_minute(self):
         plist = (ROOT / "scripts" / "com.ourword.podcast.plist").read_text()
-        cal = plist[plist.index("StartCalendarInterval"):plist.index("</array>", plist.index("StartCalendarInterval"))]
-        got = set(zip(map(int, re.findall(r"<key>Hour</key><integer>(\d+)", cal)),
-                      map(int, re.findall(r"<key>Minute</key><integer>(\d+)", cal))))
-        self.assertEqual(set(self.a.SLOTS), got, "atload.SLOTS 和 plist 的定时对不上：补跑会按错的班次判断")
-        self.assertRegex(plist, r"<key>RunAtLoad</key><true/>", "plist 没开 RunAtLoad：开机不会补跑")
+        i = plist.index("<key>StartCalendarInterval</key>")
+        cal = plist[i:plist.index("</dict>", i)]
+        self.assertNotIn("<key>Hour</key>", cal, "plist 又只在固定钟点起：到点那一下没跑成就等 11 个小时")
+        got = {int(m) for m in re.findall(r"<key>Minute</key><integer>(\d+)", cal)}
+        self.assertEqual({m for _, m in self.s.SLOTS}, got, "整点的分钟和班次对不上：班次会被晚跑")
+        self.assertRegex(plist, r"<key>RunAtLoad</key><true/>", "plist 没开 RunAtLoad：关机错过的不会补")
+        self.assertRegex(plist, r"<key>PODCAST_SCHEDULED</key><string>1</string>",
+                         "定时拉起的没打标记：slot.py 不判断，每小时都跑一整轮")
 
-    def test_the_script_skips_only_on_the_dedicated_code(self):
-        """atload 自己坏了（异常退出 1）也要照跑：判断坏掉时静默停线，比多跑一轮贵得多。"""
+    def test_the_script_judges_before_touching_anything(self):
         sh = (ROOT / "scripts" / "local-daily.sh").read_text()
-        self.assertIn("python3 pipeline/atload.py; [ $? -eq 3 ] && exit 0", sh)
-        self.assertEqual(3, self.a.SKIP)
-        self.assertLess(sh.index("pipeline/atload.py"), sh.index("pipeline/runlock.py"),
-                        "开机补跑的判断要在等锁、同步之前")
+        decide = sh.index("python3 pipeline/slot.py decide --pid $$")
+        self.assertLess(decide, sh.index('echo "===== $(date'), "跳过的整点也往日志里写一块")
+        self.assertLess(decide, sh.index("pipeline/runlock.py"), "判断要在等锁、同步之前")
+        self.assertEqual(3, self.s.SKIP)
+        self.assertIn('3) exit 0 ;;', sh)
+
+    def test_a_broken_judge_falls_back_to_the_slot_hours_only(self):
+        """slot.py 自己坏了：宁可退回一天两班，也不能每小时跑一整轮（一天二十多轮烧光额度）。"""
+        sh = (ROOT / "scripts" / "local-daily.sh").read_text()
+        m = re.search(r'case "\$\(date \+%H\)" in\s+([0-9|]+)\)', sh)
+        self.assertTrue(m, "找不到 slot.py 坏掉时的退路")
+        self.assertEqual({h for h, _ in self.s.SLOTS}, set(map(int, m.group(1).split("|"))),
+                         "退路的钟点和班次对不上")
 
 
 class StateNotesMergeInsteadOfConflicting(unittest.TestCase):

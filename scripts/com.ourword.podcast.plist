@@ -15,21 +15,22 @@
     <string>__DIR__/scripts/local-daily.sh</string>
   </array>
 
-  <!-- 每天 10:30 / 21:30 各一次。机器当时睡着的话，launchd 会在唤醒后补跑。 -->
   <key>EnvironmentVariables</key>
   <dict>
     <!-- 本机只跑云端做不到的那批（YouTube 与 Substack）。云端负责其余那些。 -->
     <key>ONLY_RESIDENTIAL</key><string>1</string>
     <key>LIMIT</key><string>6</string>
     <key>DAYS</key><string>21</string>
+    <!-- 定时拉起的：由 pipeline/slot.py 判断这一下要不要真跑。手动跑的不判断，只占锁。 -->
+    <key>PODCAST_SCHEDULED</key><string>1</string>
   </dict>
+  <!-- 每小时 :30 拉一次。正点班次是 10:30 / 21:30（pipeline/slot.py 的 SLOTS）；其余的整点只看
+       「最近一班跑成了没有」，跑成了就什么都不做，没成就补。原来只在两个正点起，到点那一下
+       没跑成（睡着、关机、重启打断、登录过期、额度用完）就整整等 11 个小时。
+       睡着时错过的几次，launchd 在唤醒后合成一次补上。 -->
   <key>StartCalendarInterval</key>
-  <array>
-    <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>30</integer></dict>
-    <dict><key>Hour</key><integer>21</integer><key>Minute</key><integer>30</integer></dict>
-  </array>
-  <!-- 关着机，到点那一班就整班错过；跑到一半被重启，也要等下一班（2026-10-12～14 站上停了两天半）。
-       登录时拉起一次，由 pipeline/atload.py 判断：开机 20 分钟内、最近一班的心跳还没写过才跑。 -->
+  <dict><key>Minute</key><integer>30</integer></dict>
+  <!-- 登录时也拉一次（关着机，整点那几下全错过了），同样交给 slot.py 判断。 -->
   <key>RunAtLoad</key><true/>
   <key>StandardOutPath</key>
   <string>__DIR__/.cache/logs/launchd.out</string>

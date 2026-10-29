@@ -87,8 +87,40 @@ else
 fi
 export LLM_MODEL
 
+# **班次**（pipeline/slot.py）：launchd 每小时 :30 拉一次，最近一班（10:30 / 21:30）跑成了就什么都不做
+# —— 不进日志块、不碰 git，只在 .cache/logs/slot.log 记一行。没跑成就补：原来到点那一下没跑成
+# （睡着、关机、重启打断、登录过期、额度用完）要干等 11 个小时（2026-10-29 用户 10:45 重新登录，下一班 21:30）。
+# 判断脚本自己坏了（退出码不是 0 / 3）：退回老规矩，只在班次那个钟头里跑 —— 不能变成每小时跑一整轮烧额度。
+# 手动跑的不判断班次，只占锁：已经有一轮在跑就不跑（同一个仓库同一时间只能有一个写入者）。
+# 「拉下了新版就用新版跑」重新执行的那一份（PODCAST_REEXEC）已经判断过、锁也是父进程占着。
+SLOT_WHY=""
+if [ -z "${PODCAST_REEXEC:-}" ]; then
+  if [ -n "${PODCAST_SCHEDULED:-}" ] || [ "${XPC_SERVICE_NAME:-}" = "com.ourword.podcast" ]; then
+    slot_out=$(python3 pipeline/slot.py decide --pid $$)
+    slot_rc=$?
+    case "$slot_rc" in
+      0) SLOT_WHY="${slot_out#*	}" ;;
+      3) exit 0 ;;
+      *) case "$(date +%H)" in
+           10|21) SLOT_WHY="判断班次的 slot.py 坏了（退出码 ${slot_rc}），退回老规矩：只在 10 点、21 点这一档跑" ;;
+           *) echo "$(date '+%F %T')  skip  slot.py 坏了（退出码 ${slot_rc}），不在 10 点 / 21 点这一档，不跑" >> "$LOG_DIR/slot.log"
+              exit 0 ;;
+         esac ;;
+    esac
+  else
+    python3 pipeline/slot.py claim --pid $$
+    [ $? -eq 3 ] && exit 1
+  fi
+  # 跑的这一两个小时别让 Mac 闲置睡过去（-w：跟着这个脚本的进程走，脚本结束它就退）。
+  # 合盖照样会睡 —— 那是用户的决定；醒来后下一个整点会补。输出必须接走：它活得比日志管道久。
+  if [ -x /usr/bin/caffeinate ]; then
+    /usr/bin/caffeinate -i -w $$ >/dev/null 2>&1 &
+  fi
+fi
+
 {
   echo "===== $(date '+%F %T') ====="
+  [ -n "$SLOT_WHY" ] && echo "班次：${SLOT_WHY}"
 
   # **失败要让人看得见。** 2026-10-22～27 停更 5 天，体检的报警全写进了用户不看的 GitHub issue。
   # launchd 拉起的这一轮（XPC_SERVICE_NAME 是任务名）以失败收场时，弹一条 Mac 通知：
@@ -96,6 +128,8 @@ export LLM_MODEL
   notify_failure() {
     local rc=$?
     [ "$rc" -eq 0 ] && return 0
+    # 每小时重试撞上同一个「模型用不了」：第一次已经弹过，不再每小时弹一条（见 slot.py quiet）
+    [ -n "${QUIET_FAIL:-}" ] && return 0
     [ "${XPC_SERVICE_NAME:-}" = "com.ourword.podcast" ] || [ -n "${PODCAST_NOTIFY:-}" ] || return 0
     command -v osascript >/dev/null || return 0
     # 文案在 Python 里拼：按字符截断、转义引号。bash 里 `$rc）` 会把全角括号的字节算进变量名
@@ -129,10 +163,6 @@ PYEOF
   }
   command -v claude >/dev/null || { echo "找不到 claude CLI，PATH=$PATH"; exit 1; }
   command -v python3 >/dev/null || { echo "找不到 python3"; exit 1; }
-
-  # 开机补跑（plist 的 RunAtLoad）：开机 20 分钟内被拉起时，最近一班已经跑过就不重跑。
-  # 只认退出码 3 = 不用跑；判断脚本自己坏了（别的非零）照跑 —— 宁可多跑一轮，不能静默停线。
-  python3 pipeline/atload.py; [ $? -eq 3 ] && exit 0
 
   # **补存量的一批还在跑，就先等它跑完，再动 git 和 data/。** 它占着 data/.run.lock 写 state.json
   # 和集文件；这时候 pull／commit 会把账本写乱，run.py 拿不到锁又会「这一轮跳过」、什么都不提交。
@@ -340,6 +370,12 @@ PYEOF
     esac
     if [ -n "$why" ]; then
       echo "模型用不了，本轮不深读：$why" >&2
+      # 这一班已经为同一个原因推过心跳、弹过通知：每小时的重试只记日志，不再提交、推送、弹窗
+      if python3 pipeline/slot.py quiet "$why"; then
+        echo "（同一个原因这一班已经报过了；下一个整点再探）" >&2
+        QUIET_FAIL=1
+        exit 6
+      fi
       python3 pipeline/heartbeat.py local 6 --published 0 --why "$why" || true
       git add data/heartbeat-local.json 2>/dev/null || true
       git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \

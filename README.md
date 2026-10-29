@@ -78,7 +78,7 @@ python3 -m unittest discover -s tests    # 87 项
 | | 跑什么 | 频率 |
 |---|---|---|
 | 云端 GitHub Actions | 45 档（官方逐字稿 / feed 全文 / 官网文稿页 / RSS 音频转写） | 每天三班 cron |
-| 本机 launchd | 16 档（YouTube 与 Substack，机房 IP 抓不到） | 每天 10:30 与 21:30 |
+| 本机 launchd | 16 档（YouTube 与 Substack，机房 IP 抓不到）；云端深读关着时全站都管 | 每天 10:30 与 21:30，没跑成每小时补 |
 
 state.json 在 git 里，本机跑前先 `git pull`，所以不会重复发同一集。
 
@@ -93,9 +93,13 @@ cp scripts/com.ourword.podcast.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.ourword.podcast.plist
 ```
 
-每天 10:30 与 21:30 各跑一次（`--only-residential`，每次上限 6 篇），完整链路并推送。
-日志在 `.cache/logs/`。停掉用 `launchctl unload`。代价：机器睡着或断网时不跑
-（launchd 会在唤醒后补跑）。
+正点班次是每天 10:30 与 21:30（`--only-residential`，每次上限 6 篇；云端深读关着时本机接班、全站都管），
+完整链路并推送。launchd **每小时 :30 拉一次**，由 `pipeline/slot.py` 判断：最近一班跑成了就什么都不做，
+没跑成（睡着、关机、重启打断、claude CLI 登录过期、订阅额度用完）就补 —— 模型用不了的每小时探一次
+（只花一次 haiku 调用，同一个原因只推一次心跳、弹一次通知），别的失败每班最多试 3 次。
+每个整点的判断记在 `.cache/logs/slot.log`，跑批日志在 `.cache/logs/日期.log`。
+手动跑直接 `bash scripts/local-daily.sh`（已经有一轮在跑就拒绝）；`launchctl kickstart` 走的是定时那条路，
+班次跑完了它就不跑。停掉用 `launchctl unload`。
 
 转写用本机模型，**不需要任何 key**：`mlx-whisper`（Apple Silicon）+ `imageio-ffmpeg`
 自带的静态 ffmpeg。它返回逐句真实时间码，比云端 SenseVoice 那条更准（后者只给整段

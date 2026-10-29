@@ -36,14 +36,16 @@ plutil -lint "$PLIST"
 
 launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "$PLIST"
-echo "已装。计划时间："
-plutil -p "$PLIST" | grep -A6 StartCalendarInterval
+echo "已装。计划时间（每小时 :30；正点班次见 pipeline/slot.py 的 SLOTS）："
+plutil -p "$PLIST" | grep -A3 StartCalendarInterval
 
 cat <<'NOTE'
 
-先手动跑一次再信它——从没跑过的定时任务等于没有：
-  launchctl kickstart -p gui/$(id -u)/com.ourword.podcast
-  tail -f "$HOME/Library/Application Support/ourword-podcast/podcast/.cache/logs/$(date +%F).log"
+装上时（RunAtLoad）就会拉一次。先看它判断了什么再信它——从没跑过的定时任务等于没有：
+  tail "$HOME/Library/Application Support/ourword-podcast/podcast/.cache/logs/slot.log"
+最近一班已经跑完时，整点和 kickstart 都只记一行 skip、不跑。要真跑一轮，直接执行脚本
+（已经有一轮在跑就会拒绝）：
+  bash "$HOME/Library/Application Support/ourword-podcast/podcast/scripts/local-daily.sh"
 stderr 有东西就是环境问题（PATH、权限、密钥），不是内容问题：
   cat "$HOME/Library/Application Support/ourword-podcast/podcast/.cache/logs/launchd.err"
 NOTE
