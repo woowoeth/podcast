@@ -418,4 +418,11 @@ EXTRA: list[dict] = [
        # feed 搬过两次家（buzzsprout → simplecast → megaphone）。周一 AI × 认知那半集是站上没有的；
        # 周四 AI 短评和 eightythousand、ezra、hardfork 追同一批新闻。一半是听众问答、口播约 8%，所以 tier 3。
        residential=True, desc="计算机教授 Cal Newport 独白拆新论文与 AI 新闻，判断 AI 和手机怎样改变注意力与思考，后半集答听众问"),
+  # ---- 2026-10-29：用户点名入库、「优先级可以高点」→ tier 1（进「该跟的源」：核心道先取、落下了体检报）----
+  dict(id="wangqinwen", name="王钦文", zh="王钦文", cat="biz", tier=1, lang="zh",
+       kind="youtube", feed="https://www.youtube.com/feeds/videos.xml?channel_id=UCvtFVNiF3l-zS1UxN-WEJ3A",
+       # 只有 YouTube 频道（约每周 2 集，单集 25–100 分钟，近 10 集中位约 45 分钟）。没有任何字幕（含自动字幕），
+       # 文稿只能本机下载音频转写 —— 必须 residential。YouTube RSS 这阵子间歇性 404，feeds.fetch 用 yt-dlp 兜底。
+       # 有展会报道（IFA）和企业周年专访，tier 1 选题只拦广告，靠成稿评分把关。
+       residential=True, desc="王钦文对话企业家与产业一线：TCL 李东生、阿那亚马寅、洁丽雅石晶等，拆增长、出海与接班的一手判断"),
 ]
