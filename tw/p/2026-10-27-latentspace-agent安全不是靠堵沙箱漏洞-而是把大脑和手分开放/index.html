@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent安全不是靠堵沙箱漏洞，而是把大腦和手分開放 — Latent Space · 原聲</title>
+<meta name="description" content="Anthropic把執行代理架構拆成常駐服務器上的「大腦」和隨時可銷燬的沙箱「手」，憑證只存在出口網關，agent從未真正碰到過它們，這是意外但最關鍵的安全收益。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/tw/p/2026-10-27-latentspace-agent安全不是靠堵沙箱漏洞-而是把大脑和手分开放/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原聲">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:title" content="Agent安全不是靠堵沙箱漏洞，而是把大腦和手分開放 — Latent Space · 原聲">
+<meta property="og:description" content="Anthropic把執行代理架構拆成常駐服務器上的「大腦」和隨時可銷燬的沙箱「手」，憑證只存在出口網關，agent從未真正碰到過它們，這是意外但最關鍵的安全收益。">
+<meta property="og:url" content="https://ourword.ai/podcast/tw/p/2026-10-27-latentspace-agent安全不是靠堵沙箱漏洞-而是把大脑和手分开放/">
+<meta property="og:image" content="https://media.beehiiv.com/cdn-cgi/image/fit=scale-down,format=auto,onerror=redirect,quality=80/uploads/asset/file/d4933544-aa8c-47f8-a092-ec3775a7abd9/podcast_artwork_20261021-241-xyrobd.jpg?t=1792609818"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-10-27T18:40:19Z">
+<meta property="article:modified_time" content="2026-10-29T03:55:29Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Agent安全不是靠堵沙箱漏洞，而是把大腦和手分開放 — Latent Space · 原聲">
+<meta name="twitter:description" content="Anthropic把執行代理架構拆成常駐服務器上的「大腦」和隨時可銷燬的沙箱「手」，憑證只存在出口網關，agent從未真正碰到過它們，這是意外但最關鍵的安全收益。">
+<meta name="twitter:image" content="https://media.beehiiv.com/cdn-cgi/image/fit=scale-down,format=auto,onerror=redirect,quality=80/uploads/asset/file/d4933544-aa8c-47f8-a092-ec3775a7abd9/podcast_artwork_20261021-241-xyrobd.jpg?t=1792609818">
+<link rel="icon" type="image/svg+xml" href="/podcast/tw/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/tw/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原聲" href="/podcast/tw/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-10-27-latentspace-agent安全不是靠堵沙箱漏洞-而是把大脑和手分开放/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-10-27-latentspace-agent安全不是靠堵沙箱漏洞-而是把大脑和手分开放/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-10-27-latentspace-agent安全不是靠堵沙箱漏洞-而是把大脑和手分开放/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=6982a60148">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/tw/p/2026-10-27-latentspace-agent安全不是靠堵沙箱漏洞-而是把大脑和手分开放/#episode", "name": "Agent安全不是靠堵沙箱漏洞，而是把大腦和手分開放", "headline": "Agent安全不是靠堵沙箱漏洞，而是把大腦和手分開放", "description": "Anthropic把執行代理架構拆成常駐服務器上的「大腦」和隨時可銷燬的沙箱「手」，憑證只存在出口網關，agent從未真正碰到過它們，這是意外但最關鍵的安全收益。", "abstract": "Anthropic把執行代理架構拆成常駐服務器上的「大腦」和隨時可銷燬的沙箱「手」，憑證只存在出口網關，agent從未真正碰到過它們，這是意外但最關鍵的安全收益。", "datePublished": "2026-10-27T18:40:19Z", "dateModified": "2026-10-29T03:55:29Z", "url": "https://ourword.ai/podcast/tw/p/2026-10-27-latentspace-agent安全不是靠堵沙箱漏洞-而是把大脑和手分开放/", "timeRequired": "PT106M", "partOfSeries": {"@type": "PodcastSeries", "name": "Latent Space", "url": "https://ourword.ai/podcast/tw/s/latentspace/"}, "inLanguage": "zh-TW", "isBasedOn": "https://lspace.beehiiv.com/podcast/s/latent_space_the_ai_engineer_podcast/how_anthropic_ships_the_1_llm_in_the_world_safely_separating_the_brain_from_the_hands", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "Anthropic, AI安全, Agent架構, 算力, 模型蒸餾, 企業平臺, distillation, trust grant, Claude Managed Agent, chain-of-thought extraction, brain/hands architecture, 12個月收入/員工, Anthropic IPO預期估值, Rust重寫後CPU節省, Rust重寫後首token延遲改善", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}, "associatedMedia": {"@type": "AudioObject", "contentUrl": "https://podcasts.beehiiv.com/3967c1f2-cb97-4eb0-a5c0-21a1d2579408/01a15fdf-0e93-7e1a-880d-d73752a1f915/01a17e24-16fc-71e3-bdc8-f0c1aeee546c/01a17e24-18bb-7daa-afc4-3f3bfdc294d7.mp3"}}, {"@type": "Article", "@id": "https://ourword.ai/podcast/tw/p/2026-10-27-latentspace-agent安全不是靠堵沙箱漏洞-而是把大脑和手分开放/#deepread", "headline": "Agent安全不是靠堵沙箱漏洞，而是把大腦和手分開放", "description": "Anthropic把執行代理架構拆成常駐服務器上的「大腦」和隨時可銷燬的沙箱「手」，憑證只存在出口網關，agent從未真正碰到過它們，這是意外但最關鍵的安全收益。", "articleBody": "Anthropic把執行代理架構拆成常駐服務器上的「大腦」和隨時可銷燬的沙箱「手」，憑證只存在出口網關，agent從未真正碰到過它們，這是意外但最關鍵的安全收益。\n[1:01] 人效一年漲了將近五倍。過去一年Anthropic的12個月收入/員工從140萬美元漲到660萬美元，同時從Q2每1美元收入要倒貼0.5美元，變成每1美元成本能賺2美元，本季度GAAP利潤率19%，一年前是-129%。S1裡把原因歸為兩個互相咬合的循環：更好的Claude帶來更多用例和反饋，迭代出更強的Claude；收入增長帶來更大投資，投資又餵養更強模型。\n[8:36] API 防蒸餾是場拉鋸戰。一篇公開論文證明可以從API裡竊取推理鏈來蒸餾模型，促使團隊加固了「保留思考塊」「前綴鎖定思考」等機制。團隊強調這不是商業問題——蒸餾出去的模型如果繞開了安全分類器，才是他們真正擔心的safety問題。為了不傷到正常用戶，他們提前聯繫開源harness維護者和大客戶，專門為被打斷的壓縮策略單獨做了新的壓縮功能替代。\n[21:47] 一次事故逼出了一鍵斷供的基礎設施。每次發布模型都要單獨定數據留存與審核政策——Opus 5.5就沒有Fable那樣的強留存要求。團隊還搭了一套「信任憑證」系統，把「誰被授權用某個模型/項目」一路透傳到系統底層。這套通用授權設施最初是Fable被緊急下線那次事故後，為了「萬一還需要對所有人一鍵斷供某個模型」而做的對沖投入，事後發現比預想中用得頻繁得多。\n[54:01] CPU 跟 GPU 一樣稀缺。多數人只盯著加速器層的算力緊張，但Anthropic發現CPU同樣是瓶頸——產品服務、API、沙箱、CI全都在搶同一塊CPU預算，而且跟訓練用的沙箱算力是同一個零和遊戲，靠雲廠商談下來的配額要在內部手動分配給所有業務線。過去可以按需在線擴容的CPU，現在也必須提前做容量規劃。\n[56:19] 零 Rust 經驗的團隊把 API 整體搬家。團隊沒有一個Rust工程師，卻決定把整個Messages API從Python單體一次性port成Rust，而不是按部件分批遷移——因為具體代碼由Claude來寫，人只負責設計分布式系統架構、以及用影子流量驗證新舊系統輸出是否一致。結果CPU節省40%-50%，首token延遲改善10%-20%，團隊因此多出了帶寬去做更激進的、面向用戶的架構改造。\n[1:03:49] 大腦和手分開，安全是意外收穫。Claude Managed Agent把常駐的harness（大腦）和隨時可銷燬的沙箱執行環境（手）分開，最初目的只是延遲和可靠性——沙箱掛了agent不會跟著死。唯獨一位產品經理從一開始就堅持「這個架構最重要的屬性其實是安全」，當時沒人真信，團隊成員後來說專門去跟這個人道歉。真正的安全收益是憑證從不進入agent可見的空間，只有出口代理在真正調用時才注入真實憑證。\n[1:11:19] 減速發布和繼續發新模型並不矛盾。發布會提到的「pacing」不等於不發新模型——Opus 5.5在上一代發布11天后就上線，只是因為它通過了架構安全、在線防護、離線分類三道關。但在線安全分類器製造了新的路由難題：一個普通用戶只是問生物作業，對話裡提到一次安全相關話題就可能被整段判定觸發、降級到弱模型回答，而分類器本身沒聰明到能把誤判和真正的惡意區分開。\n[1:46:06] 多智能體只需守住兩條原則。對於多agent架構，建議只需滿足兩點：子agent之間共享統一上下文，並且彼此異步、不互相阻塞。滿足這兩條之後應該放手讓Claude自己設計分工——他們預期未來Claude會自己學會拆分、克隆、調整協作架構，人只需要守住這兩條約束，其餘交給模型去試，可能會一次性解決過去覺得棘手的問題。\n[10:37]「Anthropic存在的全部意義就是希望AI能安全地為世界創造正向結果，我們在自己產出的token上跑了大量安全分類器，確保它們是安全的。」\n[23:57]「這在平臺工程裡很常見：出過一次事故，然後你會為那次事故過度準備，結果這種事故再也沒發生過。」\n[56:19]「我們當時說：「我們要撞上CPU的牆了，有些事必須去做。」然後我們真做了——上了多區域部署，該做的都做了。」\n[1:03:49]「我們把大腦和手分開——harness跑在一臺持久化的服務器上，是我們自己持有的。」\n[1:05:53]「agent和憑證從來不在同一個地方。以前的做法是把agent丟進一個盒子裡讓它跑，你得把憑證也塞進去，然後還得想辦法清洗、確保agent不會拿著憑證去做不該做的事。」\n[1:12:28]「對我來說，這其實是模型路由問題的近親：你想要一個聰明的路由器，還是一個笨路由器？」\n[1:46:06]「你只需要確保它能並行處理——它需要共享狀態，而且不能阻塞自己的子agent。」\n[1:01] 12個月收入/員工：660萬美元（一年前140萬美元）\n[0:00] Anthropic IPO預期估值：2萬億美元，預計兩週後上市\n[56:19] Rust重寫後CPU節省：40%-50%\n[56:19] Rust重寫後首token延遲改善：10%-20%", "wordCount": 1485, "inLanguage": "zh-TW", "datePublished": "2026-10-27T18:40:19Z", "dateModified": "2026-10-29T03:55:29Z", "url": "https://ourword.ai/podcast/tw/p/2026-10-27-latentspace-agent安全不是靠堵沙箱漏洞-而是把大脑和手分开放/", "about": {"@id": "https://ourword.ai/podcast/tw/p/2026-10-27-latentspace-agent安全不是靠堵沙箱漏洞-而是把大脑和手分开放/#episode"}, "isBasedOn": "https://lspace.beehiiv.com/podcast/s/latent_space_the_ai_engineer_podcast/how_anthropic_ships_the_1_llm_in_the_world_safely_separating_the_brain_from_the_hands", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "isAccessibleForFree": true}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首頁", "item": "https://ourword.ai/podcast/tw/"}, {"@type": "ListItem", "position": 2, "name": "Latent Space", "item": "https://ourword.ai/podcast/tw/s/latentspace/"}, {"@type": "ListItem", "position": 3, "name": "Agent安全不是靠堵沙箱漏洞，而是把大腦和手分開放"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/tw/"><span class="wordmark">原聲<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<button class="pill ghost" id="lang-toggle" type="button" data-en="" data-sc="繁體" data-tw="簡體"></button>
+<button class="icon-btn" data-theme-toggle aria-label="切換深淺色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，來原聲聽播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/tw/">首頁</a><span class="sep">/</span>
+<a href="/podcast/tw/c/ai/">AI / 技術</a><span class="sep">/</span><a href="/podcast/tw/s/latentspace/">Latent Space</a>
+<span class="sep">/</span><span>2026-10-27</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">Latent Space</span>
+<time class="date" datetime="2026-10-27T18:40:19Z">2026-10-27</time>
+<button class="share-btn" type="button" data-share data-share-title="Agent安全不是靠堵沙箱漏洞，而是把大腦和手分開放" data-share-url="https://ourword.ai/podcast/tw/e/latentspace-ecd827559a/" data-share-text="Agent安全不是靠堵沙箱漏洞，而是把大腦和手分開放&#10;Latent Space · 106 分鐘 · 原聲深讀&#10;&#10;Anthropic把執行代理架構拆成常駐服務器上的「大腦」和隨時可銷燬的沙箱「手」，憑證只存在出口網關，agent從未真正碰到過它們，這是意外但最關鍵的安全收益。&#10;&#10;https://ourword.ai/podcast/tw/e/latentspace-ecd827559a/" aria-label="複製分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>Agent安全不是靠堵沙箱漏洞，而是把大腦和手分開放</h1>
+<p class="dek-lead">Anthropic把執行代理架構拆成常駐服務器上的「大腦」和隨時可銷燬的沙箱「手」，憑證只存在出口網關，agent從未真正碰到過它們，這是意外但最關鍵的安全收益。</p>
+<div class="ep-meta"><span class="tag">Anthropic</span><span class="tag">AI安全</span><span class="tag">Agent架構</span><span class="tag">算力</span><span class="tag">模型蒸餾</span><span class="tag">企業平臺</span></div>
+</div>
+<div class="player" data-player-box>
+  <div class="strip" data-audio-strip>
+    <p class="afallback">原視頻在 YouTube 上放不出來，用音頻聽：</p>
+    <audio data-player controls preload="none" src="https://podcasts.beehiiv.com/3967c1f2-cb97-4eb0-a5c0-21a1d2579408/01a15fdf-0e93-7e1a-880d-d73752a1f915/01a17e24-16fc-71e3-bdc8-f0c1aeee546c/01a17e24-18bb-7daa-afc4-3f3bfdc294d7.mp3"></audio>
+    <div class="aui" data-audio-ui data-dur="6400" hidden>
+      <button class="aplay" type="button" aria-label="播放"></button>
+      <div class="abar" role="slider" tabindex="0" aria-label="播放進度"
+           aria-valuemin="0" aria-valuemax="100"><div class="afill"></div></div>
+      <span class="atime"><span class="acur">0:00</span><span class="asep">/</span><span class="atot">--:--</span></span>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="why">兩位產品/工程負責人聊Opus 5.5發布背後的防蒸餾、數據留存政策、Rust重寫和agent安全架構，細節紮實但中段偶有閒聊。</div></section>
+
+<section class="section"><h2>核心論點 · 點時間戳可跳到原聲</h2><div class="point" id="p0"><a class="ts" data-t="61" href="https://podcasts.beehiiv.com/3967c1f2-cb97-4eb0-a5c0-21a1d2579408/01a15fdf-0e93-7e1a-880d-d73752a1f915/01a17e24-16fc-71e3-bdc8-f0c1aeee546c/01a17e24-18bb-7daa-afc4-3f3bfdc294d7.mp3#t=61" target="_blank" rel="noopener">1:01</a><div><h4>人效一年漲了將近五倍</h4>
+<p class="body">過去一年Anthropic的12個月收入/員工從140萬美元漲到660萬美元，同時從Q2每1美元收入要倒貼0.5美元，變成每1美元成本能賺2美元，本季度GAAP利潤率19%，一年前是-129%。S1裡把原因歸為兩個互相咬合的循環：更好的Claude帶來更多用例和反饋，迭代出更強的Claude；收入增長帶來更大投資，投資又餵養更強模型。</p>
+</div></div>
+<div class="point" id="p1"><a class="ts" data-t="516" href="https://podcasts.beehiiv.com/3967c1f2-cb97-4eb0-a5c0-21a1d2579408/01a15fdf-0e93-7e1a-880d-d73752a1f915/01a17e24-16fc-71e3-bdc8-f0c1aeee546c/01a17e24-18bb-7daa-afc4-3f3bfdc294d7.mp3#t=516" target="_blank" rel="noopener">8:36</a><div><h4>API 防蒸餾是場拉鋸戰</h4>
+<p class="body">一篇公開論文證明可以從API裡竊取推理鏈來蒸餾模型，促使團隊加固了「保留思考塊」「前綴鎖定思考」等機制。團隊強調這不是商業問題——蒸餾出去的模型如果繞開了安全分類器，才是他們真正擔心的safety問題。為了不傷到正常用戶，他們提前聯繫開源harness維護者和大客戶，專門為被打斷的壓縮策略單獨做了新的壓縮功能替代。</p>
+</div></div>
+<div class="point" id="p2"><a class="ts" data-t="1307" href="https://podcasts.beehiiv.com/3967c1f2-cb97-4eb0-a5c0-21a1d2579408/01a15fdf-0e93-7e1a-880d-d73752a1f915/01a17e24-16fc-71e3-bdc8-f0c1aeee546c/01a17e24-18bb-7daa-afc4-3f3bfdc294d7.mp3#t=1307" target="_blank" rel="noopener">21:47</a><div><h4>一次事故逼出了一鍵斷供的基礎設施</h4>
+<p class="body">每次發布模型都要單獨定數據留存與審核政策——Opus 5.5就沒有Fable那樣的強留存要求。團隊還搭了一套「信任憑證」系統，把「誰被授權用某個模型/項目」一路透傳到系統底層。這套通用授權設施最初是Fable被緊急下線那次事故後，為了「萬一還需要對所有人一鍵斷供某個模型」而做的對沖投入，事後發現比預想中用得頻繁得多。</p>
+</div></div>
+<div class="point" id="p3"><a class="ts" data-t="3241" href="https://podcasts.beehiiv.com/3967c1f2-cb97-4eb0-a5c0-21a1d2579408/01a15fdf-0e93-7e1a-880d-d73752a1f915/01a17e24-16fc-71e3-bdc8-f0c1aeee546c/01a17e24-18bb-7daa-afc4-3f3bfdc294d7.mp3#t=3241" target="_blank" rel="noopener">54:01</a><div><h4>CPU 跟 GPU 一樣稀缺</h4>
+<p class="body">多數人只盯著加速器層的算力緊張，但Anthropic發現CPU同樣是瓶頸——產品服務、API、沙箱、CI全都在搶同一塊CPU預算，而且跟訓練用的沙箱算力是同一個零和遊戲，靠雲廠商談下來的配額要在內部手動分配給所有業務線。過去可以按需在線擴容的CPU，現在也必須提前做容量規劃。</p>
+</div></div>
+<div class="point" id="p4"><a class="ts" data-t="3379" href="https://podcasts.beehiiv.com/3967c1f2-cb97-4eb0-a5c0-21a1d2579408/01a15fdf-0e93-7e1a-880d-d73752a1f915/01a17e24-16fc-71e3-bdc8-f0c1aeee546c/01a17e24-18bb-7daa-afc4-3f3bfdc294d7.mp3#t=3379" target="_blank" rel="noopener">56:19</a><div><h4>零 Rust 經驗的團隊把 API 整體搬家</h4>
+<p class="body">團隊沒有一個Rust工程師，卻決定把整個Messages API從Python單體一次性port成Rust，而不是按部件分批遷移——因為具體代碼由Claude來寫，人只負責設計分布式系統架構、以及用影子流量驗證新舊系統輸出是否一致。結果CPU節省40%-50%，首token延遲改善10%-20%，團隊因此多出了帶寬去做更激進的、面向用戶的架構改造。</p>
+</div></div>
+<div class="point" id="p5"><a class="ts" data-t="3829" href="https://podcasts.beehiiv.com/3967c1f2-cb97-4eb0-a5c0-21a1d2579408/01a15fdf-0e93-7e1a-880d-d73752a1f915/01a17e24-16fc-71e3-bdc8-f0c1aeee546c/01a17e24-18bb-7daa-afc4-3f3bfdc294d7.mp3#t=3829" target="_blank" rel="noopener">1:03:49</a><div><h4>大腦和手分開，安全是意外收穫</h4>
+<p class="body">Claude Managed Agent把常駐的harness（大腦）和隨時可銷燬的沙箱執行環境（手）分開，最初目的只是延遲和可靠性——沙箱掛了agent不會跟著死。唯獨一位產品經理從一開始就堅持「這個架構最重要的屬性其實是安全」，當時沒人真信，團隊成員後來說專門去跟這個人道歉。真正的安全收益是憑證從不進入agent可見的空間，只有出口代理在真正調用時才注入真實憑證。</p>
+</div></div>
+<div class="point" id="p6"><a class="ts" data-t="4279" href="https://podcasts.beehiiv.com/3967c1f2-cb97-4eb0-a5c0-21a1d2579408/01a15fdf-0e93-7e1a-880d-d73752a1f915/01a17e24-16fc-71e3-bdc8-f0c1aeee546c/01a17e24-18bb-7daa-afc4-3f3bfdc294d7.mp3#t=4279" target="_blank" rel="noopener">1:11:19</a><div><h4>減速發布和繼續發新模型並不矛盾</h4>
+<p class="body">發布會提到的「pacing」不等於不發新模型——Opus 5.5在上一代發布11天后就上線，只是因為它通過了架構安全、在線防護、離線分類三道關。但在線安全分類器製造了新的路由難題：一個普通用戶只是問生物作業，對話裡提到一次安全相關話題就可能被整段判定觸發、降級到弱模型回答，而分類器本身沒聰明到能把誤判和真正的惡意區分開。</p>
+</div></div>
+<div class="point" id="p7"><a class="ts" data-t="6366" href="https://podcasts.beehiiv.com/3967c1f2-cb97-4eb0-a5c0-21a1d2579408/01a15fdf-0e93-7e1a-880d-d73752a1f915/01a17e24-16fc-71e3-bdc8-f0c1aeee546c/01a17e24-18bb-7daa-afc4-3f3bfdc294d7.mp3#t=6366" target="_blank" rel="noopener">1:46:06</a><div><h4>多智能體只需守住兩條原則</h4>
+<p class="body">對於多agent架構，建議只需滿足兩點：子agent之間共享統一上下文，並且彼此異步、不互相阻塞。滿足這兩條之後應該放手讓Claude自己設計分工——他們預期未來Claude會自己學會拆分、克隆、調整協作架構，人只需要守住這兩條約束，其餘交給模型去試，可能會一次性解決過去覺得棘手的問題。</p>
+</div></div></section>
+<section class="section"><h2>原話 · 已逐字校驗</h2><blockquote class="quote"><p class="raw">the entire point of why Anthropic exists is &#x27;cause we want AI to create positive outcomes in the world safely, and we run a lot of safeguards classifiers on the tokens that we&#x27;re producing in order to make sure that they&#x27;re safe.</p>
+<p class="zh">Anthropic存在的全部意義就是希望AI能安全地為世界創造正向結果，我們在自己產出的token上跑了大量安全分類器，確保它們是安全的。</p>
+<div class="attrib"><a class="ts" data-t="637" href="https://podcasts.beehiiv.com/3967c1f2-cb97-4eb0-a5c0-21a1d2579408/01a15fdf-0e93-7e1a-880d-d73752a1f915/01a17e24-16fc-71e3-bdc8-f0c1aeee546c/01a17e24-18bb-7daa-afc4-3f3bfdc294d7.mp3#t=637" target="_blank" rel="noopener">10:37</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">it&#x27;s, like, a very common thing in platform engineering that you, like, uh, you have one incident and then you, like, overprepare for that incident, and then the incident never happens again.</p>
+<p class="zh">這在平臺工程裡很常見：出過一次事故，然後你會為那次事故過度準備，結果這種事故再也沒發生過。</p>
+<div class="attrib"><a class="ts" data-t="1437" href="https://podcasts.beehiiv.com/3967c1f2-cb97-4eb0-a5c0-21a1d2579408/01a15fdf-0e93-7e1a-880d-d73752a1f915/01a17e24-16fc-71e3-bdc8-f0c1aeee546c/01a17e24-18bb-7daa-afc4-3f3bfdc294d7.mp3#t=1437" target="_blank" rel="noopener">23:57</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">We were like, &quot;We&#x27;re gonna hit a CPU wall. There&#x27;s stuff we need to do.&quot; And, and we&#x27;ve done it, right? Like, we&#x27;ve gone multi-region. We&#x27;ve done all these things we need to do.</p>
+<p class="zh">我們當時說：「我們要撞上CPU的牆了，有些事必須去做。」然後我們真做了——上了多區域部署，該做的都做了。</p>
+<div class="attrib"><a class="ts" data-t="3379" href="https://podcasts.beehiiv.com/3967c1f2-cb97-4eb0-a5c0-21a1d2579408/01a15fdf-0e93-7e1a-880d-d73752a1f915/01a17e24-16fc-71e3-bdc8-f0c1aeee546c/01a17e24-18bb-7daa-afc4-3f3bfdc294d7.mp3#t=3379" target="_blank" rel="noopener">56:19</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">we have the brain separate from the hands, and what that means is, like, the harness runs on a durable server, really ours, right?</p>
+<p class="zh">我們把大腦和手分開——harness跑在一臺持久化的服務器上，是我們自己持有的。</p>
+<div class="attrib"><a class="ts" data-t="3829" href="https://podcasts.beehiiv.com/3967c1f2-cb97-4eb0-a5c0-21a1d2579408/01a15fdf-0e93-7e1a-880d-d73752a1f915/01a17e24-16fc-71e3-bdc8-f0c1aeee546c/01a17e24-18bb-7daa-afc4-3f3bfdc294d7.mp3#t=3829" target="_blank" rel="noopener">1:03:49</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">the agent is never, like, in the same place where the credentials are, right? Because in the old world of, like, just boot the agent in a box and, like, let it run, you had to send credentials in there, and then you&#x27;re, like, doing some sort of, like, ah, how do we, like, scrub this and that and make sure that, like, the agent can&#x27;t take that credential and go do something that it shouldn&#x27;t be doing.</p>
+<p class="zh">agent和憑證從來不在同一個地方。以前的做法是把agent丟進一個盒子裡讓它跑，你得把憑證也塞進去，然後還得想辦法清洗、確保agent不會拿著憑證去做不該做的事。</p>
+<div class="attrib"><a class="ts" data-t="3953" href="https://podcasts.beehiiv.com/3967c1f2-cb97-4eb0-a5c0-21a1d2579408/01a15fdf-0e93-7e1a-880d-d73752a1f915/01a17e24-16fc-71e3-bdc8-f0c1aeee546c/01a17e24-18bb-7daa-afc4-3f3bfdc294d7.mp3#t=3953" target="_blank" rel="noopener">1:05:53</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">To, to, to me, this is, like, a, a, a close cousin of the general model routing problem of do you want a smart router or a dumb router? Does that make sense?</p>
+<p class="zh">對我來說，這其實是模型路由問題的近親：你想要一個聰明的路由器，還是一個笨路由器？</p>
+<div class="attrib"><a class="ts" data-t="4348" href="https://podcasts.beehiiv.com/3967c1f2-cb97-4eb0-a5c0-21a1d2579408/01a15fdf-0e93-7e1a-880d-d73752a1f915/01a17e24-16fc-71e3-bdc8-f0c1aeee546c/01a17e24-18bb-7daa-afc4-3f3bfdc294d7.mp3#t=4348" target="_blank" rel="noopener">1:12:28</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">You just need to make sure it can like parallel process, so it needs to share state, and it needs to like not block its sub-agents.</p>
+<p class="zh">你只需要確保它能並行處理——它需要共享狀態，而且不能阻塞自己的子agent。</p>
+<div class="attrib"><a class="ts" data-t="6366" href="https://podcasts.beehiiv.com/3967c1f2-cb97-4eb0-a5c0-21a1d2579408/01a15fdf-0e93-7e1a-880d-d73752a1f915/01a17e24-16fc-71e3-bdc8-f0c1aeee546c/01a17e24-18bb-7daa-afc4-3f3bfdc294d7.mp3#t=6366" target="_blank" rel="noopener">1:46:06</a></div>
+</blockquote></section>
+<section class="section"><h2>數字與實體</h2><table class="facts"><tr><td class="k">12個月收入/員工</td><td class="v">660萬美元（一年前140萬美元）</td><td class="t"><a class="ts" data-t="61" href="https://podcasts.beehiiv.com/3967c1f2-cb97-4eb0-a5c0-21a1d2579408/01a15fdf-0e93-7e1a-880d-d73752a1f915/01a17e24-16fc-71e3-bdc8-f0c1aeee546c/01a17e24-18bb-7daa-afc4-3f3bfdc294d7.mp3#t=61" target="_blank" rel="noopener">1:01</a></td></tr>
+<tr><td class="k">Anthropic IPO預期估值</td><td class="v">2萬億美元，預計兩週後上市</td><td class="t"><a class="ts" data-t="0" href="https://podcasts.beehiiv.com/3967c1f2-cb97-4eb0-a5c0-21a1d2579408/01a15fdf-0e93-7e1a-880d-d73752a1f915/01a17e24-16fc-71e3-bdc8-f0c1aeee546c/01a17e24-18bb-7daa-afc4-3f3bfdc294d7.mp3#t=0" target="_blank" rel="noopener">0:00</a></td></tr>
+<tr><td class="k">Rust重寫後CPU節省</td><td class="v">40%-50%</td><td class="t"><a class="ts" data-t="3379" href="https://podcasts.beehiiv.com/3967c1f2-cb97-4eb0-a5c0-21a1d2579408/01a15fdf-0e93-7e1a-880d-d73752a1f915/01a17e24-16fc-71e3-bdc8-f0c1aeee546c/01a17e24-18bb-7daa-afc4-3f3bfdc294d7.mp3#t=3379" target="_blank" rel="noopener">56:19</a></td></tr>
+<tr><td class="k">Rust重寫後首token延遲改善</td><td class="v">10%-20%</td><td class="t"><a class="ts" data-t="3379" href="https://podcasts.beehiiv.com/3967c1f2-cb97-4eb0-a5c0-21a1d2579408/01a15fdf-0e93-7e1a-880d-d73752a1f915/01a17e24-16fc-71e3-bdc8-f0c1aeee546c/01a17e24-18bb-7daa-afc4-3f3bfdc294d7.mp3#t=3379" target="_blank" rel="noopener">56:19</a></td></tr></table></section>
+<section class="section"><h2>術語</h2><dl class="terms"><div><dt>distillation<span>模型蒸餾</span></dt><dd>用大模型的輸出（尤其推理過程）訓練小模型，復刻其能力。</dd></div>
+<div><dt>trust grant<span>信任憑證</span></dt><dd>記錄誰被授權訪問某模型或項目，貫穿系統底層的授權機制。</dd></div>
+<div><dt>Claude Managed Agent<span>Claude 託管代理</span></dt><dd>開箱即用的agent API，內置harness，無需自建基礎設施。</dd></div>
+<div><dt>chain-of-thought extraction<span>思維鏈提取</span></dt><dd>竊取模型推理過程的文本，用於蒸餾復刻其能力。</dd></div>
+<div><dt>brain/hands architecture<span>大腦-手分離架構</span></dt><dd>常駐harness（大腦）與可隨時銷燬的沙箱執行環境（手）分離。</dd></div></dl></section>
+<section class="section"><h2>收聽指南</h2>
+<div class="panel guide">
+<div><span class="k">誰該聽</span><p>關心Anthropic商業模式、AI安全工程、agent沙箱架構的創業者、工程負責人和投資人，想了解IPO前夕這家公司真實的運營細節。</p></div>
+<div><span class="k">可跳過</span><p>1:28-1:42關於讀書、Slack管理、DevRel團隊搭建的閒聊可跳過。</p></div>
+</div></section>
+<section class="related"><h2 class="sec-title">順著這個話題</h2><ul class="rel-list"><li><a href="/podcast/tw/p/2026-08-22-mlst-加密思考不是秘密-小模型能把大模型的推理念出来/"><span class="rel-t">加密思考不是秘密：小模型能直接念出大模型的推理</span><span class="rel-s">ML Street Talk</span></a></li><li><a href="/podcast/tw/p/2026-09-16-semianalysiswe-安全不是减速带-anthropic-的合规承诺反而要吃掉更多算力/"><span class="rel-t">安全不是減速帶：Anthropic 的合規承諾反而要吃掉更多算力</span><span class="rel-s">SemiAnalysis Weekly</span></a></li><li><a href="/podcast/tw/p/2026-10-15-bg2-黄仁勋-算力泡沫的风险被算错了账-不该全押在两家ai实验室身上/"><span class="rel-t">黃仁勳：算力泡沫的風險被算錯了賬，不該全押在兩家AI實驗室身上</span><span class="rel-s">BG2</span></a></li><li><a href="/podcast/tw/p/2026-10-09-nopriors-顶级闭源模型黑了一家公司-靠开源模型才自救成功/"><span class="rel-t">頂級閉源模型黑了一家公司，靠開源模型才自救成功</span><span class="rel-s">No Priors</span></a></li><li><a href="/podcast/tw/p/2026-09-21-interconnects-中国开源权重模型领先-蒸馏只解释一两个月差距/"><span class="rel-t">中國開源權重模型領先，蒸餾只解釋一兩個月差距</span><span class="rel-s">Interconnects</span></a></li></ul></section>
+<nav class="prevnext"><a href="/podcast/tw/p/2026-10-28-a16z-ai对医保最大的用处不是看病-而是揪出合同里的坑/"><span class="lbl">← 更新</span><strong>AI對醫保最大的用處不是看病，而是揪出合同裡的坑</strong></a><a class="r" href="/podcast/tw/p/2026-10-27-eightythousand-ai公司都想减速-却没人敢先停-对手的ai研究员不休息/"><span class="lbl">更早 →</span><strong>AI公司都想減速，卻沒人敢先停——對手的AI研究員不休息</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原節目</h4>
+<div class="row"><span>節目</span><span>Latent Space</span></div>
+<div class="row"><span>原標題</span><span>How Anthropic ships the #1 LLM in the World safely: Separating the Brain from the Hands</span></div>
+<div class="row"><span>發布</span><span>2026-10-27</span></div>
+<div class="row"><span>時長</span><span>1:46:40</span></div>
+<a class="row" href="https://lspace.beehiiv.com/podcast/s/latent_space_the_ai_engineer_podcast/how_anthropic_ships_the_1_llm_in_the_world_safely_separating_the_brain_from_the_hands" target="_blank" rel="noopener"><span>原頁面</span><span>打開 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇結構</h4><nav class="toc"><a href="#p0"><span class="t">1:01</span><span>人效一年漲了將近五倍</span></a>
+<a href="#p1"><span class="t">8:36</span><span>API 防蒸餾是場拉鋸戰</span></a>
+<a href="#p2"><span class="t">21:47</span><span>一次事故逼出了一鍵斷供的基礎設施</span></a>
+<a href="#p3"><span class="t">54:01</span><span>CPU 跟 GPU 一樣稀缺</span></a>
+<a href="#p4"><span class="t">56:19</span><span>零 Rust 經驗的團隊把 API 整體搬家</span></a>
+<a href="#p5"><span class="t">1:03:49</span><span>大腦和手分開，安全是意外收穫</span></a>
+<a href="#p6"><span class="t">1:11:19</span><span>減速發布和繼續發新模型並不矛盾</span></a>
+<a href="#p7"><span class="t">1:46:06</span><span>多智能體只需守住兩條原則</span></a></nav></div>
+
+<div class="panel"><h4>這篇是怎麼來的</h4>
+<div class="row"><span>成稿評分</span><span>7 / 10</span></div>
+<div class="row"><span>文稿來源</span><span>官方逐字稿</span></div>
+<div class="row"><span>文稿字數</span><span>24697</span></div>
+<div class="row"><span>語速核驗</span><span>231.5 wpm</span></div>
+<div class="row"><span>逐字校驗金句</span><span>7 條</span></div>
+<div class="row"><span>回溯校驗數字</span><span>4 條</span></div>
+<div class="row"><span>質檢剔除</span><span>4 處</span></div>
+<p class="note">金句在逐字稿裡逐字比對過，數字回原文核對過；對不上的當場刪掉，不上站。
+成稿另經一道獨立評審（信息密度／忠實度／選擇力／具體性／中文），低於 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原聲 · <a href="https://ourword.ai">OurWord.ai</a>的播客線。內容為原播客的中文深讀，
+版權歸各節目所有；每篇都附原節目鏈接，請去支持原作者。</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/tw/" lang="zh">人類世界生存法則</a> · <a href="/podcast/tw/">原聲</a></div>
+<div class="links"><a href="/podcast/tw/">首頁</a><a href="/podcast/tw/zt/founders/">專題</a><a href="/podcast/tw/sources/">信源</a>
+<a href="/podcast/tw/log/">更新日誌</a><a href="/podcast/tw/feed.xml">RSS</a>
+<a href="/podcast/tw/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源碼</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=2457e29027" defer></script>
+</body></html>
