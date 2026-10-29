@@ -11175,6 +11175,44 @@ class TheDailyPhoneAlertCanReadTheVerdict(unittest.TestCase):
             self.assertIn("health_snapshot", sh[i:j], f"「{anchor[:20]}」这条路提交之前没写体检快照")
 
 
+class YouTubeSourcesSurviveAFlakyRssEndpoint(unittest.TestCase):
+    """youtube.com/feeds/videos.xml 2026-10 起间歇性 404 / 500：10-15～22 每天 12～23 次 feed failed，
+    全是 YouTube 源（含 tier 1 的老石）。拿不到 RSS 时用 yt-dlp 列频道视频页兜底。"""
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib
+        self.F = importlib.import_module("lib.feeds")
+
+    def _flaky(self, feed):
+        import unittest.mock as mock, types
+        listing = json.dumps({"entries": [
+            {"id": "N-ckJ1Gst_U", "title": "AI越强大，人为什么越累", "duration": 1512, "timestamp": 1792800000},
+            {"id": "CsTzPjRlbFY", "title": "反地产逻辑", "duration": 1711, "timestamp": 1792700000}]})
+        def boom(*a, **k):
+            raise RuntimeError("HTTP Error 404: Not Found")
+        calls = []
+        def run(cmd, **k):
+            calls.append(cmd)
+            return types.SimpleNamespace(returncode=0, stdout=listing, stderr="")
+        src = {"id": "x", "name": "x", "kind": "youtube", "feed": feed}
+        with mock.patch.object(self.F.net, "get", boom), \
+                mock.patch("shutil.which", lambda n: "/usr/bin/yt-dlp"), \
+                mock.patch("subprocess.run", run):
+            return self.F.fetch(src, cache_ttl=0), calls
+
+    def test_a_youtube_feed_falls_back_to_yt_dlp(self):
+        eps, calls = self._flaky("https://www.youtube.com/feeds/videos.xml?channel_id=UCvtFVNiF3l-zS1UxN-WEJ3A")
+        self.assertEqual(["N-ckJ1Gst_U", "CsTzPjRlbFY"], [e["guid"] for e in eps],
+                         "guid 要是视频 id —— 和 RSS 那条路一致，同一集才不会被当成两集")
+        self.assertTrue(all(e["published"] and e["youtube_id"] for e in eps))
+        self.assertIn("UCvtFVNiF3l-zS1UxN-WEJ3A/videos", " ".join(calls[0]))
+
+    def test_other_feeds_still_raise(self):
+        with self.assertRaises(RuntimeError):
+            self._flaky("https://example.com/podcast.xml")
+
+
 class AFollowedSourceKeepsUp(unittest.TestCase):
     """该跟的源出了新集，当天就要排上；排不上，体检要比用户先知道。
 

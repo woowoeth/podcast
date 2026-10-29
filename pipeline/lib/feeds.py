@@ -177,9 +177,60 @@ def _atom(root, source: dict) -> list[dict]:
     return out
 
 
+_YT_CHANNEL = re.compile(r"youtube\.com/feeds/videos\.xml\?channel_id=(UC[\w-]{22})")
+
+
+def _yt_dlp_channel(source: dict, channel_id: str, limit: int = 40) -> list[dict]:
+    """YouTube 的 RSS 拿不到时，用 yt-dlp 列频道的视频页（不下载，约 2 秒）。
+
+    **为什么要有它。** 2026-10 起 youtube.com/feeds/videos.xml 间歇性 404 / 500：10-15～22 每天
+    12～23 次「feed failed」，全是 YouTube 源（含 tier 1 的老石）——这一轮拿不到，那一轮也许拿得到，
+    新集就这样被拖慢、拖丢。日期是 yt-dlp 的近似日期（精确到天），够判回溯窗口；guid 用视频 id，
+    和 RSS 那条路一致，两条路拿到的同一集不会被当成两集。"""
+    import json as _json
+    import shutil
+    import subprocess
+    exe = shutil.which("yt-dlp")
+    if not exe:
+        raise RuntimeError("YouTube RSS 拿不到，本机也没有 yt-dlp 兜底")
+    url = f"https://www.youtube.com/channel/{channel_id}/videos"
+    r = subprocess.run([exe, "--flat-playlist", "--extractor-args", "youtubetab:approximate_date",
+                        "--playlist-end", str(limit), "-J", url],
+                       capture_output=True, text=True, timeout=90)
+    if r.returncode != 0 or not r.stdout.strip():
+        raise RuntimeError(f"yt-dlp 也列不出频道：{(r.stderr or '').strip()[-160:]}")
+    out = []
+    for e in (_json.loads(r.stdout).get("entries") or []):
+        vid, title = e.get("id"), e.get("title")
+        if not vid or not title:
+            continue
+        ts = e.get("timestamp")
+        out.append({
+            "source_id": source["id"], "source": source["name"],
+            "guid": vid, "title": strip_html(title), "link": YT_WATCH + vid,
+            "published": dt.datetime.fromtimestamp(ts, dt.timezone.utc) if ts else None,
+            "duration": int(e["duration"]) if e.get("duration") else None,
+            "audio": "", "image": "", "notes": "",
+            "episode_no": "", "explicit": False, "transcripts": [],
+            "youtube_id": vid, "feed_kind": "youtube", "listed_by": "yt-dlp",
+        })
+    if not out:
+        raise RuntimeError("yt-dlp 列出的频道是空的")
+    return out
+
+
 def fetch(source: dict, *, cache_ttl: int = 1800) -> list[dict]:
-    xml = net.get(source["feed"], cache_ttl=cache_ttl,
-                  accept="application/rss+xml, application/atom+xml, application/xml, */*")
+    try:
+        xml = net.get(source["feed"], cache_ttl=cache_ttl,
+                      accept="application/rss+xml, application/atom+xml, application/xml, */*")
+    except Exception:
+        m = _YT_CHANNEL.search(source.get("feed") or "")
+        if not m:
+            raise
+        eps = _yt_dlp_channel(source, m.group(1))
+        eps.sort(key=lambda e: e["published"] or dt.datetime.min.replace(tzinfo=dt.timezone.utc),
+                 reverse=True)
+        return eps
     eps = parse(xml, source)
     eps.sort(key=lambda e: e["published"] or dt.datetime.min.replace(tzinfo=dt.timezone.utc),
              reverse=True)
