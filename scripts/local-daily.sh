@@ -458,17 +458,21 @@ PYEOF
   # 两天前，第二天 9:00 的手机提醒拿着「claude CLI 没登录」这种早就好了的硬伤去推。
   health_snapshot
   # 数据一律 `git add -A data`，不再手写清单（理由见下面建站那一趟）。
-  git add -A data 2>/dev/null || true
+  # **主轮建好的页面也一起加。** run.py 发了稿就建站（run.py 的 build.main()），原来这一趟只推数据、
+  # 页面等收尾或云端定时重建：2026-10-29 主轮 17:18 推上 5 篇，页面到 18 点以后才有，中间一个多小时
+  # 点进去全是 404，CI 也因为「数据 1304 篇、站上 1295 篇」红着。清单同样取 gitsync.py site-paths。
+  MAIN_SITE=$(python3 pipeline/gitsync.py site-paths) || MAIN_SITE=""
+  git add -A data $MAIN_SITE 2>/dev/null || true
   n=$(git diff --cached --name-only | grep -c 'data/episodes/' || true)
   git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
       commit -q -m "digest: $n new (local)"
   # **主轮的稿先推上去，不等补课。** 原来整轮只在最后推一次，补课一跑一两个小时，
   # 中间 Mac 重启 / 关机，主轮发的稿就只躺在本地提交里（2026-10-12 上午 4 篇，
-  # 下一轮又被脱身逻辑扔掉）。只推不拉：工作区里还有主轮建站的产物没提交，
-  # 这时候 pull --autostash 就是在造 10-13 那次冲突。被拒（远端有新提交）就留给收尾那趟。
-  # 页面在收尾建站时一起上；云端每轮也会从数据重建。
+  # 下一轮又被脱身逻辑扔掉）。只推不拉：拉就要和云端的建站合并（10-13 那次冲突）。
+  # 被拒（远端有新提交）就留给收尾那趟：那里 reset --mixed 到远端、数据三方对齐、页面从数据重建，
+  # 这个带着页面的本地提交不会被 rebase；没跑到收尾就被打断，下一轮开头 fold_onto_origin 同样处理。
   if git push -q origin main 2>/dev/null; then
-    echo "主轮 $n 篇的数据已先推上去（页面收尾时一起建）"
+    echo "主轮 $n 篇的数据和页面已先推上去"
   else
     echo "主轮先推被拒（远端有新提交），收尾时一起推"
   fi

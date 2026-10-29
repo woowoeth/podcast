@@ -13052,6 +13052,9 @@ for f in WRITES:
 if NAME == "run.py" and os.environ.get("STUB_PUBLISH", "1") == "1":
     slug = "ep-" + now.replace(":", "").replace(".", "")
     (ROOT / "data" / "episodes" / (slug + ".json")).write_text(json.dumps({{"slug": slug}}) + "\n")
+    if "--no-build" not in args:
+        # 真 run.py 发了稿就建站（build.main()）：主轮的页面此刻已在工作区
+        (ROOT / "index.html").write_text("<!-- run.py " + slug + " -->\n")
 if NAME == "build.py":
     (ROOT / "index.html").write_text("<!-- " + now + " -->\n")
     race = os.environ.get("STUB_RACE")
@@ -13268,6 +13271,10 @@ if NAME == "build.py":
             self.assertTrue(local, "尺子坏了：主轮的桩没发出集\n" + r.stdout[-1500:])
             lost = [n for n in local if not self._on_origin(origin, f"data/episodes/{n}")]
             self.assertEqual([], lost, "补课时被杀，主轮发的集没推上去 —— 只在本地提交里")
+            page = subprocess.run(["git", "--git-dir", str(origin), "show", "main:index.html"],
+                                  capture_output=True, text=True).stdout
+            self.assertIn("run.py ep-", page, "主轮的页面没跟数据一起先推：数据上了、点进去 404，"
+                                              "要等收尾或云端重建（2026-10-29 等了一个多小时）")
 
     def test_the_run_after_an_interruption_neither_stalls_nor_drops_unpushed_work(self):
         """10-12 → 10-13 那一串：上一轮留下一个没推送的 digest 提交 + 一套没提交的建站产物，
