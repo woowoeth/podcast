@@ -454,6 +454,9 @@ PYEOF
     exit 1
   fi
 
+  # 体检快照跟主轮一起先推：原来只在收尾时写，补课一被打断（2026-10-29 12:53 重启）仓库里那份就停在
+  # 两天前，第二天 9:00 的手机提醒拿着「claude CLI 没登录」这种早就好了的硬伤去推。
+  health_snapshot
   # 数据一律 `git add -A data`，不再手写清单（理由见下面建站那一趟）。
   git add -A data 2>/dev/null || true
   n=$(git diff --cached --name-only | grep -c 'data/episodes/' || true)

@@ -11167,9 +11167,11 @@ class TheDailyPhoneAlertCanReadTheVerdict(unittest.TestCase):
         self.assertIsInstance(d["bad"], list)
         self.assertGreater(d["ok"], 0, "尺子坏了：一项正常都没有")
 
-    def test_both_commit_points_take_a_snapshot_first(self):
+    def test_every_commit_point_takes_a_snapshot_first(self):
+        """含主轮先推的那一趟：补课被打断时，仓库里的快照不能停在上一次收尾（2026-10-29 停在两天前）。"""
         sh = (ROOT / "scripts" / "local-daily.sh").read_text()
-        for anchor in ('echo "本轮没有新内容，只推心跳和状态"', 'python3 pipeline/indexnow.py'):
+        for anchor in ('echo "本轮没有新内容，只推心跳和状态"', '--why "落后 origin',
+                       'python3 pipeline/indexnow.py'):
             i = sh.index(anchor)
             j = sh.index("git add -A data", i)
             self.assertIn("health_snapshot", sh[i:j], f"「{anchor[:20]}」这条路提交之前没写体检快照")
