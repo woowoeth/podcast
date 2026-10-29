@@ -1,0 +1,123 @@
+{
+ "slug": "2026-10-27-latentspace-agent安全不是靠堵沙箱漏洞-而是把大脑和手分开放",
+ "of": "latentspace-ecd827559a",
+ "source_lang": "en",
+ "title": "Agent safety comes from separating the brain and hands, not from patching sandbox leaks",
+ "dek": "Anthropic splits its agentic architecture into a persistent \"brain\" on servers and instantly destructible \"hands\" in the sandbox; credentials exist only at the exit gateway, never touched by the agent itself—an unexpected but critical security win.",
+ "why": "Two product and engineering leads discuss anti-distillation measures, data retention policy, Rust rewrite, and agent security architecture behind the Opus 5.5 launch—solid detail but with some tangential chat mid-conversation.",
+ "who": "Founders, engineering leaders, and investors interested in Anthropic's business model, AI safety engineering, and agent sandbox architecture—for understanding this company's actual operational details on the eve of IPO.",
+ "skip": "1:28–1:42: tangential discussion about reading, Slack management, and building the DevRel team.",
+ "tags": [
+  "Anthropic",
+  "AI safety",
+  "Agent architecture",
+  "Compute",
+  "Model distillation",
+  "Enterprise platform"
+ ],
+ "points": [
+  {
+   "h": "Revenue per employee grew five-fold while turning profitable",
+   "body": "Over the past year, Anthropic's 12-month revenue per employee rose from $1.4M to $6.6M. Unit economics reversed from a $0.50 loss per $1 revenue to $2 earned per $1 cost; this quarter's GAAP margin is 19%, up from -129% a year ago. The team attributes this to two interlocking loops: better Claude drives more use cases and user feedback, which cycles back into stronger Claude; revenue growth funds bigger investments in the underlying model, multiplying both capability and output per person."
+  },
+  {
+   "h": "API anti-distillation is an ongoing arms race",
+   "body": "A published paper demonstrated chain-of-thought extraction from the API could be used to distill the model, prompting the team to add defenses like \"preserved thinking blocks\" and \"locked-in reasoning.\" The team emphasizes this is not a business problem—the real safety risk is if distilled models bypass Anthropic's safety classifiers. To avoid breaking legitimate users, they contacted open-source harness maintainers and large customers ahead of time, then built a dedicated new compression function to replace broken strategies without harming normal workflows."
+  },
+  {
+   "h": "One incident forced building kill-switch infrastructure for instant model shutdown",
+   "body": "Each model release requires a separate data retention and audit policy—Opus 5.5 carries no Fable-like strong retention mandate. The team built a \"trust grant\" system that threads authorization (who can use which model or project) down to the system foundation. This unified permission framework started as contingency after an emergency Fable shutdown: to \"one-click revoke access to any model from anyone, anywhere\" as insurance. Post-incident, the team found they use it far more often than expected."
+  },
+  {
+   "h": "CPU bottlenecks rival GPU scarcity in capacity planning",
+   "body": "While most focus on accelerator-layer compute, Anthropic discovered CPU is equally tight. Product services, API, sandboxes, and CI all compete for the same CPU budget—and it's zero-sum with training sandbox compute. Cloud providers' quota allocations now require manual distribution across business lines. What once scaled on-demand by CPU capacity now demands advance capacity planning, the same as GPU."
+  },
+  {
+   "h": "A Rust-naive team ported the entire Messages API to Rust",
+   "body": "The team had zero Rust engineers but decided to port the entire Messages API from Python monolith to Rust in one go—not piecemeal—because Claude writes the specific code while the team designs the distributed systems architecture and validates old and new system outputs match using shadow traffic. The result: 40–50% CPU savings, 10–20% reduction in first-token latency. The freed bandwidth let them pursue more ambitious user-facing architectural changes."
+  },
+  {
+   "h": "Splitting harness from sandboxes unexpectedly surfaced the core safety model",
+   "body": "Claude Managed Agent separates the always-on harness (\"brain\") from instantly destructible sandbox executors (\"hands\"), initially for latency and reliability—sandbox crashes don't kill the agent. One product manager insisted from the start that \"this architecture's real property is safety,\" which the team dismissed at the time; later they apologized to that person. The true safety win: credentials never enter agent-visible space. Only the exit proxy injects real credentials at call time, so the agent never touches them."
+  },
+  {
+   "h": "Slowing releases means raising the bar, not shipping fewer models",
+   "body": "The mentioned \"pacing\" does not mean releasing fewer models—Opus 5.5 launched 11 days after its predecessor, but only after passing three gates: architecture safety review, online guardrails, and offline classifiers. Online safety classification created a new routing problem: a regular user asking about biology homework who mentions one safety-related topic once can be routed as an entire conversation trigger, downgraded to weaker-model response. The classifier itself cannot yet distinguish misfire from genuine intent."
+  },
+  {
+   "h": "Multi-agent systems need only two design constraints",
+   "body": "For multi-agent architecture, honor just two principles: sub-agents share unified context, and they operate asynchronously without blocking each other. Beyond that, let Claude design the division of labor—the team expects Claude will learn to partition, replicate, and adjust its own coordination. Humans hold only these two boundaries; the model tries the rest, potentially solving in one pass what previously seemed intractable."
+  }
+ ],
+ "terms": [
+  {
+   "term": "distillation",
+   "def": "Using outputs from a large model (especially its reasoning process) to train a smaller model that mimics its abilities."
+  },
+  {
+   "term": "trust grant",
+   "def": "Authorization record tracking who can access which model or project, wired through the system's foundation layers."
+  },
+  {
+   "term": "Claude Managed Agent",
+   "def": "Out-of-the-box agent API with built-in harness, no custom infrastructure required."
+  },
+  {
+   "term": "chain-of-thought extraction",
+   "def": "Stealing a model's reasoning-process text for use in distilling a replica model."
+  },
+  {
+   "term": "brain/hands architecture",
+   "def": "Design pattern separating always-on harness (\"brain\") from instantly destructible sandbox executors (\"hands\")."
+  }
+ ],
+ "facts": [
+  {
+   "k": "12-month revenue per employee",
+   "v": "$6.6M (was $1.4M a year ago)"
+  },
+  {
+   "k": "Anthropic IPO valuation expectation",
+   "v": "$2T, expected in two weeks"
+  },
+  {
+   "k": "CPU savings from Rust rewrite",
+   "v": "40–50%"
+  },
+  {
+   "k": "First-token latency improvement from Rust rewrite",
+   "v": "10–20%"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "the entire point of why Anthropic exists is 'cause we want AI to create positive outcomes in the world safely, and we run a lot of safeguards classifiers on the tokens that we're producing in order to make sure that they're safe.",
+   "translated": false
+  },
+  {
+   "text": "it's, like, a very common thing in platform engineering that you, like, uh, you have one incident and then you, like, overprepare for that incident, and then the incident never happens again.",
+   "translated": false
+  },
+  {
+   "text": "We were like, \"We're gonna hit a CPU wall. There's stuff we need to do.\" And, and we've done it, right? Like, we've gone multi-region. We've done all these things we need to do.",
+   "translated": false
+  },
+  {
+   "text": "we have the brain separate from the hands, and what that means is, like, the harness runs on a durable server, really ours, right?",
+   "translated": false
+  },
+  {
+   "text": "the agent is never, like, in the same place where the credentials are, right? Because in the old world of, like, just boot the agent in a box and, like, let it run, you had to send credentials in there, and then you're, like, doing some sort of, like, ah, how do we, like, scrub this and that and make sure that, like, the agent can't take that credential and go do something that it shouldn't be doing.",
+   "translated": false
+  },
+  {
+   "text": "To, to, to me, this is, like, a, a, a close cousin of the general model routing problem of do you want a smart router or a dumb router? Does that make sense?",
+   "translated": false
+  },
+  {
+   "text": "You just need to make sure it can like parallel process, so it needs to share state, and it needs to like not block its sub-agents.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
