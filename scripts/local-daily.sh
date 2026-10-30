@@ -340,8 +340,10 @@ PYEOF
   [ -z "$ONLY_RESIDENTIAL" ] && SCOPE=all && CATCHUP_ONLY=""
   if [ -n "$CLOUD_DOWN" ]; then
     : "${TAKEOVER_LIMIT:=8}"
-    echo "$CLOUD_DOWN —— 本机接班：这一轮全站信源都管、最多 $TAKEOVER_LIMIT 篇（平时只管住宅 IP 那批、$LIMIT 篇）"
-    LIMIT=$TAKEOVER_LIMIT
+    # 接班只许放大、不许缩小：手动给了 LIMIT=20 追积压，接班却按 8 篇跑（2026-10-30 11:15）。
+    usual=$LIMIT
+    [ "$LIMIT" -lt "$TAKEOVER_LIMIT" ] 2>/dev/null && LIMIT=$TAKEOVER_LIMIT
+    echo "$CLOUD_DOWN —— 本机接班：这一轮全站信源都管、最多 $LIMIT 篇（平时只管住宅 IP 那批、$usual 篇）"
     ONLY_RESIDENTIAL=""
     SCOPE=all
     CATCHUP_ONLY=""

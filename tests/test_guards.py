@@ -12291,6 +12291,9 @@ class SourcesKeepUpdatingWhenOneLineStops(unittest.TestCase):
         only, scope, catch, limit = self._run_block(start, end, {**base, "CLOUD_DOWN": ""})
         self.assertIn("--only-residential", only, "云端正常时本机也跑全站 —— 和云端重复劳动")
         self.assertEqual((scope, catch, limit), ("residential", "--only-residential", "6"))
+        # 手动给了更大的 LIMIT 追积压：接班不许把它缩回 8（2026-10-30 11:15 就这么被缩过）
+        *_, limit = self._run_block(start, end, {**base, "LIMIT": "20", "CLOUD_DOWN": "云端深读关着"})
+        self.assertEqual(limit, "20", "接班把手动放大的篇数缩小了")
         only, scope, catch, limit = self._run_block(start, end, {**base, "ONLY": "sv101", "CLOUD_DOWN": "云端深读关着"})
         self.assertEqual(scope, "only", "手动 ONLY= 只跑几档，却记成了全站都管")
         sh = self._local()
