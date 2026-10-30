@@ -3,6 +3,7 @@
 这些不测业务逻辑，测的是"我上次是怎么犯错的"。每一条都对应 POSTMORTEM 里一条
 真实事故；纯文档防不住重犯，能断言的就断言。
 """
+import contextlib
 import hashlib
 import io
 import json
@@ -16,6 +17,99 @@ import urllib.parse
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "pipeline"))
+
+
+# **测试不许真的去敲 IndexNow。** 整个测试进程里挂一道网络层的绊线（见 TestsNeverReachIndexNow）：
+# 解析或经代理隧道到 IndexNow 主机，当场拦下、记账，抛一个 ping() 的 `except Exception` 吞不掉的错。
+class RealIndexNowRequest(BaseException):
+    """测试里出现了对 IndexNow 主机的真实请求。"""
+
+
+def _indexnow_hosts() -> set:
+    """从 indexnow.ENDPOINTS 读主机名 —— 加一家端点不用改这里。
+    不 import 那个模块：它连带 import build，不该为了挂一道闸改变测试进程的状态。"""
+    import ast
+    for n in ast.parse((ROOT / "pipeline" / "indexnow.py").read_text()).body:
+        if isinstance(n, ast.Assign) and any(getattr(t, "id", "") == "ENDPOINTS" for t in n.targets):
+            return {urllib.parse.urlsplit(u).hostname for u in ast.literal_eval(n.value)}
+    raise AssertionError("pipeline/indexnow.py 里找不到 ENDPOINTS —— 绊线不知道该拦谁")
+
+
+class _IndexNowTripwire:
+    def __init__(self):
+        self.hosts = _indexnow_hosts()
+        self.hits = []
+
+    def blocked(self, host) -> bool:
+        h = (host.decode() if isinstance(host, bytes) else str(host or "")).lower()
+        h = h.rsplit(":", 1)[0] if h.count(":") == 1 else h        # 隧道给的可能是 host:port
+        h = h.rstrip(".")
+        return h in self.hosts or h == "indexnow.org" or h.endswith(".indexnow.org")
+
+    def trip(self, host, via):
+        import traceback
+        self.hits.append(f"{host}（{via}）\n" + "".join(traceback.format_stack(limit=12)))
+        raise RealIndexNowRequest(f"测试真的去连 IndexNow 了：{host}（{via}）")
+
+    def install(self):
+        # 两个口子：直连要解析目标主机；走代理时只解析代理，目标只出现在 CONNECT 隧道里
+        import http.client
+        import socket
+        gai, tunnel = socket.getaddrinfo, http.client.HTTPConnection.set_tunnel
+
+        def getaddrinfo(host, *a, **k):
+            if self.blocked(host):
+                self.trip(host, "getaddrinfo")
+            return gai(host, *a, **k)
+
+        def set_tunnel(conn, host, *a, **k):
+            if self.blocked(host):
+                self.trip(host, "代理隧道")
+            return tunnel(conn, host, *a, **k)
+
+        socket.getaddrinfo = getaddrinfo
+        http.client.HTTPConnection.set_tunnel = set_tunnel
+        return self
+
+
+_INDEXNOW_TRIPWIRE = _IndexNowTripwire().install()
+
+
+def tearDownModule():
+    # 绊线抛的错一般当场把那条测试打成 ERROR；这里兜「被 except BaseException / 裸 except 吞了」的那种
+    if _INDEXNOW_TRIPWIRE.hits:
+        raise AssertionError("测试里有对 IndexNow 的真实请求（被吞掉了，没当场报错）：\n"
+                             + "\n".join(_INDEXNOW_TRIPWIRE.hits))
+
+
+@contextlib.contextmanager
+def _offline_ping(m, urlopen):
+    """indexnow.ping 的离线外壳：假 urlopen、不写 data/indexnow.json、不写 key 文件、日志收进列表。
+
+    原来两条测试各自手换 urlopen 和 _note，日志照样打到终端 ——
+    `indexnow: https://yandex.com/indexnow 202 submitted 1 urls` 混在测试输出里，
+    和真提交成功一字不差，2026-10-29 就被当成了测试在真投。假 HTTPError 也不关，
+    每跑一次留两条 ResourceWarning。
+    """
+    import urllib.error
+    from unittest import mock
+    notes, logged, raised = [], [], []
+
+    def opener(rq, timeout=None, context=None):
+        try:
+            return urlopen(rq, timeout=timeout, context=context)
+        except urllib.error.HTTPError as ex:
+            raised.append(ex)
+            raise
+    try:
+        with mock.patch.object(m.urllib.request, "urlopen", opener), \
+             mock.patch.object(m, "_note", lambda ok, detail: notes.append({"ok": ok, "detail": detail})), \
+             mock.patch.object(m, "log", lambda *a: logged.append(" ".join(map(str, a)))), \
+             mock.patch.object(m, "key_file", lambda: m.KEY_FILE):
+            yield notes, logged
+    finally:
+        for ex in raised:
+            ex.close()
 
 
 def _stages(cmd: str, path: str) -> bool:
@@ -9554,15 +9648,9 @@ class IndexNowFailuresMustNotBeSilent(unittest.TestCase):
             ("有端点收下", True,
              lambda rq, timeout=None, context=None: _Resp()),
         ):
-            notes = []
-            real_open, m.urllib.request.urlopen = m.urllib.request.urlopen, fake
-            real_note, m._note = m._note, lambda ok, detail: notes.append(ok)
-            try:
+            with _offline_ping(m, fake) as (notes, _):
                 m.ping(["https://ourword.ai/podcast/"])
-            finally:
-                m.urllib.request.urlopen = real_open
-                m._note = real_note
-            self.assertEqual([ok_expected], notes,
+            self.assertEqual([ok_expected], [n["ok"] for n in notes],
                              f"「{label}」这条路径没留下记录（或记反了）")
         hc = (ROOT / "pipeline" / "healthcheck.py").read_text()
         self.assertIn("check_indexnow(r)", hc, "体检没挂上这一条")
@@ -12484,17 +12572,11 @@ class IndexNowDoesNotGiveUpOnTheFirstEndpoint(unittest.TestCase):
                                              io.BytesIO(b'{"errorCode":"x"}'))
             return _Resp()
 
-        real, m.urllib.request.urlopen = m.urllib.request.urlopen, fake
-        notes = {}
-        real_note, m._note = m._note, lambda ok, detail: notes.update(ok=ok, detail=detail)
-        try:
+        with _offline_ping(m, fake) as (notes, _):
             m.ping(["https://ourword.ai/podcast/"])
-        finally:
-            m.urllib.request.urlopen = real
-            m._note = real_note
         self.assertEqual(m.ENDPOINTS[:2], tried[:2],
                          "第一个端点 403 之后没接着试第二个")
-        self.assertTrue(notes.get("ok"),
+        self.assertTrue(notes and notes[-1]["ok"],
                         "第二个端点收下了（202），却还是记成失败 —— "
                         "体检会一直报警，报到没人看")
 
@@ -12505,6 +12587,60 @@ class IndexNowDoesNotGiveUpOnTheFirstEndpoint(unittest.TestCase):
         self.assertIn("context=net.ctx()", src[i:i + 120],
                       "没走 lib.net 的 TLS 上下文 —— "
                       "curl 通而这里 CERTIFICATE_VERIFY_FAILED，会被当成端点故障")
+
+
+class TestsNeverReachIndexNow(unittest.TestCase):
+    """测试不许真的向搜索引擎提交 URL —— 由网络层的绊线保证，不靠每条测试自己记得换 urlopen。
+
+    2026-10-29 跑全套测试，输出里有 `indexnow: https://yandex.com/indexnow 202 submitted 1 urls`
+    和 `api.indexnow.org 403`，看着像测试把 URL 真投出去了（202 = 收下）。查下来没有出网：
+    那几行是两条测试里假 urlopen 的回声 —— 但「没出网」只靠每条测试手换 urlopen，
+    忘换一次就是真提交；而 ping() 自己 `except Exception` 全吞、日志和假的一字不差，
+    真投和假投从输出上分不出来。
+
+    所以绊线挂在 socket / http.client 上（文件开头 _IndexNowTripwire），对整个测试进程生效，
+    抛的是 BaseException —— ping() 吞不掉，那条测试当场 ERROR。
+    这里验它：每个端点主机都拦得住；而且**不带假 urlopen 的真 ping() 会被它拦下**，
+    证明它挂在真正出网的那条路上，而不是只挂在我以为 ping 会走的那层。
+    """
+
+    def test_every_endpoint_host_is_blocked(self):
+        import http.client
+        import socket
+        w = _INDEXNOW_TRIPWIRE
+        n = len(w.hits)
+        try:
+            self.assertTrue(w.hosts, "尺子坏了：一个 IndexNow 主机都没读到")
+            for host in sorted(w.hosts):
+                with self.assertRaises(RealIndexNowRequest, msg=f"解析 {host} 没被拦下"):
+                    socket.getaddrinfo(host, 443)
+                with self.assertRaises(RealIndexNowRequest, msg=f"经代理去 {host} 没被拦下"):
+                    http.client.HTTPSConnection("127.0.0.1", 9).set_tunnel(host, 443)
+            self.assertEqual(2 * len(w.hosts), len(w.hits) - n, "拦下了却没记账 —— tearDownModule 兜不住被吞的那种")
+        finally:
+            del w.hits[n:]
+
+    def test_a_ping_without_a_fake_is_stopped_before_it_leaves(self):
+        import socket
+        w = _INDEXNOW_TRIPWIRE
+        n = len(w.hits)
+        try:
+            # 先确认绊线在，再放真 ping() 出去 —— 绊线要是坏了，这条测试自己就会真提交一次
+            for host in w.hosts:
+                with self.assertRaises(RealIndexNowRequest, msg=f"绊线没拦 {host}，不敢放真 ping() 出去"):
+                    socket.getaddrinfo(host, 443)
+            sys.path.insert(0, str(ROOT / "pipeline"))
+            import importlib
+            m = importlib.import_module("indexnow")
+            from unittest import mock
+            with mock.patch.object(m, "_note", lambda ok, detail: None), \
+                 mock.patch.object(m, "log", lambda *a: None), \
+                 mock.patch.object(m, "key_file", lambda: m.KEY_FILE):
+                with self.assertRaises(RealIndexNowRequest,
+                                       msg="真 ping() 走到网络层没被拦下（或被 ping 的 except 吞了）"):
+                    m.ping(["https://ourword.ai/podcast/"])
+        finally:
+            del w.hits[n:]
 
 
 class RetryPathMustNotDeleteNonAsciiEpisodes(unittest.TestCase):
