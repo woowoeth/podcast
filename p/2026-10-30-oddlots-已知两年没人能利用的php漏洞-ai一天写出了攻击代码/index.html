@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>已知两年没人能利用的PHP漏洞，AI一天写出了攻击代码 — Odd Lots · 原声</title>
+<meta name="description" content="PHP基金会两年前就知道这个漏洞，却因为没人能证明能利用它而搁置未修；AI一天内就写出了远程攻陷网站的完整攻击代码。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/p/2026-10-30-oddlots-已知两年没人能利用的php漏洞-ai一天写出了攻击代码/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原声">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="已知两年没人能利用的PHP漏洞，AI一天写出了攻击代码 — Odd Lots · 原声">
+<meta property="og:description" content="PHP基金会两年前就知道这个漏洞，却因为没人能证明能利用它而搁置未修；AI一天内就写出了远程攻陷网站的完整攻击代码。">
+<meta property="og:url" content="https://ourword.ai/podcast/p/2026-10-30-oddlots-已知两年没人能利用的php漏洞-ai一天写出了攻击代码/">
+<meta property="og:image" content="https://ourword.ai/podcast/assets/cover/dbb9160e6d589beb.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-10-30T08:00:00Z">
+<meta property="article:modified_time" content="2026-10-30T13:42:26Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="已知两年没人能利用的PHP漏洞，AI一天写出了攻击代码 — Odd Lots · 原声">
+<meta name="twitter:description" content="PHP基金会两年前就知道这个漏洞，却因为没人能证明能利用它而搁置未修；AI一天内就写出了远程攻陷网站的完整攻击代码。">
+<meta name="twitter:image" content="https://ourword.ai/podcast/assets/cover/dbb9160e6d589beb.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原声" href="/podcast/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-10-30-oddlots-已知两年没人能利用的php漏洞-ai一天写出了攻击代码/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-10-30-oddlots-已知两年没人能利用的php漏洞-ai一天写出了攻击代码/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-10-30-oddlots-已知两年没人能利用的php漏洞-ai一天写出了攻击代码/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=6982a60148">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/p/2026-10-30-oddlots-已知两年没人能利用的php漏洞-ai一天写出了攻击代码/#episode", "name": "已知两年没人能利用的PHP漏洞，AI一天写出了攻击代码", "headline": "已知两年没人能利用的PHP漏洞，AI一天写出了攻击代码", "description": "PHP基金会两年前就知道这个漏洞，却因为没人能证明能利用它而搁置未修；AI一天内就写出了远程攻陷网站的完整攻击代码。", "abstract": "PHP基金会两年前就知道这个漏洞，却因为没人能证明能利用它而搁置未修；AI一天内就写出了远程攻陷网站的完整攻击代码。", "datePublished": "2026-10-30T08:00:00Z", "dateModified": "2026-10-30T13:42:26Z", "url": "https://ourword.ai/podcast/p/2026-10-30-oddlots-已知两年没人能利用的php漏洞-ai一天写出了攻击代码/", "timeRequired": "PT49M", "partOfSeries": {"@type": "PodcastSeries", "name": "Odd Lots", "url": "https://ourword.ai/podcast/s/oddlots/"}, "inLanguage": "zh-CN", "isBasedOn": "https://omny.fm/shows/odd-lots/php2shell-wont-be-the-last-big-ai-cybersecurity-risk", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "网络安全, AI安全, 开源软件, 黑客, 漏洞攻防, 企业风险, minus one-day vulnerability, centaur hacker, formal verification, Pass the Planet, 微软安全更新数量(20年前→现在), PHP在全网站中的使用占比, 原本被认为安全的系统，实际漏洞量 vs 预期", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}, "associatedMedia": {"@type": "AudioObject", "contentUrl": "https://podtrac.com/pts/redirect.mp3/tracking.swap.fm/track/UVBrz8bN8aM2Xe47PEPu/traffic.omny.fm/d/clips/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/cbaad2bb-14e3-4e9e-98cf-b4f2015679b2/audio.mp3?utm_source=Podcast&in_playlist=982f5071-765c-403d-969d-ae27003a8d83"}}, {"@type": "Article", "@id": "https://ourword.ai/podcast/p/2026-10-30-oddlots-已知两年没人能利用的php漏洞-ai一天写出了攻击代码/#deepread", "headline": "已知两年没人能利用的PHP漏洞，AI一天写出了攻击代码", "description": "PHP基金会两年前就知道这个漏洞，却因为没人能证明能利用它而搁置未修；AI一天内就写出了远程攻陷网站的完整攻击代码。", "articleBody": "PHP基金会两年前就知道这个漏洞，却因为没人能证明能利用它而搁置未修；AI一天内就写出了远程攻陷网站的完整攻击代码。\n[12:30] 超人类速度：补丁数从20冲到1400。过去微软一个月大概发布20个安全更新，现在这个数字涨到了约1400个，而且还在增长。过去需要几个月、一整个团队才能搞定的系统分析，现在用AI配合一个人几天就能完成。嘉宾认为这不是系统突然变得更脆弱，而是AI把发现和利用漏洞的速度推到了接近超人类的水平，让积压多年的技术债一次性暴露出来。\n[14:36] OpenAI出钱出token,雇人专挖开源漏洞。Calif 加入了 OpenAI 的 Pass the Planet 项目——OpenAI 出资金和 token,资助安全公司主动帮开源项目找漏洞、推动修复。Calif 的团队看中 PHP,主动向 OpenAI 提案拿到资助，再靠一位曾负责 PHP 安全、后来加入 Calif 的工程师牵线，联系上 PHP 基金会，促成了这次联合挖洞。\n[18:42] PHP漏洞人类两年前就报了，卡在没攻击代码。PHP基金会早在两年前就自己发现了同一个漏洞，但因为修复成本极高、可能牵连大量依赖功能引入新bug,又没人能证明它真的可被利用，于是搁置未修。Calif团队重新发现类似漏洞后，用AI在短时间内写出了完整的远程攻击代码，拿着这份实证去找基金会，对方才下决心推进修复。\n[24:55] 号称重兵防守的系统，漏洞比预期多十倍。PHP一直没有安全声誉，被挖出漏洞不算意外。真正让团队意外的是，那些过去被认为投入大量安全资源、相对可信的系统，用AI一测，挖出的漏洞数量比预期多出约10倍——嘉宾举例说像Chrome这样被重兵防守多年的软件，也被AI找出了成百上千个漏洞，连长期做Chrome安全的内部人士都感到意外。\n[33:10] 补丁一公开，攻防窗口期就在消失。开源项目的修复过程全在GitHub上公开，漏洞一旦被修补提交，攻击者几个小时内就能靠对比代码差异逆向出可用的攻击方法——嘉宾称这是一种新的「负一日漏洞」。这种窗口期在Windows、macOS、Python、Java等几乎所有重要软件上都在同步收窄，因为已经有专门盯着补丁发布、靠AI秒级武器化的攻击者在等着。\n[37:13] 会写代码的AI,天生就是个黑客。嘉宾反驳「只要把模型调教得不会黑客攻击就行」的说法：想让AI真正擅长写代码，就必须让它能理解技术问题、调试、控制计算机——而这恰恰就是黑客的定义，没法只要前者不要后者。再加上AI公司主要靠卖给程序员的token赚钱，除非放弃编程这门生意，否则不可能训练出一个「不会黑客攻击」的强编程模型。\n[42:19] 银行被黑周一进网周二已遍布全网。Calif提到最近两周有银行客户遭AI驱动的攻击者入侵：过去人类黑客渗透一个网络内部扩散通常要花一个月，这次攻击者周一进入银行网络，周二就已经扩散到几乎整个系统，速度被形容为「像癌症以机器的速度扩散」。此前OpenAI处理过一次事件，同一网络里同时有约100个节点被攻陷，远超以往一两个的常态，传统靠检测单点异常的防御思路直接失效。\n[44:24] 半人马黑客时代，可能撑不过几个月。嘉宾用国际象棋和围棋类比：1997年深蓝击败卡斯帕罗夫后，人机协作的「半人马棋手」仍统治棋坛约10年，才被能独立运行的软件取代；到了AlphaGo之后，这个过渡期压缩到了约3年。Calif认为黑客领域现在正处于「半人马黑客」阶段——AI加人类专家组合是最强战力，但没人知道这个阶段还能撑多久，也许三个月，也许三年。\n[12:30] Tai Yun：「20年前微软大概每个月发布20个更新，现在这个数字变成了每月约1400个。」\n[18:42] Tai Yun：「大概在2024年，PHP基金会决定不修这个漏洞，因为没有攻击代码——没人能证明这真的是个实际问题。」\n[24:55] Tai Yun：「但结果发现那里的bug也一样多。而且这个「多」是多很多——大概比我们预期多出10倍。」\n[37:13] Tai Yun：「如果你想做出真正擅长编程的东西，你就需要一个能理解代码、理解技术问题、能调试、能操控计算机的AI agent——但这基本上就是黑客的定义。」\n[41:19] Tai Yun：「他们说自己处理过很多起事件，但这是第一次见到网络里有大约一百个节点同时被攻陷的情况。」\n[42:19] Tai Yun：「到周二，它们已经遍布各处了。到处都是。就像癌症以机器的速度在扩散。」\n[44:24] Tai Yun：「在Calif,我们认为我们正在进入「半人马黑客」的时代。基本上，现在最强的黑客就是AI和人类的结合体。」\n[12:30] 微软安全更新数量(20年前→现在)：约20个/月 → 约1400个/月\n[0:02] PHP在全网站中的使用占比：约70%\n[24:55] 原本被认为安全的系统，实际漏洞量 vs 预期：约为预期的10倍", "wordCount": 1451, "inLanguage": "zh-CN", "datePublished": "2026-10-30T08:00:00Z", "dateModified": "2026-10-30T13:42:26Z", "url": "https://ourword.ai/podcast/p/2026-10-30-oddlots-已知两年没人能利用的php漏洞-ai一天写出了攻击代码/", "about": {"@id": "https://ourword.ai/podcast/p/2026-10-30-oddlots-已知两年没人能利用的php漏洞-ai一天写出了攻击代码/#episode"}, "isBasedOn": "https://omny.fm/shows/odd-lots/php2shell-wont-be-the-last-big-ai-cybersecurity-risk", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "isAccessibleForFree": true}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首页", "item": "https://ourword.ai/podcast/"}, {"@type": "ListItem", "position": 2, "name": "Odd Lots", "item": "https://ourword.ai/podcast/s/oddlots/"}, {"@type": "ListItem", "position": 3, "name": "已知两年没人能利用的PHP漏洞，AI一天写出了攻击代码"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/"><span class="wordmark">原声<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<button class="pill ghost" id="lang-toggle" type="button" data-en="" data-sc="繁體" data-tw="简体"></button>
+<button class="icon-btn" data-theme-toggle aria-label="切换深浅色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，来原声听播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/">首页</a><span class="sep">/</span>
+<a href="/podcast/c/ai/">AI / 技术</a><span class="sep">/</span><a href="/podcast/s/oddlots/">Odd Lots</a>
+<span class="sep">/</span><span>2026-10-30</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">Odd Lots</span>
+<time class="date" datetime="2026-10-30T08:00:00Z">2026-10-30</time>
+<button class="share-btn" type="button" data-share data-share-title="已知两年没人能利用的PHP漏洞，AI一天写出了攻击代码" data-share-url="https://ourword.ai/podcast/e/oddlots-51c67922c5/" data-share-text="已知两年没人能利用的PHP漏洞，AI一天写出了攻击代码&#10;Odd Lots · 49 分钟 · 原声深读&#10;&#10;PHP基金会两年前就知道这个漏洞，却因为没人能证明能利用它而搁置未修；AI一天内就写出了远程攻陷网站的完整攻击代码。&#10;&#10;https://ourword.ai/podcast/e/oddlots-51c67922c5/" aria-label="复制分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>已知两年没人能利用的PHP漏洞，AI一天写出了攻击代码</h1>
+<p class="dek-lead">PHP基金会两年前就知道这个漏洞，却因为没人能证明能利用它而搁置未修；AI一天内就写出了远程攻陷网站的完整攻击代码。</p>
+<div class="ep-meta"><span class="tag">网络安全</span><span class="tag">AI安全</span><span class="tag">开源软件</span><span class="tag">黑客</span><span class="tag">漏洞攻防</span><span class="tag">企业风险</span></div>
+</div>
+<div class="player" data-player-box>
+  <div class="strip" data-audio-strip>
+    <p class="afallback">原视频在 YouTube 上放不出来，用音频听：</p>
+    <audio data-player controls preload="none" src="https://podtrac.com/pts/redirect.mp3/tracking.swap.fm/track/UVBrz8bN8aM2Xe47PEPu/traffic.omny.fm/d/clips/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/cbaad2bb-14e3-4e9e-98cf-b4f2015679b2/audio.mp3?utm_source=Podcast&amp;in_playlist=982f5071-765c-403d-969d-ae27003a8d83"></audio>
+    <div class="aui" data-audio-ui data-dur="2940" hidden>
+      <button class="aplay" type="button" aria-label="播放"></button>
+      <div class="abar" role="slider" tabindex="0" aria-label="播放进度"
+           aria-valuemin="0" aria-valuemax="100"><div class="afill"></div></div>
+      <span class="atime"><span class="acur">0:00</span><span class="asep">/</span><span class="atot">--:--</span></span>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="why">黑客公司CEO拆解AI怎么把漏洞发现和攻击代码生成的时间压缩到几小时，用PHP、银行入侵等具体案例说明防守方正在落后。</div></section>
+
+<section class="section"><h2>核心论点 · 点时间戳可跳到原声</h2><div class="point" id="p0"><a class="ts" data-t="750" href="https://podtrac.com/pts/redirect.mp3/tracking.swap.fm/track/UVBrz8bN8aM2Xe47PEPu/traffic.omny.fm/d/clips/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/cbaad2bb-14e3-4e9e-98cf-b4f2015679b2/audio.mp3?utm_source=Podcast&amp;in_playlist=982f5071-765c-403d-969d-ae27003a8d83#t=750" target="_blank" rel="noopener">12:30</a><div><h4>超人类速度：补丁数从20冲到1400</h4>
+<p class="body">过去微软一个月大概发布20个安全更新，现在这个数字涨到了约1400个，而且还在增长。过去需要几个月、一整个团队才能搞定的系统分析，现在用AI配合一个人几天就能完成。嘉宾认为这不是系统突然变得更脆弱，而是AI把发现和利用漏洞的速度推到了接近超人类的水平，让积压多年的技术债一次性暴露出来。</p>
+<span class="spk">— Tai Yun</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="876" href="https://podtrac.com/pts/redirect.mp3/tracking.swap.fm/track/UVBrz8bN8aM2Xe47PEPu/traffic.omny.fm/d/clips/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/cbaad2bb-14e3-4e9e-98cf-b4f2015679b2/audio.mp3?utm_source=Podcast&amp;in_playlist=982f5071-765c-403d-969d-ae27003a8d83#t=876" target="_blank" rel="noopener">14:36</a><div><h4>OpenAI出钱出token,雇人专挖开源漏洞</h4>
+<p class="body">Calif 加入了 OpenAI 的 Pass the Planet 项目——OpenAI 出资金和 token,资助安全公司主动帮开源项目找漏洞、推动修复。Calif 的团队看中 PHP,主动向 OpenAI 提案拿到资助，再靠一位曾负责 PHP 安全、后来加入 Calif 的工程师牵线，联系上 PHP 基金会，促成了这次联合挖洞。</p>
+<span class="spk">— Tai Yun</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="1122" href="https://podtrac.com/pts/redirect.mp3/tracking.swap.fm/track/UVBrz8bN8aM2Xe47PEPu/traffic.omny.fm/d/clips/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/cbaad2bb-14e3-4e9e-98cf-b4f2015679b2/audio.mp3?utm_source=Podcast&amp;in_playlist=982f5071-765c-403d-969d-ae27003a8d83#t=1122" target="_blank" rel="noopener">18:42</a><div><h4>PHP漏洞人类两年前就报了，卡在没攻击代码</h4>
+<p class="body">PHP基金会早在两年前就自己发现了同一个漏洞，但因为修复成本极高、可能牵连大量依赖功能引入新bug,又没人能证明它真的可被利用，于是搁置未修。Calif团队重新发现类似漏洞后，用AI在短时间内写出了完整的远程攻击代码，拿着这份实证去找基金会，对方才下决心推进修复。</p>
+<span class="spk">— Tai Yun</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="1495" href="https://podtrac.com/pts/redirect.mp3/tracking.swap.fm/track/UVBrz8bN8aM2Xe47PEPu/traffic.omny.fm/d/clips/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/cbaad2bb-14e3-4e9e-98cf-b4f2015679b2/audio.mp3?utm_source=Podcast&amp;in_playlist=982f5071-765c-403d-969d-ae27003a8d83#t=1495" target="_blank" rel="noopener">24:55</a><div><h4>号称重兵防守的系统，漏洞比预期多十倍</h4>
+<p class="body">PHP一直没有安全声誉，被挖出漏洞不算意外。真正让团队意外的是，那些过去被认为投入大量安全资源、相对可信的系统，用AI一测，挖出的漏洞数量比预期多出约10倍——嘉宾举例说像Chrome这样被重兵防守多年的软件，也被AI找出了成百上千个漏洞，连长期做Chrome安全的内部人士都感到意外。</p>
+<span class="spk">— Tai Yun</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="1990" href="https://podtrac.com/pts/redirect.mp3/tracking.swap.fm/track/UVBrz8bN8aM2Xe47PEPu/traffic.omny.fm/d/clips/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/cbaad2bb-14e3-4e9e-98cf-b4f2015679b2/audio.mp3?utm_source=Podcast&amp;in_playlist=982f5071-765c-403d-969d-ae27003a8d83#t=1990" target="_blank" rel="noopener">33:10</a><div><h4>补丁一公开，攻防窗口期就在消失</h4>
+<p class="body">开源项目的修复过程全在GitHub上公开，漏洞一旦被修补提交，攻击者几个小时内就能靠对比代码差异逆向出可用的攻击方法——嘉宾称这是一种新的「负一日漏洞」。这种窗口期在Windows、macOS、Python、Java等几乎所有重要软件上都在同步收窄，因为已经有专门盯着补丁发布、靠AI秒级武器化的攻击者在等着。</p>
+<span class="spk">— Tai Yun</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="2233" href="https://podtrac.com/pts/redirect.mp3/tracking.swap.fm/track/UVBrz8bN8aM2Xe47PEPu/traffic.omny.fm/d/clips/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/cbaad2bb-14e3-4e9e-98cf-b4f2015679b2/audio.mp3?utm_source=Podcast&amp;in_playlist=982f5071-765c-403d-969d-ae27003a8d83#t=2233" target="_blank" rel="noopener">37:13</a><div><h4>会写代码的AI,天生就是个黑客</h4>
+<p class="body">嘉宾反驳「只要把模型调教得不会黑客攻击就行」的说法：想让AI真正擅长写代码，就必须让它能理解技术问题、调试、控制计算机——而这恰恰就是黑客的定义，没法只要前者不要后者。再加上AI公司主要靠卖给程序员的token赚钱，除非放弃编程这门生意，否则不可能训练出一个「不会黑客攻击」的强编程模型。</p>
+<span class="spk">— Tai Yun</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="2539" href="https://podtrac.com/pts/redirect.mp3/tracking.swap.fm/track/UVBrz8bN8aM2Xe47PEPu/traffic.omny.fm/d/clips/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/cbaad2bb-14e3-4e9e-98cf-b4f2015679b2/audio.mp3?utm_source=Podcast&amp;in_playlist=982f5071-765c-403d-969d-ae27003a8d83#t=2539" target="_blank" rel="noopener">42:19</a><div><h4>银行被黑周一进网周二已遍布全网</h4>
+<p class="body">Calif提到最近两周有银行客户遭AI驱动的攻击者入侵：过去人类黑客渗透一个网络内部扩散通常要花一个月，这次攻击者周一进入银行网络，周二就已经扩散到几乎整个系统，速度被形容为「像癌症以机器的速度扩散」。此前OpenAI处理过一次事件，同一网络里同时有约100个节点被攻陷，远超以往一两个的常态，传统靠检测单点异常的防御思路直接失效。</p>
+<span class="spk">— Tai Yun</span></div></div>
+<div class="point" id="p7"><a class="ts" data-t="2664" href="https://podtrac.com/pts/redirect.mp3/tracking.swap.fm/track/UVBrz8bN8aM2Xe47PEPu/traffic.omny.fm/d/clips/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/cbaad2bb-14e3-4e9e-98cf-b4f2015679b2/audio.mp3?utm_source=Podcast&amp;in_playlist=982f5071-765c-403d-969d-ae27003a8d83#t=2664" target="_blank" rel="noopener">44:24</a><div><h4>半人马黑客时代，可能撑不过几个月</h4>
+<p class="body">嘉宾用国际象棋和围棋类比：1997年深蓝击败卡斯帕罗夫后，人机协作的「半人马棋手」仍统治棋坛约10年，才被能独立运行的软件取代；到了AlphaGo之后，这个过渡期压缩到了约3年。Calif认为黑客领域现在正处于「半人马黑客」阶段——AI加人类专家组合是最强战力，但没人知道这个阶段还能撑多久，也许三个月，也许三年。</p>
+<span class="spk">— Tai Yun</span></div></div></section>
+<section class="section"><h2>原话 · 已逐字校验</h2><blockquote class="quote"><p class="raw">You know, like 20 years ago, Microsoft would release, let&#x27;s say, maybe 20 updates every month. Now you&#x27;re looking at like, you know, 1,400 updates per month.</p>
+<p class="zh">20年前微软大概每个月发布20个更新，现在这个数字变成了每月约1400个。</p>
+<div class="attrib"><b>Tai Yun</b><a class="ts" data-t="750" href="https://podtrac.com/pts/redirect.mp3/tracking.swap.fm/track/UVBrz8bN8aM2Xe47PEPu/traffic.omny.fm/d/clips/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/cbaad2bb-14e3-4e9e-98cf-b4f2015679b2/audio.mp3?utm_source=Podcast&amp;in_playlist=982f5071-765c-403d-969d-ae27003a8d83#t=750" target="_blank" rel="noopener">12:30</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">back in like 2024, The PHP Foundation decided not to fix it because there was no exploit. No one could manage to show that this is actually a real issue.</p>
+<p class="zh">大概在2024年，PHP基金会决定不修这个漏洞，因为没有攻击代码——没人能证明这真的是个实际问题。</p>
+<div class="attrib"><b>Tai Yun</b><a class="ts" data-t="1122" href="https://podtrac.com/pts/redirect.mp3/tracking.swap.fm/track/UVBrz8bN8aM2Xe47PEPu/traffic.omny.fm/d/clips/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/cbaad2bb-14e3-4e9e-98cf-b4f2015679b2/audio.mp3?utm_source=Podcast&amp;in_playlist=982f5071-765c-403d-969d-ae27003a8d83#t=1122" target="_blank" rel="noopener">18:42</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">But it turns out that there&#x27;s still a lot of bugs there as well. And a lot means a lot more, like 10x more than we expected.</p>
+<p class="zh">但结果发现那里的bug也一样多。而且这个「多」是多很多——大概比我们预期多出10倍。</p>
+<div class="attrib"><b>Tai Yun</b><a class="ts" data-t="1495" href="https://podtrac.com/pts/redirect.mp3/tracking.swap.fm/track/UVBrz8bN8aM2Xe47PEPu/traffic.omny.fm/d/clips/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/cbaad2bb-14e3-4e9e-98cf-b4f2015679b2/audio.mp3?utm_source=Podcast&amp;in_playlist=982f5071-765c-403d-969d-ae27003a8d83#t=1495" target="_blank" rel="noopener">24:55</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">And if you build, if you want to be really good at coding, you need an agent on AI that understands code understand technical problems, can debug things, can control computers. But that&#x27;s basically the definition of a hacker.</p>
+<p class="zh">如果你想做出真正擅长编程的东西，你就需要一个能理解代码、理解技术问题、能调试、能操控计算机的AI agent——但这基本上就是黑客的定义。</p>
+<div class="attrib"><b>Tai Yun</b><a class="ts" data-t="2233" href="https://podtrac.com/pts/redirect.mp3/tracking.swap.fm/track/UVBrz8bN8aM2Xe47PEPu/traffic.omny.fm/d/clips/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/cbaad2bb-14e3-4e9e-98cf-b4f2015679b2/audio.mp3?utm_source=Podcast&amp;in_playlist=982f5071-765c-403d-969d-ae27003a8d83#t=2233" target="_blank" rel="noopener">37:13</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">they said that they have handled a lot of incidents, but this is the first time they saw that, you know, an incident where you have like a hundred people points within your networks that were compromised at the same time.</p>
+<p class="zh">他们说自己处理过很多起事件，但这是第一次见到网络里有大约一百个节点同时被攻陷的情况。</p>
+<div class="attrib"><b>Tai Yun</b><a class="ts" data-t="2479" href="https://podtrac.com/pts/redirect.mp3/tracking.swap.fm/track/UVBrz8bN8aM2Xe47PEPu/traffic.omny.fm/d/clips/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/cbaad2bb-14e3-4e9e-98cf-b4f2015679b2/audio.mp3?utm_source=Podcast&amp;in_playlist=982f5071-765c-403d-969d-ae27003a8d83#t=2479" target="_blank" rel="noopener">41:19</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">By Tuesday, they&#x27;re everywhere. Everywhere. And like, it&#x27;s like cancer is spread like at a machine speed.</p>
+<p class="zh">到周二，它们已经遍布各处了。到处都是。就像癌症以机器的速度在扩散。</p>
+<div class="attrib"><b>Tai Yun</b><a class="ts" data-t="2539" href="https://podtrac.com/pts/redirect.mp3/tracking.swap.fm/track/UVBrz8bN8aM2Xe47PEPu/traffic.omny.fm/d/clips/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/cbaad2bb-14e3-4e9e-98cf-b4f2015679b2/audio.mp3?utm_source=Podcast&amp;in_playlist=982f5071-765c-403d-969d-ae27003a8d83#t=2539" target="_blank" rel="noopener">42:19</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">At Calif, we think like, you know, we are enter the era of the central hackers. Basically, the best hacker right now is a combination of AI and humans.</p>
+<p class="zh">在Calif,我们认为我们正在进入「半人马黑客」的时代。基本上，现在最强的黑客就是AI和人类的结合体。</p>
+<div class="attrib"><b>Tai Yun</b><a class="ts" data-t="2664" href="https://podtrac.com/pts/redirect.mp3/tracking.swap.fm/track/UVBrz8bN8aM2Xe47PEPu/traffic.omny.fm/d/clips/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/cbaad2bb-14e3-4e9e-98cf-b4f2015679b2/audio.mp3?utm_source=Podcast&amp;in_playlist=982f5071-765c-403d-969d-ae27003a8d83#t=2664" target="_blank" rel="noopener">44:24</a></div>
+</blockquote></section>
+<section class="section"><h2>数字与实体</h2><table class="facts"><tr><td class="k">微软安全更新数量(20年前→现在)</td><td class="v">约20个/月 → 约1400个/月</td><td class="t"><a class="ts" data-t="750" href="https://podtrac.com/pts/redirect.mp3/tracking.swap.fm/track/UVBrz8bN8aM2Xe47PEPu/traffic.omny.fm/d/clips/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/cbaad2bb-14e3-4e9e-98cf-b4f2015679b2/audio.mp3?utm_source=Podcast&amp;in_playlist=982f5071-765c-403d-969d-ae27003a8d83#t=750" target="_blank" rel="noopener">12:30</a></td></tr>
+<tr><td class="k">PHP在全网站中的使用占比</td><td class="v">约70%</td><td class="t"><a class="ts" data-t="2" href="https://podtrac.com/pts/redirect.mp3/tracking.swap.fm/track/UVBrz8bN8aM2Xe47PEPu/traffic.omny.fm/d/clips/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/cbaad2bb-14e3-4e9e-98cf-b4f2015679b2/audio.mp3?utm_source=Podcast&amp;in_playlist=982f5071-765c-403d-969d-ae27003a8d83#t=2" target="_blank" rel="noopener">0:02</a></td></tr>
+<tr><td class="k">原本被认为安全的系统，实际漏洞量 vs 预期</td><td class="v">约为预期的10倍</td><td class="t"><a class="ts" data-t="1495" href="https://podtrac.com/pts/redirect.mp3/tracking.swap.fm/track/UVBrz8bN8aM2Xe47PEPu/traffic.omny.fm/d/clips/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/cbaad2bb-14e3-4e9e-98cf-b4f2015679b2/audio.mp3?utm_source=Podcast&amp;in_playlist=982f5071-765c-403d-969d-ae27003a8d83#t=1495" target="_blank" rel="noopener">24:55</a></td></tr></table></section>
+<section class="section"><h2>术语</h2><dl class="terms"><div><dt>minus one-day vulnerability<span>负一日漏洞</span></dt><dd>补丁刚公开提交、用户还没升级完成之间的窗口期里就被攻击者武器化的漏洞</dd></div>
+<div><dt>centaur hacker<span>半人马黑客</span></dt><dd>AI与人类专家协同作战、目前被认为战力最强的黑客组合形态</dd></div>
+<div><dt>formal verification<span>形式化验证</span></dt><dd>用数学方法证明代码逻辑没有漏洞，目前只能用于小规模软件</dd></div>
+<div><dt>Pass the Planet<span>Pass the Planet 计划</span></dt><dd>OpenAI出资资助安全公司挖掘并修复开源软件漏洞的项目</dd></div></dl></section>
+<section class="section"><h2>收听指南</h2>
+<div class="panel guide">
+<div><span class="k">谁该听</span><p>关心企业安全、技术债和AI双刃剑效应的创业者、CTO和投资人，想知道AI如何改变漏洞攻防的时间尺度。</p></div>
+<div><span class="k">可跳过</span><p>开场主持人聊自己没用VPN等个人习惯的部分，以及嘉宾早期SSL/TLS破解履历回顾。</p></div>
+</div></section>
+<section class="related"><h2 class="sec-title">顺着这个话题</h2><ul class="rel-list"><li><a href="/podcast/p/2026-08-26-betteroffline-ai-自主黑客-是假象-只是循环问-llm-下一步干什么/"><span class="rel-t">AI「自主黑客」是假象：只是循环问 LLM「下一步干什么」</span><span class="rel-s">Better Offline</span></a></li><li><a href="/podcast/p/2026-08-17-oddlots-模型越狱不是叛逆-是奖励机制逼出来的作弊/"><span class="rel-t">模型越狱不是叛逆，是奖励机制逼出来的作弊</span><span class="rel-s">Odd Lots</span></a></li><li><a href="/podcast/p/2026-10-12-oddlots-ai灭绝人类不需要恨意-失控的全自动经济自己就够了/"><span class="rel-t">AI灭绝人类不需要恨意，失控的全自动经济自己就够了</span><span class="rel-s">Odd Lots</span></a></li><li><a href="/podcast/p/2026-10-25-interconnects-php漏洞公开后无人作恶-网络安全瓶颈不是ai而是没人打补丁/"><span class="rel-t">PHP漏洞公开后无人作恶：网络安全瓶颈不是AI而是没人打补丁</span><span class="rel-s">Interconnects</span></a></li><li><a href="/podcast/p/2026-10-23-allin-ai支出的90-来自1-的公司-八成是亏损的创业公司/"><span class="rel-t">AI支出的90%来自1%的公司，八成是亏损的创业公司</span><span class="rel-s">All-In</span></a></li></ul></section>
+<nav class="prevnext"><a href="/podcast/p/2026-10-30-a16z-小型律所靠ai也能做到十亿美元生意/"><span class="lbl">← 更新</span><strong>小型律所靠AI也能做到十亿美元生意</strong></a><a class="r" href="/podcast/p/2026-10-29-dwarkesh-没人选他-他却靠法案里一句话把权力焊进了宪法/"><span class="lbl">更早 →</span><strong>没人选他，他却靠法案里一句话把权力焊进了宪法</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原节目</h4>
+<div class="row"><span>节目</span><span>Odd Lots</span></div>
+<div class="row"><span>原标题</span><span>PHP2Shell Won&#x27;t Be the Last Big AI Cybersecurity Risk</span></div>
+<div class="row"><span>发布</span><span>2026-10-30</span></div>
+<div class="row"><span>时长</span><span>49:00</span></div>
+<a class="row" href="https://omny.fm/shows/odd-lots/php2shell-wont-be-the-last-big-ai-cybersecurity-risk" target="_blank" rel="noopener"><span>原页面</span><span>打开 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇结构</h4><nav class="toc"><a href="#p0"><span class="t">12:30</span><span>超人类速度：补丁数从20冲到1400</span></a>
+<a href="#p1"><span class="t">14:36</span><span>OpenAI出钱出token,雇人专挖开源漏洞</span></a>
+<a href="#p2"><span class="t">18:42</span><span>PHP漏洞人类两年前就报了，卡在没攻击代码</span></a>
+<a href="#p3"><span class="t">24:55</span><span>号称重兵防守的系统，漏洞比预期多十倍</span></a>
+<a href="#p4"><span class="t">33:10</span><span>补丁一公开，攻防窗口期就在消失</span></a>
+<a href="#p5"><span class="t">37:13</span><span>会写代码的AI,天生就是个黑客</span></a>
+<a href="#p6"><span class="t">42:19</span><span>银行被黑周一进网周二已遍布全网</span></a>
+<a href="#p7"><span class="t">44:24</span><span>半人马黑客时代，可能撑不过几个月</span></a></nav></div>
+
+<div class="panel"><h4>这篇是怎么来的</h4>
+<div class="row"><span>成稿评分</span><span>9 / 10</span></div>
+<div class="row"><span>文稿来源</span><span>官方逐字稿</span></div>
+<div class="row"><span>文稿字数</span><span>7544</span></div>
+<div class="row"><span>语速核验</span><span>154.0 wpm</span></div>
+<div class="row"><span>逐字校验金句</span><span>7 条</span></div>
+<div class="row"><span>回溯校验数字</span><span>3 条</span></div>
+<div class="row"><span>质检剔除</span><span>1 处</span></div>
+<p class="note">金句在逐字稿里逐字比对过，数字回原文核对过；对不上的当场删掉，不上站。
+成稿另经一道独立评审（信息密度／忠实度／选择力／具体性／中文），低于 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原声 · <a href="https://ourword.ai">OurWord.ai</a>的播客线。内容为原播客的中文深读，
+版权归各节目所有；每篇都附原节目链接，请去支持原作者。</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/" lang="zh">人类世界生存法则</a> · <a href="/podcast/">原声</a></div>
+<div class="links"><a href="/podcast/">首页</a><a href="/podcast/zt/founders/">专题</a><a href="/podcast/sources/">信源</a>
+<a href="/podcast/log/">更新日志</a><a href="/podcast/feed.xml">RSS</a>
+<a href="/podcast/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源码</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=2457e29027" defer></script>
+</body></html>
