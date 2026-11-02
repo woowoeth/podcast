@@ -215,6 +215,23 @@ def reset_site(ref: str = "HEAD") -> int:
     return len(back)
 
 
+def reset_code(ref: str = "HEAD") -> list[str]:
+    """data/ 和建站产物（含 assets）之外、已跟踪而磁盘上和 ref 不一样的文件，一律改回 ref 那份。
+
+    **为什么。** 这份副本里机器人只写 data/ 和建站产物；别的文件跟 ref 不一样，只可能是过期的
+    旧版。推送被拒的重试 `reset --mixed origin/main` 只挪索引，原来只把 pipeline/ scripts/ tests/
+    .github/ assets/ 取成远端版本，根目录的 POSTMORTEM.md 就留着旧版 —— 磁盘上少了远端刚加的
+    一节（2026-11-02，§37）。它在工作区里看着无害，等远端再改这个文件，下一轮开头
+    `git pull --autostash` 恢复必然冲突，那一轮拒绝深读。返回改回了哪些文件。"""
+    keep = ["data"] + site_paths(("assets",))
+    changed = _z(["diff", "-z", "--name-only", ref, "--", ".", *(f":(exclude){k}" for k in keep)])
+    in_ref = set(_z(["ls-tree", "-r", "-z", "--name-only", ref, "--", *changed])) if changed else set()
+    back = [p for p in changed if p in in_ref]
+    for i in range(0, len(back), 200):
+        subprocess.run(["git", "checkout", "-q", ref, "--", *back[i:i + 200]], check=True)
+    return back
+
+
 def add_site(extra: list[str] | tuple[str, ...] = ()) -> int:
     """把建站产物整套加进索引（增、改、删都算），然后**从磁盘核一遍**：
     这些路径下不许还剩没暂存的改动或未跟踪的文件。剩了就报错，不许推半套站。
@@ -251,6 +268,12 @@ def main(argv: list[str]) -> int:
         n = reset_site(argv[2] if len(argv) > 2 else "HEAD")
         if n:
             print(f"上一轮没提交的建站产物 {n} 个改回 {argv[2] if len(argv) > 2 else 'HEAD'}（收尾时从数据重建）")
+        return 0
+    if len(argv) >= 2 and argv[1] == "reset-code":
+        ref = argv[2] if len(argv) > 2 else "HEAD"
+        back = reset_code(ref)
+        if back:
+            print(f"源码和文档里过期的 {len(back)} 个文件改回 {ref}：{back[:5]}")
         return 0
     if len(argv) >= 2 and argv[1] == "site-paths":
         paths = site_paths(argv[2:])

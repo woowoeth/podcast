@@ -4638,6 +4638,32 @@ class EveryPublishLineTranslates(unittest.TestCase):
         self.assertRegex(src, r"gitsync\.py site-paths[^\n)]*\bassets\b",
                          "本机线的提交里少了 assets（cache_covers 缓存的封面）")
 
+    def test_reset_code_only_touches_code_and_docs(self):
+        """gitsync.py reset-code：data/、建站产物、assets 一个字都不碰，别的已跟踪文件改回 ref。"""
+        import tempfile, importlib
+        gs = importlib.import_module("gitsync")
+        with tempfile.TemporaryDirectory() as tmp:
+            run = lambda *a: subprocess.run(["git", *a], cwd=tmp, check=True, capture_output=True)
+            files = {"data/x.json": "{}\n", "index.html": "<p>\n", "assets/site.css": "a{}\n",
+                     "NOTES.md": "# A\n", "pipeline/a.py": "x = 1\n"}
+            for f, body in files.items():
+                p = pathlib.Path(tmp, f); p.parent.mkdir(parents=True, exist_ok=True); p.write_text(body)
+            run("init", "-q"); run("add", "-A")
+            run("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "seed")
+            for f in files:
+                pathlib.Path(tmp, f).write_text("changed\n")
+            cwd = os.getcwd()
+            try:
+                os.chdir(tmp)
+                back = gs.reset_code("HEAD")
+            finally:
+                os.chdir(cwd)
+            self.assertEqual(sorted(back), ["NOTES.md", "pipeline/a.py"])
+            for f in ("data/x.json", "index.html", "assets/site.css"):
+                self.assertEqual("changed\n", pathlib.Path(tmp, f).read_text(), f"reset-code 动了 {f}")
+            for f in ("NOTES.md", "pipeline/a.py"):
+                self.assertEqual(files[f], pathlib.Path(tmp, f).read_text(), f"{f} 没改回 HEAD")
+
     def test_run_py_caches_covers_before_it_builds(self):
         """run.py 发了稿就建站，这一批页面会被本机线先推上去：建站前不缓存封面，
         新集的封面全直连第三方，要等收尾才换回本站（2026-10-30：首页 29 张里 10 张直连）。"""
@@ -13238,6 +13264,11 @@ if NAME == "build.py":
         ud = json.loads(u.read_text())
         ud.setdefault(day, {{}})["cloud/other"] = {{"calls": 7, "in": 7, "out": 7, "think": 0}}
         u.write_text(json.dumps(ud, indent=1) + "\n")
+        doc = os.environ.get("STUB_RACE_TOUCH")
+        if doc:
+            # 同一个提交里另一条线还改了根目录的文档（比如 POSTMORTEM.md 加了一节）
+            dp = pathlib.Path(other, doc)
+            dp.write_text(dp.read_text() + "\n# 另一条线加的一节\n")
         g = ["git", "-C", other, "-c", "user.name=other", "-c", "user.email=o@o"]
         subprocess.run(g + ["commit", "-qam", "other line"], check=True)
         subprocess.run(g + ["push", "-q", "origin", "HEAD:main"], check=True)
@@ -13245,7 +13276,8 @@ if NAME == "build.py":
 '''
 
     def _sandbox(self, tmp, publish=True, race=False, leftover=None, upstream=None, prep=None, die_on=None,
-                 claude_says="", notify=False, scheduled=False, hb_local=None, race_main=None):
+                 claude_says="", notify=False, scheduled=False, hb_local=None, race_main=None,
+                 race_touch=None):
         sh = (ROOT / "scripts" / "local-daily.sh").read_text()
         reads = _healthcheck_reads()
         writers = {k: sorted(v & reads) for k, v in _state_writers(reads).items()}
@@ -13321,6 +13353,8 @@ if NAME == "build.py":
             env["STUB_RACE"] = str(tmp / "race")
         if race_main:
             env["STUB_RACE_MAIN"], env["STUB_RACE_MAIN_FILE"] = str(tmp / "race_main"), race_main
+        if race_touch:
+            env["STUB_RACE_TOUCH"] = race_touch
         if die_on:
             env["STUB_DIE_ON"] = die_on
         if notify:
@@ -13502,6 +13536,58 @@ if NAME == "build.py":
                                     capture_output=True, text=True).stdout
                 self.assertNotIn(mine, up, f"两边都改了 {rel}，先推却把它按文本合了上去")
                 self.assertIn("收尾时一起推", r.stdout, f"两边都改了 {rel}，却没交给收尾\n" + r.stdout[-1500:])
+
+    @staticmethod
+    def _doc_on_both(box, origin, git, body):
+        """根目录放一份已跟踪的文档（POSTMORTEM.md 那样的），推上 origin。"""
+        (box / "NOTES.md").write_text(body)
+        git("add", "NOTES.md")
+        git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "notes")
+        git("push", "-q", "origin", "main")
+
+    def test_a_stale_doc_on_disk_does_not_stop_the_next_run(self):
+        """2026-11-02：推送重试留下一份旧的 POSTMORTEM.md（磁盘上少了远端刚加的 §37）。
+        远端再在后面加一节，下一轮开头 `pull --autostash` 恢复冲突 —— 那一轮拒绝深读。
+        开头要先把 data/ 和建站产物之外的过期文件改回 HEAD。"""
+        import tempfile
+        v1 = "# A\na\n\n# B\nb\n"
+
+        def prep(box, origin, tmp, git):
+            self._doc_on_both(box, origin, git, v1)
+            up = tmp / "doc-up"
+            subprocess.run(["git", "clone", "-q", str(origin), str(up)], check=True)
+            (up / "NOTES.md").write_text(v1 + "\n# C\nc\n")
+            git("-c", "user.name=o", "-c", "user.email=o@o", "commit", "-qam", "doc: add C", cwd=up)
+            git("push", "-q", "origin", "HEAD:main", cwd=up)
+            (box / "NOTES.md").write_text("# A\na\n")          # 磁盘上那份少了 B 节：过期的旧版
+
+        with tempfile.TemporaryDirectory() as tmp:
+            r, box, origin, log, reads = self._sandbox(tmp, prep=prep)
+            self.assertEqual(0, r.returncode, "磁盘上一份过期文档就让这一轮停了：\n" + r.stdout[-2000:] + r.stderr[-600:])
+            up = subprocess.run(["git", "--git-dir", str(origin), "show", "main:NOTES.md"],
+                                capture_output=True, text=True).stdout
+            self.assertEqual(up, (box / "NOTES.md").read_text(), "跑完磁盘上的文档还是旧版")
+            stash = subprocess.run(["git", "stash", "list"], cwd=box, capture_output=True, text=True).stdout
+            self.assertEqual("", stash, "过期文档被收进 stash、恢复冲突")
+
+    def test_a_push_retry_leaves_no_stale_doc_behind(self):
+        """推送被拒的重试 `reset --mixed origin/main` 只挪索引：原来只把 pipeline/ scripts/ tests/
+        .github/ assets/ 取成远端版本，另一条线同时改了的根目录文档留成旧版（2026-11-02，§37）。"""
+        import tempfile
+
+        def prep(box, origin, tmp, git):
+            self._doc_on_both(box, origin, git, "# A\na\n")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            r, box, origin, log, reads = self._sandbox(tmp, prep=prep, race=True, race_touch="NOTES.md")
+            self.assertEqual(0, r.returncode, "沙盒里的本机线没跑通：\n" + r.stdout[-2000:] + r.stderr[-600:])
+            self.assertIn("push 重试", r.stdout, "尺子坏了：这一轮没走到推送重试\n" + r.stdout[-1500:])
+            up = subprocess.run(["git", "--git-dir", str(origin), "show", "main:NOTES.md"],
+                                capture_output=True, text=True).stdout
+            self.assertIn("另一条线加的一节", up, "尺子坏了：另一条线没改到文档")
+            dirty = subprocess.run(["git", "status", "--porcelain", "--", "NOTES.md"], cwd=box,
+                                   capture_output=True, text=True).stdout.strip()
+            self.assertEqual("", dirty, "推送重试之后，根目录的文档在磁盘上留成了旧版")
 
     def test_the_run_after_an_interruption_neither_stalls_nor_drops_unpushed_work(self):
         """10-12 → 10-13 那一串：上一轮留下一个没推送的 digest 提交 + 一套没提交的建站产物，

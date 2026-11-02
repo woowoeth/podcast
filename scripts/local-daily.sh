@@ -201,6 +201,9 @@ PYEOF
   # 这一轮就拒绝深读（2026-10-13 上午）。只动建站产物，data/ 一个字不碰。
   python3 pipeline/gitsync.py reset-site HEAD \
     || echo "建站产物改不回 HEAD（不致命：autostash 照常兜着）" >&2
+  # data/ 和建站产物之外的过期文件（推送重试留下的旧文档之类）同样改回 HEAD，否则 autostash 恢复会冲突。
+  python3 pipeline/gitsync.py reset-code HEAD \
+    || echo "源码和文档改不回 HEAD（不致命：autostash 照常兜着）" >&2
 
   # 本机没推送的提交 rebase 不上去时用：不 rebase，把它们改过的**数据**折到远端之上、
   # 留在工作区等这一轮提交；建站产物取远端的，收尾时从数据重建。和推送重试是同一套
@@ -210,6 +213,7 @@ PYEOF
     git update-ref "refs/rescue/$(date +%Y%m%d-%H%M%S)" "$OURS" || return 1
     git reset -q --mixed origin/main || return 1
     git checkout -q origin/main -- pipeline scripts tests .github assets 2>/dev/null || true
+    python3 pipeline/gitsync.py reset-code origin/main || return 1
     python3 pipeline/gitsync.py reset-site origin/main || return 1
     python3 pipeline/gitsync.py adopt "$OURS" origin/main data || return 1
     python3 pipeline/gitsync.py restore-deleted data >/dev/null || return 1
@@ -642,6 +646,10 @@ PYEOF
     # 于是 HEAD 看着是最新的、跑的却是旧程序（2026-09-24 体检：本机线跑的是几轮前的代码）。
     # bot 不该改源码，所以这里直接让它们等于远端。
     git checkout -q origin/main -- pipeline scripts tests .github assets 2>/dev/null || true
+    # 上面那张目录清单之外的（根目录的 POSTMORTEM.md、README.md……）同样取远端的，不然留成旧版
+    #（2026-11-02 磁盘上的 POSTMORTEM.md 少了远端刚加的 §37），下一轮开头 autostash 恢复冲突。
+    python3 pipeline/gitsync.py reset-code origin/main || {
+      echo "重试时对齐源码和文档失败，本轮不提交（产出还在本地，下次跑批会带上）" >&2; exit 1; }
     # **数据也要三方对齐，不能拿磁盘整份盖上去。** reset 之后，本机这轮没碰、而另一条线
     # 刚改过的文件（对方的心跳、建档留痕、用量账本……）在磁盘上还是旧的，下面 `git add -A data`
     # 会把它们倒回去。adopt：本机没动过的取远端，两边都动过的走合并驱动（见 gitsync.py）。
