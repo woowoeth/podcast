@@ -1,0 +1,119 @@
+{
+ "slug": "2026-10-31-latentspace-ai原生财富管理公司-不是人在催ai-是ai在催人",
+ "of": "latentspace-f828b004f2",
+ "source_lang": "en",
+ "title": "AI-Native Wealth Management: Not Humans Prompting AI, But AI Prompting Humans",
+ "dek": "This wealth-management firm isn't a service provider that bolted AI tools onto a traditional model; it's an AI-native company from the ground up: agents proactively reach out to advisors and clients, continuously tracking their tax and retirement plans, while humans handle only approvals and trade execution.",
+ "why": "This episode shows how a real financial company breaks down agent permissions, memory, and compliance into concrete mechanisms—not abstract agent aspirations.",
+ "who": "Engineers and product leaders building wealth-management or financial-advisory products, or designing enterprise-scale long-horizon human-AI collaboration agent systems.",
+ "skip": "",
+ "tags": [
+  "Agents",
+  "Wealth management",
+  "Financial compliance",
+  "Memory systems",
+  "Model selection",
+  "AI-native"
+ ],
+ "points": [
+  {
+   "h": "Not a SaaS wrapper, but the advisory firm itself",
+   "body": "Arca isn't a SaaS company selling AI tools to advisors—it *is* the wealth-management firm. Clients never interact directly with AI; they experience only unprecedented service quality, delivered through human advisors' empathy and care, powered by AI handling all analysis, tracking, and preparation. That's why Aman says ‘the agent prompts the human, not the human prompting the agent’: service is pushed to clients proactively, not awaiting client questions."
+  },
+  {
+   "h": "Ten-day liquidation analysis split between agents and human approvals",
+   "body": "When a client sends a large tax bill, the agent analyzes their asset distribution and calculates the optimal liquidation strategy to raise, say, $100,000 in cash—this analysis runs fully automatically. But the agent can't actually execute any fund transfers or liquidations, nor contact the client directly; those actions require human-advisor review, then trigger custodian APIs to complete trades. The full workflow spans ten days: agents think, humans confirm."
+  },
+  {
+   "h": "Nightly reflection loops help agents track new context mid-workflow",
+   "body": "Workflows are long enough that a new phone call or email reply can arrive mid-process, and the agent needs to know which task it relates to. Arca maintains persistent memory for each client: what's being handled now, who owns each step, what's due in the next few days, what to track long-term. Beyond passive logging, there's a nightly ‘dream’ process that reflects on the client's current situation and updates the memory, so the next-awakened agent immediately resumes context like ‘we're processing a large tax bill’."
+  },
+  {
+   "h": "Building custom agent architecture rather than depending on Anthropic's managed service",
+   "body": "Arca thinks highly of Anthropic and OpenAI's models themselves, but explicitly refuses to depend on Anthropic's managed-agents product. One core capability of managed agents is storing and maintaining memory and operational knowledge for enterprises—exactly what Arca sees as non-outsourceable. Handing off agent persistence to another vendor means surrendering the layer of control that makes the product differentiated enough to truly move the business."
+  },
+  {
+   "h": "Agent-generated code is discarded after use, transformed to strict formats",
+   "body": "Agents generate code in a sandbox to query and process data, then discard it—what reaches the backend is a restricted, strict format the code was converted to, effectively caging the agent's free-form output. After the sandbox produces a financial-planning PDF, it passes validation immediately: deterministic rule checks (e.g., did it accidentally embed full account numbers) plus a small model flagging violations like ‘guaranteed returns’ claims, ensuring compliance before clients see the file."
+  },
+  {
+   "h": "Models drift to outdated tax data and need forced reality checks",
+   "body": "Aman observed a specific failure mode: models handling financial data grow overconfident, casually apply 2025 tax tables to analysis, declare completion—often wrongly. Arca therefore added a decision layer to the harness that intercepts before the model gives financial advice, forcing it to check Arca's internally-maintained ‘ground truth’ knowledge base or run web searches, rather than rely on potentially stale training data."
+  },
+  {
+   "h": "Unmonitored agents hardcode specific fixes into prompts instead of generalizing",
+   "body": "Nightly, Arca runs a meta-agent that treats every advisor edit or rollback of agent output as feedback, feeding it with the corresponding execution trace to find which tools are misleading, which knowledge-base entries are missing, and what harness improvements to propose. But prompt edits still require engineer review—Aman found that if agents modify prompts freely, they hardcode ‘the one edge case we just hit’ into the prompt rather than abstract it into a generalizable rule."
+  },
+  {
+   "h": "Agents spot hidden fees and fiduciary breaches in competitors' contracts",
+   "body": "A prospective customer uploaded all their files and bills alongside their existing advisor's to Arca for comparison. After reading the materials, the agent not only found that the $1,500-fee advisor was hiding undisclosed additional charges, but discovered the advisor wasn't a fiduciary at all—with no legal duty to put the client first. Aman frames this diligence as the agent's default behavior: comparisons like this are hard to sustain at human scale but come naturally to Arca's system."
+  }
+ ],
+ "terms": [
+  {
+   "term": "harness",
+   "def": "A company-built agent orchestration and tool-calling framework that avoids depending on any single model vendor."
+  },
+  {
+   "term": "managed agents",
+   "def": "Anthropic's agent service that maintains memory and orchestration on behalf of the customer."
+  },
+  {
+   "term": "fiduciary",
+   "def": "An advisor legally required to put client interests ahead of their own."
+  },
+  {
+   "term": "RMD",
+   "def": "Required Minimum Distribution—the annual minimum withdrawal required from U.S. retirement accounts after reaching a specified age."
+  },
+  {
+   "term": "prompt injection",
+   "def": "An attack that hides instructions in external input to hijack agent behavior."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Arca funding",
+   "v": "$64 million"
+  },
+  {
+   "k": "Liquidation analysis timeline",
+   "v": "10 days"
+  },
+  {
+   "k": "Tax year model defaults to",
+   "v": "2025"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "We're actually not a SaaS company. We are, um, we are the firm ourselves.",
+   "translated": false
+  },
+  {
+   "text": "Agents prompt people more than people prompt agents",
+   "translated": false
+  },
+  {
+   "text": "the role of AI at Arca is not to replace the advisor. It is to replace all of the work around the advisor.",
+   "translated": false
+  },
+  {
+   "text": "this is a thing that will span ten days",
+   "translated": false
+  },
+  {
+   "text": "Owning your intelligence is kind of, uh, gives you the ability to impact the business.",
+   "translated": false
+  },
+  {
+   "text": "models will very happily use the tax brackets from twenty twenty-five",
+   "translated": false
+  },
+  {
+   "text": "I've noticed that, uh, that agents will, will make really nasty prompt changes if you leave them, leave them to it.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
