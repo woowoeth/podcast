@@ -1,0 +1,135 @@
+{
+ "slug": "2026-10-28-latentspace-企业数据库几乎不会迁移-新客户才是真正能赢的战场",
+ "of": "latentspace-6055068f27",
+ "source_lang": "en",
+ "title": "Enterprise databases almost never migrate: greenfield customers are the real battleground",
+ "dek": "Supabase's internal data shows enterprises almost never move production databases, which shapes their growth strategy to capture greenfield projects rather than attack incumbent vendors' existing customers.",
+ "why": "This episode is information-dense—it covers deep database infrastructure work like OrioleDB, Multigress, and the Turso acquisition, plus directly applicable lessons on sales commission mechanics and AI spending benchmarks.",
+ "who": "Founders, investors, and engineers interested in AI-native backend infrastructure, enterprise database migration strategy, and how to establish AI spending baselines for their teams.",
+ "skip": "The opening 0:00–5:20 is the host's personal introduction and show announcements; the formal interview recaps this content, so you can skip it.",
+ "tags": [
+  "Database infrastructure",
+  "Enterprise sales",
+  "Open-source commercialization",
+  "AI-native applications",
+  "Postgres ecosystem",
+  "Startup methodology"
+ ],
+ "points": [
+  {
+   "h": "Declarative schema is the last lesson Postgres owes",
+   "body": "Supabase treats declarative schema as the most important step in its build mandate—traditional Postgres follows a ‘schema first, then constant migration’ pattern, but agents need a single file in Git showing ‘what the database looks like right now’. The episode notes this seems simple, but Postgres was designed 40 years ago and never optimized for it. Supabase is now completing this final-mile adaptation, and the benefit isn't just for agents—humans gain equally."
+  },
+  {
+   "h": "Every Postgres ops tool loses data under specific conditions",
+   "body": "Supabase tested nearly every operator in the Postgres ecosystem—software that manages clusters, failover, and backups—and found each one loses data under specific conditions. So they rewrote the operator layer from scratch: Multigress. The priority wasn't sharding; it was complete compatibility with native Postgres, so not a single query needs to change. They've run 1,000 consecutive failover tests with zero data loss, and sharding is expected early next year."
+  },
+  {
+   "h": "From 5 million databases a month to billions",
+   "body": "Supabase currently launches roughly 5 million databases per month, but the founder projects future scale must reach billions monthly—a completely different order of magnitude. They acquired Turso not for the SQLite technology itself but for its architecture redesigned around object storage: 11 nines of durability as the foundation, SQLite as the file format, making it possible to launch billions of small databases."
+  },
+  {
+   "h": "One deal convinced them vibe coding is real",
+   "body": "Early on, they were skeptical about the vibe coding wave until they saw someone earn $10,000 from Stripe within days of launching a product. That convinced the team it wasn't a toy but something that would stick. So they decided to support both ends: early-stage prototypes and scaled customer operations. This led to evolving from ‘build in a weekend, scale to millions’ to ‘prototype to petabyte’."
+  },
+  {
+   "h": "Sales commissions are based only on incremental growth versus control group",
+   "body": "Supabase sales doesn't work like traditional phone sales. They use AI to screen thousands of product signals—like customers approaching usage limits or seeing more errors—then dispatch sales reps only to those who respond, using non-responders as a control group. The control group experiences 25% natural growth; sales-contacted customers grow 125%. Sales earn commissions only on the 100% incremental growth—making true value creation visible instead of crediting natural expansion."
+  },
+  {
+   "h": "Enterprise customers almost never migrate databases",
+   "body": "The founder is direct: even with a bigger, more scalable Postgres, it's nearly impossible to convince enterprises to move production databases. This lesson is validated across every database company they've studied. So all enterprise effort focuses on day-one wins, not converting incumbents: capture greenfield projects, not expecting Oracle-scale customers to migrate wholesale. This judgment will determine strategy for at least the next five years."
+  },
+  {
+   "h": "Agents can now read Postgres as a single snapshot file",
+   "body": "Traditionally Postgres tracked changes via migration files. To know what a table looks like now, an agent had to parse thousands of files or spin up the database to introspect—too slow. Supabase's pgdelta release turns tables, policies, and comments into a declarative schema folder as a ‘current state’ snapshot. Agents just read the file to see the database's true shape right now—no recompilation, no step-by-step migration."
+  },
+  {
+   "h": "Token spending above 1.5× payroll is a warning sign",
+   "body": "The founder offers a portable benchmark: divide monthly AI spending by total payroll to get a ratio. Most companies sit around 0.1; climbing to 1 is still healthy; above 1.5 suggests waste rather than labor savings. Supabase spends roughly $300,000 per month on AI with a 450-person team. They care less about money saved than about how many previously human-supervised processes are now fully automated."
+  }
+ ],
+ "terms": [
+  {
+   "term": "AEO",
+   "def": "Answer engine optimization—optimizing content so AI language models recommend it when answering user questions"
+  },
+  {
+   "term": "Vitess",
+   "def": "MySQL sharding middleware used by YouTube and GitHub; Multigress is its Postgres counterpart"
+  },
+  {
+   "term": "Multigress",
+   "def": "Supabase's from-scratch rewrite of the cluster and sharding operating system for Postgres"
+  },
+  {
+   "term": "Declarative schema",
+   "def": "Describing a database's structure directly in a file rather than deriving it from a sequence of migration scripts"
+  },
+  {
+   "term": "MVCC",
+   "def": "Multiversion concurrency control—allows multiple writers to operate on the same data simultaneously without blocking each other"
+  }
+ ],
+ "facts": [
+  {
+   "k": "OrioleDB performance improvement",
+   "v": "1.5–2× faster than existing Postgres storage engine"
+  },
+  {
+   "k": "Multigress failover test",
+   "v": "1,000 consecutive failovers with zero data loss"
+  },
+  {
+   "k": "Current monthly new databases",
+   "v": "Approximately 5 million"
+  },
+  {
+   "k": "ChatGPT monthly active users",
+   "v": "1.2 billion"
+  },
+  {
+   "k": "Oracle cloud workload share by revenue (approximately one year ago)",
+   "v": "5%"
+  },
+  {
+   "k": "Supabase monthly AI spending (450-person team)",
+   "v": "Approximately $300,000"
+  },
+  {
+   "k": "Healthy token spending to payroll ratio",
+   "v": "Typically around 0.1; above 1.5 is a danger signal"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "what we had found was that under, um, certain conditions, every single one of them could lose data.",
+   "translated": false
+  },
+  {
+   "text": "So then they built this Turso architecture, which basically builds MVCC for SQLite so that you can have multiple writers.",
+   "translated": false
+  },
+  {
+   "text": "it turns out just getting on a call and helping people out, their account then grows a hundred and twenty-five percent. So that a hundred percent uplift, the incremental uplift, is what we compensate our salespeople.",
+   "translated": false
+  },
+  {
+   "text": "I guarantee they'll almost never migrate.",
+   "translated": false
+  },
+  {
+   "text": "I think it was like one year ago, someone said that only five percent of Oracle workloads by revenue ran in the cloud.",
+   "translated": false
+  },
+  {
+   "text": "there's, like, layers upon which you want to get to where things will be rewritten, and then you don't wanna be spending your actual innovation tokens or your actual tokens rewriting everything.",
+   "translated": false
+  },
+  {
+   "text": "you can probably go up to one pretty safely, and if you're over 1.5, you're probably in trouble.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
