@@ -1,0 +1,232 @@
+{
+ "id": "latentspace-6055068f27",
+ "slug": "2026-10-28-latentspace-企业数据库几乎不会迁移-新客户才是真正能赢的战场",
+ "fingerprint": "a91b1667ab6956ea",
+ "source_id": "latentspace",
+ "source": "Latent Space",
+ "source_zh": "Latent Space",
+ "cat": "biz",
+ "cat_by": "episode",
+ "cat_why": "企业迁移行为的市场洞察指导 Supabase 的增长战略选择",
+ "tier": 1,
+ "lang": "en",
+ "title_original": "Why Agents Love Supabase",
+ "published": "2026-10-28T20:00:00Z",
+ "duration": 4598,
+ "audio": "https://podcasts.beehiiv.com/3967c1f2-cb97-4eb0-a5c0-21a1d2579408/01a15fdf-0e93-7e1a-880d-d73752a1f915/01a1794a-94ec-7f36-ab76-412cdc9ed579/01a183eb-8968-7863-ad65-64165119cad1.mp3",
+ "link": "https://latent.space/p/supabase",
+ "image": "https://media.beehiiv.com/cdn-cgi/image/fit=scale-down,format=auto,onerror=redirect,quality=80/uploads/asset/file/07b23a0b-48b2-487b-9007-ba6a866520d2/prototype-petabyte-podcast-cover.jpg?t=1793037178",
+ "youtube_id": "",
+ "video_len": 0,
+ "transcript_url": "https://rss.beehiiv.com/podcasts/transcriptions/01a183f0-c56d-72a4-9e07-fb3d07bab761.vtt",
+ "digest": {
+  "title": "企业数据库几乎不会迁移：新客户才是真正能赢的战场",
+  "dek": "Supabase 内部数据显示企业几乎不会把生产数据库搬家，这决定了他们的增长策略是抢占绿地新项目，而不是攻克巨头的存量客户。",
+  "why": "这集信息密度很高，既有OrioleDB/Multigress/Turso收购这类硬核数据库基建，也有可直接抄作业的销售提成机制和AI花费基准。",
+  "points": [
+   {
+    "t": 124,
+    "h": "声明式schema是Postgres欠的最后一课",
+    "body": "Supabase 把declarative schema(声明式模式)当作build主题里最重要的一步——传统Postgres走的是「建schema、然后不断migrate」的路径，而agent需要的是一份放在Git里、随时可读的「数据库此刻长什么样」的文件。节目里说这事看似简单，但Postgres设计于40年前，从来没为此优化过，Supabase现在做的正是把这块「最后一公里」的适配补齐，而且这个能力不只是agent用得上，人也一样受益。",
+    "spk": "swyx"
+   },
+   {
+    "t": 567,
+    "h": "所有Postgres运维工具都会丢数据",
+    "body": "Supabase测过Postgres生态里几乎所有operator(负责管理集群、故障转移、备份的运维层),发现在特定条件下每一个都会丢数据。于是他们决定把operator这层从头重写，这就是Multigress——不是先做分片(sharding),而是先做到和原生Postgres完全兼容，查询一行都不用改。目前已经做过1000次连续故障转移测试，零数据丢失，明年初有望落地分片功能。",
+    "spk": ""
+   },
+   {
+    "t": 764,
+    "h": "从每月500万到数十亿个数据库",
+    "body": "Supabase现在每月要在平台上启动大约500万个数据库，但创始人判断未来必须支撑到每月数十亿个——这是完全不同量级的问题。为此他们收购了Turso,看中的不是它的SQLite技术本身，而是它围绕对象存储重新设计的架构：靠对象存储11个9的持久性做底座，再把SQLite当文件格式用，这样才launch得起数十亿个小型数据库。",
+    "spk": ""
+   },
+   {
+    "t": 1792,
+    "h": "一笔订单让他们确信vibe coding是真的",
+    "body": "早期他们对vibe coding这波浪潮将信将疑，直到看到有人在产品上线后几天内就靠Stripe赚到了一万美元——这才让团队确认这不是玩具，而是会留下来的东西，于是决定两头都做：既服务刚起步的原型，也同时投入资源支撑客户规模做大之后的需求，这也是后来「build in a weekend, scale to millions」升级为「prototype to petabyte」的由来。",
+    "spk": ""
+   },
+   {
+    "t": 2498,
+    "h": "销售提成只看比对照组多出来的增长",
+    "body": "Supabase的销售不是传统的打电话推销，而是先用AI从上千个产品触发信号(比如客户快碰到用量上限、报错变多)里筛出一批，只给其中回复了的人派销售跟进，把没回复的人当对照组。对照组本身也会自然增长25%,而销售跟进过的客户增长125%,销售只按这多出来的100%增量拿提成——这套机制让团队知道销售真正创造了多少价值，而不是把客户本来就会有的增长也算成业绩。",
+    "spk": ""
+   },
+   {
+    "t": 2635,
+    "h": "企业客户几乎不会迁移数据库",
+    "body": "创始人直言，哪怕做出更大更能扩展的Postgres,也几乎不可能说服企业把生产数据库搬过来——这是他们研究过的所有数据库公司都验证过的教训。所以企业侧的全部精力放在落地第一天而非抢存量：赢下新项目的greenfield场景，而不是指望Oracle之类的巨头客户整体迁移过来，这个判断会决定未来至少五年的打法。",
+    "spk": ""
+   },
+   {
+    "t": 3554,
+    "h": "把Postgres变成一份agent能读的文件",
+    "body": "过去Postgres靠一连串migration文件记录数据库变化，想知道某张表现在长什么样，agent得翻完上千个文件、或者把数据库跑起来再内省，速度太慢。Supabase这次发布的pgdelta,把表、policy、注释等等全部变成declarative schema文件夹里的一份「当前状态」快照，agent只要读文件就知道数据库此刻的真实形状，不用recompile也不用一级级migrate。",
+    "spk": ""
+   },
+   {
+    "t": 4336,
+    "h": "token花费超人力工资1.5倍就是警讯",
+    "body": "创始人给出一个可以带走的基准：把公司每月AI花费除以人力工资总额，算出一个比值。大多数公司这个比值大概在0.1左右；升到1附近还算安全；一旦超过1.5,大概率是在浪费钱，而不是真的省了人力。Supabase自己目前每月AI花费约30万美元、团队450人，他们更关心的不是省了多少钱，而是有多少原本需要人盯的流程被彻底自动化掉了。",
+    "spk": ""
+   }
+  ],
+  "quotes": [
+   {
+    "t": 567,
+    "spk": "",
+    "raw": "what we had found was that under, um, certain conditions, every single one of them could lose data.",
+    "zh": "我们发现，在某些条件下，所有(Postgres运维工具)无一例外都会丢数据。"
+   },
+   {
+    "t": 833,
+    "spk": "",
+    "raw": "So then they built this Turso architecture, which basically builds MVCC for SQLite so that you can have multiple writers.",
+    "zh": "于是他们搭建了Turso这套架构，本质上是给SQLite做了MVCC,让你可以有多个写入者。"
+   },
+   {
+    "t": 2566,
+    "spk": "",
+    "raw": "it turns out just getting on a call and helping people out, their account then grows a hundred and twenty-five percent. So that a hundred percent uplift, the incremental uplift, is what we compensate our salespeople.",
+    "zh": "结果发现，仅仅是打个电话帮客户解决问题，对方账户就能增长125%。所以我们给销售的提成，就是这多出来的100%增量。"
+   },
+   {
+    "t": 2635,
+    "spk": "",
+    "raw": "I guarantee they'll almost never migrate.",
+    "zh": "我敢保证，他们几乎永远不会迁移。"
+   },
+   {
+    "t": 2899,
+    "spk": "",
+    "raw": "I think it was like one year ago, someone said that only five percent of Oracle workloads by revenue ran in the cloud.",
+    "zh": "大概一年前，有人说按收入计算，Oracle的工作负载只有5%是跑在云上的。"
+   },
+   {
+    "t": 4080,
+    "spk": "",
+    "raw": "there's, like, layers upon which you want to get to where things will be rewritten, and then you don't wanna be spending your actual innovation tokens or your actual tokens rewriting everything.",
+    "zh": "总会有些层级的东西最终值得重写，但你不会想把创新的token、真正的token都耗在重写所有东西上。"
+   },
+   {
+    "t": 4336,
+    "spk": "",
+    "raw": "you can probably go up to one pretty safely, and if you're over 1.5, you're probably in trouble.",
+    "zh": "这个比值大概升到1还算安全，要是超过1.5,你可能就有麻烦了。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "OrioleDB 性能提升",
+    "v": "比现有Postgres存储引擎快1.5-2倍",
+    "t": 446
+   },
+   {
+    "k": "Multigress 容错测试",
+    "v": "1000次连续故障转移，零数据丢失",
+    "t": 567
+   },
+   {
+    "k": "当前每月新建数据库数",
+    "v": "约500万个",
+    "t": 764
+   },
+   {
+    "k": "ChatGPT 月活用户",
+    "v": "12亿",
+    "t": 3358
+   },
+   {
+    "k": "Oracle 云上工作负载占比(按收入，约一年前)",
+    "v": "5%",
+    "t": 2899
+   },
+   {
+    "k": "Supabase 每月AI花费",
+    "v": "约30万美元，团队450人",
+    "t": 4336
+   },
+   {
+    "k": "健康的token花费/人力工资比值",
+    "v": "常见约0.1,超过1.5视为危险信号",
+    "t": 4336
+   }
+  ],
+  "terms": [
+   {
+    "term": "AEO",
+    "zh": "回答引擎优化",
+    "def": "让AI大模型在回答用户问题时把自己推荐出来的优化方法"
+   },
+   {
+    "term": "Vitess",
+    "zh": "Vitess",
+    "def": "YouTube、GitHub在用的MySQL分片中间件，Multigress是其Postgres版对标"
+   },
+   {
+    "term": "Multigress",
+    "zh": "Multigress",
+    "def": "Supabase为Postgres重写的集群/分片操作系统"
+   },
+   {
+    "term": "declarative schema",
+    "zh": "声明式模式",
+    "def": "用文件直接描述数据库当前结构，而非靠一连串migration脚本推导"
+   },
+   {
+    "term": "MVCC",
+    "zh": "多版本并发控制",
+    "def": "允许多个写入者同时操作同一份数据而不互相阻塞的机制"
+   }
+  ],
+  "who": "关注AI原生后端基建、企业数据库迁移策略、以及如何给团队AI花费定基准的创业者、投资人和工程师。",
+  "skip": "开头0:00-5:20是主持人个人开场白和节目通知，内容后面正式访谈会重新讲到，可直接跳过。",
+  "tags": [
+   "数据库基建",
+   "企业销售",
+   "开源商业化",
+   "AI原生应用",
+   "Postgres生态",
+   "创业方法论"
+  ],
+  "quality": {
+   "transcript_source": "feed",
+   "transcript_detail": "text/vtt",
+   "words": 15729,
+   "wpm": 205.3,
+   "timed": true,
+   "verified_quotes": 7,
+   "grounded_facts": 7,
+   "points": 8,
+   "pruned": 3,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-11-02T08:17:44Z",
+ "triage": {
+  "score": 6.0,
+  "why": "一手访谈、具体机制议题（agents 与后端设计交互），但缺字幕验证深度与边界",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 8,
+   "faithful": 9,
+   "selection": 8,
+   "concrete": 8,
+   "chinese": 7
+  },
+  "verdict": "上站",
+  "why": "每条要点都有判断、数字或机制，不是转述。数字换算准确（12亿、30万美元、450人、1000次）。中文略有调整空间但可读。",
+  "worst": "关于Turso的段落[12:44]：现在只说「围绕对象存储重新设计的架构」，但原文[13:53]强调了关键创新——「builds MVCC for SQLite so that you can have multiple writers」。",
+  "model": "haiku",
+  "evidence": "full",
+  "rubric": "ccfffe2d41"
+ },
+ "model": "claude-cli:sonnet"
+}
