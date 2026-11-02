@@ -1,0 +1,147 @@
+{
+ "slug": "2026-10-22-latentspace-gpu-稀缺的真正病根-算力只能整块按三年期打包购买",
+ "of": "latentspace-6f86a2b717",
+ "source_lang": "en",
+ "title": "GPU scarcity's real problem: compute sold only in three-year rectangular blocks",
+ "dek": "The real GPU shortage isn't a supply problem—it's that nearly all capacity gets bundled into three-year contracts with three-to-six-month delivery, which completely mismatches the lumpy, day-to-day demand curve most customers actually have.",
+ "why": "If you want to understand GPU compute procurement, how Neocloud financing works, and how sandbox infrastructure actually operates, this episode is dense with signals and worth hearing whole.",
+ "who": "Founders and engineering leads making compute and cloud infrastructure procurement decisions, and investors trying to understand the business logic of Neoclouds, sandboxes, and agent infrastructure.",
+ "skip": "The first ~7 minutes on his background (Spotify, Better.com) can be skipped.",
+ "tags": [
+  "Compute procurement",
+  "GPU scarcity",
+  "Neocloud",
+  "Agent infrastructure",
+  "Enterprise security",
+  "Business model"
+ ],
+ "points": [
+  {
+   "h": "A single customer propped up 90% of early revenue",
+   "body": "Modal's true inflection came between November 2022 and January 2023: monthly revenue jumped from $100 to $2,000 to $30,000. But almost all this growth came from one customer—Mage, a Stable Diffusion company in New York—which accounted for 80 to 90 percent of company revenue in Q1 2023. Erik said the feeling wasn't celebration but the relief of finally being able to put anxiety down."
+  },
+  {
+   "h": "Compute market shifted from spot to three-year prepayment",
+   "body": "Modal started by buying spot and on-demand compute from AWS, GCP, and Azure—wherever was cheapest. But over the past year the market completely shifted: to get capacity now requires three-year-plus contracts with roughly 25 cloud providers, with large upfront payments. The company created a dedicated capacity-buying team—four people on the phone all day negotiating with vendors and verifying hardware—plus a roughly ten-person engineering team handling bare metal servers, networking, and failed hardware."
+  },
+  {
+   "h": "He fears collapse more than price increases",
+   "body": "Many people think compute companies fear GPU price increases. Erik says the opposite: price increases are actually good for Modal because the company has locked in a large volume of cheap three-year contracts—effectively \"going long\" on GPU prices. What really worries him is price collapse, which would leave everyone who bought long-term contracts at peak seriously underwater. He also explicitly said he doesn't plan to hoard the entire market's supply, even if he theoretically could."
+  },
+  {
+   "h": "Neoclouds snowball by signing contracts first, then buying cards",
+   "body": "He broke down how emerging cloud vendors like nScale go from nearly zero capacity to several hundred billion dollars in order backlog: first, sign large buyers like Anthropic and OpenAI into five-year compute contracts, then take those contracts to Wall Street to raise capital, then use that money to buy hardware from Supermicro, Dell, and Nvidia for delivery—essentially pre-selling cards you haven't bought yet. Modal is taking a different path: product-driven growth and dispersed customers, which makes it hard to deploy the same leverage-based playbook to rapidly expand capacity."
+  },
+  {
+   "h": "Sandbox from near shutdown to one-third of revenue",
+   "body": "Modal Sandboxes came from a 2023 lunch conversation—\"LLMs are outputting code, we need somewhere to run it\"—prototyped and shipped in a day or two, but saw almost no use for a long time, and the team once discussed killing it. The turnaround came in the second half of that year: models suddenly got good at generating full applications, and Lovable (and other vibe-coding shops), Ramp's backend agents, and new reinforcement-learning labs started pouring in. Today Sandbox accounts for one-third of Modal's revenue."
+  },
+  {
+   "h": "Sandboxes should boot-to-close in milliseconds, not be cloud dev machines",
+   "body": "He thinks most people currently treat sandboxes as \"moving a dev machine to the cloud,\" which is wrong mental model. The right way is: agents running 24/7, when they need to execute a command, spin up a sandbox in ~100 milliseconds, run it, snapshot, and close. Modal sandboxes now have a median lifetime of 8 seconds. This lets CI testing genuinely achieve one sandbox per test running in parallel, instead of the current approach where each shard redeploys its dependencies."
+  },
+  {
+   "h": "Hugging Face incident: the application was compromised, not the platform",
+   "body": "The compromise of the Hugging Face agent exploited a vulnerability in an application deployed on Modal itself—not a breach of Modal's platform—he compared it to \"someone's app on AWS getting hacked doesn't mean AWS got hacked.\" The team is reviewing whether security defaults could be tightened further, taking AWS's later tightening of S3 public-bucket defaults as a reference. They've also started using agents to specifically try \"jailbreaking\" their own sandboxes to find vulnerabilities, and haven't found any so far."
+  },
+  {
+   "h": "Real GPU scarcity is a rectangle problem, not a quantity problem",
+   "body": "Erik quoted one of his own tweets: the real GPU shortage problem isn't not being able to get cards, but that nearly all capacity gets bundled into \"three-year rectangles delivering three to six months out,\" which completely mismatches most users' actual hourly and daily demand curves. Modal's core value is exactly this: aggregate demand from thousands of customers, smooth out the jagged fluctuations into a flat curve, then turn around and slice compute finely to each person."
+  }
+ ],
+ "terms": [
+  {
+   "term": "BYOC",
+   "def": "Control plane stays with vendor, but compute deploys into customer's own cloud account"
+  },
+  {
+   "term": "Neoclouds",
+   "def": "Emerging cloud vendors that raise capital using long-term compute contracts, then buy hardware to deliver"
+  },
+  {
+   "term": "spot capacity",
+   "def": "Spare cloud compute available at discount, subject to preemption at any time"
+  },
+  {
+   "term": "FDE",
+   "def": "Engineer stationed at customer site, implementing products while feeding product learnings back to team"
+  },
+  {
+   "term": "MFU",
+   "def": "Ratio of actual GPU-outputted tokens versus theoretical peak capacity per GPU"
+  }
+ ],
+ "facts": [
+  {
+   "k": "Modal monthly revenue (Nov 2022)",
+   "v": "$100"
+  },
+  {
+   "k": "Modal monthly revenue (Jan 2023)",
+   "v": "$30,000"
+  },
+  {
+   "k": "Mage's revenue share (Q1 2023)",
+   "v": "80-90%"
+  },
+  {
+   "k": "Current cloud vendor partnerships",
+   "v": "~25"
+  },
+  {
+   "k": "Capacity and operations teams",
+   "v": "Buying 4 people; bare-metal ~10 people"
+  },
+  {
+   "k": "Sandbox's share of revenue",
+   "v": "~1/3"
+  },
+  {
+   "k": "Sandbox monthly revenue growth",
+   "v": "~30%"
+  },
+  {
+   "k": "FDE headcount change (1 year)",
+   "v": "4 to 24 people"
+  },
+  {
+   "k": "Modal current total employees",
+   "v": "200+"
+  },
+  {
+   "k": "Modal projected employees next year",
+   "v": "~700"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "we went from like, you know, hundred dollars a month in like, I think like November twenty twenty-two, and the next month we did like two thousand dollars a month, and then like January twenty twenty-three, we did like thirty thousand all of a sudden.",
+   "translated": false
+  },
+  {
+   "text": "I don't necessarily worry too much about prices going up. I do worry more about actually prices collapsing. I don't think that's gonna happen anytime soon.",
+   "translated": false
+  },
+  {
+   "text": "do you wanna buy, like, five years of chips? You know, sign this contract. We give you a good rate.",
+   "translated": false
+  },
+  {
+   "text": "imagine, you know, like, Claude Code instead of, you know, having sort of a very linear flow, like sequential flow, like kind of branching and, you know, running hundreds of agents at the same time.",
+   "translated": false
+  },
+  {
+   "text": "this is an app running a Modal that was hacked. Like, it was not Modal that was hacked.",
+   "translated": false
+  },
+  {
+   "text": "The biggest downside of GPU scarcity is not that it's hard to get GPUs, but that almost all capacity is sold as three years, as a three-year rectangle starting three to six months in the future. That's not what demand looks like for most users.",
+   "translated": false
+  },
+  {
+   "text": "Is Taylor Swift a commodity? Like she releases a big album and goes on a tour and makes a lot of money and then, you know, then there's like a down year when she goes and like records",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
