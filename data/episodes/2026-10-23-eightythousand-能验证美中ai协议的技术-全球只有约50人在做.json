@@ -1,0 +1,247 @@
+{
+ "id": "eightythousand-a867ffce05",
+ "slug": "2026-10-23-eightythousand-能验证美中ai协议的技术-全球只有约50人在做",
+ "fingerprint": "bce05704f96ce4f3",
+ "source_id": "eightythousand",
+ "source": "80,000 Hours Podcast",
+ "source_zh": "80,000 Hours",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "核心讲芯片算力验证的技术机制——硬件、侧信道、工程验证",
+ "tier": 1,
+ "lang": "en",
+ "title_original": "Tom Milton on how we could verify a US–China deal on AI",
+ "published": "2026-10-23T15:33:52Z",
+ "duration": 6529,
+ "audio": "https://media.transistor.fm/1d895220/4b2f3b03.mp3",
+ "link": "https://80000hours.org/podcast/episodes/tom-milton-verification-technology-ai-slowdown/?utm_campaign=podcast__tom-milton&utm_source=80000+Hours+Podcast&utm_medium=podcast",
+ "image": "https://img.transistorcdn.com/MLAs2SanpaQTpmM5mh6kDL65AQwX8D9vwnjqjgoDfHk/rs:fill:0:0:1/w:1400/h:1400/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS82ZjYz/MDJlYzM2Mzk5NjI2/NDA3OTIzODg0NTNk/NzU2Ny5qcGc.jpg",
+ "youtube_id": "",
+ "video_len": 0,
+ "transcript_url": "https://share.transistor.fm/s/1d895220/transcript.txt",
+ "digest": {
+  "title": "能验证美中AI协议的技术，全球只有约50人在做",
+  "dek": "美中若想就AI减速达成协议，核心难题是互信；验证技术就是把这种互信工程化成可检查的证据——但目前全球做这件事的工程师，用个位数的团队规模就能数完。",
+  "why": "想知道「美中AI协议怎么核查」背后真实机制的人值得听；后半段聊硬件研发和英国算力主权，信息量同样大，不要提前关掉。",
+  "points": [
+   {
+    "t": 138,
+    "h": "验证的靶子是算力，不是人",
+    "body": "把开发AI所需的投入拆开看，可以分成员工、算法与数据、算力三类。Milton把算力选作切入点，理由是算力高度专用于AI场景，需要数千块芯片，而且现阶段这些芯片必须集中放在同一个物理地点——这让核查算力比核查员工行为或审查代码容易得多。这也是为什么如果美中要谈AI减速协议，算力会是最先被盯上、也最容易验证的那个环节。",
+    "spk": "Tom Milton"
+   },
+   {
+    "t": 478,
+    "h": "推理重算：让GPU自证清白",
+    "body": "Amodo的原型做法是在数据中心的前端网络上装一个网络分流器，把流量复制一份送到验证方手里的服务器，重新跑一遍同样的输入token，再核对输出是否一致（用DiFR算法处理模型本身的随机性）。只要网络上所有流量都能被这次重算解释清楚，就能证明这块算力只在做推理；一旦出现重算解释不了的「多余」网络通信，就说明背后还有一个没被申报的训练任务在跑。",
+    "spk": "Tom Milton"
+   },
+   {
+    "t": 955,
+    "h": "电流波动也会泄露模型秘密",
+    "body": "节目现场演示：给GPU电源绕一个电感线圈接到示波器上，跑一次nanoGPT的训练，就能在功耗曲线上清楚看到前向传播、反向传播和空闲期，甚至能从层与层之间的小尖峰数出这是一个12层模型。这类原本被黑客用来窃取信息的「侧信道」，反过来可以用来监测算力在做什么。但Milton也承认，在整个数据中心级别很难做到像单块GPU这么精确，顶多是能被部分伪装、但会付出效率代价的「指纹」。",
+    "spk": "Tom Milton"
+   },
+   {
+    "t": 1678,
+    "h": "核武核查先例：互相去对方国土试仪器",
+    "body": "在签成《部分禁止核试验条约》之前，美苏并不是直接互相信任，而是搞了一次联合验证实验：苏联科学家去美国、美国科学家去苏联，在对方的基础设施上实地测试自己那套用来探测核爆地震波的监测设备是否真的管用。Milton认为AI验证技术也需要走同样的路——在真正签协议之前，得先让各方的红队去对方（或测试环境）的数据中心里，实打实地试图攻破或验证这套系统。",
+    "spk": "Tom Milton"
+   },
+   {
+    "t": 2377,
+    "h": "化武核查的\"保密结果\"模式可以照搬",
+    "body": "《禁止化学武器公约》的现场核查员带质谱仪去企业化工厂，但仪器有一个「保密模式」：不把完整的化学成分谱图报出来，只给一个合规/不合规的通过或不通过结果，用来保护企业的商业机密。Milton希望AI验证能走同一条路——既能证明一家公司遵守了国际协议，又不必交出模型权重或用户的输入输出内容。但他也提醒，这些技术并不完全类比：AI变化速度可能快得多，而过去的核查体系是花了几十年才谈成的。",
+    "spk": "Tom Milton"
+   },
+   {
+    "t": 3442,
+    "h": "今天入场，年底可能跻身世界前五",
+    "body": "Milton判断，如果各大实验室在验证上真的只投入了一两个人，那么一个真正有才华的AI安全研究者今天开始专注做算力验证，到年底很可能就已经是全世界在这件事上最有用的五个人之一。他把这件事的分量提到极高：如果你是实验室里的安全或安全工程研究员，你离「让AI走好这条路」拿诺贝尔奖最近的一条路，很可能就是去开发出能支撑一份国际协议的验证工具。",
+    "spk": "Tom Milton"
+   },
+   {
+    "t": 3808,
+    "h": "连他自己也不敢说验证是必需品",
+    "body": "被追问验证技术是否真的不可或缺时，Milton的回答很克制：他认为不必追求完美的、形式化证明级别的「防中国作弊」系统，国际协调向来也掺杂着信任、谍报和人盯人的成分，就像核裁军条约里靠卫星清点轰炸机数量那样。他把验证技术定位成一种「可选项」——一年前几乎没人提它，现在从实验室基层员工到政府都在呼吁，所以它看起来越来越像是会被用到的东西，但他承认没人能百分之百证明它是必要的。",
+    "spk": "Tom Milton"
+   },
+   {
+    "t": 6254,
+    "h": "被断供一天，他突然懂了英国的处境",
+    "body": "Milton讲了自己连续三天「Claude精神错乱」式地用Fable 5一次性设计硬件电路的经历——直到某个周六早上，他照常输入「继续」，系统却返回报错：美国政府已经把对Fable的出口管制生效，访问权限被切断。他由此联想到算力紧缺时，美国很可能优先保障本土供应，英国这类依赖海外前沿模型的国家可能彻底失去入口，除非自己建起足够安全等级的主权算力，这对公司乃至整个国家的科研产出都是真实威胁。",
+    "spk": "Tom Milton"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 955,
+    "spk": "Tom Milton",
+    "raw": "You can see all of these little spikes, the really small ones — that happen at the start of each layer, and you can actually tell this is a 12-layer model from those spikes.",
+    "zh": "你能看到这些很小的尖峰——它们发生在每一层的开头，从这些尖峰你其实能判断出这是一个12层的模型。"
+   },
+   {
+    "t": 1678,
+    "spk": "Tom Milton",
+    "raw": "Before deals happened, before the US and the Soviet Union agreed they trusted that this would work, they ran a Joint Verification Experiment, in which Soviet scientists went to the US, US scientists went to the Soviet Union, and ran tests on one another’s infrastructure.",
+    "zh": "在协议达成之前，在美苏双方真正相信这套方法管用之前，他们搞了一次联合验证实验：苏联科学家去了美国，美国科学家去了苏联，在对方的基础设施上做测试。"
+   },
+   {
+    "t": 2377,
+    "spk": "Tom Reed",
+    "raw": "we would need to retrofit every single data centre in China and every data centre in the US. It just seems to me like it would require a level of cooperation that’s completely impossible.",
+    "zh": "我们得把中国的每一个数据中心、美国的每一个数据中心都重新改造一遍。在我看来，这需要一种完全不可能达成的合作水平。"
+   },
+   {
+    "t": 2657,
+    "spk": "Tom Milton",
+    "raw": "So maybe only 50 engineers in the world are working on AI verification right now, on compute verification.",
+    "zh": "所以现在全世界大概只有50名工程师在做AI验证——也就是算力验证——这件事。"
+   },
+   {
+    "t": 3442,
+    "spk": "Tom Milton",
+    "raw": "I think if you are a safety researcher, a security researcher in a lab, your most likely route to the Nobel Prize for making AI go well is that you are the one who develops the verification tools that enable a deal.",
+    "zh": "如果你是实验室里的安全或安全工程研究员，你离「让AI走好这条路」拿诺贝尔奖最近的一条路，很可能就是成为那个开发出能支撑一份协议的验证工具的人。"
+   },
+   {
+    "t": 3808,
+    "spk": "Tom Milton",
+    "raw": "We might be in the world where we win because there are warning shots and we want to slow down. And in that world we might need verification technology. Perhaps we get away without it. But I would be much more happy if it did exist.",
+    "zh": "我们可能正处在这样一个世界里：因为出现了一些警示性事件，大家想要减速，而我们最终赢了。在那个世界里我们可能会需要验证技术。也许没有它我们也能侥幸过关，但如果它真的存在，我会安心得多。"
+   },
+   {
+    "t": 6254,
+    "spk": "Tom Milton",
+    "raw": "And then it was a Saturday morning, I woke up, I said to Fable 5, “Keep going.” It returned an error. I said, “Keep going” again; it returned an error. I went on Twitter: Fable access had been cut off.",
+    "zh": "然后那是一个周六早上，我醒来，对Fable 5说「继续」，它报错了。我又说了一次「继续」，还是报错。我上推特一看：Fable的访问权限被切断了。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "Amodo演示集群规模",
+    "v": "约30-32块 H100/H200 GPU",
+    "t": 675
+   },
+   {
+    "k": "全球AI算力验证从业工程师数",
+    "v": "约50人",
+    "t": 2657
+   },
+   {
+    "k": "英国UKRI年度研发拨款",
+    "v": "约100亿英镑/年",
+    "t": 5434
+   },
+   {
+    "k": "Amodo四年间交付的硬件项目数",
+    "v": "约100个",
+    "t": 5307
+   },
+   {
+    "k": "Amodo硬件团队规模",
+    "v": "60名机械/电子/固件/软件工程师",
+    "t": 4148
+   },
+   {
+    "k": "人工设计一块GPU功耗监测板耗时",
+    "v": "10到30小时",
+    "t": 4252
+   },
+   {
+    "k": "Fable 5的硬件任务时间视野",
+    "v": "10到100小时",
+    "t": 4482
+   },
+   {
+    "k": "功耗尖峰读出的demo模型层数",
+    "v": "12层",
+    "t": 955
+   },
+   {
+    "k": "零知识证明抽样核查比例",
+    "v": "约千分之一的数据包",
+    "t": 756
+   }
+  ],
+  "terms": [
+   {
+    "term": "zero-knowledge proof",
+    "zh": "零知识证明",
+    "def": "无需透露模型权重等底层数据本身，就能证明某项声明为真的密码学技术"
+   },
+   {
+    "term": "flexHEG",
+    "zh": "灵活硬件授权保障",
+    "def": "在GPU芯片层面内置验证硬件，从物理上强制执行使用限制的算力核查方案"
+   },
+   {
+    "term": "FPGA",
+    "zh": "现场可编程门阵列",
+    "def": "可重新编程的芯片，这里被改造成记录网络流量的加密日志盒"
+   },
+   {
+    "term": "side channel",
+    "zh": "侧信道",
+    "def": "通过功耗、电磁等非预期渠道泄露出的系统内部信息，常被黑客用来窃密"
+   },
+   {
+    "term": "OPCW",
+    "zh": "禁止化学武器组织",
+    "def": "负责执行《化学武器公约》现场核查的国际机构，总部设在海牙"
+   },
+   {
+    "term": "national technical means",
+    "zh": "国家技术手段",
+    "def": "卫星、人力情报、信号情报等国家间互相监视对方的传统谍报能力"
+   }
+  ],
+  "who": "关注AI安全与国际治理机制设计的研究者、政策从业者，以及对AI驱动的硬件研发感兴趣的工程创业者",
+  "skip": "只想了解验证机制的，可跳过1:07后段关于个人硬件项目的故事",
+  "tags": [
+   "AI安全",
+   "算力验证",
+   "美中关系",
+   "侧信道",
+   "硬件研发",
+   "零知识证明"
+  ],
+  "quality": {
+   "transcript_source": "feed",
+   "transcript_detail": "text/plain",
+   "words": 20276,
+   "wpm": 186.3,
+   "timed": false,
+   "verified_quotes": 7,
+   "grounded_facts": 9,
+   "points": 8,
+   "pruned": 0,
+   "approx_timestamps": true
+  }
+ },
+ "generated": "2026-11-02T11:47:14Z",
+ "triage": {
+  "score": 8.0,
+  "why": "CEO讲芯片验证工具原理。具体方案、成本分析、美中协议困难，一手经验加政策深度。",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 7.0,
+  "dims": {
+   "density": 8,
+   "faithful": 7,
+   "selection": 8,
+   "concrete": 8,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "信息密度高、选择好、表达清晰，但[1:44:14]「连续三天」与原文「前一天」不符；[57:22]「年底前五」超出原文明确内容",
+  "worst": "[1:44:14]的「连续三天『Claude精神错乱』式地用Fable 5一次性设计硬件电路」——原文是「前一天」，且与要点标题「被断供一天」自相矛盾；[57:22]的「到年底很可能跻身世界前五」没有原文时间表根据",
+  "model": "haiku",
+  "evidence": "windows",
+  "rubric": "c05d00f91f"
+ },
+ "model": "claude-cli:sonnet"
+}
