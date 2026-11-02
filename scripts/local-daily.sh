@@ -215,6 +215,27 @@ PYEOF
     python3 pipeline/gitsync.py restore-deleted data >/dev/null || return 1
   }
 
+  # 主轮先推被拒时的第二条路。远端这期间只动了本机这个提交没碰的文件（云端每小时只改它自己的心跳），
+  # 就做一个「远端 + 本机提交」的合并提交推上去 —— **不动工作区、不动本地分支**。两边碰了同一个文件
+  # 就不并、照旧交给收尾：生成的页面不许按文本合（见收尾那趟）。合并提交的第二个父提交就是本机这个
+  # 提交本身，收尾推送被拒时 adopt 的三方基线（merge-base）正好是它；换成 rebase 出来的副本，基线退回
+  # 分叉点，用量账本会把主轮算两次。（2026-10-30：主轮 15 篇做了两个小时，这期间远端多了两个改测试的
+  # 提交，先推被拒，15 篇只能等补课跑完。）
+  merge_push_disjoint() {
+    local ours theirs base both tree m
+    git fetch -q origin main || return 1
+    ours=$(git rev-parse HEAD) && theirs=$(git rev-parse origin/main) || return 1
+    base=$(git merge-base "$ours" "$theirs") || return 1
+    both=$(comm -12 <(git diff --name-only "$base" "$theirs" | sort) \
+                    <(git diff --name-only "$base" "$ours" | sort))
+    [ -z "$both" ] || { echo "  远端和本机改了同一批文件（$(echo $both | cut -c1-120)），不并"; return 1; }
+    tree=$(git merge-tree --write-tree "$theirs" "$ours") || return 1
+    m=$(git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
+        commit-tree "$tree" -p "$theirs" -p "$ours" \
+        -m "$(git log -1 --format=%s "$ours")（并上远端的新提交）") || return 1
+    git push -q origin "$m:refs/heads/main" 2>/dev/null
+  }
+
   START_REV=$(git rev-parse HEAD 2>/dev/null)
   # **autostash 恢复失败时 git pull 的退出码仍是 0**：只打一句 "Applying autostash resulted in
   # conflicts"，stash 留着，工作区里是冲突标记。这份副本就这样一声不响堆到 26 个 stash
@@ -463,7 +484,9 @@ PYEOF
   # **主轮建好的页面也一起加。** run.py 发了稿就建站（run.py 的 build.main()），原来这一趟只推数据、
   # 页面等收尾或云端定时重建：2026-10-29 主轮 17:18 推上 5 篇，页面到 18 点以后才有，中间一个多小时
   # 点进去全是 404，CI 也因为「数据 1304 篇、站上 1295 篇」红着。清单同样取 gitsync.py site-paths。
-  MAIN_SITE=$(python3 pipeline/gitsync.py site-paths) || MAIN_SITE=""
+  # 带上 assets：run.py 建站前先缓存了新集的封面（assets/cover），不带的话页面先推上去、封面文件
+  # 还在本地，点开是破图。
+  MAIN_SITE=$(python3 pipeline/gitsync.py site-paths assets) || MAIN_SITE=""
   git add -A data $MAIN_SITE 2>/dev/null || true
   n=$(git diff --cached --name-only | grep -c 'data/episodes/' || true)
   git -c user.name="podcast-bot" -c user.email="podcast-bot@users.noreply.github.com" \
@@ -471,10 +494,13 @@ PYEOF
   # **主轮的稿先推上去，不等补课。** 原来整轮只在最后推一次，补课一跑一两个小时，
   # 中间 Mac 重启 / 关机，主轮发的稿就只躺在本地提交里（2026-10-12 上午 4 篇，
   # 下一轮又被脱身逻辑扔掉）。只推不拉：拉就要和云端的建站合并（10-13 那次冲突）。
-  # 被拒（远端有新提交）就留给收尾那趟：那里 reset --mixed 到远端、数据三方对齐、页面从数据重建，
+  # 被拒（远端有新提交）：两边没碰同一个文件就并成一个合并提交推（merge_push_disjoint）；碰了就
+  # 留给收尾那趟：那里 reset --mixed 到远端、数据三方对齐、页面从数据重建，
   # 这个带着页面的本地提交不会被 rebase；没跑到收尾就被打断，下一轮开头 fold_onto_origin 同样处理。
   if git push -q origin main 2>/dev/null; then
     echo "主轮 $n 篇的数据和页面已先推上去"
+  elif merge_push_disjoint; then
+    echo "主轮 $n 篇的数据和页面已先推上去（远端有新提交、没碰同一个文件：并成合并提交推的）"
   else
     echo "主轮先推被拒（远端有新提交），收尾时一起推"
   fi

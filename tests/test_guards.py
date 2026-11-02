@@ -4638,6 +4638,14 @@ class EveryPublishLineTranslates(unittest.TestCase):
         self.assertRegex(src, r"gitsync\.py site-paths[^\n)]*\bassets\b",
                          "本机线的提交里少了 assets（cache_covers 缓存的封面）")
 
+    def test_run_py_caches_covers_before_it_builds(self):
+        """run.py 发了稿就建站，这一批页面会被本机线先推上去：建站前不缓存封面，
+        新集的封面全直连第三方，要等收尾才换回本站（2026-10-30：首页 29 张里 10 张直连）。"""
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index("if published and not a.no_build:")
+        branch = src[i:src.index("build.main()", i)]
+        self.assertIn("cache_covers.main()", branch, "run.py 发稿后建站前没缓存封面")
+
     def test_no_hardcoded_page_number(self):
         """cards-*.json 是动态数量，写死一个（cards-1.json）就漏其余的。"""
         src = re.sub(r"(?m)^\s*#.*$", "", (ROOT / "scripts" / "local-daily.sh").read_text())
@@ -13186,14 +13194,37 @@ def touch(f):
     p.write_text(json.dumps(d, ensure_ascii=False, indent=1) + "\n")
     with open(os.environ["STUB_LOG"], "a") as log:
         log.write(json.dumps({{"file": f, "by": NAME, "args": args}}) + "\n")
+race_main = os.environ.get("STUB_RACE_MAIN")
+if NAME == "run.py" and "--followup" in args and race_main and not os.path.exists(race_main + ".done"):
+    # 另一条线在**主轮**中途推了一个提交，只改 STUB_RACE_MAIN_FILE 这一个文件（云端每小时只改它的心跳）
+    other = race_main + ".clone"
+    subprocess.run(["git", "clone", "-q", os.environ["STUB_ORIGIN"], other], check=True)
+    rel = os.environ["STUB_RACE_MAIN_FILE"]
+    if rel.endswith(".html"):
+        text = "<!-- other line " + now + " -->\n"
+    elif rel.endswith("usage.json"):
+        # 改种子那一行里的一个数：和本机主轮新加的那一行隔着几行，按文本合并不会冲突
+        d = json.loads(pathlib.Path(other, rel).read_text())
+        next(iter(next(iter(d.values())).values()))["in"] += 1
+        text = json.dumps(d, ensure_ascii=False, indent=1) + "\n"
+    else:
+        text = json.dumps({{"at": now, "line": "cloud", "exit": 0, "by": "other"}}, indent=1) + "\n"
+    pathlib.Path(other, rel).write_text(text)
+    g = ["git", "-C", other, "-c", "user.name=other", "-c", "user.email=o@o"]
+    subprocess.run(g + ["commit", "-qam", "other line (main round)"], check=True)
+    subprocess.run(g + ["push", "-q", "origin", "HEAD:main"], check=True)
+    open(race_main + ".done", "w").close()
 for f in WRITES:
     touch(f)
 if NAME == "run.py" and os.environ.get("STUB_PUBLISH", "1") == "1":
     slug = "ep-" + now.replace(":", "").replace(".", "")
     (ROOT / "data" / "episodes" / (slug + ".json")).write_text(json.dumps({{"slug": slug}}) + "\n")
     if "--no-build" not in args:
-        # 真 run.py 发了稿就建站（build.main()）：主轮的页面此刻已在工作区
+        # 真 run.py 发了稿就先缓存封面、再建站（cache_covers.main() + build.main()）：
+        # 主轮的页面和新集的封面此刻都已在工作区
         (ROOT / "index.html").write_text("<!-- run.py " + slug + " -->\n")
+        (ROOT / "assets" / "cover").mkdir(parents=True, exist_ok=True)
+        (ROOT / "assets" / "cover" / (slug + ".jpg")).write_text("cover\n")
 if NAME == "build.py":
     (ROOT / "index.html").write_text("<!-- " + now + " -->\n")
     race = os.environ.get("STUB_RACE")
@@ -13214,7 +13245,7 @@ if NAME == "build.py":
 '''
 
     def _sandbox(self, tmp, publish=True, race=False, leftover=None, upstream=None, prep=None, die_on=None,
-                 claude_says="", notify=False, scheduled=False, hb_local=None):
+                 claude_says="", notify=False, scheduled=False, hb_local=None, race_main=None):
         sh = (ROOT / "scripts" / "local-daily.sh").read_text()
         reads = _healthcheck_reads()
         writers = {k: sorted(v & reads) for k, v in _state_writers(reads).items()}
@@ -13288,6 +13319,8 @@ if NAME == "build.py":
                "GIT_CONFIG_NOSYSTEM": "1", "LANG": "en_US.UTF-8"}
         if race:
             env["STUB_RACE"] = str(tmp / "race")
+        if race_main:
+            env["STUB_RACE_MAIN"], env["STUB_RACE_MAIN_FILE"] = str(tmp / "race_main"), race_main
         if die_on:
             env["STUB_DIE_ON"] = die_on
         if notify:
@@ -13414,6 +13447,61 @@ if NAME == "build.py":
                                   capture_output=True, text=True).stdout
             self.assertIn("run.py ep-", page, "主轮的页面没跟数据一起先推：数据上了、点进去 404，"
                                               "要等收尾或云端重建（2026-10-29 等了一个多小时）")
+            covers = [f"assets/cover/{n[:-5]}.jpg" for n in local]
+            self.assertEqual([], [c for c in covers if not self._on_origin(origin, c)],
+                             "主轮的页面先推了，新集的封面文件没跟上：点开是破图（2026-10-30）")
+
+    def test_main_episodes_still_go_out_early_when_another_line_pushed_meanwhile(self):
+        """主轮先推被拒，而远端这期间只改了本机没碰的文件（云端每小时的心跳）：并成合并提交照样先推。
+        2026-10-30：主轮 15 篇做了两个小时，远端多了两个改测试的提交，先推被拒，15 篇只能等补课跑完。"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            r, box, origin, log, reads = self._sandbox(tmp, die_on="--catchup",
+                                                       race_main="data/heartbeat-cloud.json")
+            self.assertNotEqual(0, r.returncode, "尺子坏了：补课那一步没被杀掉\n" + r.stdout[-1500:])
+            self.assertTrue((pathlib.Path(tmp) / "race_main.done").exists(),
+                            "尺子坏了：主轮中途另一条线没推上提交\n" + r.stdout[-1500:])
+            local = sorted(p.name for p in (box / "data" / "episodes").glob("ep-*.json"))
+            self.assertTrue(local, "尺子坏了：主轮的桩没发出集\n" + r.stdout[-1500:])
+            lost = [n for n in local if not self._on_origin(origin, f"data/episodes/{n}")]
+            self.assertEqual([], lost, "另一条线只改了它自己的心跳，主轮的集却没先推上去、要等补课跑完\n"
+                             + r.stdout[-1500:])
+            show = lambda f: subprocess.run(["git", "--git-dir", str(origin), "show", f"main:{f}"],
+                                            capture_output=True, text=True).stdout
+            self.assertIn("run.py ep-", show("index.html"), "主轮的页面没跟着先推")
+            self.assertIn('"by": "other"', show("data/heartbeat-cloud.json"), "并的时候把另一条线的提交冲掉了")
+
+    def test_the_early_merge_does_not_count_main_round_usage_twice(self):
+        """先推用的合并提交，第二个父提交必须是本机那个提交本身：收尾推送被拒时 adopt 的三方基线
+        （merge-base）才是它。换成 rebase 出来的单父副本，基线退回分叉点，用量账本把主轮算两次。"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            r, box, origin, log, reads = self._sandbox(tmp, race_main="data/heartbeat-cloud.json")
+            self.assertEqual(0, r.returncode, "沙盒里的本机线没跑通：\n" + r.stdout[-2500:] + r.stderr[-800:])
+            self.assertIn("并成合并提交推的", r.stdout, "尺子坏了：这一轮没走到合并先推那条路\n" + r.stdout[-1500:])
+            wrote = sum(1 for l in log.read_text().splitlines()
+                        if json.loads(l)["file"] == "usage.json" and json.loads(l)["by"] == "run.py")
+            self.assertGreater(wrote, 1, "尺子坏了：run.py 的桩没记用量（主轮、补课各该记一次）")
+            up = json.loads(subprocess.run(["git", "--git-dir", str(origin), "show", "main:data/usage.json"],
+                                           capture_output=True, text=True).stdout)
+            got = sum(row.get("stub/run.py", {}).get("calls", 0) for row in up.values())
+            self.assertEqual(wrote, got, f"run.py 真记了 {wrote} 次用量，origin 上是 {got} 次")
+
+    def test_the_early_push_never_merges_a_file_both_sides_changed(self):
+        """两边都改了的文件不许在先推时合：交给收尾（页面从数据重建、数据走 adopt）。
+        index.html 是按文本必然冲突的那种；usage.json 是两边改在不同行、**按文本能干净合上**的那种 ——
+        只靠 git 自己报冲突，第二种就会悄悄并上去，所以先推前要先比「两边碰没碰同一个文件」。"""
+        import tempfile
+        for rel, mine in (("index.html", "run.py ep-"), ("data/usage.json", "stub/run.py")):
+            with self.subTest(rel), tempfile.TemporaryDirectory() as tmp:
+                r, box, origin, log, reads = self._sandbox(tmp, die_on="--catchup", race_main=rel)
+                self.assertNotEqual(0, r.returncode, "尺子坏了：补课那一步没被杀掉\n" + r.stdout[-1500:])
+                self.assertTrue((pathlib.Path(tmp) / "race_main.done").exists(), "尺子坏了：另一条线没推上提交")
+                self.assertIn(mine, (box / rel).read_text(), f"尺子坏了：本机主轮没改 {rel}")
+                up = subprocess.run(["git", "--git-dir", str(origin), "show", f"main:{rel}"],
+                                    capture_output=True, text=True).stdout
+                self.assertNotIn(mine, up, f"两边都改了 {rel}，先推却把它按文本合了上去")
+                self.assertIn("收尾时一起推", r.stdout, f"两边都改了 {rel}，却没交给收尾\n" + r.stdout[-1500:])
 
     def test_the_run_after_an_interruption_neither_stalls_nor_drops_unpushed_work(self):
         """10-12 → 10-13 那一串：上一轮留下一个没推送的 digest 提交 + 一套没提交的建站产物，

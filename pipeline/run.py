@@ -1251,6 +1251,13 @@ def main() -> int:
             f"「今天没内容」，是部署有问题。")
         return 5
     if published and not a.no_build:
+        # 封面先缓存到本站再建站。本机线主轮建好的页面会被先推上去（local-daily.sh），不缓存的话
+        # 这一批新集的封面全直连第三方，要等收尾那趟才换回本站（2026-10-30：首页 29 张里 10 张直连）。
+        try:
+            import cache_covers
+            cache_covers.main()
+        except Exception as e:
+            log(f"  封面缓存失败（不致命，页面先用原地址）：{e}")
         import build
         build.main()
     elif not published:
