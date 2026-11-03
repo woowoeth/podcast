@@ -1635,6 +1635,13 @@ REF 里有的跟踪文件，一律当过期改回 REF（REF 里没有的不碰�
 - 归属校验：频道源自己的视频（字幕和音频转写）不验，`own-video` 进取稿指纹 —— 旧指纹下判的
   「不属于这一集」作废重来。王钦文两条出局记录按这条规则清掉。
 
+**第四处红是测试自己坏了，而且只在 CI 上坏。** CI 列出完整名单后才看见：
+`test_an_exhausted_quota_stops_the_run_and_says_why` 的 claude 桩写的是 `echo '{claude_says}'`，额度那句
+「You've hit your weekly limit」的撇号截断了单引号，桩本身是语法错误。macOS 的 sh 报错时把那一行原样
+打出来，探针碰巧在**报错信息里**匹配到「hit your … limit」，本地绿；Ubuntu 的 dash 报错不带原文，CI 红。
+这条测试从写下那天起量的就是「语法错误的报错」，没量过额度提示本身。改成 `shlex.quote`；反向注入
+（拿掉 local-daily.sh 里额度那条匹配）→ 红。
+
 **闸。** 体检对着没重建的英文站（4 处漏）报「坏了」，重建后报「零漏译」；新测试
 `test_a_channel_sources_own_video_is_its_own_episode`：拿掉豁免、或豁免不看 `kind` → 红。
 

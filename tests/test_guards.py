@@ -13302,8 +13302,14 @@ if NAME == "build.py":
         origin, box, home, bin_ = tmp / "origin.git", tmp / "box", tmp / "home", tmp / "bin"
         for d in (box / "pipeline", box / "scripts", box / "data" / "episodes", home, bin_):
             d.mkdir(parents=True)
-        # claude CLI 的桩：默认什么都不说（探针当成能用）；claude_says 模拟没登录、额度用完
-        (bin_ / "claude").write_text("#!/bin/sh\n" + (f"echo '{claude_says}'\nexit 1\n" if claude_says else "exit 0\n"))
+        # claude CLI 的桩：默认什么都不说（探针当成能用）；claude_says 模拟没登录、额度用完。
+        # **必须 shlex.quote。** 原来是 echo '{claude_says}'，而额度那句是「You've hit your weekly
+        # limit」—— 撇号截断单引号，桩自己是语法错误。macOS 的 sh 报错时把那一行原样打出来，探针
+        # 碰巧在报错里匹配到「hit your … limit」，本地绿；CI 的 dash 报错不带原文，红了 19 天。
+        # 这条测试一直量的是「语法错误的报错信息」，从没量过那句额度提示。
+        import shlex
+        (bin_ / "claude").write_text("#!/bin/sh\n" + (f"echo {shlex.quote(claude_says)}\nexit 1\n"
+                                                      if claude_says else "exit 0\n"))
         # osascript 的桩：记下弹了什么通知（macOS 上不真弹，Linux 上本来就没有）
         (bin_ / "osascript").write_text(f"#!/bin/sh\nprintf '%s\\n' \"$*\" >> '{tmp / 'notified'}'\n")
         (bin_ / "claude").chmod(0o755)
