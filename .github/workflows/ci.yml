@@ -81,7 +81,13 @@ jobs:
           python -m playwright install --with-deps chromium
           # 本机转写的切片测试要真的 ffmpeg（造一段带大元数据的音频来切）；没装的话那条在 CI 上直接失败
           sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg
-          python -m unittest discover -s tests -v 2>&1 | tail -40
+          # tail -40 只露得出最后几条失败的详情：2026-11-03 那轮报 failures=4，详情只看得见 2 条，
+          # 另外两条是什么要本地重跑才知道。失败的完整名单单独列一遍。
+          python -m unittest discover -s tests -v > /tmp/unittest.log 2>&1 && rc=0 || rc=$?
+          tail -40 /tmp/unittest.log
+          echo "失败的测试（完整名单）："
+          grep -E "^(FAIL|ERROR): " /tmp/unittest.log || echo "  （无）"
+          exit $rc
 
       # 下面每一项都带 `if: !cancelled()`：**各查各的，前面红了也照跑。** 没有它，单元测试一红，
       # 后面全是 skipped —— 2026-09-26 到 09-29 那几天 main 上的 CI 一直红在单元测试，

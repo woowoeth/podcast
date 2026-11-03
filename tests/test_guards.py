@@ -11838,27 +11838,42 @@ class OwnAudioIsNeverAnotherEpisode(unittest.TestCase):
     小天章 EP4「王强：AI 狂飙时代，一个古典的人」：正确的转写被判 wrong-episode（王强两字够不着
     3-gram，标题措辞不会被念出来），判错的不进缓存，每次重试白转 9 分钟再判错，永远发不出来。"""
 
-    def _acquire(self, own):
+    def _acquire(self, own, src=None, vid=""):
         import tempfile, unittest.mock as mock, os as _os
         sys.path.insert(0, str(ROOT / "pipeline"))
         from lib import transcript as T
         text = "我们今天聊聊教育和投资里那些真正难的取舍，比如什么时候该坚持，什么时候该放手。" * 60
         segs = [{"t": i * 10, "text": text[i * 40:(i + 1) * 40]} for i in range(len(text) // 40)]
         got = {"segments": segs, "source": "asr", "detail": "local:test", "url": "u", "own_audio": own}
-        ep = {"title": "EP4 王强：AI 狂飙时代，一个古典的人", "duration": len(segs) * 10, "guid": f"g-{own}"}
+        ep = {"title": "EP4 王强：AI 狂飙时代，一个古典的人", "duration": len(segs) * 10,
+              "guid": f"g-{own}-{(src or {}).get('kind')}-{vid}", "youtube_id": vid}
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(_os.environ, {"PODCAST_CACHE": tmp}), \
              mock.patch.object(T, "from_audio", lambda ep, lang: dict(got)):
-            return T.acquire(ep, "zh", allow=("asr",))
+            return T.acquire(ep, "zh", allow=("asr",), src=src)
 
     def test_own_audio_passes_youtube_audio_is_still_checked(self):
         self.assertIsNotNone(self._acquire(True), "本集附件音频的正确转写被当成别的集丢掉了")
         self.assertIsNone(self._acquire(False), "YouTube 搜来的音频不再做归属校验 —— 配错集的事会再出")
+
+    def test_a_channel_sources_own_video_is_its_own_episode(self):
+        """频道源（kind=youtube）的视频就是这一集：它的音频转写不做归属校验。
+
+        王钦文「…重塑洁丽雅？｜钦文对话石晶」三次转出 11646 字、三次被判「不属于这一集」，
+        撞满上限出局（2026-11-02）。RSS 源身上挂的 youtube_id 是搜来的（video.py／match_youtube），
+        照验。"""
+        self.assertIsNotNone(self._acquire(False, {"kind": "youtube"}, "abc123"),
+                             "频道源自己视频的转写被当成别的集丢掉了")
+        self.assertIsNone(self._acquire(False, {"kind": "rss"}, "abc123"),
+                          "RSS 源挂着的（搜来的）视频不再做归属校验 —— 配错集的事会再出")
+        self.assertIsNone(self._acquire(False, {"kind": "youtube"}, ""),
+                          "频道源没有自己的视频 id 时也放过了归属校验")
 
     def test_the_change_is_in_the_pipeline_fingerprint(self):
         """改了结果就要进指纹：旧的「不属于这一集」判决才会作废重来。"""
         src = (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
         i = src.index("def pipeline_id(")
         self.assertIn('"own-audio"', src[i:i + 1200])
+        self.assertIn('"own-video"', src[i:i + 1200])
 
 
 class PinnedSourcesOnlyLoseAdsAtTriage(unittest.TestCase):

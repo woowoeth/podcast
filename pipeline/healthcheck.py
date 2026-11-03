@@ -511,11 +511,12 @@ def check_point_headings(r: Report) -> None:
 
 
 def check_english_edition(r: Report) -> None:
-    """英文站做到哪一步了。
+    """英文站做到哪一步了，有没有漏译。
 
-    为什么要报：它默认不建（界面文案层没做完，零漏译闸门会拦，而那个闸门挂在
-    日常构建上会把简体站的部署一起挡住）。默认不建就意味着**它会被忘掉**，
-    所以进度必须有个地方一直说着。
+    英文站已经上线。**漏译是硬伤**：原来这里报的是「注意 · 未完工」（那时英文站
+    还没上线），而手机推送只推硬伤 —— 2026-10-30 起英文站漏着 4 处中文，
+    build.py 的零漏译闸门一直 return 1，可 run.py 丢掉了返回值，只有 CI 红着，
+    整整 4 天没人看见。
     """
     n_eps = len(list((DATA / "episodes").glob("*.json")))
     # 下划线开头的是**跨集共用的译名表**（_sources / _speakers），不是集。
@@ -534,23 +535,26 @@ def check_english_edition(r: Report) -> None:
     if not n_tr:
         r.note("英文站：还没有译文。跑 python3 pipeline/translate.py")
         return
-    leak = None
-    en = ROOT / "en"
-    if en.exists():
-        try:
-            import sys as _s2
-            _s2.path.insert(0, str(ROOT / "pipeline"))
-            import enscan
-            leak = len(enscan.leaks(en))
-        except Exception:
-            leak = None
     line = f"英文站：译文 {n_tr}/{n_eps} 篇 · 界面文案表 {ui} 条"
-    if leak:
-        r.note(line + f" · **还有 {leak} 种中文漏在 lang=\"zh\" 之外，未完工**")
-    elif leak == 0:
-        r.good(line + " · 零漏译，可以上线")
-    else:
+    en = ROOT / "en"
+    if not en.exists():
         r.note(line + " · 还没建过，跑 python3 pipeline/build.py")
+        return
+    try:
+        import sys as _s2
+        _s2.path.insert(0, str(ROOT / "pipeline"))
+        import enscan
+        leak = enscan.leaks(en)
+    except Exception as ex:
+        # 查不了不等于没漏：原来这里吞掉异常、落到「还没建过」那条注意上
+        r.fail(line + f" · 漏译查不了（enscan 出错：{ex}）")
+        return
+    if leak:
+        r.fail(line + f" · **{len(leak)} 种中文漏在 lang=\"zh\" 之外**（站上看得见）："
+               f"{[k for k, _ in leak.most_common(3)]} —— 多半是 build.py 哪个模板分支"
+               f"没过 mark_zh／zh_attr；python3 pipeline/build.py 的 ::error:: 会列出来")
+    else:
+        r.good(line + " · 零漏译")
 
 
 def check_parked_translations(r: Report) -> None:

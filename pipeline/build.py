@@ -775,7 +775,7 @@ def alias_page(ep: dict) -> str:
         f'<meta http-equiv="refresh" content="0;url={e(real)}">',
         f'<script>location.replace({json.dumps(real)})</script>',
         '</head><body>',
-        f'<p>{T("正在打开")}{" " if LANG == "en" else ""}{t}{"…" if LANG == "en" else "……"}',
+        f'<p>{T("正在打开")}{" " if LANG == "en" else ""}{mark_zh(t)}{"…" if LANG == "en" else "……"}',
         f'<a href="{e(real)}">{T("点这里")}</a></p>',
         '</body></html>',
     ])
@@ -1024,7 +1024,8 @@ def card(ep: dict, *, hero: bool, is_new: bool = False) -> str:
     eager = ' fetchpriority="high"' if hero else ' loading="lazy"'
     cover = (f'<img src="{e(cover_src(img))}" alt="" decoding="async"{eager} '
              f'data-initial="{e((ep.get("source") or "?")[:1])}">' if img
-             else f'<div class="fallback">{e((ep.get("source") or "?")[:1])}</div>')
+             else f'<div class="fallback"{zh_attr((ep.get("source") or "?")[:1])}>'
+                  f'{e((ep.get("source") or "?")[:1])}</div>')
     dur = (f'<span class="dur">{hhmmss(ep["duration"])}</span>' if ep.get("duration") else "")
     tags = "".join(f'<span class="tag">{e(t)}</span>' for t in (d.get("tags") or [])[:2])
     src_label = show_name(ep)
@@ -1520,9 +1521,9 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None,
     prevnext = ""
     if prev or nxt:
         left = (f'<a href="{BASE}/p/{e(prev["slug"])}/"><span class="lbl">{T("← 更新")}</span>'
-                f'<strong>{e(D(prev)["title"])}</strong></a>' if prev else "<span></span>")
+                f'<strong>{mark_zh(e(D(prev)["title"]))}</strong></a>' if prev else "<span></span>")
         right = (f'<a class="r" href="{BASE}/p/{e(nxt["slug"])}/"><span class="lbl">{T("更早 →")}</span>'
-                 f'<strong>{e(D(nxt)["title"])}</strong></a>' if nxt else "<span></span>")
+                 f'<strong>{mark_zh(e(D(nxt)["title"]))}</strong></a>' if nxt else "<span></span>")
         prevnext = f'<nav class="prevnext">{left}{right}</nav>'
 
     # 关键词给答案引擎用：标签 + 术语 + facts 的指标名，都是这一篇真实覆盖的实体
@@ -1891,8 +1892,7 @@ def related_block(ep: dict, eps_by_slug: dict) -> str:
         return ""
     items = "".join(
         f'<li><a href="{BASE}/p/{e(x["slug"])}/">'
-        f'<span class="rel-t"{zh_attr((x.get("digest") or {}).get("title") or "")}>'
-        f'{e((D(x) or {}).get("title") or x.get("slug"))}</span>'
+        f'<span class="rel-t">{mark_zh(e((D(x) or {}).get("title") or x.get("slug")))}</span>'
         f'<span class="rel-s"{zh_attr(show_name(x))}>{e(show_name(x))}</span></a></li>'
         for x in rel)
     return (f'<section class="related"><h2 class="sec-title">{T("顺着这个话题")}</h2>'
@@ -2563,12 +2563,18 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
 
 def main() -> int:
     render_site(ROOT, "zh")
-    # 英文站默认**不建**：界面文案层还没做完（零漏译闸门会拦），而这个闸门要是
-    # 挂在日常构建上，简体站的部署就一起被挡住了。用显式开关而不是静默跳过——
-    # 静默跳过会让这件事被忘掉，体检那边也会一直报未完工的进度。
+    # 英文站有译文就建，已经上线（robots.txt 里有它的 sitemap）。下面两道闸门不过时
+    # return 1，但页面**已经写出去了**（render_site 在前）—— 返回值是给 CI 和 run.py 看的。
+    # run.py 原来把它丢掉了：2026-10-30 起英文站漏着 4 处中文，只有 CI 红着，没人看见。
     n = len([f for f in (DATA / "en").glob("*.json")
              if not f.name.startswith("_")]) if (DATA / "en").exists() else 0
-    if n:
+    if not n:
+        log("  英文站：data/en/ 还没有译文，跳过")
+        return 0
+    # 语言切完了要把常量还原，免得同一个进程里后续调用拿到英文的 BASE。
+    # **闸门没过、提前 return 1 时也要还原**：原来还原写在函数末尾，两条 return 1
+    # 都跳过它 —— run.py 发稿后在同一个进程里建站，之后拿到的就是英文的 BASE。
+    try:
         i18n.reset()
         render_site(ROOT / "en", "en")
         miss = i18n.missed()
@@ -2585,13 +2591,11 @@ def main() -> int:
             return 1
         n_en = len(list((ROOT / "en" / "p").iterdir())) if (ROOT / "en" / "p").exists() else 0
         log(f"  英文站 /en/：{n_en} 篇，零漏译")
-    else:
-        log("  英文站：data/en/ 还没有译文，跳过")
-    # 语言切完了要把常量还原，免得同一个进程里后续调用拿到英文的 BASE
-    render_site.__globals__["BASE"] = BASE_ZH
-    render_site.__globals__["SITE"] = SITE_ZH
-    i18n.LANG = "zh"
-    return 0
+        return 0
+    finally:
+        render_site.__globals__["BASE"] = BASE_ZH
+        render_site.__globals__["SITE"] = SITE_ZH
+        i18n.LANG = "zh"
 
 
 if __name__ == "__main__":

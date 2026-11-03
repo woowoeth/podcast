@@ -1259,7 +1259,11 @@ def main() -> int:
         except Exception as e:
             log(f"  封面缓存失败（不致命，页面先用原地址）：{e}")
         import build
-        build.main()
+        # 建站闸门（英文站漏译、界面文案没登记）不过时页面照样写出来了，这一轮的稿也是好的 ——
+        # 不为这个让整轮失败、停推。但返回值不许丢：原来丢掉了，漏译挂了 4 天只有 CI 红着。
+        # 送到人的那条路是体检：英文站漏译是硬伤，进 health-local.json，手机推送会报。
+        if build.main():
+            log("  ::error:: 建站闸门没过（见上面 build 的 ::error::），页面照常写出；体检会报硬伤")
     elif not published:
         log("nothing published — site left untouched")
     return 0

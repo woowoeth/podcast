@@ -1244,6 +1244,12 @@ def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
                 return cached
         except Exception:
             pass
+    # **频道源（kind=youtube）的 youtube_id 就是这一集本身**，不是按标题搜来的 ——
+    # 它的字幕、它的音频转写，和 RSS 附件音频一样天然属于这一集，不做归属校验。
+    # 起因（2026-11-02）：王钦文「从2亿到40亿，接班人如何重塑洁丽雅？｜钦文对话石晶」
+    # 本集视频转出 11646 字，三次都被判「不属于这一集」丢掉（转写把品牌名、人名写成
+    # 同音字，标题措辞又不会被念出来），撞满重试上限出局。用户点名要优先的源。
+    own_video = bool(src and src.get("kind") == "youtube" and ep.get("youtube_id"))
     if src and not ep.get("youtube_id") and "youtube" in allow:
         vid = match_youtube(ep, src)
         if vid:
@@ -1331,7 +1337,8 @@ def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
         # 起因（2026-10-09）：小天章 EP4「王强：AI 狂飙时代，一个古典的人」，本集附件音频
         # 转出的正确文稿被判「不属于这一集」：王强两个字够不着 3-gram，「狂飙时代」「古典的人」
         # 是标题措辞、不会被念出来。判错的文稿不进缓存，每次重试再白转 9 分钟、再判错，永远发不出来。
-        if tier != "feed" and not got.get("own_audio"):
+        if tier != "feed" and not got.get("own_audio") \
+                and not (own_video and tier in ("youtube", "asr")):
             ok = belongs_to(text, ep.get("title", ""))
             if ok is False:
                 attempts.append(f"{tier}:wrong-episode")
@@ -1436,8 +1443,8 @@ def pipeline_id() -> str:
     # 于是被旧判据误杀的集一个都捞不回来 —— 指纹漏了一段，等于这段没有指纹。
     knobs = "|".join(str(x) for x in
                      # own-audio：本集附件音频的转写不做归属校验（改变了结果，旧的
-                     # 「不属于这一集」判决要作废重来）
-                     ("own-audio",) + (TRANSCRIPT_GEN, ORDER, CHUNK_SEC, LOCAL_MODEL,
+                     # 「不属于这一集」判决要作废重来）；own-video：频道源自己的视频同理
+                     ("own-audio", "own-video") + (TRANSCRIPT_GEN, ORDER, CHUNK_SEC, LOCAL_MODEL,
                       ASR_MAX_MB, sorted(MIN_WORDS.items()),
                       _TWO_CHAR_MIN, sorted(_TITLE_FURNITURE),
                       ALIGN_TOLERANCE))
