@@ -118,18 +118,21 @@ class TraditionalSite(unittest.TestCase):
         self.assertEqual([], bad[:3], "繁体页里还有简体字（漏转）")
 
     def test_4_ambiguous_reviewed(self):
-        allow = TW.load_allow()
-        unseen = {}
-        for k, p in sorted(self.tw.items()):
-            with open(p, encoding="utf-8") as fh:
-                cs = TW.contexts(body(fh.read()))
-            for c in cs:
-                if c not in allow:
-                    unseen.setdefault(c, k)
-        self.assertEqual(
-            {}, dict(sorted(unseen.items())[:20]),
-            "这些歧义字上下文没人看过。看一眼对不对，对就跑 "
-            "python3 pipeline/gen_tw_allow.py 登记进 pipeline/tw_allow.txt")
+        """歧义字上下文要有人（或日更的模型审阅）看过。
+
+        原来见到没登记的就红 —— 新节目每天带来新上下文，**正常发稿之后必红**，
+        2026-10-15 起和别的红混着 19 天没人看，积压里藏着 7 处错字。现在日更建完站
+        跑 pipeline/twreview.py 审掉；这里只在「待审超过 2 天」「审阅 2 天没跑成」时红，
+        还有：模型改过的片段不许还留在页面上（改法没生效）。
+        """
+        import twreview
+        d = twreview.load()
+        found = twreview.unreviewed(TWDIR)
+        self.assertEqual([], twreview.overdue(d, found))
+        self.assertEqual([], sorted(set(d["fix"]) & set(found)),
+                         "data/tw-review.json 里改过的片段还在繁体页上：改法没生效")
+        bad = [c for c, v in d["fix"].items() if not twreview.valid_fix(c, v.get("to"))]
+        self.assertEqual([], bad, "data/tw-review.json 里有不合规的改法（只许换中间那个歧义字）")
 
     def test_5_hreflang_identical(self):
         bad = [k for k in sorted(set(self.sc) & set(self.tw))

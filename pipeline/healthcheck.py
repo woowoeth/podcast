@@ -557,6 +557,37 @@ def check_english_edition(r: Report) -> None:
         r.good(line + " · 零漏译")
 
 
+def check_tw_review(r: Report) -> None:
+    """繁体站的歧义字有没有人审（pipeline/twreview.py，日更建完站跑）。
+
+    待审本身不是毛病 —— 每天都有新的，日更会审掉。毛病是**审阅这一步坏了**：
+    有一条待审超过 2 天，或者 2 天没跑成。原来是 test_tw.test_4 见到待审就红，
+    正常发稿后必红，2026-10-15 起 19 天没人看，积压里 7 处错字挂在站上。
+    """
+    if not (ROOT / "tw").exists():
+        return
+    try:
+        import sys as _s
+        _s.path.insert(0, str(ROOT / "pipeline"))
+        import twreview
+        d = twreview.load()
+        found = twreview.unreviewed()
+        bad = twreview.overdue(d, found)
+    except Exception as ex:
+        r.fail(f"繁体歧义字审阅查不了（twreview 出错：{ex}）")
+        return
+    if bad:
+        for b in bad:
+            r.fail("繁体站：" + b)
+        return
+    week = (dt.date.today() - dt.timedelta(days=7)).isoformat()
+    fixed = sorted((c, v["to"]) for c, v in d["fix"].items() if v.get("on", "") >= week)
+    line = f"繁体歧义字：待审 {len(found)} 条（日更会审）· 上次审完 {(d.get('last_ok') or '从没')[:16]}"
+    if fixed:
+        line += f" · 近 7 天模型改了 {len(fixed)} 处：" + "、".join(f"{a}→{b}" for a, b in fixed[:5])
+    r.good(line)
+
+
 def check_parked_translations(r: Report) -> None:
     """有没有篇目因为连着译不合格被搁置了。
 
@@ -1531,6 +1562,7 @@ def main(argv: list[str] | None = None) -> int:
     check_point_headings(r)
     check_render_layer(r)
     check_english_edition(r)
+    check_tw_review(r)
     check_translation_side_tables(r)
     check_core_sources(r)
     check_indexnow(r)

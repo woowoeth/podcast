@@ -450,6 +450,28 @@ PYEOF
     exit 0
   fi
 
+  # 新集要译成英文才会进 /en/。**每条发布线都要接**——原来只有云端日更接了，
+  # 本机线（住宅 IP 那条，中文播客主要靠它）发的内容在英文站上一直缺。
+  # 失败不阻塞：没译的不渲染，宁可少几篇也不要中英混排。
+  # **主轮的稿先译好、建好再先推。** 原来只在补课之后译：2026-11-03 10:58 主轮 5 篇先推上去，
+  # 11:04 重启打断补课，英文版一直没出，4 个小时后体检报「6 篇只有中文」硬伤、CI 红。
+  # 收尾那一趟照样再译一遍（补课发的集）。
+  python3 pipeline/transsources.py || true
+  python3 pipeline/transspeakers.py || true
+  tr_main=0
+  for i in 1 2 3; do
+    n=$(python3 pipeline/translate.py --pending | tail -1)
+    [ "$n" = "0" ] && break
+    echo "主轮待译 $n 篇（第 $i 轮）"
+    tr_main=1
+    python3 pipeline/translate.py --limit 20 --workers 4 || break
+  done
+  # 译了才重建：run.py 发稿时已经建过站，那时这几篇还没有译文。封面先缓存再建，同收尾那趟。
+  if [ "$tr_main" = 1 ]; then
+    python3 pipeline/cache_covers.py || true
+    python3 pipeline/build.py || echo "主轮重建没过闸门（页面照常写出，体检会报）"
+  fi
+
   # 只加数据。原来这里是 git add -A，会把工作区里未提交的源码改动一起扫进
   # bot 的提交，历史就变成误导性的（"build: regenerate site" 里躺着 run.py 的改动）。
   # **提交前核一遍：树里有没有少掉 origin 已经有的集。**
@@ -508,9 +530,6 @@ PYEOF
   else
     echo "主轮先推被拒（远端有新提交），收尾时一起推"
   fi
-  # 新集要译成英文才会进 /en/。**每条发布线都要接**——原来只有云端日更接了，
-  # 本机线（住宅 IP 那条，中文播客主要靠它）发的内容在英文站上一直缺。
-  # 失败不阻塞：没译的不渲染，宁可少几篇也不要中英混排。
   # ---- 新源建档 ----
   # 加了源就该有内容，不该等人来问。residential 的那批（YouTube 字幕 / 转写）
   # 只有这条线做得了：云端定时跑批不含 asr 且 --skip-residential。
@@ -577,6 +596,9 @@ PYEOF
   # 这一步原来不在任何发布线里，只在手动跑的时候才生效。
   python3 pipeline/cache_covers.py || true
   python3 pipeline/build.py
+  # 繁体站歧义字：没审过的三字上下文交给模型（pipeline/twreview.py）。对的登记、错的改掉并重建繁体树，
+  # 结果记在 data/tw-review.json，下面 `git add -A data` 一起提交。跑不成不阻塞：2 天没跑成体检报硬伤。
+  python3 pipeline/twreview.py || echo "繁体审阅没跑成（不致命；2 天没跑成体检会报）"
   # **建站产物的清单只有一份：pipeline/gitsync.py 的 SITE。** 云端 curate / backfill 也用它。
   # 这里原来手写一张，每加一种产物都得跟着改，漏了就是"本机线永远不提交它"——
   # e（分享短链）、log（更新日志）漏过；c（分类页）、api.json、zt（专题）从没进过，

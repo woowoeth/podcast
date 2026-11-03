@@ -14065,3 +14065,22 @@ class RetryAfterResetMustNotRevertTheOtherLine(unittest.TestCase):
                 self.assertRegex(code[max(0, m.start() - 300):m.start()], r'OURS=\$\(git rev-parse HEAD\)',
                                  f"{rel}：adopt 要的「这一方」没在 reset 之前记下")
         self.assertGreaterEqual(seen, 4, "一处 reset --mixed 都没找到 —— 尺子坏了")
+
+
+class MainEpisodesAreTranslatedBeforeTheEarlyPush(unittest.TestCase):
+    """主轮的稿要先译好再先推。
+
+    译文原来只在补课之后做：2026-11-03 10:58 主轮 5 篇先推上去，11:04 重启打断补课，
+    英文版一直没出，4 个小时后体检报「6 篇只有中文」硬伤、CI 红。先推那一趟之前要有一次
+    真正的 translate.py 调用，译了还要重建（run.py 建站时还没有译文）。
+    """
+
+    def test_translate_and_rebuild_come_before_the_early_push(self):
+        code = "\n".join(l for l in (ROOT / "scripts" / "local-daily.sh").read_text().split("\n")
+                         if not l.lstrip().startswith("#"))
+        early = code.find('commit -q -m "digest: $n new (local)"')
+        self.assertGreater(early, 0, "找不到主轮先推的那次提交 —— 尺子坏了")
+        main = code[code.find("--followup"):early]
+        self.assertIn("pipeline/translate.py --limit", main, "主轮先推之前没译")
+        self.assertIn("pipeline/build.py", main[main.find("pipeline/translate.py --limit"):],
+                      "主轮译完没重建：译文有了，英文页还是 run.py 建站时那一版")

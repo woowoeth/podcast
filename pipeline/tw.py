@@ -30,6 +30,27 @@ import opencc
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "tw")
 ALLOW = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tw_allow.txt")
+# 日更的模型审阅记录（pipeline/twreview.py 写）：ok 和 tw_allow.txt 一样算「审过、是对的」，
+# fix 是模型判错、改法合规的三字片段，convert 最后一并套用。放 data/ 不放 pipeline/：
+# 日更只提交 data/ 和建站产物，开头还会把 pipeline/ 改回 HEAD。
+REVIEW = os.path.join(ROOT, "data", "tw-review.json")
+_REVIEW = None
+
+
+def _review():
+    global _REVIEW
+    if _REVIEW is None:
+        try:
+            with open(REVIEW, encoding="utf-8") as fh:
+                _REVIEW = _json.load(fh)
+        except (OSError, ValueError):
+            _REVIEW = {}
+    return _REVIEW
+
+
+def reset_review():
+    global _REVIEW
+    _REVIEW = None
 
 _cc = opencc.OpenCC("s2tw")
 
@@ -381,6 +402,8 @@ def convert(text):
         out = out.replace(a, b)
     for a, b in POST:
         out = out.replace(a, b)
+    for a, v in sorted((_review().get("fix") or {}).items()):
+        out = out.replace(a, v["to"])
     return out
 
 
@@ -395,10 +418,11 @@ def contexts(text):
 
 
 def load_allow():
+    ok = set(_review().get("ok") or {})
     if not os.path.exists(ALLOW):
-        return set()
-    return {l.rstrip("\n") for l in open(ALLOW, encoding="utf-8")
-            if l.strip() and not l.startswith("#")}
+        return ok
+    with open(ALLOW, encoding="utf-8") as fh:
+        return ok | {l.rstrip("\n") for l in fh if l.strip() and not l.startswith("#")}
 
 
 def _protect(s):
