@@ -605,6 +605,12 @@ def check_parked_translations(r: Report) -> None:
     except Exception as ex:
         r.fail(f"data/translate-failed.json 读不出来（{type(ex).__name__}）")
         return
+    # **从产物出发问「英文站是不是真少这一篇」，不只信失败账本。** 账本只有
+    # 本机有、不进仓库；那一篇后来在别处（云端线、手动重译）译成了，账本里
+    # 的旧记录不会被清掉。11-04 体检报「搁置 1 篇、重试 1 篇，英文站少这几篇」，
+    # 两篇的 data/en/ 早在 9 月就有了 —— 报了两个月的假提醒。
+    have = DATA / "en"
+    d = {k: v for k, v in d.items() if not (have / f"{k}.json").exists()}
     parked = {k: v for k, v in d.items() if (v or {}).get("n", 0) >= 3}
     trying = {k: v for k, v in d.items() if 0 < (v or {}).get("n", 0) < 3}
     if parked:

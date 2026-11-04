@@ -6986,6 +6986,30 @@ class ChecksMustNotCryWolfOverOneParkedEpisode(unittest.TestCase):
         self.assertRegex(body_code, r"len\(parked\)\s*>=\s*[2-9]",
                          "没有数量阈值：要么永远报硬伤，要么永远不报")
 
+    def test_a_ledger_entry_whose_english_exists_is_not_reported(self):
+        """失败账本说「搁置」，但 data/en/ 里那一篇已经在 → 不许报「英文站少这篇」。
+        反过来，真没有英文的那一篇必须照报（不能为了消假提醒把真缺口也吞了）。"""
+        import tempfile, importlib, unittest.mock as mock
+        hc = importlib.import_module("healthcheck")
+        with tempfile.TemporaryDirectory() as tmp:
+            d = pathlib.Path(tmp)
+            (d / "en").mkdir()
+            (d / "en" / "2026-09-04-done-later.json").write_text("{}")
+            (d / "en" / "2026-08-31-retry-done.json").write_text("{}")
+            (d / "translate-failed.json").write_text(json.dumps({
+                "2026-09-04-done-later": {"n": 3, "why": "title 里有汉字没译"},
+                "2026-08-31-retry-done": {"n": 1, "why": "facts 没译"},
+                "2026-10-01-really-missing": {"n": 3, "why": "title 里有汉字没译"},
+            }))
+            r = hc.Report()
+            with mock.patch.object(hc, "DATA", d):
+                hc.check_parked_translations(r)
+        said = "\n".join(r.bad + r.warn)
+        self.assertNotIn("done-later", said, "英文已经在的一篇被报成「英文站少这篇」")
+        self.assertNotIn("retry-done", said, "英文已经在的一篇被报成「还在重试」")
+        self.assertIn("really-missing", said, "真没有英文的那一篇反而不报了")
+        self.assertFalse(r.bad, f"搁置 1 篇是提醒不是硬伤：{r.bad}")
+
     def test_the_parity_check_excludes_parked_episodes(self):
         src = self._hc()
         i = src.index("def check_language_parity(")
