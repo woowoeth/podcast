@@ -1099,6 +1099,23 @@ def _spread(text: str, span: int) -> list[dict]:
 
 # ------------------------------------------------------------------ orchestrate
 
+def text_lang(text: str, lang: str) -> str:
+    """这份文稿**实际**是哪种语言 —— 只在 en / zh 之间判，别的语言原样返回。
+
+    **英文节目也会出中文版。** ChinaTalk「Roasting China's AI Industry（中文版）」
+    （2026-11-04）：源登记 en，本机转出的是一整篇正确的中文；按英文数词只数到夹在里面的
+    1424 个英文单词，63 分钟 = 22 wpm，判「太稀」记了两次真失败，再一次就永久出局。
+    整档登记错（AI Odyssey）可以改源的语言；单集换语言只能看文稿本身。
+    汉字比英文单词多就是中文：中文稿里夹的英文术语每分钟十几个，汉字两百多个。"""
+    if lang not in ("en", "zh"):
+        return lang
+    cjk = len(re.findall(r"[一-鿿]", text))
+    lat = len(re.findall(r"[A-Za-z]+", text))
+    if not cjk and not lat:
+        return lang
+    return "zh" if cjk > lat else "en"
+
+
 def _count(text: str, lang: str) -> int:
     if lang == "zh":
         return len(re.findall(r"[一-鿿]", text)) + len(re.findall(r"[A-Za-z]+", text))
@@ -1239,6 +1256,9 @@ def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
         try:
             cached = json.loads(cp.read_text())
             if cached.get("segments"):
+                # 老缓存没记语言：按文稿本身补上（见 text_lang）
+                cached.setdefault("lang", text_lang(
+                    "\n".join(x.get("text") or "" for x in cached["segments"]), lang))
                 log(f"    文稿取自本地缓存（{cached.get('source')}，"
                     f"{cached.get('words')} 字）")
                 return cached
@@ -1284,8 +1304,12 @@ def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
             attempts.append(f"{tier}:none")
             continue
         text = "\n".join(s["text"] for s in got["segments"])
-        words = _count(text, lang)
-        if words < MIN_WORDS.get(lang, 1200):
+        # **按文稿实际的语言数、按它的语言定闸**，不按源登记的（见 text_lang）。
+        tl = text_lang(text, lang)
+        if tl != lang:
+            log(f"    tier {tier}: 源登记 {lang}，这份文稿是 {tl} —— 按 {tl} 数字数、定闸")
+        words = _count(text, tl)
+        if words < MIN_WORDS.get(tl, 1200):
             attempts.append(f"{tier}:short({words}w)")
             log(f"    tier {tier}: only {words} words — too short to be an episode "
                 f"transcript, rejected")
@@ -1322,11 +1346,11 @@ def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
             # 说的和做的不一致，比不做更坏：只跳过语速这一条，继续往下走。
             log(f"    tier {tier}: {words} words，这一集没给时长，"
                 f"语速判据不成立，跳过它（字数与标题核对照常）")
-        elif wpm < MIN_WPM.get(lang, 70):
+        elif wpm < MIN_WPM.get(tl, 70):
             attempts.append(f"{tier}:thin({wpm:.0f}wpm)")
             log(f"    tier {tier}: {words} words = {wpm:.0f} wpm, too thin — rejected")
             continue
-        elif wpm > MAX_WPM.get(lang, 300):
+        elif wpm > MAX_WPM.get(tl, 300):
             attempts.append(f"{tier}:bloated({wpm:.0f}wpm)")
             log(f"    tier {tier}: {words} words = {wpm:.0f} wpm — that is not this "
                 f"episode's transcript, rejected")
@@ -1346,7 +1370,7 @@ def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
                     f"这份文稿不属于这一集，丢弃")
                 _transient["hit"] = False
                 continue
-        got.update(words=words, wpm=round(wpm, 1), chars=len(text),
+        got.update(words=words, wpm=round(wpm, 1), chars=len(text), lang=tl,
                    timed=not all(s.get("approx") for s in got["segments"]),
                    attempts=attempts + [f"{tier}:ok"])
         log(f"    transcript via {tier} ({got['detail']}): {words} words, "

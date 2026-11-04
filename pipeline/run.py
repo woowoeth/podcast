@@ -610,6 +610,12 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
     tr = T.acquire(ep, s.get("lang", "en"), src=s, allow=_tiers["allow"],
                    asr_after_throttle=_soft_so_far >= YT_THROTTLE_PATIENCE
                    or bool(_pin["slug"]))
+    if tr and tr.get("lang") in ("en", "zh") and tr["lang"] != (s.get("lang") or "en"):
+        # **这一集的语言跟着文稿走，不跟源。** 英文节目的中文版（ChinaTalk 11-04）：
+        # 深读要按中文节目写（金句抄中文原文），集记录的 lang 也要是 zh ——
+        # 英文站、金句原文判断都读它。只换这一集用的副本，源本身不动。
+        log(f"    这一集是 {tr['lang']}（源登记 {s.get('lang') or 'en'}），按 {tr['lang']} 做")
+        s = dict(s, lang=tr["lang"])
     cap_words = _cap_words(s)
     if tr and cap_words and tr["words"] > cap_words:
         # Cost scales with transcript length, and a 35k-word episode costs as

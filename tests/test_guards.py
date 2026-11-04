@@ -11840,6 +11840,54 @@ class AWrongLanguageIsNotAVerdict(unittest.TestCase):
         self.assertEqual(sorted(dead), ["x-2", "x-3"], "语言改对之后会被重试的集，被体检报成「再也不会被尝试」")
 
 
+class AnEpisodeIsCountedInItsOwnLanguage(unittest.TestCase):
+    """英文节目出的中文版，按中文数字数、按中文定闸，按中文节目做。
+
+    ChinaTalk「Roasting China's AI Industry（中文版）」（2026-11-04）：源登记 en，
+    本机转出一整篇正确的中文，按英文数词只数到夹着的 1424 个英文单词 = 22 wpm，
+    判「太稀」两次真失败，再一次永久出局。"""
+
+    def _acquire(self, text, lang, minutes):
+        import tempfile, unittest.mock as mock, os as _os
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib import transcript as T
+        n = minutes * 6
+        step = max(1, len(text) // n)
+        segs = [{"t": i * 10, "text": text[i * step:(i + 1) * step]} for i in range(n)]
+        got = {"segments": segs, "source": "asr", "detail": "local:test", "url": "u", "own_audio": True}
+        ep = {"title": "Roasting China's AI Industry (中文版)", "duration": n * 10,
+              "guid": f"g-{lang}-{len(text)}"}
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(_os.environ, {"PODCAST_CACHE": tmp}), \
+             mock.patch.object(T, "from_audio", lambda ep, lang: dict(got)):
+            return T.acquire(ep, lang, allow=("asr",))
+
+    def test_a_chinese_episode_of_an_english_show_is_not_thin(self):
+        # 63 分钟、每分钟约 220 字的中文，夹着英文专名 —— 和那一集的形状一样
+        zh = ("我们今天聊中国的大模型产业，比如 Seedance 和 MiniMax 开源以后，"
+              "五年计划怎么影响算力的分配，地方政府又怎么补贴这些公司。") * 260
+        tr = self._acquire(zh, "en", 63)
+        self.assertIsNotNone(tr, "一整篇正确的中文转写被按英文数词判成「太稀」")
+        self.assertEqual(tr.get("lang"), "zh", "文稿的语言没记下来 —— 深读还会按英文节目做")
+
+    def test_an_english_transcript_stays_english(self):
+        en = ("We talk about how the industry allocates compute and why subsidies matter "
+              "for these companies, with numbers and examples. ") * 500
+        tr = self._acquire(en, "en", 60)
+        self.assertIsNotNone(tr)
+        self.assertEqual(tr.get("lang"), "en")
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib import transcript as T
+        self.assertEqual(T.text_lang("Bonjour", "fr"), "fr", "只在 en／zh 之间判，别的语言原样")
+
+    def test_the_episode_is_made_in_the_transcripts_language(self):
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index("tr = T.acquire(")
+        j = src.index("D.build(ep, s, tr", i)
+        blk = src[i:j]
+        self.assertRegex(blk, r's = dict\(s, lang=tr\["lang"\]\)',
+                         "取稿判出这一集是中文，深读和集记录还按源登记的英文做")
+
+
 class OwnAudioIsNeverAnotherEpisode(unittest.TestCase):
     """转写这一集自己 RSS 附件里的音频，不做「是不是这一集」的归属校验；YouTube 搜来的照验。
 
