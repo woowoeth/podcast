@@ -108,6 +108,14 @@ def _rss(root, source: dict) -> list[dict]:
         guid = _txt(it, "guid") or _txt(it, "link") or title
         enc = it.find("enclosure")
         audio = enc.get("url") if enc is not None else ""
+        # **feed 自己声明挂的是图片／文本，那就不是录音。** Substack 把文字帖和节目
+        # 放在同一个 feed 里，文字帖的 enclosure 是一张封面 JPEG。原来照单当音频：
+        # 11-04 goodfight 一篇选后评论文章进了跟随账本，转写拿图片跑 ASR 两次落空，
+        # 第三次就会出局、报硬伤 —— 为一篇本来就不是节目的东西。
+        # 只认「声明了非媒体类型」：类型缺失或标错（twiv 有一条 application/rss+xml）照旧当音频。
+        etype = ((enc.get("type") if enc is not None else "") or "").lower()
+        if etype.startswith(("image/", "text/")):
+            audio = ""
         if not audio:
             for m in it.findall("media:content", NS):
                 if (m.get("type") or "").startswith("audio"):
@@ -131,6 +139,8 @@ def _rss(root, source: dict) -> list[dict]:
         link = _txt(it, "link")
         if is_short(link):
             continue
+        if not audio and not tr and etype.startswith(("image/", "text/")):
+            continue    # 文字帖：没有录音、没有官方文稿，不是一集节目
         out.append({
             "source_id": source["id"], "source": source["name"],
             "guid": guid, "title": strip_html(title), "link": link,

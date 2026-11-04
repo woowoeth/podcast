@@ -10037,6 +10037,49 @@ class APromoShortIsNeverTheEpisode(unittest.TestCase):
         self.assertLessEqual(floor, 10 * 60, "下限高到会误挡真正的短集")
 
 
+class AWrittenPostIsNotAnEpisode(unittest.TestCase):
+    """feed 自己声明 enclosure 是图片的那一条，不是一集节目。
+
+    Substack 把文字帖和节目放在同一个 feed（goodfight 最近 20 条里 4 条是文章），
+    文字帖的 enclosure 是一张封面 JPEG。原来照单当音频：11-04 一篇选后评论
+    进了跟随账本，ASR 拿图片跑两次落空，第三次就出局报硬伤。
+    同时不能误伤：没有 enclosure 的（靠 YouTube 链接的）、类型标错的
+    （twiv 有一条 application/rss+xml 的 mp3）都照旧是节目。
+    """
+
+    def _parse(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        import importlib, xml.etree.ElementTree as ET
+        f = importlib.import_module("lib.feeds")
+        xml = """<rss xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+                      xmlns:content="http://purl.org/rss/1.0/modules/content/"
+                      xmlns:podcast="https://podcastindex.org/namespace/1.0"><channel>
+          <item><title>文章</title><guid>a</guid><link>https://x.substack.com/p/a</link>
+                <enclosure url="https://substackcdn.com/image/a.jpeg" length="0" type="image/jpeg"/></item>
+          <item><title>节目</title><guid>b</guid><link>https://x.substack.com/p/b</link>
+                <enclosure url="https://api.substack.com/feed/podcast/1/b.mp3" length="0" type="audio/mpeg"/></item>
+          <item><title>标错类型</title><guid>c</guid><link>https://twiv.example/c</link>
+                <enclosure url="https://cdn.example/c.mp3" length="0" type="application/rss+xml; charset=utf-8"/></item>
+          <item><title>只有视频链接</title><guid>d</guid><link>https://www.youtube.com/watch?v=ddddddddddd</link></item>
+          <item><title>带官方文稿的图片帖</title><guid>e</guid><link>https://x.substack.com/p/e</link>
+                <enclosure url="https://substackcdn.com/image/e.jpeg" type="image/jpeg"/>
+                <podcast:transcript url="https://x.example/e.vtt" type="text/vtt"/></item>
+        </channel></rss>"""
+        return {e["title"]: e for e in f._rss(ET.fromstring(xml), {"id": "x", "name": "X"})}
+
+    def test_an_image_enclosure_is_not_an_episode(self):
+        eps = self._parse()
+        self.assertNotIn("文章", eps, "文字帖进了候选 —— 会拿封面图去跑转写，三次后出局报硬伤")
+
+    def test_real_episodes_are_untouched(self):
+        eps = self._parse()
+        for t in ("节目", "标错类型", "只有视频链接", "带官方文稿的图片帖"):
+            self.assertIn(t, eps, f"「{t}」被误挡了")
+        self.assertTrue(eps["节目"]["audio"].endswith("b.mp3"))
+        self.assertTrue(eps["标错类型"]["audio"].endswith("c.mp3"), "类型标错的 mp3 不该丢音频")
+        self.assertEqual(eps["带官方文稿的图片帖"]["audio"], "", "图片不许当音频交给转写")
+
+
 class ShortsAreDroppedBeforeAnyoneJudgesThem(unittest.TestCase):
     """Shorts 要在**判质量之前**就出局 —— 它不是一集。
 
