@@ -42,7 +42,11 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    # **超时按实测分布定，不按感觉。** 12 分钟是 08-25 定的，那时检查才 140 多项。
+    # 11-04 量了最近 13 次成功：中位 603s、最长 686s，离 720s 只差 34 秒；
+    # 同一天 apt 镜像慢了 5 分钟，937 项测试全过之后被超时取消 —— 一次假红。
+    # 误报比漏报贵：会自己红的 CI 两周内就会被学会忽略。
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
