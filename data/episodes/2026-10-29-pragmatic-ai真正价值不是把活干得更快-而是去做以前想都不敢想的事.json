@@ -1,0 +1,243 @@
+{
+ "id": "pragmatic-2215b5a11d",
+ "slug": "2026-10-29-pragmatic-ai真正价值不是把活干得更快-而是去做以前想都不敢想的事",
+ "fingerprint": "3e8eaf4b07973350",
+ "source_id": "pragmatic",
+ "source": "The Pragmatic Engineer",
+ "source_zh": "The Pragmatic Engineer",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "AI在大规模代码重构中的实际应用价值及评估方法",
+ "tier": 2,
+ "lang": "en",
+ "title_original": "Software engineering at Google & CS education with Titus Winters",
+ "published": "2026-10-29T13:37:13Z",
+ "duration": 6012,
+ "audio": "https://api.substack.com/feed/podcast/222246289/8918e321fb7b3b68b7f3680e69b843d2.mp3",
+ "link": "https://newsletter.pragmaticengineer.com/p/software-engineering-at-google-and",
+ "image": "https://substackcdn.com/feed/podcast/458709/post/222246289/207df0686a6b420c6eca86e7f06fceea.jpg",
+ "youtube_id": "",
+ "video_len": 0,
+ "transcript_url": "https://api.substack.com/feed/podcast/transcript/222246289/8357bf99f2e89126933160ed87a259ae.vtt",
+ "digest": {
+  "title": "AI真正价值不是把活干得更快，而是去做以前想都不敢想的事",
+  "dek": "现有生产力指标只会统计代码行数和故障率，却量不出团队借AI啃下了一件以前觉得不值得、做不到的更难任务，这才是Titus Winters认为AI价值被低估的根源。",
+  "why": "一手讲清Google测试文化和2.5亿行代码重构的来龙去脉，外加一套关于AI时代怎么教CS的具体主张，信息密度高。",
+  "points": [
+   {
+    "t": 867,
+    "h": "测试强制令源于一次发布瘫痪",
+    "body": "2006、2007年前后，Google Search因持续的回归问题，发布节奏从想要的月度掉到季度一次。当时架构还没有拆分，改Gmail都可能牵连到Search,整个系统被捆在一起。发布工程师们联合划下红线：没有测试就不允许合并，不管提出需求的VP多重要、功能多紧急，一律回滚。Titus认为，这条红线之后，恐惧第一次被明确当成了不可接受的工程理由，而不是靠自觉。",
+    "spk": "Titus"
+   },
+   {
+    "t": 1368,
+    "h": "2.5亿行代码，10人团队换地基",
+    "body": "在开源Abseil之前，Google内部自研的C++代码当时约有2.5亿行，每月有近万名工程师在改动它。Titus和另外10到12个人组成的小组，负责清理这套所有产品都依赖的底层基础设施——缓存、容器、字符串处理、命令行参数解析这类东西。他们把这项工作形容成在不停工、不封路的前提下给帝国大厦换地基，还在地下室里意外挖出了核废料。",
+    "spk": "Titus"
+   },
+   {
+    "t": 1614,
+    "h": "重构靠编译器解析，不靠手改",
+    "body": "团队没有一条条手动改调用点，而是借助Clang/LLVM把代码解析成抽象语法树，精确识别某个函数在某个上下文里被调用的模式，再自动生成修改，这是MapReduce式的大规模自动化重构。连代码格式都成了拦路虎——为了让自动生成的改动格式正确，Titus推动做出了后来被广泛使用的Clang-format。整个流程是让新旧API先共存、按目录分批替换、确认没人再用旧接口后才删除旧代码，这个循环重复了几百次。",
+    "spk": "Titus"
+   },
+   {
+    "t": 1926,
+    "h": "AI该造规则，别自己动手重写",
+    "body": "对于大规模代码改造，Titus不建议每次都靠AI直接做推理式重写——成本高、也不确定。更好的模式是让AI去生成一份像OpenRewrite那样的声明式重写配置，把要改的模式和改法固化成一个确定性工具，再批量跑这个工具，这样更便宜、更准、也更可审计。他提到Kelsey Hightower的说法：如果整套架构永远要靠持续推理来运转，大概率有更便宜、更可靠的做法存在。",
+    "spk": "Titus"
+   },
+   {
+    "t": 3178,
+    "h": "心理安全比任何技术指标更准",
+    "body": "Titus说，一份只有15道题的团队心理安全测评，就能预测这个团队能否达成目标里大约30%的方差，这比他见过的任何其他信号都更有预测力。他的回应很直接：如果你认为软件工程只是机器和代码、和情绪无关，那就去找一个比这更强的预测指标——你找不到。这不是一次性的博弈，而是反复博弈，敢于承认自己不懂才是团队持续变强的前提。",
+    "spk": "Titus"
+   },
+   {
+    "t": 3978,
+    "h": "AI的价值，现有指标测不出来",
+    "body": "Titus把技术影响分成四类：产品成功、算力效率、工程产能，以及改变游戏规则本身。他举例说，现在一两周就能写出一个JPEG解析器，这句话放三年前说出来会显得疯狂，但生产力指标只会统计产出了多少零件，量不出你开始做一件以前想都没想过的「镀金豪华零件」。主持人补了一个真实案例：某公司工程师用AI照着现成测试集，重新实现了一个本来要花5到10人团队做数年、每年还要分走5%到15%营收买授权的第三方组件，供应商反而为了不让它开源倒贴钱买断，原本准备做的裁员直接被取消。",
+    "spk": "Titus"
+   },
+   {
+    "t": 4353,
+    "h": "CS课程二十多年没怎么变过",
+    "body": "Titus曾是ACM/IEEE本科CS课程指导委员会里唯一的在职工程师。他直言现在的课程体系基本是围绕2000年左右、为了能写出90年代风格的数据库或操作系统而设计的，之后只是不断往里加内容、稀释旧内容的深度。早在AI出现之前他就认为这套东西该被烧掉重来：少教手写链表这类脱离实际性能考量的技巧，多练系统思维、规格说明和测试验证能力。",
+    "spk": "Titus"
+   },
+   {
+    "t": 5369,
+    "h": "该打分的是过程，不是代码",
+    "body": "面对学生几乎能用AI完成所有编程作业的现实，Titus认为堵不如疏：干脆默认学生在用AI,把评分对象从交上来的代码换成过程本身——你写了什么样的prompt,你准备了哪些测试去验证AI生成的东西真的符合要求。他认为这套逻辑不止适用于CS,其他学科也一样，一篇新的《麦田里的守望者》读后感早就不需要再写了，真正该被评估的是学生有没有经历挣扎和学习。",
+    "spk": "Titus"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 867,
+    "spk": "Titus",
+    "raw": "you will not merge this change if there is not tests, period. We do not care what VP says anything. We do not care how important this feature is. You will not do that. We will roll that back.",
+    "zh": "这次改动如果没有测试，一律不准合并，一个字都不含糊。我们不管VP怎么说，不管这个功能多重要，你就是不能合并，我们会把它回滚。"
+   },
+   {
+    "t": 928,
+    "spk": "Titus",
+    "raw": "if you are held back from making changes to a thing out of fear, you have to go in and fix that. Like fear is not an acceptable basis for engineering.",
+    "zh": "如果你因为恐惧而不敢去改动一个东西，那你就必须去把它修好。恐惧不该是工程决策可以接受的理由。"
+   },
+   {
+    "t": 1368,
+    "spk": "Titus",
+    "raw": "our job is the logical equivalent of Google has a new technology for the skyscraper foundations. We're replacing the foundation under the Empire State Building. We're not allowed to close the building or block traffic. And we discovered nuclear waste in the basement.",
+    "zh": "我们的工作相当于，Google发明了一种新技术，可以在不关闭大楼、不封路的情况下给帝国大厦换地基，而且还在地下室里发现了核废料。"
+   },
+   {
+    "t": 1614,
+    "spk": "Titus",
+    "raw": "Clang format exists because I wished for it.",
+    "zh": "Clang-format之所以存在，就是因为我当时太需要它了。"
+   },
+   {
+    "t": 3178,
+    "spk": "Titus",
+    "raw": "Or maybe Likert scale, but like a 15 question assessment for the team and predict 30% of whether or not you will hit whatever your goals are. That's insanity. That is more powerful than any other signal.",
+    "zh": "或者用李克特量表，针对团队做一份15道题的测评，就能预测出这个团队能不能达成目标里大约30%的方差。这简直离谱，它比我见过的任何其他信号都更有预测力。"
+   },
+   {
+    "t": 4167,
+    "spk": "Titus",
+    "raw": "a lot of the value of AI is not in doing the same thing faster. It's doing a harder, more valuable thing that you wouldn't have even thought about.",
+    "zh": "AI的很大一部分价值，不在于把同一件事做得更快，而在于去做一件更难、更有价值、你以前根本没想过要做的事。"
+   },
+   {
+    "t": 4353,
+    "spk": "Titus",
+    "raw": "most of the CS curriculum hasn't substantially changed Since like 2000, maybe earlier.",
+    "zh": "坦白说，CS课程体系从2000年左右到现在基本没有实质性变化，甚至更早就定型了。"
+   },
+   {
+    "t": 5369,
+    "spk": "Titus",
+    "raw": "stop grading just the outcome. Focus on the process, right?",
+    "zh": "别再只给结果打分了，把重点放到过程上去。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "Google自研C++代码规模(Abseil重构时期)",
+    "v": "约2.5亿行(不含外部依赖)",
+    "t": 1368
+   },
+   {
+    "k": "Abseil核心重构团队规模",
+    "v": "10-12人全职",
+    "t": 1303
+   },
+   {
+    "k": "心理安全15题测评对团队达成目标的预测力",
+    "v": "约30%的方差",
+    "t": 3178
+   },
+   {
+    "k": "用AI写一个JPEG解析器所需时间",
+    "v": "几周",
+    "t": 3978
+   },
+   {
+    "k": "被AI重写替代的授权组件，原自建成本与分成",
+    "v": "5-10人团队做数年，外加5%-15%营收分成",
+    "t": 4038
+   },
+   {
+    "k": "某团队采用AI后代码量与故障变化",
+    "v": "代码量+70%,故障+30%,功能数量不变",
+    "t": 4167
+   },
+   {
+    "k": "一个CS学位总学时换算的全职工作经验",
+    "v": "约15个月",
+    "t": 4682
+   },
+   {
+    "k": "Waterloo学生毕业前的实习轮次",
+    "v": "4段实习/实践安置",
+    "t": 4803
+   }
+  ],
+  "terms": [
+   {
+    "term": "Abseil",
+    "zh": "Abseil",
+    "def": "Google开源的C++基础库，封装了其内部代码的通用写法"
+   },
+   {
+    "term": "AST",
+    "zh": "抽象语法树",
+    "def": "代码解析后生成的树状结构，可用来精确匹配特定调用模式"
+   },
+   {
+    "term": "readability review",
+    "zh": "可读性认证评审",
+    "def": "Google要求工程师就某语言的惯用写法获得认证后才能批准改动"
+   },
+   {
+    "term": "OpenRewrite",
+    "zh": "OpenRewrite",
+    "def": "Java生态里一种声明式、可配置的批量代码重写工具"
+   },
+   {
+    "term": "zero token architecture",
+    "zh": "零token架构",
+    "def": "尽量用确定性工具而非持续调用AI推理来完成任务的设计思路"
+   }
+  ],
+  "who": "工程管理者、平台与基础设施团队负责人，以及关心AI时代CS课程该怎么改的人",
+  "skip": "开头关于童年经历和求职过程的闲聊(0:00-13:00左右)信息密度较低，可跳过。",
+  "tags": [
+   "Google工程文化",
+   "大规模代码重构",
+   "开发者生产力",
+   "心理安全",
+   "CS教育",
+   "AI工具化"
+  ],
+  "quality": {
+   "transcript_source": "feed",
+   "transcript_detail": "text/vtt",
+   "words": 17287,
+   "wpm": 172.5,
+   "timed": true,
+   "verified_quotes": 8,
+   "grounded_facts": 8,
+   "points": 8,
+   "pruned": 2,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-11-04T14:07:13Z",
+ "triage": {
+  "score": 7.0,
+  "why": "一手访谈，嘉宾是 Google 工程文化核心参与者，话题涉及大规模重构、测试制度、教育改革。",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 9,
+   "faithful": 8,
+   "selection": 9,
+   "concrete": 9,
+   "chinese": 9
+  },
+  "verdict": "上站",
+  "why": "前7条要点信息密度高、忠实、具体，第8条有微量推断但不改总体质量；整体做到位：要点都是判断或机制、数字准确、没有空话。",
+  "worst": "第8条「面对学生几乎能用AI完成所有编程作业的现实」对应的原文支持度不足，推断过头了；心理安全的「30%的方差」表述可更精准——原意接近「预测30%的能否达成的可能性」而非「方差」。",
+  "model": "haiku",
+  "evidence": "windows",
+  "rubric": "c05d00f91f"
+ },
+ "model": "claude-cli:sonnet"
+}

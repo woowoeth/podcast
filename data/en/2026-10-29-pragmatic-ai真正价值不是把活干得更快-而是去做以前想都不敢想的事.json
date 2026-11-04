@@ -1,0 +1,143 @@
+{
+ "slug": "2026-10-29-pragmatic-ai真正价值不是把活干得更快-而是去做以前想都不敢想的事",
+ "of": "pragmatic-2215b5a11d",
+ "source_lang": "en",
+ "title": "AI's Real Value Isn't Speed—It's Doing What We Never Dared Imagine",
+ "dek": "Productivity metrics count code output and bugs, but miss the real shift: teams now solve harder problems they'd previously deemed impractical or impossible. That's precisely why Titus Winters argues AI's impact is wildly underestimated.",
+ "why": "Direct account of Google's testing culture and how it orchestrated a 250-million-line refactor, plus concrete ideas for teaching CS in the AI era. Information-dense throughout.",
+ "who": "Engineering leaders, infrastructure team leads, and anyone rethinking CS education for the age of AI.",
+ "skip": "Skip the opening ~13 minutes (0:00–13:00) on childhood and hiring—low information density.",
+ "tags": [
+  "Google engineering culture",
+  "Large-scale code refactoring",
+  "Developer productivity",
+  "Psychological safety",
+  "CS education",
+  "AI toolification"
+ ],
+ "points": [
+  {
+   "h": "A production outage forced testing from virtue to non-negotiable rule.",
+   "body": "Around 2006–07, Google Search was plagued by regressions. Releases slowed from monthly to quarterly. The system was monolithic—a Gmail change could break Search. Release engineers drew a hard line: no tests, no merge, regardless of VP rank or deadline urgency. After that line, fear stopped being tolerated as an engineering excuse. It had to be technical."
+  },
+  {
+   "h": "Twelve engineers rewrote a foundation serving 250 million lines without shutdown.",
+   "body": "Google's internal C++ base was roughly 250 million lines, with nearly 10,000 engineers modifying it monthly. Titus led a 10–12 person team rebuilding core infrastructure—caches, containers, strings, command-line parsing—everything else depended on it. They described the work as replacing the Empire State Building's foundation while keeping it open to traffic, then discovering nuclear waste in the basement."
+  },
+  {
+   "h": "Compilers can rewrite code more reliably than humans at scale.",
+   "body": "The team didn't manually edit each call site. Instead they parsed code into an Abstract Syntax Tree using Clang/LLVM, matched specific call patterns precisely, then auto-generated edits—a MapReduce-style refactor. Even formatting became blocking; Titus pushed Clang-format, now widely used. The pattern: ship old and new APIs together, migrate directory by directory, delete old code only after verifying no callers remain. This cycle repeated hundreds of times."
+  },
+  {
+   "h": "AI should write the rules once, not rewrite endlessly.",
+   "body": "For large-scale refactors, Titus advises against repeated AI inference. Better: have AI generate a declarative rewrite config (like OpenRewrite)—fix the pattern and transformation once, then run it deterministically across millions of lines. Cheaper, more accurate, more auditable. Kelsey Hightower's principle: if your entire architecture needs continuous inference, a cheaper and more reliable alternative probably exists."
+  },
+  {
+   "h": "A 15-question survey outpredicts any engineering metric we have.",
+   "body": "A brief psychological safety survey predicts roughly 30% of variance in whether a team achieves its goals—stronger than any other signal Titus has encountered. His response: if you believe software engineering excludes emotion, find a stronger predictor. You won't. This isn't a one-time game; it's repeated play. Teams that admit when they're stuck get stronger."
+  },
+  {
+   "h": "Current metrics can't measure the problems AI made worth solving.",
+   "body": "Titus sorts technical impact into four categories: product wins, compute efficiency, engineering velocity, and game-changing shifts. Writing a JPEG parser in a few weeks would sound absurd three years ago, but metrics only count throughput, not that you're now building \"gold-plated widgets\" you never imagined before. Real example: engineers rewrote a third-party component using AI against an existing test suite—work that normally took 5–10 people years and 5–15% annual revenue in licensing fees. The vendor paid to keep it closed. Planned layoffs were canceled."
+  },
+  {
+   "h": "CS curricula were frozen in time around the year 2000.",
+   "body": "Titus was the only working engineer on the ACM/IEEE undergraduate curriculum committee. The system was built for nineties-style databases and OSes, then just packed with more topics and diluted. Even before AI arrived, he argued it should burn and restart: less hand-coded linked lists, more systems thinking, specs, and test-driven validation."
+  },
+  {
+   "h": "Evaluate what the student prompted, not what AI wrote.",
+   "body": "Students can now AI-complete most assignments. Titus doesn't block it; he adapts. Assume they're using AI; grade the process instead—what prompts did you write, what tests did you write to verify the output? That principle applies beyond CS; nobody needs another ‘Catcher in the Rye’ essay. What matters is whether the student struggled, thought hard, and learned."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Abseil",
+   "def": "Google's open-source C++ library that encapsulates common patterns from their internal code."
+  },
+  {
+   "term": "Abstract Syntax Tree (AST)",
+   "def": "A tree-structured representation of parsed code used to precisely match specific call patterns."
+  },
+  {
+   "term": "Readability review",
+   "def": "Google certification that engineers must pass to approve code changes in a given language."
+  },
+  {
+   "term": "OpenRewrite",
+   "def": "A declarative, configurable batch code refactoring tool widely used in the Java ecosystem."
+  },
+  {
+   "term": "Zero-token architecture",
+   "def": "Design relying on deterministic tools rather than continuous AI inference to complete tasks."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Google's internal C++ codebase (Abseil era)",
+   "v": "~250 million lines (excluding external dependencies)"
+  },
+  {
+   "k": "Abseil core refactoring team",
+   "v": "10–12 people full-time"
+  },
+  {
+   "k": "Psychological safety survey (15 questions) predictive power for goal attainment",
+   "v": "~30% of variance"
+  },
+  {
+   "k": "Time to write a JPEG parser with AI",
+   "v": "A few weeks"
+  },
+  {
+   "k": "Cost to replace a licensed component with AI rewrite",
+   "v": "Normally 5–10 engineers for several years plus 5–15% annual revenue share"
+  },
+  {
+   "k": "A team's code volume and bug change after adopting AI",
+   "v": "Code +70%, bugs +30%, features unchanged"
+  },
+  {
+   "k": "CS degree study hours equivalent to full-time work experience",
+   "v": "~15 months"
+  },
+  {
+   "k": "University of Waterloo co-op placements before graduation",
+   "v": "4 internship rotations"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "you will not merge this change if there is not tests, period. We do not care what VP says anything. We do not care how important this feature is. You will not do that. We will roll that back.",
+   "translated": false
+  },
+  {
+   "text": "if you are held back from making changes to a thing out of fear, you have to go in and fix that. Like fear is not an acceptable basis for engineering.",
+   "translated": false
+  },
+  {
+   "text": "our job is the logical equivalent of Google has a new technology for the skyscraper foundations. We're replacing the foundation under the Empire State Building. We're not allowed to close the building or block traffic. And we discovered nuclear waste in the basement.",
+   "translated": false
+  },
+  {
+   "text": "Clang format exists because I wished for it.",
+   "translated": false
+  },
+  {
+   "text": "Or maybe Likert scale, but like a 15 question assessment for the team and predict 30% of whether or not you will hit whatever your goals are. That's insanity. That is more powerful than any other signal.",
+   "translated": false
+  },
+  {
+   "text": "a lot of the value of AI is not in doing the same thing faster. It's doing a harder, more valuable thing that you wouldn't have even thought about.",
+   "translated": false
+  },
+  {
+   "text": "most of the CS curriculum hasn't substantially changed Since like 2000, maybe earlier.",
+   "translated": false
+  },
+  {
+   "text": "stop grading just the outcome. Focus on the process, right?",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
