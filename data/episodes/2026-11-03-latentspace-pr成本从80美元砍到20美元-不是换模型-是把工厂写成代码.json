@@ -1,0 +1,237 @@
+{
+ "id": "latentspace-0567c8786f",
+ "slug": "2026-11-03-latentspace-pr成本从80美元砍到20美元-不是换模型-是把工厂写成代码",
+ "fingerprint": "0d5ef45ba797cafd",
+ "source_id": "latentspace",
+ "source": "Latent Space",
+ "source_zh": "Latent Space",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "讲 AI agent 工厂的代码定义与观测优化体系",
+ "tier": 1,
+ "lang": "en",
+ "title_original": "⚡️ The 2026 Software Factory Standard — Zach Lloyd, Warp.dev",
+ "published": "2026-11-03T20:16:25Z",
+ "duration": 2088,
+ "audio": "https://podcast.latent.space/audio/LL0YmIyBKSU.m4a",
+ "link": "https://www.youtube.com/watch?v=LL0YmIyBKSU",
+ "image": "https://media.beehiiv.com/cdn-cgi/image/fit=scale-down,format=auto,onerror=redirect,quality=80/uploads/asset/file/d4933544-aa8c-47f8-a092-ec3775a7abd9/podcast_artwork_20261021-241-xyrobd.jpg?t=1792609818",
+ "youtube_id": "LL0YmIyBKSU",
+ "video_len": 0,
+ "transcript_url": "https://podcast.latent.space/audio/LL0YmIyBKSU.m4a",
+ "digest": {
+  "title": "PR成本从80美元砍到20美元，不是换模型，是把工厂写成代码",
+  "dek": "Warp把内部软件工厂整个定义成代码并接入观测闭环后，靠「观察-测量-调优」把每个PR成本从80美元压到15到20美元，PR吞吐同时提升40%。",
+  "why": "讲清了软件工厂该拆成哪几层技术栈，并给出Warp自己调优agent系统前后的真实成本和吞吐数字，可供团队对照自查，而不只是一套产品话术。",
+  "points": [
+   {
+    "t": 123,
+    "h": "软件工厂不是随手拼自动化",
+    "body": "Zach说大多数公司找过来时，已经把「用agent多写了点代码」就称作内部软件工厂，这是一种误解。他的定义是：一个在云端运行的agentic系统，团队要明确定义各类agent在构建产品过程中的角色，系统有一定自主性，并且必须是可测量、可基准测试、形成闭环的东西，团队可以随时间调优并建立信心。",
+    "spk": "Zach Lloyd"
+   },
+   {
+    "t": 250,
+    "h": "工厂必须用代码定义",
+    "body": "针对「买了工具就能出money machine」的误解，Zach强调软件工厂要落成具体、可运行的东西：用一份YAML文件定义有哪些repo、哪些MCP集成、哪些技能，整套workflow像Terraform一样声明式写在代码里，这样才能版本化、拉分支测试、随时回滚，而不是一堆松散的自动化拼凑。",
+    "spk": "Zach Lloyd"
+   },
+   {
+    "t": 375,
+    "h": "所有agent对话必须汇到一处",
+    "body": "无论任务从Slack、linear还是GitHub发起，都要先进入同一个系统触发预定义workflow。这样才能拿到跨团队agent工作的完整trace,包括computer use截图和每一步编排细节。Zach指出今天大多数公司做不到这点，因为工程师各自在本地终端用cloud code或codex,数据完全分散。",
+    "spk": "Zach Lloyd"
+   },
+   {
+    "t": 876,
+    "h": "agent会给工厂定义提PR改自己",
+    "body": "因为工厂定义本身就是代码，Warp的自我改进agent会分析历史失败案例——例如发现54个案例里triage agent本该拆出子agent去调查却没有——然后直接对工厂定义文件发起pull request来改进流程。这是一个完整的学习闭环，但Zach坦言还没做到「回放历史任务验证这个改动真的有效」这一步，属于下一步要补的能力。",
+    "spk": "Zach Lloyd"
+   },
+   {
+    "t": 1001,
+    "h": "benchmark要同时换模型和换harness",
+    "body": "Zach认为不能只比模型，还要比harness(执行框架)。Warp允许把同一批真实任务用不同模型搭配不同harness(自家的、cloud code、codex、Pi)重新跑一遍，画出成本-正确率曲线，得到针对自己业务场景而非公开榜单的结果，再把这个结果喂进模型/harness路由策略。",
+    "spk": "Zach Lloyd"
+   },
+   {
+    "t": 1431,
+    "h": "调优让每PR成本降了四分之三",
+    "body": "Warp自己用这套体系调优：一开始因为滥用Opus、triage用了算力过高的模型、子agent拆分过细，每个PR要花80美元；调优后降到15到20美元左右。同时过去一个月PR吞吐量提升40%,revert率没有上升，Zach把这当作「观察-测量-调优」方法论真正见效的证据。",
+    "spk": "Zach Lloyd"
+   },
+   {
+    "t": 1618,
+    "h": "五到十个工程师以下别碰这套东西",
+    "body": "被问到谁真正需要这套平台，Zach明确划线：几个人的小团队直接订阅Cloud Code或Codex就够了，上这套系统反而是overkill;真正划算的门槛大约是5到10名工程师起步，公司越大越需要，但实施复杂度也随规模增长，10到100人的成长期公司如果本来就用Slack、linear这类「happy stack」反而能自助式接入。",
+    "spk": "Zach Lloyd"
+   },
+   {
+    "t": 1867,
+    "h": "有公司在轮换200个账号凑订阅",
+    "body": "谈到最硬的反对意见，Zach说有些小公司很想要这套系统，却还在靠轮换一堆200美元订阅账号凑用量，因为按API计费比订阅贵5到50倍；他坦言不确定这种轮换订阅的做法算不算违反服务条款，但承认这确实是目前最便宜的方式，只是不可规模化，公司规模一大就做不了了。",
+    "spk": "Zach Lloyd"
+   },
+   {
+    "t": 1993,
+    "h": "不做token转卖，因为打不过订阅经济",
+    "body": "Zach说Warp不想做纯coding agent生意，因为订阅补贴力度太大(200美元订阅约等于8000美元API额度),纯按API计费的竞争者根本打不过。Cursor的解法是转型做模型实验室，Warp则选择做agent优化和生产力平台，刻意不在这个战场上竞争。",
+    "spk": "Zach Lloyd"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 250,
+    "spk": "Zach Lloyd",
+    "raw": "you should actually think of a software factory as a very specific thing. Like you should define your factory in code.",
+    "zh": "你应该把软件工厂当成一件非常具体的事情，你应该用代码来定义你的工厂。"
+   },
+   {
+    "t": 936,
+    "spk": "Zach Lloyd",
+    "raw": "because you have your whole factory defined as code and these are coding agents, they can essentially make a pull request against the factory definition to try to improve the factory itself.",
+    "zh": "因为你的整个工厂是用代码定义的，而这些又是coding agent,它们基本上可以针对工厂定义本身发起一个pull request,来尝试改进工厂本身。"
+   },
+   {
+    "t": 1130,
+    "spk": "Zach Lloyd",
+    "raw": "you're getting out of the realm of guessing and you're getting into what we call factory engineering, where it's like you are taking a real engineering mindset.",
+    "zh": "你从靠猜测的领域走出来，进入我们所说的「工厂工程」,也就是你真正用上了工程思维。"
+   },
+   {
+    "t": 1431,
+    "spk": "Zach Lloyd",
+    "raw": "when we first started using the factory approach, it was costing us about $80 per PR because we were using like Opus where we shouldn't have.",
+    "zh": "我们刚开始用工厂这套方法的时候，每个PR大概要花80美元，因为我们在不该用Opus的地方用了Opus。"
+   },
+   {
+    "t": 1867,
+    "spk": "Zach Lloyd",
+    "raw": "that is between five to fifty times more expensive than just getting a whole bunch of subs",
+    "zh": "这比直接买一大堆订阅要贵5到50倍。"
+   },
+   {
+    "t": 1927,
+    "spk": "Zach Lloyd",
+    "raw": "you can't you can't build a competitive coding agent on top of a thing that costs so much more money and like that's just the reality",
+    "zh": "你没法在一个成本高出这么多的东西之上做出一个有竞争力的coding agent,这就是现实。"
+   },
+   {
+    "t": 1993,
+    "spk": "Zach Lloyd",
+    "raw": "we're not trying to pitch like a token reselling product we're trying to pitch basically in you know a coding agent optimization platform and a coding agent like productivity platform",
+    "zh": "我们不是想卖一个token转卖的产品，我们想卖的基本上是一个coding agent优化平台，以及一个coding agent生产力平台。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "调优前每PR成本",
+    "v": "约80美元",
+    "t": 1431
+   },
+   {
+    "k": "调优后每PR成本",
+    "v": "约15-20美元",
+    "t": 1431
+   },
+   {
+    "k": "PR吞吐量环比提升",
+    "v": "40%",
+    "t": 1495
+   },
+   {
+    "k": "GPT-5.6-Sol 任务正确率/平均成本",
+    "v": "95%正确，平均6美元",
+    "t": 1065
+   },
+   {
+    "k": "GLM-5.3-Flash 任务正确率/平均成本",
+    "v": "93%正确，平均2美元",
+    "t": 1065
+   },
+   {
+    "k": "200美元订阅约等于的API额度",
+    "v": "约8000美元",
+    "t": 1927
+   },
+   {
+    "k": "按量API计费相对订阅的成本倍数",
+    "v": "5到50倍",
+    "t": 1867
+   }
+  ],
+  "terms": [
+   {
+    "term": "software factory",
+    "zh": "软件工厂",
+    "def": "用代码声明的agentic系统，按预定义workflow自动构建产品的闭环平台"
+   },
+   {
+    "term": "harness",
+    "zh": "执行框架",
+    "def": "coding agent实际运行所依赖的工具/编排层，可替换不同厂商实现"
+   },
+   {
+    "term": "scorers / online evals",
+    "zh": "在线评分器",
+    "def": "用LLM作裁判，对历史agent运行结果自动打分找失败模式的机制"
+   },
+   {
+    "term": "factory engineering",
+    "zh": "工厂工程",
+    "def": "把优化agent系统本身当成一门工程学科，靠测量和调优而非凭感觉"
+   },
+   {
+    "term": "ADLC/SDLC",
+    "zh": "智能体/软件开发生命周期",
+    "def": "把传统软件开发流程的各阶段换成由agent驱动的版本"
+   }
+  ],
+  "who": "正在搭建公司内部agent编程平台的CTO、platform/devx团队，以及想了解企业级coding agent基础设施该长什么样的工程负责人。",
+  "skip": "开头关于AIE Code大会的宣传片段(0:00-1:02)可以跳过。",
+  "tags": [
+   "软件工厂",
+   "agent编排",
+   "企业AI平台",
+   "成本优化",
+   "coding agent"
+  ],
+  "quality": {
+   "transcript_source": "asr",
+   "transcript_detail": "local:whisper-large-v3-turbo",
+   "words": 6557,
+   "wpm": 188.4,
+   "timed": true,
+   "verified_quotes": 7,
+   "grounded_facts": 7,
+   "points": 9,
+   "pruned": 0,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-11-04T12:01:17Z",
+ "triage": {
+  "score": 7.0,
+  "why": "Latent Space 高质量访谈，Zach Lloyd 讲 Warp 工程决策与工具产业趋势；标题指向机制拆解，一手",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 7.0,
+  "dims": {
+   "density": 7,
+   "faithful": 10,
+   "selection": 7,
+   "concrete": 9,
+   "chinese": 9
+  },
+  "verdict": "上站",
+  "why": "要点清晰数字准确，但缺scorers/online evals的展开。这对理解「可测量闭环」是必要的细节。标题「不是换模型」也有歪曲。",
+  "worst": "标题「不是换模型，是把工厂写成代码」误导——原文明确说调优包括换模型（从Opus改用更低成本模型）。另缺scorers机制的具体讲述，这是建立可测量闭环的基础。",
+  "model": "haiku",
+  "evidence": "full",
+  "rubric": "ccfffe2d41"
+ },
+ "model": "claude-cli:sonnet"
+}
