@@ -1,0 +1,138 @@
+{
+ "slug": "2026-11-03-latentspace-pr成本从80美元砍到20美元-不是换模型-是把工厂写成代码",
+ "of": "latentspace-0567c8786f",
+ "source_lang": "en",
+ "title": "Cut PR costs from $80 to $20 not by switching models but by writing the factory as code",
+ "dek": "After defining its internal software factory entirely as code and wiring in an observability loop, Warp compressed PR costs from $80 to $15–20 through measure-and-optimize, while lifting PR throughput 40%.",
+ "why": "Breaks down the layered technical stack a software factory needs, shows Warp's before/after real costs and throughput when tuning its agent system—numbers a team can benchmark against, not product talk.",
+ "who": "CTOs and platform/devx teams building internal agent-coding platforms, and engineering leads sizing what enterprise-grade coding-agent infrastructure needs to look like.",
+ "skip": "The intro ad for the AIE Code conference (0:00–1:02) can be skipped.",
+ "tags": [
+  "Software factory",
+  "Agent orchestration",
+  "Enterprise AI platform",
+  "Cost optimization",
+  "Coding agent"
+ ],
+ "points": [
+  {
+   "h": "Software factories aren't built by bolting automation together",
+   "body": "Zach argues that most companies calling themselves a software factory have simply added some agent-assisted coding—a fundamental misunderstanding. His definition: a cloud-hosted agentic system where teams explicitly define agent roles in the build process, the system exercises autonomy, is measurable and benchmarkable, forms a closed loop, and can be tuned over time to build confidence. That's categorically different from ad-hoc automation."
+  },
+  {
+   "h": "The factory definition itself must run as code",
+   "body": "Against the myth that \"buy a tool and get a money machine,\" Zach insists the factory must be concrete and runnable. Define it in YAML: which repos, which MCP integrations, which skills. Write the entire workflow declaratively—like Terraform—so it versions, branches for testing, and rolls back on demand. That's the only way to escape loose automation fragments that can't be versioned or audited."
+  },
+  {
+   "h": "All agent work, wherever it starts, must feed one central system",
+   "body": "Whether a task lands in Slack, Linear, or GitHub, it must enter the same system to trigger pre-defined workflows. Only then do you see the complete trace: computer-use screenshots, every orchestration detail, agent-to-agent handoffs. Most companies can't do this because engineers each run Cloud Code or Codex locally, data completely fragmented across laptops and logs."
+  },
+  {
+   "h": "Agents should submit pull requests to improve the factory code",
+   "body": "Because the factory definition is code, Warp's self-improving agents analyze historical failures—they spotted 54 cases where the triage agent should have spawned sub-agents but didn't—then submit PRs directly to the factory definition to fix the workflow. It's a complete learning loop, though Zach admits they haven't yet replayed history to verify the fix actually works. That's the next-level capability being built now."
+  },
+  {
+   "h": "Real benchmarks must test model and harness combinations together",
+   "body": "Zach argues you can't benchmark models in isolation; you must benchmark models and harness together. Warp runs the same real-world tasks with different model/harness combinations (Warp's own, Cloud Code, Codex, Pi), plots cost-versus-correctness curves, gets results for their specific business rather than generic leaderboards, then feeds those results into model/harness routing strategy."
+  },
+  {
+   "h": "Tuning can cut per-PR costs to one-quarter of starting point",
+   "body": "Warp tuned its own system this way: started at ~$80 per PR (too much Opus, over-trained triage models, sub-agents split too finely); brought it down to $15–20. Month-over-month, PR throughput jumped 40% while revert rate stayed flat. Zach calls that the proof that observe-measure-optimize actually works—not just in theory but in the production cost structure of an agentic platform."
+  },
+  {
+   "h": "Teams smaller than five to ten engineers should not use this",
+   "body": "Asked who really needs this platform, Zach draws a clear line: small teams just buy Cloud Code or Codex; this platform is overkill for them. The real breakeven is roughly 5–10 engineers and up. Bigger companies need it more, but deployment complexity grows with scale. Growth-stage companies at 10–100 people with Slack and Linear already in place can often self-serve."
+  },
+  {
+   "h": "When API costs are too high, small companies rotate subscriptions",
+   "body": "On the hardest objection: some small companies desperately want this system but can't afford it, so they're cycling through $200 subscriptions to piece together capacity, because per-API billing runs 5–50 times more expensive than subscriptions. Zach admits he's unsure whether rotating subscriptions violates the service terms, but concedes it's currently the cheapest way—it just doesn't scale as a company grows."
+  },
+  {
+   "h": "Warp chose agent platforms over token resale because subscriptions subsidize too deeply",
+   "body": "Warp chose not to enter the token resale business, Zach explains, because subscription economics are unbeatable: a $200 subscription is worth roughly $8,000 in API value, so a pure API-billing competitor simply can't win on price. Cursor's answer was to pivot to a model lab; Warp's answer was to become an agent optimizer and productivity platform—deliberately not competing in that cost-per-token arena."
+  }
+ ],
+ "terms": [
+  {
+   "term": "software factory",
+   "def": "An agentic system defined declaratively as code and running in the cloud, automatically orchestrating product-build workflows in a closed observability loop."
+  },
+  {
+   "term": "harness",
+   "def": "The tooling and orchestration layer that a coding agent runs on; implementations are swappable across different vendors."
+  },
+  {
+   "term": "scorers / online evals",
+   "def": "LLM-based automated scoring mechanisms that judge historical agent runs and surface failure patterns for optimization."
+  },
+  {
+   "term": "factory engineering",
+   "def": "The engineering discipline of optimizing agent systems themselves through measurement and systematic tuning, not intuition."
+  },
+  {
+   "term": "ADLC / SDLC",
+   "def": "Traditional software development lifecycle stages, each replaced by agent-driven equivalents in an agentic system."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Pre-optimization cost per PR",
+   "v": "~$80"
+  },
+  {
+   "k": "Post-optimization cost per PR",
+   "v": "~$15–20"
+  },
+  {
+   "k": "Month-over-month PR throughput gain",
+   "v": "40%"
+  },
+  {
+   "k": "GPT-5.6-Sol accuracy and avg cost",
+   "v": "95% / $6"
+  },
+  {
+   "k": "GLM-5.3-Flash accuracy and avg cost",
+   "v": "93% / $2"
+  },
+  {
+   "k": "$200 subscription equivalent API value",
+   "v": "~$8,000"
+  },
+  {
+   "k": "API billing cost multiplier vs subscription",
+   "v": "5–50x"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "you should actually think of a software factory as a very specific thing. Like you should define your factory in code.",
+   "translated": false
+  },
+  {
+   "text": "because you have your whole factory defined as code and these are coding agents, they can essentially make a pull request against the factory definition to try to improve the factory itself.",
+   "translated": false
+  },
+  {
+   "text": "you're getting out of the realm of guessing and you're getting into what we call factory engineering, where it's like you are taking a real engineering mindset.",
+   "translated": false
+  },
+  {
+   "text": "when we first started using the factory approach, it was costing us about $80 per PR because we were using like Opus where we shouldn't have.",
+   "translated": false
+  },
+  {
+   "text": "that is between five to fifty times more expensive than just getting a whole bunch of subs",
+   "translated": false
+  },
+  {
+   "text": "you can't you can't build a competitive coding agent on top of a thing that costs so much more money and like that's just the reality",
+   "translated": false
+  },
+  {
+   "text": "we're not trying to pitch like a token reselling product we're trying to pitch basically in you know a coding agent optimization platform and a coding agent like productivity platform",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
