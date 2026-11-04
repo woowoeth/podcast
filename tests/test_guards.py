@@ -8320,6 +8320,14 @@ class ThrottlingIsNotAReasonToSpendTheGPU(unittest.TestCase):
         self.assertIn("YT_THROTTLE_PATIENCE", blk,
                       "耐心是写死的 —— 它该从账本里这一集已经放过几轮来算")
 
+    def test_a_named_episode_does_not_wait_out_the_throttle(self):
+        """--episode 点名 = 现在就要；不该再放几轮等限流过去。"""
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index("tr = T.acquire(")
+        call = src[i:src.index(")", src.index("asr_after_throttle=", i)) + 1]
+        self.assertIn('_pin["slug"]', call,
+                      "点名要的那一集也在等限流 —— 手动补一集还得等一两天")
+
     def test_patience_leaves_room_inside_the_soft_budget(self):
         self.assertLess(
             self.run.YT_THROTTLE_PATIENCE, self.run.MAX_SOFT_FAILS,

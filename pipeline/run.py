@@ -603,9 +603,13 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
     # 字幕免费、转写一集约 5 分钟；限流会过去，烧掉的时间不会回来。
     # 前 3 轮遇到限流就放着（记软失败，下一轮再来），之后才允许落到转写 ——
     # 免得一条长期被限流的集永远发不出来。软失败本来就有上限和过期。
+    # **--episode 点名的那一集不等。** 点名就是「现在就要它」：限流还要再放几轮、
+    # 要等一两天的那几集（11-04：chinatalk、老石谈芯、latentspace 各放了 1 轮），
+    # 手动点名时直接允许落到转写。定时线不点名，照旧先等。
     _soft_so_far = (state["fail"].get(key) or {}).get("soft", 0)
     tr = T.acquire(ep, s.get("lang", "en"), src=s, allow=_tiers["allow"],
-                   asr_after_throttle=_soft_so_far >= YT_THROTTLE_PATIENCE)
+                   asr_after_throttle=_soft_so_far >= YT_THROTTLE_PATIENCE
+                   or bool(_pin["slug"]))
     cap_words = _cap_words(s)
     if tr and cap_words and tr["words"] > cap_words:
         # Cost scales with transcript length, and a 35k-word episode costs as
