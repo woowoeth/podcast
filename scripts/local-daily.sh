@@ -348,6 +348,13 @@ PYEOF
     echo "注意：git stash 里留着 $STASH_AFTER 个 autostash，是历次同步恢复失败留下的，看过再 drop" >&2
   fi
 
+  # **开跑时看见的远端是哪一版，同步完当场记下。** 心跳原来写的时候才去读 origin/main，默认
+  # 中间没有别的 fetch —— 可同一个仓库的 worktree 共用远端引用：跑批期间在 worktree 里 fetch／push
+  # 一次，origin/main 就往前走，体检据此报「这条线的 git pull 没起作用」（11-09 第 3 轮：16:40 开跑，
+  # 16:56 从 worktree 推了个修复，收尾体检报硬伤）。heartbeat.py 优先用这个值。
+  PODCAST_SYNCED=$(git rev-parse --short origin/main 2>/dev/null || true)
+  export PODCAST_SYNCED
+
   # **拉下了新版就用新版跑。** bash 边读边执行：这一轮开头读进来的是同步前的旧脚本，git pull
   # 换掉文件后它照样执行旧的那份。2026-09-25 晚上那轮就是这样：新的 build.py 生成了 hot.json，
   # 旧脚本的提交清单里却还没有它，热门名单就没推上去（心跳里的 rev 是新的，跑的脚本是旧的）。

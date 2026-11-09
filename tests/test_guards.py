@@ -13465,6 +13465,10 @@ if NAME == "run.py" and "--followup" in args and race_main and not os.path.exist
     g = ["git", "-C", other, "-c", "user.name=other", "-c", "user.email=o@o"]
     subprocess.run(g + ["commit", "-qam", "other line (main round)"], check=True)
     subprocess.run(g + ["push", "-q", "origin", "HEAD:main"], check=True)
+    if os.environ.get("STUB_RACE_MAIN_FETCH"):
+        # 同一个仓库的 worktree 共用远端引用：在 worktree 里 fetch／push 一次，这份副本的
+        # origin/main 当场就往前走（11-09 第 3 轮跑批中途从 worktree 推了个修复）
+        subprocess.run(["git", "-C", str(ROOT), "fetch", "-q", "origin"], check=True)
     open(race_main + ".done", "w").close()
 for f in WRITES:
     touch(f)
@@ -13503,7 +13507,8 @@ if NAME == "build.py":
 
     def _sandbox(self, tmp, publish=True, race=False, leftover=None, upstream=None, prep=None, die_on=None,
                  claude_says="", notify=False, scheduled=False, hb_local=None, race_main=None,
-                 race_touch=None, egress="HK", keychain_token=None, token_does_not_help=False):
+                 race_touch=None, egress="HK", keychain_token=None, token_does_not_help=False,
+                 race_fetch=False):
         sh = (ROOT / "scripts" / "local-daily.sh").read_text()
         reads = _healthcheck_reads()
         writers = {k: sorted(v & reads) for k, v in _state_writers(reads).items()}
@@ -13597,6 +13602,8 @@ if NAME == "build.py":
             env["STUB_RACE_MAIN"], env["STUB_RACE_MAIN_FILE"] = str(tmp / "race_main"), race_main
         if race_touch:
             env["STUB_RACE_TOUCH"] = race_touch
+        if race_fetch:
+            env["STUB_RACE_MAIN_FETCH"] = "1"
         if die_on:
             env["STUB_DIE_ON"] = die_on
         if notify:
@@ -13726,6 +13733,28 @@ if NAME == "build.py":
             covers = [f"assets/cover/{n[:-5]}.jpg" for n in local]
             self.assertEqual([], [c for c in covers if not self._on_origin(origin, c)],
                              "主轮的页面先推了，新集的封面文件没跟上：点开是破图（2026-10-30）")
+
+    def test_a_fetch_in_a_shared_worktree_mid_round_is_not_a_failed_pull(self):
+        """11-09 第 3 轮 16:40 开跑，16:56 从 worktree 推了个修复 —— worktree 共用远端引用，这份副本的
+        origin/main 当场前进。心跳写的时候才去读 origin/main、记成「开跑时看见的远端」，收尾体检
+        就报「这条线的 git pull 没起作用」：跑的是开跑时的最新版，却被说成漏拉。"""
+        import tempfile
+        from unittest import mock
+        import healthcheck as H
+        with tempfile.TemporaryDirectory() as tmp:
+            r, box, origin, log, reads = self._sandbox(tmp, race_main="data/heartbeat-cloud.json",
+                                                       race_fetch=True)
+            self.assertEqual(0, r.returncode, r.stdout[-2000:] + r.stderr[-500:])
+            self.assertTrue((pathlib.Path(tmp) / "race_main.done").exists(),
+                            "尺子坏了：主轮中途没有发生「另一条线推送 + 这份副本 fetch」\n" + r.stdout[-1500:])
+            start = subprocess.run(["git", "--git-dir", str(origin), "rev-list", "--max-parents=0",
+                                    "--abbrev-commit", "main"], capture_output=True, text=True).stdout.split()
+            hb = json.loads((box / "data" / "heartbeat-local.json").read_text())
+            self.assertIn(hb.get("synced"), start,
+                          "心跳记的「开跑时看见的远端」是跑批中途 fetch 来的那一版，不是开跑时的")
+            with mock.patch.object(H, "ROOT", box):
+                self.assertEqual([], H._missed_at_start(hb["rev"], hb, []),
+                                 "跑的就是开跑时的最新版，体检却说它漏拉了提交")
 
     def test_main_episodes_still_go_out_early_when_another_line_pushed_meanwhile(self):
         """主轮先推被拒，而远端这期间只改了本机没碰的文件（云端每小时的心跳）：并成合并提交照样先推。

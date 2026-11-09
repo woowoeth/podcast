@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import os
 import pathlib
 import sys
 
@@ -52,16 +53,23 @@ def _rev() -> dict:
     except Exception:
         pass
     try:
-        # **这一轮开跑时看见的远端是哪一版。** 两条线都在开头同步（本机 git pull、云端 checkout），
-        # 之后到写心跳之间没有别的 fetch，所以此刻的 origin/main 就是开跑时的那一版。
+        # **这一轮开跑时看见的远端是哪一版。**
         # 体检拿它判「pull 有没有起作用」：比它旧的提交没跑到才是故障，比它新的只是还没轮到。
         # 原来只能拿心跳时间（**跑完**的时刻）去比提交时间，于是跑批中途别的线推一个提交，
         # 体检就报「这条线的 git pull 没起作用」（2026-09-28 21:30 那轮：13:30 拉、13:42 fast lane 推、
         # 13:51 写心跳）。
-        r = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short", "origin/main"],
-                           capture_output=True, text=True, timeout=10)
-        if r.returncode == 0 and r.stdout.strip():
-            out["synced"] = r.stdout.strip()
+        #
+        # 本机线在同步完那一刻把它记进 PODCAST_SYNCED（local-daily.sh）。写心跳时再读 origin/main
+        # 不可靠：同一个仓库的 worktree 共用远端引用，跑批中途在 worktree 里 fetch／push 一次，
+        # 它就往前走了（11-09 第 3 轮因此报了「pull 没起作用」）。没有这个变量（云端、老脚本）才现读。
+        synced = os.environ.get("PODCAST_SYNCED", "").strip()
+        if synced:
+            out["synced"] = synced
+        else:
+            r = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short", "origin/main"],
+                               capture_output=True, text=True, timeout=10)
+            if r.returncode == 0 and r.stdout.strip():
+                out["synced"] = r.stdout.strip()
     except Exception:
         pass
     return out
