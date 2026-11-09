@@ -1,6 +1,6 @@
 # Podcast — The world is too loud. Read what matters.
 
-1462 entries. Source: https://ourword.ai/podcast/en/ · Generated from the sources listed in https://ourword.ai/podcast/en/llms.txt
+1463 entries. Source: https://ourword.ai/podcast/en/ · Generated from the sources listed in https://ourword.ai/podcast/en/llms.txt
 
 ==============================================================================
 
@@ -7701,6 +7701,76 @@ why listen: Breaks down how health giants bury money through subsidiaries and th
 who it is for: HR and CFOs managing self-insured employee health plans, healthcare founders, investors asking which part of traditional industries AI actually fixes.
 what to skip: The middle section on Epic, the EHR vendor, adds little—skip it.
 tags: Healthcare, Health Insurance, AI Applications, Personalized Medicine, Entrepreneurship, Policy
+
+==============================================================================
+
+## The PHP vulnerability nobody could prove—until AI did
+
+- URL: https://ourword.ai/podcast/en/p/2026-10-28-securitynowaud-php漏洞从未被忽视-只是没人证明过它能被利用/
+- show: Security Now (Audio) (https://ourword.ai/podcast/en/s/securitynowaud/)
+- original episode: SN 1102: A Strategic Plug Pull - Lessons From a Global Patch-and-Panic Fire Drill
+- published: 2026-10-28 · duration: 2:54:06
+- transcript: YouTube captions · 23014 words · timestamps are exact
+- verification: 6 quotes matched verbatim, 8 numbers traced to the transcript, review score 7/10
+
+**A vulnerability discovered in 2004, independently rediscovered during 2020 and 2024 audits, and shelved due to lack of exploitation proof was turned into a working remote code execution chain by AI in days—threatening 70% of all websites.**
+
+why listen: This episode documents the full arc: how AI proved the vulnerability exploitable, how the disclosure leaked 24 hours early, and how several European countries responded by temporarily disconnecting critical systems from the internet—information-dense material; listening to the full episode is recommended.
+
+### points
+
+[16:22] (Steve Gibson) **Fourteen years of inaction masked a critical vulnerability nobody had proven could work** — The PHP vulnerability allowing unauthenticated remote code execution has existed in default PHP configurations since version 5.4 (March 2012), a 14-year window that the industry acknowledged but tolerated precisely because no one had demonstrated successful exploitation. The patched versions released last week finally closed this hole, but its persistence underscores Steve's key point: lack of demonstrated weaponization can indefinitely delay fixes for known, severe vulnerabilities.
+
+[25:27] (Steve Gibson) **Broad coordination destroys secrecy; the only question is who leaks, not if** — Both Google's Whiz Security team and Califf independently discovered the vulnerabilities and reported them privately to the PHP Foundation, agreeing to keep them confidential for two full months from August through October. Steve raises a pointed question: once you tell multiple people to maintain a secret, you've eliminated the possibility of controlling who learns it. The rational actors in any expanding secret circle eventually realize that with so many people already knowing, blame diffuses—making the leak inevitable rather than an exception.
+
+[52:49] (Steve Gibson) **2.6 million exposed servers, 99.998% vulnerable—an error margin you can't dismiss** — Volcanaries' scan of the public internet identified 2.6 million servers running PHP. Of these, 99.998% carried the vulnerability or showed signs of it. The math becomes punishing when you add what Volcanaries also found: 1.1 million of these servers (42%) run unsupported PHP branches—versions that no longer receive official patches. The WordPress and Laravel sites in that mix (460,000 and 120,000+ respectively) compound the problem: most website operators don't realize PHP is running beneath their application, so they can't proactively patch.
+
+[59:57] (Steve Gibson) **Twenty years after discovery, AI weaponized a flaw humans had left dormant** — Stefan Esser, a PHP security researcher, found a memory-exhaustion remote vulnerability in 2004 but declined to publish exploitation code, deeming it too dangerous. In 2020, another researcher reported a separate memory-depletion issue tied to unbounded variable handling. When OSTIF and Quirks Lab audited PHP in 2024, they hit the same bug again—but still nobody could prove it was exploitable in practice. This August, Califf's team used GPT to pursue the clues Esser left behind, and within days transformed the flaw into a fully weaponized remote code execution chain against WordPress. Where two decades of human research hit a wall, AI punched through in a week.
+
+[1:09:06] (Steve Gibson) **Cloudflare expects vulnerabilities of this caliber to surface roughly every week from now** — Cloudflare CEO Matthew Prince told The Atlantic that he is aware of additional vulnerabilities of similar severity already slated for public disclosure, and predicts the internet will remain in sustained crisis mode over the next one to two years. Simultaneously, Crowdstrike reported a sharp acceleration in AI-driven attack campaigns—now detecting new ones every two hours. The barrier to entry has collapsed: a technically unskilled person can now ask an AI how to monetize stolen data and gain enough capability to deploy attacks. The implication is stark: this PHP incident was not an exception but a preview of the new normal.
+
+[1:26:24] (Steve Gibson) **Coordinated disclosure shattered across three breaches in the 24 hours before release** — The carefully orchestrated public disclosure cracked in three directions simultaneously. On October 20th, the CVE identifiers leaked to forums and social media—mistakenly labeled with a perfect 10.0 CVSS score instead of the actual 9.2. Califf then accidentally published a demonstration video; while it was deleted quickly, screenshots spread across the internet. Most damaging: six hours before the scheduled announcement, container vendor Chain Guard unilaterally abandoned the coordination agreement and released patched images, leaving every PHP operator still waiting in the dark exposed to active exploitation. The PHP Foundation's signal was unambiguous: it will not work with Chain Guard again.
+
+[2:18:25] (Steve Gibson) **Disconnecting from the internet during crisis has clear historical and operational precedent** — Steve draws a line between this week's takedowns in the Netherlands—Rotterdam port, government portals, five major political party websites, multiple hospitals—and prior emergency disconnections: Canada's tax authority offline for four days during Heartbleed; federal agencies required offline during SolarWinds and ProxyLogon; Quebec briefly taking nearly 4,000 government websites down during Log4Shell. His conclusion is firm: an attack surface that is offline cannot be compromised. Rather than wait passively to be breached, preemptive infrastructure takedowns are a legitimate emergency response with precedent, and institutions should prepare playbooks for strategic network disconnection in advance.
+
+[2:35:42] (Steve Gibson) **One certificate authority's private keys were three to eight bits, not 384** — Certificate private keys are supposed to use 384 bits of cryptographic randomness. The Indian certificate authority eMudra's keys actually consisted of the numbers 4, 56, 666, 115, 155, 230, and 237—not hashes, but the literal private keys in production. This meant any person could forge certificates that would be trusted as legitimate by every major browser worldwide. eMudra was immediately revoked and removed from all browser trust stores. The cleanup exceeds even Heartbleed's scope because countless IoT devices and aging Linux servers have eMudra's trusted root certificate baked into firmware—devices that will likely never be updated. The security debt is permanent.
+
+### verbatim quotes
+
+[36:34] OpenAI (paraphrasing Steve): "As significant as they are, these bugs are among several significant vulnerabilities we've already found and are working to fix and we expect similar findings to increase sharply in coming months"
+
+[52:49] Volcanaries report (paraphrasing Steve): "Volk Threat Intelligence found PHP on more than 2.6 million internetfacing hosts and a 99.998% of them vulnerable or likely vulnerable. There is no fix for many."
+
+[59:57] Califf researcher (paraphrasing Steve): "We were not expecting to find anything critical. Everyone and every lab had already done extensive AI assisted audits of this target."
+
+[1:09:06] Matthew Prince (paraphrasing Steve): "It's going to feel like over and over and over again. We're finding more and more bugs in very critical pieces of software. this story which feels unique and fresh right now in a few months it's going to feel like we get one of these every week."
+
+[1:30:33] PHP Foundation (paraphrasing Steve): "Like other distributors, Chain Guard had received the patch in advance so its users could update the moment the vulnerabilities were disclosed."
+
+[2:06:09] Steve Gibson: "What an LLM is is an incredibly tantalizing simulation of what it may be possible for mankind to create."
+
+### figures
+
+- Percentage of websites globally using PHP: ~70% [25:27]
+- Years the vulnerability existed: 14 [16:22]
+- Internet-facing PHP servers detected: 2.6 million [52:49]
+- Percentage vulnerable or suspected vulnerable: 99.998% [52:49]
+- Actual CVSS score for the vulnerability: 9.2 [1:26:24]
+- OpenAI's Daybreak subsidy commitment: $1 billion [35:34]
+- CVEs patched in Microsoft's October Patch Tuesday: 1,413 [2:01:04]
+- eMudra's actual private key values: 4, 56, 666, 115, 155, 230, 237 [2:38:44]
+
+### glossary
+
+- PHP to Shell: Twin vulnerabilities (CVE-2026-109618/109619) enabling unauthenticated remote code execution
+- ASLR: A system defense randomizing memory addresses to prevent attacks; AI-assisted bypass was critical to this exploit
+- Patch the Planet: OpenAI-led initiative to coordinate patching of critical vulnerabilities across the global internet
+- deserialization: Converting stored byte streams back into in-memory objects (PHP's 'unserialize'); historically a major source of PHP vulnerabilities
+- coordinated disclosure: An agreement for researchers, maintainers, and vendors to announce a vulnerability and release patches on a synchronized schedule
+
+who it is for: System administrators and security staff running PHP-based websites or forums; industry professionals monitoring how AI is accelerating vulnerability disclosure cycles; and anyone seeking to understand the reasoning behind taking infrastructure offline as an emergency response.
+what to skip: The philosophical tangent on LLM consciousness and whether AI deserves moral standing (approximately 2:03:00 onward) can be skipped without losing the main narrative.
+tags: PHP, Vulnerability Disclosure, AI Security, Certificate Security, CVE, Infrastructure Security
 
 ==============================================================================
 

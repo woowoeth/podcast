@@ -1,6 +1,6 @@
 # 原声 — 世界太吵，来原声听播客
 
-1462 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
+1463 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
 
 ==============================================================================
 
@@ -8433,6 +8433,82 @@
 谁该听 / who: 管理自保型员工医保的HR/CFO、医疗健康领域创业者、想知道AI在传统行业哪一环真正好用的投资人。
 可跳过 / skip: 中段关于EHR厂商Epic的讨论信息量较低，可跳过。
 标签 / tags: 医疗保健, 健康险, AI应用, 个性化医疗, 创业者, 政策
+
+==============================================================================
+
+## PHP漏洞从未被忽视，只是没人证明过它能被利用
+
+- URL: https://ourword.ai/podcast/p/2026-10-28-securitynowaud-php漏洞从未被忽视-只是没人证明过它能被利用/
+- 节目 / show: Security Now (Audio) (https://ourword.ai/podcast/s/securitynowaud/)
+- 原集标题 / original episode: SN 1102: A Strategic Plug Pull - Lessons From a Global Patch-and-Panic Fire Drill
+- 发布 / published: 2026-10-28 · 时长 / duration: 2:54:06
+- 文稿来源 / transcript: YouTube 字幕 · 23014 words · timestamps are exact
+- 校验 / verification: 6 quotes matched verbatim, 8 numbers traced to the transcript, review score 7/10
+
+**这个漏洞2004年就被发现，2020年、2024年的审计又两次重新撞见，却因为没人证明它能被利用而被一再搁置——直到AI用几天就把它变成了能攻陷70%网站的远程代码执行链。**
+
+为什么听 / why: 这期把PHP漏洞怎样被AI证明可利用、泄密提前一天发布、欧洲多国直接拔网线应对的全过程讲清楚了，信息密度高，建议完整听。
+
+### 核心论点 / points
+
+[16:22] (Steve Gibson) **14年没人修的漏洞捅破了天** — PHP从5.4版本开始，默认配置下任何人都能在未认证的情况下对使用它的服务器执行远程代码，这个口子从2012年3月开到现在整整14年，直到上周的多版本补丁才堵上。Steve强调这不是什么新发现的漏洞，而是业内心知肚明、却因为从未被证明能被利用而被放任了十几年的老问题。
+
+[25:27] (Steve Gibson) **两个月保密：没法只告诉好人** — Google的Whiz Security和Califf各自独立发现了这两个漏洞并私下报告给PHP基金会，双方选择把秘密捂了整整两个月——从8月一直到10月。Steve提出一个尖锐的问题：公开披露的本质是没有办法只告诉好人、不告诉坏人的，秘密的知情范围只要扩大，就一定会有人觉得反正这么多人知道，没人会发现是我泄的。
+
+[52:49] (Steve Gibson) **260万台主机，99.998%都中招** — 安全公司Volcanaries扫描发现全网有260万台面向公网的主机在跑PHP，其中99.998%存在漏洞或疑似存在漏洞；更扎心的是，其中110万台（42%）跑的是已经终止维护的PHP分支，根本没有官方补丁可打。超过46万个WordPress和12万多个Laravel站点也在其中，很多时候PHP藏得很深，网站根本不会主动告诉你它在用PHP。
+
+[59:57] (Steve Gibson) **2004年埋的雷，AI几天就挖出来** — 这个bug最早可以追溯到2004年，PHP安全研究员Stefan Esser就发现了一个内存限制相关的远程漏洞，但他认为严重到不愿公开利用代码；2020年又有人报告过一次长变量导致内存耗尽的问题，2024年OSTIF和Quirks Lab审计时第三次撞见同一个毛病，但因为始终无法证明能被利用，所以从来没人去修。今年8月，Califf的团队用GPT针对Stefan当年留下的线索去追问，结果几天内就把它变成了一条能打穿WordPress的远程代码执行链。
+
+[1:09:06] (Steve Gibson) **Cloudflare CEO：以后每周都这样** — Cloudflare CEO Matthew Prince告诉《大西洋月刊》，他已经知道还有更多类似级别的漏洞即将被公开，未来一两年互联网会持续处于一种提心吊胆的状态。与此同时Crowdstrike报告说，他们现在每两个小时就会侦测到一个新出现的、由AI驱动的攻击团伙，攻击门槛已经低到一个完全不懂技术的人靠AI问「怎么把偷来的数据变现」就能上手。
+
+[1:26:24] (Steve Gibson) **泄密提前一天，还有人抢跑6小时** — 本来计划好的协调披露在倒数第二天崩了：10月20日漏洞编号提前泄露到论坛和社交媒体上，还带着一个错误的满分10.0评分（实际是9.2）；随后Califf不小心公开了一段演示视频，虽然很快删掉但截图已经在网上流传；更要命的是，在正式发布前超过6小时，容器发行商Chain Guard单方面撕毁协议、提前发布了补丁镜像，让所有还在等待的PHP用户都暴露在危险中。PHP基金会的态度很明显：下次不会再带它玩了。
+
+[2:18:25] (Steve Gibson) **拔网线是有正当先例的策略** — Steve把这次欧洲多国临时断网——荷兰鹿特丹港、政府门户网站、五大政党网站、多家医院——比作此前Heartbleed时加拿大税务局下线四天、SolarWinds和ProxyLogon时CISA勒令联邦机构关机、Log4Shell时魁北克一口气下线近4000个政府网站的历史先例。他的结论是：没有任何攻击面在离线状态下能被攻破，与其等着被黑，不如提前准备好一套「战略性拔网线」的预案。
+
+[2:35:42] (Steve Gibson) **证书私钥居然只有个位数** — 本该用384位随机数的证书私钥，被发现实际值只有3到8位，具体数字是4、56、666、115、155、230和237——不是哈希，是真实在用的私钥本身。这意味着任何人都可以伪造出能被全球浏览器信任的证书，为此印度证书颁发机构eMudra一夜之间被所有浏览器拉黑、彻底出局。专家说清理这个烂摊子比Heartbleed还大，因为还有无数物联网设备、老旧Linux服务器里内置着这几个信任根，可能永远不会被更新。
+
+### 原话 / verbatim quotes
+
+[36:34] OpenAI（Steve转述）: "As significant as they are, these bugs are among several significant vulnerabilities we've already found and are working to fix and we expect similar findings to increase sharply in coming months"
+    译 / zh: 这些漏洞固然严重，但它们只是我们已经发现、正在修复的几个重大漏洞之一，我们预计未来几个月类似的发现会急剧增加。
+
+[52:49] Volcanaries报告（Steve转述）: "Volk Threat Intelligence found PHP on more than 2.6 million internetfacing hosts and a 99.998% of them vulnerable or likely vulnerable. There is no fix for many."
+    译 / zh: Volk威胁情报团队发现全网有超过260万台面向公网的主机在跑PHP，其中99.998%存在或疑似存在漏洞。很多主机根本无补丁可打。
+
+[59:57] Califf研究者（Steve转述）: "We were not expecting to find anything critical. Everyone and every lab had already done extensive AI assisted audits of this target."
+    译 / zh: 我们本来没指望能挖到什么严重问题——每个实验室都已经对这个目标做过大量AI辅助审计了。
+
+[1:09:06] Matthew Prince（Steve转述）: "It's going to feel like over and over and over again. We're finding more and more bugs in very critical pieces of software. this story which feels unique and fresh right now in a few months it's going to feel like we get one of these every week."
+    译 / zh: 这种感觉会一次又一次地出现：我们会在非常关键的软件里发现越来越多的漏洞。这件事现在感觉独特又新鲜，但几个月后，它就会变成每周都会发生一次的事。
+
+[1:30:33] PHP基金会（Steve转述）: "Like other distributors, Chain Guard had received the patch in advance so its users could update the moment the vulnerabilities were disclosed."
+    译 / zh: 跟其他发行商一样，Chain Guard本来提前拿到了补丁，是为了让自己的用户能在漏洞公开的那一刻立刻更新。
+
+[2:06:09] Steve Gibson: "What an LLM is is an incredibly tantalizing simulation of what it may be possible for mankind to create."
+    译 / zh: LLM本质上是人类有可能创造出的某种东西的一个极具迷惑性的模拟品而已。
+
+### 数字 / figures
+
+- 全网使用PHP的网站占比: 约70% [25:27]
+- 漏洞存在的年限: 14年（自PHP 5.4，2012年3月） [16:22]
+- 扫描到的公网PHP主机数: 260万台 [52:49]
+- 其中存在或疑似存在漏洞的比例: 99.998% [52:49]
+- 漏洞实际CVSS评分（泄露时误传为10.0）: 9.2 [1:26:24]
+- OpenAI承诺投入的Daybreak补贴额度: 10亿美元 [35:34]
+- 微软10月补丁星期二修复的CVE数量: 1413个 [2:01:04]
+- eMudra被曝的几个实际私钥数值: 4、56、666、115、155、230、237 [2:38:44]
+
+### 术语 / glossary
+
+- PHP to Shell (PHP To Shell): 这两个PHP漏洞（CVE-2026-109618/109619）的统称，可实现未认证远程代码执行
+- ASLR (地址空间布局随机化): 让攻击者难以预测内存地址的系统防护机制，这次被AI辅助绕过
+- Patch the Planet (补丁全球计划): OpenAI发起的、协调全网关键漏洞修补的行动代号
+- unserialize / deserialization (反序列化): 把保存的字节流还原成内存对象的过程，历来是PHP安全漏洞高发区
+- coordinated disclosure (协调披露): 发现者、维护者与厂商约定统一时间公开漏洞并同步发布补丁的流程
+
+谁该听 / who: 管理PHP网站/论坛的运维或安全负责人、关注AI如何改变漏洞披露节奏的从业者，以及想了解「该不该先拔网线」这种应急决策逻辑的人。
+可跳过 / skip: 中段关于LLM是否有意识、是否该给AI赋予伦理地位的哲学讨论（约2:03:00起）可以跳过，与本集主线无关。
+标签 / tags: PHP, 漏洞披露, AI安全, 证书安全, CVE, 基础设施安全
 
 ==============================================================================
 
