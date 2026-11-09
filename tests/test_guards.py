@@ -5871,12 +5871,67 @@ class MechanismsMustLeaveEvidenceTheyWorked(unittest.TestCase):
                         src.index('log("\\n" + " · ".join'),
                         "留痕不在 save_state 之后")
 
-    def test_healthcheck_fails_when_the_queue_stops_shrinking(self):
-        hc = (ROOT / "pipeline" / "healthcheck.py").read_text()
-        i = hc.index("def check_catchup_is_working(")
-        body = hc[i:hc.index("\ndef ", i + 1)]
-        self.assertIn("prev_pending", body, "没有和上一轮比")
-        self.assertIn("r.fail", body, "队列不缩只报 note，不报硬伤")
+    # ---- 判据要按行为测，不是按源码里有没有某个词 ----
+    # 原来这里只查 healthcheck 源码里有 "prev_pending" 和 "r.fail"：判据平时永远不响、
+    # 停更几天后必然误报（11-09），这条测试一直是绿的。
+
+    def _catchup(self, hist=None, **extra):
+        import datetime as dt
+        import tempfile
+        from unittest import mock
+        import healthcheck as H
+        td = tempfile.TemporaryDirectory()
+        self.addCleanup(td.cleanup)
+        now = dt.datetime.now(dt.timezone.utc)
+        rows = [{"at": (now - dt.timedelta(hours=h)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                 "pending": p, "published": n} for h, p, n in (hist or [])]
+        d = {"at": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "pending": 134, "ids": [], "published": 0}
+        if hist is not None:
+            d["hist"] = rows
+        d.update(extra)
+        pathlib.Path(td.name, "catchup.json").write_text(json.dumps(d))
+        r = H.Report()
+        with mock.patch.object(H, "DATA", pathlib.Path(td.name)):
+            H.check_catchup_is_working(r)
+        return r
+
+    def test_a_pipeline_outage_is_not_reported_as_a_dead_bootstrap(self):
+        # 11-09：整条线停了四天，复跑第一轮发了 3 篇 —— 那不是建档坏了
+        r = self._catchup([(100, 134, 2), (0, 134, 3)])
+        self.assertEqual([], r.bad, r.bad)
+        r = self._catchup(None, prev_pending=134, prev_at="2026-11-05T03:43:34Z", published=3)
+        self.assertEqual([], r.bad, "旧格式（没有 hist）也不该因为隔了四天就报硬伤")
+
+    def test_rounds_that_publish_nothing_for_three_days_fail(self):
+        r = self._catchup([(66, 134, 0), (54, 134, 0), (42, 135, 0), (30, 135, 0),
+                           (18, 136, 0), (6, 136, 0)])
+        self.assertTrue(any("建档没在产出" in m for m in r.bad), r.bad)
+
+    def test_rounds_that_publish_are_fine_even_if_the_queue_grows(self):
+        r = self._catchup([(80, 130, 2), (66, 131, 0), (54, 133, 1), (42, 134, 0), (30, 134, 2),
+                           (6, 134, 0)])
+        self.assertEqual([], r.bad, "新源一直在加，产出正常时队列也可能不缩")
+        self.assertTrue(any("近 3 天 5 轮发了 3 篇" in m and "3 天前 130 档" in m for m in r.ok), r.ok)
+
+    def test_too_few_rounds_to_judge_is_said_out_loud(self):
+        r = self._catchup([(30, 134, 0), (6, 134, 0)])
+        self.assertEqual(([], []), (r.bad, r.ok))
+        self.assertTrue(any("还判不了" in m for m in r.warn), r.warn)
+
+    def test_each_round_is_appended_to_the_history(self):
+        import tempfile
+        from unittest import mock
+        import run as R
+        with tempfile.TemporaryDirectory() as td:
+            f = pathlib.Path(td) / "catchup.json"
+            f.write_text(json.dumps({"at": "2026-11-05T03:43:34Z", "pending": 134, "published": 2}))
+            with mock.patch.object(R, "DATA", pathlib.Path(td)), \
+                 mock.patch.dict(R._catchup_note, {"pending": ["a", "b"]}):
+                R._write_catchup_note(3)
+                R._write_catchup_note(1)
+            d = json.loads(f.read_text())
+        self.assertEqual([134, 2, 2], [h["pending"] for h in d["hist"]], "旧记录没接进历史，部署后要白攒几天")
+        self.assertEqual([2, 3, 1], [h["published"] for h in d["hist"]])
 
 
 class PipelineModulesMustNotShadowInstalledPackages(unittest.TestCase):
@@ -14256,3 +14311,175 @@ class MainEpisodesAreTranslatedBeforeTheEarlyPush(unittest.TestCase):
         self.assertIn("pipeline/translate.py --limit", main, "主轮先推之前没译")
         self.assertIn("pipeline/build.py", main[main.find("pipeline/translate.py --limit"):],
                       "主轮译完没重建：译文有了，英文页还是 run.py 建站时那一版")
+
+
+class TheModelCallCannotUseTools(unittest.TestCase):
+    """`claude -p --allowed-tools ""` 以为关了工具，其实那只是「免确认名单」，一个都没关。
+    2026-10-09 → 11-09 本机约 2900 次调用里 240 次动了工具（Bash 跑成 267 次、Read 52 次、
+    自己派子代理 4 次）；11-09 译两条信源简介时，模型从上下文里的 git status 看见刚落盘的
+    两集，自己读了那两个文件，把集标题的译文当信源简介交回来，原样存进了 data/en/_sources.json。
+    实测（同一句「用 Read 打开某文件告诉我第一个 id」）：旧开关在仓库里答出了文件内容，
+    新开关在空目录里一个工具都没有。"""
+
+    def setUp(self):
+        import importlib
+        self.llm = importlib.import_module("lib.llm")
+        self.llm._CLI = self.llm._Gate()
+
+    def test_tools_are_off_and_the_call_runs_outside_any_repo(self):
+        import types
+        from unittest import mock
+        seen = {}
+
+        def run(cmd, **kw):
+            seen["cmd"], seen["kw"] = cmd, kw
+            return types.SimpleNamespace(returncode=0, stdout="ok", stderr="")
+        with mock.patch.object(self.llm.subprocess, "run", run):
+            self.assertEqual("ok", self.llm._cli("s", "u", model="haiku"))
+        cmd = seen["cmd"]
+        self.assertIn("--tools", cmd, "没有 --tools：模型照样能读文件、跑命令")
+        self.assertEqual("", cmd[cmd.index("--tools") + 1], "--tools 后面必须是空串（一个都不给）")
+        self.assertNotIn("--allowed-tools", cmd, "--allowed-tools 只是免确认名单，留着只会让人以为关了")
+        self.assertIn("--safe-mode", cmd, "不带 CLAUDE.md、技能、MCP —— 写稿用不上，白占额度")
+        cwd = seen["kw"].get("cwd")
+        self.assertTrue(cwd, "没指定 cwd：在仓库里跑，git status 会进上下文")
+        self.assertFalse(pathlib.Path(cwd).resolve().is_relative_to(ROOT.resolve()),
+                         f"cwd 在仓库里：{cwd}")
+        inside = subprocess.run(["git", "-C", cwd, "rev-parse", "--is-inside-work-tree"],
+                                capture_output=True, text=True)
+        self.assertNotEqual("true", inside.stdout.strip(), f"cwd 在某个 git 仓库里：{cwd}")
+
+
+class ASourceBlurbOnlyKeepsWhatItAskedFor(unittest.TestCase):
+    """transsources 原来「有 id 有译文就存」：11-09 问的是 securitynowaud、businesswars，
+    模型交回 litandhist-4f2fd3b087、ideasofindia-228b1c02ff 两集的标题译文，照单全收。
+    下面用的就是那次的原样回答。"""
+
+    INCIDENT = {"items": [
+        {"id": "litandhist-4f2fd3b087",
+         "desc": "A man who urged the king not to act rashly—killed by his own letter"},
+        {"id": "ideasofindia-228b1c02ff",
+         "desc": "Real mentors called to encourage university study in Mumbai—but students wouldn't go"}]}
+
+    def _run(self, answer, have):
+        import tempfile
+        from unittest import mock
+        import transsources as T
+        td = tempfile.TemporaryDirectory()
+        self.addCleanup(td.cleanup)
+        root = pathlib.Path(td.name)
+        (root / "data" / "en").mkdir(parents=True)
+        (root / "data" / "sources.json").write_text(json.dumps({"sources": [
+            {"id": "securitynowaud", "desc": "AI与密码学的交点"},
+            {"id": "businesswars", "desc": "真实商业竞争的故事"}]}, ensure_ascii=False))
+        out = root / "data" / "en" / "_sources.json"
+        out.write_text(json.dumps({"sources": have}))
+        with mock.patch.object(T, "ROOT", root), mock.patch.object(T, "OUT", out), \
+             mock.patch.object(T.llm, "call_json", lambda *a, **k: answer), \
+             contextlib.redirect_stderr(io.StringIO()), contextlib.redirect_stdout(io.StringIO()):
+            T.main()
+        return json.loads(out.read_text())["sources"]
+
+    def test_an_answer_about_something_else_is_not_stored(self):
+        got = self._run(self.INCIDENT, {"oldsrc": {"desc": "kept"}})
+        self.assertEqual({"oldsrc"}, set(got), "存进了没问过的条目")
+
+    def test_episode_ids_already_stored_are_cleared(self):
+        got = self._run({"items": []}, {"oldsrc": {"desc": "kept"},
+                                       "litandhist-4f2fd3b087": {"desc": "bogus"}})
+        self.assertNotIn("litandhist-4f2fd3b087", got, "集 id 不可能是信源 id，留着是脏数据")
+        self.assertIn("oldsrc", got, "退役信源的译文不该一起清掉（build 还给未登记信源建页）")
+
+    def test_a_correct_answer_is_still_stored(self):
+        got = self._run({"items": [{"id": "securitynowaud", "desc": "Where AI meets cryptography"},
+                                   {"id": "businesswars", "desc": "Real business rivalries"}]}, {})
+        self.assertEqual({"securitynowaud", "businesswars"}, set(got), "尺子：正确的回答也存不进去了")
+
+
+class TheHealthcheckReadsWhatTheModelCallsActuallyDid(unittest.TestCase):
+    """开关写在代码里是「应该」；CLI 留下的会话记录里有没有 tool_use 才是「实际」。
+    CLI 升级改了开关语义、有人把 cwd 改回仓库，代码层的测试都还绿，这一项会红。"""
+
+    def _home(self, sessions):
+        import tempfile
+        td = tempfile.TemporaryDirectory()
+        self.addCleanup(td.cleanup)
+        home = pathlib.Path(td.name)
+        for i, (folder, entry, ts, tools, *more) in enumerate(sessions):
+            prompts = more[0] if more else 1      # 交互会话会有好几句提问
+            d = home / ".claude" / "projects" / folder
+            d.mkdir(parents=True, exist_ok=True)
+            lines = []
+            for k in range(prompts):
+                lines += [{"type": "user", "entrypoint": entry, "timestamp": ts,
+                           "message": {"role": "user", "content": f"节目：第 {i} 集（{k}）"}},
+                          {"type": "assistant", "timestamp": ts, "message": {"role": "assistant", "content":
+                              [{"type": "tool_use", "name": t, "input": {}} for t in tools]
+                              + [{"type": "text", "text": "{}"}]}}]
+            (d / f"s{i}.jsonl").write_text("\n".join(json.dumps(x) for x in lines))
+        return home
+
+    def _check(self, sessions, fixed="2026-01-01T00:00:00Z", make_projects=True):
+        import datetime as dt
+        from unittest import mock
+        import healthcheck as H
+        home = self._home(sessions)
+        if make_projects:
+            (home / ".claude" / "projects").mkdir(parents=True, exist_ok=True)
+        r = H.Report()
+        with mock.patch.object(H, "LLM_TOOLS_FIXED_AT", fixed):
+            H.check_llm_calls_have_no_tools(r, home=home, at=dt.datetime.now(dt.timezone.utc))
+        return r
+
+    def _ago(self, minutes):
+        import datetime as dt
+        return (dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=minutes)).strftime(
+            "%Y-%m-%dT%H:%M:%S.000Z")
+
+    NEUTRAL = "-Users-x--cache-ourword-llm"
+    PROD = "-Users-x-Library-Application-Support-ourword-podcast-podcast"
+
+    def test_a_pipeline_call_that_used_a_tool_is_a_hard_failure(self):
+        r = self._check([(self.NEUTRAL, "sdk-cli", self._ago(60), []),
+                         (self.PROD, "sdk-cli", self._ago(30), ["Read"])])
+        self.assertTrue(any("动用了工具" in m and "1/2" in m for m in r.bad), r.bad)
+
+    def test_a_clean_run_says_how_many_calls_it_looked_at(self):
+        r = self._check([(self.NEUTRAL, "sdk-cli", self._ago(60), []),
+                         (self.NEUTRAL, "sdk-cli", self._ago(30), [])])
+        self.assertEqual([], r.bad)
+        self.assertTrue(any("2 次" in m for m in r.ok), r.ok)
+
+    def test_interactive_sessions_and_other_projects_are_not_counted(self):
+        r = self._check([(self.PROD, "claude-desktop", self._ago(30), ["Bash", "Edit"], 3),
+                         ("-Users-x-some-other-project", "sdk-cli", self._ago(30), ["Bash"]),
+                         (self.NEUTRAL, "sdk-cli", self._ago(30), [])])
+        self.assertEqual([], r.bad, "仓库目录里的交互会话、别的项目本来就该用工具")
+
+    def test_a_round_started_from_a_desktop_session_is_still_seen(self):
+        # 手动补跑的一轮从桌面 app 的会话里拉起，CLI 记的入口是 claude-desktop 不是 sdk-cli。
+        # 第一版按 sdk-cli 筛，这一整轮的调用全看不见（11-09 实测）。
+        r = self._check([(self.NEUTRAL, "claude-desktop", self._ago(30), ["Read"])])
+        self.assertTrue(any("动用了工具" in m for m in r.bad), r.bad)
+        r = self._check([(self.PROD, "claude-desktop", self._ago(30), ["Bash"])])
+        self.assertTrue(any("动用了工具" in m for m in r.bad), "仓库目录里的一次性调用也该算：" + str(r.bad))
+
+    def test_sessions_from_before_the_fix_do_not_keep_it_red(self):
+        r = self._check([(self.PROD, "sdk-cli", self._ago(120), ["Read"]),
+                         (self.NEUTRAL, "sdk-cli", self._ago(10), [])], fixed=self._ago(60)[:19] + "Z")
+        self.assertEqual([], r.bad, "修好之前仓库目录里的旧会话不该让它再红 48 小时")
+
+    def test_the_new_call_path_is_checked_from_its_first_session(self):
+        # 仓库外的空目录只有新代码会去：那里一出现工具调用就是新开关失效，不等截止时刻
+        r = self._check([(self.NEUTRAL, "sdk-cli", self._ago(120), ["Read"])],
+                        fixed=self._ago(60)[:19] + "Z")
+        self.assertTrue(any("动用了工具" in m for m in r.bad), r.bad)
+
+    def test_no_records_is_not_reported_as_fine(self):
+        r = self._check([])
+        self.assertEqual([], r.ok, "一条记录都没看到，不能说「没有动用工具」")
+        self.assertTrue(any("查不了" in m for m in r.warn), r.warn)
+
+    def test_machines_without_the_cli_stay_silent(self):
+        r = self._check([], make_projects=False)
+        self.assertEqual(([], [], []), (r.bad, r.warn, r.ok), "云端没有这条线，不该出声")

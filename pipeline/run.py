@@ -813,14 +813,25 @@ def _write_catchup_note(published: int) -> None:
         old = json.loads(f.read_text())
     except Exception:
         old = {}
+    t = now()
+    # 每一轮一条，留 10 天。体检看近 3 天每一轮发了几篇 —— 只和上一轮比，
+    # 判据平时永远不成立、停更几天后又必然误报（11-09）。
+    hist = [h for h in (old.get("hist") or []) if isinstance(h, dict) and h.get("at")]
+    if not hist and old.get("at"):
+        hist = [{"at": old["at"], "pending": old.get("pending"),
+                 "published": old.get("published") or 0}]
+    hist.append({"at": iso(t), "pending": len(ids), "published": published})
+    keep = iso(t - dt.timedelta(days=10))
+    hist = [h for h in hist if str(h["at"]) >= keep][-60:]
     f.write_text(json.dumps({
-        "at": iso(now()),
+        "at": iso(t),
         "pending": len(ids),
         "ids": ids,
         "published": published,
-        # 上一次队列多长：体检拿它判断"这一周有没有在缩"
+        # 上一次队列多长（留着给人看；体检用 hist）
         "prev_pending": old.get("pending"),
         "prev_at": old.get("at"),
+        "hist": hist,
     }, ensure_ascii=False, indent=1) + "\n")
 
 

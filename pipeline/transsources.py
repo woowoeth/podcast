@@ -32,7 +32,17 @@ def main() -> int:
             have = json.loads(OUT.read_text()).get("sources", {})
         except Exception:
             have = {}
+    # 集 id（源名-十位哈希）不可能是信源 id —— 信源 id 里从来没有「-」。
+    # 11-09 模型答非所问，把两集的标题译文按集 id 交了回来，被原样存进这里。
+    junk = [k for k in have if "-" in k]
+    for k in junk:
+        del have[k]
+    if junk:
+        log(f"清掉 {len(junk)} 条不是信源的条目：{'、'.join(junk[:4])}")
     todo = [s for s in srcs if s.get("desc") and s["id"] not in have]
+    if not todo and junk:
+        OUT.write_text(json.dumps({"sources": have}, ensure_ascii=False,
+                                  indent=1) + "\n")
     if not todo:
         log("信源简介都译过了")
         return 0
@@ -49,13 +59,21 @@ def main() -> int:
         except Exception as ex:
             log(f"  这一批失败：{type(ex).__name__}")
             continue
-        got = 0
+        got, stray = 0, []
+        asked = {s["id"] for s in batch}
         for it in (r.get("items") or []):
             sid, desc = it.get("id"), (it.get("desc") or "").strip()
-            if sid and desc:
+            # **只收这一批问到的 id。** 原来是「有 id 有译文就存」，模型交回别的东西
+            # 也照单全收（11-09：问的是两条信源，存进去的是两集的标题）。
+            if sid not in asked:
+                stray.append(str(sid))
+                continue
+            if desc:
                 have[sid] = {"desc": desc}
                 got += 1
         log(f"  第 {i//40 + 1} 批：{got}/{len(batch)} 条")
+        if stray:
+            log(f"  答非所问，丢掉 {len(stray)} 条没问过的：{'、'.join(stray[:4])}")
         OUT.parent.mkdir(parents=True, exist_ok=True)
         OUT.write_text(json.dumps({"sources": have}, ensure_ascii=False,
                                   indent=1) + "\n")

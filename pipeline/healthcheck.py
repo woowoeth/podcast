@@ -1136,9 +1136,9 @@ def check_catchup_is_working(r: Report) -> None:
     产出 2 篇"正是这么藏了两周的——sources.json 涨了、分类数涨了、
     体检全绿，没有一个数字在说这件事。
 
-    判据落在**队列有没有在缩**：建档名单是「账本里 added、且出稿不足 6 篇」
-    推导出来的，建起来就自动退出。所以队列长期不变 = 机制没在工作，
-    不管它每天有没有"成功执行"。
+    判据落在**近 3 天有没有产出**（每一轮记在 catchup.json 的 hist 里）。
+    建档名单是「账本里 added、且出稿不足 6 篇」推导出来的，建起来就自动退出；
+    但新源一直在加，队列缩不缩只做参考，见下面的注释。
     """
     import datetime as _dt
     f = DATA / "catchup.json"
@@ -1161,7 +1161,7 @@ def check_catchup_is_working(r: Report) -> None:
     except Exception:
         r.note("data/catchup.json 读不了")
         return
-    pend, prev = d.get("pending"), d.get("prev_pending")
+    pend = d.get("pending")
     age, t = None, None
     try:
         t = _dt.datetime.strptime(d["at"][:19], "%Y-%m-%dT%H:%M:%S").replace(
@@ -1176,29 +1176,40 @@ def check_catchup_is_working(r: Report) -> None:
         r.fail(f"新源建档 {age/24:.0f} 天没跑过了，队列里还有 {pend} 档 —— "
                f"两条发布线里那一步是 continue-on-error，坏了不会有人知道")
         return
-    line = f"新源建档：队列 {pend} 档，上一轮发了 {d.get('published', 0)} 篇"
     # **判据要看时间跨度，不是看单轮。** 单轮零产出是正常的——闸门本来
     # 就会拒掉大半（实测一轮 16 个候选 15 个取不到文稿）。第一版写成
     # 「上一轮零产出就报硬伤」，刚建好就自己响了：前一轮发了 2 篇、
     # 这一轮 0 篇，而那完全正常。一条会喊狼来了的检查比没有更糟。
     #
-    # 真正的失效是「队列长期不缩」。所以和 prev_at 那个时间点比：
-    # 隔了 3 天以上、队列一点没缩，才是机制没在工作。
-    shrunk = prev is None or pend < prev
-    span_days = None
-    if d.get("prev_at"):
+    # 第二版和 prev_at（**上一轮**的记录）比「隔了 3 天以上、队列一点没缩」。
+    # 上一轮正常就在 12 小时前，这个条件平时永远不成立 —— 建档两周零产出它也不响；
+    # 只有整条线停了几天、上一轮恰好在 3 天前时才响（11-09 停更四天后就是这么报的硬伤，
+    # 量的是「隔了多久没跑」，不是「建档在不在产出」）。
+    #
+    # 现在看近 3 天的每一轮（catchup.json 的 hist）：至少跑了 4 轮、一篇都没发，才是
+    # 机制没在工作。队列缩不缩只做参考 —— 新源一直在加，每档要攒够 6 篇才退出，
+    # 产出正常时队列也可能不缩。
+    def _ts(s):
         try:
-            t0 = _dt.datetime.strptime(d["prev_at"][:19],
-                                       "%Y-%m-%dT%H:%M:%S").replace(
+            return _dt.datetime.strptime(str(s)[:19], "%Y-%m-%dT%H:%M:%S").replace(
                 tzinfo=_dt.timezone.utc)
-            span_days = ((t - t0).total_seconds() / 86400) if t else None
-        except Exception:
-            span_days = None
-    if not shrunk and span_days is not None and span_days >= 3:
-        r.fail(line + f"（{span_days:.0f} 天前也是 {prev} 档，一点没缩）—— "
-                      f"建档没在产出，去看那一步的日志")
+        except ValueError:
+            return None
+    edge = _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=3)
+    hist = [(_ts(h.get("at")), h) for h in (d.get("hist") or []) if isinstance(h, dict)]
+    hist = [(ht, h) for ht, h in hist if ht]
+    win = [h for ht, h in hist if ht >= edge]
+    before = [h for ht, h in hist if ht < edge]
+    out = sum(int(h.get("published") or 0) for h in win)
+    line = (f"新源建档：队列 {pend} 档"
+            + (f"（3 天前 {before[-1].get('pending')} 档）" if before else "")
+            + f"，近 3 天 {len(win)} 轮发了 {out} 篇")
+    if len(win) >= 4 and out == 0:
+        r.fail(line + " —— 建档没在产出，去看那一步的日志")
+    elif len(win) >= 4:
+        r.good(line)
     else:
-        r.note(line + (f"（上一轮 {prev} 档）" if prev is not None else ""))
+        r.note(line + f"（近 3 天只记了 {len(win)} 轮，还判不了在不在产出）")
 
 
 def check_asr_only_routing(r: Report) -> None:
@@ -1535,6 +1546,88 @@ def check_dead_episodes(r: Report) -> None:
              "救活它，或者写下为什么放弃")
 
 
+# 仓库目录里的会话，这个时刻之前的都是旧开关（--allowed-tools ""，一个工具都没关）跑的，
+# 动过工具是已知的事，不该在修好之后还红 48 小时 —— 一道修完必然红两天的闸，两天里就会被学会无视。
+# 推送时正有一轮用旧代码在跑，所以留足余量；仓库外那个空目录只有新代码会去，从第一条起就查。
+LLM_TOOLS_FIXED_AT = "2026-11-09T10:00:00Z"
+
+
+def check_llm_calls_have_no_tools(r: Report, home: pathlib.Path | None = None,
+                                  at=None) -> None:
+    """流水线的模型调用**真的**没碰工具吗 —— 读 CLI 自己留下的会话记录，不看代码怎么写。
+
+    为什么要有：lib/llm.py 原来用 --allowed-tools "" 以为关了工具，其实那只是免确认名单。
+    一个月约 2900 次调用里 240 次动了工具，11-09 模型自己去读了两集的文件、把集标题当信源简介交回来。
+    代码里的开关是「应该」，会话记录里有没有 tool_use 才是「实际」：CLI 升级改了开关语义，这里会红。
+
+    **不按 entrypoint 分。** 它跟着父进程的环境变量走：launchd 拉起的是 sdk-cli，从桌面 app 的
+    会话里手动跑一轮就是 claude-desktop —— 第一版按 sdk-cli 筛，手动补跑的整轮都看不见。
+    仓库外那个空目录只有 llm.py 会去，里面每个会话都算；仓库目录（生产目录、worktree）里
+    只算「只有一句提问」的一次性调用 —— 有人在那里开交互会话、本来就该用工具，不算。
+    没有 ~/.claude/projects（云端）就不是这条线，不出声。
+    """
+    import datetime as _dt
+    base = (home or pathlib.Path.home()) / ".claude" / "projects"
+    if not base.is_dir():
+        return
+    at = at or _dt.datetime.now(_dt.timezone.utc)
+    fixed = _dt.datetime.strptime(LLM_TOOLS_FIXED_AT, "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=_dt.timezone.utc)
+    window = at - _dt.timedelta(hours=48)
+    n, hits = 0, []
+    for d in base.iterdir():
+        if not d.is_dir() or not ("ourword-llm" in d.name or "ourword-podcast" in d.name):
+            continue
+        since = window if "ourword-llm" in d.name else max(window, fixed)
+        for f in d.glob("*.jsonl"):
+            try:
+                if f.stat().st_mtime < since.timestamp():
+                    continue
+                text = f.read_text(errors="replace")
+            except OSError:
+                continue
+            tools, asks, first_ts = [], [], None
+            for line in text.splitlines():
+                if not line.strip():
+                    continue
+                try:
+                    e = json.loads(line)
+                except ValueError:
+                    continue
+                first_ts = first_ts or e.get("timestamp")
+                m = e.get("message") or {}
+                c = m.get("content")
+                if e.get("type") == "user" and isinstance(c, str) and not e.get("isMeta"):
+                    asks.append(c)
+                if e.get("type") == "assistant" and isinstance(c, list):
+                    tools += [b.get("name", "?") for b in c
+                              if isinstance(b, dict) and b.get("type") == "tool_use"]
+            if "ourword-llm" not in d.name and len(asks) != 1:
+                continue    # 仓库目录里的交互会话
+            ask = asks[0] if asks else ""
+            # 会话开始得比窗口早（比如修好之前、旧开关跑的），文件 mtime 晚只是后来被碰过
+            try:
+                if first_ts and _dt.datetime.strptime(first_ts[:19], "%Y-%m-%dT%H:%M:%S").replace(
+                        tzinfo=_dt.timezone.utc) < since:
+                    continue
+            except ValueError:
+                pass
+            n += 1
+            if tools:
+                hits.append((f.stem[:8], sorted(set(tools)), " ".join(ask.split())[:30]))
+    if hits:
+        kinds = sorted({t for _, ts, _ in hits for t in ts})
+        sid, ts, ask = hits[0]
+        r.fail(f"流水线的模型调用动用了工具：48 小时内 {len(hits)}/{n} 次（{'、'.join(kinds)}）—— "
+               f"claude -p 应该一个工具都没有，模型会自己去读仓库里别的文件、答非所问。"
+               f"先看 lib/llm.py 的 _cli 开关是不是被 CLI 升级改了语义"
+               f"（例：会话 {sid}，问的是「{ask}…」，用了 {'、'.join(ts)}）")
+    elif n:
+        r.good(f"模型调用 {n} 次（48 小时内），没有一次动用工具")
+    else:
+        r.note("最近 48 小时找不到流水线模型调用的会话记录 —— 查不了它们有没有动用工具")
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--online", action="store_true", help="连线上一起查")
@@ -1585,6 +1678,7 @@ def main(argv: list[str] | None = None) -> int:
     check_local_asr(r)
     check_catchup_is_working(r)
     check_source_status_is_fresh(r)
+    check_llm_calls_have_no_tools(r)
     if a.online:
         check_online(r)
 

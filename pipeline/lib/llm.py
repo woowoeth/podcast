@@ -433,6 +433,17 @@ class _Gate:
 _CLI = _Gate()
 
 
+def cli_cwd() -> str:
+    """`claude -p` 的工作目录：仓库外、不在任何 git 仓库里的一个空目录。
+
+    它的会话记录也因此集中落在 ~/.claude/projects/ 下同一个目录里，
+    体检拿它核「模型调用有没有动用工具」（healthcheck.check_llm_calls_have_no_tools）。"""
+    d = os.environ.get("LLM_CLI_CWD") or os.path.join(
+        os.path.expanduser("~"), ".cache", "ourword-llm")
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
 def _cli(system: str, user: str, *, model: str = "", tries: int = 4) -> str:
     # stdin carries the payload so a long transcript never hits ARG_MAX.
     #
@@ -440,15 +451,28 @@ def _cli(system: str, user: str, *, model: str = "", tries: int = 4) -> str:
     # with "Reached max turns" before writing anything — it happened on sonnet
     # while opus got away with it. Tools are switched off instead, which is the
     # actual intent (one generation, no file access, no wasted turns).
+    #
+    # **关工具要用 --tools ""，不是 --allowed-tools ""。** 后者只是「免确认名单」，
+    # 一个工具都没关：2026-10-09 → 11-09 本机约 2900 次调用里 240 次动了工具（Bash 跑成
+    # 267 次、Read 52 次、自己派子代理 4 次）。11-09 译两条信源简介时，模型从上下文里的
+    # git status 看到刚落盘的两集，自己去读了那两个文件，把**集标题**的译文当成信源简介
+    # 交回来 —— 体检报「信源简介译文缺 2 条」才露出来。
+    #
+    # 另外两件同一个洞里的事：
+    #   --safe-mode / --strict-mcp-config：不带 CLAUDE.md、技能、插件、钩子、MCP ——
+    #     一次写稿调用不需要它们，原来每次都整套带上，白占额度；
+    #   cwd 换到仓库外的空目录：CLI 在哪个目录跑，就把那里的 git status 塞进上下文，
+    #     模型看到「新增了哪些集」就可能答非所问，工具关了也一样。
     cmd = ["claude", "-p", "--model", model or model_name(),
            "--append-system-prompt", system,
-           "--allowed-tools", ""]
+           "--tools", "", "--safe-mode", "--strict-mcp-config"]
     last = ""
     serial_retry = False
     for i in range(tries):
         try:
             with _CLI:
-                r = subprocess.run(cmd, input=user, capture_output=True, text=True, timeout=1800)
+                r = subprocess.run(cmd, input=user, capture_output=True, text=True,
+                                   timeout=1800, cwd=cli_cwd())
         except subprocess.TimeoutExpired:
             last = "timed out after 1800s"
         else:
