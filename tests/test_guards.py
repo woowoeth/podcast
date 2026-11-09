@@ -13433,6 +13433,9 @@ if NAME == "build.py":
         import shlex
         (bin_ / "claude").write_text("#!/bin/sh\n" + (f"echo {shlex.quote(claude_says)}\nexit 1\n"
                                                       if claude_says else "exit 0\n"))
+        # curl 的桩：探针被 403 时查网络出口（cloudflare trace）。测试不出网，固定答 HK
+        (bin_ / "curl").write_text("#!/bin/sh\nprintf 'fl=1\\nloc=HK\\n'\n")
+        (bin_ / "curl").chmod(0o755)
         # osascript 的桩：记下弹了什么通知（macOS 上不真弹，Linux 上本来就没有）
         (bin_ / "osascript").write_text(f"#!/bin/sh\nprintf '%s\\n' \"$*\" >> '{tmp / 'notified'}'\n")
         (bin_ / "claude").chmod(0o755)
@@ -13763,6 +13766,7 @@ if NAME == "build.py":
                                            capture_output=True, text=True).stdout or "{}")
             self.assertNotIn(hb.get("exit"), (0, None), "推上去的心跳不是失败 —— 体检看不出这一轮没出稿")
             self.assertIn(want, hb.get("why", ""), f"心跳没写清原因：{hb.get('why')}")
+            return hb
 
     def test_a_failed_scheduled_run_pops_a_notification_with_the_reason(self):
         """停更 5 天，报警全写进用户不看的 issue。launchd 拉起的那一轮失败，要在 Mac 上弹出来。"""
@@ -13788,6 +13792,13 @@ if NAME == "build.py":
     def test_an_exhausted_quota_stops_the_run_and_says_why(self):
         """2026-10-22：订阅周额度用完，7 集各撞一次，最后只说「error=7，部署有问题」。"""
         self._model_unusable("You've hit your weekly limit · resets Oct 23 at 7pm (Asia/Hong_Kong)", "额度")
+
+    def test_a_refused_network_exit_is_not_reported_as_logged_out(self):
+        """11-05 → 11-09 停了 4 天：探针拿到「Failed to authenticate. API Error: 403 Request not allowed」，
+        落进「没登录」那一支，报警叫人去 /login。实际是网络出口被拒，网络好了第一次调用就续上了登录。
+        原因里要写出口在哪（沙盒里 curl 的桩答 loc=HK），而且不许再说「没登录」。"""
+        hb = self._model_unusable("Failed to authenticate. API Error: 403 Request not allowed", "出口 HK")
+        self.assertNotIn("没登录", hb.get("why", ""), "403 被报成没登录 —— 用户照做 /login 也修不好")
 
     # ---- 每小时的整点（pipeline/slot.py）：真跑脚本，看它碰了什么 ----
     OLD_HB = {"at": "2026-01-01T00:00:00Z", "line": "local", "exit": 0}

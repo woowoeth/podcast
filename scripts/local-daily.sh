@@ -390,6 +390,14 @@ PYEOF
             | tail -3 | tr '\n' ' ')
     why=""
     case "$probe" in
+      # **403 Request not allowed 不当成「没登录」。** 11-05 21:30 → 11-09 10:30 连着 8 班都是
+      # 「Failed to authenticate. API Error: 403 Request not allowed」，原来落进下面「没登录」那一支，
+      # 报警叫人去 /login。没登录／登录过期是 401（Not logged in、token has expired）；
+      # 403 这一句是 Anthropic 不服务这台机器当时的网络出口。11-09 网络正常后，第一次调用
+      # 就自己续上了登录 —— 一直没人 /login。所以把出口在哪写进原因，报警一眼看得出是网络。
+      *"Request not allowed"*)
+        loc=$(curl -s --max-time 10 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null | sed -n 's/^loc=//p')
+        why="Anthropic 拒绝本机请求，多半是网络出口不在服务地区 —— 看 VPN（快连）连上没有、节点对不对，重新登录没用（出口 ${loc:-查不到}；${probe}）" ;;
       *"Not logged in"*|*"/login"*|*"ailed to authenticate"*)
         why="claude CLI 没登录 —— 在终端里跑 claude，再输入 /login（${probe}）" ;;
       *"hit your"*"limit"*|*"limit"*"resets"*|*"usage limit"*)
