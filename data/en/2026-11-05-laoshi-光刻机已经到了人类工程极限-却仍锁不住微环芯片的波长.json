@@ -1,0 +1,139 @@
+{
+ "slug": "2026-11-05-laoshi-光刻机已经到了人类工程极限-却仍锁不住微环芯片的波长",
+ "of": "laoshi-075e538397",
+ "source_lang": "zh",
+ "title": "Lithography has reached human engineering limits, yet cannot lock down microring chip wavelengths",
+ "dek": "Silicon photonics once deemed microrings unproducible due to wavelength drift. This company built a laser annealing tuning device that achieved 99% wavelength yield, circumventing dependence on cutting-edge lithography.",
+ "why": "Takes CPO/OIO from concept to concrete manufacturing challenges: microring yield, laser source costs, and electrical chip driving voltage—details rarely broken down in public reporting.",
+ "who": "Investors tracking AI compute infrastructure, semiconductor and optical communication engineers, and practitioners working to understand CPO/OIO technology roadmap debates.",
+ "skip": "Around 4:40-5:40 contains transcript noise, skip directly.",
+ "tags": [
+  "Optical interconnect",
+  "CPO",
+  "Microring chips",
+  "Compute bottleneck",
+  "Semiconductor manufacturing",
+  "AI infrastructure"
+ ],
+ "points": [
+  {
+   "h": "Compute growth far exceeds copper wire capacity",
+   "body": "Over the past decade, global compute grew roughly 100 million times, nearly 10-fold annually, yet chip area grows only with the square of edge length, so the perimeter carrying data grows naturally slower. When bandwidth demand becomes 10x, 100x, or even 1000x greater, copper completely fails, and interconnect transitions for the first time from a computing byproduct to the core node determining AI cluster efficiency and power efficiency."
+  },
+  {
+   "h": "Microrings are two orders of magnitude smaller than MZI, enabling wide-and-slow design",
+   "body": "Traditional Mach-Zehnder (MZI) modulators are roughly 3 millimeters; microring modulators around 15 micrometers in diameter—more than two orders of magnitude difference. MZI, constrained by edge layout, can only stack bandwidth by raising per-channel speeds; microrings, small enough to blanket an entire chip like sesame seeds, use many low-speed parallel channels instead, achieving higher total bandwidth density and lower power consumption."
+  },
+  {
+   "h": "Performance means nothing if it cannot scale to production",
+   "body": "Microrings excel in the lab—pair them with a tunable laser and you get excellent transmitters. But at production scale, purchased laser wavelengths mismatch each microring's response wavelength, making mass manufacturing impossible. The advisor judged it clearly: the device performs well, you can obviously see that, but it cannot scale to production—the core industry concern is that microring wavelengths naturally drift, preventing all-in commitment to the approach."
+  },
+  {
+   "h": "Lithography precision has reached its ceiling, yet cannot lock phase stability",
+   "body": "Conventional approach: better lithography tightens line width to suppress wavelength drift. But even at 0.5 or 1 nanometer precision—the human engineering limit—such jitter stays perceptible to precision optics and causes phase shift. The solution: stop pursuing perfect lithography. Instead, separate line width control and wavelength correction into two steps: standard lithography first, then a dedicated device to tune each microring's phase."
+  },
+  {
+   "h": "Tuning device achieves 99% wavelength yield",
+   "body": "The device, named Zhiwei 1000E (智威1000E), uses tens of thousands of pulsed laser scans to trace amorphous silicon regions on the chip with picometer precision, pulling each microring's wavelength to target. On this single metric—microring wavelength—it achieved 99% yield. This means microring manufacturing no longer requires EUV or cutting-edge lithography, enabling mass production with mature process nodes."
+  },
+  {
+   "h": "Custom lasers at $3,000 per unit drove in-house light source development",
+   "body": "Each microring needs one wavelength; eight-channel microring arrays theoretically require eight separately tuned narrow-linewidth DFB lasers, priced around $3,000 each. Eight lasers lined up generate cross-heating and cannot be solved by stacking power; splitting them damages performance. The team self-developed comb lasers, letting one device produce 8 or even 16 wavelengths directly, drastically reducing light source cost and complexity."
+  },
+  {
+   "h": "Electrical chips translate between GPUs and photonics",
+   "body": "GPUs' built-in SerDes targets 50-ohm copper impedance at roughly 400-800 millivolts, but microrings are nonlinear, requiring 1.6-2V or higher driving voltage, specific reverse bias, and extreme temperature sensitivity for real-time wavelength locking—none native to GPUs. The team designed an electrical chip between GPU and photonic chip, translating electrical signals into a form photonics can read, completely transparent to the GPU."
+  },
+  {
+   "h": "OIO is not a better optical module but a new computing paradigm",
+   "body": "The team explicitly rejected becoming the next Zhongji Xuechuang (中际旭创), since optical modules target communications, while scale-up interconnect comes from compute—maximizing utilization, minimizing latency at any cost. OIO will define a new paradigm for computing optical interconnect. Against Nvidia's closed-loop full-stack ecosystem (the team calls this the 'Apple ecosystem'), they chose the reverse: an Android ecosystem, opening the technology to all GPU makers worldwide."
+  }
+ ],
+ "terms": [
+  {
+   "term": "CPO",
+   "def": "Packages optical devices with switching chips together, primarily for switch-side optical interconnect."
+  },
+  {
+   "term": "OIO",
+   "def": "Connects light directly to computing chip (GPU/CPU) pins, a new form of interconnect technology."
+  },
+  {
+   "term": "UCIE",
+   "def": "Protocol standard for chiplet-to-chiplet interconnect, originally designed for distances spanning centimeters to millimeters."
+  },
+  {
+   "term": "microring modulator",
+   "def": "Ring-shaped optical modulator only tens of micrometers in diameter, operating through wavelength resonance."
+  },
+  {
+   "term": "MZI",
+   "def": "Traditional optical modulator achieving modulation through light path phase interference, millimeter scale."
+  },
+  {
+   "term": "WDM",
+   "def": "Technique allowing multiple signals at different wavelengths to share one fiber simultaneously."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Compute growth over past decade",
+   "v": "~100 million times (roughly 10-fold annually)"
+  },
+  {
+   "k": "MZI modulator size",
+   "v": "~3 millimeters"
+  },
+  {
+   "k": "Microring modulator diameter",
+   "v": "~15 micrometers"
+  },
+  {
+   "k": "Microring wavelength yield (after tuning)",
+   "v": "99%"
+  },
+  {
+   "k": "Custom DFB laser unit price",
+   "v": "~$3,000 per unit"
+  },
+  {
+   "k": "Company valuation",
+   "v": "Just over $1 billion (unicorn)"
+  },
+  {
+   "k": "Chip tape-out rounds",
+   "v": "Photonic chip: 8 rounds; electrical chip: 5 rounds"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "I think if optical interconnect truly gets into GPUs, compute may no longer be the central node of an AI cluster—interconnect could become the central node of the entire cluster.",
+   "translated": true
+  },
+  {
+   "text": "The performance is clearly good, you can obviously see that, but it cannot scale to production.",
+   "translated": true
+  },
+  {
+   "text": "I said at that point: no matter how good a lithography tool you use, no matter what you do, you've reached the human engineering limit. But optical systems, wavelengths—these are naturally sensitive nodes. Your slightest variation is still perceptible to them.",
+   "translated": true
+  },
+  {
+   "text": "These narrowband light sources, single-channel DFB lasers, are priced at roughly $3,000 per unit.",
+   "translated": true
+  },
+  {
+   "text": "When Tesla was doing electric cars 20 years ago, no one else was doing motors, motor controllers, or batteries—you had to do it all yourself. You had to be integrated.",
+   "translated": true
+  },
+  {
+   "text": "We're not trying to make a better optical module. OIO is meant to define a new paradigm for computing optical interconnect.",
+   "translated": true
+  },
+  {
+   "text": "But we're willing to build an Android ecosystem. I want to open our technology to all such companies.",
+   "translated": true
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
