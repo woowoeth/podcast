@@ -47,6 +47,17 @@ LOG="$LOG_DIR/$(date +%Y-%m-%d).log"
 # launchd 给的 PATH 很窄：claude、python3、yt-dlp、git 都得自己找回来。
 export PATH="/Library/Frameworks/Python.framework/Versions/3.14/bin:/opt/homebrew/bin:/usr/local/bin:$HOME/bin/node/bin:$HOME/.local/bin:$PATH"
 
+# **长效登录（claude setup-token，一年）在钥匙串里就用它。** 不用它时，CLI 的登录要靠续期，
+# 而定时任务自己续不上：11-05 → 11-09 Claude app 关着的四天，八班全是 403；11-09 app 一打开，
+# 75 秒后钥匙串里的登录被续上，一切恢复 —— 没有人做任何事。长效 token 不续期，app 开不开都行。
+# 存法见 scripts/set-cli-token.sh（不回显、不经过对话、不落盘）。没有就照旧走钥匙串里的登录。
+CLI_TOKEN_SERVICE="${CLI_TOKEN_SERVICE:-ourword-podcast-claude-token}"
+if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && command -v security >/dev/null 2>&1; then
+  _tok=$(security find-generic-password -s "$CLI_TOKEN_SERVICE" -w 2>/dev/null) || _tok=""
+  [ -n "$_tok" ] && export CLAUDE_CODE_OAUTH_TOKEN="$_tok"
+  unset _tok
+fi
+
 # 本地凭证（若存在）。600 权限，不进 git。
 ENV_FILE="$HOME/.config/podcast/env"
 if [ -f "$ENV_FILE" ]; then
@@ -392,14 +403,27 @@ PYEOF
     case "$probe" in
       # **403 Request not allowed 不当成「没登录」。** 11-05 21:30 → 11-09 10:30 连着 8 班都是
       # 「Failed to authenticate. API Error: 403 Request not allowed」，原来落进下面「没登录」那一支，
-      # 报警叫人去 /login。没登录／登录过期是 401（Not logged in、token has expired）；
-      # 403 这一句是 Anthropic 不服务这台机器当时的网络出口。11-09 网络正常后，第一次调用
-      # 就自己续上了登录 —— 一直没人 /login。所以把出口在哪写进原因，报警一眼看得出是网络。
+      # 报警叫人去 /login —— 而那四天根本没人 /login，11-09 Claude app 一打开登录就自己续上了。
+      # 403 有两个来源，按网络出口分开说：出口在 Anthropic 不服务的地区 → 看 VPN；
+      # 出口正常 → 定时任务自己续不上登录（app 关着），换长效 token 就一劳永逸。
       *"Request not allowed"*)
         loc=$(curl -s --max-time 10 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null | sed -n 's/^loc=//p')
-        why="Anthropic 拒绝本机请求，多半是网络出口不在服务地区 —— 看 VPN（快连）连上没有、节点对不对，重新登录没用（出口 ${loc:-查不到}；${probe}）" ;;
+        case "${loc:-}" in
+          CN|HK|MO|RU|BY|IR|KP|SY|CU)
+            why="网络出口在 ${loc}，Anthropic 不服务这个地区 —— 看 VPN（快连）连上没有、节点对不对（${probe}）" ;;
+          *)
+            if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+              why="长效 token 被拒 —— 重新跑 claude setup-token，再 bash scripts/set-cli-token.sh（出口 ${loc:-查不到}；${probe}）"
+            else
+              why="定时任务续不上 Claude 登录（Claude app 关着时就会这样）—— 打开 Claude app 会自己续上；一劳永逸：claude setup-token，再 bash scripts/set-cli-token.sh（出口 ${loc:-查不到}；${probe}）"
+            fi ;;
+        esac ;;
       *"Not logged in"*|*"/login"*|*"ailed to authenticate"*)
-        why="claude CLI 没登录 —— 在终端里跑 claude，再输入 /login（${probe}）" ;;
+        if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+          why="钥匙串里的长效 token 失效了 —— 重新跑 claude setup-token，再 bash scripts/set-cli-token.sh（${probe}）"
+        else
+          why="claude CLI 没登录 —— 在终端里跑 claude，再输入 /login（${probe}）"
+        fi ;;
       *"hit your"*"limit"*|*"limit"*"resets"*|*"usage limit"*)
         why="Claude 订阅额度用完（${probe}）" ;;
     esac

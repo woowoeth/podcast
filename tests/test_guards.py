@@ -13415,7 +13415,7 @@ if NAME == "build.py":
 
     def _sandbox(self, tmp, publish=True, race=False, leftover=None, upstream=None, prep=None, die_on=None,
                  claude_says="", notify=False, scheduled=False, hb_local=None, race_main=None,
-                 race_touch=None):
+                 race_touch=None, egress="HK", keychain_token=None, token_does_not_help=False):
         sh = (ROOT / "scripts" / "local-daily.sh").read_text()
         reads = _healthcheck_reads()
         writers = {k: sorted(v & reads) for k, v in _state_writers(reads).items()}
@@ -13431,11 +13431,18 @@ if NAME == "build.py":
         # 碰巧在报错里匹配到「hit your … limit」，本地绿；CI 的 dash 报错不带原文，红了 19 天。
         # 这条测试一直量的是「语法错误的报错信息」，从没量过那句额度提示。
         import shlex
-        (bin_ / "claude").write_text("#!/bin/sh\n" + (f"echo {shlex.quote(claude_says)}\nexit 1\n"
-                                                      if claude_says else "exit 0\n"))
-        # curl 的桩：探针被 403 时查网络出口（cloudflare trace）。测试不出网，固定答 HK
-        (bin_ / "curl").write_text("#!/bin/sh\nprintf 'fl=1\\nloc=HK\\n'\n")
+        # 有长效 token（CLAUDE_CODE_OAUTH_TOKEN 导出了）时桩照真 CLI 的样子：能用；
+        # token_does_not_help 模拟 token 本身过期 —— 带着它也照样报错。
+        (bin_ / "claude").write_text("#!/bin/sh\n" + (
+            ("" if token_does_not_help else '[ -n "$CLAUDE_CODE_OAUTH_TOKEN" ] && exit 0\n')
+            + f"echo {shlex.quote(claude_says)}\nexit 1\n" if claude_says else "exit 0\n"))
+        # curl 的桩：探针被 403 时查网络出口（cloudflare trace）。测试不出网，答 egress
+        (bin_ / "curl").write_text(f"#!/bin/sh\nprintf 'fl=1\\nloc={egress}\\n'\n")
         (bin_ / "curl").chmod(0o755)
+        # security 的桩：钥匙串里的长效 token。默认没有 —— 也挡住 macOS 上读到真钥匙串
+        (bin_ / "security").write_text("#!/bin/sh\n" + (
+            f"printf '%s\\n' {shlex.quote(keychain_token)}\n" if keychain_token else "exit 44\n"))
+        (bin_ / "security").chmod(0o755)
         # osascript 的桩：记下弹了什么通知（macOS 上不真弹，Linux 上本来就没有）
         (bin_ / "osascript").write_text(f"#!/bin/sh\nprintf '%s\\n' \"$*\" >> '{tmp / 'notified'}'\n")
         (bin_ / "claude").chmod(0o755)
@@ -13755,10 +13762,10 @@ if NAME == "build.py":
             stash = subprocess.run(["git", "stash", "list"], cwd=box, capture_output=True, text=True).stdout
             self.assertEqual("", stash, "上一轮的建站产物又被收进 stash、恢复冲突")
 
-    def _model_unusable(self, says, want):
+    def _model_unusable(self, says, want, egress="HK"):
         import tempfile
         with tempfile.TemporaryDirectory() as tmp:
-            r, box, origin, log, reads = self._sandbox(tmp, claude_says=says)
+            r, box, origin, log, reads = self._sandbox(tmp, claude_says=says, egress=egress)
             self.assertNotEqual(0, r.returncode, "模型用不了，这一轮却当成成功跑完了：\n" + r.stdout[-1500:])
             ran = log.read_text() if log.exists() else ""
             self.assertNotIn('"by": "run.py"', ran, "模型用不了还去深读了 —— 扫 feed、转写一圈白干")
@@ -13793,12 +13800,43 @@ if NAME == "build.py":
         """2026-10-22：订阅周额度用完，7 集各撞一次，最后只说「error=7，部署有问题」。"""
         self._model_unusable("You've hit your weekly limit · resets Oct 23 at 7pm (Asia/Hong_Kong)", "额度")
 
-    def test_a_refused_network_exit_is_not_reported_as_logged_out(self):
-        """11-05 → 11-09 停了 4 天：探针拿到「Failed to authenticate. API Error: 403 Request not allowed」，
-        落进「没登录」那一支，报警叫人去 /login。实际是网络出口被拒，网络好了第一次调用就续上了登录。
-        原因里要写出口在哪（沙盒里 curl 的桩答 loc=HK），而且不许再说「没登录」。"""
-        hb = self._model_unusable("Failed to authenticate. API Error: 403 Request not allowed", "出口 HK")
-        self.assertNotIn("没登录", hb.get("why", ""), "403 被报成没登录 —— 用户照做 /login 也修不好")
+    REFUSED = "Failed to authenticate. API Error: 403 Request not allowed"
+
+    def test_a_403_is_never_reported_as_logged_out(self):
+        """11-05 → 11-09 停了 4 天：探针拿到 403 Request not allowed，落进「没登录」那一支，
+        报警叫人去 /login —— 那四天没人 /login，app 一打开登录就自己续上了。按出口分两种说法。"""
+        hb = self._model_unusable(self.REFUSED, "出口在 HK", egress="HK")
+        self.assertIn("VPN", hb["why"], "出口在不服务的地区，却没叫人看 VPN")
+        self.assertNotIn("没登录", hb["why"], "403 被报成没登录")
+        hb = self._model_unusable(self.REFUSED, "set-cli-token.sh", egress="SG")
+        self.assertIn("Claude app", hb["why"], "出口正常时没说是续不上登录（app 关着）")
+        self.assertNotIn("没登录", hb["why"], "403 被报成没登录")
+
+    def test_a_long_lived_token_in_the_keychain_is_used(self):
+        """钥匙串里有 claude setup-token 的长效 token：探针和整轮都用它，app 关着也照跑。
+        桩只在 CLAUDE_CODE_OAUTH_TOKEN 导出时才能用 —— 量的是「真的导出给了 claude」。"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            r, box, origin, log, reads = self._sandbox(tmp, claude_says=self.REFUSED, egress="SG",
+                                                        keychain_token="sk-ant-oat01-test")
+            self.assertEqual(0, r.returncode, "钥匙串里有长效 token，这一轮还是没跑起来：\n" + r.stdout[-1500:])
+            ran = log.read_text() if log.exists() else ""
+            self.assertIn('"by": "run.py"', ran, "探针过了却没去深读")
+        with tempfile.TemporaryDirectory() as tmp:     # 尺子：没有 token 时同一个桩必须不通
+            r, *_ = self._sandbox(tmp, claude_says=self.REFUSED, egress="SG")
+            self.assertNotEqual(0, r.returncode, "尺子坏了：没有 token 时桩也能用")
+
+    def test_an_expired_long_lived_token_says_so(self):
+        """长效 token 一年后过期是 401。配了 token 还叫人 /login 是错的指引：要说重新 setup-token。"""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            r, box, origin, log, reads = self._sandbox(
+                tmp, claude_says="Failed to authenticate. API Error: 401 OAuth access token is invalid.",
+                egress="SG", keychain_token="sk-ant-oat01-old", token_does_not_help=True)
+            hb = json.loads(subprocess.run(["git", "--git-dir", str(origin), "show", "main:data/heartbeat-local.json"],
+                                           capture_output=True, text=True).stdout or "{}")
+            self.assertIn("setup-token", hb.get("why", ""), f"长效 token 过期却没说重新 setup-token：{hb.get('why')}")
+            self.assertNotIn("/login", hb.get("why", ""), "配了长效 token 还叫人去 /login")
 
     # ---- 每小时的整点（pipeline/slot.py）：真跑脚本，看它碰了什么 ----
     OLD_HB = {"at": "2026-01-01T00:00:00Z", "line": "local", "exit": 0}
