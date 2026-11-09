@@ -1,0 +1,106 @@
+{
+ "slug": "2026-10-24-oxideandfriend-防拆袋没拆对-oxide-连夜重做整套根密钥签发仪式",
+ "of": "oxideandfriend-13333b831f",
+ "source_lang": "en",
+ "title": "Oxide redid its root key signing ceremony overnight when the tamper-evident bag failed",
+ "dek": "An engineer driving home grew increasingly anxious about the sealed bag, turned the car around, tested it himself, discovered he could reseal it without traces, so the team redid the entire key signing process that night.",
+ "why": "This episode traces Oxide's complete process of establishing root key trust from scratch—from selecting a dot-matrix printer to the overnight remediation after the tamper-evident bag failed; the details are unusually concrete.",
+ "who": "Engineers building enterprise hardware security, PKI, or signing key infrastructure, and technical decision-makers who care about how 'root of trust' actually gets implemented rather than staying on white papers.",
+ "skip": "The opening nearly nine minutes discussing the Theranos documentary and local cinema observations—unrelated to the main topic and can be skipped.",
+ "tags": [
+  "PKI",
+  "Root of trust",
+  "Hardware security",
+  "Key management",
+  "Supply chain security",
+  "Verified boot"
+ ],
+ "points": [
+  {
+   "h": "Root key trust infrastructure only existed once shipping approached",
+   "body": "In fall 2022, after Philip got the hardware ROT functional, he realized he was the only person in the company relying on a PKI that didn't actually exist yet—no one else needed it because no other features depended on this signing infrastructure. The realization wasn't whether to build it but that Oxide suddenly needed to construct an entire external system as complex as the product software itself just to make the hardcoded root key actually trustworthy."
+  },
+  {
+   "h": "Signing key trust can't follow the lean startup patch-and-iterate model",
+   "body": "Lean startup logic says ship an MVP, iterate from customer feedback. Bryan and Philip both noted this doesn't work for signing keys: keys baked into hardware root trust can't realistically be revoked once shipped. Here, ‘minimum’ means living with that decision for many years. The team's goal wasn't perfection—Philip argues perfection shouldn't even be the target, since the design already requires collusion to break the system—but rather finding the minimum acceptable standard that can survive customer and auditor scrutiny."
+  },
+  {
+   "h": "Unencrypted signing keys in desk drawers remain disturbingly common",
+   "body": "Philip recounted manufacturing horror stories: many startups, rushing to ship, put signing keys directly on a USB stick unencrypted in someone's desk drawer. He estimates this happens far more than zero times. Oxide set a higher bar: keys generated inside an HSM, never leaving the device boundary; only authentication passwords distributed as paper in M-of-N splits, with no single person able to use or compromise the key alone."
+  },
+  {
+   "h": "Oxide chose a dot-matrix printer because it's dumb enough to verify",
+   "body": "The team selected a dot-matrix printer to print key-split authentication passwords not for sophistication but the opposite—primitive enough to lack wireless, Bluetooth, or anything hidden inside. Opened up, every chip is visible; unlike firmware sealed inside epoxy. The real tradeoff: write-once CD-ROMs resist physical inspection; printers are bulky, messy, don't fit in bank safes, but transparent. After use, this printer was publicly destroyed with a Dremel."
+  },
+  {
+   "h": "Oxide abandoned traditional Secure Boot because it couldn't prove ongoing trustworthiness",
+   "body": "The limited, one-time-write key slots meant the team deliberately avoided traditional Secure Boot architecture. Philip explained that UEFI's Secure Boot assumes ‘code source must be trustworthy,’ but Oxide preferred what Verified Boot offers instead: even if startup code isn't self-signed, if the system can prove ‘the first code executed is observable,’ that establishes trust. The focus isn't whether the source is trusted but whether the state can be audited. Opacity in firmware hides more problems than it solves."
+  },
+  {
+   "h": "A poorly sealed tamper-evident bag sent Philip back to the office at midnight",
+   "body": "After the ceremony, Philip noticed someone's confused expression when opening the tamper-evidence bag—the detail nagged at him. Driving home, anxiety building, he turned around, found a bag, and tested it himself. He discovered he could reseal it without leaving any trace. Those authentication passwords had been ‘protected’ in appearance only for twenty-four hours. The entire key signing ceremony was redone that night using a second printer."
+  },
+  {
+   "h": "LLMs have compressed nation-state vulnerability discovery into ten minutes",
+   "body": "Philip compared this to nuclear proliferation: in the past, identifying certain vulnerability classes required exceptional intelligence and experience concentrated across an industry over extended time. Now an LLM can flip through an old codebase in ten minutes and expose everything. Firmware like UEFI, born in a different era without significant security architecture upgrades, faces the most exposure. The problem deepens: people with these tools often lack vendor relations and responsible disclosure experience."
+  }
+ ],
+ "terms": [
+  {
+   "term": "PKI",
+   "def": "A trust system based on certificates and the signatures of whoever holds the private key."
+  },
+  {
+   "term": "Root of Trust (ROT)",
+   "def": "The lowest-level security foundation hardcoded into a chip; the source from which the entire chain of trust originates."
+  },
+  {
+   "term": "Hardware Security Module (HSM)",
+   "def": "Dedicated hardware that generates and stores signing keys such that keys never leave the device boundary."
+  },
+  {
+   "term": "M-of-N key splitting",
+   "def": "Dividing a key into N shares such that at least M shares are needed to reconstruct and use the key, preventing any single person from acting alone."
+  },
+  {
+   "term": "Tamper-evident packaging",
+   "def": "Packaging that leaves irreversible traces when opened, used to prove whether contents have been accessed."
+  },
+  {
+   "term": "Secure Boot / Verified Boot",
+   "def": "Secure Boot verifies that startup code comes from a trusted source; Verified Boot only requires proving the startup code's state is unchanged and observable."
+  }
+ ],
+ "facts": [],
+ "quotes": [
+  {
+   "text": "It is, I guess maybe the most disappointing thing about computer security and cryptography is that everything seems to boil down to PKIs. Boils down to some assertion made by some entity that holds a private key and all of the security properties of that thing depend on the secrecy of that key.",
+   "translated": false
+  },
+  {
+   "text": "Yeah, but it doesn't have to be perfect. And in fact, I would argue that it can't be perfect.",
+   "translated": false
+  },
+  {
+   "text": "All that makes sense. But like, this stuff you're gonna live with for a really, really, really long time. So you don't wanna assume because you're gonna have to go back and re... You really wanna assume you're shipping a product here.",
+   "translated": false
+  },
+  {
+   "text": "I'm sure like the number of startups out there where their PKI was like, you know, an unencrypted key sitting on a thumb drive in someone's desk drawer.",
+   "translated": false
+  },
+  {
+   "text": "And you're like, nope, there's a process like get out the Dremel. It's like a very surgical murder of this dot matrix printer.",
+   "translated": false
+  },
+  {
+   "text": "If I don't, if I didn't look at this. I literally just turned my car around and went to the office.",
+   "translated": false
+  },
+  {
+   "text": "These are like in a way kind of like nuclear weapons where there are entire industries of incredibly intelligent and experienced people that would spend tons of time hunting for these things. And in a matter of ten minutes, an LLM can take an old code base, flip it over and shake all the change out of it.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
