@@ -1,0 +1,111 @@
+{
+ "slug": "2026-11-07-zhangjing-大厂做不出最好的模型-不是技术问题-是账本问题",
+ "of": "zhangjing-c09aef5d2b",
+ "source_lang": "zh",
+ "title": "Big companies won't build the best models: the limit isn't technology, it's accounting",
+ "dek": "Xiaoteng argues that big tech companies' problem isn't insufficient chips or money, but financial statements that force management to convert lab research into products. This centripetal force makes breakthrough innovation unlikely to happen inside big companies, yet they still make steady money by trading compute for equity or partnerships.",
+ "why": "If you're deciding whether to bet on big-company AI labs or startup model teams, this episode explains the structural incentives rather than offering empty cheerleading.",
+ "who": "Investors sizing up big-company AI labs against startup model teams, and engineers or founders building post-training, RLaaS, or NewLab ventures.",
+ "skip": "The opening's response to Mind Lab controversies is mostly PR talking points and low on actual information—safe to skip.",
+ "tags": [
+  "Reinforcement learning",
+  "Post-training",
+  "LoRA",
+  "NewLab",
+  "Big-company innovation trap",
+  "RLaaS"
+ ],
+ "points": [
+  {
+   "h": "Jump out at 90 percent to explore something new",
+   "body": "He roots this in RL's exploration-exploitation tradeoff: even seemingly wasteful random exploration at 10% is necessary to approach a global optimum. Obsessing over perfecting the current task risks local-maximum lock-in. He acknowledges startups need someone pushing to 100%, so he recruited two co-founders for that work and focuses on exploration himself."
+  },
+  {
+   "h": "The gap widens now but Chinese advantages will emerge",
+   "body": "He expects the US lead to widen near-term: OpenAI and Anthropic deployed earlier on data and large-scale RL. But he's long-term bullish on two points: Chinese compute infrastructure becomes ‘usable’ next year, and China outmatches the US at organizing and operating on data—many American big companies outsource data cleaning to Chinese workers anyway. The true risk is if OpenAI breaks through on long-chain reasoning (week-scale reasoning, Fields Medal-level proofs) and no one catches up."
+  },
+  {
+   "h": "Big companies will collectively lose the model race",
+   "body": "He uses Tencent Hunyuan as an example: the team earned exceptional permissions and resources with solid technology, but the parent company's ROI targets decide whether lab output gets commercialized and resources redeployed. He cites “The Cost of Staying”, arguing large companies have inherent centripetal pull against breakthrough innovation. But this doesn't mean they lose commercially: they extract value from startups by trading compute for equity or selling them services."
+  },
+  {
+   "h": "Design efficiency unlocks the data volume that matters",
+   "body": "His assessment of Chinese models: DeepSeek invested most aggressively in infrastructure and model codesign—shrinking MLA from four channels to one, separating encoder and decoder—achieving dramatically lower training and inference costs, enabling more data and heavier RL training. GLM is pragmatic, with the most complete data pipeline. Kimi favors innovation and gets fancy. Mimax lacks conviction—it built differentiation with Linear Attention but abandoned it, then chased revenue and IPO too early, disrupting model iteration."
+  },
+  {
+   "h": "Build the product first; research gaps follow",
+   "body": "He attacks NewLab teams for inverting the process: build flashy technology (world models, diffusion, RSI), then hunt for use cases. That's hammers seeking nails. The correct order: ship a product prototype, resist scaling pressure, collect real data, then identify the research needed. To assess whether a NewLab is solid, ask if it has genuinely attempted closing a commercial loop."
+  },
+  {
+   "h": "The model is the only differentiator that matters",
+   "body": "He observes that in the US, whether companies work on data or infrastructure, middle-tier players almost universally end up building their own models and buying compute. The model is where user experience differs most; frontend and harness don't matter. He compares it to history: people remember great swords but not scabbards; harness is the scabbard. Most people in China who fit this profile haven't updated their thinking; they lack conviction about adopting external RL services."
+  },
+  {
+   "h": "Tiny parameter shifts create entirely different model personalities",
+   "body": "Constrained to four H800s, Mind Lab pursued LoRA; later research from Thinking Machines validated that LoRA often matches full training. They broke strategy into three: scale up (bigger base), scale down (smaller, faster LoRA), scale out (massive concurrent LoRA). He uses human genetics as analogy: humans differ by less than 0.5% in DNA yet behave completely differently; LoRA works the same way against the base model. By April, they ran a million concurrent LoRA inferences on a single base."
+  },
+  {
+   "h": "Models need a lightweight unit for judgment storage",
+   "body": "He sees the core gap in current training approaches not in algorithms but storage. AI can read 300+ papers daily, far faster than humans, but lacks a way to compress the judgment formed across 300 papers, store it, and iterate. Real continual learning requires a lightweight, iterable unit to hold that taste-level judgment. That's a direction Ilya is exploring as well."
+  }
+ ],
+ "terms": [
+  {
+   "term": "RSI",
+   "def": "A training paradigm where models train on their own generated data. The guest considers it overhyped marketing."
+  },
+  {
+   "term": "LoRA",
+   "def": "A fine-tuning technique that trains only small additional parameters, achieving model adaptation at a fraction of full training cost."
+  },
+  {
+   "term": "harness",
+   "def": "The engineering infrastructure surrounding a model—deployment, inference, evaluation—that doesn't alter the model's core capabilities."
+  },
+  {
+   "term": "discount factor",
+   "def": "In reinforcement learning, the parameter that determines how much future rewards are discounted, controlling the agent's time horizon."
+  },
+  {
+   "term": "GRPO",
+   "def": "A mainstream reinforcement learning algorithm for large language models using single-step generation and single-step scoring."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Cluster scale used",
+   "v": "10,000 CPU cores + 100 V100s"
+  },
+  {
+   "k": "US pretraining data target (reported)",
+   "v": "30T"
+  },
+  {
+   "k": "Cost per fine-tuning iteration",
+   "v": "tens of thousands RMB"
+  },
+  {
+   "k": "Total RLaaS project cost (DeepSeek V4 Pro / GLM 5.3-scale)",
+   "v": "hundreds of thousands to 1 million RMB"
+  },
+  {
+   "k": "Concurrent LoRA per base model (Mind Lab)",
+   "v": "1 million"
+  },
+  {
+   "k": "Human genetic difference",
+   "v": "less than 0.5%"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "I think every researcher is making the same fatal mistake: we're all really good at building hammers, and we just love using a hammer to find its nail.",
+   "translated": true
+  },
+  {
+   "text": "AI is actually pretty simple, right: data, then model. It's just that maybe some details in how you train are different.",
+   "translated": true
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
