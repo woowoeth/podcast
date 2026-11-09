@@ -61,6 +61,7 @@ parent 看可检验原则与证据；sci 看机制与能否回实验/论文。
    反驳记成他的主张？有一处严重歪曲就不该过。
    英文原文换成中文单位时先自己算一遍再下结论：1 million = 100 万，1 billion = 10 亿，
    1 trillion = 1 万亿（$20 billion = 200 亿美元，不是 20 亿）。换算对了就不是错。
+   原文里英文数量级后面的〔=…〕是程序换算好的中文数，**以它为准**，不要自己再换一遍。
 3. 选择力 —— 注意：一篇深读必然丢掉原文的绝大部分，**遗漏本身不是缺点**。
    只有在你能指出"成稿写了 A，而抽样里明显更值钱的 B 被丢了"时才扣分，
    而且 B 必须是你在给你的材料里真的看到的。说不出具体的 B 就按满分算。
@@ -147,6 +148,50 @@ def _grams(text: str) -> set[str]:
 
 def _window(segs: list[dict], m: int) -> str:
     return squeeze(" ".join(s["text"] for s in segs if m - WINDOW <= s["t"] <= m + WINDOW))
+
+
+_MAG = None
+_MAG_UNIT = {"million": 10 ** 6, "mn": 10 ** 6,
+             "billion": 10 ** 9, "bn": 10 ** 9, "trillion": 10 ** 12, "tn": 10 ** 12}
+
+
+def _zh_amount(v: float) -> str:
+    """一个数换成中文读法的量级：168e8 → 168亿，2e12 → 2万亿，1.68e7 → 1680万。"""
+    for base, unit in ((10 ** 12, "万亿"), (10 ** 8, "亿"), (10 ** 4, "万")):
+        if v >= base:
+            return f"{round(v / base, 4):g}{unit}"
+    return f"{round(v, 4):g}"
+
+
+def _mag(text: str) -> str:
+    """原文里每个英文数量级后面标上中文换算：`$200 billion〔=2000亿〕`。
+
+    **评审模型会把 billion 当成「亿」。** 提示词里早就写着「1 billion = 10 亿，$20 billion = 200 亿」，
+    它照样把写对的稿判成「数字错十倍」拦下：Sharp Tech（$200 billion 写成两千亿，被判应为 200 亿）、
+    CoreWeave（$16.8 billion → 168 亿，被判应为 16.8 亿）、Madness of Markets、台积电 CapEx、
+    Ben Horowitz 两次 …… 2026-10 → 11-09 约 8 次、7 集。提醒管不住，就把算好的数直接放在它眼前。"""
+    global _MAG
+    if _MAG is None:
+        import re
+        # 三种写法：「200 billion」「3.5bn」；「a million times」；带币种的单字母「$93B」「£1.2T」
+        # （单字母只认带币种的，不然「5 m」这种长度也会被换算）
+        _MAG = re.compile(r"(?<![\w.])(?:(\d+(?:\.\d+)?)\s*(million|billion|trillion|mn|bn|tn)"
+                          r"|(a|one)\s+(million|billion|trillion)"
+                          r"|(?<=[$£€])(\d+(?:\.\d+)?)([MBT]))\b", re.I)
+    letter = {"m": "million", "b": "billion", "t": "trillion"}
+
+    def sub(m):
+        num, unit = m.group(1), m.group(2)
+        if m.group(3):
+            num, unit = "1", m.group(4)
+        elif m.group(5):
+            num, unit = m.group(5), letter[m.group(6).lower()]
+        try:
+            v = float(num) * _MAG_UNIT[unit.lower()]
+        except (TypeError, ValueError, KeyError):
+            return m.group(0)
+        return f"{m.group(0)}〔={_zh_amount(v)}〕"
+    return _MAG.sub(sub, text or "")
 
 
 def _flat(text: str) -> str:
@@ -312,10 +357,10 @@ def _check(d: dict, tr: dict, ep: dict, src: dict) -> dict | None:
                 f"时长：{hhmmss(ep.get('duration'))}\n\n"
                 f"=== 成稿 ===\n{_draft(d)}\n\n"
                 f"=== 证据：全文逐字稿（机器转写，带时间戳，可能有同音错字；成稿写的内容在这里能找到就不算编造，"
-                f"时间标偏一两分钟不算错）===\n{_full_text(tr)}\n\n{SCHEMA}")
+                f"时间标偏一两分钟不算错）===\n{_mag(_full_text(tr))}\n\n{SCHEMA}")
         return _ask(user)
-    ev = _evidence(tr, d)
-    sw = _sweep(tr)
+    ev = _mag(_evidence(tr, d))
+    sw = _mag(_sweep(tr))
     user = (f"节目：{src.get('zh') or src['name']}\n原集标题：{ep.get('title')}\n"
             f"时长：{hhmmss(ep.get('duration'))}\n\n"
             f"=== 成稿 ===\n{_draft(d)}\n\n"

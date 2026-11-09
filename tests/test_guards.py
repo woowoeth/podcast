@@ -12164,6 +12164,47 @@ class ReviewSeesWhereAClaimWasReallySaid(unittest.TestCase):
         for t in marks:
             self.assertIn(R._window(tr["segments"], t), ev, "放得下也截了 —— 白白少给评审原文")
 
+    def test_english_magnitudes_are_converted_for_the_reviewer(self):
+        """评审模型把 billion 当成「亿」：提示词里写着「$20 billion = 200 亿」，它照样把写对的
+        「两千亿美元」（原文 $200 billion）判成「错十倍、应为 200 亿」拦下（Sharp Tech 11-09，
+        还有 CoreWeave、Madness of Markets、台积电 CapEx、Ben Horowitz …… 一个月约 8 次）。
+        同一份稿子重放：原文里标上〔=2000亿〕之后两次 7 分、8 分上站。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib import review as R
+        want = {"Amazon is spending $200 billion on capex": "$200 billion〔=2000亿〕",
+                "revenue of $16.8 billion": "$16.8 billion〔=168亿〕",
+                "15 billion pounds": "15 billion〔=150亿〕",
+                "about 300 million laying hens": "300 million〔=3亿〕",
+                "a million times more compute": "a million〔=100万〕",
+                "$93B flowed in": "$93B〔=930亿〕",
+                "£1.2T": "£1.2T〔=1.2万亿〕",
+                "3.5bn users": "3.5bn〔=35亿〕"}
+        for src, ann in want.items():
+            self.assertIn(ann, R._mag(src), f"{src!r} 没标对")
+        for src in ("we ran 5 m", "the 2020 Bmw", "chapter 3B"):
+            self.assertEqual(src, R._mag(src), f"{src!r} 不是数量级，不该标")
+
+    def test_the_reviewer_sees_the_converted_numbers_in_both_modes(self):
+        import unittest.mock as mock
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib import review as R
+        tr = self._english_two_hours([600])
+        tr["segments"][60] = {"t": 600, "text": "Amazon is spending $200 billion on capex this year"}
+        d = {"points": [{"t": 600, "h": "亚马逊资本开支", "body": "亚马逊两千亿美元的资本开支"}], "quotes": []}
+        seen = []
+        def fake(system, user, **kw):
+            seen.append(user)
+            return {"score": 8, "dims": {}, "verdict": "上站", "why": "", "worst": ""}
+        with mock.patch.object(R.llm, "available", lambda: True), mock.patch.object(R.llm, "call_json", fake):
+            R.check(d, tr, {"title": "t", "duration": 7200}, {"name": "x"})
+            with mock.patch.object(R, "FULL_TEXT_MAX", 1000):
+                R.check(d, tr, {"title": "t", "duration": 7200}, {"name": "x"})
+        self.assertIn("全文逐字稿", seen[0], "尺子坏了：第一次该是整篇模式")
+        self.assertIn("证据一", seen[1], "尺子坏了：第二次该是抽窗口模式")
+        self.assertIn("$200 billion〔=2000亿〕", seen[0], "整篇模式下评审看到的原文没标换算")
+        ev1 = seen[1][seen[1].index("证据一"):seen[1].index("证据二")]     # 抽样那节也可能扫到这句，单看引用处
+        self.assertIn("$200 billion〔=2000亿〕", ev1, "抽窗口模式下成稿引用处的原文没标换算")
+
     def test_an_english_episode_over_an_hour_is_reviewed_in_full(self):
         """门槛原来按字数（9 万字）：英文一个多小时就过线、退回抽窗口。2026-10 → 11-09 抽窗口的
         英文评审拦下率 39%，整篇给的 9%；Sharp Tech 一集 99562 字（约 2.5 万 token）四次都是抽窗口、
@@ -14328,18 +14369,28 @@ class HealthcheckSeesLeftoverStashesAndMidRunCommits(unittest.TestCase):
         return importlib.import_module("healthcheck")
 
     def test_a_commit_that_lands_mid_run_is_not_a_failed_pull(self):
-        """新心跳带 synced：rev..synced 之间的才算没跟上。要几个真提交，CI 的浅克隆里会跳过 ——
-        不需要历史的那半（老心跳按时间估）拆在下一条，CI 上照跑。"""
+        """新心跳带 synced：rev..synced 之间的才算没跟上。
+
+        原来拿本仓库最近 4 个提交当样本，默认历史是一条直线：11-09 一轮先推时并进了一个
+        合并提交，rev-list 按时间排序把 revs[2] 排到了支线上，rev..synced 数出 5 个，测试红了 ——
+        量的是仓库历史长什么样，不是判据。现在在临时目录里自己造 4 个线性提交。"""
+        import tempfile
+        from unittest import mock
         hc = self._hc()
-        revs = subprocess.run(["git", "-C", str(ROOT), "rev-list", "--max-count=4", "HEAD"],
-                              capture_output=True, text=True).stdout.split()
-        if len(revs) < 4:
-            self.skipTest("历史太短（浅克隆）")
-        rows = [["x", "2026-01-01T00:00:00Z"]]
-        # 开跑时看见的就是 revs[2]、跑的也是它 —— 之后别人推的不算没跟上
-        self.assertEqual([], hc._missed_at_start(revs[2][:10], {"synced": revs[2][:10]}, rows))
-        # 开跑时远端已经到 revs[0]，跑的却是 revs[2]：这才是 pull 没起作用
-        self.assertEqual(2, len(hc._missed_at_start(revs[2][:10], {"synced": revs[0][:10]}, rows)))
+        with tempfile.TemporaryDirectory() as td:
+            g = lambda *a: subprocess.run(["git", "-C", td, *a], capture_output=True, text=True,
+                                          check=True).stdout.strip()
+            g("init", "-q")
+            revs = []
+            for i in range(4):
+                g("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", f"c{i}")
+                revs.insert(0, g("rev-parse", "HEAD"))
+            rows = [["x", "2026-01-01T00:00:00Z"]]
+            with mock.patch.object(hc, "ROOT", pathlib.Path(td)):
+                # 开跑时看见的就是 revs[2]、跑的也是它 —— 之后别人推的不算没跟上
+                self.assertEqual([], hc._missed_at_start(revs[2][:10], {"synced": revs[2][:10]}, rows))
+                # 开跑时远端已经到 revs[0]，跑的却是 revs[2]：这才是 pull 没起作用
+                self.assertEqual(2, len(hc._missed_at_start(revs[2][:10], {"synced": revs[0][:10]}, rows)))
 
     def test_an_old_heartbeat_is_judged_by_the_run_window_in_utc(self):
         hc = self._hc()
