@@ -34,7 +34,8 @@ EVIDENCE_CHARS = 6000
 # 「请举手」「腿毛……移植」「把外卖给机器人送上来」都在全文里，成稿评分照样给 5 分拦下）。
 EVIDENCE_SHARE = 0.3
 EVIDENCE_CAP = 16000
-# 全文不超过这么多字就**整篇**给评审，不再抽窗口。按内容补出处（_evidence）之后，三四个小时的集
+# 全文不超过这么多（估算的）token 就**整篇**给评审，不再抽窗口 —— 口径见 _est_tokens：汉字一字一个，
+# 其余四个字符一个；原来按字数算，英文一个多小时的集就过线（2026-11-09 改）。按内容补出处（_evidence）之后，三四个小时的集
 # 仍然被判「原文找不到」：郑执那集的高圆圆、乔山、宋小宝、螃蟹，王晶那集的新闻局、金像奖提名，
 # 贾樟柯那集的七遍、木头、两万，全在全文里（2026-10-10，四集都是三次判死出局）。评审是最便宜的
 # 模型，一集五万字的输入，比每误杀一次就整篇重写一遍便宜得多。
@@ -271,17 +272,34 @@ def rubric_id(evidence: str) -> str:
     10-10 换成全文证据之后又成了 32% —— 而成稿里只记了写稿模型，哪一代评审给的分
     只能翻日志去猜。按源聚合评审分之前，先按这个指纹分开。"""
     import hashlib
-    raw = "\x00".join([SYSTEM, SCHEMA, evidence, str(FULL_TEXT_MAX), str(EVIDENCE_SHARE),
+    raw = "\x00".join([SYSTEM, SCHEMA, evidence, f"{FULL_TEXT_MAX}est-tokens", str(EVIDENCE_SHARE),
                         str(EVIDENCE_CAP), llm.model_name("review")])
     return hashlib.sha1(raw.encode()).hexdigest()[:10]
+
+
+def _est_tokens(tr: dict) -> int:
+    """全文大约多少 token：汉字一字算一个，其余字符四个算一个。
+
+    整篇给评审的门槛原来按**字数**算（90000 字），对中英文一视同仁 —— 可中文 9 万字约 9 万 token，
+    英文 9 万字只有约 2.2 万。英文节目每分钟约 900 字，一个多小时就过线，只能退回抽窗口：
+    2026-10 → 11-09 抽窗口的评审拦下率英文 39%、中文 50%，整篇给的只有 9% / 2%。
+    Sharp Tech「America Votes Against Data Centers」99562 字（约 2.5 万 token），四次都是抽窗口、
+    6 分出局，评审点名的「原文找不到」都在全文里，只是标的时间偏了半分钟到两分钟。
+    按 token 估，中文的门槛和原来一样，英文放宽到六个多小时。"""
+    text = "".join(s.get("text") or "" for s in (tr.get("segments") or []))
+    cjk = sum(1 for ch in text if "一" <= ch <= "鿿")
+    return cjk + (len(text) - cjk) // 4
+
+
+def _fits_full(tr: dict) -> bool:
+    return 0 < _est_tokens(tr) <= FULL_TEXT_MAX
 
 
 def check(d: dict, tr: dict, ep: dict, src: dict) -> dict | None:
     """返回 {"score","dims","verdict","why","worst","model","evidence","rubric"}；模型不可用时返回 None。"""
     v = _check(d, tr, ep, src)
     if v is not None:
-        total = sum(len(s.get("text") or "") for s in (tr.get("segments") or []))
-        mode = "full" if 0 < total <= FULL_TEXT_MAX else "windows"
+        mode = "full" if _fits_full(tr) else "windows"
         v.update(model=llm.model_name("review"), evidence=mode, rubric=rubric_id(mode))
     return v
 
@@ -289,8 +307,7 @@ def check(d: dict, tr: dict, ep: dict, src: dict) -> dict | None:
 def _check(d: dict, tr: dict, ep: dict, src: dict) -> dict | None:
     if not llm.available():
         return None
-    total = sum(len(s.get("text") or "") for s in (tr.get("segments") or []))
-    if 0 < total <= FULL_TEXT_MAX:
+    if _fits_full(tr):
         user = (f"节目：{src.get('zh') or src['name']}\n原集标题：{ep.get('title')}\n"
                 f"时长：{hhmmss(ep.get('duration'))}\n\n"
                 f"=== 成稿 ===\n{_draft(d)}\n\n"

@@ -12164,6 +12164,34 @@ class ReviewSeesWhereAClaimWasReallySaid(unittest.TestCase):
         for t in marks:
             self.assertIn(R._window(tr["segments"], t), ev, "放得下也截了 —— 白白少给评审原文")
 
+    def test_an_english_episode_over_an_hour_is_reviewed_in_full(self):
+        """门槛原来按字数（9 万字）：英文一个多小时就过线、退回抽窗口。2026-10 → 11-09 抽窗口的
+        英文评审拦下率 39%，整篇给的 9%；Sharp Tech 一集 99562 字（约 2.5 万 token）四次都是抽窗口、
+        6 分出局。按 token 估，中文门槛不变，英文放宽。"""
+        import unittest.mock as mock
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib import review as R
+        en = self._english_two_hours([600])                       # 两小时英文，约 11 万字
+        self.assertGreater(sum(len(s["text"]) for s in en["segments"]), 90000, "尺子坏了：英文样本不够长")
+        zh = {"segments": [{"t": t, "text": "我们今天继续聊这个话题其实大家都知道的然后就是说这个事情很复杂" * 2}
+                           for t in range(0, 3 * 3600, 10)]}       # 三小时中文，约 3.5 万字以上
+        zh_chars = sum(len(s["text"]) for s in zh["segments"])
+        while zh_chars <= R.FULL_TEXT_MAX:                          # 确保中文样本超过门槛
+            zh["segments"] += zh["segments"][:200]
+            zh_chars = sum(len(s["text"]) for s in zh["segments"])
+        d = {"points": [{"t": 600, "h": "point", "body": "the grid"}], "quotes": []}
+        seen = {}
+        def fake(system, user, **kw):
+            seen["user"] = user
+            return {"score": 8, "dims": {}, "verdict": "上站", "why": "", "worst": ""}
+        with mock.patch.object(R.llm, "available", lambda: True), mock.patch.object(R.llm, "call_json", fake):
+            v = R.check(d, en, {"title": "t", "duration": 7200}, {"name": "x"})
+            self.assertIn("全文逐字稿", seen["user"], "一个多小时的英文集还在抽窗口 —— 标偏半分钟的要点会被判成编造")
+            self.assertEqual("full", v["evidence"])
+            v = R.check(d, zh, {"title": "t", "duration": 3 * 3600}, {"name": "x"})
+            self.assertNotIn("全文逐字稿", seen["user"], f"中文 {zh_chars} 字也整篇给了 —— 中文的门槛不该变")
+            self.assertEqual("windows", v["evidence"])
+
 
 class DailyAndBackfillTakeTurns(unittest.TestCase):
     """日更和补存量按顺序来，不再靠每天 4.5 小时的让出窗口。
