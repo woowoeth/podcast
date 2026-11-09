@@ -12131,6 +12131,39 @@ class ReviewSeesWhereAClaimWasReallySaid(unittest.TestCase):
         self.assertGreater(len(R._evidence(tr, d)), R.EVIDENCE_CHARS + 2000,
                            "三小时的集证据还卡在 6000 字 —— 后面的引用点全被截掉")
 
+    def _english_two_hours(self, marks):
+        filler = ("and so the thing about data centers is that the grid has to keep up with "
+                  "demand and the utilities are not used to this kind of load growth at all ")
+        segs = [{"t": t, "text": filler} for t in range(0, 2 * 3600, 10)]
+        for k, t in enumerate(marks):
+            segs[t // 10] = {"t": t, "text": f"MARKER{k:02d} " + filler}
+        return {"segments": segs}
+
+    def test_every_cited_point_gets_its_own_passage(self):
+        """2026-11-09 Sharp Tech：一个多小时、十几个引用点，证据一节在 1:00 就截断了，
+        1:08 以后的要点一段原文都没有 —— 三次评审都点名那几条「原文找不到」，6 分拦下，放弃。"""
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib import review as R
+        marks = list(range(60, 6400, 400))            # 16 个引用点，铺到 1:45
+        tr = self._english_two_hours(marks)
+        d = {"points": [{"t": t, "h": "point", "body": "the grid has to keep up"} for t in marks], "quotes": []}
+        ev = R._evidence(tr, d)
+        missing = [f"{k:02d}" for k in range(len(marks)) if f"MARKER{k:02d}" not in ev]
+        self.assertEqual([], missing, "这些引用点没拿到原文，评审会把它们判成编造")
+        total = sum(len(s["text"]) for s in tr["segments"])
+        budget = max(R.EVIDENCE_CHARS, min(R.EVIDENCE_CAP, int(total * R.EVIDENCE_SHARE)))
+        self.assertLess(len(ev), budget + 60 * len(marks), "预算没守住：给评审的输入会越来越长")
+
+    def test_nothing_is_trimmed_when_it_fits(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib import review as R
+        marks = [600, 3000]
+        tr = self._english_two_hours(marks)
+        d = {"points": [{"t": t, "h": "point", "body": "the grid"} for t in marks], "quotes": []}
+        ev = R._evidence(tr, d)
+        for t in marks:
+            self.assertIn(R._window(tr["segments"], t), ev, "放得下也截了 —— 白白少给评审原文")
+
 
 class DailyAndBackfillTakeTurns(unittest.TestCase):
     """日更和补存量按顺序来，不再靠每天 4.5 小时的让出窗口。

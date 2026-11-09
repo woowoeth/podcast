@@ -185,28 +185,46 @@ def _evidence(tr: dict, d: dict) -> str:
         return ""
     total = sum(len(s["text"]) for s in segs)
     budget = max(EVIDENCE_CHARS, min(EVIDENCE_CAP, int(total * EVIDENCE_SHARE)))
-    out, used, shown = [], 0, set()
+    pieces, shown = [], set()          # (标头, 原文)
     for m, claim in sorted(items):
-        pieces = []
         chunk = _window(segs, m)
         if chunk and m not in shown:
-            pieces.append(f"[{hhmmss(m)}] {chunk}")
+            pieces.append((f"[{hhmmss(m)}] ", chunk))
             shown.add(m)
         grams = _grams(claim)
         here = sum(1 for g in grams if g in _flat(chunk))
         alt = _best_anchor(segs, grams)
         # 标的地方几乎没对上、别处对得上明显更多：把别处那段也给评审
         if alt and abs(alt[0] - m) > WINDOW and alt[1] >= max(3, 2 * here) and alt[0] not in shown:
-            pieces.append(f"[{hhmmss(alt[0])}]（按内容找到的出处，成稿标的是 {hhmmss(m)}）{_window(segs, alt[0])}")
+            pieces.append((f"[{hhmmss(alt[0])}]（按内容找到的出处，成稿标的是 {hhmmss(m)}）",
+                           _window(segs, alt[0])))
             shown.add(alt[0])
-        for piece in pieces:
-            room = budget - used
-            if room <= 200:
-                out.append("……（原文片段已截断）")
-                return "\n\n".join(out)
-            out.append(piece[:room])
-            used += len(piece[:room])
+    # **预算按段均分，不是先到先得。** 原来按时间顺序往里塞、塞满就截断：一集一个多小时、
+    # 十几个引用点的稿子，一小时之后的要点**一段原文都没有**，评审照样判「原文找不到」拦下。
+    # 2026-11-09 Sharp Tech「America Votes Against Data Centers」三次都是 6 分，点名的全是
+    # 1:08 以后的要点 —— 而证据一节在 1:00 就截断了。一个月里这样误杀的评审有 6 次、5 集。
+    # 现在每段都留，长的从中心往两边截（时间戳就在窗口中心），总长不变。
+    cap = _fair_cap([len(t) for _, t in pieces], budget)
+    out = []
+    for head, text in pieces:
+        if cap is not None and len(text) > cap:
+            cut = (len(text) - cap) // 2
+            text = "…" + text[cut:cut + cap] + "…"
+        out.append(head + text)
     return "\n\n".join(out)
+
+
+def _fair_cap(lens: list[int], budget: int, floor: int = 200) -> int | None:
+    """每段最多留多长，才能让总长不超过 budget（短的原样留，省下的分给长的）。全放得下返回 None。"""
+    if sum(lens) <= budget:
+        return None
+    used, rest = 0, len(lens)
+    for n in sorted(lens):
+        if used + n * rest > budget:
+            return max(floor, (budget - used) // rest)
+        used += n
+        rest -= 1
+    return None
 
 
 def _full_text(tr: dict) -> str:
