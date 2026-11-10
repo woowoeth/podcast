@@ -11386,6 +11386,58 @@ class AnITunesIdIsCheckedBeforeItSwapsAFeed(unittest.TestCase):
         self.assertEqual([], dup, f"这些 iTunes id 被两档源共用：{dup}")
 
 
+class SetCliTokenTakesTheWholePaste(unittest.TestCase):
+    """终端窄的时候 claude setup-token 会把 token 折成两三行，复制下来带着换行。
+    set-cli-token.sh 原来 `read` 只读第一行：只存前半截（401 invalid），后半截漏到命令行上
+    被当成命令执行、进了 shell 历史（11-10 连着三次）。这里用假的 claude／security 真跑一遍脚本。"""
+
+    FULL = "sk-ant-oat01-AAAAaaaa1111BBBB_bbbb2222CCCC-cccc3333DDDD"
+
+    def _run(self, paste: str):
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            t = pathlib.Path(td)
+            (t / "bin").mkdir(); (t / "home").mkdir()
+            # 假 claude：只有收到完整 token 才答 ok；被调用时留记号（防真 CLI 抢在 PATH 前面）
+            (t / "bin" / "claude").write_text(
+                "#!/bin/sh\n"
+                f"touch '{t / 'stub-called'}'\n"
+                f"[ \"$CLAUDE_CODE_OAUTH_TOKEN\" = '{self.FULL}' ] && {{ echo ok; exit 0; }}\n"
+                "echo 'Failed to authenticate. API Error: 401 OAuth access token is invalid.'; exit 1\n")
+            # 假 security：-i 把收到的命令记下来；find-generic-password 看记没记到
+            (t / "bin" / "security").write_text(
+                "#!/bin/sh\n"
+                f"case \"$1\" in -i) cat > '{t / 'sec.in'}' ;; "
+                f"find-generic-password) [ -s '{t / 'sec.in'}' ] ;; *) exit 9 ;; esac\n")
+            for f in ("claude", "security"):
+                (t / "bin" / f).chmod(0o755)
+            r = subprocess.run(["bash", str(ROOT / "scripts" / "set-cli-token.sh")], input=paste,
+                               capture_output=True, text=True, timeout=60,
+                               env={"HOME": str(t / "home"), "PATH": f"{t / 'bin'}:/usr/bin:/bin",
+                                    "USER": "t", "CLI_TOKEN_SERVICE": "test-svc"})
+            self.assertTrue((t / "stub-called").exists() or r.returncode != 0,
+                            "尺子坏了：没调到假的 claude（真 CLI 在 PATH 前面？）")
+            sec = (t / "sec.in").read_text() if (t / "sec.in").exists() else ""
+            stored = sec.split(" -w ", 1)[1].strip() if " -w " in sec else ""
+            return r, stored
+
+    def test_a_token_wrapped_over_three_lines_is_stored_whole(self):
+        r, stored = self._run("  sk-ant-oat01-AAAAaaaa1111BBBB_bbbb\n  2222CCCC-cccc3333\n  DDDD\n\n"
+                              " Store this token securely. You won't be able to see it again.\n")
+        self.assertEqual(0, r.returncode, r.stdout + r.stderr)
+        self.assertEqual(self.FULL, stored, "折成三行的 token 没拼完整就存了（或者把后面的英文也拼进去了）")
+
+    def test_a_one_line_token_still_works(self):
+        r, stored = self._run(self.FULL + "\n")
+        self.assertEqual((0, self.FULL), (r.returncode, stored), r.stdout + r.stderr)
+
+    def test_a_partial_copy_is_rejected_with_a_hint(self):
+        r, stored = self._run("sk-ant-oat01-AAAAaaaa1111BBBB_bbbb\n2222CCCC-cccc3333\n")
+        self.assertNotEqual(0, r.returncode)
+        self.assertEqual("", stored, "调不通的 token 也存进去了")
+        self.assertIn("没复制全", r.stderr, "401 没告诉人多半是没复制全")
+
+
 class ShellVariablesNeverRunIntoChineseText(unittest.TestCase):
     """`$rc）`、`$keep，`：launchd 拉起的进程没有 UTF-8 locale，bash 把全角字符的字节算进变量名，
     加上 set -u 就是「rc\\xef: unbound variable」—— 2026-10-27 失败通知因此一次都弹不出来；
