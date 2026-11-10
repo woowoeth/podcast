@@ -232,9 +232,42 @@ def check_heartbeats(r: Report) -> None:
             r.fail(f"{who}：那份副本的 git stash 里留着 {hb['autostash']} 个 autostash —— "
                    f"同步恢复失败留下的，里面可能有只存在那里的改动；看过再 drop")
         _check_line_revision(r, who, hb)
+        if line == "local":
+            _check_cli_auth(r, who, hb)
     if behind:
         r.note(f"本地落后 origin/main {behind} 个提交——上面凡是和时间有关的判断"
                f"都可能因此失真")
+
+
+TOKEN_LIFE_DAYS = 365      # claude setup-token 打出来的长效 token 有效一年
+TOKEN_WARN_DAYS = 30       # 到期前一个月报硬伤：手机提醒送到人，留足时间重做
+
+
+def _check_cli_auth(r: Report, who: str, hb: dict, today=None) -> None:
+    """本机线用的是不是长效 token、离一年到期还有多久（字段由 heartbeat._cli_auth 写）。
+
+    11-05 → 11-09 停了四天：定时任务靠 Claude app 的登录，app 关着就续不上，探针报 403。
+    11-10 存了长效 token；它一年后到期，到那天会和 11-05 一样一声不响地停 —— 所以提前一个月报硬伤。"""
+    import datetime as _dt
+    auth = hb.get("auth")
+    if not auth:
+        return                      # 老心跳没有这个字段
+    if auth != "token":
+        r.note(f"{who}：这一轮用的是 Claude app 的登录、没有长效 token —— app 关着就续不上"
+               f"（11-05 → 11-09 停了四天）。跑 claude setup-token，再 bash scripts/set-cli-token.sh")
+        return
+    try:
+        saved = _dt.date.fromisoformat(str(hb.get("token_saved")))
+    except ValueError:
+        r.note(f"{who}：用的是长效 token，但查不到它哪天存的 —— 一年到期前的提醒会失灵")
+        return
+    today = today or _dt.datetime.now(_dt.timezone.utc).date()
+    left = TOKEN_LIFE_DAYS - (today - saved).days
+    if left <= TOKEN_WARN_DAYS:
+        r.fail(f"{who}：长效 token 存于 {saved}，一年到期，还剩 {left} 天 —— 到期那天定时任务就停；"
+               f"重跑 claude setup-token，再 bash scripts/set-cli-token.sh")
+    else:
+        r.good(f"{who}：用长效 token 登录（存于 {saved}，还剩 {left} 天到期）")
 
 
 def check_every_source_has_a_producer(r: Report) -> None:

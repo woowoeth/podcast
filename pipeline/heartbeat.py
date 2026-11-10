@@ -120,6 +120,32 @@ def cloud_down(path="data/heartbeat-cloud.json", max_age_h: float = 10) -> str:
     return ""
 
 
+def _cli_auth() -> dict:
+    """本机线这一轮用的是哪种 Claude 登录，长效 token 是哪天存进钥匙串的。
+
+    11-05 → 11-09 停了四天：定时任务用的是 Claude app 的登录，app 关着就续不上。11-10 存了
+    一年期的长效 token（local-daily.sh 开头从钥匙串读、导出成 CLAUDE_CODE_OAUTH_TOKEN）。
+    可 app 开着的时候两种登录都能跑通 —— 「这一轮成功了」说明不了用的是哪一种；一年后 token
+    到期，又会一声不响地停。所以心跳里记下来，体检才看得见（check_heartbeats）。
+
+    只读钥匙串那一项的属性（修改时间），**不用 -w／-g，不读 token 本身**。"""
+    out = {"auth": "token" if os.environ.get("CLAUDE_CODE_OAUTH_TOKEN") else "app"}
+    if out["auth"] != "token":
+        return out
+    import re
+    import subprocess
+    service = os.environ.get("CLI_TOKEN_SERVICE") or "ourword-podcast-claude-token"
+    try:
+        r = subprocess.run(["security", "find-generic-password", "-s", service],
+                           capture_output=True, text=True, timeout=10)
+    except Exception:
+        return out
+    m = re.search(r'"mdat"<timedate>=\S*\s+"(\d{4})(\d\d)(\d\d)', r.stdout or "")
+    if m:
+        out["token_saved"] = "-".join(m.groups())
+    return out
+
+
 def write(line: str, exit_code: int, published: int | None = None,
           why: str | None = None, llm: str | None = None,
           scope: str | None = None) -> pathlib.Path:
@@ -136,6 +162,7 @@ def write(line: str, exit_code: int, published: int | None = None,
         n = _autostash()
         if n is not None:
             rec["autostash"] = n
+        rec.update(_cli_auth())
     if published is not None:
         rec["published"] = int(published)
     if llm:

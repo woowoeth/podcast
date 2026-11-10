@@ -11386,6 +11386,84 @@ class AnITunesIdIsCheckedBeforeItSwapsAFeed(unittest.TestCase):
         self.assertEqual([], dup, f"这些 iTunes id 被两档源共用：{dup}")
 
 
+class TheHeartbeatSaysWhichLoginTheLocalLineUsed(unittest.TestCase):
+    """app 开着的时候，app 登录和长效 token 都能跑通 —— 「这一轮成功了」说明不了用的是哪一种；
+    长效 token 一年后到期，到那天会和 11-05 → 11-09 一样一声不响地停。心跳记下来，体检才看得见。"""
+
+    MDAT = ('keychain: "/Users/x/Library/Keychains/login.keychain-db"\nattributes:\n'
+            '    "mdat"<timedate>=0x32303236313131303034303632325A00  "20261110040622Z\\000"\n')
+
+    def _hb(self):
+        import importlib
+        return importlib.import_module("heartbeat")
+
+    def test_the_token_date_is_read_from_the_keychain_attributes_not_the_secret(self):
+        import types
+        from unittest import mock
+        hb, seen = self._hb(), {}
+        def run(cmd, **kw):
+            seen["cmd"] = cmd
+            return types.SimpleNamespace(returncode=0, stdout=self.MDAT, stderr="")
+        with mock.patch.dict(os.environ, {"CLAUDE_CODE_OAUTH_TOKEN": "x"}), \
+             mock.patch("subprocess.run", run):
+            got = hb._cli_auth()
+        self.assertEqual({"auth": "token", "token_saved": "2026-11-10"}, got)
+        self.assertFalse({"-w", "-g"} & set(seen["cmd"]), "查钥匙串时把 token 本身也读出来了")
+
+    def test_without_a_token_it_says_app_and_does_not_touch_the_keychain(self):
+        from unittest import mock
+        hb = self._hb()
+        env = {k: v for k, v in os.environ.items() if k != "CLAUDE_CODE_OAUTH_TOKEN"}
+        with mock.patch.dict(os.environ, env, clear=True), \
+             mock.patch("subprocess.run", side_effect=AssertionError("不该去查钥匙串")):
+            self.assertEqual({"auth": "app"}, hb._cli_auth())
+
+    def test_the_local_heartbeat_carries_it(self):
+        import tempfile
+        from unittest import mock
+        hb = self._hb()
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            (root / "data" / "episodes").mkdir(parents=True)
+            with mock.patch.object(hb, "ROOT", root), \
+                 mock.patch.object(hb, "_cli_auth", lambda: {"auth": "token", "token_saved": "2026-11-10"}):
+                rec = json.loads(hb.write("local", 0).read_text())
+        self.assertEqual(("token", "2026-11-10"), (rec.get("auth"), rec.get("token_saved")),
+                         "本机心跳里没记用的是哪种登录")
+
+    def test_the_healthcheck_reads_it(self):
+        import datetime as dt
+        import healthcheck as H
+        today = dt.date(2026, 12, 1)
+        r = H.Report(); H._check_cli_auth(r, "本机", {"auth": "app"}, today)
+        self.assertTrue(any("app 的登录" in m for m in r.warn), r.warn)
+        r = H.Report(); H._check_cli_auth(r, "本机", {"auth": "token", "token_saved": "2026-11-10"}, today)
+        self.assertTrue(any("还剩 344 天" in m for m in r.ok), r.ok)
+        self.assertEqual([], r.bad)
+        r = H.Report(); H._check_cli_auth(r, "本机", {"auth": "token", "token_saved": "2026-11-10"},
+                                          dt.date(2027, 10, 20))
+        self.assertTrue(any("还剩 21 天" in m for m in r.bad), "离一年到期不到一个月没报硬伤：" + str(r.bad))
+        r = H.Report(); H._check_cli_auth(r, "本机", {"exit": 0}, today)
+        self.assertEqual(([], [], []), (r.bad, r.warn, r.ok), "老心跳没有这个字段，不该出声")
+
+    def test_check_heartbeats_actually_calls_it(self):
+        import tempfile
+        from unittest import mock
+        import datetime as dt
+        import healthcheck as H
+        now = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        with tempfile.TemporaryDirectory() as td:
+            d = pathlib.Path(td)
+            (d / "heartbeat-cloud.json").write_text(json.dumps({"at": now, "line": "cloud", "exit": 0}))
+            (d / "heartbeat-local.json").write_text(json.dumps({"at": now, "line": "local", "exit": 0,
+                                                                "auth": "app"}))
+            r = H.Report()
+            with mock.patch.object(H, "DATA", d), mock.patch.object(H, "_commits_behind", lambda: 0), \
+                 mock.patch.object(H, "_check_line_revision", lambda *a: None):
+                H.check_heartbeats(r)
+        self.assertTrue(any("app 的登录" in m for m in r.warn), "体检没读心跳里的登录方式：" + str(r.warn))
+
+
 class SetCliTokenTakesTheWholePaste(unittest.TestCase):
     """终端窄的时候 claude setup-token 会把 token 折成两三行，复制下来带着换行。
 
