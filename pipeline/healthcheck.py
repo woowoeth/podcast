@@ -252,6 +252,12 @@ def _check_cli_auth(r: Report, who: str, hb: dict, today=None) -> None:
     auth = hb.get("auth")
     if not auth:
         return                      # 老心跳没有这个字段
+    if auth != "token" and hb.get("token_in_keychain"):
+        # 存了却没用上：这一轮是靠 app 的登录跑通的，app 一关又是 11-05 那样。只有这一条
+        # 能把「存好了」和「用上了」分开 —— 两种登录在 app 开着时都跑得通，退出码看不出来。
+        r.fail(f"{who}：钥匙串里存着长效 token，这一轮却没用上（用的还是 Claude app 的登录）—— "
+               f"app 关着就会停。看 scripts/local-daily.sh 开头读钥匙串那一步为什么没读到")
+        return
     if auth != "token":
         r.note(f"{who}：这一轮用的是 Claude app 的登录、没有长效 token —— app 关着就续不上"
                f"（11-05 → 11-09 停了四天）。跑 claude setup-token，再 bash scripts/set-cli-token.sh")
@@ -395,7 +401,8 @@ def check_core_quality_proposals(r: Report) -> None:
         return
     if held:
         r.note(f"{len(held)} 档核心源被质量规则判了、按规定不自动降，等人看："
-               + "；".join(f"{sid}（{act}：{why[:40]}）" for sid, act, why in held[:4]))
+               + "；".join(f"{sid}（{act}：{why[:40]}）" for sid, act, why in held[:4])
+               + " —— 同意就跑 python3 pipeline/curate.py --accept <id>（只执行这条提案，记进更新日志）")
 
 
 def check_content_freshness(r: Report) -> None:
@@ -1090,7 +1097,29 @@ def check_token_usage(r: Report) -> None:
         blob = json.loads(f.read_text())
     except Exception:
         return
-    days = sorted(blob)[-7:]
+    # **「近 7 天」要按今天往回数，不是「账本里最后 7 天」。** 原来是 sorted(blob)[-7:]：
+    # 2026-09-25 换到 claude CLI 之后用量一次都没再记，这一行就拿 09-19 → 09-25 的旧数
+    # 印「模型用量（近 7 天）」，印了 46 天，还是一行 ok。
+    import datetime as _dt
+    today = _dt.datetime.now(_dt.timezone.utc).date()
+    dated = sorted(d for d in blob if re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(d)))
+    last = dated[-1] if dated else ""
+    # 账本停没停，拿产物来问：账本最后一天之后还在发稿，说明模型在调、用量没人记。
+    # 不拿「几天没记」当判据 —— 额度用完、机器关着的那几天本来就没有调用。
+    later = 0
+    try:
+        done = json.loads((DATA / "state.json").read_text()).get("done") or {}
+        cut = (_dt.date.fromisoformat(last) + _dt.timedelta(days=1)).isoformat() if last else ""
+        later = sum(1 for v in done.values()
+                    if v.get("slug") and str(v.get("at") or "")[:10] > cut)
+    except Exception:
+        pass
+    if later:
+        r.note(f"模型用量账本停在 {last or '（空）'}，之后又发了 {later} 篇稿 —— 这段时间花了多少没人在记"
+               f"（lib/llm.py 调模型的那条路没把用量记进 data/usage.json）")
+        return
+    edge = (today - _dt.timedelta(days=6)).isoformat()
+    days = [d for d in dated if d >= edge]
     if not days:
         return
     tin = tout = tthink = calls = 0
@@ -1103,7 +1132,7 @@ def check_token_usage(r: Report) -> None:
             byrole[role] = byrole.get(role, 0) + v.get("in", 0) + v.get("out", 0)
     top = sorted(byrole.items(), key=lambda x: -x[1])[:3]
     share = tthink * 100 // max(tout, 1)
-    r.good(f"模型用量（近 {len(days)} 天）：{calls} 次 · "
+    r.good(f"模型用量（近 7 天，{len(days)} 天有记录）：{calls} 次 · "
            f"{(tin + tout) / 1000:.0f}k tokens · "
            f"大头 {'、'.join(f'{k} {v//1000}k' for k, v in top)}"
            + (f" · 思考占输出 {share}%" if tthink else ""))
@@ -1666,6 +1695,70 @@ def check_llm_calls_have_no_tools(r: Report, home: pathlib.Path | None = None,
         r.note("最近 48 小时找不到流水线模型调用的会话记录 —— 查不了它们有没有动用工具")
 
 
+WATCH_ISSUE = "原声播客站 · 体检不通过"       # watch.yml 开的那个长期 issue 的标题
+
+
+def _gh(*args: str) -> str:
+    import subprocess
+    p = subprocess.run(["gh", *args], capture_output=True, text=True, timeout=30, cwd=str(ROOT))
+    if p.returncode != 0:
+        raise RuntimeError((p.stderr or p.stdout or f"exit {p.returncode}").strip()[:80])
+    return p.stdout
+
+
+def check_cloud_watch(r: Report, gh=None) -> None:
+    """云端巡检（watch.yml）最近是不是红的 —— 红了要进本机体检，才到得了手机。
+
+    watch.yml 坏了只会往一个 GitHub issue 里追加评论，而用户不看 issue、每天的手机推送
+    只读本机体检的结果（data/health-local.json）。2026-11-03 → 11-10 它连红 7 天、21 次
+    （巡检那条线没装 opencc），本机体检全绿，没有任何人知道。云端独有的那几项
+    （线上部署是不是最新、定时任务有没有被 GitHub 停用）出了事，也是同一个下场。
+
+    连着两次都红才报：一天三班，一次红可能只是那一刻线上取不到。
+    查不了（没装 gh、没登录、没网）要说出来 —— 不能因为查不了就当它是绿的。
+    云端自己跑体检时不查（GITHUB_ACTIONS）：那就是它自己。
+    """
+    import os as _os
+    if _os.environ.get("GITHUB_ACTIONS"):
+        return
+    gh = gh or _gh
+    try:
+        runs = json.loads(gh("run", "list", "-w", "watch.yml", "-L", "6",
+                             "--json", "status,conclusion,createdAt"))
+    except Exception as ex:
+        r.note(f"云端巡检的结论查不了（gh：{type(ex).__name__} {str(ex)[:60]}）")
+        return
+    done = [x for x in runs if x.get("status") == "completed"
+            and x.get("conclusion") in ("success", "failure")]
+    if not done:
+        r.note("云端巡检最近没有跑完的记录 —— 它一天该跑三班")
+        return
+    if done[0]["conclusion"] == "success" or len(done) < 2 or done[1]["conclusion"] == "success":
+        r.good(f"云端巡检最近一次：{'通过' if done[0]['conclusion'] == 'success' else '红了一次（下一班还红才报）'}"
+               f"（{str(done[0].get('createdAt'))[:16]}Z）")
+        return
+    streak = 0
+    for x in done:
+        if x["conclusion"] != "failure":
+            break
+        streak += 1
+    why = ""
+    try:
+        num = json.loads(gh("issue", "list", "--state", "open", "--search",
+                            f"{WATCH_ISSUE} in:title", "--json", "number"))
+        if num:
+            body = json.loads(gh("issue", "view", str(num[0]["number"]),
+                                 "--json", "comments"))["comments"][-1]["body"]
+            hits = [ln.strip()[2:].strip() for ln in body.splitlines()
+                    if ln.strip().startswith("坏了")]
+            why = "；".join(h[:60] for h in hits[:2])
+    except Exception:
+        pass
+    r.fail(f"云端巡检连红 {streak}{'+' if streak == len(done) else ''} 次"
+           f"（最近一次 {str(done[0].get('createdAt'))[:16]}Z）"
+           + (f"：{why}" if why else " —— 原因看 GitHub issue「" + WATCH_ISSUE + "」最后一条"))
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--online", action="store_true", help="连线上一起查")
@@ -1673,6 +1766,9 @@ def main(argv: list[str] | None = None) -> int:
                     help="把结果（硬伤原文、提醒数、正常数、时间）另写一份 JSON。本机日更收尾时写进 "
                          "data/health-local.json：云端的每日提醒只能克隆仓库读文件，跑不了这里的代码，"
                          "也读不到 issue（2026-10-27）")
+    ap.add_argument("--cloud-watch", action="store_true",
+                    help="再查云端巡检（watch.yml）最近的结论。本机日更写 health-local.json 时带上："
+                         "云端巡检红了只进 GitHub issue，要进这份文件才到得了手机推送")
     ap.add_argument("--only-consistency", action="store_true",
                     help="只查「数据／正文页／短链一样多」。发布线在 push 之前用它："
                          "整套体检里有停更、心跳这类和本轮无关的项，"
@@ -1717,6 +1813,8 @@ def main(argv: list[str] | None = None) -> int:
     check_catchup_is_working(r)
     check_source_status_is_fresh(r)
     check_llm_calls_have_no_tools(r)
+    if a.cloud_watch:
+        check_cloud_watch(r)
     if a.online:
         check_online(r)
 

@@ -130,8 +130,6 @@ def _cli_auth() -> dict:
 
     只读钥匙串那一项的属性（修改时间），**不用 -w／-g，不读 token 本身**。"""
     out = {"auth": "token" if os.environ.get("CLAUDE_CODE_OAUTH_TOKEN") else "app"}
-    if out["auth"] != "token":
-        return out
     import re
     import subprocess
     service = os.environ.get("CLI_TOKEN_SERVICE") or "ourword-podcast-claude-token"
@@ -139,6 +137,12 @@ def _cli_auth() -> dict:
         r = subprocess.run(["security", "find-generic-password", "-s", service],
                            capture_output=True, text=True, timeout=10)
     except Exception:
+        return out
+    if out["auth"] != "token":
+        # 存了却没用上，和「根本没存」要分得开：前者是 local-daily.sh 读钥匙串那一步坏了，
+        # 体检报硬伤；后者只是提醒。
+        if r.returncode == 0:
+            out["token_in_keychain"] = True
         return out
     m = re.search(r'"mdat"<timedate>=\S*\s+"(\d{4})(\d\d)(\d\d)', r.stdout or "")
     if m:

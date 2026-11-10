@@ -11666,6 +11666,124 @@ class AnITunesIdIsCheckedBeforeItSwapsAFeed(unittest.TestCase):
         self.assertEqual([], dup, f"这些 iTunes id 被两档源共用：{dup}")
 
 
+class TheUsageLineSaysWhenItWasMeasured(unittest.TestCase):
+    """体检那行「模型用量（近 7 天）」取的是账本里最后 7 天，不是今天往回 7 天：
+    账本 2026-09-25 停了，它拿旧数印了 46 天，还是一行 ok。"""
+
+    def _check(self, ledger, done):
+        import tempfile, importlib, unittest.mock as mock
+        hc = importlib.import_module("healthcheck")
+        with tempfile.TemporaryDirectory() as tmp:
+            d = pathlib.Path(tmp)
+            (d / "usage.json").write_text(json.dumps(ledger))
+            (d / "state.json").write_text(json.dumps({"done": done, "fail": {}}))
+            r = hc.Report()
+            with mock.patch.object(hc, "DATA", d):
+                hc.check_token_usage(r)
+        return r
+
+    @staticmethod
+    def _day(n):
+        import datetime as dt
+        return (dt.datetime.now(dt.timezone.utc).date() - dt.timedelta(days=n)).isoformat()
+
+    ROW = {"digest/sonnet": {"calls": 2, "in": 1000, "out": 500, "think": 100}}
+
+    def test_a_dead_ledger_is_not_reported_as_this_week(self):
+        r = self._check({self._day(46): self.ROW},
+                        {"a": {"slug": "x", "at": self._day(3) + "T01:00:00Z"},
+                         "b": {"skip": "off-brief", "at": self._day(1) + "T01:00:00Z"}})
+        self.assertEqual([], r.ok, "46 天前的数被当成「近 7 天」报成正常")
+        self.assertTrue(any("停在" in m and "1 篇" in m for m in r.warn), r.warn)
+        self.assertEqual([], r.bad)
+
+    def test_only_days_inside_the_week_are_counted(self):
+        r = self._check({self._day(30): self.ROW, self._day(2): self.ROW, self._day(0): self.ROW},
+                        {"a": {"slug": "x", "at": self._day(0) + "T01:00:00Z"}})
+        self.assertEqual([], r.warn)
+        self.assertTrue(any("4 次" in m and "2 天有记录" in m for m in r.ok),
+                        f"窗口外那一天也被算进去了：{r.ok}")
+
+    def test_a_quiet_stretch_is_not_a_dead_ledger(self):
+        """额度用完、机器关着：没调模型也没发稿，账本没动是对的。"""
+        r = self._check({self._day(20): self.ROW},
+                        {"a": {"slug": "x", "at": self._day(20) + "T01:00:00Z"}})
+        self.assertEqual(([], []), (r.bad, r.warn))
+
+
+class ARedCloudWatchReachesTheLocalHealthcheck(unittest.TestCase):
+    """watch.yml 红了只往 GitHub issue 里追加评论；手机推送只读本机体检（health-local.json）。
+    2026-11-03 → 11-10 它连红 7 天 21 次，本机体检全绿，没人知道。"""
+
+    ISSUE = "体检时间：x\n```\n  ok    云端跑过\n  坏了  繁体歧义字审阅查不了（twreview 出错）\n```"
+
+    def _check(self, runs, env=None, boom=False):
+        import importlib, unittest.mock as mock
+        hc = importlib.import_module("healthcheck")
+
+        def gh(*a):
+            if boom:
+                raise RuntimeError("gh: not logged in")
+            if a[:2] == ("run", "list"):
+                return json.dumps([{"status": "completed", "conclusion": c,
+                                    "createdAt": f"2026-11-1{i}T03:30:00Z"} for i, c in enumerate(runs)])
+            if a[:2] == ("issue", "list"):
+                return json.dumps([{"number": 18}])
+            return json.dumps({"comments": [{"body": "旧的"}, {"body": self.ISSUE}]})
+        base = {k: v for k, v in os.environ.items() if k != "GITHUB_ACTIONS"}
+        r = hc.Report()
+        with mock.patch.dict(os.environ, {**base, **(env or {})}, clear=True):
+            hc.check_cloud_watch(r, gh=gh)
+        return r
+
+    def test_two_reds_in_a_row_is_a_hard_failure_with_the_reason(self):
+        r = self._check(["failure", "failure", "failure", "success"])
+        self.assertTrue(any("连红 3 次" in m and "繁体歧义字审阅查不了" in m for m in r.bad), r.bad)
+
+    def test_one_red_run_waits_for_the_next(self):
+        r = self._check(["failure", "success"])
+        self.assertEqual(([], []), (r.bad, r.warn), "红一次就报，线上抖一下就会响")
+        self.assertEqual(1, len(r.ok))
+        self.assertEqual([], self._check(["success", "failure", "failure"]).bad, "已经绿了还在报")
+
+    def test_not_being_able_to_ask_is_said_out_loud(self):
+        r = self._check([], boom=True)
+        self.assertEqual(([], []), (r.bad, r.ok), "查不了却报成了正常或硬伤")
+        self.assertTrue(any("查不了" in m for m in r.warn), r.warn)
+
+    def test_the_cloud_does_not_check_itself(self):
+        r = self._check(["failure", "failure"], env={"GITHUB_ACTIONS": "true"})
+        self.assertEqual(([], [], []), (r.bad, r.warn, r.ok))
+
+    def test_the_phone_snapshot_asks_for_it(self):
+        """从产物往回问：手机推送读的是 health-local.json，写它的那条命令得带 --cloud-watch。"""
+        sh = (ROOT / "scripts" / "local-daily.sh").read_text()
+        lines = [ln for ln in sh.splitlines() if "health-local.json" in ln and "healthcheck.py" in ln]
+        self.assertTrue(lines, "找不到写 health-local.json 的那条命令 —— 尺子坏了")
+        for ln in lines:
+            self.assertIn("--cloud-watch", ln, "写手机推送那份体检时没查云端巡检")
+        import importlib
+        hc = importlib.import_module("healthcheck")
+        src = (ROOT / "pipeline" / "healthcheck.py").read_text()
+        i = src.index("def main(")
+        self.assertRegex(src[i:], r"if a\.cloud_watch:\s+check_cloud_watch\(r\)", "开关没接到检查上")
+
+
+class TheProposalNoteSaysWhatToRun(unittest.TestCase):
+    """「等人看」的提案要写明同意了跑什么 —— 11-10 之前没有这条路，提案挂了近一个月。"""
+
+    def test_it_names_the_accept_command(self):
+        import importlib, unittest.mock as mock
+        hc = importlib.import_module("healthcheck")
+        cu = importlib.import_module("curate")
+        r = hc.Report()
+        with mock.patch.object(cu, "performance", lambda: {}), \
+                mock.patch.object(cu, "core_holds", lambda perf: [("an", "demote", "选题通过率 14%")]):
+            hc.check_core_quality_proposals(r)
+        self.assertTrue(any("curate.py --accept" in m and "an" in m for m in r.warn), r.warn)
+        self.assertTrue(hasattr(cu, "accept"), "提示里写的命令不存在")
+
+
 class TheHeartbeatSaysWhichLoginTheLocalLineUsed(unittest.TestCase):
     """app 开着的时候，app 登录和长效 token 都能跑通 —— 「这一轮成功了」说明不了用的是哪一种；
     长效 token 一年后到期，到那天会和 11-05 → 11-09 一样一声不响地停。心跳记下来，体检才看得见。"""
@@ -11690,13 +11808,33 @@ class TheHeartbeatSaysWhichLoginTheLocalLineUsed(unittest.TestCase):
         self.assertEqual({"auth": "token", "token_saved": "2026-11-10"}, got)
         self.assertFalse({"-w", "-g"} & set(seen["cmd"]), "查钥匙串时把 token 本身也读出来了")
 
-    def test_without_a_token_it_says_app_and_does_not_touch_the_keychain(self):
+    def test_without_a_token_it_says_app_and_whether_one_is_stored(self):
+        """存了却没用上（local-daily.sh 读钥匙串那一步坏了）和根本没存，心跳里要分得开。"""
+        import types
         from unittest import mock
-        hb = self._hb()
+        hb, seen = self._hb(), []
         env = {k: v for k, v in os.environ.items() if k != "CLAUDE_CODE_OAUTH_TOKEN"}
-        with mock.patch.dict(os.environ, env, clear=True), \
-             mock.patch("subprocess.run", side_effect=AssertionError("不该去查钥匙串")):
-            self.assertEqual({"auth": "app"}, hb._cli_auth())
+
+        def run(rc):
+            def _run(cmd, **kw):
+                seen.append(cmd)
+                return types.SimpleNamespace(returncode=rc, stdout=self.MDAT if rc == 0 else "", stderr="")
+            return _run
+        with mock.patch.dict(os.environ, env, clear=True):
+            with mock.patch("subprocess.run", run(44)):
+                self.assertEqual({"auth": "app"}, hb._cli_auth())
+            with mock.patch("subprocess.run", run(0)):
+                self.assertEqual({"auth": "app", "token_in_keychain": True}, hb._cli_auth())
+        for cmd in seen:
+            self.assertFalse({"-w", "-g"} & set(cmd), "查钥匙串时把 token 本身也读出来了")
+
+    def test_a_stored_token_that_was_not_used_is_a_hard_failure(self):
+        import healthcheck as H
+        r = H.Report(); H._check_cli_auth(r, "本机", {"auth": "app", "token_in_keychain": True})
+        self.assertTrue(any("却没用上" in m for m in r.bad),
+                        "钥匙串里有 token、这一轮却靠 app 登录跑的，没报硬伤：" + str(r.warn))
+        r = H.Report(); H._check_cli_auth(r, "本机", {"auth": "app"})
+        self.assertEqual([], r.bad, "根本没存 token 只是提醒，不是硬伤")
 
     def test_the_local_heartbeat_carries_it(self):
         import tempfile

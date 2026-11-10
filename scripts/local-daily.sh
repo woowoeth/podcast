@@ -180,7 +180,8 @@ PYEOF
   # 克隆仓库读文件 —— 跑不了这里的代码（权限分类器拦「执行外部代码」）、也读不到 issue 和
   # raw 文件（沙盒代理 403）。日更停了，这份文件就旧了，提醒按「多久没更新」报（2026-10-27）。
   health_snapshot() {
-    python3 pipeline/healthcheck.py --json data/health-local.json >/dev/null 2>&1 \
+    # --cloud-watch：云端巡检红了只进 GitHub issue，带上它才进得了这份文件、到得了手机。
+    python3 pipeline/healthcheck.py --cloud-watch --json data/health-local.json >/dev/null 2>&1 \
       || [ -s data/health-local.json ] || echo "体检快照没写成（不致命）"
   }
   command -v claude >/dev/null || { echo "找不到 claude CLI，PATH=$PATH"; exit 1; }
