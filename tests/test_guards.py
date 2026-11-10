@@ -6754,6 +6754,79 @@ class OneEpisodePerShareId(unittest.TestCase):
                       "只查了内存/state —— 另一台机器写的稿子查不到")
 
 
+class WorkflowsInstallWhatTheirScriptsImport(unittest.TestCase):
+    """工作流跑的脚本，顺着 import 链用到 opencc 的，这个工作流就得装 opencc。
+
+    真出过事：watch.yml 跑 healthcheck.py，体检在函数里 import twreview，
+    twreview 再 import opencc —— 而 watch.yml 一个依赖都没装。11-03 起每一轮
+    都报硬伤「繁体歧义字审阅查不了（No module named 'opencc'）」，告警 issue
+    红了 7 天、追加 21 条假告警。本机体检全绿，所以每次汇报都看不出来。
+
+    判据顺着 import 链算（AST，函数里的 import 也算，跨 pipeline/ 和
+    pipeline/lib/），不靠一张「哪些工作流要装」的名单 —— 下次谁给体检加一条
+    要 opencc 的检查，或者给别的工作流加一步 build，这里自己就会红。
+    只管 opencc：别的第三方库（mlx_whisper、PIL、imageio_ffmpeg）在
+    链上都是可选的，缺了会降级而不是报错。
+    """
+
+    PL = ROOT / "pipeline"
+
+    def _file(self, name):
+        parts = name.split(".")
+        for base in (self.PL, self.PL / "lib"):
+            f = base.joinpath(*parts).with_suffix(".py")
+            if f.exists():
+                return f
+            f = base.joinpath(*parts) / "__init__.py"
+            if f.exists():
+                return f
+        return None
+
+    def _imports(self, script):
+        import ast
+        seen, out, todo = set(), set(), [script]
+        while todo:
+            f = todo.pop()
+            if f in seen:
+                continue
+            seen.add(f)
+            for n in ast.walk(ast.parse(f.read_text())):
+                if isinstance(n, ast.Import):
+                    names = [a.name for a in n.names]
+                elif isinstance(n, ast.ImportFrom) and n.module and not n.level:
+                    names = [n.module] + [f"{n.module}.{a.name}" for a in n.names]
+                else:
+                    continue
+                for nm in names:
+                    g = self._file(nm)
+                    if g:
+                        todo.append(g)
+                    else:
+                        out.add(nm.split(".")[0])
+        return out
+
+    def _needs(self, text):
+        scripts = set(re.findall(r"python3?\s+(?:-\S+\s+)*pipeline/(\w+)\.py", text))
+        return {s for s in scripts if "opencc" in self._imports(self.PL / f"{s}.py")}
+
+    def test_the_import_chain_reaches_opencc_from_the_healthcheck(self):
+        # 尺子先验：体检的 import 链确实走得到 opencc（否则下面那条永远绿）
+        self.assertIn("opencc", self._imports(self.PL / "healthcheck.py"))
+
+    def test_every_workflow_that_needs_opencc_installs_it(self):
+        wf = ROOT / ".github" / "workflows"
+        if not wf.is_dir():
+            self.skipTest("没有工作流")
+        bad = []
+        for f in sorted(wf.glob("*.y*ml")):
+            t = f.read_text()
+            need = self._needs(t)
+            if need and not re.search(r"pip install[^\n]*opencc", t):
+                bad.append(f"{f.name}：跑 {', '.join(sorted(need))}，没装 opencc")
+        self.assertFalse(bad, "工作流跑的脚本要 opencc 却没装，体检会报假硬伤、"
+                              "建站会缺繁体：\n  " + "\n  ".join(bad))
+
+
 class WorkflowsMustNotPinSourceFilesToOldCommits(unittest.TestCase):
     """任何工作流都不许把源码文件从某个写死的提交里签出来。
 

@@ -35,6 +35,13 @@ jobs:
         with:
           python-version: "3.12"
 
+      # 体检会 import twreview → opencc。11-03 起这里没装，每一轮都报
+      # 「繁体歧义字审阅查不了」，告警 issue 因此红了 7 天、追加 21 条，
+      # 真故障进来也只是同一个 issue 里的又一条。装什么由 test_guards 里
+      # WorkflowsInstallWhatTheirScriptsImport 顺着 import 链算，不靠记。
+      - run: python -m pip install --quiet certifi truststore
+      - run: python -m pip install --quiet "opencc==1.4.2"
+
       # 实探要**先跑**：体检读它的结果来判断"某档源一集都出不来"是漏了
       # 还是有原因（Sharp Tech 的公开 feed 全是 (Preview)）。
       # 原因是算出来的，不是一张会过期的名单——所以它得定期重算。
