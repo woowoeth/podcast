@@ -87,7 +87,9 @@ jobs:
           git clean -fdq p s log 2>/dev/null || true
           git checkout -q -- index.html sources feed.xml sitemap.xml robots.txt 404.html \
                             search.json llms.txt llms-full.txt 2>/dev/null || true
-          git add data/sources.json data/curation.json 2>/dev/null || true
+          # data/usage.json：curate.py 调模型打分，用量记在这里（lib/llm.persist_usage）。不提交的话
+          # 这一步花的 token 就只留在这台用完即弃的机器上。
+          git add data/sources.json data/curation.json data/usage.json 2>/dev/null || true
           if git diff --cached --quiet; then echo "信源清单无变动"; exit 0; fi
           git commit -m "curate: 信源清单更新"
           ok=0

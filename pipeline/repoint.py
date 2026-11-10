@@ -134,4 +134,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    import atexit
+    # 用量进账本（data/usage.json）：中途崩掉、提前退出的那一轮也要记（见 lib/llm.persist_usage）
+    atexit.register(lambda: llm.persist_usage())
     raise SystemExit(main())

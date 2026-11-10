@@ -13811,7 +13811,23 @@ class TheStateFileRulerMeasuresTheRealCode(unittest.TestCase):
         # 反过来也不能太宽：文档字符串里提到的文件名不算写（gitsync.py 的 adopt 说明里点名了
         # catchup.json）；data/en/_sources.json 也不算 data/sources.json
         self.assertNotIn("gitsync.py", w, "尺子把文档字符串里提到的文件名当成了写")
-        self.assertNotIn("transspeakers.py", w, "尺子把 data/en/_speakers.json 这类路径的一截当成了体检文件")
+        self.assertEqual({"usage.json"}, w.get("transspeakers.py"),
+                         "尺子把 data/en/_speakers.json 这类路径的一截当成了体检文件")
+
+    def test_every_script_the_daily_run_calls_the_model_from_keeps_the_ledger(self):
+        """本机日更里跑的脚本，只要直接用 lib.llm，就得把用量落进 data/usage.json。
+
+        原来只有 run.py 结尾落盘：译文、信源简介、繁体审阅这些脚本花的 token 从不进账本。
+        名单从 local-daily.sh 和 import 推导，不手写 —— 以后日更多跑一个调模型的脚本，这里跟着查。
+        """
+        sh = (ROOT / "scripts" / "local-daily.sh").read_text()
+        ran = set(re.findall(r"python3 pipeline/(\w+)\.py", sh))
+        uses = {n for n in ran if re.search(
+            r"\bfrom lib import [^\n]*\bllm\b", (ROOT / "pipeline" / f"{n}.py").read_text())}
+        self.assertTrue({"run", "translate", "twreview"} <= uses, f"尺子没认出日更里调模型的脚本：{sorted(uses)}")
+        w = _state_writers({"usage.json"})
+        missing = sorted(n for n in uses if "usage.json" not in w.get(f"{n}.py", set()))
+        self.assertFalse(missing, f"这些脚本调模型却不记用量：{missing}")
 
 
 class CloudLinesCommitWhatTheHealthcheckReads(unittest.TestCase):
@@ -14920,6 +14936,104 @@ class TheModelCallCannotUseTools(unittest.TestCase):
         inside = subprocess.run(["git", "-C", cwd, "rev-parse", "--is-inside-work-tree"],
                                 capture_output=True, text=True)
         self.assertNotEqual("true", inside.stdout.strip(), f"cwd 在某个 git 仓库里：{cwd}")
+
+
+class TheCliCallRecordsWhatItSpent(unittest.TestCase):
+    """2026-09-25 换到 claude CLI 之后，用量一次都没记过：文本输出里没有它。
+    data/usage.json 停在那天，体检却拿那 7 天的旧数印「模型用量（近 7 天）」，印了 46 天。
+    回包的样子取自 2026-11-10 的一次真实调用（CLI 2.1.237）。"""
+
+    REAL = {"type": "result", "subtype": "success", "is_error": False, "result": "收到",
+            "usage": {"input_tokens": 3795, "cache_creation_input_tokens": 100,
+                      "cache_read_input_tokens": 5, "output_tokens": 95,
+                      "output_tokens_details": {"thinking_tokens": 87}}}
+
+    def setUp(self):
+        import importlib, tempfile
+        from unittest import mock
+        self.llm = importlib.import_module("lib.llm")
+        self.llm._CLI = self.llm._Gate()
+        td = tempfile.TemporaryDirectory()
+        self.addCleanup(td.cleanup)
+        self.ledger = pathlib.Path(td.name) / "usage.json"
+        for p in (mock.patch.object(self.llm, "_USE", {}), mock.patch.object(self.llm, "_FLUSHED", {}),
+                  mock.patch.object(self.llm, "USAGE_FILE", self.ledger),
+                  mock.patch.object(self.llm.time, "sleep", lambda s: None)):
+            p.start()
+            self.addCleanup(p.stop)
+
+    def _run(self, *outs):
+        """outs：依次返回的 (returncode, stdout, stderr)。返回 (_cli 的结果或异常, 用过的命令)。"""
+        import types
+        from unittest import mock
+        it, cmds = iter(outs), []
+
+        def run(cmd, **kw):
+            cmds.append(cmd)
+            rc, out, err = next(it)
+            return types.SimpleNamespace(returncode=rc, stdout=out, stderr=err)
+        with mock.patch.object(self.llm.subprocess, "run", run), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            try:
+                return self.llm._cli("s", "u", model="sonnet", role="digest"), cmds
+            except Exception as ex:
+                return ex, cmds
+
+    def test_the_answer_is_unwrapped_and_the_spend_is_recorded(self):
+        got, cmds = self._run((0, json.dumps(self.REAL, ensure_ascii=False), ""))
+        self.assertEqual("收到", got, "正文没从回包里拆出来 —— 下游会拿整个回包当稿子")
+        i = cmds[0].index("--output-format")
+        self.assertEqual("json", cmds[0][i + 1])
+        self.assertEqual({("digest", "sonnet"): {"calls": 1, "in": 3900, "out": 95, "think": 87}},
+                         self.llm._USE, "入 = 新读 + 写缓存 + 读缓存；思考单独记")
+
+    def test_plain_text_still_works_and_records_nothing(self):
+        got, _ = self._run((0, '{"title": "模型自己写的 JSON"}', ""))
+        self.assertEqual('{"title": "模型自己写的 JSON"}', got, "不是回包就该原样当正文")
+        self.assertEqual({}, self.llm._USE)
+
+    def test_a_quota_wall_in_the_envelope_still_stops_the_round(self):
+        wall = {"type": "result", "is_error": True, "result": "You've hit your weekly limit · resets Oct 23 at 7pm"}
+        got, cmds = self._run((1, json.dumps(wall), ""))
+        self.assertIsInstance(got, self.llm.AuthError, f"额度用完没被认出来：{got!r}")
+        self.assertEqual(1, len(cmds), "额度用完重试没用，不该再撞")
+
+    def test_an_auth_failure_in_the_envelope_is_retried_then_stops_the_round(self):
+        bad = json.dumps({"type": "result", "is_error": True,
+                          "result": "Failed to authenticate. API Error: 403 Request not allowed"})
+        got, cmds = self._run(*[(1, bad, "")] * 4)
+        self.assertIsInstance(got, self.llm.AuthError, f"鉴权失败没被认出来：{got!r}")
+        self.assertEqual(4, len(cmds), "偶发的 403 要先退避重试")
+        got, _ = self._run((1, bad, ""), (0, json.dumps(self.REAL), ""))
+        self.assertEqual("收到", got)
+
+    def test_an_error_envelope_is_never_returned_as_the_answer(self):
+        err = json.dumps({"type": "result", "is_error": True, "subtype": "error_max_turns"})
+        got, _ = self._run((0, err, ""))
+        self.assertIsInstance(got, RuntimeError)
+        self.assertIn("error_max_turns", str(got))
+
+    def test_the_ledger_gets_each_token_once(self):
+        ok = (0, json.dumps(self.REAL), "")
+        self._run(ok)
+        self.llm.persist_usage()
+        self.llm.persist_usage()            # 跑批结尾一次、退出时又一次
+        day = json.loads(self.ledger.read_text())
+        row = next(iter(day.values()))["digest/sonnet"]
+        self.assertEqual({"calls": 1, "in": 3900, "out": 95, "think": 87}, row, "同一笔用量记了两遍")
+        self._run(ok)
+        self.llm.persist_usage()
+        row = next(iter(json.loads(self.ledger.read_text()).values()))["digest/sonnet"]
+        self.assertEqual(2, row["calls"], "落过一次盘之后，新的用量没再记进去")
+
+    def test_call_passes_the_role_down(self):
+        from unittest import mock
+        seen = {}
+        with mock.patch.object(self.llm, "provider", lambda: "claude-cli"), \
+                mock.patch.object(self.llm, "model_name", lambda role="digest": "haiku"), \
+                mock.patch.object(self.llm, "_cli", lambda s, u, **kw: seen.update(kw) or "x"):
+            self.llm.call("s", "u", role="review")
+        self.assertEqual("review", seen.get("role"), "记账分不出是哪一步花的")
 
 
 class ASourceBlurbOnlyKeepsWhatItAskedFor(unittest.TestCase):

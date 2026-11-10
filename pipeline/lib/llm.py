@@ -12,6 +12,7 @@ from __future__ import annotations
 import contextlib
 import json
 import os
+import pathlib
 import re
 import shutil
 import subprocess
@@ -108,18 +109,25 @@ def endpoint() -> str:
 # "推理预算省着用"必须能被核对，否则就是一句话。按角色和模型分开记：哪一步花的钱，
 # 一眼看得出来。DeepSeek 会在 completion_tokens_details 里单独报思考用掉多少。
 _USE: dict = {}
+_FLUSHED: dict = {}                 # 已经落过盘的那部分：persist_usage 只写增量，可以反复调
+_USE_LOCK = threading.Lock()        # 写稿是多线程的，+= 不是原子操作
 
 
 def note_usage(role: str, model: str, u: dict | None) -> None:
     if not u:
         return
     k = (role, model)
-    row = _USE.setdefault(k, {"calls": 0, "in": 0, "out": 0, "think": 0})
-    row["calls"] += 1
-    row["in"] += int(u.get("prompt_tokens") or 0)
-    row["out"] += int(u.get("completion_tokens") or 0)
     d = u.get("completion_tokens_details") or {}
-    row["think"] += int(d.get("reasoning_tokens") or 0)
+    with _USE_LOCK:
+        row = _USE.setdefault(k, {"calls": 0, "in": 0, "out": 0, "think": 0})
+        row["calls"] += 1
+        row["in"] += int(u.get("prompt_tokens") or 0)
+        row["out"] += int(u.get("completion_tokens") or 0)
+        row["think"] += int(d.get("reasoning_tokens") or 0)
+
+
+# 模块级常量：测试替换它；「哪个脚本写哪个体检文件」的推导（tests 里的 _state_writers）也认它
+USAGE_FILE = pathlib.Path(__file__).resolve().parent.parent.parent / "data" / "usage.json"
 
 
 def persist_usage(tag: str = "") -> None:
@@ -130,32 +138,44 @@ def persist_usage(tag: str = "") -> None:
     这里按天累计，体检读它报数。
 
     只记 token 数，不记内容。文件会一直长，所以只留最近 60 天。
+
+    **只写上次落盘之后新增的那部分**，所以可以反复调：跑批结尾调一次、进程退出时
+    （atexit）再调一次，不会记两遍。凡是会调模型的脚本都在入口挂了 atexit ——
+    原来只有 run.py 结尾调，译文、繁体审阅这些脚本的用量从来不进账本，
+    中途崩掉的那一轮也不进。
     """
     import datetime as _dt
-    import pathlib as _p
-    if not _USE:
-        return
-    root = _p.Path(__file__).resolve().parent.parent.parent
-    f = root / "data" / "usage.json"
-    day = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%d")
-    try:
-        blob = json.loads(f.read_text())
-    except Exception:
-        blob = {}
-    d = blob.setdefault(day, {})
-    for (role, model), r in _USE.items():
-        k = f"{role}/{model}"
-        row = d.setdefault(k, {"calls": 0, "in": 0, "out": 0, "think": 0})
-        for x in ("calls", "in", "out", "think"):
-            row[x] += r[x]
-    # 只留最近 60 天，否则这个文件会一直长
-    for old_day in sorted(blob)[:-60]:
-        blob.pop(old_day, None)
-    try:
-        f.write_text(json.dumps(blob, ensure_ascii=False, indent=1,
-                                sort_keys=True) + "\n")
-    except Exception:
-        pass
+    with _USE_LOCK:
+        delta = {}
+        for k, r in _USE.items():
+            was = _FLUSHED.get(k) or {}
+            d = {x: r[x] - was.get(x, 0) for x in ("calls", "in", "out", "think")}
+            if any(d.values()):
+                delta[k] = d
+        if not delta:
+            return
+        f = USAGE_FILE
+        day = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%d")
+        try:
+            blob = json.loads(f.read_text())
+        except Exception:
+            blob = {}
+        d = blob.setdefault(day, {})
+        for (role, model), r in delta.items():
+            k = f"{role}/{model}"
+            row = d.setdefault(k, {"calls": 0, "in": 0, "out": 0, "think": 0})
+            for x in ("calls", "in", "out", "think"):
+                row[x] += r[x]
+        # 只留最近 60 天，否则这个文件会一直长
+        for old_day in sorted(blob)[:-60]:
+            blob.pop(old_day, None)
+        try:
+            f.write_text(json.dumps(blob, ensure_ascii=False, indent=1,
+                                    sort_keys=True) + "\n")
+        except Exception:
+            return                      # 没写成：不记「已落盘」，下次再试
+        for k, r in _USE.items():
+            _FLUSHED[k] = dict(r)
 
 
 def usage_report() -> list[str]:
@@ -330,7 +350,7 @@ def call(system: str, user: str, *, max_tokens: int = 6000,
         return _openai(system, user, max_tokens, temperature, model,
                        json_mode=want_json and _json_mode[0], role=role)
     if p == "claude-cli":
-        return _cli(system, user, model=model)
+        return _cli(system, user, model=model, role=role)
     raise RuntimeError("no LLM backend: set LLM_API_KEY or install the claude CLI")
 
 
@@ -444,7 +464,52 @@ def cli_cwd() -> str:
     return d
 
 
-def _cli(system: str, user: str, *, model: str = "", tries: int = 4) -> str:
+def _unwrap(stdout: str) -> tuple[str, dict | None, bool]:
+    """`claude -p --output-format json` 的回包拆成（正文，用量，是不是出错）。
+
+    不是回包（老版本 CLI 不认这个开关、或者测试桩直接印正文）就原样当正文，用量为 None ——
+    **记账这件事不许弄坏出稿**：拆不动就退回原来的行为。
+    回包实测长这样（2026-11-10，CLI 2.1.237）：
+      {"type":"result","is_error":false,"result":"正文",
+       "usage":{"input_tokens":…,"cache_creation_input_tokens":…,"cache_read_input_tokens":…,
+                "output_tokens":…,"output_tokens_details":{"thinking_tokens":…}}, …}
+    """
+    s = (stdout or "").strip()
+    if s.startswith("{"):
+        try:
+            d = json.loads(s)
+        except ValueError:
+            d = None
+        if isinstance(d, dict) and d.get("type") == "result":
+            text = d.get("result")
+            bad = bool(d.get("is_error"))
+            if not isinstance(text, str):
+                text = ""
+            if bad and not text.strip():
+                text = f"cli error: {d.get('subtype') or 'unknown'}"
+            u = d.get("usage")
+            return text, (u if isinstance(u, dict) else None), bad
+    return stdout or "", None, False
+
+
+def _note_cli_usage(role: str, model: str, u: dict | None) -> None:
+    """CLI 回包里的用量记进台账。入 = 新读的 + 写缓存的 + 读缓存的（整段提示词的大小）。"""
+    try:
+        if not u:
+            return
+        tin = sum(int(u.get(k) or 0) for k in
+                  ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"))
+        tout = int(u.get("output_tokens") or 0)
+        if not (tin or tout):
+            return                      # 鉴权失败这类回包用量全是 0，不算一次调用
+        think = int((u.get("output_tokens_details") or {}).get("thinking_tokens") or 0)
+        note_usage(role, model, {"prompt_tokens": tin, "completion_tokens": tout,
+                                 "completion_tokens_details": {"reasoning_tokens": think}})
+    except Exception:
+        pass
+
+
+def _cli(system: str, user: str, *, model: str = "", role: str = "?", tries: int = 4) -> str:
     # stdin carries the payload so a long transcript never hits ARG_MAX.
     #
     # No --max-turns: at 1 the CLI can spend the single turn on setup and exit
@@ -463,9 +528,15 @@ def _cli(system: str, user: str, *, model: str = "", tries: int = 4) -> str:
     #     一次写稿调用不需要它们，原来每次都整套带上，白占额度；
     #   cwd 换到仓库外的空目录：CLI 在哪个目录跑，就把那里的 git status 塞进上下文，
     #     模型看到「新增了哪些集」就可能答非所问，工具关了也一样。
-    cmd = ["claude", "-p", "--model", model or model_name(),
+    #
+    # --output-format json：回包里带用量。**2026-09-25 换到 CLI 之后用量一次都没记过** ——
+    # 文本输出里没有它，data/usage.json 停在那天，体检却一直拿那 7 天的旧数印
+    # 「模型用量（近 7 天）」，印了 46 天。额度是这条线最紧的约束，却没人在量。
+    model = model or model_name()
+    cmd = ["claude", "-p", "--model", model,
            "--append-system-prompt", system,
-           "--tools", "", "--safe-mode", "--strict-mcp-config"]
+           "--tools", "", "--safe-mode", "--strict-mcp-config",
+           "--output-format", "json"]
     last = ""
     serial_retry = False
     for i in range(tries):
@@ -476,14 +547,18 @@ def _cli(system: str, user: str, *, model: str = "", tries: int = 4) -> str:
         except subprocess.TimeoutExpired:
             last = "timed out after 1800s"
         else:
-            if r.returncode == 0 and (r.stdout or "").strip():
-                return r.stdout
-            last = ((r.stderr or "").strip() or (r.stdout or "").strip() or
+            text, usage, bad = _unwrap(r.stdout)
+            _note_cli_usage(role, model, usage)     # 失败的那次也花了 token
+            if r.returncode == 0 and not bad and text.strip():
+                return text
+            # 出错时原因可能在回包的 result 里（JSON 输出），也可能在 stderr 里：两处都留着，
+            # 下面认额度、认鉴权的正则才不会因为换了输出格式而失灵。
+            last = (" | ".join(x for x in (text.strip(), (r.stderr or "").strip()) if x) or
                     f"exit {r.returncode} with no output — the CLI does this when "
                     f"several headless sessions run at once")
             # 无输出退出：**每个调用**都有一次串行重试，不只是第一个撞上的那个线程 ——
             # 旧版 CLI 的这个症状是几个会话一起挂，只救一个等于其余几集照样白失败。
-            if (not (r.stdout or "").strip() and not (r.stderr or "").strip()
+            if (not text.strip() and not (r.stderr or "").strip()
                     and not serial_retry and i < tries - 1):
                 if _CLI.serialize():
                     log("    claude -p 并发时无输出退出 —— 这个进程余下的调用改回一次一个"
