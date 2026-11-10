@@ -3258,6 +3258,35 @@ class VideoTimeline(unittest.TestCase):
         self.assertIn("if ok is None:", src[i:src.index("def find", i)],
                       "audit 必须把「查不出来」和「对不上」分开处理")
 
+    def test_the_daily_batch_reaches_the_videos_that_need_checking(self):
+        """日更每天 --limit 30。文稿即字幕的集不需要核对、核对了也不写 video_len，
+        它们不能占名额——否则真要核对的那几篇永远排不上（11-10：192 篇占着名额，
+        体检报的 30 篇一直没轮到，日志却印着「保留 29」）。"""
+        import tempfile, importlib, unittest.mock as mock
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        video = importlib.import_module("video")
+        seen = []
+
+        def fake(d, from_yt, **kw):
+            seen.append(d["id"])
+            return True, "ok"
+        with tempfile.TemporaryDirectory() as tmp:
+            files = []
+            for i in range(35):
+                p = pathlib.Path(tmp) / f"yt{i:02d}.json"
+                p.write_text(json.dumps({"id": f"yt{i}", "youtube_id": "v",
+                    "digest": {"quality": {"transcript_source": "youtube"}}}))
+                files.append(p)
+            for i in range(2):
+                p = pathlib.Path(tmp) / f"rss{i}.json"
+                p.write_text(json.dumps({"id": f"rss{i}", "youtube_id": "v", "duration": 3000,
+                    "digest": {"quality": {"transcript_source": "feed"}}}))
+                files.append(p)
+            with mock.patch.object(video.T, "video_aligned", fake):
+                video.audit(files, dry=True, limit=30)
+        self.assertIn("rss0", seen, "真要核对的集被文稿即字幕的集挤出了这一批")
+        self.assertIn("rss1", seen, "真要核对的集被文稿即字幕的集挤出了这一批")
+
     def test_no_wrong_video_on_the_site(self):
         """线上不该再有挂错的视频。只查已知的失败形态：视频比音频短一大截 =
         片花。这条不联网，跑得起。"""

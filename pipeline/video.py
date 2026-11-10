@@ -65,7 +65,11 @@ def audit(files: list[pathlib.Path], dry: bool, limit: int = 0) -> tuple[int, in
             d = json.loads(f.read_text())
         except Exception:
             continue
-        if d.get("youtube_id"):
+        # 文稿即字幕的集时间轴天然一致，video_aligned 直接放行、也不写 video_len ——
+        # 留在名单里它们就**永远**排在「没核对过」的最前面。11-10 实测：192 篇这样的集
+        # 每天占满 --limit 30 的名额，日志印着「保留 29」，体检报的那 30 篇真要核对的
+        # 一直轮不到。判据和体检 check_video_alignment 同一条：不是 youtube 文稿才要核对。
+        if d.get("youtube_id") and tier_of(d) != "youtube":
             rows.append((f, d))
     # 没核对过的排前面：日更每天带 --limit 跑一小批，几天就能把存量清完，
     # 而"清完了没"由体检报出来，不用人记着。
