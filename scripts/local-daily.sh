@@ -47,6 +47,17 @@ LOG="$LOG_DIR/$(date +%Y-%m-%d).log"
 # launchd 给的 PATH 很窄：claude、python3、yt-dlp、git 都得自己找回来。
 export PATH="/Library/Frameworks/Python.framework/Versions/3.14/bin:/opt/homebrew/bin:/usr/local/bin:$HOME/bin/node/bin:$HOME/.local/bin:$PATH"
 
+# **Xcode 装上或升级之后、许可还没同意之前，/usr/bin/git 这类 xcrun 垫片一律报错退出。**
+# 2026-11-10 13:59 装上 Xcode 实测：git 当场不能用，直到 14:01 有人打开 Xcode 点了同意。
+# App Store 夜里自动升级 Xcode 也是这样，那一班就会挂在同步那一步。
+# 这时这一轮改用命令行工具那一套（它有自己的许可，装的时候就同意过）——
+# 只是选用哪套工具，不替任何人同意 Xcode 的许可。
+CLT_DIR="${CLT_DIR:-/Library/Developer/CommandLineTools}"
+if ! git --version >/dev/null 2>&1 && [ -x "$CLT_DIR/usr/bin/git" ]; then
+  export DEVELOPER_DIR="$CLT_DIR"
+  echo "git 用不了（多半是 Xcode 许可还没同意），这一轮改用 $CLT_DIR"
+fi
+
 # **长效登录（claude setup-token，一年）在钥匙串里就用它。** 不用它时，CLI 的登录要靠续期，
 # 而定时任务自己续不上：11-05 → 11-09 Claude app 关着的四天，八班全是 403；11-09 app 一打开，
 # 75 秒后钥匙串里的登录被续上，一切恢复 —— 没有人做任何事。长效 token 不续期，app 开不开都行。

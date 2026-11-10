@@ -6754,6 +6754,61 @@ class OneEpisodePerShareId(unittest.TestCase):
                       "只查了内存/state —— 另一台机器写的稿子查不到")
 
 
+class TheDailyRunSurvivesAnUnacceptedXcodeLicense(unittest.TestCase):
+    """Xcode 装上或升级、许可还没同意时，/usr/bin/git 报错退出；日更要退回命令行工具。
+
+    2026-11-10 13:59 装 Xcode，git 当场失效两分钟，直到有人点了同意。
+    App Store 夜里自动升级时没人点，那一班会挂在同步那一步。
+    这里把 local-daily.sh 里那一段原样拿出来，用一个「没设 DEVELOPER_DIR 就报许可错」
+    的假 git 跑，看它会不会改用命令行工具。
+    """
+
+    def _block(self):
+        src = (ROOT / "scripts" / "local-daily.sh").read_text()
+        i = src.index('CLT_DIR="${CLT_DIR:-')
+        j = src.index("\nfi\n", i) + 4
+        # 第一处**真的调用** git 的行（注释里提到 git 不算），要在这段之后
+        first = next(n for n, line in enumerate(src[:i].splitlines() + [""] + src[j:].splitlines())
+                     if not line.lstrip().startswith("#")
+                     and re.search(r"(^|[\s;&|($])git\s", line))
+        self.assertGreater(first, src[:i].count("\n"), "退路要放在第一次用 git 之前")
+        return src[i:j]
+
+    def _run(self, git_ok, with_clt=True):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            d = pathlib.Path(tmp)
+            (d / "bin").mkdir()
+            g = d / "bin" / "git"
+            g.write_text("#!/bin/sh\n" + ("exit 0\n" if git_ok else
+                "[ -n \"${DEVELOPER_DIR:-}\" ] && exit 0\n"
+                "echo 'You have not agreed to the Xcode license agreements.' >&2\nexit 69\n"))
+            g.chmod(0o755)
+            clt = d / "clt"
+            if with_clt:
+                (clt / "usr" / "bin").mkdir(parents=True)
+                (clt / "usr" / "bin" / "git").write_text("#!/bin/sh\nexit 0\n")
+                (clt / "usr" / "bin" / "git").chmod(0o755)
+            env = {"PATH": f"{d / 'bin'}:/usr/bin:/bin", "CLT_DIR": str(clt), "HOME": tmp}
+            p = subprocess.run(["bash", "-c", "set -u\n" + self._block()
+                                + '\necho "DEV=${DEVELOPER_DIR:-}"; git --version'],
+                               env=env, capture_output=True, text=True)
+        return p, str(clt)
+
+    def test_falls_back_when_git_refuses(self):
+        p, clt = self._run(git_ok=False)
+        self.assertIn(f"DEV={clt}", p.stdout, p.stderr)
+        self.assertEqual(0, p.returncode, "退回之后 git 还是用不了")
+
+    def test_leaves_a_working_git_alone(self):
+        p, _ = self._run(git_ok=True)
+        self.assertIn("DEV=\n", p.stdout, "git 好好的却被换了工具链")
+
+    def test_no_command_line_tools_no_change(self):
+        p, _ = self._run(git_ok=False, with_clt=False)
+        self.assertIn("DEV=\n", p.stdout, "没有命令行工具时不能指向一个不存在的目录")
+
+
 class WorkflowsInstallWhatTheirScriptsImport(unittest.TestCase):
     """工作流跑的脚本，顺着 import 链用到 opencc 的，这个工作流就得装 opencc。
 
