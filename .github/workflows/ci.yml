@@ -46,7 +46,12 @@ jobs:
     # 11-04 量了最近 13 次成功：中位 603s、最长 686s，离 720s 只差 34 秒；
     # 同一天 apt 镜像慢了 5 分钟，937 项测试全过之后被超时取消 —— 一次假红。
     # 误报比漏报贵：会自己红的 CI 两周内就会被学会忽略。
-    timeout-minutes: 20
+    #
+    # 11-10 又一次：apt 镜像一个包等了 8 分钟，「装依赖」用了 11.3 分钟，整个任务 20.3 分钟被取消。
+    # 量了 11-09 的 22 次：装依赖 0.5–0.9 分钟、测试 4.1–5.4 分钟 —— 慢的从来不是测试，是镜像。
+    # 所以拆开计时：装依赖单独一步、给足（它卡住是外部原因，等得起）；测试一步按自己的分布卡紧
+    # （真卡住照样很快红）；整个任务只留兜底。
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
         with:
@@ -70,13 +75,10 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: 守护检查与单元测试
+      - name: 装依赖（浏览器、ffmpeg）
+        # 正常 0.5–0.9 分钟；apt 镜像抽风时见过 5 分钟、11.3 分钟。给足，不让镜像慢变成「CI 红了」
+        timeout-minutes: 25
         run: |
-          # **必须有 pipefail。** 下面是 `... | tail -40`，没有它退出码取的是
-          # tail 的——永远 0。这条 CI 是这个仓库的安全网，而它在这一行上
-          # **一直是失败时放行的**：测试红了照样报 success，实测有一条渲染层
-          # 检查在 CI 里失败了好几轮，没有任何人知道。
-          set -o pipefail
           python -m pip install --quiet pyyaml
           python -m pip install --quiet "opencc==1.4.2"
           # 渲染层体检要真的开浏览器。这一层是补上来的：用户一轮报的 11 个问题
@@ -85,6 +87,16 @@ jobs:
           python -m playwright install --with-deps chromium
           # 本机转写的切片测试要真的 ffmpeg（造一段带大元数据的音频来切）；没装的话那条在 CI 上直接失败
           sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg
+
+      - name: 守护检查与单元测试
+        # 正常 4.1–5.4 分钟（11-09 的 22 次）。真卡住要很快红，不陪镜像一起等
+        timeout-minutes: 12
+        run: |
+          # **必须有 pipefail。** 下面是 `... | tail -40`，没有它退出码取的是
+          # tail 的——永远 0。这条 CI 是这个仓库的安全网，而它在这一行上
+          # **一直是失败时放行的**：测试红了照样报 success，实测有一条渲染层
+          # 检查在 CI 里失败了好几轮，没有任何人知道。
+          set -o pipefail
           # tail -40 只露得出最后几条失败的详情：2026-11-03 那轮报 failures=4，详情只看得见 2 条，
           # 另外两条是什么要本地重跑才知道。失败的完整名单单独列一遍。
           python -m unittest discover -s tests -v > /tmp/unittest.log 2>&1 && rc=0 || rc=$?
