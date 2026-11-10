@@ -354,14 +354,14 @@ def main() -> int:
         try:
             try:
                 r = llm.call_json(SYSTEM, body + "\n\n" + ask,
-                                  max_tokens=need, temperature=temp, role="review")
+                                  max_tokens=need, temperature=temp, role="review", step="translate")
             except Exception as ex:
                 if "内容为空" not in str(ex):
                     raise
                 with lock:
                     log(f"      额度不够（{need}），加倍重试 {slug[:34]}")
                 r = llm.call_json(SYSTEM, body + "\n\n" + ask,
-                                  max_tokens=need * 2, temperature=temp, role="review")
+                                  max_tokens=need * 2, temperature=temp, role="review", step="translate")
         except Exception as ex:
             with lock:
                 log(f"  {slug[:44]} 译失败：{type(ex).__name__}: {str(ex)[:160]}")

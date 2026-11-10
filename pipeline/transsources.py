@@ -55,7 +55,7 @@ def main() -> int:
                '"desc": "..."}, ...]} with one entry per input line, same ids.')
         try:
             r = llm.call_json(SYSTEM, body + "\n\n" + ask,
-                              max_tokens=4000, temperature=0.2, role="review")
+                              max_tokens=4000, temperature=0.2, role="review", step="sources")
         except Exception as ex:
             log(f"  这一批失败：{type(ex).__name__}")
             continue

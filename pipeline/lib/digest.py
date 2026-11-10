@@ -262,7 +262,7 @@ def _compose(system: str, user: str, max_tokens: int) -> dict:
         if cheap == llm.model_name("digest"):
             raise
         log(f"    推理预算被思考吃光，换 {cheap} 重做这一步（省一次推理调用）")
-        return llm.call_json(system, user, max_tokens=max_tokens, role="map")
+        return llm.call_json(system, user, max_tokens=max_tokens, role="map", step="digest")
 
 
 def build(ep: dict, src: dict, tr: dict, chapters: list[dict]) -> dict:

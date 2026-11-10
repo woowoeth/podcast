@@ -15173,6 +15173,55 @@ class TheCliCallRecordsWhatItSpent(unittest.TestCase):
             self.llm.call("s", "u", role="review")
         self.assertEqual("review", seen.get("role"), "记账分不出是哪一步花的")
 
+    def test_the_step_names_the_ledger_line_and_the_role_still_picks_the_model(self):
+        """译文借用 review 这一档的便宜模型，但账本要记在「translate」名下。"""
+        from unittest import mock
+        seen, asked = {}, []
+        with mock.patch.object(self.llm, "provider", lambda: "claude-cli"), \
+                mock.patch.object(self.llm, "model_name", lambda role="digest": asked.append(role) or "haiku"), \
+                mock.patch.object(self.llm, "_cli", lambda s, u, **kw: seen.update(kw) or "x"):
+            self.llm.call("s", "u", role="review", step="translate")
+        self.assertEqual(["review"], asked, "step 不该影响选哪个模型")
+        self.assertEqual("translate", seen.get("role"), "账本没按 step 记")
+
+    def test_every_ledger_line_is_one_kind_of_work(self):
+        """账本的一行只记一种活。
+
+        账本第一天（2026-11-10）：「review/haiku 404k」里一半是译文，「triage/haiku」里混着选题、
+        归类、金句校对 —— role 是模型档位，好几种活借用同一档。我自己第一眼就把它读成了
+        「评审是最大的一笔」。
+        规矩从调用点推导：不带 step 的调用（记在 role 名下）全仓库只许出自一个函数；
+        带 step 的，一个 step 只许出自一个文件。以后谁再借 review 档做别的事，这里会红。
+        """
+        import ast
+        sites = []
+        for f in sorted(list((ROOT / "pipeline").glob("*.py")) + list((ROOT / "pipeline" / "lib").glob("*.py"))):
+            if f.name == "llm.py":
+                continue
+            tree = ast.parse(f.read_text())
+            funcs = [n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+            for n in ast.walk(tree):
+                if not (isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                        and n.func.attr in ("call", "call_json")
+                        and isinstance(n.func.value, ast.Name) and n.func.value.id == "llm"):
+                    continue
+                kw = {k.arg: getattr(k.value, "value", None) for k in n.keywords}
+                own = max((fn for fn in funcs if fn.lineno <= n.lineno <= fn.end_lineno),
+                          key=lambda fn: fn.lineno, default=None)
+                sites.append((kw.get("step"), kw.get("role", "digest"), f.name, own.name if own else "<module>"))
+        self.assertGreater(len(sites), 12, f"尺子只找到 {len(sites)} 处模型调用 —— 找法坏了")
+        self.assertIn((None, "review", "review.py", "_ask"), sites, "尺子没认出评审那一处调用")
+        implicit, explicit = {}, {}
+        for step, role, fname, fn in sites:
+            if step:
+                explicit.setdefault(step, set()).add(fname)
+            else:
+                implicit.setdefault(role, set()).add((fname, fn))
+        bad = [f"「{r}」这一行同时记着 {sorted(w)} 的调用（给其中借用这一档的那些加 step=）"
+               for r, w in implicit.items() if len(w) > 1]
+        bad += [f"step「{s}」出自多个文件 {sorted(w)}" for s, w in explicit.items() if len(w) > 1]
+        self.assertFalse(bad, "账本的一行混着几种活，读数会读错：\n  " + "\n  ".join(bad))
+
 
 class ASourceBlurbOnlyKeepsWhatItAskedFor(unittest.TestCase):
     """transsources 原来「有 id 有译文就存」：11-09 问的是 securitynowaud、businesswars，

@@ -104,7 +104,7 @@ def main() -> int:
         old = [p.get("h") or "" for p in pts]
         try:
             r = llm.call_json(SYSTEM, brief(d) + "\n\n" + ASK,
-                              max_tokens=900, temperature=0.2, role="review")
+                              max_tokens=900, temperature=0.2, role="review", step="repoint")
         except Exception as ex:
             log(f"  {(d['digest'].get('title') or '')[:24]} 重出失败：{type(ex).__name__}")
             continue

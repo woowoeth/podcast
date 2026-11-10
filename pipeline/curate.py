@@ -554,7 +554,7 @@ def speaker_leads(existing: list[str], min_hits: int = 3) -> list[dict]:
                               + "\n\n人名：\n" + "\n".join(
                                   f"- {n}（出现 {hits[n]} 次）" for n in batch)
                               + "\n\n" + SPEAKER_SCHEMA,
-                              max_tokens=900, temperature=0.2, role="triage")
+                              max_tokens=900, temperature=0.2, role="triage", step="curate")
         except Exception as ex:
             log(f"    发言人线索失败（跳过这批）：{type(ex).__name__}")
             continue
@@ -585,7 +585,7 @@ def find_leads(existing: list[str], sample: list[dict]) -> list[dict]:
         r = llm.call_json(LEADS_SYSTEM,
                           "现有信源（不要重复提）：" + "、".join(existing) + "\n\n"
                           + "近期深读：\n" + "\n".join(body)[:14000] + "\n\n" + LEADS_SCHEMA,
-                          max_tokens=900, temperature=0.2, role="triage")
+                          max_tokens=900, temperature=0.2, role="triage", step="curate")
     except Exception as ex:
         log(f"  线索提取失败：{type(ex).__name__}")
         return []
@@ -693,7 +693,7 @@ def shortlist(cands: list[dict]) -> list[dict]:
         r = llm.call_json(SHORTLIST_SYSTEM,
                           "榜单候选：\n" + "\n".join(f"- {n}" for n in names)
                           + "\n\n" + SHORTLIST_SCHEMA,
-                          max_tokens=900, temperature=0.1, role="triage")
+                          max_tokens=900, temperature=0.1, role="triage", step="curate")
     except Exception as ex:
         log(f"    批量粗筛失败（放行前 8 个）：{type(ex).__name__}")
         return cands[:8]
@@ -740,7 +740,7 @@ def rank_names(names: list[str], per_batch: int = 15) -> list[str]:
             r = llm.call_json(RANK_SYSTEM.replace("{n}", str(per_batch)),
                               "候选：\n" + "\n".join(f"- {n}" for n in batch)
                               + "\n\n" + RANK_SCHEMA,
-                              max_tokens=500, temperature=0.1, role="triage")
+                              max_tokens=500, temperature=0.1, role="triage", step="curate")
         except Exception as ex:
             log(f"    排序失败（跳过这批）：{type(ex).__name__}")
             continue
@@ -1101,7 +1101,7 @@ def score_candidate(c: dict, existing_desc: str) -> dict | None:
         body = (f"候选节目：{c['name']}\n{facts}\n\n最近几集标题：\n{titles}\n\n"
                 + ev + f"现有信源覆盖：{existing_desc[:2600]}\n\n{SCORE_SCHEMA}")
         r = llm.call_json(SCORE_SYSTEM, body,
-                          max_tokens=600, temperature=0.1, role="review")
+                          max_tokens=600, temperature=0.1, role="review", step="curate")
     except Exception as ex:
         log(f"    评分失败：{type(ex).__name__}")
         return None

@@ -334,23 +334,30 @@ def anthropic_text(r: dict, model: str) -> str:
 
 def call(system: str, user: str, *, max_tokens: int = 6000,
          temperature: float = 0.3, want_json: bool = False,
-         role: str = "digest") -> str:
+         role: str = "digest", step: str | None = None) -> str:
+    """role 决定用哪个模型；step 是这次调用在账本里记到哪一行（不给就记在 role 名下）。
+
+    **两件事要分开。** role 是模型档位（review = 便宜模型），而译文、信源简介、改标题都借用
+    review 这一档 —— 账本第一天（2026-11-10）「review/haiku 404k」里一半其实是译文，
+    「triage/haiku」里混着选题、归类、金句校对三样。按 role 记账答不了「哪一步花的」。
+    """
     p = provider()
     model = model_name(role)
+    label = step or role
     if p == "anthropic":
         base = BASE if "anthropic" in BASE else "https://api.anthropic.com"
         body, headers = anthropic_request(system, user, max_tokens=max_tokens,
                                           temperature=temperature, model=model, role=role)
         r = _guard(lambda: net.post_json(base + "/v1/messages", body, headers))
         u = r.get("usage") or {}
-        note_usage(role, model, {"prompt_tokens": u.get("input_tokens"),
-                                 "completion_tokens": u.get("output_tokens")})
+        note_usage(label, model, {"prompt_tokens": u.get("input_tokens"),
+                                  "completion_tokens": u.get("output_tokens")})
         return anthropic_text(r, model)
     if p == "openai":
         return _openai(system, user, max_tokens, temperature, model,
-                       json_mode=want_json and _json_mode[0], role=role)
+                       json_mode=want_json and _json_mode[0], role=role, label=label)
     if p == "claude-cli":
-        return _cli(system, user, model=model, role=role)
+        return _cli(system, user, model=model, role=label)
     raise RuntimeError("no LLM backend: set LLM_API_KEY or install the claude CLI")
 
 
@@ -374,7 +381,7 @@ _REASONING = re.compile(r"reason|-r1|thinking|\bo[134]\b", re.I)
 
 
 def _openai(system: str, user: str, max_tokens: int, temperature: float,
-            model: str, *, json_mode: bool, role: str = "?") -> str:
+            model: str, *, json_mode: bool, role: str = "?", label: str = "") -> str:
     url = (BASE or "https://api.openai.com/v1") + "/chat/completions"
     if _REASONING.search(model):
         max_tokens = max(max_tokens * 4, 16000)
@@ -400,9 +407,9 @@ def _openai(system: str, user: str, max_tokens: int, temperature: float,
             log("    这个端点不接受 response_format，本次起改用纯提示词约束 JSON")
             _json_mode[0] = False
             return _openai(system, user, max_tokens, temperature, model,
-                           json_mode=False, role=role)
+                           json_mode=False, role=role, label=label)
         raise
-    note_usage(role, model, r.get("usage"))
+    note_usage(label or role, model, r.get("usage"))
     msg = (r.get("choices") or [{}])[0].get("message", {}) or {}
     out = msg.get("content") or ""
     if not out.strip():

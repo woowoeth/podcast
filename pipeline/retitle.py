@@ -67,7 +67,7 @@ def main() -> int:
         old = d["digest"].get("title") or ""
         try:
             r = llm.call_json(SYSTEM, brief(d) + "\n\n" + ASK,
-                              max_tokens=400, temperature=0.2, role="review")
+                              max_tokens=400, temperature=0.2, role="review", step="retitle")
         except Exception as ex:
             log(f"  {old[:24]} 重出失败：{type(ex).__name__}")
             continue

@@ -66,7 +66,8 @@ def check_model() -> None:
         log("       注意：GitHub Actions 的 runner 上没有 claude CLI，"
             "定时任务必须配 LLM_API_KEY")
     try:
-        r = llm.call_json("You are terse.", 'Return exactly {"ok":true}.', max_tokens=100)
+        r = llm.call_json("You are terse.", 'Return exactly {"ok":true}.', max_tokens=100,
+                          step="selftest")
         if r.get("ok") is True:
             log(OK + "模型往返正常，JSON 解析正常")
         else:

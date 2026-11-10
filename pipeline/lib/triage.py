@@ -208,7 +208,7 @@ def classify(ep: dict, d: dict, src: dict) -> dict | None:
             f"标签：{' '.join((d.get('tags') or [])[:5])}")
     try:
         r = llm.call_json(CAT_SYSTEM, body, max_tokens=120, temperature=0,
-                          retries=1, role="triage")
+                          retries=1, role="triage", step="cat")
     except Exception:
         return None
     c = str((r or {}).get("cat") or "").strip()

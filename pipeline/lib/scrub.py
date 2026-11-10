@@ -49,7 +49,7 @@ def bad_quotes(quotes: list[dict]) -> dict[int, str]:
     body = "\n".join(f"{i}. {t}" for i, t in items)
     try:
         r = llm.call_json(SYSTEM, body + "\n\n" + SCHEMA,
-                          max_tokens=400, temperature=0.0, retries=1, role="triage")
+                          max_tokens=400, temperature=0.0, retries=1, role="triage", step="scrub")
     except Exception as ex:
         log(f"    金句校对调用失败（放行）：{type(ex).__name__}")
         return {}

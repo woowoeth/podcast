@@ -84,7 +84,7 @@ def main() -> int:
         batch = todo[i:i + 40]
         try:
             r = llm.call_json(SYSTEM, "\n".join(batch) + "\n\n" + ASK,
-                              max_tokens=4000, temperature=0.1, role="review")
+                              max_tokens=4000, temperature=0.1, role="review", step="speakers")
         except Exception as ex:
             log(f"  这一批失败：{type(ex).__name__}: {ex}")
             continue
