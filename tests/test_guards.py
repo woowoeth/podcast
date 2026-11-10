@@ -11548,6 +11548,92 @@ class JudgingASourceNeedsEnoughEvidence(unittest.TestCase):
                          "被挡下的判决没列出来等人看 —— 挡住就等于看不见了")
 
 
+class AHumanCanAcceptACoreSourceProposal(unittest.TestCase):
+    """核心源的质量判决只提案；人同意了，要有一条正规的路把它落下去，而且要留得住。
+
+    2026-11-10 用户同意 anthropic（T1，选题通过率 14%）降到 T2。直接改 tier 两头都错：
+      · 留 tier_base=1 —— 还算核心源，restore_lifted 下一轮就把它升回 T1；
+      · 不留 tier_base —— 不算核心源了，同一条证据下一轮再降到 T3。
+    这里真跑 performance() 和 main()（不 mock 体检数字），走完整个来回。
+    """
+
+    def setUp(self):
+        import tempfile, importlib, unittest.mock as mock
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        self.C = importlib.import_module("curate")
+        td = tempfile.TemporaryDirectory()
+        self.addCleanup(td.cleanup)
+        self.D = pathlib.Path(td.name)
+        (self.D / "episodes").mkdir()
+        (self.D / "sources.json").write_text(json.dumps({"sources": [
+            {"id": "an", "name": "an", "cat": "ai", "tier": 1,
+             "status": {"ok": True, "age_days": 3, "max_gap_days": 10}}]}))
+        self._publish(1)
+        # 选题：发出去的 1 集算通过，另 6 集被判 off-brief —— 通过率 1/7 = 14%
+        done = {f"an-x{i}": {"skip": "off-brief", "src": "an", "score": 2} for i in range(6)}
+        (self.D / "state.json").write_text(json.dumps({"done": done, "fail": {}}))
+        for p in (mock.patch.object(self.C, "DATA", self.D),
+                  mock.patch.object(self.C, "LEDGER", self.D / "curation.json")):
+            p.start()
+            self.addCleanup(p.stop)
+
+    def _publish(self, n):
+        k = len(list((self.D / "episodes").glob("*.json")))
+        for i in range(k, k + n):
+            (self.D / "episodes" / f"e{i}.json").write_text(json.dumps(
+                {"source_id": "an", "review": {"score": 8.0}, "triage": {"score": 7.0}}))
+
+    def _main(self, *args):
+        import contextlib, unittest.mock as mock
+        led = self.D / "curation.json"
+        before = len(json.loads(led.read_text())) if led.exists() else 0
+        with mock.patch.object(sys, "argv", ["curate.py", *args]), \
+                contextlib.redirect_stdout(io.StringIO()):
+            rc = self.C.main()
+        new = json.loads(led.read_text())[before:] if led.exists() else []
+        return rc, new
+
+    def _src(self):
+        return json.loads((self.D / "sources.json").read_text())["sources"][0]
+
+    def test_the_whole_round_trip(self):
+        # 0 · 尺子先验：这份数据确实判得出「降级」，而且被核心源保护挡着
+        held = self.C.core_holds(self.C.performance())
+        self.assertEqual([("an", "demote")], [(h[0], h[1]) for h in held])
+        rc, new = self._main("--demote")
+        self.assertEqual((0, [], 1), (rc, new, self._src()["tier"]), "核心源被自动降了")
+
+        # 1 · 人同意 → 按提案降一级，账本记 by=human
+        rc, new = self._main("--accept", "an")
+        self.assertEqual(0, rc)
+        self.assertEqual([("demoted", 1, 2, "human")],
+                         [(e["kind"], e["from_tier"], e["to_tier"], e.get("by")) for e in new])
+        self.assertEqual((2, 1), (self._src()["tier"], self._src().get("tier_base")))
+
+        # 2 · 留得住：再跑两轮，既不被升回 T1，也不被同一条证据再降到 T3
+        for _ in range(2):
+            rc, new = self._main("--demote")
+            self.assertEqual(2, self._src()["tier"],
+                             "人同意的 T2 没留住（升回 T1 = 还当核心源；降到 T3 = 一条证据降两级）")
+            self.assertEqual([], new, "判决没变，不该再往更新日志里记")
+
+        # 3 · 体检不再列它「等人看」
+        self.assertEqual([], self.C.core_holds(self.C.performance()))
+
+        # 4 · 判据不成立了照常恢复，理由说真话
+        self._publish(6)            # 选题通过率 7/13 = 54%
+        rc, new = self._main("--demote")
+        self.assertEqual(1, self._src()["tier"], "判据不成立了还留在 T2")
+        self.assertEqual(["restored"], [e["kind"] for e in new])
+        self.assertIn("人工同意", new[0]["why"])
+
+    def test_accepting_something_that_was_never_proposed_changes_nothing(self):
+        before = (self.D / "sources.json").read_text()
+        rc, new = self._main("--accept", "an,nobody")
+        self.assertEqual((1, []), (rc, new), "没有提案的 id 也被执行了")
+        self.assertEqual(before, (self.D / "sources.json").read_text())
+
+
 class AnITunesIdIsCheckedBeforeItSwapsAFeed(unittest.TestCase):
     """2026-10-19：Hardcore History 登记的 iTunes id 其实是 This American Life。它更新慢，
     feed 一过期就按 id「修」成了 TAL 的 feed —— 两档共用一个 feed，集会被判重复。

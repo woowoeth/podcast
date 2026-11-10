@@ -16,6 +16,7 @@
   成稿合格率        写出来的稿有多少过了成稿评分（被拦下的也算分母）
   取稿成功率        一直取不到文稿的源占着名额却产不出内容
 核心源（tier 1，或被降之前是 tier 1）的质量判决只提案、不自动执行（core_holds，体检列出来）。
+人看过、同意了，用 --accept <id> 执行那一条提案；之后这档源按普通规则走（见 accept）。
 每次改动都追加进 data/curation.json，并渲染成站上的更新日志。
 """
 from __future__ import annotations
@@ -138,6 +139,11 @@ def performance() -> dict[str, dict]:
         elif why.startswith("gate:"):
             per[src]["gate_rejected"] += 1
 
+    # 人批准过质量提案的源（curate --accept，账本里记 by=human）不再受核心源保护。
+    # 不看这一条的话，批准后的 T2（tier_base=1）还是「核心源」：restore_lifted 下一轮
+    # 就把它升回 T1，人的决定留不过一轮。
+    human = {r.get("id") for r in load_ledger()
+             if r.get("by") == "human" and r.get("kind") in ("demoted", "dormant", "removed")}
     out = {}
     for sid, p in per.items():
         s = srcs[sid]
@@ -163,7 +169,7 @@ def performance() -> dict[str, dict]:
             "residential": bool(s.get("residential")),
             "pinned": bool(s.get("pinned")),
             # 核心源：现在是 tier 1，或者被降之前是（tier_base）。质量类判决不自动执行，见 judge()。
-            "core": s.get("tier", 3) == 1 or s.get("tier_base") == 1,
+            "core": (s.get("tier", 3) == 1 or s.get("tier_base") == 1) and sid not in human,
             # 出过稿的，稿子是从哪一层来的。只靠 asr 的必须走本机线。
             "asr_only": bool(p["tr"]) and set(p["tr"]) == {"asr"},
             "age_days": st.get("age_days"),
@@ -399,11 +405,42 @@ def _restore_reason(sid: str, m: dict) -> str:
     last = next((r for r in reversed(load_ledger())
                  if r.get("id") == sid and r.get("kind") in ("demoted", "dormant")), None)
     w = str((last or {}).get("why") or "")
+    if (last or {}).get("by") == "human":
+        return "人工同意降级时的判据这一轮不再成立，回到降级前的等级"
     if "成稿评分中位" in w:
         return "降级依据的「成稿评分中位 7.0」这条规则删了：它量的是写稿模型，不是节目（2026-10-15）"
     if "选题通过率" in w:
         return "选题通过率改为把已发布的集算作通过之后，降级的判据不再成立"
     return "降级的判据这一轮不再成立，回到降级前的等级"
+
+
+def accept(perf: dict, sids: list[str], dry: bool = False) -> list[dict] | None:
+    """人同意某档核心源的质量提案（体检里「等人看」那一条）：按提案执行一次，记 by=human。
+
+    **只认体检列出来的那条提案，不是一个手动改等级的口子。** tier 只有 curate 一个
+    写入者（POSTMORTEM 35）；人批准的是「这条判决可以执行」，执行的仍是 apply_actions。
+
+    批准之后这档源不再受核心源保护（performance 里 core 看账本的 by=human），按普通规则走：
+    降一级从降级前的等级算，同一条证据不会一轮降一级（停在批准的那一级）；判据不成立了，
+    restore_lifted 照常把它恢复。2026-11-10 用户同意 anthropic 降到 T2 时加的 ——
+    在这之前核心源只能被提案，没有任何正规的路把人的同意落下去。
+
+    有 id 没有待批的提案就什么都不动，返回 None。
+    """
+    held = {sid: (act, why) for sid, act, why in core_holds(perf)}
+    missing = [s for s in sids if s not in held]
+    if missing:
+        log(f"  没有等人看的质量提案，什么都没动：{'、'.join(missing)}"
+            f"（现有提案：{'、'.join(held) or '无'}）")
+        return None
+    day = iso(now())[:10]
+    entries = []
+    for sid in sids:
+        act, why = held[sid]
+        for e in apply_actions([(sid, act, f"{why}（核心源，{day} 人工同意执行）")], dry):
+            e["by"] = "human"
+            entries.append(e)
+    return entries
 
 
 def restore_lifted(perf: dict, actions: list[tuple[str, str, str]],
@@ -1327,8 +1364,10 @@ def main() -> int:
                          "判断仍由本站的探测与评分做，清单只提供候选")
     ap.add_argument("--dry-run", action="store_true",
                     help="只出建议，不改 sources.json 也不写日志")
+    ap.add_argument("--accept", metavar="ID[,ID]",
+                    help="人同意体检里「等人看」的核心源质量提案，按提案执行一次")
     a = ap.parse_args()
-    if not (a.audit or a.demote or a.discover):
+    if not (a.audit or a.demote or a.discover or a.accept):
         a.audit = True
 
     log(f"信源策展 · {iso(now())}")
@@ -1336,6 +1375,11 @@ def main() -> int:
     log(f"\n— 体检（{len(perf)} 档）—")
     actions = audit(perf)
     entries = []
+    if a.accept:
+        got = accept(perf, [s.strip() for s in a.accept.split(",") if s.strip()], a.dry_run)
+        if got is None:
+            return 1
+        entries += got
     if a.demote:
         if actions:
             log(f"\n— 执行 {len(actions)} 项 —")
