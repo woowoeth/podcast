@@ -1275,7 +1275,12 @@ def check_asr_only_routing(r: Report) -> None:
             fails[v.get("src")] += 1
     stuck = []
     for sid, c in by.items():
-        if set(c) == {"asr"} and not (srcs.get(sid) or {}).get("residential"):
+        # 退役的源（data/retired-sources.json）不在册，本来就不派活，谈不上「两边都不做」。
+        # 原来 srcs.get(sid) or {} 把「查不到」当成「没标」：11-10 报的 2 档
+        # （witness、youdead）全是退役源，提醒挂着却没有一件事可做。
+        if sid not in srcs:
+            continue
+        if set(c) == {"asr"} and not srcs[sid].get("residential"):
             stuck.append((fails[sid], sid))
     if not stuck:
         return

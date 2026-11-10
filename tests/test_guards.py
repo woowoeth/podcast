@@ -10314,6 +10314,43 @@ class AsrOnlySourcesMustBeRoutedToTheLocalLine(unittest.TestCase):
                          "一篇没发过的源也会被判成 asr_only")
 
 
+class TheAsrOnlyNoteSkipsRetiredSources(unittest.TestCase):
+    """退役的源不在 sources.json 里，体检不能把「查不到」当成「没标 residential」。
+
+    11-10 体检挂着「2 档只靠转写出稿、却没标 residential」，两档都是退役源
+    （witness、youdead）—— 一条没有任何事可做的提醒，挂久了就没人看提醒。
+    """
+
+    def _run(self, sources, episodes, fails=None):
+        import tempfile, importlib, unittest.mock as mock
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        hc = importlib.import_module("healthcheck")
+        with tempfile.TemporaryDirectory() as tmp:
+            d = pathlib.Path(tmp)
+            (d / "episodes").mkdir()
+            (d / "sources.json").write_text(json.dumps({"sources": sources}))
+            (d / "state.json").write_text(json.dumps({"fail": fails or {}}))
+            for i, sid in enumerate(episodes):
+                (d / "episodes" / f"e{i}.json").write_text(json.dumps({
+                    "source_id": sid,
+                    "digest": {"quality": {"transcript_source": "asr"}}}))
+            r = hc.Report()
+            with mock.patch.object(hc, "DATA", d):
+                hc.check_asr_only_routing(r)
+        return r
+
+    def test_a_retired_source_is_not_counted(self):
+        fails = {f"gone-{i}": {"src": "gone", "why": "no transcript"} for i in range(3)}
+        r = self._run([{"id": "live"}], ["live", "gone", "gone"], fails)
+        said = "\n".join(r.bad + r.warn)
+        self.assertIn("1 档只靠转写", said, "在册、没标的那一档反而不报了")
+        self.assertNotIn("gone", said, "退役的源被当成「没标 residential」报了出来")
+
+    def test_only_retired_sources_means_silence(self):
+        r = self._run([{"id": "live", "residential": True}], ["live", "gone"])
+        self.assertEqual(([], []), (r.bad, r.warn), "只剩退役源时不该有提醒")
+
+
 class CatchUpMustReserveSlotsForSourcesWithNothing(unittest.TestCase):
     """建档模式要给「一篇都没有」的源**留名额**，不是给它加分。
 
