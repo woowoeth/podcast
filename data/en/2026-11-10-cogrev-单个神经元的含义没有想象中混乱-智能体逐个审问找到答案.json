@@ -1,0 +1,131 @@
+{
+ "slug": "2026-11-10-cogrev-单个神经元的含义没有想象中混乱-智能体逐个审问找到答案",
+ "of": "cogrev-b357bebd9b",
+ "source_lang": "en",
+ "title": "Individual neuron meanings are far less confused than imagined; agents find answers through systematic interrogation",
+ "dek": "Gated MLPs force neurons to switch between a handful of meanings, not hundreds mixed together. AI agents running systematic experiments can write descriptions that accurately predict neuron behavior, overturning the old claim that neurons are too chaotic to interpret.",
+ "why": "If you care about why large models hallucinate and how to monitor them, this episode offers a new path: reading neurons directly without auxiliary models, backed by quantifiable, reproducible metrics.",
+ "who": "Engineers and researchers working on model interpretability, safety monitoring, or post-training fine-tuning, who want to know if you can bypass auxiliary models and read neurons directly.",
+ "skip": "The opening through 05:55 is the host's preview summary of the full episode and repeats material later; you can skip it.",
+ "tags": [
+  "interpretability",
+  "LLMs",
+  "neural networks",
+  "sparsity",
+  "MoE",
+  "alignment"
+ ],
+ "points": [
+  {
+   "h": "Single neurons are far more interpretable than academia assumed",
+   "body": "Tigges's core claim: individual neurons in MLPs have been underestimated by prior interpretability work. Early networks were smaller and messier, and activation functions like ReLU and GELU were hard to parse, so the field defaulted to ‘representations are distributed, not in single neurons’ and relied on auxiliary models like SAEs instead. His counter: you rarely need many neurons firing at once; even if one neuron encodes multiple meanings, it's usually ‘a compact cluster of meanings,’ not hundreds of inseparable semantic stacks."
+  },
+  {
+   "h": "Gated structures let one neuron hold two different meanings",
+   "body": "Modern models use SwiGLU gated MLPs that give each neuron two independent signals: the result of gate projection multiplied by up projection, forming AND-gate-like logic. This lets the same neuron switch interpretations across contexts—Tigges's example is a neuron where one pole represents ‘oral health’ and the other ‘marine wildlife,’ with completely different downstream neurons pre-positioned by context to receive the right signal and avoid misreading."
+  },
+  {
+   "h": "Ablating 88% of activations barely dents model performance",
+   "body": "On Qwen3.6-35B-A3B, the team kept only the top-64 strongest activations per active expert (512 neurons total, keeping 64), suppressing roughly 88% of activations and zeroing the rest; another approach kept only extreme values per neuron across historical percentiles, replacing the rest with near-zero means. Result: model performance on many benchmarks stayed roughly flat compared to the original; the only clear degradation was in reasoning—loops, repeated self-checking—but simple subsequent fine-tuning restored performance to or beyond original levels."
+  },
+  {
+   "h": "Without internal noise, models become more confident",
+   "body": "Why do some reasoning-free benchmarks actually score higher after cutting most neurons? Tigges explains these benchmarks measure how fast the model answers, and with less internal noise to distract, the most confident answer floats to the top without interference. For reasoning tasks, the same effect appears after fine-tuning—the model finds the answer it already knows faster, without repeated self-doubt."
+  },
+  {
+   "h": "74% KL divergence recovery validates neuron function descriptions",
+   "body": "The way to verify whether a neuron function description is sound: completely ablate the neuron, have another model score each token's predicted activation 0-9 based only on the description, feed those predictions back in, and measure how much it recovers the damaged next-token prediction distribution (KL divergence). The main metric is 74% KL divergence recovery weighted by damage magnitude—not 74% accuracy, not ‘the model is 74% understood,’ but at positions where the neuron actually matters, predictions roughly match the real activations."
+  },
+  {
+   "h": "The monosemanticity question is the wrong question",
+   "body": "Tigges says ‘is this neuron monosemantic or multisemantic’ itself is misleading; the real question is whether you can enumerate everything it represents. His hypothetical: a neuron that might respond to clothing, exercise equipment, dishes, and tablecloths—looks multivalent, but if the model's underlying concept is ‘things you'd see at a garage sale,’ humans might never discover that connection. Many neurons are better understood as verbs than nouns: not detecting an entity, but signaling downstream to trigger wait states, rechecks, direction changes in reasoning control flow."
+  },
+  {
+   "h": "Facts live in connections, not neurons",
+   "body": "Tigges flags a counterintuitive problem: models have around 5 million neurons, but clearly remember far more facts because one neuron ≠ one fact; facts live in connections between neurons—the number of paths a few dozen interconnected neurons can combine is exponential. His example: a small ‘community’ of dozens of neurons dedicated to encoding which painters belong to Impressionism, Neo-Impressionism, or Post-Impressionism. Verified experts also show strong topic consistency, mostly covering one to three subjects."
+  },
+  {
+   "h": "100 million tokens of fine-tuning brings reasoning back",
+   "body": "After sparsity, reasoning degrades—loops, self-checking, indecision—but Tigges says that's not lost knowledge, it's miscalibration. The team used roughly 100 million tokens, a few GPUs, and one day of subsequent fine-tuning to restore or partly exceed original performance, verified on math, code, and medical QA benchmarks. He emphasizes this is far below standard post-training scale and vastly below pre-training scale, showing the ablated 90% of activations affected whether the model could smoothly find an answer, not whether it knew one."
+  }
+ ],
+ "terms": [
+  {
+   "term": "gated MLP (SwiGLU)",
+   "def": "Uses gate projection and up projection multiplied together, giving each neuron AND-gate-like logic to combine meanings across different contexts."
+  },
+  {
+   "term": "monosemanticity",
+   "def": "Whether a neuron corresponds to a single concept rather than mixing multiple distinct meanings."
+  },
+  {
+   "term": "ablation",
+   "def": "Forcibly deactivating or replacing a neuron with mean values to observe resulting changes in model performance."
+  },
+  {
+   "term": "SAE (sparse autoencoder)",
+   "def": "Auxiliary model previously used to extract ‘interpretable features’ from model internal activations."
+  },
+  {
+   "term": "neuron scientist",
+   "def": "AI agent that automatically clusters neuron activations and generates and verifies functional hypotheses about them."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Qwen3.6-35B-A3B neuron count",
+   "v": "~5 million"
+  },
+  {
+   "k": "Expert layer structure",
+   "v": "256 experts per layer, select 8, 512 neurons per expert"
+  },
+  {
+   "k": "Top-64 sparsity ablation",
+   "v": "~88% of activations"
+  },
+  {
+   "k": "KL divergence recovery",
+   "v": "74%"
+  },
+  {
+   "k": "Analysis cost per neuron",
+   "v": "$45"
+  },
+  {
+   "k": "Activation sample corpus",
+   "v": "10 billion tokens"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "the individual neurons in MLPs in neural networks in general are more interpretable than the field has thought to this point.",
+   "translated": false
+  },
+  {
+   "text": "there's a neuron where the one meaning is oral health and the other meaning is marine wildlife.",
+   "translated": false
+  },
+  {
+   "text": "It doesn't have as much internally to distract itself from the right answer, and the most confident thing rises to the top.",
+   "translated": false
+  },
+  {
+   "text": "as we apply increasing levels of intelligence, then more and more of what the neuron is doing becomes legible and predictable.",
+   "translated": false
+  },
+  {
+   "text": "It's not just detecting a thing. It's like sending a signal that is going to induce the model to do something else.",
+   "translated": false
+  },
+  {
+   "text": "A neuron is not a fact, but the fact is in the connections between neurons.",
+   "translated": false
+  },
+  {
+   "text": "They're, like, mostly about one to three topics, and that's it.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}

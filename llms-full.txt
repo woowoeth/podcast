@@ -1,6 +1,308 @@
 # 原声 — 世界太吵，来原声听播客
 
-1516 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
+1521 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
+
+==============================================================================
+
+## 体量大100倍的对手，却被下载量反超：规模不是护城河
+
+- URL: https://ourword.ai/podcast/p/2026-11-10-latentspace-体量大100倍的对手-却被下载量反超-规模不是护城河/
+- 节目 / show: Latent Space (https://ourword.ai/podcast/s/latentspace/)
+- 原集标题 / original episode: Designing for Agents — Zeno Rocha, Resend
+- 发布 / published: 2026-11-10 · 时长 / duration: 1:25:52
+- 文稿来源 / transcript: 官方逐字稿 · 17188 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 4 numbers traced to the transcript, review score 8/10
+
+**没有邮件背景的创始人靠产品体验把下载量反超，而发明DevRel的Twilio收购SendGrid后却把它晾在一边。**
+
+为什么听 / why: 创始人把IP池、MCP权限模型、AI搜索页改法这些工程细节讲得很具体，适合想做developer-first产品或正在被AI推荐左右增长的人。
+
+### 核心论点 / points
+
+[0:00] (Zeno Rocha) **曾经觉得不可能赢SendGrid，如今翻倍反超** — Zeno Rocha回忆早期觉得打败SendGrid「impossible」，但今年Resend的npm下载量反超了SendGrid，现在已经是对方的两倍以上。目前Resend为430万用户提供服务，付费客户刚跨过12万，客户里有Warner Brothers、HBO这类大公司，也有一个日本团伙一次性买了约两万个域名。
+
+[15:48] (Zeno Rocha) **「先坐牢再放出来」还是「生而自由」** — 行业里大多数邮件服务商要求新用户先填表、等人工审核两天，大部分申请会被拒。Zeno把这比作一个社会先让你坐牢十八年证明你是好公民才放你自由，他宁愿反过来：默认信任用户，一旦从退信率、投诉率等信号发现异常就立刻封锁并主动联系，因为大多数情况是「误用」而不是「滥用」。
+
+[30:31] **对手体量大100倍，却没能靠规模赢** — 主持人指出Twilio体量是Resend起步时的百倍，却没能靠规模碾压。讨论得出一个判断：也许邮件通信这种商品化业务根本没有规模优势，比的只是谁的产品更好。Twilio被认为「发明了DevRel」，但如今在SendGrid和SMS业务上都显得在吃老本、疏于投入。
+
+[34:50] (Zeno Rocha) **从租SES底层，到自建IP池和Go发信引擎** — Resend最初用AWS SES起步，专注在开发者体验这一层做差异化；现在决定自建发信基础设施，直接采购和管理IP池、建立和各家邮箱提供商的关系，把发信路径从Node.js换成Go来提速。目的是拿到更细的可观测性数据——以前一封邮件寄出后到底进没进收件箱、进了垃圾箱还是推广标签页，平台自己都看不清楚。
+
+[40:26] (Zeno Rocha) **为了做好一个MCP，倒逼重建整个权限系统** — Resend最早的MCP是投资人a16z的Yoko在业余时间写的本地版本，增长很快后他们决定做远程MCP，结果发现必须先补齐OAuth和RBAC权限模型才能支撑，于是从头把账号权限体系重新设计了一遍，之后才轮到分发、进官方插件市场这些事。
+
+[43:47] (Zeno Rocha) **工具数量从20冲到80+，反而没出乱子** — 行业曾担心MCP工具太多会让模型「犯糊涂」，Cloudflare甚至只留两个工具。Resend反其道而行，上线时约20个工具，现在已经有80多个，Zeno说没发现工具数量本身带来混乱；真正出问题的地方是单次调用返回的数据太多，导致漏掉信息。要做到和仪表盘功能一比一覆盖（账单、团队邀请、账号删除等）其实非常难。
+
+[1:01:17] (Zeno Rocha) **大模型算错报价，解法是改一个.md页面** — Zeno随手让AI比较Resend和竞品发120万封邮件的报价，结果数字全错，还说Resend「定价很晦涩」。他发现问题在于AI不会去执行页面上的JS计算器组件，于是把同样的数字以纯文本形式写进该页面对应的markdown版本，几天后再问，AI就给出了正确答案——代价是从此要同时维护网页和markdown两份内容，没有单一数据源。
+
+[1:21:06] (Zeno Rocha) **宁愿公司小一点，也要女儿愿意跟他玩** — YC期间一位合伙人直言Zeno太在意设计细节，拖慢了进度，这话让他很受伤却也认了。但他随后想清楚：十年后如果公司年收入一千万、女儿还很想跟他玩，他宁愿活在这个现实里，也不要公司做到一亿美元但女儿对他不感兴趣、关系疏远。他把这个优先级带回了育儿决策上。
+
+### 原话 / verbatim quotes
+
+[0:00] Zeno Rocha: "It's like, oh my gosh, how are we ever gonna beat SendGrid? It's im- just impossible. And then earlier this year, we crossed a number of, uh, downloads from SendGrid, and I was like, "That's insane," and now we're more than double."
+    译 / zh: 当时的感觉是，天啊，我们怎么可能打败SendGrid，简直不可能。然后今年早些时候，我们的下载量数字超过了SendGrid，我心想「这太疯狂了」，现在我们已经是它的两倍多了。
+
+[15:48] Zeno Rocha: "I always, always felt like, no, I wanna live in a society where I'm born free, and if I make a mistake, then I m- I might be punished just a little bit, or if I do something like really bad, a bad punishment, right?"
+    译 / zh: 我一直觉得，不，我想活在一个生而自由的社会里，如果我犯了个小错，可能只会受到一点小惩罚；如果我做了真的很坏的事，才会受到重罚，对吧？
+
+[30:31] : "Yeah So, so in, in, in other words, maybe, maybe there is no s- benefits to scale. Yeah. Maybe you just, you know, uh, you just make a better product and you can slowly-"
+    译 / zh: 也就是说，也许规模本身根本没有优势。也许你只是把产品做得更好，然后慢慢地……
+
+[43:47] Zeno Rocha: "Like, we had, like, maybe, I don't know, twenty tools when we launched, or even less than that. Now we have, like, eighty-something tools."
+    译 / zh: 我们刚上线的时候大概就二十个工具，甚至更少。现在我们已经有八十多个工具了。
+
+[1:01:17] Zeno Rocha: "It got the Resend one like so bad, and it, it actually said like very bad things about us. Like, "Oh, Resend's pricing is very obscure." I was like, "What the fuck?" Like, it's not obscure at all."
+    译 / zh: 它把Resend这部分算得非常离谱，还说了些很负面的话，比如「Resend的定价很晦涩难懂」，我当时就想「搞什么」，这明明一点都不晦涩。
+
+[1:20:02] Zeno Rocha: "You just worry too much about design. You care too much about that. If you didn't care about that, you would be much further ahead."
+    译 / zh: 你太在意设计这件事了，太在乎这个了。如果你不那么在乎，你本可以走得更快更远。
+
+[1:21:06] Zeno Rocha: "I'm with my daughter, and my daughter wants to be with me so much, and we, we play all the time, and we are a 10 million AR company. I would rather live in that reality than live in a reality where we're a $100 million company and my daughter doesn't wanna play with me, is not interested in me, and we're, we're not that close."
+    译 / zh: 我和女儿在一起，她非常想跟我待在一起，我们一直在玩，而我们是一家年收入一千万美元的公司。我宁愿活在这个现实里，也不要活在公司做到一亿美元、但女儿不想跟我玩、对我不感兴趣、我们关系也不那么亲近的现实里。
+
+### 数字 / figures
+
+- Resend用户数: 430万用户 [3:23]
+- MCP月调用量（截至8月底）: 约120万次 [39:12]
+- Gmail邮箱市场份额: 至少60% [54:42]
+- 某日本团伙一次购买的域名数: 约2万个 [10:41]
+
+### 术语 / glossary
+
+- MCP (模型上下文协议): 让AI助手直接调用应用后端接口、执行实际操作的协议
+- AEO/GEO (AI回答引擎优化): 优化内容让大模型在回答用户问题时推荐自己产品的做法
+- Domain Connect (域名连接协议): 类似OAuth，让用户一键在域名商后台完成DNS配置而不用手填记录
+- SES (亚马逊简单邮件服务): AWS提供的底层发邮件服务，很多邮件产品最初都搭在它上面
+- llms.txt (大模型可读站点摘要文件): 放在网站根目录下、专门给AI模型读取的站点内容摘要文件
+
+谁该听 / who: 做developer-first产品的创始人、关心邮件/发信基础设施的工程师、以及在做AEO增长实验的市场人员
+可跳过 / skip: 31:00前后关于短信、WhatsApp、电话渠道的闲聊信息密度较低，可以跳过。
+标签 / tags: 邮件基础设施, MCP, AEO, 深度递送, 创业哲学, 企业销售
+
+==============================================================================
+
+## 单个神经元的含义没有想象中混乱：智能体逐个审问找到答案
+
+- URL: https://ourword.ai/podcast/p/2026-11-10-cogrev-单个神经元的含义没有想象中混乱-智能体逐个审问找到答案/
+- 节目 / show: Cognitive Revolution (https://ourword.ai/podcast/s/cogrev/)
+- 原集标题 / original episode: The Neuron Basis: Goodfire's Curt Tigges on Agentic Interp, Monosemanticity & Reverse Engineering
+- 发布 / published: 2026-11-10 · 时长 / duration: 1:56:17
+- 文稿来源 / transcript: 官方文稿页 · 19546 words · timestamps are estimated from position in the transcript
+- 校验 / verification: 7 quotes matched verbatim, 6 numbers traced to the transcript, review score 8/10
+
+**门控MLP让神经元只在少数几个含义间切换而非上百种混杂；AI智能体逐一做实验验证后，能用一段描述准确预测神经元的行为，推翻了「神经元太脏读不懂」的旧说法。**
+
+为什么听 / why: 如果你关心大模型为什么会胡说、怎么监控它，这集给出了一条新路径——不靠辅助模型，直接读神经元本身，且有可还原的量化指标支撑。
+
+### 核心论点 / points
+
+[7:18] (Curt Tigges) **单个神经元远比学界以为的好懂** — Tigges 的核心主张是：MLP 里的单个神经元被此前的可解释性研究低估了。早期网络更小更乱，加上 ReLU/GELU 这类激活函数本身就难读，于是业界默认「表征是分布式的，不在单个神经元里」，转而依赖 SAE 这类辅助模型。他的反驳是：你往往不需要同时激活很多神经元；即便一个神经元有不止一种含义，那通常也是「一组紧凑的含义」，不是成百上千种无法穷举的语义堆叠。
+
+[18:04] (Curt Tigges) **门控结构让一个神经元能装两种意思** — 现代模型用的 SwiGLU 门控 MLP 给每个神经元两条独立信号：门投影和上投影的结果相乘，形成类似「与」逻辑的小电路。这让同一个神经元能在不同语境下切换读法——Tigges 举的例子是一个神经元，一极代表「口腔健康」，另一极代表「海洋野生动物」，两组完全不同的下游读取神经元会被上下文提前「准备好」去接收对应信号，从而不会读错。
+
+[27:14] (Curt Tigges) **消融掉88%的激活，模型性能几乎不掉** — 在 Qwen3.6-35B-A3B 上，团队只保留每个被激活专家里最强的 top-64（满编512个神经元取64个），相当于抑制了约88%的激活，其余置零；另一种做法是按神经元历史百分位只保留极值，其余替换为接近零的均值。结果是模型在许多基准上的表现和原始模型基本持平；唯一明显受损的是推理能力——会陷入循环、反复自我检查——但只需少量后续微调就能把性能拉回原水平甚至更好。
+
+[37:32] (Curt Tigges) **少了内部噪声，模型反而更自信** — 为什么砍掉大部分神经元后，一些不涉及推理的基准分数反而变高？Tigges 解释说这些基准看重模型多快给出答案，而内部可用来「分散注意力」的东西变少之后，模型没那么多东西互相干扰，最有把握的那个答案就会浮到最上面。对需要推理的任务，微调之后也出现同样效果——模型更快找到它本来就知道的答案，而不是反复自我怀疑。
+
+[51:09] (Curt Tigges) **用74%的KL散度还原验证神经元假设** — 验证一段神经元功能描述是否靠谱的方法是：先把该神经元从文本里完全消融，再让另一个模型仅凭这段描述给每个token打0-9的预测激活分，把预测值贴回模型，看它多大程度上恢复了被破坏的下一词预测分布（KL散度）。目前的主要指标是「按损伤程度加权」恢复了74%的KL散度——不是74%准确率，也不是「模型被理解了74%」，而是在神经元确实重要的位置，预测值基本顶上了真实激活的作用。
+
+[56:07] (Curt Tigges) **单语义多语义之争，问错了问题** — Tigges 认为「这个神经元算单语义还是多语义」本身是个误导性问题，真正该问的是能否把它表示的所有东西都列举出来。他举的假想例子是一个可能同时对衣物、健身器材、餐具、桌布都有反应的神经元——看起来很多义，但如果模型内部的统一概念其实是「车库甩卖会上能看到的东西」，这种联系人类观察者可能永远发现不了。很多神经元更适合被理解成动词而不是名词：它们不是在侦测某个实体，而是向下游发信号，触发推理里的等待、复查、改变方向等控制流动作。
+
+[1:21:31] (Curt Tigges) **事实不在神经元里，在连接里** — Tigges 指出一个反直觉的问题：模型有500万个神经元，记住的事实显然远不止500万条，原因是一个神经元不是一个事实，事实存在于神经元之间的连接里——几十个神经元互相连接能组合出的路径数量是指数级的。他举的例子是一个由几十个神经元组成的小「社区」，专门编码哪些画家属于印象派、新印象派还是后印象派。被检验过的专家（experts）也呈现出很强的话题一致性，基本只涉及一到三个主题。
+
+[1:37:01] (Curt Tigges) **1亿token的微调就能找回丢失的推理能力** — 稀疏化之后模型推理能力下降，表现为陷入循环、反复自我检查、拿不准答案，但 Tigges 说这不是知识丢失，而是某种「校准」出了问题——团队只用了大约1亿token、几块GPU、一天之内的后续微调，就把性能拉回甚至部分超过原始水平，在数学、代码、医学问答等基准上都验证了这一点。他特意强调这远小于常规后训练规模，更远小于预训练规模，说明被砍掉的那90%激活影响的只是模型能否顺利找到答案，而不是它是否知道答案。
+
+### 原话 / verbatim quotes
+
+[7:18] Curt Tigges: "the individual neurons in MLPs in neural networks in general are more interpretable than the field has thought to this point."
+    译 / zh: MLP里的单个神经元，神经网络里的神经元整体，都比这个领域此前以为的更容易解读。
+
+[18:04] Curt Tigges: "there's a neuron where the one meaning is oral health and the other meaning is marine wildlife."
+    译 / zh: 有一个神经元，一个含义是口腔健康，另一个含义是海洋野生动物。
+
+[37:32] Curt Tigges: "It doesn't have as much internally to distract itself from the right answer, and the most confident thing rises to the top."
+    译 / zh: 它内部没那么多东西可以让自己分心偏离正确答案，于是最有把握的那个答案就会浮到最上面。
+
+[45:59] Curt Tigges: "as we apply increasing levels of intelligence, then more and more of what the neuron is doing becomes legible and predictable."
+    译 / zh: 随着我们投入的智能程度不断提高，这个神经元在做什么就会变得越来越清晰、越来越可预测。
+
+[1:02:16] Curt Tigges: "It's not just detecting a thing. It's like sending a signal that is going to induce the model to do something else."
+    译 / zh: 它不只是在侦测某个东西，而更像是在发送一个信号，促使模型去做别的事情。
+
+[1:21:31] Curt Tigges: "A neuron is not a fact, but the fact is in the connections between neurons."
+    译 / zh: 一个神经元不是一个事实，但事实就存在于神经元之间的连接里。
+
+[1:25:25] Curt Tigges: "They're, like, mostly about one to three topics, and that's it."
+    译 / zh: 它们基本上只涉及一到三个主题，仅此而已。
+
+### 数字 / figures
+
+- Qwen3.6-35B-A3B 神经元总数: 约500万个 [12:26]
+- 专家层结构: 每层256个专家选8个，每个专家512个神经元 [12:26]
+- Top-64稀疏化抑制的激活比例: 约88% [29:20]
+- 神经元模拟还原的KL散度: 74%（按损伤程度加权） [51:09]
+- 单个神经元分析的最高推理成本: 45美元 [1:48:05]
+- 提取激活样本的语料库规模: 100亿token [35:54]
+
+### 术语 / glossary
+
+- gated MLP (SwiGLU) (门控MLP（SwiGLU架构）): 用门投影和上投影两组独立参数相乘，让神经元具备类似「与」逻辑的组合能力
+- monosemanticity (单语义性): 指一个神经元是否只对应单一概念，而非混杂多个含义
+- ablation (消融（屏蔽实验）): 强制让神经元失活或替换为均值，观察模型性能变化的实验手法
+- SAE (sparse autoencoder) (稀疏自编码器): 此前用来从模型内部激活中提取「可解释特征」的辅助模型
+- neuron scientist (神经元科学家（智能体）): 作者搭建的AI agent，自动聚类神经元激活样本并生成、验证其功能假设
+
+谁该听 / who: 做模型可解释性、安全监控或后训练调优的工程师和研究者，想知道能否绕开辅助模型直接读懂神经元。
+可跳过 / skip: 开场到05:55是主持人对全集内容的预告性总结，与后文重复，可直接跳过。
+标签 / tags: 可解释性, 大模型, 神经网络, 稀疏化, MoE, 对齐
+
+==============================================================================
+
+## 中国AI没有自研超车，靠的是租美国算力、抄美国模型
+
+- URL: https://ourword.ai/podcast/p/2026-11-10-eightythousand-中国ai没有自研超车-靠的是租美国算力-抄美国模型/
+- 节目 / show: 80,000 Hours (https://ourword.ai/podcast/s/eightythousand/)
+- 原集标题 / original episode: How Washington keeps helping China catch up in AI | Luisa Rodriguez
+- 发布 / published: 2026-11-10 · 时长 / duration: 26:28
+- 文稿来源 / transcript: 官方逐字稿 · 3962 words · timestamps are estimated from position in the transcript
+- 校验 / verification: 7 quotes matched verbatim, 9 numbers traced to the transcript, review score 8/10
+
+**中国模型只落后美国约六个月，但这差距很大程度靠境外租用英伟达芯片和对美国模型的知识蒸馏撑起来——一旦美国堵住这两条路，真实差距会比看起来大得多。**
+
+为什么听 / why: 逐条拆解六个月差距从哪来：租赁漏洞、蒸馏套利、安全漏洞，比泛泛喊「中美AI竞赛」信息密度高得多。
+
+### 核心论点 / points
+
+[0:00] (Luisa Rodriguez) **DeepSeek震动被过度解读为追平** — DeepSeek发布后，Marc Andreessen称其为AI的「卫星时刻」，英伟达单日市值蒸发近6000亿美元，创美股历史最大单日跌幅。但近两年后，中国最好的模型仍落后美国最好的模型大约六个月，而美国AI算力规模仍是中国的约16倍。真正值得追问的不是「中国追上了」，而是在算力如此悬殊的情况下，中国是怎么只落后六个月的。
+
+[4:57] (Luisa Rodriguez) **两道物理门槛卡住中国芯片** — 最先进AI芯片依赖两样东西：唯一能造顶级光刻机的荷兰公司ASML，以及特种高速内存。美国自2019年起联合荷兰禁止向中国出口最先进光刻机，2024年12月又禁售所需内存，导致华为今年的AI芯片中只有约16%用上了中国产内存，其余靠库存、走私或性能较差的替代品。叠加起来，美国算力规模达到中国的约50倍——出口管制确实在起作用。
+
+[7:50] (Luisa Rodriguez) **最大的漏洞是『租』而不是『卖』** — 美国禁止英伟达向中国公司出售最先进芯片，却没禁止中国公司去境外数据中心租用同一批芯片。腾讯向甲骨文租顶级芯片，字节跳动在挪威跑英伟达机群，但最大头的租赁集中在马来西亚、新加坡。2025年，四名中国工程师飞到马来西亚，租下约300台装满英伟达芯片的服务器，因网传数据太慢，干脆把训练数据装进15块硬盘，塞进行李箱带回国训练模型。
+
+[9:23] (Luisa Rodriguez) **喊『每月都重要』的人在推动多卖芯片** — 黄仁勋警告「中国只落后美国几纳秒」，同时主张向中国多卖英伟达芯片；特朗普前AI沙皇David Sacks说每个月都重要，却在任内推动放松对英伟达海外销售的限制，《纽约时报》发现他在449家AI相关公司持有股份，而给他豁免的恰是白宫自己的律师——就在特朗普解雇独立伦理办公室负责人之后一个月签发的。喊得最响的『竞赛』论者，往往也最希望芯片继续流向中国。
+
+[10:51] (Luisa Rodriguez) **蒸馏：用十分之一力气抄到大半身手** — 中国实验室大规模向美国顶尖模型提问、记录答案和推理过程，再训练自己的模型模仿——这就是蒸馏。Anthropic称仅三个月内，阿里巴巴就和Claude交换了超过1.51亿条消息。Institute for Progress估计蒸馏抹平了中美模型大约一半的差距，相当于白送中国AI公司四倍算力。要挡住蒸馏得识别海量虚假账号，一次行动中DeepSeek、月之暗面、MiniMax合计动用了约2.4万个账号。
+
+[12:07] (Luisa Rodriguez) **中国AI领袖自己承认落后** — 今年一月北京一场会议上，当时任阿里Qwen技术负责人的林俊旸把中国AI公司在三到五年内反超美国顶尖公司的概率定在不到20%，并称这已经是『相当乐观』的估计，理由是算力差距。智谱首席AI科学家唐杰更悲观，认为因为美国很多最好的模型并未公开，差距实际上可能在拉大。身处牌桌中央的中国人，并不觉得自己赢面很大。
+
+[13:47] (Luisa Rodriguez) **中国打的是另一场『落地』竞赛** — 中国的目标不是做出最聪明的聊天机器人，而是把AI铺进每个工厂、医院和政府办公室，这场竞赛里中国有实打实的优势：美国数据中心到2028年可能面临44吉瓦电力缺口，相当于一年多里要给电网多添一个加州的产能，而中国未来五年计划新增的发电产能接近美国的六倍。中国去年安装了约35.4万台工业机器人，占全球59%，今年上半年全球97%的人形机器人也出自中国公司。
+
+[21:26] (Luisa Rodriguez) **顶尖AI模型的防护等级只有2到3级** — 行业用1到5级衡量模型防窃取能力，5级意味着能挡住世界最顶尖的情报机构，但目前最好的公开估计显示美国顶尖AI公司大约只做到2到3级，达到5级的计划要到2028或2029年，而且完全是自愿性质，不像核电站那样有强制的联邦安全标准。前谷歌工程师Linwei Ding已因窃取谷歌AI超算搭建方法、同时为两家中国科技公司秘密工作而被定罪。一旦顶尖模型或其训练诀窍被偷走，美国靠算力和封锁赢得的窗口期可能被直接抹平。
+
+### 原话 / verbatim quotes
+
+[0:00] Luisa Rodriguez: "NVIDIA lost almost $600 billion in value in one day — the biggest one-day loss in US stock market history."
+    译 / zh: 英伟达单日市值蒸发近6000亿美元——美股历史上最大的单日跌幅。
+
+[1:40] Luisa Rodriguez: "Because China is keeping up. But it couldn’t do that without American help."
+    译 / zh: 因为中国确实在跟上。但如果没有美国的帮助，它做不到这一点。
+
+[9:23] Jensen Huang: "China is just nanoseconds behind the US."
+    译 / zh: 中国只落后美国几纳秒。
+
+[12:07] Lin Junyang: "put China’s chance of overtaking top American AI companies at less than 20% in the next three to five years. And he called that “highly optimistic.”"
+    译 / zh: 把中国AI公司在未来三到五年内反超美国顶尖公司的概率定在不到20%，并称这已经算『相当乐观』。
+
+[15:10] Luisa Rodriguez: "Matt Sheehan, who studies Chinese AI policy, compares China to a wakesurfer riding the wave behind a boat. It keeps up partly because the boat is doing a lot of the work."
+    译 / zh: 研究中国AI政策的Matt Sheehan把中国比作尾流冲浪者：它能跟上，很大程度是因为前面那艘船在替它出力。
+
+[23:10] Luisa Rodriguez: "If China stole a model like that… they’d basically have a cyberweapon with unprecedented capabilities."
+    译 / zh: 如果中国偷走这样一个模型……他们基本上就得到了一件能力空前的网络武器。
+
+[26:00] Luisa Rodriguez: "They don’t seem to be fully in control of their own models, but they’re using them to build the next generation of AIs anyway."
+    译 / zh: 它们似乎并没有完全掌控自己的模型，却还在用这些模型去构建下一代AI。
+
+### 数字 / figures
+
+- 美国AI算力相对中国倍数（综合口径）: 约16倍 [0:00]
+- 英伟达单日市值蒸发: 近6000亿美元 [0:00]
+- 美国AI计算能力相对中国倍数（受出口管制影响后）: 约50倍 [4:57]
+- 字节跳动聊天机器人月活用户: 约3.8亿 [3:03]
+- 中国六大AI公司收入占OpenAI+Anthropic之和比例: 约10% [3:03]
+- 芯片走私网络涉及金额: 至少1.6亿美元 [6:24]
+- 马来西亚/新加坡对华服务器出口降幅（设许可证后）: 约80% [6:24]
+- 阿里巴巴三个月内与Claude交换消息数: 超1.51亿条 [10:51]
+- 今年上半年全球人形机器人中国制造占比: 97% [13:47]
+
+### 术语 / glossary
+
+- distillation (蒸馏（知识蒸馏）): 用大量问答与推理记录训练小模型模仿大模型的能力
+- wakesurfer (尾流冲浪者): 借前方快艇激起的浪前行，比喻靠别人做的功追赶
+
+谁该听 / who: 想判断美国对华芯片管制是否真的有效、关心AI安全与地缘政治权衡的从业者、投资人和政策观察者
+标签 / tags: 出口管制, 芯片租赁, 知识蒸馏, 模型安全, 中美AI竞赛, 算力
+
+==============================================================================
+
+## ChatGPT和Claude已是新操作系统，但护城河不在界面
+
+- URL: https://ourword.ai/podcast/p/2026-11-10-a16z-chatgpt和claude已是新操作系统-但护城河不在界面/
+- 节目 / show: a16z (https://ourword.ai/podcast/s/a16z/)
+- 原集标题 / original episode: HubSpot’s Co-Founder on Finding Your Next Startup Idea
+- 发布 / published: 2026-11-10 · 时长 / duration: 58:57
+- 文稿来源 / transcript: 音频转写 · 12623 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 4 numbers traced to the transcript, review score 7/10
+
+**HubSpot联合创始人判断：模型正趋于可替换的基础设施，没有人能卡住创业者的供应链咽喉；真正的护城河是沉淀下来的工作与数据，而非用户进入的那个聊天框。**
+
+为什么听 / why: 创始人谈点子筛选、生态教训和架构重构都给了具体案例，前20分钟偏通用创业方法论，可以快进到界面之争之后。
+
+### 核心论点 / points
+
+[7:18] (Dharmesh Shah) **创业点子的好坏，分析不出来只能验证出来** — Dharmesh说创业者常犯的错误是以为靠详尽的市场分析（他戏称「18列的Excel表」）就能提前判断一个点子是否靠谱，但现实是几乎不可能先验地知道一个点子的质量或成功概率，唯一办法是尽快把它做出来、放到市场上测试。即便最终成功，被验证出来的产品往往已经不像最初设想的样子，只保留了「基因池」里的一点相似性。结论是：谁的迭代周期最短、学习成本最低，长期来看谁赢。
+
+[17:40] (Dharmesh Shah) **违反「做一件事」金律，是因为客户怕碎片化** — HubSpot起步时同时做了内容管理、SEO、落地页、表单等一整套营销工具，违背了「专精一件事做到极致」的创业常识。Dharmesh解释，这么做不是贪多，而是因为他们发现客户真正的痛点不是缺某个功能，而是被市面上一堆互不兼容的工具搞得应接不暇、感到恐惧。要真正解决这个问题，只能做「all-in-one」打包方案，这个思路被他们沿用了20年：先问清楚客户真正要解决的整体问题，再决定产品边界。
+
+[20:41] (Dharmesh Shah) **开放生态迟早会关门，Twitter是前车之鉴** — Dharmesh讲了一个15年前的教训：早期Twitter是极度开放的平台，围绕其API「千帆竞发」般长出了大量第三方客户端和公司，但后来Twitter逐渐收紧甚至变得对开发者不友好，关停了大批依赖其生态的产品。他说这不是Twitter独有的问题，而是平台生态的通病——平台方早晚会有意或无意地碾压自己扶持起来的开发者。HubSpot因此刻意把「对合作伙伴坦诚、提前说清楚不会做什么」当成构建生态信任的方法。
+
+[23:54] (Dharmesh Shah) **判断创业点子是否危险：能不能加个「还」字** — Dharmesh给出一个简单的测试：如果一个创业理由是「ChatGPT还做不到这个」「Claude Cowork还不会那个」，而加上「还」字后依然成立，这就是危险信号，因为前沿实验室很可能很快补上这个缺口。第二个常见误区是只对比「产品」而不对比「公司」——ChatGPT现在做不到，不代表OpenAI这家公司永远做不到。真正安全的空间，是前沿模型公司存在结构性约束（如监管）或激励约束（动机上不值得做）的领域。
+
+[28:14] (Dharmesh Shah) **2023年怕被模型公司卡脖子，现在不怕了** — Dharmesh回忆2023年他给自己定的生意铁律之一是「永远别跟Sam Altman竞争」，因为当时感觉前沿模型公司掌握着某种别人学不会的「魔法配方」，整个供应链的关键环节攥在少数几家公司手里。但他说自己当时的判断是错的——现在模型本身正在变成基础设施，价格和可替换性都在往commodity方向走，像Open Router这样的路由层已经让换模型变得很容易，创业者不会被某一家公司「卡住脖子」，这让现在下场建AI原生公司反而比2023年更不可怕。
+
+[32:17] (Dharmesh Shah) **ChatGPT和Claude是新浏览器，界面不是终点** — Dharmesh用Uber Eats打比方：它的App本身并不复杂，真正值钱的是背后和餐厅的合作关系、配送物流网络；大多数ToB软件也是这个模式——界面只是帮用户完成某件工作的手段，不是价值本身。他认为ChatGPT和Claude Cowork正在扮演当年浏览器的角色：当年Google没能垄断整个应用层，无数软件公司照样靠「运行在浏览器里」活得很好；现在同理，HubSpot这类公司会继续以插件、连接器的形式接入这个新的「操作系统」，而不被取代。
+
+[40:26] (Dharmesh Shah) **用Agentic coding把代码库的历史重新跑一遍** — Dharmesh提出一个此前不可能做的操作：既然HubSpot有20年的GitHub代码库和完整的自动化评测集（evals），现在可以花比如20万美元的token，让AI把某个历史架构决策「倒带重做」——假设当年选了另一种数据结构或框架，把这部分代码重写一遍，再用现成的evals验证新版本在质量、延迟、成本上是否真的更优。这让老牌公司第一次能低成本地验证「如果当初那样选会怎样」，把历史包袱变成可以试验的资产。
+
+[49:38] (Dharmesh Shah) **一人公司创业潮，是usePot真实的土壤** — Dharmesh引用美国人口普查局数据：2025年美国新公司注册数创历史新高，约560万家，2026年截至8月已超过400万家，势头没有回落。更关键的是，人口普查局会预测新公司未来两年是否会雇人，预计「两年内都不会雇一个员工」、也就是会一直保持一人公司状态的比例，现在超过了70%，而且还在上升。这正是他在HubSpot Next里做的一人CRM产品usePot（上线刚满30天）所瞄准的真实市场土壤。
+
+### 原话 / verbatim quotes
+
+[20:41] Dharmesh Shah: "Like Twitter had this in the early days, right? The original Twitter was this kind of very open ecosystem. We're a platform. And literally a thousand flowers bloomed back then."
+    译 / zh: 早期Twitter就是这样，原本的Twitter是一个非常开放的生态系统——我们是个平台。当时真的是千帆竞发。
+
+[23:54] Dharmesh Shah: "if you can just append the word yet to it, and it still holds water, that's a problem. It's like, oh, ChatGPT can't do that yet. Does that ring true?"
+    译 / zh: 如果你能在这句话后面加一个「还」字它依然成立，那就是个问题。比如「哦，ChatGPT还做不到这个」——这句话听起来是不是很对？
+
+[28:14] Dharmesh Shah: "I have very few rules for business. One is never own a restaurant. Number two is don't ever be a landlord and charge rent. And number three is never compete with Sam Altman."
+    译 / zh: 我做生意的原则很少。第一是永远别开餐厅。第二是永远别当收租的房东。第三是永远别跟Sam Altman竞争。
+
+[32:17] Dharmesh Shah: "the actual thing that's valuable is the work that's happening. The interface is a means to an end."
+    译 / zh: 真正有价值的是正在发生的那份工作，界面只是通向目的的一个手段。
+
+[34:17] Dharmesh Shah: "if you just look at the kind of chat GPT and cloud co-working, whatever, they're effectively the new OS."
+    译 / zh: 你看ChatGPT和Claude Cowork这类东西，它们实际上就是新的操作系统。
+
+[35:19] Dharmesh Shah: "anything that can be solved with a structured query deterministically, solve with a structured query deterministically. Don't use inference to solve something that a query can solve."
+    译 / zh: 任何能用确定性的结构化查询解决的问题，就该用结构化查询解决，别用推理去解决一个查询就能解决的事。
+
+[50:38] Dharmesh Shah: "in 2025, we had the most number of new company formation that the United States has ever seen."
+    译 / zh: 2025年，美国出现了有史以来最多的新公司注册数量。
+
+### 数字 / figures
+
+- 2025年美国新公司注册数: 约560万家 [50:38]
+- 2026年截至8月新公司注册数: 超过400万家 [50:38]
+- 预计维持一人公司状态的新注册企业占比: 超过70% [51:40]
+- usePot（一人CRM产品）上线时长: 30天 [43:28]
+
+### 术语 / glossary
+
+- Yellow Brick Road (黄砖路): 本集对谈起点的隐喻，指前沿AI实验室正高速推进的那条显眼大路
+- second brain (第二大脑): 把个人或企业的非结构化信息整理成可供AI随时调用的知识库
+- context graph (上下文图谱): 用图结构存储非结构化数据，供AI做推理和驱动智能体
+- evals (评测集): 衡量模型或代码改动后产出质量是否达标的自动化测试集
+
+谁该听 / who: 关注AI时代如何选创业方向、正纠结要不要跟ChatGPT拼界面的SaaS创始人和产品/工程负责人
+可跳过 / skip: 开场寒暄和HubSpot早期创业史（0:00-6:00）信息量较低，可跳。
+标签 / tags: AI基础设施, 平台生态, 创业方法论, 企业软件, 数据架构, 一人公司
 
 ==============================================================================
 
@@ -451,6 +753,71 @@
 谁该听 / who: 家里有燃气设备、壁炉或老房子的人，以及对医学史、毒理学和误诊案例感兴趣的读者。
 可跳过 / skip: 开场鸡尾酒(Quarantini)介绍和寒暄可以跳过([6:23]-[7:35])。
 标签 / tags: 毒理学, 医学史, 急诊医学, 职业安全, 闹鬼传说, 一氧化碳
+
+==============================================================================
+
+## 孩子打架别急着拉开：冲突本身就是他们在学社交
+
+- URL: https://ourword.ai/podcast/p/2026-11-10-unruffled-孩子打架别急着拉开-冲突本身就是他们在学社交/
+- 节目 / show: Unruffled (https://ourword.ai/podcast/s/unruffled/)
+- 原集标题 / original episode: Loud, Messy, Physical - What To Do When Kids Won't Stop Fighting
+- 发布 / published: 2026-11-10 · 时长 / duration: 28:39
+- 文稿来源 / transcript: 音频转写 · 4686 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 2 numbers traced to the transcript, review score 8/10
+
+**频繁的尖叫、撕咬甚至打你一巴掌，往往不是孩子出了问题，而是父母越介入，冲突就越容易变成孩子们抢夺「妈妈注意力」的戏码。**
+
+为什么听 / why: 没有新研究或数据，但给出一套具体可操作的七步思路，讲清楚为什么拉偏架、劝和、强行抱开反而会让冲突升级。
+
+### 核心论点 / points
+
+[7:17] (Janet Lansbury) **姐弟俩都选择留在冲突里，不是单方被欺负** — 来信的妈妈觉得是二岁弟弟不讲理惹哭了四岁半的姐姐，但 Janet 指出冲突几乎总是双向的：如果姐姐真的不想理会，她完全可以走开，不回应。两个孩子都选择继续卷入这场拌嘴，说明他们在某种程度上都想要这个过程——这正是孩子通过冲突学习和熟悉彼此的方式，而不是单纯的受害者和加害者关系。
+
+[8:24] (Janet Lansbury) **父母一介入，冲突就变成了跟父母的权力游戏** — Janet 提出，让冲突加剧的往往不是孩子本身，而是父母在场时的不自在。一旦父母卷入，孩子之间的事情就悄悄变成了「谁能把妈妈叫进来」的戏码——这也是为什么这类争吵几乎总发生在父母耳边、而不是父母不在场的时候。越能克制住介入的冲动，冲突就越容易回到孩子自己之间去处理。
+
+[12:44] (Janet Lansbury) **弟弟妹妹惹人的小动作，常是为了换来关注** — Janet 打破「年幼的孩子总是无辜受害者」的印象：很多时候正是更小的孩子主动挑起冲突——哪怕只是会爬的婴儿，都知道爬过去碰那个会惹恼哥哥姐姐的东西。因为比起没有互动、没有连接，他们宁愿要被吼叫的那种关注。理解这一点，父母才能停止把冲突简单归因于「谁先惹的谁」。
+
+[13:44] (Janet Lansbury) **提前和孩子约定：你们先处理，叫我我才来** — Janet 建议在平静的时刻（而非冲突当下）和孩子们聊一次：告诉他们你注意到彼此会吼、会咬、会动手，而你以前总是冲进去替他们做决定，现在你想把这件事交还给他们——只有在他们主动喊「妈妈帮忙」的时候你才会出现。这种提前的授权对话，比临场干预更能建立孩子处理冲突的自主能力。
+
+[17:55] (Janet Lansbury) **介入时只有一个原则：中立、中立、中立** — 如果孩子真的叫你进去，Janet 给出的核心心法是绝对中立：不替任何一方说话、不评判谁对谁错、不站队。她强调这比判断谁该负责更难做到，但正是这种不偏不倚，能让孩子感受到父母同时爱着他们两个，而不是又多了一个评判自己的人。
+
+[18:57] (Janet Lansbury) **能挡住就别抱走，干预越小越好** — 面对需要物理介入的时刻，Janet 的建议是「做最小、最有效的那件事」——用手挡一下、握住手腕，而不是把孩子整个抱起来移走。抱起来移走这种看似更彻底的做法，反而会传递出「这是个必须被制止的大问题」的紧迫感，让孩子觉得自己被当成了坏人或受害者。来信中妈妈一抱儿子，儿子就扇了她一巴掌，这正是过度干预引发反弹的例子。
+
+[23:59] (Janet Lansbury) **跟一个孩子「结盟」解释另一个，会制造不安而非安慰** — 引用《Siblings Without Rivalry》一书的观点，Janet 解释了为什么妈妈那句「他两岁就是这样」安慰不了姐姐：这种话暗示姐姐知道得更多、更高一等，看似在支持她，实际上让她意识到自己也随时可能被拿来比较，反而制造出不安，而不是真正的连接和安全感。
+
+[26:01] (Janet Lansbury) **最小干预不等于放任霸凌不管** — 针对「我小时候被哥哥打，父母从不管」这类常见反驳，Janet 区分了「信任、按需介入」和「完全撒手不管」的本质区别。她指出，那个长期欺负手足、有虐待倾向的孩子，往往自己正是被父母拒绝和评判最深的孩子，这种被推开的感觉才会转嫁到手足身上——父母对双方保持中立，才是防止这种恶性循环的关键。
+
+### 原话 / verbatim quotes
+
+[7:17] Janet Lansbury: "Otherwise, sister would just walk away and not deal with this guy. Why even engage? Both kids are drawn to engaging in this form of learning."
+    译 / zh: 不然的话，姐姐大可以直接走开，不理这个弟弟。为什么还要继续纠缠？两个孩子其实都被这种学习方式吸引着。
+
+[12:44] Janet Lansbury: "they'd rather have the yelling kind of attention than no attention, no engagement, no connection with their sibling"
+    译 / zh: 比起没有关注、没有互动、没有和手足的连接，他们宁愿要那种被吼叫的关注。
+
+[13:44] Janet Lansbury: "Mom, help if you need me. And I'll be there."
+    译 / zh: 妈妈的意思是：需要我的时候再叫我，我会在的。
+
+[17:55] Janet Lansbury: "Neutral, neutral, neutral. That's what's going to help you feel really good at the end of the day that you showed love to both your kids."
+    译 / zh: 中立，中立，中立。这才是让你在一天结束时感觉良好的关键——你对两个孩子都展现了爱。
+
+[18:57] Janet Lansbury: "Don't catastrophize if you can help it. Don't run when you can walk. Don't stride when you can amble."
+    译 / zh: 能不夸大问题就别夸大。能走着去就别跑着去。能悠着点就别大步流星。
+
+[23:59] Janet Lansbury: "And instead of that making children feel better, what it does is it makes children feel like there are comparisons going on."
+    译 / zh: 这种话非但不会让孩子感觉更好，反而会让他们意识到自己正在被拿来比较。
+
+[26:01] Janet Lansbury: "that child that is bullying or has that pattern of abusive behavior, that is the child that has felt deep rejection from the parent usually and judgment and feels pushed away"
+    译 / zh: 那个霸凌手足、有伤害行为模式的孩子，往往正是感受到父母深深拒绝和评判、觉得自己被推开的那一个。
+
+### 数字 / figures
+
+- 姐姐年龄: 四岁半 [2:01]
+- 弟弟年龄: 两岁半 [2:01]
+
+谁该听 / who: 家里有不止一个孩子、正被手足或同伴冲突搞得筋疲力尽的父母，以及想少当裁判多当教练的照护者。
+可跳过 / skip: 开头（0:00-1:01）和中段（22:58-23:00）是同一段保险广告的重复插播，可以跳过。
+标签 / tags: 亲子教育, 手足冲突, 育儿方法, 家庭沟通, 正面管教
 
 ==============================================================================
 
