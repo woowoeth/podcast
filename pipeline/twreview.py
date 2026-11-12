@@ -57,6 +57,25 @@ SYSTEM = (
     "片段在几句话里意思不同、有对有错时，回拿不准。不要输出 JSON 以外的任何文字。")
 
 
+# 第二问只问「拿不准」的那几条，而且只问一件事。**不往上面那段提示词里加第四种回答**：
+# 2026-11-12 试过（加一条「原文不成词」），同样 15 条各问两遍，旧提示词两遍都把
+# 「去衝咖啡」改成「沖」，新提示词漏了一遍 —— 漏一次，错字就被记成「看过、是对的」永远留在站上。
+#
+# **问的是简体原文，不是繁体页上的字。** 第一版把繁体片段直接拿去问「这是不是一个词」：
+# 已知转错的「我乾的」「國製定」「斷髮現」全被答成「不成词」—— 转错的繁体字本来就拼不成词，
+# 那样做等于把这道检查要抓的错字自动放行。转写错字是简体原文里就不成词（「余境下」）；
+# 转换错字的简体原文是好好的词（「我干的」）。所以先还原成简体再问。
+GARBLED_SYSTEM = (
+    "下面每一条给一个简体中文的三字片段和它所在的句子。句子多半是播客的语音转写，可能有错字。"
+    "只判断一件事：片段所在的那个词，是不是一个真实存在的词。\n"
+    "语音转写会把同音字写错，写出来的东西不成词（例如口语里的「语境下」被写成「余境下」，"
+    "「余境」不是一个词）。\n"
+    "只回一个 JSON 数组，每条一个对象：\n"
+    '  不成词（转写错字）：{"i": 编号, "garbled": true}\n'
+    '  是一个真的词，或者你拿不准：{"i": 编号, "garbled": false}\n'
+    "不要输出 JSON 以外的任何文字。")
+
+
 def today() -> dt.date:
     return dt.date.today()
 
@@ -136,8 +155,38 @@ def ask_model(items: list[tuple[str, list[str]]]) -> list[dict]:
     return json.loads(m.group(0))
 
 
-def review(found: dict[str, list[str]], d: dict, ask=ask_model) -> tuple[int, int, int]:
-    """审一遍，就地改 d。返回 (对, 改, 留待审)。模型调用出错照样抛出 —— last_ok 不更新。"""
+def _to_simplified(s: str) -> str:
+    import opencc
+    global _T2S
+    if _T2S is None:
+        _T2S = opencc.OpenCC("t2s")
+    return _T2S.convert(s)
+
+
+_T2S = None
+
+
+def ask_garbled(items: list[tuple[str, list[str]]]) -> list[dict]:
+    from lib import llm
+    lines = [f"{n}. 「{_to_simplified(c)}」 例：" + " ／ ".join(_to_simplified(x) for x in eg)
+             for n, (c, eg) in enumerate(items, 1)]
+    txt = llm.call(GARBLED_SYSTEM, "\n".join(lines), max_tokens=2000, temperature=0, role="tw")
+    m = re.search(r"\[.*\]", txt, re.S)
+    if not m:
+        raise RuntimeError("模型没回 JSON 数组：" + txt[:120])
+    return json.loads(m.group(0))
+
+
+def review(found: dict[str, list[str]], d: dict, ask=ask_model, ask2=None) -> tuple[int, int, int]:
+    """审一遍，就地改 d。返回 (对, 改, 留待审)。模型调用出错照样抛出 —— last_ok 不更新。
+
+    拿不准的再问一句「这是不是一个真的词」（ask2）：原文本身不成词（转写错字）的，繁体怎么写都
+    谈不上对错，照机械转换留着、记成看过。2026-11-09 → 11-12「 餘境」（原话是「语境下」）只能答
+    拿不准，两天后成了硬伤 —— 手机连推两天、CI 红了一天，而人去看也只能说一句「留着吧」。
+    第二问出错不算这一轮没跑成：那几条照旧留待审。"""
+    if ask2 is None:
+        # 测试里换掉了 ask 而没给 ask2 的，不去碰真模型
+        ask2 = ask_garbled if ask is ask_model else (lambda items: [])
     day = today().isoformat()
     n_ok = n_fix = 0
     items = sorted(found.items())
@@ -158,6 +207,21 @@ def review(found: dict[str, list[str]], d: dict, ask=ask_model) -> tuple[int, in
                 d["fix"][c] = {"to": v["fix"], "on": day, "eg": eg[0] if eg else ""}
                 d["pending"].pop(c, None)
                 n_fix += 1
+    unsure = [(c, eg) for c, eg in items if c not in d["ok"] and c not in d["fix"]]
+    if unsure:
+        try:
+            for v in ask2(unsure):
+                try:
+                    c, eg = unsure[int(v.get("i")) - 1]
+                except (TypeError, ValueError, IndexError, AttributeError):
+                    continue
+                if v.get("garbled") is True:
+                    d["ok"][c] = day
+                    d["pending"].pop(c, None)
+                    d.setdefault("_garbled", []).append((c, eg[0] if eg else ""))
+                    n_ok += 1
+        except Exception as ex:  # noqa: BLE001
+            print(f"  第二问（是不是真的词）没问成：{ex} —— 那 {len(unsure)} 条照旧留待审")
     left = [c for c in found if c not in d["ok"] and c not in d["fix"]]
     for c in left:
         d["pending"].setdefault(c, day)
@@ -213,6 +277,8 @@ def main() -> int:
         return 1
     save(d)
     print(f"繁体审阅：{len(found)} 条 · 对 {n_ok} · 改 {n_fix} · 留待审 {n_left}")
+    for c, eg in d.get("_garbled") or []:
+        print(f"  原文不成词（转写错字），照机械转换留着：{c}   例：{eg}")
     for c, v in sorted(d["fix"].items()):
         if v["on"] == today().isoformat():
             print(f"  改 {c} → {v['to']}   例：{v['eg']}")

@@ -552,7 +552,7 @@ _YT_LOCK = threading.Lock()
 # last_was_transient）都在同一个 worker 线程里，所以按线程分开就对了。
 class _PerThread(threading.local):
     def __init__(self):
-        self.d = {"hit": False, "yt_throttled": False}
+        self.d = {"hit": False, "yt_throttled": False, "short": 0}
 
     def __getitem__(self, k):
         return self.d[k]
@@ -566,6 +566,19 @@ _transient = _PerThread()
 
 def last_was_transient() -> bool:
     return _transient["hit"]
+
+
+# 这个站最短的一集是 8 分钟；比它还短的视频不可能是正片。
+MIN_EPISODE_SEC = 8 * 60
+
+
+def last_short_video() -> int:
+    """上一次取稿时，这一条**自己的**视频有多少秒 —— 只在它短于 MIN_EPISODE_SEC 时非零。
+
+    这不是「取不到文稿」，是「它不是一集」（频道发的短片、预告）。分不开的话它会照
+    no-transcript 试满三次、进放弃名单，等人去写一句「这是条 5 分钟的短片」：2026-11-12
+    老石谈芯一条 302 秒的视频就这样挂了一项硬伤，CI 跟着红了一天。原因机器当场就知道。"""
+    return _transient["short"]
 
 
 # **字幕请求的限流熔断。** 被判成机器人（「Sign in to confirm you're not a bot」）通常要几个小时
@@ -782,7 +795,6 @@ def _yt_audio(vid: str, td: str, want_dur: int = 0) -> pathlib.Path | None:
     # 不可能是正片。原来写的是 `if want_dur:`，而**这些 feed 项恰恰没有
     # 时长字段** —— 于是检查整个跳过，1-2MB 的短片照样被下下来转写。
     # 「拿不到判据」不等于「可以不判」。
-    MIN_EPISODE_SEC = 8 * 60
     if True:
         try:
             r = subprocess.run(
@@ -801,6 +813,9 @@ def _yt_audio(vid: str, td: str, want_dur: int = 0) -> pathlib.Path | None:
             log(f"    这个视频只有 {vdur}s，而这一集没给时长 —— "
                 f"比最短的一集（{MIN_EPISODE_SEC}s）还短，不可能是正片，不转写")
             _transient["hit"] = False
+            # 走到这里的都是没有 RSS 音频的条目（from_audio 的 YouTube 分支）：
+            # 这个视频就是这一条自己，不是搜来配的。
+            _transient["short"] = vdur
             return None
     out = pathlib.Path(td) / "yt.m4a"
     cmd = ["yt-dlp", "-f", "bestaudio[abr<=96]/bestaudio/best",
@@ -1249,6 +1264,7 @@ def acquire(ep: dict, lang: str, *, allow: tuple[str, ...] = ORDER,
     attempts = []
     _transient["hit"] = False
     _transient["yt_throttled"] = False
+    _transient["short"] = 0
     # 本地转写一集要几分钟，重跑（改了提示词、调了闸门）不该重做一遍。
     # 只缓存在本机 .cache 下，不进仓库——原文是第三方版权内容。
     cp = _cache_path(ep)

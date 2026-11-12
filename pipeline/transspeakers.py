@@ -67,6 +67,28 @@ def collect() -> list[str]:
     return sorted(seen, key=lambda k: (-seen[k], k))
 
 
+_SEP = re.compile(r"\s*([/、])\s*")
+
+
+def _rejoin(label: str, known: dict) -> str:
+    """合写的标签（「甲/乙」「甲、乙」）按每一截的译名拼回去；有一截没有译名就返回空串。
+    分隔符照表里已有的写法：「/」→ " / "，「、」→ ", "。"""
+    bits = _SEP.split(label)
+    if len(bits) < 3:
+        return ""
+    out = []
+    for n, b in enumerate(bits):
+        if n % 2:
+            out.append(" / " if b == "/" else ", ")
+            continue
+        b = b.strip()
+        en = b if (b and not CJK.search(b)) else known.get(b, "")
+        if not en:
+            return ""
+        out.append(en)
+    return "".join(out)
+
+
 def main() -> int:
     have = {}
     if OUT.exists():
@@ -89,9 +111,10 @@ def main() -> int:
             log(f"  这一批失败：{type(ex).__name__}: {ex}")
             continue
         got = 0
+        parts = {}                  # 模型答了、但不在这一批里的：多半是把合写的标签拆开了
         for it in (r.get("items") or []):
             zh, en = (it.get("zh") or "").strip(), (it.get("en") or "").strip()
-            if not zh or not en or zh not in set(batch):
+            if not zh or not en:
                 continue
             # **判据：输出里不许再有汉字。** 不合格就不收——留着中文原值，
             # 下一轮还会被挑出来重译，比写进去一个假译文好。
@@ -99,8 +122,24 @@ def main() -> int:
                 log(f"    不收：{zh} -> {en}（还有汉字）")
                 bad += 1
                 continue
+            if zh not in set(batch):
+                parts[zh] = en
+                continue
             have[zh] = en
             got += 1
+        # **合写的标签被拆开答回来，就按原来的写法拼回去。** 2026-11-12：「肖文杰/陈瑞」被答成
+        # 「肖文杰」「陈瑞」两条，哪一条都对不上这一批，原来就悄悄丢了 —— 日志写「0 个不合格」，
+        # 每一班重问一次、每次照样丢，体检的硬伤一直挂着。每一截都有译名才拼，缺一截就不收。
+        for zh in batch:
+            if zh in have:
+                continue
+            en = _rejoin(zh, {**have, **parts})
+            if en:
+                have[zh] = en
+                got += 1
+            else:
+                log(f"    没译出来：{zh}（模型没按原样答回这一条）")
+                bad += 1
         log(f"  第 {i//40 + 1} 批：{got}/{len(batch)}")
         OUT.parent.mkdir(parents=True, exist_ok=True)
         OUT.write_text(json.dumps({"speakers": have}, ensure_ascii=False,

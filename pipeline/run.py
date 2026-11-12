@@ -633,6 +633,22 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
                               "title": ep["title"][:120], "src": s["id"]}
         _release(state, fp, key)
         return "too-long"
+    if not tr and T.last_short_video():
+        # **它不是一集。** 这一条自己的视频比最短的正片还短（频道发的短片、预告）。
+        # 当场记成有原因的「不做」，和选题判掉的一样落在 done 里 —— 不占重试预算，
+        # 不进放弃名单等人去补一句原因。带 pub：体检判「最新一集看过没有」要用。
+        short = T.last_short_video()
+        with _STATE_LOCK:
+            state["fail"].pop(key, None)
+            state["done"][key] = {"skip": "short-video", "dur": short,
+                                  "why": f"这一条自己的视频只有 {short} 秒，"
+                                         f"短于正片下限 {T.MIN_EPISODE_SEC} 秒",
+                                  "tier": s.get("tier", 3),
+                                  "title": ep["title"][:120], "src": s["id"],
+                                  "pub": iso(ep["published"]), "at": iso(now())}
+        log(f"    不做：这一条只有 {short} 秒，不是正片（记为 short-video，不再重试）")
+        _release(state, fp, key)
+        return "short-video"
     if not tr:
         prev = state["fail"].get(key, {})
         transient = T.last_was_transient()

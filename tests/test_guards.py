@@ -15223,6 +15223,185 @@ class TheCliCallRecordsWhatItSpent(unittest.TestCase):
         self.assertFalse(bad, "账本的一行混着几种活，读数会读错：\n  " + "\n  ".join(bad))
 
 
+class AShortClipIsNotAFailedEpisode(unittest.TestCase):
+    """频道自己发的短片不是「取不到文稿」的一集。
+
+    2026-11-12：老石谈芯一条 302 秒的视频，按 no-transcript 试满三次、进了放弃名单，
+    体检报硬伤「再也不会被尝试、而且没人看过」，CI 红了一天，手机推了两天 —— 而原因
+    （比最短的正片还短）取稿那一刻机器就知道。这里真跑 run.process()。
+    """
+
+    def _process(self, short, transient=False, prior_fail=None):
+        import importlib, datetime as dt, unittest.mock as mock
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        R = importlib.import_module("run")
+        ep = {"_src": {"id": "laoshi", "tier": 1, "kind": "youtube", "lang": "zh"},
+              "_key": "laoshi-31d8aee970", "title": "触控屏MacbookPro", "duration": 0,
+              "published": dt.datetime(2026, 11, 6, 12, 7, tzinfo=dt.timezone.utc),
+              "youtube_id": "ZvSiGDuOC5M"}
+        state = {"done": {}, "fail": dict(prior_fail or {}), "fp": {}}
+        with mock.patch.object(R.T, "acquire", lambda *a, **k: None), \
+                mock.patch.object(R.T, "last_short_video", lambda: short), \
+                mock.patch.object(R.T, "last_was_transient", lambda: transient), \
+                mock.patch.dict(R._triage, {"on": False}), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            got = R.process(ep, state, dry=False)
+        return got, state
+
+    def test_a_clip_shorter_than_any_episode_is_skipped_with_its_reason(self):
+        got, st = self._process(302, prior_fail={"laoshi-31d8aee970": {"n": 2, "why": "no-transcript"}})
+        self.assertEqual("short-video", got)
+        rec = st["done"].get("laoshi-31d8aee970") or {}
+        self.assertEqual(("short-video", 302), (rec.get("skip"), rec.get("dur")))
+        self.assertIn("302", rec.get("why", ""), "没写下原因 —— 以后的人看不出为什么不做")
+        self.assertTrue(rec.get("pub"), "没带 pub：体检判「最新一集看过没有」会把这档源当成没跟上")
+        self.assertNotIn("laoshi-31d8aee970", st["fail"], "还留在失败名单里，会进放弃名单等人看")
+        self.assertEqual({}, st["fp"], "指纹没还回去")
+
+    def test_a_real_missing_transcript_still_counts_as_a_failure(self):
+        got, st = self._process(0)
+        self.assertEqual("no-transcript", got)
+        self.assertEqual(1, st["fail"]["laoshi-31d8aee970"]["n"])
+        self.assertEqual({}, st["done"], "真取不到文稿的集被当成短片判掉了")
+
+    def test_the_signal_comes_from_the_videos_own_length(self):
+        """尺子：取稿层真的会在「没给时长、视频短于下限」时举这面旗，换一集就清掉。"""
+        import importlib, types, unittest.mock as mock
+        T = importlib.import_module("lib.transcript")
+
+        def run(cmd, **kw):
+            return types.SimpleNamespace(returncode=0, stdout="302\n", stderr="")
+        with mock.patch.object(T.shutil, "which", lambda x: "/usr/bin/yt-dlp"), \
+                mock.patch.object(T.subprocess, "run", run), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            T._transient["short"] = 0
+            self.assertIsNone(T._yt_audio("vid", "/tmp", want_dur=0))
+            self.assertEqual(302, T.last_short_video())
+            T._transient["short"] = 0
+            self.assertIsNone(T._yt_audio("vid", "/tmp", want_dur=3000))
+            self.assertEqual(0, T.last_short_video(), "给了时长、对不上的是「拿错了视频」，不是短片")
+        src = (ROOT / "pipeline" / "lib" / "transcript.py").read_text()
+        i = src.index("def acquire(")
+        self.assertIn('_transient["short"] = 0', src[i:i + 900], "换一集取稿时没清旗：上一集的结论会串到下一集")
+
+
+class AGarbledSourceWordDoesNotWaitForAHuman(unittest.TestCase):
+    """繁体歧义字里「拿不准」的，再问一句「简体原文是不是一个真的词」；不成词的照机械转换留着。
+
+    2026-11-09 → 11-12：「 餘境」（原话「语境下」被转写成「余境下」）模型只能答拿不准，两天后成了
+    硬伤 —— 手机连推两天、CI 红了一天，而人去看也只能说「留着吧」。
+    两条弯路都真走过，下面各钉一条：
+      · 往原提示词里加第四种回答：同样 15 条，旧提示词两遍都改对「去衝咖啡」，新的漏了一遍；
+      · 拿繁体片段去问「是不是一个词」：已知转错的「我乾的」「國製定」全被答成不成词 ——
+        等于把这道检查要抓的错字自动放行。
+    """
+
+    def setUp(self):
+        import importlib
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        self.R = importlib.import_module("twreview")
+        self.found = {" 餘境": ["physical AI的這個情況 餘境下的話"], "我乾的": ["這不是我乾的。"]}
+
+    def _review(self, second):
+        d = {"ok": {}, "fix": {}, "pending": {}}
+        asked = []
+
+        def ask2(items):
+            asked.append([c for c, _ in items])
+            return second(items) if callable(second) else second
+        with contextlib.redirect_stdout(io.StringIO()):
+            got = self.R.review(self.found, d,
+                                ask=lambda chunk: [{"i": n, "unsure": True} for n in range(1, len(chunk) + 1)],
+                                ask2=ask2)
+        return got, d, asked
+
+    def test_a_word_that_was_never_a_word_is_settled_without_a_human(self):
+        got, d, asked = self._review([{"i": 1, "garbled": True}, {"i": 2, "garbled": False}])
+        self.assertEqual([[" 餘境", "我乾的"]], asked, "第二问问的不是拿不准的那几条")
+        self.assertIn(" 餘境", d["ok"], "原文不成词的没被记成看过 —— 两天后又是一项硬伤")
+        self.assertNotIn(" 餘境", d["pending"])
+        self.assertIn("我乾的", d["pending"], "是真词、只是拿不准写法的，必须照旧留给人看")
+        self.assertNotIn("我乾的", d["ok"])
+        self.assertEqual((1, 0, 1), got)
+
+    def test_a_failed_second_question_leaves_everything_pending(self):
+        def boom(items):
+            raise RuntimeError("模型没回 JSON 数组")
+        got, d, _ = self._review(boom)
+        self.assertEqual({" 餘境", "我乾的"}, set(d["pending"]))
+        self.assertEqual({}, d["ok"])
+        self.assertTrue(d.get("last_ok"), "第二问没问成，不该算这一轮审阅没跑成")
+
+    def test_the_second_question_is_about_the_simplified_source(self):
+        import unittest.mock as mock
+        from lib import llm
+        seen = {}
+
+        def call(system, user, **kw):
+            seen.update(system=system, user=user)
+            return '[{"i": 1, "garbled": true}, {"i": 2, "garbled": false}]'
+        with mock.patch.object(llm, "call", call):
+            self.R.ask_garbled(sorted(self.found.items()))
+        self.assertIn("余境", seen["user"])
+        self.assertIn("我干的", seen["user"], "问的是繁体页上的字：转错的繁体字本来就拼不成词，会被自动放行")
+        self.assertNotIn("乾", seen["user"])
+        self.assertNotIn("餘", seen["user"])
+
+    def test_the_first_question_keeps_its_three_answers(self):
+        self.assertNotIn("garbled", self.R.SYSTEM, "别往原提示词里加第四种回答：实测会漏改错字")
+        self.assertNotIn("不成词", self.R.SYSTEM)
+
+    def test_a_stubbed_review_never_reaches_the_real_model(self):
+        import unittest.mock as mock
+        d = {"ok": {}, "fix": {}, "pending": {}}
+        # 数调用次数，不靠抛异常：review 会把第二问的异常吞掉（那是它该做的），抛了也看不出来
+        with mock.patch.object(self.R, "ask_garbled", return_value=[]) as real, \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.R.review(self.found, d, ask=lambda chunk: [])
+        self.assertEqual(0, real.call_count, "测试里换掉了 ask、没给 ask2，却去问了真模型")
+        self.assertEqual({" 餘境", "我乾的"}, set(d["pending"]))
+
+
+class ASplitSpeakerLabelIsPutBackTogether(unittest.TestCase):
+    """2026-11-12：标签「肖文杰/陈瑞」被模型拆成两条答回来，哪条都对不上这一批，悄悄丢了。
+    日志写「0 个不合格」；每一班重问一次、每次照样丢，体检硬伤（英文页显示中文名）一直挂着。
+    下面用的就是那次的原样回答。"""
+
+    INCIDENT = {"items": [{"zh": "肖文杰", "en": "Xiao Wenjie"}, {"zh": "陈瑞", "en": "Chen Rui"}]}
+
+    def _run(self, labels, answer):
+        import importlib, tempfile, unittest.mock as mock
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        ts = importlib.import_module("transspeakers")
+        with tempfile.TemporaryDirectory() as tmp:
+            out = pathlib.Path(tmp) / "_speakers.json"
+            buf = io.StringIO()
+            with mock.patch.object(ts, "OUT", out), mock.patch.object(ts, "collect", lambda: labels), \
+                    mock.patch.object(ts.llm, "call_json", lambda *a, **k: answer), \
+                    contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+                ts.main()
+            have = json.loads(out.read_text())["speakers"] if out.exists() else {}
+        return have, buf.getvalue()
+
+    def test_the_incident_answer_fills_the_label(self):
+        have, _ = self._run(["肖文杰/陈瑞"], self.INCIDENT)
+        self.assertEqual("Xiao Wenjie / Chen Rui", have.get("肖文杰/陈瑞"),
+                         "拆开答回来的合写标签没拼回去 —— 英文页上会一直显示中文名")
+
+    def test_a_label_with_a_missing_half_is_not_made_up_and_is_said_out_loud(self):
+        have, said = self._run(["肖文杰/陈瑞", "师杰、叶阳生"],
+                               {"items": [{"zh": "肖文杰", "en": "Xiao Wenjie"},
+                                          {"zh": "师杰", "en": "Shi Jie"}, {"zh": "叶阳生", "en": "Ye Yangsheng"}]})
+        self.assertNotIn("肖文杰/陈瑞", have, "缺一截也拼了 —— 写进去的是半个假译名")
+        self.assertEqual("Shi Jie, Ye Yangsheng", have.get("师杰、叶阳生"))
+        self.assertIn("没译出来：肖文杰/陈瑞", said, "没译出来的那一条日志里没提")
+        self.assertIn("1 个不合格", said, "丢了一条，结尾还写 0 个不合格")
+
+    def test_an_answer_that_keeps_the_shape_is_used_as_is(self):
+        have, _ = self._run(["老石/Roland"], {"items": [{"zh": "老石/Roland", "en": "Lao Shi/Roland"}]})
+        self.assertEqual("Lao Shi/Roland", have.get("老石/Roland"))
+
+
 class ASourceBlurbOnlyKeepsWhatItAskedFor(unittest.TestCase):
     """transsources 原来「有 id 有译文就存」：11-09 问的是 securitynowaud、businesswars，
     模型交回 litandhist-4f2fd3b087、ideasofindia-228b1c02ff 两集的标题译文，照单全收。
