@@ -101,7 +101,10 @@ if [ -z "${LLM_API_KEY:-}" ]; then
   : "${LLM_MODEL_TRIAGE:=haiku}"
   : "${LLM_MODEL_MAP:=haiku}"
   : "${LLM_MODEL_REVIEW:=haiku}"
-  export LLM_MODEL_DIGEST LLM_MODEL_TRIAGE LLM_MODEL_MAP LLM_MODEL_REVIEW
+  # 写稿用 medium：同一批 8 集对照过，成稿评分和忠实度在照旧的波动之内，写稿输出少 58%。
+  # 省下的额度换成每班多发（下面 TAKEOVER_LIMIT 8 → 10）。low 试过，忠实度掉了，没用。见 POSTMORTEM §43。
+  : "${LLM_EFFORT_DIGEST:=medium}"
+  export LLM_MODEL_DIGEST LLM_MODEL_TRIAGE LLM_MODEL_MAP LLM_MODEL_REVIEW LLM_EFFORT_DIGEST
   echo "没有 LLM_API_KEY，回退到本机 claude CLI（会花订阅额度）"
   EXTRA="--spend-subscription"
 else
@@ -394,7 +397,8 @@ PYEOF
   CATCHUP_ONLY="--only-residential"
   [ -z "$ONLY_RESIDENTIAL" ] && SCOPE=all && CATCHUP_ONLY=""
   if [ -n "$CLOUD_DOWN" ]; then
-    : "${TAKEOVER_LIMIT:=8}"
+    # 8 → 10（2026-11-12）：写稿改 medium 省下的额度换成多发，一班的总额度和原来大致持平。
+    : "${TAKEOVER_LIMIT:=10}"
     # 接班只许放大、不许缩小：手动给了 LIMIT=20 追积压，接班却按 8 篇跑（2026-10-30 11:15）。
     usual=$LIMIT
     [ "$LIMIT" -lt "$TAKEOVER_LIMIT" ] 2>/dev/null && LIMIT=$TAKEOVER_LIMIT

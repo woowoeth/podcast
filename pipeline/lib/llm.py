@@ -357,7 +357,7 @@ def call(system: str, user: str, *, max_tokens: int = 6000,
         return _openai(system, user, max_tokens, temperature, model,
                        json_mode=want_json and _json_mode[0], role=role, label=label)
     if p == "claude-cli":
-        return _cli(system, user, model=model, role=label)
+        return _cli(system, user, model=model, role=label, effort=effort_for(role))
     raise RuntimeError("no LLM backend: set LLM_API_KEY or install the claude CLI")
 
 
@@ -516,7 +516,24 @@ def _note_cli_usage(role: str, model: str, u: dict | None) -> None:
         pass
 
 
-def _cli(system: str, user: str, *, model: str = "", role: str = "?", tries: int = 4) -> str:
+def effort_for(role: str) -> str:
+    """CLI 的 --effort。只给写稿（role=digest）配：LLM_EFFORT_DIGEST，空就不加、照 CLI 默认。
+
+    **为什么是 effort 不是思考 token 上限。** 2026-11-12 实测：MAX_THINKING_TOKENS=4000 对 sonnet
+    写稿完全没生效（8 集思考 10.5 万，照旧 10.2 万）—— 新模型是自适应思考，非零的上限不认，只有 0 能关。
+    --effort 才真的管用。同一批 8 集、同一套闸门和成稿评分（POSTMORTEM §43）：
+      照旧（两次）均分 7.62 / 7.75、忠实度 8.25 / 8.25，写稿输出 13.0 万 / 13.4 万
+      medium        均分 7.50、忠实度 8.38，写稿输出 5.4 万（−58%）
+      low           均分 7.50、忠实度 7.94，金句 55 → 48；评审抓到正负号写反、把提问人的话安给嘉宾 —— 没用
+    按 role（模型档位）算，不按 step：预算被思考吃光时借 haiku 重做的那次记在 digest 行，
+    但它是 role=map，不该跟着加 —— 那条路没对照过。由 call() 算好传给 _cli。"""
+    if role != "digest":
+        return ""
+    return (os.environ.get("LLM_EFFORT_DIGEST") or "").strip()
+
+
+def _cli(system: str, user: str, *, model: str = "", role: str = "?", tries: int = 4,
+         effort: str = "") -> str:
     # stdin carries the payload so a long transcript never hits ARG_MAX.
     #
     # No --max-turns: at 1 the CLI can spend the single turn on setup and exit
@@ -544,6 +561,8 @@ def _cli(system: str, user: str, *, model: str = "", role: str = "?", tries: int
            "--append-system-prompt", system,
            "--tools", "", "--safe-mode", "--strict-mcp-config",
            "--output-format", "json"]
+    if effort:
+        cmd += ["--effort", effort]
     last = ""
     serial_retry = False
     for i in range(tries):

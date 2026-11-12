@@ -13273,11 +13273,11 @@ class SourcesKeepUpdatingWhenOneLineStops(unittest.TestCase):
         base = {"ONLY_RESIDENTIAL": "1", "ONLY": "", "LIMIT": "6"}
         only, scope, catch, limit = self._run_block(start, end, {**base, "CLOUD_DOWN": "云端深读关着"})
         self.assertNotIn("--only-residential", only, "云端停了，本机接班却还是只跑住宅 IP 那批")
-        self.assertEqual((scope, catch, limit), ("all", "", "8"), "接班时心跳范围 / 补课范围 / 篇数不对")
+        self.assertEqual((scope, catch, limit), ("all", "", "10"), "接班时心跳范围 / 补课范围 / 篇数不对")
         only, scope, catch, limit = self._run_block(start, end, {**base, "CLOUD_DOWN": ""})
         self.assertIn("--only-residential", only, "云端正常时本机也跑全站 —— 和云端重复劳动")
         self.assertEqual((scope, catch, limit), ("residential", "--only-residential", "6"))
-        # 手动给了更大的 LIMIT 追积压：接班不许把它缩回 8（2026-10-30 11:15 就这么被缩过）
+        # 手动给了更大的 LIMIT 追积压：接班不许把它缩回默认（2026-10-30 11:15 就这么被缩过）
         *_, limit = self._run_block(start, end, {**base, "LIMIT": "20", "CLOUD_DOWN": "云端深读关着"})
         self.assertEqual(limit, "20", "接班把手动放大的篇数缩小了")
         only, scope, catch, limit = self._run_block(start, end, {**base, "ONLY": "sv101", "CLOUD_DOWN": "云端深读关着"})
@@ -15577,3 +15577,48 @@ class TheBrowserHarnessServerSurvivesABurst(unittest.TestCase):
             srv.shutdown()
             srv.server_close()
         self.assertFalse(dead, f"30 个连接里 {len(dead)} 个没被接住（监听队列太短）：{dead[:3]}")
+
+
+class TheDigestRunsAtTheEffortItWasTestedAt(unittest.TestCase):
+    """写稿用 medium 是对照过的（POSTMORTEM §43）；别的步骤不许跟着降，也不许悄悄丢掉这个开关。"""
+
+    def setUp(self):
+        sys.path.insert(0, str(ROOT / "pipeline"))
+        from lib import llm
+        self.llm = llm
+
+    def _cmd(self, env, **kw):
+        """走真的 llm.call → _cli，只换掉子进程。"""
+        from unittest import mock
+        seen = {}
+        class R:
+            returncode, stderr = 0, ""
+            stdout = json.dumps({"type": "result", "is_error": False, "result": "ok", "usage": {}})
+        def run(cmd, **_):
+            seen["cmd"] = cmd
+            return R()
+        with mock.patch.dict(os.environ, env, clear=False), \
+                mock.patch.object(self.llm, "provider", lambda: "claude-cli"), \
+                mock.patch.object(self.llm.subprocess, "run", run), \
+                mock.patch.object(self.llm, "_note_cli_usage", lambda *a: None):
+            self.llm.call("s", "u", **kw)
+        c = seen["cmd"]
+        return c[c.index("--effort") + 1] if "--effort" in c else None
+
+    def test_the_digest_call_carries_the_effort_and_nothing_else_does(self):
+        on = {"LLM_EFFORT_DIGEST": "medium"}
+        self.assertEqual("medium", self._cmd(on, role="digest"), "写稿那一次调用没带上 --effort")
+        for role in ("review", "triage", "map", "tw"):
+            self.assertIsNone(self._cmd(on, role=role), f"{role} 也被降了 effort —— 只对照过写稿")
+        # 预算被思考吃光时借便宜档重做：记账记在 digest 行，但不是那条对照过的路
+        self.assertIsNone(self._cmd(on, role="map", step="digest"),
+                          "借便宜档重做的那次也被加了 effort（按记账行判了，没按模型档位）")
+
+    def test_unset_means_the_cli_default(self):
+        self.assertIsNone(self._cmd({"LLM_EFFORT_DIGEST": ""}, role="digest"))
+
+    def test_the_daily_run_sets_medium_and_exports_it(self):
+        sh = (ROOT / "scripts" / "local-daily.sh").read_text()
+        self.assertRegex(sh, r':\s*"\$\{LLM_EFFORT_DIGEST:=medium\}"', "日更没把写稿设成 medium")
+        exp = re.search(r"^\s*export LLM_MODEL_DIGEST[^\n]*$", sh, re.M)
+        self.assertTrue(exp and "LLM_EFFORT_DIGEST" in exp.group(0), "设了没 export，run.py 看不到")
