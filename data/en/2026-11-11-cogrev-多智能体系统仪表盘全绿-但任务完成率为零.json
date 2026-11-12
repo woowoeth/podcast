@@ -1,0 +1,127 @@
+{
+ "slug": "2026-11-11-cogrev-多智能体系统仪表盘全绿-但任务完成率为零",
+ "of": "cogrev-e0f712e23a",
+ "source_lang": "en",
+ "title": "Multi-Agent System Dashboard All Green, But Task Completion Rate Zero",
+ "dek": "Cisco discovered a multi-agent system showing 66% online and running normally on its dashboard, yet task completion rate was 0%—because existing monitoring only checks connection status, not whether semantics are aligned.",
+ "why": "Multi-agent systems are now in enterprise production environments; this episode provides concrete failure-rate numbers and the protocol design details Cisco uses to fix semantic alignment problems.",
+ "who": "Engineering leaders building or procuring multi-agent systems, enterprise AI product managers, and developers who want to understand agent orchestration boundaries.",
+ "skip": "",
+ "tags": [
+  "Multi-agent systems",
+  "Enterprise AI",
+  "Cisco",
+  "Semantic alignment",
+  "Agent protocols",
+  "Cognitive observability"
+ ],
+ "points": [
+  {
+   "h": "Agents completed three evolutionary stages in a matter of months",
+   "body": "Vijoy describes the past six to seven months' progress as \"fly years\"—faster than dog years. He divides agent development into three stages: isolated single agents, then \"silos\" trapped within the same harness (like the Hugging Face and Navier-Stokes incidents), then connected agents across vendors, clouds, and organizations. In the past few months, Cisco has deployed this cross-organizational multi-agent system to production environments at Swisscom, ServiceNow, SoftServe, and Webex, handling network configuration, cloud platform engineering, and video monitoring tasks."
+  },
+  {
+   "h": "Five agents plus formal model achieve zero configuration errors",
+   "body": "Swisscom uses a multi-agent system to solve data center migration configuration issues, aiming for 100% error-free configurations. The approach splits the problem: one half is agentic workflow with five agents exploring all possible configuration spaces; the other half is a formal (symbolic) model of the network environment itself, acting as inviolable physical laws. Vijoy compares this to chess—if your opponent knows every possible configuration and response on the board, you can never win; this symbolic model is the opponent that \"knows all moves,\" ensuring agents never escape allowed boundaries."
+  },
+  {
+   "h": "Multi-agent value lives in handoffs between agents, not in any single agent",
+   "body": "Using a deal worth millions as an example: sales understands what the customer wants, legal reviews contract terms, finance reviews pricing discounts, product engineering sees what can be built and when, and marketing sees what can be claimed publicly—no single party holds the full picture, with a GM role acting as verifier. Vijoy's judgment: multi-agent system value lies not in optimizing any single agent's local performance, but in the quality of handoffs between agents—estimates become commitments, commitments become contract language, contract language becomes marketing claims, and these handoffs are where real value sits and errors are most likely."
+  },
+  {
+   "h": "Three instances of cognitive misalignment drop accuracy from 99% to 16%",
+   "body": "Cisco reviewed public traces from ChatDev, a multi-agent development environment, and found semantic failures and cognitive misalignment in 100% of conversations. In their own five-agent system, one cognitive misalignment dropped accuracy from 99% to 98%, two instances dropped it to 81%, and three instances—not many at all—directly dropped it to 16%, nearly random guessing. These numbers directly sparked Cisco's later Scope project, a cognitive observability platform."
+  },
+  {
+   "h": "Systems with all-green dashboards can have zero task completion",
+   "body": "In a simple consumer scenario—booking a travel itinerary—the system shows 66% online, which by conventional dashboard standards means \"running normally.\" Yet task completion is 0%; agents have zero consensus on the goal. Cisco calls this \"quiet failure with loud consequences\": the dashboard is green because it only monitors whether agents are running, not whether semantics are aligned; system failure happens unseen. Scope exists to make semantic drift visible and debuggable, built on standard OpenTelemetry."
+  },
+  {
+   "h": "‘100,000 users’ can be understood completely differently between agents",
+   "body": "A typical misunderstanding: sales tells engineering \"build a feature for 100,000 users,\" engineering understands it as 100,000 total users, but the customer means 100,000 concurrent users—these terminology misalignments should be resolved before work starts, which is what the Accord protocol handles. After work starts, delivery dates get interpreted differently by different roles: sales thinks alpha, engineering thinks first release, customer thinks final version, finance thinks contract funding date, and customer needs keep changing with feature creep, which Concord handles through ongoing negotiation."
+  },
+  {
+   "h": "With identity, scaffolding, and models all decoupled, agents still cannot book a dinner table",
+   "body": "Vijoy has completely decoupled his identity, personality, and memory (he names his agent Arnold Layne, after the Pink Floyd song) from underlying harness and model—the same Arnold runs on OpenClaw and Armies, calling Hermes, Muse, Dots, Grok and other models. But even with such architectural decoupling, his agent and his wife's agent (Laira Bellacqua) cannot autonomously book a dinner table two weeks out: models lack capability, harnesses demand repeated human authorization out of caution, and more importantly, the two have different preferences for restaurant, cuisine, and ambiance that require negotiation—which is where agents currently fail."
+  },
+  {
+   "h": "Latent space communication is inevitable but must advance as carefully as drug trials",
+   "body": "Vijoy believes agents using high-dimensional latent space (rather than natural language) to communicate directly is inevitable and potentially necessary for drug discovery and weather modeling. But advancement should proceed like introducing a new drug—thorough testing, gradual canary deployment. Responding to Harari's concern that humans become incomprehensible-to-themselves AI subjects like \"cattle,\" he says: we already are \"cattle\"—most people don't understand high-frequency trading algorithms, yet they control markets. The solution is not to reverse the trend but to ensure every decision is auditable and correctable through specialized agent systems plus trace systems like Scope."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Internet of Cognition",
+   "def": "Infrastructure layer enabling multiple agents to align on intent, coordination, and reasoning."
+  },
+  {
+   "term": "Scope",
+   "def": "Open-source tool built on OpenTelemetry to detect semantic and cognitive drift between agents."
+  },
+  {
+   "term": "Accord / Concord",
+   "def": "Two Cisco open-source protocols: Accord handles pre-start terminology alignment, Concord handles ongoing negotiation during execution."
+  },
+  {
+   "term": "GATs / COGs",
+   "def": "Two types of AI roles proposed by Raj Reddy: GATs (guardian agents) set guardrails, COGs (cognitive accelerant agents) speed up known processes."
+  },
+  {
+   "term": "neuralese / latent space communication",
+   "def": "Direct communication between AIs using high-dimensional internal representations rather than natural language."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Semantic failures in ChatDev conversations",
+   "v": "100%"
+  },
+  {
+   "k": "System accuracy after single cognitive misalignment",
+   "v": "from 99% to 98%"
+  },
+  {
+   "k": "System accuracy after two cognitive misalignments",
+   "v": "81%"
+  },
+  {
+   "k": "System accuracy after three cognitive misalignments",
+   "v": "16%"
+  },
+  {
+   "k": "Travel itinerary case system status",
+   "v": "66% online, 0% task completion"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "it feels like years. Because the progress here has been so rapid that I like to call it fly years. It's not even dog years. It's definitely not human years.",
+   "translated": false
+  },
+  {
+   "text": "the value in the system is not sitting within one particular agent. The value is actually in the handoff that's happening between these agents and the value is a global outcome for the company, for the enterprise.",
+   "translated": false
+  },
+  {
+   "text": "we saw that the system was 66% up, which was defined as working perfectly. But it had 0% task completion. 0%.",
+   "translated": false
+  },
+  {
+   "text": "It was not a one time thing. It's like things change. There's feature creep. The customer looks at it and says, this is not really what I meant. It's constantly evolving.",
+   "translated": false
+  },
+  {
+   "text": "our agents cannot do this autonomously, which is ridiculous. I want us... Our agents to just go ahead, know our profiles",
+   "translated": false
+  },
+  {
+   "text": "I'm super excited about that. And to me, it's inevitable.",
+   "translated": false
+  },
+  {
+   "text": "we're already cows or we're already humans in the system that exist today. That's why subject matter experts exist.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
