@@ -1,0 +1,115 @@
+{
+ "slug": "2026-11-12-complexsys-手动清算一个巨鲸的仓位22次-杠杆率只是四年级除法",
+ "of": "complexsys-acd848c9aa",
+ "source_lang": "en",
+ "title": "Liquidating a whale's position 22 times by hand: leverage is just fourth-grade division",
+ "dek": "During the FTX collapse, a whale account on Solend became insolvent as the liquidation system failed. The author manually liquidated it 22 times—doing what the liquidation robots should have done—and earned about 50% in returns.",
+ "why": "The first half explains leverage with extreme clarity—add one and take the reciprocal, and you can learn it in thirty seconds. The second half is a rare firsthand record of DeFi liquidations, worth listening to in full.",
+ "who": "Engineers and investors curious about DeFi liquidation mechanisms, and non-finance professionals who want to understand leverage through a concrete story.",
+ "skip": "The 0:00-1:06 opening can be skipped without affecting understanding of the rest.",
+ "tags": [
+  "Leverage",
+  "DeFi",
+  "Solend",
+  "FTX collapse",
+  "Liquidation mechanism",
+  "Cryptocurrency"
+ ],
+ "points": [
+  {
+   "h": "Mental math for leverage: add one and take the reciprocal",
+   "body": "The author presents a formula you can calculate in your head: add one to the leverage ratio and take its reciprocal—that's how much the asset value has to fall before equity reaches zero. A 10:1 leveraged company only needs its assets to drop about one-ninth (9.09%) to wipe out equity entirely. This reduces leverage from something mystical to fourth-grade division, and it's fundamental to understanding the whale story that follows."
+  },
+  {
+   "h": "Brokers manage your leverage for their benefit, not yours",
+   "body": "Brokers are willing to lend you money to increase leverage on stock purchases because it's a high-engagement feature that attracts customers. But once the stock price falls and your leverage ratio climbs, the broker issues a margin call requiring you to reduce positions or add funds. The author emphasizes that if brokers don't quickly reduce your leverage, the bad debt likely won't be recovered—especially from retail traders, whose other finances are usually equally stressed when an account goes underwater."
+  },
+  {
+   "h": "Paying down debt and depositing savings have different effects",
+   "body": "Depositing the same $400 produces different outcomes: if paid as cash toward a loan, leverage drops to 0.6:1, well below the 1:1 baseline; if deposited as stock collateral, it only returns to 1:1. The difference is that stock collateral introduces new risk exposure, while debt repayment purely reduces risk. This explains why regulators and brokers prefer to demand cash rather than collateral when deleveraging customers."
+  },
+  {
+   "h": "A whale account goes insolvent, and the liquidation robots all malfunction",
+   "body": "The FTX collapse triggered a SOL price crash. The Solend protocol was designed so liquidation robots would take the whale's collateral at a 5% discount to execute deleveraging. But the whale's position was far too large for the robots' risk appetite; they could only nibble at it gradually, and during the SOL crash, many robots found no attractive liquidity and simply couldn't operate. The whale account slid from conservative leverage all the way to insolvency."
+  },
+  {
+   "h": "The protocol raises the SOL deposit rate to 2600% and still can't get takers",
+   "body": "Other users had borrowed the whale's SOL to short it, leaving the protocol with only USDC claims against the whale and no actual SOL to disburse. The Solend team manually raised the SOL deposit APY to 2400%-2600%, trying to attract more SOL deposits, but in the general market panic, the rate wasn't enough. Many robots simply powered down, leaving the operators to sleep with the concern that the protocol's hole might expand."
+  },
+  {
+   "h": "A mind-numbingly boring game where 70% of operations crash",
+   "body": "The author didn't have time to code a liquidation robot, so they became one: deposit some USDC, wait for more SOL to flow in at the high rate, manually liquidate part of the whale's debt, and swap the discounted SOL back to USDC, then repeat. The program crashed about 70% of the time; operations that should have taken seconds took 3 to 12 minutes, until people in other time zones woke up and restarted the bots, and then the AI \"stole\" their clicking work."
+  },
+  {
+   "h": "A 5% discount repeated 22 times isn't triple the returns",
+   "body": "The naive calculation says 1.05^22 should approach 3x the capital, but after slippage and fees taken by the game's designer, actual returns were about 50%. The author compares the experience to playing poker for two hours with similar returns but possibly higher risk, and says they'd rather play Dyson Sphere Program or Factorio next time."
+  }
+ ],
+ "terms": [
+  {
+   "term": "margin call",
+   "def": "A broker's demand that a customer add funds or sell assets to reduce their leverage ratio."
+  },
+  {
+   "term": "DeFi lending protocol",
+   "def": "A blockchain-based lending system that uses code to automatically match lenders and borrowers."
+  },
+  {
+   "term": "wrapped token",
+   "def": "A substitute token representing a claim on another asset; essentially an IOU that can be traded."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Asset decline needed to wipe out a 10:1 leveraged company",
+   "v": "About 9.09% (one-eleventh)"
+  },
+  {
+   "k": "Solend SOL deposit annual percentage rate",
+   "v": "2400%-2600%"
+  },
+  {
+   "k": "Liquidation operation crash rate",
+   "v": "About 70%"
+  },
+  {
+   "k": "Single liquidation operation duration",
+   "v": "3 to 12 minutes"
+  },
+  {
+   "k": "Actual returns after 22 manual liquidations",
+   "v": "About 50% (not the theoretical 1.05^22)"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "Add one to the leverage ratio, take the reciprocal. Bam. That's how much of a decline in the value of the assets wipes out the equity.",
+   "translated": false
+  },
+  {
+   "text": "Why the discrepancy in the impact of $400? Because leverage measures risk, and depositing $400 in shares dilutes your risk by adding assets that are themselves an incremental source of risk. Repaying the loan, on the other hand, strictly decreases your risk.",
+   "translated": false
+  },
+  {
+   "text": "So Solend, the people, not the computer program, did some active liquidity management by tweaking parameters to their program, causing the offered interest rate for SOL deposits to be 2,400% to 2,600% on an annual basis.",
+   "translated": false
+  },
+  {
+   "text": "In the midst of the market contagion, even 2,600% was insufficient to attract lots of SOL, for a long list of market microstructure reasons.",
+   "translated": false
+  },
+  {
+   "text": "The video game crashed about 70% of the time I tried to do this, but I pressed on.",
+   "translated": false
+  },
+  {
+   "text": "What sounds like \"click two buttons in a web app with a barely perceptible lag between them\" took between 3 and 12 minutes per iteration.",
+   "translated": false
+  },
+  {
+   "text": "Now, you might naively think that I roughly tripled my starting capital, because 1.05 raised to the 22nd power, but the combination of slippage and the fees I was paying to the designers of the video games meant it was actually more like a 50% gain.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
