@@ -83,6 +83,18 @@ class _Root(http.server.SimpleHTTPRequestHandler):
         pass
 
 
+class _Server(socketserver.ThreadingTCPServer):
+    """本地测试服务器。
+
+    监听队列默认只有 5。首页一下子要几十张封面，机器忙的时候（2026-11-12：系统刚升级重启，
+    负载 17–26）Python 来不及 accept，排不上队的连接被系统丢掉，浏览器报
+    ERR_CONNECTION_RESET / ERR_SOCKET_NOT_CONNECTED，「主路径不许有报错」跟着红 —— 红的是脚手架，
+    不是站。成对量过（同一页各开 24 次，只改这一个数）：队列 5 有 4 次报错，队列 128 是 0 次。
+    """
+    allow_reuse_address = True
+    request_queue_size = 128
+
+
 def _episode_slugs(n=3, want_video=None):
     out = []
     d = os.path.join(ROOT, "data", "episodes")
@@ -118,8 +130,7 @@ class Harness(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        socketserver.TCPServer.allow_reuse_address = True
-        cls.srv = socketserver.ThreadingTCPServer(("127.0.0.1", 0), _Root)
+        cls.srv = _Server(("127.0.0.1", 0), _Root)
         cls.port = cls.srv.server_address[1]
         threading.Thread(target=cls.srv.serve_forever, daemon=True).start()
         cls.pw = sync_playwright().start()

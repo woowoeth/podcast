@@ -15535,3 +15535,45 @@ class TheHealthcheckReadsWhatTheModelCallsActuallyDid(unittest.TestCase):
     def test_machines_without_the_cli_stay_silent(self):
         r = self._check([], make_projects=False)
         self.assertEqual(([], [], []), (r.bad, r.warn, r.ok), "云端没有这条线，不该出声")
+
+
+class TheBrowserHarnessServerSurvivesABurst(unittest.TestCase):
+    """浏览器那两层自带的本地服务器，忙不过来的时候不能丢连接。
+
+    2026-11-12：推之前跑全量，「主路径不许有报错」红了两次，报首页有资源 ERR_CONNECTION_RESET。
+    站没坏：系统刚升级重启、负载 17–26，Python 来不及 accept，而监听队列默认只有 5，
+    首页几十张封面里排不上队的被系统丢了。一道在机器忙的时候才红的闸，红的是它自己。
+    """
+
+    def test_connections_that_arrive_before_the_server_gets_to_them_all_get_an_answer(self):
+        import socket
+        import threading
+        sys.path.insert(0, str(ROOT / "tests"))
+        import test_render as R
+        srv = R._Server(("127.0.0.1", 0), R._Root)       # 已经在监听，但还没有人 accept
+        port, socks, dead = srv.server_address[1], [], []
+        try:
+            for i in range(30):
+                s = socket.socket()
+                s.settimeout(1)
+                try:
+                    s.connect(("127.0.0.1", port))
+                    s.sendall(b"GET /podcast/robots.txt HTTP/1.0\r\n\r\n")
+                    socks.append(s)
+                except OSError as ex:
+                    dead.append(f"第 {i + 1} 个连不上：{type(ex).__name__}")
+                    s.close()
+            threading.Thread(target=srv.serve_forever, daemon=True).start()
+            for i, s in enumerate(socks):
+                s.settimeout(15)                          # 机器再忙，排上队的也该等得到
+                try:
+                    if not s.recv(64).startswith(b"HTTP/1."):
+                        dead.append(f"第 {i + 1} 个没等到回答")
+                except OSError as ex:
+                    dead.append(f"第 {i + 1} 个被断开：{type(ex).__name__}")
+        finally:
+            for s in socks:
+                s.close()
+            srv.shutdown()
+            srv.server_close()
+        self.assertFalse(dead, f"30 个连接里 {len(dead)} 个没被接住（监听队列太短）：{dead[:3]}")

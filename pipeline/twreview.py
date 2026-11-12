@@ -170,7 +170,9 @@ def ask_garbled(items: list[tuple[str, list[str]]]) -> list[dict]:
     from lib import llm
     lines = [f"{n}. 「{_to_simplified(c)}」 例：" + " ／ ".join(_to_simplified(x) for x in eg)
              for n, (c, eg) in enumerate(items, 1)]
-    txt = llm.call(GARBLED_SYSTEM, "\n".join(lines), max_tokens=2000, temperature=0, role="tw")
+    # step：第二问是另一种活，账本单独记一行（role 不变，还是同一档模型）
+    txt = llm.call(GARBLED_SYSTEM, "\n".join(lines), max_tokens=2000, temperature=0, role="tw",
+                   step="tw-garbled")
     m = re.search(r"\[.*\]", txt, re.S)
     if not m:
         raise RuntimeError("模型没回 JSON 数组：" + txt[:120])
