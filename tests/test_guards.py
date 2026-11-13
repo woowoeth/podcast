@@ -5478,12 +5478,43 @@ class AssetsAreSharedByAllTrees(unittest.TestCase):
 
         loading=lazy 会让浏览器先等布局再发请求，首屏最大那张因此白等一轮。
         """
-        html = (ROOT / "index.html").read_text()
-        m = re.search(r'<a class="card hero".*?<img[^>]*>', html, re.S)
-        self.assertIsNotNone(m, "首页没有 hero 卡片")
-        tag = m.group(0)[m.group(0).index("<img"):]
-        self.assertNotIn('loading="lazy"', tag, "hero 那张封面还是 lazy 的")
-        self.assertIn('fetchpriority="high"', tag, "hero 那张没有提优先级")
+        problem = self.hero_cover_problem((ROOT / "index.html").read_text())
+        self.assertIsNone(problem, problem)
+
+    @staticmethod
+    def hero_cover_problem(html):
+        """只看 hero 卡片**自己**那个 <a>…</a>。
+
+        2026-11-13 的误报：第一版用 `<a class="card hero".*?<img` 找图，hero 那集没封面
+        （data/episodes 里 image 为空，显示首字，设计如此）时，非贪婪匹配越过 </a>
+        抓到了**下一张卡**的 lazy 图，CI 红了，站本身没毛病。没封面就没有 LCP 图要提速，算过。"""
+        m = re.search(r'<a class="card hero".*?</a>', html, re.S)
+        if not m:
+            return "首页没有 hero 卡片"
+        img = re.search(r"<img[^>]*>", m.group(0))
+        if not img:
+            return None if 'class="fallback"' in m.group(0) else "hero 既没有封面也没有首字占位"
+        if 'loading="lazy"' in img.group(0):
+            return "hero 那张封面还是 lazy 的"
+        if 'fetchpriority="high"' not in img.group(0):
+            return "hero 那张没有提优先级"
+        return None
+
+    def test_the_hero_rule_reads_only_the_hero_card(self):
+        """判据自己的反向样本：好的过、坏的红、没封面的 hero 不去读邻居。"""
+        nxt = '<a class="card" href="/b/"><div class="cover"><img src="b.jpg" loading="lazy"></div></a>'
+        good = '<a class="card hero" href="/a/"><div class="cover"><img src="a.jpg" fetchpriority="high"></div></a>'
+        lazy = '<a class="card hero" href="/a/"><div class="cover"><img src="a.jpg" loading="lazy"></div></a>'
+        bare = '<a class="card hero" href="/a/"><div class="cover"><img src="a.jpg"></div></a>'
+        nocover = '<a class="card hero" href="/a/"><div class="cover"><div class="fallback">王</div></div></a>'
+        empty = '<a class="card hero" href="/a/"><div class="cover"></div></a>'
+        f = self.hero_cover_problem
+        self.assertIsNone(f(good + nxt))
+        self.assertIsNone(f(nocover + nxt), "没封面的 hero 读到了下一张卡的图")
+        self.assertIn("lazy", f(lazy + nxt))
+        self.assertIn("优先级", f(bare + nxt))
+        self.assertIn("首字", f(empty + nxt))
+        self.assertIn("没有 hero", f(nxt))
 
 
 class SourceEvaluatorMustKnowEveryTranscriptPath(unittest.TestCase):
