@@ -1,6 +1,6 @@
 # 原声 — 世界太吵，来原声听播客
 
-1568 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
+1570 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
 
 ==============================================================================
 
@@ -295,6 +295,73 @@
 
 谁该听 / who: 适合关注AI监管立法进展的政策研究者、科技记者，以及想提前了解「危机后」AI政策工具箱的创业者和投资人。
 标签 / tags: AI监管, 国会立法, 超级智能, 递归自我改进, CAISSI, AI安全
+
+==============================================================================
+
+## 智能体留下的对话记录太私密，不能直接拿去训练模型
+
+- URL: https://ourword.ai/podcast/p/2026-11-13-practicalai-智能体留下的对话记录太私密-不能直接拿去训练模型/
+- 节目 / show: Practical AI (https://ourword.ai/podcast/s/practicalai/)
+- 原集标题 / original episode: Implementing Federated Learning to enhance Agentic AI
+- 发布 / published: 2026-11-13 · 时长 / duration: 43:33
+- 文稿来源 / transcript: 官方逐字稿 · 7068 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 0 numbers traced to the transcript, review score 8/10
+
+**智能体的运行轨迹里藏着用户的提示词、病历、文件内容，这些数据比传统的手机照片更难公开收集，联邦学习成了在不搬动数据的前提下改进智能体的自然选择。**
+
+为什么听 / why: 没有新鲜数字和产品发布，但对想理解智能体数据隐私问题、以及企业为何要自建训练闭环的人，这是一次清晰的科普和场景铺陈。
+
+### 核心论点 / points
+
+[5:20] (Lorenzo) **联邦学习的核心不是加密，是数据不搬家** — Lorenzo 解释联邦学习的基本逻辑：大量有价值的数据散落在手机、笔记本等边缘设备上，但出于隐私和合规原因无法集中收集，比如医疗记录。联邦学习的做法是把训练流程本身搬到数据所在的地方去计算，而不是把数据搬到数据中心。这解决的是「既要满足隐私监管，又要能从数据里学到东西」的矛盾，是整个框架存在的理由。
+
+[8:10] (Lorenzo) **数据不出门不等于模型没记住隐私** — 对于隐私如何真正被保护，Lorenzo 给出了明确的分层回答：第一层保证是数据物理上从未离开采集地，没人能截获或打开看；但第二层问题是训练完的模型本身是否「记住」了不该记住的东西，这才是隐私真正可能破防的地方。差分隐私等技术提供的是统计意义上的保证，而且要视具体场景而定——有些场景很容易应用，有些场景根本用不了，不少行业最终会因为联邦学习不划算而放弃它。
+
+[11:40] (Lorenzo) **隐私敏感应用该用开源模型做起点** — 面对闭源大模型和开源模型谁更值得信任的问题，Lorenzo 坦承大家对闭源模型的构造知之甚少，他本人倾向乐观地相信各家都在努力维护隐私。但如果真要做一个隐私高度敏感的应用，他会选择开源模型作为起点，因为可探测、可修复的手段多得多；闭源模型一旦出问题，几乎没法保证百分之百能修好。
+
+[16:40] (Lorenzo) **智能体的轨迹比单次对话私密得多** — 相比单一模型的问答，智能体系统的轨迹里不仅包含模型输出，还包含用户的原始提示词，以及 MCP server、RAG 系统等第三方组件为模型补充的上下文。这些轨迹对改进智能体极其有用，因为模型在长流程中常因拼写错误、同词异指、工具实现缺陷而出错，需要足够多的轨迹数据才能训练得更好。但轨迹里混杂着用户诸如膝盖不舒服该不该看医生这类私人问题，这正是联邦学习要介入的地方。
+
+[19:50] (Lorenzo) **智能体每多跑一步，就多暴露一层你自己** — 谈到智能体与单模型的区别时，Lorenzo 指出关键在于智能体会「采取行动」——读取、抓取、修改、删除。每一步执行都发生在包含用户部分自我的环境里，比如笔记本信息、物理系统、摄像头图像。随着长程运行的轨迹越跑越长，智能体掌握的关于用户的信息量会持续累积，因为它需要吸收更多信息才能产出最终结果，这个过程像一棵树，从主线分叉出子智能体调用，再压缩回主线得到最终答案。
+
+[32:30] (Lorenzo) **模型越做越小，但企业越来越想自己攥着训练数据** — Lorenzo 观察到一个趋势：最强大的模型正变得越来越小、越来越便宜、越来越容易部署，但要让模型在具体场景里变得更好，需要深入分析失败模式，而这只有在企业能完全掌控自己的轨迹数据时才能做到。很多企业部署模型后发现难以改进应用，根源就是没有回看轨迹、理解模型在哪里出错的能力。他预测大企业会越来越倾向于自己掌控轨迹数据并自行改进模型，因为这些数据本身就是企业的核心 IP，而外部服务商往往不会完整披露模型得出答案所经过的步骤。
+
+[37:10] (Lorenzo) **机器人做手术，没人知道它为什么那样下刀** — Lorenzo 提到自己见过模型指挥机器人真实做手术，这让他开始思考一个更深的问题：我们是否知道模型为什么执行了那个特定步骤，能否确认模型在做出决策前确实评估过所有潜在选项。在手术这类高敏感应用里，人们非常需要掌控具体工作流背后的动机和理由，这正是可解释性（interpretability）这条研究路径变得越来越重要的原因，而这同样需要企业对模型拥有远超标准订阅服务所能提供的数据和分析掌控权。
+
+[39:40] (Lorenzo) **没法模拟手术全过程，只能靠多家医院拼数据** — 针对手术机器人这类场景，Lorenzo 指出由于目前没有足够好的方式去模拟真实世界（每个病人的血管、身体特征都不同），唯一能扩大试验量、加快模型改进速度的办法就是从尽可能多的医院、尽可能多的数据孤岛中同时获取更多真实数据。他强调以现有的数据采集流程和训练方法而言，联邦学习这类协作学习技术现在就能开箱即用地提供帮助，不需要等待新技术突破。
+
+### 原话 / verbatim quotes
+
+[8:10] Lorenzo: "The first ingredient for protecting your privacy is the fact that your data never moves from where it's collected. So no one can intercept traffic or actually look at your data."
+    译 / zh: 保护隐私的第一要素是，你的数据永远不会离开它被采集的地方，所以没有人能截获流量或实际查看你的数据。
+
+[11:40] Lorenzo: "I would say that if I had to develop a privacy heavy application, I would prefer to use an open source model as a starting point, especially because I have more control over it."
+    译 / zh: 我想说，如果让我开发一个隐私高度敏感的应用，我更愿意用开源模型作为起点，尤其是因为我对它有更多的控制权。
+
+[17:20] Lorenzo: "Sometimes I ask my agents about, you know what? I've been doing this thing and my knee now is not is not feeling good. Should I be contacting the doctor or not?"
+    译 / zh: 有时候我会问我的智能体，你知道吗，我一直在做这件事，我的膝盖现在感觉不太好，我是不是该联系医生？
+
+[19:50] Lorenzo: "What's the difference between a single model and an agent is that the agents can take actions, right? Like, that's the definition of an agent, like the simplest definitions that you can get."
+    译 / zh: 单一模型和智能体的区别在于，智能体可以采取行动，对吧？这就是智能体的定义，是你能得到的最简单的定义。
+
+[32:30] Lorenzo: "The amount of usage that this model have, these models have, is is even bigger and bigger, right? So the scale of usage is increasing, the scale of the models is decreasing."
+    译 / zh: 这些模型的使用量越来越大，对吧？所以使用规模在增加，模型规模却在缩小。
+
+[39:40] Lorenzo: "Currently, the only way to increase the amount of improvements, like to increase pace of improvement for this model, is getting more and more data, and make sure that you can train on this data in order to improve the model."
+    译 / zh: 目前，加快这类模型改进速度的唯一办法，就是获取越来越多的数据，并确保能在这些数据上进行训练来改进模型。
+
+[42:50] Lorenzo: "Most cases, the best innovations come from, that's my personal opinion, come from two factors. One is the constraints."
+    译 / zh: 大多数情况下，最好的创新来自——这是我个人的看法——来自两个因素，其一是约束条件。
+
+### 术语 / glossary
+
+- Federated Learning (联邦学习): 让训练过程下沉到数据所在设备，数据本身不离开本地的分布式训练方式
+- differential privacy (差分隐私): 一种为训练结果提供统计意义隐私保证的技术手段
+- interpretability (可解释性): 理解模型为何做出某个具体决策或步骤的研究方向
+- trajectory (轨迹): 智能体从提示词到最终输出之间，包含所有工具调用和中间步骤的完整记录
+
+谁该听 / who: 关注智能体数据隐私、企业数据治理，或考虑用联邦学习训练垂直场景模型（医疗、手术机器人等）的工程师和决策者
+可跳过 / skip: 中段关于万圣节派对用自建模型给服装打分的个人轶事，可跳过不影响主线理解
+标签 / tags: 联邦学习, 智能体, 数据隐私, 可解释性, 开源模型, 企业数据治理
 
 ==============================================================================
 
@@ -19351,6 +19418,80 @@
 谁该听 / who: 想弄清杠杆/单股ETF真实机制的个人投资者、做产品尽调的投顾，以及对复利数学感兴趣的从业者。
 可跳过 / skip: 关于预期对数收益与自相关的数学推导部分(约37:00-44:00)专业性强，可跳过只看结论。
 标签 / tags: 杠杆ETF, 波动率损耗, 凸性红利, 单股ETF, 融资成本, 投资者行为
+
+==============================================================================
+
+## Affirm按单笔交易授信，损失率是Klarna同类贷款的3.5倍
+
+- URL: https://ourword.ai/podcast/p/2026-10-22-breakdowns-affirm按单笔交易授信-损失率是klarna同类贷款的3-5倍/
+- 节目 / show: Business Breakdowns (https://ourword.ai/podcast/s/breakdowns/)
+- 原集标题 / original episode: Affirm: The Internet’s American Express - [Business Breakdowns, EP.249]
+- 发布 / published: 2026-10-22 · 时长 / duration: 1:11:55
+- 文稿来源 / transcript: 音频转写 · 12666 words · timestamps are exact
+- 校验 / verification: 5 quotes matched verbatim, 10 numbers traced to the transcript, review score 7/10
+
+**Affirm不是又一家BNPL应用，而是把信贷和支付网络垂直整合的「互联网版美国运通」，每一笔交易单独核保，客户获取成本是负的。**
+
+为什么听 / why: 深入讲清了Affirm的四块收入结构、资金来源和利率风险传导机制，适合想真正理解这门生意而非只听过「先买后付」概念的人。
+
+### 核心论点 / points
+
+[13:32] (Fraser Christie) **信用卡给一条总额度，Affirm给每笔交易单独定价** — 信用卡批准一个笼统的信用额度后就放任消费者自己把握节奏；Affirm则对每一笔交易单独核保——利率、经济环境、购买品类的变化都会实时反映到模型里，调整放贷对象、额度和利率。基于此，Affirm的核保结果已经优于Synchrony这类传统消费信贷公司，即便后者的客户中Prime比例更高（75%对Affirm约50%）。公司每隔六七个月发布一版新的transformer架构核保模型，数据越喂越多，核保效果呈阶梯式提升。
+
+[16:35] (Fraser Christie) **Affirm啃硬骨头，Klarna啃软柿子** — 美国市场上Affirm规模是Klarna的两倍以上，两者的产品路线从一开始就不同：Affirm长期专注于更高金额、计息、更长期限的贷款（如当年为Peloton健身车融资的24-36个月分期），这类贷款更难做——用Max的话说，消费者有12次机会选择不还钱。Klarna则更偏向100美元牛仔裤这类分三四期的短期小额贷款。两者损失率差异很大：Affirm月付分期贷款的队列损失率约3.5%，而传统BNPL短期小额贷款损失率约1%。
+
+[24:50] (Fraser Christie) **负CAC：商家网站成交那一刻就已经赚钱** — 如果消费者在商家网站上注册并完成一笔Affirm贷款，Affirm在获客的同时已经靠这笔贷款赚了钱，对于通过这个渠道来的客户，获客成本是负的。唯一的例外是当年给Shopify和Amazon发的股权算作隐性获客成本。叠加电商继续蚕食零售份额、BNPL继续蚕食电商份额这双重顺风，Affirm的增长飞轮比多数同类公司更原生。
+
+[44:31] (Fraser Christie) **从IPO首日翻倍到暴跌90%,只用了一年多** — Affirm上市发行价约49美元，首日收盘近100美元，一年后涨到约175美元，随后在加息周期中跌到9美元，回撤超过90%。但回看那段历史会发现，真正恶化的只有一个季度——2022年12月那季，增长骤降、利润率大跌，看起来像是要出大事；但到下一季度利润率已明显改善，再下一季度增长和利润率都恢复健康，整个「空气袋」效应只持续了一到两个季度。
+
+[54:52] (Fraser Christie) **Affirm的资金来源分散到几乎不依赖任何单一渠道** — 约一半贷款被打包出售、移出资产负债表，另一半留在表内但仍使用第三方额度；资金方涵盖银行、保险公司和其他机构，形式上有证券化/非证券化、表内/表外、静态/循环、固定/浮动利率，公司正在申请银行牌照以引入消费者存款。真正的短期风险在于：贷款利率一旦写定就固定不变，若美联储快速大幅加息，新发放的高息贷款要一到两个季度才能在存量贷款中铺开到50%、75%的占比，这段「空窗期」就是2022-2023年真正出问题的地方。
+
+[58:03] (Fraser Christie) **加息伤的是Affirm的增长，不是存量贷款的坏账** — 信用卡业务中，大量客户背负着滚动余额、按浮动利率付最低还款额，加息会让这些人的利率从15%直接跳到25%，造成坏账集中爆发。Affirm的机制不同：贷款利率在放款那一刻就锁定，不随后续加息变化，真正受冲击的是「增长」——当市场利率上升、新发放贷款必须按25%定价时，一部分原本按15%能获批的客户现在就不再值得放贷了，于是Affirm干脆不再对这部分客户发放新贷款，而不是让存量贷款的坏账率飙升。
+
+[1:00:04] (Fraser Christie) **目标GMV翻倍到1000亿美元只是台阶，不是终点** — 对比美国信用卡生态，Affirm目前体量仍是零头：美国信用卡未偿余额约1.3万亿美元，而Affirm表内外贷款总额约200亿美元；即便只对比Capital One一家，其GMV处理量也是Affirm的15倍以上。管理层设定的「到1000亿GMV、年化增长超过25%」目标仅涵盖核心美国业务、Affirm Card和国际业务，并不包含Edge（银行白标业务）和agentic commerce——如果这两块跑起来，1000亿的目标会被进一步推高。
+
+[1:06:28] (Fraser Christie) **沃尔玛砍掉Affirm,但大多数顾客还是认准了它** — 沃尔玛关闭了Affirm的直接接入，换上了Klarna提供的One Pay自有品牌先买后付方案，但对Affirm的实际经济影响很小：一是沃尔玛本就不是高利润商户，二是公司披露，大多数原本在沃尔玛使用Affirm的顾客转而改用Affirm Card继续在沃尔玛消费——他们对品牌的忠诚度超出了很多投资者原先的预期。
+
+### 原话 / verbatim quotes
+
+[7:17] Fraser Christie: "the problem to be sold has to be hard, valuable and fun"
+    译 / zh: 要解决的问题必须是「难、有价值、有趣」。
+
+[31:11] Fraser Christie: "there's no hidden terms. There's no junk or gunk as Max Levshan would describe it. What you see is what you get"
+    译 / zh: 没有隐藏条款，没有Max Levchin所说的那些「垃圾条款」，所见即所得。
+
+[48:41] Fraser Christie: "Max's salary is less than $40,000 a year. He earns no cash bonus, but he owns a couple of billion dollars worth of stock"
+    译 / zh: Max的薪水不到4万美元一年，没有现金奖金，但他持有价值几十亿美元的股票。
+
+[1:01:09] Fraser Christie: "Capital One processes over 15 times a firm's GMV each year. A firm is large in the sense it processes $50 billion of GMV and is integrated with some of the biggest merchants in America, but there's still a very long way to go"
+    译 / zh: Capital One每年处理的GMV是Affirm的15倍以上。Affirm处理500亿美元的GMV、并和美国最大的一批商户完成了整合，这确实不小，但要走的路还很长。
+
+[1:11:47] Fraser Christie: "The biggest businesses in the world, whether that be Google, Amazon, Apple, Shopify, have absolutely no interest in extending credit to their customers. They outsource it"
+    译 / zh: 世界上最大的那些公司，无论是Google、Amazon、Apple还是Shopify，都完全没兴趣自己向客户提供信贷，他们把这件事外包出去。
+
+### 数字 / figures
+
+- Affirm当前GMV: 约500亿美元，年增速超过30% [23:56]
+- Affirm美国BNPL市场份额: 约50%，且仍在扩大 [29:11]
+- Affirm月付分期贷款损失率: 约3.5%（对比传统BNPL短期贷款约1%） [17:39]
+- IPO至今股价走势: 发行价约49美元，首日近100美元，一年后约175美元，后跌至9美元（最大回撤超过90%），目前约60-80美元 [44:31]
+- 当前市值与估值: 约250亿美元市值，约20倍调整后市盈率 [44:31]
+- RLTC（毛利）: 年化约20亿美元 [44:31]
+- 管理层中期目标: GMV从500亿增长到1000亿美元，年增速超过25% [1:00:04]
+- 美国信用卡未偿余额总量: 约1.3万亿美元（对比Affirm表内外贷款约200亿美元） [1:00:04]
+- 100个基点利率上升的P&L影响: 约9000万美元（对比今年约25亿美元毛利） [55:57]
+- 美国Top 250商户中接入Affirm的比例: 75家 [36:17]
+
+### 术语 / glossary
+
+- MDR (merchant discount rate) (商户折扣率): 商户为接入Affirm支付给Affirm的交易费用比例
+- RLTC (revenue less transaction costs) (扣除交易成本后的收入): Affirm对毛利润的内部称呼
+- forward flow facility (前向流转额度): 贷款发放后被持续出售给第三方机构的资金安排
+- agentic commerce (智能体电商): 由AI代理自动完成比价、下单、支付的购物流程
+
+谁该听 / who: 关注消费金融、支付网络或电商基础设施的投资人和创业者，想弄清Affirm商业模式和护城河而非只看BNPL标签的人
+可跳过 / skip: 开场关于Portrait的广告（0:00-2:04）和Max个人早年移民经历的细节（1:29-6:14）可以跳过
+标签 / tags: 消费信贷, 支付网络, 先买后付, 网络效应, 利率风险, AI核保
 
 ==============================================================================
 

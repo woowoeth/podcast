@@ -1,6 +1,6 @@
 # Podcast — The world is too loud. Read what matters.
 
-1568 entries. Source: https://ourword.ai/podcast/en/ · Generated from the sources listed in https://ourword.ai/podcast/en/llms.txt
+1570 entries. Source: https://ourword.ai/podcast/en/ · Generated from the sources listed in https://ourword.ai/podcast/en/llms.txt
 
 ==============================================================================
 
@@ -268,6 +268,66 @@ why listen: Maps out exactly what Congress can and can't do on AI legislation, p
 
 who it is for: Policy researchers tracking AI regulation, tech journalists, and founders and investors seeking to understand the post-crisis AI policy toolkit in advance.
 tags: AI regulation, Congressional legislation, Superintelligence, Recursive self-improvement, CAISSI, AI safety
+
+==============================================================================
+
+## Agent conversations are too private to directly use for training
+
+- URL: https://ourword.ai/podcast/en/p/2026-11-13-practicalai-智能体留下的对话记录太私密-不能直接拿去训练模型/
+- show: Practical AI (https://ourword.ai/podcast/en/s/practicalai/)
+- original episode: Implementing Federated Learning to enhance Agentic AI
+- published: 2026-11-13 · duration: 43:33
+- transcript: Official transcript · 7068 words · timestamps are exact
+- verification: 7 quotes matched verbatim, 0 numbers traced to the transcript, review score 8/10
+
+**Agent execution traces hold user prompts, medical records, file content—data far harder to openly collect than phone photos. Federated learning becomes the natural choice for improving agents without moving data.**
+
+why listen: No fresh numbers or product announcements, but for anyone seeking to understand agent data privacy and why enterprises build closed training loops, this offers clear explanation and scenario mapping.
+
+### points
+
+[5:20] (Lorenzo) **The core of federated learning is not encryption, it's data that doesn't move** — Lorenzo explains federated learning's basic logic: valuable data scattered across edge devices like phones and laptops can't be centrally collected due to privacy and compliance concerns—medical records, for instance. Federated learning moves the training process itself to where data lives, rather than moving data to a data center. This resolves the tension between "meeting privacy regulations" and "learning from the data"—the reason the framework exists.
+
+[8:10] (Lorenzo) **Data staying local doesn't mean the model forgot secrets** — On how privacy is actually protected, Lorenzo breaks it down in layers: first, data never physically leaves its source—no one can intercept or read it. But the second-layer problem is whether the trained model itself "memorized" what it shouldn't. That's where privacy truly breaks down. Differential privacy and similar techniques provide statistical-level guarantees, though applicability varies by scenario—some scenarios suit them, others don't. Many industries will eventually drop federated learning because it's uneconomical.
+
+[11:40] (Lorenzo) **Privacy-sensitive applications should start with open-source models** — Asked whether closed-source or open-source models deserve more trust, Lorenzo admits nobody really knows how closed-source models are constructed, and he personally assumes companies try hard to protect privacy. But for truly privacy-sensitive work, he'd begin with open-source models, since they're far more inspectable and fixable. Once a closed-source model fails, you nearly can't guarantee a complete fix.
+
+[16:40] (Lorenzo) **Agent trajectories are far more sensitive than isolated conversations** — Unlike a single model's question-answer exchange, an agent system's trajectory includes not just model outputs but also the user's raw prompts and context supplied by third-party components like MCP servers and RAG systems. These trajectories are invaluable for improving agents, as models often stumble in long sequences due to typos, word sense ambiguity, or tool flaws—better training needs enough trajectory data. Yet trajectories mix in private matters like whether a sore knee warrants a doctor visit, exactly where federated learning steps in.
+
+[19:50] (Lorenzo) **Each step an agent takes exposes another layer of yourself** — Discussing agent versus single-model differences, Lorenzo emphasizes the key: agents "take action"—read, fetch, modify, delete. Each execution happens in an environment containing user pieces—notebook data, physical systems, camera streams. As long-running traces grow, the information an agent holds about the user accumulates steadily, since producing a final result requires absorbing more data. The process branches like a tree from the main path into sub-agent calls, then collapses back to the main line for the final answer.
+
+[32:30] (Lorenzo) **Models grow smaller, but enterprises grip training data tighter** — Lorenzo spots a trend: the strongest models are becoming tinier, cheaper, simpler to deploy, but making models better for specific use cases demands deep failure-mode analysis, only possible when enterprises fully own their trajectory data. Many companies deploy models and find them hard to improve—the root issue is they can't review trajectories and spot where the model misfired. He forecasts large enterprises will increasingly hold their trajectory data and self-improve models, since this data is core IP anyway, and outside vendors typically won't reveal the full path the model took to reach its answer.
+
+[37:10] (Lorenzo) **Robot surgeons cut, and nobody knows their reasoning** — Lorenzo recalls seeing a model guide a robot through actual surgery, triggering a deeper question: do we know why the model chose that particular step, can we confirm it weighed all alternatives first. In high-stakes domains like surgery, people urgently need to understand the reasoning behind workflow choices—exactly why the interpretability research path matters increasingly, and why enterprises need much deeper data control and analysis power than standard subscription services grant.
+
+[39:40] (Lorenzo) **Surgery can't be simulated at scale, so hospitals must pool data** — On surgical robots and similar cases, Lorenzo notes that real-world simulation remains insufficient (each patient has distinct blood vessels and anatomy), so the only way to grow trial volume and speed model improvement is getting more real data from as many hospitals and data silos at once. He stresses that with today's data collection and training processes, collaborative techniques like federated learning already work out-of-box—no need to wait for research breakthroughs.
+
+### verbatim quotes
+
+[8:10] Lorenzo: "The first ingredient for protecting your privacy is the fact that your data never moves from where it's collected. So no one can intercept traffic or actually look at your data."
+
+[11:40] Lorenzo: "I would say that if I had to develop a privacy heavy application, I would prefer to use an open source model as a starting point, especially because I have more control over it."
+
+[17:20] Lorenzo: "Sometimes I ask my agents about, you know what? I've been doing this thing and my knee now is not is not feeling good. Should I be contacting the doctor or not?"
+
+[19:50] Lorenzo: "What's the difference between a single model and an agent is that the agents can take actions, right? Like, that's the definition of an agent, like the simplest definitions that you can get."
+
+[32:30] Lorenzo: "The amount of usage that this model have, these models have, is is even bigger and bigger, right? So the scale of usage is increasing, the scale of the models is decreasing."
+
+[39:40] Lorenzo: "Currently, the only way to increase the amount of improvements, like to increase pace of improvement for this model, is getting more and more data, and make sure that you can train on this data in order to improve the model."
+
+[42:50] Lorenzo: "Most cases, the best innovations come from, that's my personal opinion, come from two factors. One is the constraints."
+
+### glossary
+
+- Federated Learning: Distributed training that moves the training process to where data lives, keeping data local and off-device.
+- differential privacy: A technique providing statistical-level privacy guarantees on training results.
+- interpretability: The ability to understand why a model makes a specific decision or takes a particular step.
+- trajectory: The complete record from prompt to final output, including all tool calls and intermediate steps.
+
+who it is for: Engineers and decision-makers tracking agent data privacy, enterprise data governance, or exploring federated learning for domain-specific models—healthcare, surgical robots, and similar.
+what to skip: A mid-episode personal anecdote about using a custom model to score Halloween costumes can be skipped without affecting the main narrative.
+tags: Federated learning, Agentic AI, Data privacy, Interpretability, Open-source models, Enterprise data governance
 
 ==============================================================================
 
@@ -17741,6 +17801,75 @@ why listen: The episode uses rigorous math to dissect leveraged ETFs: daily rese
 who it is for: Individual investors seeking to understand how leveraged and single-stock ETFs actually work, financial advisors conducting product due diligence, and industry professionals interested in the mathematics of compounding.
 what to skip: The highly technical section on expected log returns and autocorrelation (around 37:00–44:00) can be skipped if you only want the conclusions.
 tags: Leveraged ETF, Volatility Drag, Convexity Bonus, Single-Stock ETF, Financing Costs, Investor Behavior
+
+==============================================================================
+
+## Affirm underwrites each transaction; loss rates run 3.5 times Klarna's
+
+- URL: https://ourword.ai/podcast/en/p/2026-10-22-breakdowns-affirm按单笔交易授信-损失率是klarna同类贷款的3-5倍/
+- show: Business Breakdowns (https://ourword.ai/podcast/en/s/breakdowns/)
+- original episode: Affirm: The Internet’s American Express - [Business Breakdowns, EP.249]
+- published: 2026-10-22 · duration: 1:11:55
+- transcript: Machine transcription · 12666 words · timestamps are exact
+- verification: 5 quotes matched verbatim, 10 numbers traced to the transcript, review score 7/10
+
+**Not just another BNPL app: Affirm vertically integrates credit and payment networks into what is essentially the internet's American Express—with individual transaction underwriting and negative customer acquisition costs.**
+
+why listen: Breaks down Affirm's four revenue streams, funding sources, and how interest-rate risk moves through the system—for anyone who wants to understand the business model itself, not just the BNPL label.
+
+### points
+
+[13:32] (Fraser Christie) **Credit cards issue a total limit; Affirm prices each transaction individually** — Credit cards approve a lump credit line and let customers manage their own spending; Affirm underwrites each transaction separately—rates, economic conditions, and purchase category all feed into a real-time model that adjusts who gets credit, how much, and at what rate. This approach already outperforms traditional consumer lenders like Synchrony despite Affirm's lower Prime customer concentration (about 50% versus Synchrony's 75%). Affirm releases a new transformer-architecture underwriting model every six to seven months, and loss outcomes improve in discrete jumps as more data feeds the system.
+
+[16:35] (Fraser Christie) **Affirm tackles harder loans; Klarna pursues easier ones** — Affirm is more than twice as large as Klarna in the U.S. market, but that difference reflects fundamentally different strategies from the start. Affirm focuses on larger amounts, interest-bearing loans with longer terms—like the 24-to-36 month financing for Peloton equipment. Longer terms mean more default risk: as Max puts it, consumers have 12 chances to choose not to repay. Klarna targets smaller, shorter loans like splitting a $100 pair of jeans across three or four payments. The loss profile reflects this: Affirm's monthly installment loans have roughly 3.5% loss rates while traditional short-term BNPL loans run about 1%.
+
+[24:50] (Fraser Christie) **Negative CAC: Affirm turns profitable at point of sale** — When a consumer registers on a merchant's website and completes an Affirm loan, Affirm acquires the customer while earning profit on that very loan—so customer acquisition cost on that channel is negative. The only exception: equity grants to Shopify and Amazon effectively count as hidden acquisition costs. This advantage compounds because e-commerce is steadily taking share from retail, and BNPL is steadily taking share from e-commerce. Affirm's growth flywheel is therefore more naturally embedded than most competitors'.
+
+[44:31] (Fraser Christie) **From IPO day doubling to 90% crash in just over a year** — Affirm's IPO priced at roughly $49 and closed its first day near $100. After one year, the stock had climbed to around $175. Then it plummeted to $9—a drawdown exceeding 90%. But reviewing that period reveals the damage was concentrated in one quarter: December 2022 saw growth collapse and profit margins crater, looking like catastrophe. Yet by the next quarter, margins had noticeably recovered, and the quarter after that, both growth and margins returned to health. The entire 'air pocket' effect persisted for just one to two quarters.
+
+[54:52] (Fraser Christie) **Affirm spreads funding so widely it depends on no single source** — About half the loans are packaged and sold off the balance sheet; the other half stay on but still draw third-party funding. Sources range across banks, insurers, and institutions; structures span securitized and unsecuritized, on- and off-balance-sheet, static and revolving, fixed and floating rate. Affirm is now applying for a bank charter to tap consumer deposits. The real near-term risk is mechanical: loan rates lock in at origination and never float. If the Fed moves rates up sharply, the newly originated high-rate loans take one to two quarters to make up 50% or 75% of the outstanding portfolio. This lag is where the 2022-2023 crisis actually struck.
+
+[58:03] (Fraser Christie) **Rising rates hurt Affirm's growth, not its loan loss rates** — In credit cards, many customers carry revolving balances at floating rates—a rate shock from 15% to 25% triggers concentrated default waves. Affirm's mechanism is different: loan rates lock in at origination and never float. So the impact surfaces as a growth constraint, not a default crisis. When market rates rise and new loans must price at 25%, some customers who previously qualified at 15% no longer pass underwriting. Rather than originating the loan and hoping for repayment, Affirm simply doesn't originate to them—conserving growth rather than risking losses.
+
+[1:00:04] (Fraser Christie) **Affirm's $100 billion GMV goal is a milestone, not the destination** — U.S. credit card outstanding balances total roughly $1.3 trillion; Affirm carries about $20 billion on- and off-balance-sheet. Capital One alone processes 15 times Affirm's GMV. Management has set a target of $100 billion GMV with annual growth exceeding 25%, covering core U.S. operations, Affirm Card, and international business—but excluding Edge (bank white-label lending) and agentic commerce. If those two segments gain traction, the $100 billion target itself recedes further out.
+
+[1:06:28] (Fraser Christie) **Walmart dropped Affirm, but customers stayed loyal to the brand** — Walmart terminated Affirm's direct integration and swapped in Klarna's One Pay private-label BNPL solution. The economic impact on Affirm proved minimal: Walmart was never a high-margin merchant to begin with. More tellingly, the company disclosed that most customers who had used Affirm at Walmart simply switched to using Affirm Card instead—demonstrating brand loyalty that exceeded most investors' expectations.
+
+### verbatim quotes
+
+[7:17] Fraser Christie: "the problem to be sold has to be hard, valuable and fun"
+
+[31:11] Fraser Christie: "there's no hidden terms. There's no junk or gunk as Max Levshan would describe it. What you see is what you get"
+
+[48:41] Fraser Christie: "Max's salary is less than $40,000 a year. He earns no cash bonus, but he owns a couple of billion dollars worth of stock"
+
+[1:01:09] Fraser Christie: "Capital One processes over 15 times a firm's GMV each year. A firm is large in the sense it processes $50 billion of GMV and is integrated with some of the biggest merchants in America, but there's still a very long way to go"
+
+[1:11:47] Fraser Christie: "The biggest businesses in the world, whether that be Google, Amazon, Apple, Shopify, have absolutely no interest in extending credit to their customers. They outsource it"
+
+### figures
+
+- Affirm's current GMV: ~$50 billion, annual growth exceeding 30% [23:56]
+- Affirm's U.S. BNPL market share: ~50%, and still expanding [29:11]
+- Affirm installment loan loss rate: ~3.5% (versus ~1% for traditional short-term BNPL) [17:39]
+- IPO to present stock price movement: IPO price ~$49; first day close ~$100; one year later ~$175; fell to $9 (90%+ drawdown); currently ~$60-80 [44:31]
+- Current market cap and valuation: ~$25 billion market cap; ~20x adjusted P/E [44:31]
+- RLTC (gross profit): ~$2 billion annualized [44:31]
+- Management's medium-term target: GMV growth from $50 billion to $100 billion; annual growth exceeding 25% [1:00:04]
+- U.S. credit card outstanding balances: ~$1.3 trillion total (versus Affirm's on- and off-balance-sheet loans of ~$20 billion) [1:00:04]
+- P&L impact from 100 basis point rate increase: ~$90 million (versus ~$2.5 billion gross profit this year) [55:57]
+- U.S. Top 250 merchants with Affirm integration: 75 [36:17]
+
+### glossary
+
+- MDR (merchant discount rate): Percentage fee merchants pay Affirm for accepting Affirm as a payment option.
+- RLTC (revenue less transaction costs): Affirm's internal term for gross profit: revenue minus transaction costs.
+- forward flow facility: Funding mechanism where loans are continuously sold to third-party institutions after origination.
+- agentic commerce: Shopping where AI agents autonomously compare prices, place orders, and execute payments.
+
+who it is for: Investors and founders focused on consumer finance, payment networks, or e-commerce infrastructure—anyone who wants to understand Affirm's business model and moat rather than just the BNPL label.
+what to skip: The opening Portrait ad (0:00-2:04) and details about Max's early immigration story (1:29-6:14).
+tags: Consumer credit, Payment networks, Buy now, pay later, Network effects, Interest-rate risk, AI underwriting
 
 ==============================================================================
 

@@ -1,0 +1,191 @@
+{
+ "id": "practicalai-a348fc4c95",
+ "slug": "2026-11-13-practicalai-智能体留下的对话记录太私密-不能直接拿去训练模型",
+ "fingerprint": "535e2d2ed7e605b0",
+ "source_id": "practicalai",
+ "source": "Practical AI",
+ "source_zh": "Practical AI",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "联邦学习、智能体和数据隐私的 AI 技术问题",
+ "tier": 3,
+ "lang": "en",
+ "title_original": "Implementing Federated Learning to enhance Agentic AI",
+ "published": "2026-11-13T17:59:46Z",
+ "duration": 2613,
+ "audio": "https://pscrb.fm/rss/p/dts.podtrac.com/redirect.mp3/media.transistor.fm/58a69653/1bd19fd9.mp3",
+ "link": "https://share.transistor.fm/s/58a69653",
+ "image": "https://img.transistorcdn.com/Z_yiD5zbawT4ibSILHrGMx5UfIVs1jh9nMexNizXXJI/rs:fill:0:0:1/w:1400/h:1400/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS9lZjFl/YWQ4ODZjMjcyNDc1/ZDExZjg2NjdlZGQy/MDBhMS5wbmc.jpg",
+ "youtube_id": "",
+ "video_len": 0,
+ "transcript_url": "https://share.transistor.fm/s/58a69653/transcription.json",
+ "digest": {
+  "title": "智能体留下的对话记录太私密，不能直接拿去训练模型",
+  "dek": "智能体的运行轨迹里藏着用户的提示词、病历、文件内容，这些数据比传统的手机照片更难公开收集，联邦学习成了在不搬动数据的前提下改进智能体的自然选择。",
+  "why": "没有新鲜数字和产品发布，但对想理解智能体数据隐私问题、以及企业为何要自建训练闭环的人，这是一次清晰的科普和场景铺陈。",
+  "points": [
+   {
+    "t": 320,
+    "h": "联邦学习的核心不是加密，是数据不搬家",
+    "body": "Lorenzo 解释联邦学习的基本逻辑：大量有价值的数据散落在手机、笔记本等边缘设备上，但出于隐私和合规原因无法集中收集，比如医疗记录。联邦学习的做法是把训练流程本身搬到数据所在的地方去计算，而不是把数据搬到数据中心。这解决的是「既要满足隐私监管，又要能从数据里学到东西」的矛盾，是整个框架存在的理由。",
+    "spk": "Lorenzo"
+   },
+   {
+    "t": 490,
+    "h": "数据不出门不等于模型没记住隐私",
+    "body": "对于隐私如何真正被保护，Lorenzo 给出了明确的分层回答：第一层保证是数据物理上从未离开采集地，没人能截获或打开看；但第二层问题是训练完的模型本身是否「记住」了不该记住的东西，这才是隐私真正可能破防的地方。差分隐私等技术提供的是统计意义上的保证，而且要视具体场景而定——有些场景很容易应用，有些场景根本用不了，不少行业最终会因为联邦学习不划算而放弃它。",
+    "spk": "Lorenzo"
+   },
+   {
+    "t": 700,
+    "h": "隐私敏感应用该用开源模型做起点",
+    "body": "面对闭源大模型和开源模型谁更值得信任的问题，Lorenzo 坦承大家对闭源模型的构造知之甚少，他本人倾向乐观地相信各家都在努力维护隐私。但如果真要做一个隐私高度敏感的应用，他会选择开源模型作为起点，因为可探测、可修复的手段多得多；闭源模型一旦出问题，几乎没法保证百分之百能修好。",
+    "spk": "Lorenzo"
+   },
+   {
+    "t": 1000,
+    "h": "智能体的轨迹比单次对话私密得多",
+    "body": "相比单一模型的问答，智能体系统的轨迹里不仅包含模型输出，还包含用户的原始提示词，以及 MCP server、RAG 系统等第三方组件为模型补充的上下文。这些轨迹对改进智能体极其有用，因为模型在长流程中常因拼写错误、同词异指、工具实现缺陷而出错，需要足够多的轨迹数据才能训练得更好。但轨迹里混杂着用户诸如膝盖不舒服该不该看医生这类私人问题，这正是联邦学习要介入的地方。",
+    "spk": "Lorenzo"
+   },
+   {
+    "t": 1190,
+    "h": "智能体每多跑一步，就多暴露一层你自己",
+    "body": "谈到智能体与单模型的区别时，Lorenzo 指出关键在于智能体会「采取行动」——读取、抓取、修改、删除。每一步执行都发生在包含用户部分自我的环境里，比如笔记本信息、物理系统、摄像头图像。随着长程运行的轨迹越跑越长，智能体掌握的关于用户的信息量会持续累积，因为它需要吸收更多信息才能产出最终结果，这个过程像一棵树，从主线分叉出子智能体调用，再压缩回主线得到最终答案。",
+    "spk": "Lorenzo"
+   },
+   {
+    "t": 1950,
+    "h": "模型越做越小，但企业越来越想自己攥着训练数据",
+    "body": "Lorenzo 观察到一个趋势：最强大的模型正变得越来越小、越来越便宜、越来越容易部署，但要让模型在具体场景里变得更好，需要深入分析失败模式，而这只有在企业能完全掌控自己的轨迹数据时才能做到。很多企业部署模型后发现难以改进应用，根源就是没有回看轨迹、理解模型在哪里出错的能力。他预测大企业会越来越倾向于自己掌控轨迹数据并自行改进模型，因为这些数据本身就是企业的核心 IP，而外部服务商往往不会完整披露模型得出答案所经过的步骤。",
+    "spk": "Lorenzo"
+   },
+   {
+    "t": 2230,
+    "h": "机器人做手术，没人知道它为什么那样下刀",
+    "body": "Lorenzo 提到自己见过模型指挥机器人真实做手术，这让他开始思考一个更深的问题：我们是否知道模型为什么执行了那个特定步骤，能否确认模型在做出决策前确实评估过所有潜在选项。在手术这类高敏感应用里，人们非常需要掌控具体工作流背后的动机和理由，这正是可解释性（interpretability）这条研究路径变得越来越重要的原因，而这同样需要企业对模型拥有远超标准订阅服务所能提供的数据和分析掌控权。",
+    "spk": "Lorenzo"
+   },
+   {
+    "t": 2380,
+    "h": "没法模拟手术全过程，只能靠多家医院拼数据",
+    "body": "针对手术机器人这类场景，Lorenzo 指出由于目前没有足够好的方式去模拟真实世界（每个病人的血管、身体特征都不同），唯一能扩大试验量、加快模型改进速度的办法就是从尽可能多的医院、尽可能多的数据孤岛中同时获取更多真实数据。他强调以现有的数据采集流程和训练方法而言，联邦学习这类协作学习技术现在就能开箱即用地提供帮助，不需要等待新技术突破。",
+    "spk": "Lorenzo"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 490,
+    "spk": "Lorenzo",
+    "raw": "The first ingredient for protecting your privacy is the fact that your data never moves from where it's collected. So no one can intercept traffic or actually look at your data.",
+    "zh": "保护隐私的第一要素是，你的数据永远不会离开它被采集的地方，所以没有人能截获流量或实际查看你的数据。"
+   },
+   {
+    "t": 700,
+    "spk": "Lorenzo",
+    "raw": "I would say that if I had to develop a privacy heavy application, I would prefer to use an open source model as a starting point, especially because I have more control over it.",
+    "zh": "我想说，如果让我开发一个隐私高度敏感的应用，我更愿意用开源模型作为起点，尤其是因为我对它有更多的控制权。"
+   },
+   {
+    "t": 1040,
+    "spk": "Lorenzo",
+    "raw": "Sometimes I ask my agents about, you know what? I've been doing this thing and my knee now is not is not feeling good. Should I be contacting the doctor or not?",
+    "zh": "有时候我会问我的智能体，你知道吗，我一直在做这件事，我的膝盖现在感觉不太好，我是不是该联系医生？"
+   },
+   {
+    "t": 1190,
+    "spk": "Lorenzo",
+    "raw": "What's the difference between a single model and an agent is that the agents can take actions, right? Like, that's the definition of an agent, like the simplest definitions that you can get.",
+    "zh": "单一模型和智能体的区别在于，智能体可以采取行动，对吧？这就是智能体的定义，是你能得到的最简单的定义。"
+   },
+   {
+    "t": 1950,
+    "spk": "Lorenzo",
+    "raw": "The amount of usage that this model have, these models have, is is even bigger and bigger, right? So the scale of usage is increasing, the scale of the models is decreasing.",
+    "zh": "这些模型的使用量越来越大，对吧？所以使用规模在增加，模型规模却在缩小。"
+   },
+   {
+    "t": 2380,
+    "spk": "Lorenzo",
+    "raw": "Currently, the only way to increase the amount of improvements, like to increase pace of improvement for this model, is getting more and more data, and make sure that you can train on this data in order to improve the model.",
+    "zh": "目前，加快这类模型改进速度的唯一办法，就是获取越来越多的数据，并确保能在这些数据上进行训练来改进模型。"
+   },
+   {
+    "t": 2570,
+    "spk": "Lorenzo",
+    "raw": "Most cases, the best innovations come from, that's my personal opinion, come from two factors. One is the constraints.",
+    "zh": "大多数情况下，最好的创新来自——这是我个人的看法——来自两个因素，其一是约束条件。"
+   }
+  ],
+  "facts": [],
+  "terms": [
+   {
+    "term": "Federated Learning",
+    "zh": "联邦学习",
+    "def": "让训练过程下沉到数据所在设备，数据本身不离开本地的分布式训练方式"
+   },
+   {
+    "term": "differential privacy",
+    "zh": "差分隐私",
+    "def": "一种为训练结果提供统计意义隐私保证的技术手段"
+   },
+   {
+    "term": "interpretability",
+    "zh": "可解释性",
+    "def": "理解模型为何做出某个具体决策或步骤的研究方向"
+   },
+   {
+    "term": "trajectory",
+    "zh": "轨迹",
+    "def": "智能体从提示词到最终输出之间，包含所有工具调用和中间步骤的完整记录"
+   }
+  ],
+  "who": "关注智能体数据隐私、企业数据治理，或考虑用联邦学习训练垂直场景模型（医疗、手术机器人等）的工程师和决策者",
+  "skip": "中段关于万圣节派对用自建模型给服装打分的个人轶事，可跳过不影响主线理解",
+  "tags": [
+   "联邦学习",
+   "智能体",
+   "数据隐私",
+   "可解释性",
+   "开源模型",
+   "企业数据治理"
+  ],
+  "quality": {
+   "transcript_source": "feed",
+   "transcript_detail": "application/json",
+   "words": 7068,
+   "wpm": 162.3,
+   "timed": true,
+   "verified_quotes": 7,
+   "grounded_facts": 0,
+   "points": 8,
+   "pruned": 0,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-11-14T03:01:12Z",
+ "triage": {
+  "score": 7.0,
+  "why": "联邦学习与代理AI的深入访谈。讲者为Flower Labs研究科学家，涉及机制、实现与真实应用",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 8,
+   "faithful": 9,
+   "selection": 8,
+   "concrete": 8,
+   "chinese": 9
+  },
+  "verdict": "上站",
+  "why": "要点是实质判断与机制、忠实准确、论证递进清晰，无歪曲或空话。中文表述准确有力，用词生动。",
+  "worst": "",
+  "model": "haiku",
+  "evidence": "full",
+  "rubric": "33dcd8b985"
+ },
+ "model": "claude-cli:sonnet"
+}

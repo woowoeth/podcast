@@ -1,0 +1,102 @@
+{
+ "slug": "2026-11-13-practicalai-智能体留下的对话记录太私密-不能直接拿去训练模型",
+ "of": "practicalai-a348fc4c95",
+ "source_lang": "en",
+ "title": "Agent conversations are too private to directly use for training",
+ "dek": "Agent execution traces hold user prompts, medical records, file content—data far harder to openly collect than phone photos. Federated learning becomes the natural choice for improving agents without moving data.",
+ "why": "No fresh numbers or product announcements, but for anyone seeking to understand agent data privacy and why enterprises build closed training loops, this offers clear explanation and scenario mapping.",
+ "who": "Engineers and decision-makers tracking agent data privacy, enterprise data governance, or exploring federated learning for domain-specific models—healthcare, surgical robots, and similar.",
+ "skip": "A mid-episode personal anecdote about using a custom model to score Halloween costumes can be skipped without affecting the main narrative.",
+ "tags": [
+  "Federated learning",
+  "Agentic AI",
+  "Data privacy",
+  "Interpretability",
+  "Open-source models",
+  "Enterprise data governance"
+ ],
+ "points": [
+  {
+   "h": "The core of federated learning is not encryption, it's data that doesn't move",
+   "body": "Lorenzo explains federated learning's basic logic: valuable data scattered across edge devices like phones and laptops can't be centrally collected due to privacy and compliance concerns—medical records, for instance. Federated learning moves the training process itself to where data lives, rather than moving data to a data center. This resolves the tension between \"meeting privacy regulations\" and \"learning from the data\"—the reason the framework exists."
+  },
+  {
+   "h": "Data staying local doesn't mean the model forgot secrets",
+   "body": "On how privacy is actually protected, Lorenzo breaks it down in layers: first, data never physically leaves its source—no one can intercept or read it. But the second-layer problem is whether the trained model itself \"memorized\" what it shouldn't. That's where privacy truly breaks down. Differential privacy and similar techniques provide statistical-level guarantees, though applicability varies by scenario—some scenarios suit them, others don't. Many industries will eventually drop federated learning because it's uneconomical."
+  },
+  {
+   "h": "Privacy-sensitive applications should start with open-source models",
+   "body": "Asked whether closed-source or open-source models deserve more trust, Lorenzo admits nobody really knows how closed-source models are constructed, and he personally assumes companies try hard to protect privacy. But for truly privacy-sensitive work, he'd begin with open-source models, since they're far more inspectable and fixable. Once a closed-source model fails, you nearly can't guarantee a complete fix."
+  },
+  {
+   "h": "Agent trajectories are far more sensitive than isolated conversations",
+   "body": "Unlike a single model's question-answer exchange, an agent system's trajectory includes not just model outputs but also the user's raw prompts and context supplied by third-party components like MCP servers and RAG systems. These trajectories are invaluable for improving agents, as models often stumble in long sequences due to typos, word sense ambiguity, or tool flaws—better training needs enough trajectory data. Yet trajectories mix in private matters like whether a sore knee warrants a doctor visit, exactly where federated learning steps in."
+  },
+  {
+   "h": "Each step an agent takes exposes another layer of yourself",
+   "body": "Discussing agent versus single-model differences, Lorenzo emphasizes the key: agents \"take action\"—read, fetch, modify, delete. Each execution happens in an environment containing user pieces—notebook data, physical systems, camera streams. As long-running traces grow, the information an agent holds about the user accumulates steadily, since producing a final result requires absorbing more data. The process branches like a tree from the main path into sub-agent calls, then collapses back to the main line for the final answer."
+  },
+  {
+   "h": "Models grow smaller, but enterprises grip training data tighter",
+   "body": "Lorenzo spots a trend: the strongest models are becoming tinier, cheaper, simpler to deploy, but making models better for specific use cases demands deep failure-mode analysis, only possible when enterprises fully own their trajectory data. Many companies deploy models and find them hard to improve—the root issue is they can't review trajectories and spot where the model misfired. He forecasts large enterprises will increasingly hold their trajectory data and self-improve models, since this data is core IP anyway, and outside vendors typically won't reveal the full path the model took to reach its answer."
+  },
+  {
+   "h": "Robot surgeons cut, and nobody knows their reasoning",
+   "body": "Lorenzo recalls seeing a model guide a robot through actual surgery, triggering a deeper question: do we know why the model chose that particular step, can we confirm it weighed all alternatives first. In high-stakes domains like surgery, people urgently need to understand the reasoning behind workflow choices—exactly why the interpretability research path matters increasingly, and why enterprises need much deeper data control and analysis power than standard subscription services grant."
+  },
+  {
+   "h": "Surgery can't be simulated at scale, so hospitals must pool data",
+   "body": "On surgical robots and similar cases, Lorenzo notes that real-world simulation remains insufficient (each patient has distinct blood vessels and anatomy), so the only way to grow trial volume and speed model improvement is getting more real data from as many hospitals and data silos at once. He stresses that with today's data collection and training processes, collaborative techniques like federated learning already work out-of-box—no need to wait for research breakthroughs."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Federated Learning",
+   "def": "Distributed training that moves the training process to where data lives, keeping data local and off-device."
+  },
+  {
+   "term": "differential privacy",
+   "def": "A technique providing statistical-level privacy guarantees on training results."
+  },
+  {
+   "term": "interpretability",
+   "def": "The ability to understand why a model makes a specific decision or takes a particular step."
+  },
+  {
+   "term": "trajectory",
+   "def": "The complete record from prompt to final output, including all tool calls and intermediate steps."
+  }
+ ],
+ "facts": [],
+ "quotes": [
+  {
+   "text": "The first ingredient for protecting your privacy is the fact that your data never moves from where it's collected. So no one can intercept traffic or actually look at your data.",
+   "translated": false
+  },
+  {
+   "text": "I would say that if I had to develop a privacy heavy application, I would prefer to use an open source model as a starting point, especially because I have more control over it.",
+   "translated": false
+  },
+  {
+   "text": "Sometimes I ask my agents about, you know what? I've been doing this thing and my knee now is not is not feeling good. Should I be contacting the doctor or not?",
+   "translated": false
+  },
+  {
+   "text": "What's the difference between a single model and an agent is that the agents can take actions, right? Like, that's the definition of an agent, like the simplest definitions that you can get.",
+   "translated": false
+  },
+  {
+   "text": "The amount of usage that this model have, these models have, is is even bigger and bigger, right? So the scale of usage is increasing, the scale of the models is decreasing.",
+   "translated": false
+  },
+  {
+   "text": "Currently, the only way to increase the amount of improvements, like to increase pace of improvement for this model, is getting more and more data, and make sure that you can train on this data in order to improve the model.",
+   "translated": false
+  },
+  {
+   "text": "Most cases, the best innovations come from, that's my personal opinion, come from two factors. One is the constraints.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
