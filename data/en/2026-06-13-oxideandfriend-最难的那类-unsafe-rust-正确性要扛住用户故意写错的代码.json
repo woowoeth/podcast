@@ -1,0 +1,98 @@
+{
+ "slug": "2026-06-13-oxideandfriend-最难的那类-unsafe-rust-正确性要扛住用户故意写错的代码",
+ "of": "oxideandfriend-6c32b5eb18",
+ "source_lang": "en",
+ "title": "The hardest unsafe Rust: safety must survive deliberately incorrect user code",
+ "dek": "The unsafe code in IDDQD must guarantee memory safety even against deliberately broken user code: comparison functions can lie, thread-local variables can be corrupted, but Rust's safety rules cannot break.",
+ "why": "For engineers wanting to understand what makes unsafe Rust truly hard and how to verify it with Miri, property-based testing, and LLM-based adversarial testing; the opening chitchat is skippable.",
+ "who": "System engineers writing or reviewing unsafe Rust code, and anyone wanting to learn how Miri, property-based testing, and LLM adversarial testing verify data structure correctness.",
+ "skip": "The opening chitchat about Danish pronunciation and game cheat codes (around 0:00-5:50) doesn't affect the main points and can be skipped.",
+ "tags": [
+  "Rust",
+  "Unsafe",
+  "Memory safety",
+  "Open source",
+  "Formal verification",
+  "LLM testing"
+ ],
+ "points": [
+  {
+   "h": "IDDQD avoids duplicating keys by borrowing them from records",
+   "body": "When Oxide stores CockroachDB records indexed by UUID, Rust's built-in map requires keys and values separated. This forces a choice: either duplicate the key in every value (error-prone) or pass tuples everywhere (awkward). IDDQD lets users store complete records and specify how to extract the key. Early versions used cloning (safe Rust), but composite keys that cannot be cloned forced Rain to develop an unsafe solution: borrowing keys directly from records rather than copying them."
+  },
+  {
+   "h": "Unsafe Rust isn't disabling safety—it's acknowledging compiler limits",
+   "body": "Rain invokes Rice's theorem—equivalent to the halting problem—which proves no algorithm can perfectly determine if arbitrary code has undefined behavior. Rust's compiler chooses stricter than perfect: it rejects some actually-safe programs to guarantee that safe Rust never accepts one with undefined behavior. Unsafe is the escape hatch for code programmers know is safe but compilers cannot verify, transferring responsibility from machine to human."
+  },
+  {
+   "h": "The hardest unsafe: when correctness depends on untrusted user code",
+   "body": "IDDQD's unsafe code depends on user-implemented traits: hash functions, comparisons, others. Users can break the contract—comparison functions can flip results randomly, identical keys can hash to different values each time. This requires an ‘infosec mindset’ rather than a ‘software engineering mindset’: treat user code as a potential attacker. Core principle: user code may be broken and produce bugs, but it cannot break Rust's underlying memory-safety guarantees."
+  },
+  {
+   "h": "Bun's rewrite from Zig to Rust raised the bar for unsafe discipline",
+   "body": "Rain discovered a real bug in IDDQD while watching Bun's translation project: a million lines of Zig translated to Rust in nine days using AI, with the project already having stopped accepting pull requests. He didn't oppose translation itself, but the resulting unsafe code scattered throughout the codebase didn't meet his standard for ‘responsible unsafe Rust’—code that users relying on safe Rust can trust. This motivated him to write out what ‘responsible unsafe Rust’ actually demands."
+  },
+  {
+   "h": "Mutable iterators escape their scope by design, relying on human promises",
+   "body": "Before Rust 1.0, the design decision was: values returned by iterators could escape the for loop and be collected into a vector, potentially creating multiple simultaneous mutable references to map elements. The compiler cannot prove these references are non-overlapping, so iter_mut uses unsafe to ‘guarantee’ the compiler that each yielded value is distinct. If buggy user code tricks IDDQD into storing duplicate indices, that guarantee fails—two mutable references point to the same memory."
+  },
+  {
+   "h": "Detect failed user code, drop to safe linear scan",
+   "body": "Rain found he could write an Ord implementation that mostly returns correct results but strategically returns wrong ones, tricking IDDQD into storing duplicate indices. The fix has two parts: first, use a tiebreaker to ensure no incorrect matches; second, once user code is detected as untrustworthy, remove operations degrade from efficient index lookup to a full linear scan that never calls user code. This trades performance for a guarantee: even broken user code cannot cause undefined behavior."
+  },
+  {
+   "h": "Claude Opus 4.7 and GPT-5.5 found real bugs as adversarial testers",
+   "body": "Rain took pathological test cases and seeded them into Claude Opus 4.7 and GPT-5.5, asking them to break IDDQD's invariants. After roughly twenty minutes of reasoning, GPT-5.5 found a genuinely invariant-breaking method; Claude Opus 4.7 and it each independently discovered one or two other cases. This works well because results are immediately verifiable with Miri—unlike speculative reasoning where correctness is hard to judge."
+  },
+  {
+   "h": "IDDQD sits on the boundary between Miri's two verification models",
+   "body": "Miri is a tool that interprets Rust's intermediate representation (MIR) to detect whether unsafe code violates aliasing rules. It provides two models: stacked borrows, the older, accepted, but overly-strict model; and tree borrows, an attempt to be more permissive. IDDQD must pass both in CI. Rain needed to write specific workarounds just to satisfy stacked borrows—evidence that this library sits precisely on the fault line between where the two models diverge."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Rice's theorem",
+   "def": "Any non-trivial semantic property of programs is undecidable; a generalization of the halting problem."
+  },
+  {
+   "term": "Miri",
+   "def": "A tool that interprets Rust's intermediate representation (MIR) to detect if unsafe code violates aliasing or memory rules."
+  },
+  {
+   "term": "stacked borrows / tree borrows",
+   "def": "Two competing formal models in Miri for determining whether mutable reference aliasing is valid."
+  },
+  {
+   "term": "panic safety",
+   "def": "The property that a data structure remains consistent even if user code panics (unwinds) during execution."
+  }
+ ],
+ "facts": [],
+ "quotes": [
+  {
+   "text": "I am very, very interested in exploring how we can bridge that gap, and and if if, like, you know, if you're if you're listening to this and and you wanna kinda work on some formal method stuff, it would be amazing to formally prove that IDDQD is resilient to arbitrarily pathological user code.",
+   "translated": false
+  },
+  {
+   "text": "it is impossible for any for for the Rust compiler or or really any algorithm that terminates, right, to accept all programs that are, without undefined behavior which is defined by the Rust language and reject all programs with it",
+   "translated": false
+  },
+  {
+   "text": "halting problem that writes this theorem don't say anything about approximations",
+   "translated": false
+  },
+  {
+   "text": "you're kind of in in more of, like, an infosec mindset more than a software engineering mindset where you're like, okay, how can an attacker get in here? How can how can an attacker kind of screw up my assumptions on things?",
+   "translated": false
+  },
+  {
+   "text": "when you have unsafe Rust that depends on user code for correctness, it is extremely important that if the user writes a bug that that doesn't translate into the rules of Rust being broken. It is okay if if you end up being buggy as a result. That is fine. But it should not end up in the rules of rust being broken.",
+   "translated": false
+  },
+  {
+   "text": "we are kind of guaranteed correctness at the cost of some inefficiency when it comes to buggy code",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}

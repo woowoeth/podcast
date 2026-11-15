@@ -1,0 +1,185 @@
+{
+ "id": "oxideandfriend-6c32b5eb18",
+ "slug": "2026-06-13-oxideandfriend-最难的那类-unsafe-rust-正确性要扛住用户故意写错的代码",
+ "fingerprint": "91ac8a983be76165",
+ "source_id": "oxideandfriend",
+ "source": "Oxide and Friends",
+ "source_zh": "Oxide and Friends",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "Rust unsafe 编程与内存安全技术讨论",
+ "tier": 3,
+ "lang": "en",
+ "title_original": "The Hardest Kind of Unsafe Rust",
+ "published": "2026-06-13T14:00:00Z",
+ "duration": 5303,
+ "audio": "https://media.transistor.fm/8e79bc4b/987c4c92.mp3",
+ "link": "https://share.transistor.fm/s/8e79bc4b",
+ "image": "https://img.transistorcdn.com/7045MlqFjojSVIgIVzzE6IORz_MxrHIcYObfRD3N3sg/rs:fill:0:0:1/w:1400/h:1400/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS9mOTFh/MDFmNTkyMTZmODc0/NGIwZmFhNjM3YjQx/ZTZjOC5wbmc.jpg",
+ "youtube_id": "mdcu3dKMjyg",
+ "video_len": 5303,
+ "transcript_url": "https://share.transistor.fm/s/8e79bc4b/transcription.json",
+ "digest": {
+  "title": "最难的那类 unsafe Rust：正确性要扛住用户故意写错的代码",
+  "dek": "IDDQD 这个 Rust 库的 unsafe 代码不仅要自己无 bug，还必须保证——哪怕用户传入的比较函数故意撒谎、线程局部变量乱改结果——内存安全规则也不能被打破。",
+  "why": "适合想理解 Rust unsafe 真正难在哪、以及如何用 Miri/property-based test/LLM 对抗性测试验证正确性的工程师；闲聊部分可跳过。",
+  "points": [
+   {
+    "t": 350,
+    "h": "IDDQD 解决的是「同一个 key 存两份」的老问题",
+    "body": "Oxide 用 CockroachDB 存大量记录，经常要按 UUID 之类的主键索引。Rust 标准 map 要求 key 和 value 分开存，于是团队要么把 key 复制一份存进 value（容易两边不同步），要么到处传元组（很不方便）。IDDQD 让用户直接存一整条记录，由用户定义如何从记录里提取 key，key 从 value 里「借」出来而不是复制。最早的版本靠 clone 实现（仍是安全 Rust），但对不能 clone 的「自然键」（由几个字段组合成的 key）不适用，于是 Rain 花了几周找到不需要 clone、靠 unsafe Rust 实现借用的方案。",
+    "spk": "Rain Paharia"
+   },
+   {
+    "t": 1082,
+    "h": "unsafe 不是关掉安全检查，是编译器能力的边界",
+    "body": "Rain 提到 Rice 定理（等价于停机问题）：不存在一个终止的算法能完美判断任意程序是否有未定义行为。Rust 编译器选择「比完美更严格」——宁可拒绝一些实际上没问题的程序，也要保证安全 Rust 里绝不接受有未定义行为的程序。unsafe 就是给那些「你知道没问题，但编译器证明不了」的中间地带开的逃生舱，责任转移给了人。",
+    "spk": "Rain Paharia"
+   },
+   {
+    "t": 2550,
+    "h": "最难的 unsafe：正确性依赖于你无法信任的用户代码",
+    "body": "IDDQD 的 unsafe 实现依赖用户实现的 hash、比较等 trait，而用户完全可以不守 Rust 规定的契约——比较函数可以随机翻转结果、同一个 key 两次哈希出不同值。Rain 说这时候得用「infosec 心态」而不是「软件工程心态」去想：攻击者（这里是写坏代码的用户）能怎么把你的假设打穿。关键原则是：用户代码写错，结果可以是跑出 bug，但绝不能让 Rust 的底层内存安全规则被打破。",
+    "spk": "Rain Paharia"
+   },
+   {
+    "t": 3520,
+    "h": "发现 bug 的导火索是围观 Bun 从 Zig 重写成 Rust",
+    "body": "Rain 说真正促使他写这篇博客的，是自己在 IDDQD 里发现了一个真 bug，同时又在围观 Bun 项目被九天内用 AI 把一百万行代码从 Zig「转译」成 Rust、且早就停止接 PR。他认为这种转译本身可以接受，但代码里随手写的大量 unsafe 没有达到他认为的「对安全 Rust 用户负责任」的水准，这件事刺激他把「怎样才算负责任地写 unsafe Rust」写清楚。",
+    "spk": "Rain Paharia"
+   },
+   {
+    "t": 3940,
+    "h": "可变迭代器天生违反 Rust 规则，必须靠人工承诺",
+    "body": "Rust 1.0 前定了一个设计：迭代器返回的值可以逃出 for 循环的作用域（比如 collect 成一个 vec），这意味着你可以同时拿到 map 里所有元素的可变引用。编译器没法证明这些引用彼此不重叠，所以实现 iter_mut 必须用 unsafe 手动向编译器「保证」这些值互不相同——而如果底层 map 被用户的错误代码骗得存了重复索引，这个保证就被打破，导致两个可变引用指向同一块内存。",
+    "spk": "Rain Paharia"
+   },
+   {
+    "t": 4310,
+    "h": "修复方案：抓到用户代码出错后，主动降级成低效但安全的扫描",
+    "body": "Rain 发现可以用一个几乎总是对、但在特定点故意返回错误结果的 Ord 实现，诱骗 IDDQD 存入重复索引。修复分两步：一是用 tiebreaker 保证绝不会误匹配到错误的条目；二是一旦检测到用户代码已经不可信，remove 操作就从高效的索引查找降级成全程不调用用户代码的线性扫描——牺牲性能换取「哪怕用户代码坏了也绝不触发未定义行为」的保证。",
+    "spk": "Rain Paharia"
+   },
+   {
+    "t": 5070,
+    "h": "用 Claude Opus 4.7 和 GPT-5.5 当对抗性测试员找到了真 bug",
+    "body": "Rain 把自己写的病态测试当种子，让 LLM 去尝试打破 map 的不变量。GPT-5.5 「嚼了大概二十分钟」之后找到了一种真正打破不变量的方法，Claude Opus 4.7 和它各自独立发现了一两处。这类用法之所以好用，是因为 LLM 找到的东西可以立刻用 Miri 这类解释器验证，不像「vibe coding」那样难以判断真假。",
+    "spk": "Rain Paharia"
+   },
+   {
+    "t": 5410,
+    "h": "Miri 分 stacked borrows 和 tree borrows 两套模型，IDDQD 卡在边界上",
+    "body": "Miri 是解释 Rust 中间表示（MIR）的工具，用来判断某段 unsafe 代码是否违反别名规则。它有两种模型：较老、被公认过严的 stacked borrows，和试图放宽的 tree borrows。IDDQD 两种都要过 CI，但 Rain 不得不为了通过 stacked borrows 专门加了一些变通写法——说明这个库正好踩在两套规则分歧的边界上。",
+    "spk": "Rain Paharia"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 0,
+    "spk": "Rain Paharia",
+    "raw": "I am very, very interested in exploring how we can bridge that gap, and and if if, like, you know, if you're if you're listening to this and and you wanna kinda work on some formal method stuff, it would be amazing to formally prove that IDDQD is resilient to arbitrarily pathological user code.",
+    "zh": "我非常想探索怎么弥合这个差距。如果你在听这期节目，又对形式化方法感兴趣，能正式证明 IDDQD 能抵御任意病态的用户代码，那将是非常棒的结果。"
+   },
+   {
+    "t": 1082,
+    "spk": "Rain Paharia",
+    "raw": "it is impossible for any for for the Rust compiler or or really any algorithm that terminates, right, to accept all programs that are, without undefined behavior which is defined by the Rust language and reject all programs with it",
+    "zh": "不存在任何终止的算法（包括 Rust 编译器）能够既接受所有无未定义行为的程序，又拒绝所有有未定义行为的程序。"
+   },
+   {
+    "t": 1180,
+    "spk": "Rain Paharia",
+    "raw": "halting problem that writes this theorem don't say anything about approximations",
+    "zh": "停机问题和这个定理本身并没有说近似解法行不通。"
+   },
+   {
+    "t": 2630,
+    "spk": "Rain Paharia",
+    "raw": "you're kind of in in more of, like, an infosec mindset more than a software engineering mindset where you're like, okay, how can an attacker get in here? How can how can an attacker kind of screw up my assumptions on things?",
+    "zh": "你更像是带着信息安全的心态而不是软件工程的心态：攻击者能从哪里钻进来？攻击者怎样才能破坏我的假设？"
+   },
+   {
+    "t": 2950,
+    "spk": "Rain Paharia",
+    "raw": "when you have unsafe Rust that depends on user code for correctness, it is extremely important that if the user writes a bug that that doesn't translate into the rules of Rust being broken. It is okay if if you end up being buggy as a result. That is fine. But it should not end up in the rules of rust being broken.",
+    "zh": "当 unsafe Rust 的正确性依赖用户代码时，极其重要的一点是：用户写出 bug，不能导致 Rust 的规则被打破。结果本身出 bug 没关系，但绝不能让 Rust 的规则被破坏。"
+   },
+   {
+    "t": 4420,
+    "spk": "Rain Paharia",
+    "raw": "we are kind of guaranteed correctness at the cost of some inefficiency when it comes to buggy code",
+    "zh": "面对有问题的代码，我们是用一些效率损失换来了正确性的保证。"
+   }
+  ],
+  "facts": [],
+  "terms": [
+   {
+    "term": "Rice's theorem",
+    "zh": "赖斯定理",
+    "def": "程序的任何非平凡语义性质都不可判定，是停机问题的推广"
+   },
+   {
+    "term": "Miri",
+    "zh": "Miri 解释器",
+    "def": "解释 Rust 中间表示（MIR）、用来检测 unsafe 代码是否违反别名/内存规则的工具"
+   },
+   {
+    "term": "stacked borrows / tree borrows",
+    "zh": "栈式借用 / 树式借用",
+    "def": "Miri 用来判定可变引用别名合法性的两套互相竞争的形式化模型"
+   },
+   {
+    "term": "panic safety",
+    "zh": "panic 安全性",
+    "def": "用户代码在被调用过程中发生 panic（异常展开）后，数据结构内部状态仍保持一致、不被破坏"
+   }
+  ],
+  "who": "写或审查 Rust unsafe 代码的系统工程师，以及想了解如何用 Miri、property-based testing、LLM 对抗性测试验证数据结构正确性的人",
+  "skip": "开场约 0:00-5:50 的丹麦语发音和游戏作弊码闲聊可以跳过，不影响理解正文",
+  "tags": [
+   "Rust",
+   "unsafe",
+   "内存安全",
+   "开源",
+   "形式化验证",
+   "LLM辅助测试"
+  ],
+  "quality": {
+   "transcript_source": "feed",
+   "transcript_detail": "application/json",
+   "words": 17330,
+   "wpm": 196.1,
+   "timed": true,
+   "verified_quotes": 6,
+   "grounded_facts": 0,
+   "points": 8,
+   "pruned": 0,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-11-15T03:13:12Z",
+ "triage": {
+  "score": 7.0,
+  "why": "团队一手技术讨论 unsafe Rust 的安全要求与设计细节。介绍指向明确话题和具体参考资源，但无字幕无法验证内容密度",
+  "kind": "机制拆解",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 8.0,
+  "dims": {
+   "density": 8,
+   "faithful": 9,
+   "selection": 7,
+   "concrete": 8,
+   "chinese": 9
+  },
+  "verdict": "上站",
+  "why": "信息密度高，每条要点都是机制或判断而非转述；对原意忠实，数字和术语都准确。不足在于 panic safety 的验证方法（property-based testing with p",
+  "worst": "缺少关于 panic safety 的要点。原文 [1:08:00-1:13:00] 花了 10+ 分钟讨论用户代码在任意时刻可 panic、导致 indeterminate state、如何用 panic countdown 的 prop",
+  "model": "haiku",
+  "evidence": "full",
+  "rubric": "33dcd8b985"
+ },
+ "model": "claude-cli:sonnet"
+}
