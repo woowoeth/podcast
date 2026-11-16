@@ -1,0 +1,222 @@
+{
+ "id": "pragmatic-040db4a9a9",
+ "slug": "2026-11-05-pragmatic-github-的-pr-页面曾要跑超百条-sql-查询才能加载出来",
+ "fingerprint": "a8a1fa2ce6823f1a",
+ "source_id": "pragmatic",
+ "source": "The Pragmatic Engineer",
+ "source_zh": "The Pragmatic Engineer",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "系统讲述大型系统扩展性与技术债问题，属技术架构讨论",
+ "tier": 2,
+ "lang": "en",
+ "title_original": "Scaling Slack and GitHub with Maude Lemaire",
+ "published": "2026-11-05T15:58:00Z",
+ "duration": 4713,
+ "audio": "https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3",
+ "link": "https://newsletter.pragmaticengineer.com/p/scaling-slack-and-github-with-maude",
+ "image": "https://substackcdn.com/feed/podcast/458709/post/223203725/da0de9606eede9db0c844b4dd5f6398d.jpg",
+ "youtube_id": "",
+ "video_len": 0,
+ "transcript_url": "https://api.substack.com/feed/podcast/transcript/223203725/87c0ab02da399167deb4cec538ca8549.vtt",
+ "digest": {
+  "title": "GitHub 的 PR 页面曾要跑超百条 SQL 查询才能加载出来",
+  "dek": "Slack 和 GitHub 的扩容故事都指向同一个真相：早期为了多拿一个客户打的补丁，会在几年后变成拖垮整个系统的技术债，而修复它比当初写下它难十倍。",
+  "why": "两段扩容实战的细节密度极高，从WebSocket压测到Rails抽象层的具体坑，适合想理解大规模系统演进的工程师。",
+  "points": [
+   {
+    "t": 932,
+    "h": "企业版把公司伪装成多个小公司",
+    "body": "Slack早期数据按团队分片，一个客户一个库。企业版上线后，为了复用这套架构，工程团队把IBM这样的大公司内部的市场部、工程部伪装成独立的小团队，再造出一个Enterprise实体把它们粘合起来，让跨团队私信和频道能工作。结果是IBM全公司所有人查私信、查大频道时都打在同一个Enterprise分片上，这个分片很快就扛不住了。",
+    "spk": "Maude"
+   },
+   {
+    "t": 1054,
+    "h": "一次迁移差点删光全公司的Slack消息",
+    "body": "为了合并DM、公开频道、私密频道三张分裂的表，Maude手写了一层薄薄的抽象，做双写、影子读对比数据。验证通过后她在周四的Gather Hour把开关打到全公司，结果发现数据有点不对，于是她像平时清本地环境一样直接删表重跑回填——却忘了这个开关对全Slack都生效。结果全公司的人侧边栏空白了大约半小时，期间几乎没人发现，因为大家都在Gather Hour聚会。",
+    "spk": "Maude"
+   },
+   {
+    "t": 1727,
+    "h": "CEO一句「放假」能引发表情符号雪崩",
+    "body": "CEO在十万人频道发「大家周五放假」,这条消息通过WebSocket广播给所有人，几秒内所有人涌入频道、拉取历史、疯狂点表情庆祝。每一个表情反应也要再广播给所有人，一个表情变成十万条，十个表情就是百万条。Slack的解法不是优化架构，而是产品层面直接把一条消息上的自定义表情种类上限设成23个，多出来的直接不算。",
+    "spk": "Maude"
+   },
+   {
+    "t": 1977,
+    "h": "身兼多职的管理员每条消息收到30遍",
+    "body": "IBM的Slack管理员Jeff同时登录在大约30个工作区里。当时架构是每个工作区各自建一条WebSocket连接，企业级的一条消息如果在这30个工作区里都共享可见，就会毫无去重地给他的客户端推送30次，导致他的客户端经常直接崩溃。这种「事件洪流」只折磨重度用户，而重度用户恰恰是Slack最忠实的拥护者。",
+    "spk": "Maude"
+   },
+   {
+    "t": 2474,
+    "h": "50万真实连接的压测，一次就花15万美元",
+    "body": "为了验证能否扛住一个50万座席的大客户，Slack最初用Kubernetes跑海量headless Chrome实例模拟真实用户点击，但光云端算力成本就高到离谱——每个headless Chrome实例每小时3毛7分钱，一次五小时的测试就要烧掉约15万美元，而且一半时间都在重启崩溃的Pod。团队后来放弃高保真方案，改用轻量级Go进程建立真实WebSocket连接并回放录制好的API请求序列，牺牲一些保真度换取可重复、低成本的压测。",
+    "spk": "Maude"
+   },
+   {
+    "t": 3166,
+    "h": "只有16个分片撑起GitHub全部PR和Issue",
+    "body": "GitHub用Vitess给MySQL做动态分片，但Maude加入时发现所有pull request和issue数据只分布在16个分片上，远远少于她在Slack习惯的「每个分片键配几千个分片」。原因是系统里已经存在大量「scatter查询」——没带主键、必须扫遍每个分片才能返回结果的查询——分片越多这类查询反而越慢，这形成了一个死结：想扩容必须先清理scatter查询，但清理比想象中难得多。",
+    "spk": "Maude"
+   },
+   {
+    "t": 3471,
+    "h": "五行代码，查不出一句SQL在哪里",
+    "body": "在用ActiveRecord重写GitHub的Rails代码时，Maude和同事想揪出一个调用stars表的查询源头，结果定位到一个只有五行的函数，却完全看不到任何SQL语句的影子。她问同事「SQL在哪」,对方回答「Mo,这就是那个价值百万美元的问题」。这正是她对比Slack所用的Flamework式「SQL直接写在代码里」和GitHub ActiveRecord式「抽象到看不见SQL」两种风格后，体会最深的落差。",
+    "spk": "Maude"
+   },
+   {
+    "t": 3594,
+    "h": "GitHub页面上的计数器几乎全是实时算出来的",
+    "body": "ActiveRecord只有在查询条件完全一致时才会命中缓存，稍微换个条件就重新查库。Maude发现GitHub一个代码库主页要跑超过100条MySQL查询、横跨至少三个MySQL集群，而且几乎所有页面上显示的计数(open PR数、issue数)都是实时计算、完全没有缓存的。她的判断是这类计数超过某个阈值后根本不需要精确——显示「99+」就够了，没必要为了一个没人在乎的数字去跑一次昂贵的实时统计。",
+    "spk": "Maude"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 1483,
+    "spk": "Maude",
+    "raw": "People had completely blank sidebars for about half an hour.",
+    "zh": "所有人的侧边栏空白了大约半小时。"
+   },
+   {
+    "t": 1727,
+    "spk": "Maude",
+    "raw": "So one custom emoji turns into 100,000 custom emojis being sent to everyone who's connected.",
+    "zh": "于是一个自定义表情就变成了发送给所有在线用户的十万个自定义表情。"
+   },
+   {
+    "t": 2534,
+    "spk": "Maude",
+    "raw": "Yeah, we're talking about $150,000 for that one test.",
+    "zh": "没错，那一次测试大概花了十五万美元。"
+   },
+   {
+    "t": 3229,
+    "spk": "Maude",
+    "raw": "So those are queries that are coming in where you do not have the primary key in them.",
+    "zh": "这些查询的问题在于，发过来的请求里根本不带主键。"
+   },
+   {
+    "t": 3471,
+    "spk": "Maude",
+    "raw": "And she's like, Mo, that's the million-dollar question.",
+    "zh": "她说，Mo,这就是那个价值百万美元的问题。"
+   },
+   {
+    "t": 3656,
+    "spk": "Maude",
+    "raw": "Almost every single count you see on a GitHub page is live calculated. None of those are cached.",
+    "zh": "你在GitHub页面上看到的几乎每一个计数都是实时计算出来的，没有一个是被缓存的。"
+   },
+   {
+    "t": 4602,
+    "spk": "Maude",
+    "raw": "But now we're at this point where like the spaghetti has like a life of its own and it like actively wants to spill out of the plate.",
+    "zh": "但现在我们到了这样一个地步：意大利面代码已经有了自己的生命，它会主动想从盘子里溢出来。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "Slack一条消息自定义表情反应上限",
+    "v": "23个",
+    "t": 1792
+   },
+   {
+    "k": "headless Chrome压测单实例成本",
+    "v": "每5小时37美分/实例",
+    "t": 2474
+   },
+   {
+    "k": "GitHub文件消歧页加载所需MySQL查询数",
+    "v": "超过100条，横跨至少3个MySQL集群",
+    "t": 3594
+   },
+   {
+    "k": "GitHub全部PR/Issue对应的Vitess分片数",
+    "v": "16个",
+    "t": 3166
+   },
+   {
+    "k": "IBM管理员当时同时登录的工作区数上限",
+    "v": "约30个",
+    "t": 1977
+   }
+  ],
+  "terms": [
+   {
+    "term": "Thundering herd",
+    "zh": "惊群效应",
+    "def": "大量客户端在同一瞬间对同一资源发起请求导致系统过载"
+   },
+   {
+    "term": "Event flood",
+    "zh": "事件洪流",
+    "def": "客户端被WebSocket推来的大量事件瞬间淹没，区别于惊群效应"
+   },
+   {
+    "term": "Scatter query",
+    "zh": "扫全分片查询",
+    "def": "不带分片键/主键的查询，必须命中每一个数据库分片才能返回结果"
+   },
+   {
+    "term": "Vitess",
+    "zh": "Vitess",
+    "def": "MySQL分片中间件，支持比单库更灵活的动态水平分片"
+   },
+   {
+    "term": "Shadow read",
+    "zh": "影子读",
+    "def": "新旧系统并行读取并比对结果差异，但只采用旧结果，用于验证迁移正确性"
+   }
+  ],
+  "who": "做数据库分片/迁移、负责压测体系、或在Rails/ActiveRecord这类遗留框架里挣扎的后端与平台工程师。",
+  "skip": "7:32-9:17 关于Rent the Runway和HipChat数据泄露的个人背景部分可以跳过。",
+  "tags": [
+   "数据库分片",
+   "负载测试",
+   "Slack",
+   "GitHub",
+   "Rails",
+   "系统扩容"
+  ],
+  "quality": {
+   "transcript_source": "feed",
+   "transcript_detail": "text/vtt",
+   "words": 14008,
+   "wpm": 178.3,
+   "timed": true,
+   "verified_quotes": 7,
+   "grounded_facts": 5,
+   "points": 8,
+   "pruned": 1,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-11-16T04:43:17Z",
+ "triage": {
+  "score": 8.0,
+  "why": "一手访谈，Slack和GitHub principal engineer讲8年扩展工程实战。涵盖负载测试、数据库扩展等具",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 7.0,
+  "dims": {
+   "density": 8,
+   "faithful": 6,
+   "selection": 8,
+   "concrete": 8,
+   "chinese": 8
+  },
+  "verdict": "上站",
+  "why": "信息密度足够、选择合理、具体性好，但 [41:14] 要点关于压测成本的表述有误。成稿说「每小时3毛7分钱」，原文是「per five-hour tranche」，应为「5小时0.",
+  "worst": "[41:14] 要点：「每个headless Chrome实例每小时3毛7分钱」应改为「每个实例每5小时需要0.37美元」。虽然总成本15万元是对的，但这个数字改变了成本量级的理解。注意成稿数字部分「每5小时37美分」其实是对的，说明这里是",
+  "model": "haiku",
+  "evidence": "full",
+  "rubric": "33dcd8b985"
+ },
+ "model": "claude-cli:sonnet"
+}

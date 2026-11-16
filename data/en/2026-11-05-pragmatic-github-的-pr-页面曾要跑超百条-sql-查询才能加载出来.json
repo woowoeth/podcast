@@ -1,0 +1,127 @@
+{
+ "slug": "2026-11-05-pragmatic-github-的-pr-页面曾要跑超百条-sql-查询才能加载出来",
+ "of": "pragmatic-040db4a9a9",
+ "source_lang": "en",
+ "title": "GitHub's PR pages once needed over 100 SQL queries to load",
+ "dek": "Early patches to win a single customer become technical debt that tanks the system years later, and fixing it is 10x harder than creating it.",
+ "why": "Two deep-dive scaling stories, from WebSocket load testing to Rails abstraction layer pitfalls—ideal for understanding large systems evolution.",
+ "who": "Backend and platform engineers doing database sharding/migration, running load test systems, or struggling with Rails/ActiveRecord in legacy frameworks.",
+ "skip": "7:32-9:17, personal background about Rent the Runway and HipChat data breach, can be skipped.",
+ "tags": [
+  "Database Sharding",
+  "Load Testing",
+  "Slack",
+  "GitHub",
+  "Rails",
+  "System Scaling"
+ ],
+ "points": [
+  {
+   "h": "Enterprise edition disguises giant customers as dozens of small teams",
+   "body": "Slack's early design sharded data by team; one database per customer. When Enterprise edition launched, to reuse this architecture, the team disguised IBM's separate divisions (marketing, engineering) as independent small teams, created an Enterprise entity to bind them, enabling cross-team DMs and channels. Result: all of IBM's employees querying DMs and large channels hit the same Enterprise shard, which quickly buckled."
+  },
+  {
+   "h": "One migration nearly deleted all company Slack messages",
+   "body": "To merge three fragmented tables (DMs, public channels, private channels), Maude hand-wrote a thin abstraction layer with dual writes and shadow reads to validate data. After validation passed, she flipped the switch company-wide during all-hands. She discovered data inconsistencies, then deleted the table to re-run backfill—like clearing her local environment—forgetting the switch was company-wide. The sidebar went blank for about 30 minutes; almost no one noticed because everyone was at all-hands."
+  },
+  {
+   "h": "CEO announcing Friday off triggers a cascade of emoji reactions",
+   "body": "CEO posts to the 100k-person channel that everyone gets Friday off. The message broadcasts via WebSocket to all users; in seconds, everyone floods in, pulls history, reacts frantically with emojis. Each emoji reaction broadcasts to everyone else. One message becomes 100k emoji events; 10 emoji types become a million broadcast events. Slack's solution was not architectural—it capped custom emoji reactions at 23 per message. Additional reactions simply don't count."
+  },
+  {
+   "h": "Multi-role admin receives same message 30 times every time",
+   "body": "IBM Slack admin Jeff was simultaneously logged into roughly 30 workspaces. The architecture created one WebSocket connection per workspace; if an Enterprise-level message was visible in all 30 workspaces, his client received 30 identical pushes with no deduplication, often crashing it. This \"event flood\" only hit power users—exactly Slack's most loyal advocates."
+  },
+  {
+   "h": "A 500k-connection load test costs $150k just to run once",
+   "body": "To validate a 500k-seat customer, Slack initially used Kubernetes to run massive headless Chrome instances simulating real user clicks. Each instance cost roughly $0.37 per 5-hour test; running hundreds of thousands of instances for a complete test burned roughly $150k, with half the time spent restarting crashed Pods. The team abandoned high-fidelity simulation for lightweight Go processes establishing real WebSocket connections and replaying pre-recorded API request sequences, sacrificing some realism for repeatable, low-cost load testing."
+  },
+  {
+   "h": "Only 16 database shards hold all of GitHub's pull requests and issues",
+   "body": "GitHub uses Vitess for MySQL dynamic sharding, but when Maude arrived, all pull request and issue data lived on just 16 shards—far fewer than the thousands-of-shards-per-shard-key pattern she knew from Slack. The culprit was existing scatter queries—lookups without shard keys that must scan every shard to return results. More shards meant slower scatter queries, creating a death lock: to scale, first eliminate scatter queries, but cleanup is far harder than expected."
+  },
+  {
+   "h": "Five lines of code hide a SQL query worth millions in lost visibility",
+   "body": "Rewriting GitHub's Rails code, Maude and colleagues hunted the source of a query on the stars table. They traced it to a five-line function with no visible SQL statement anywhere. She asked her colleague, \"Where is the SQL?\" The answer: \"Mo, that's the million-dollar question.\" She realized the core trade-off: Slack's Flamework style writes SQL inline; GitHub's ActiveRecord abstracts it away. One is transparent; the other is opaque."
+  },
+  {
+   "h": "Almost every count on GitHub pages is recalculated in real time",
+   "body": "ActiveRecord caches only when query conditions match exactly; any variation requires a fresh database hit. Maude found that GitHub's repository homepage ran over 100 MySQL queries across at least three MySQL clusters, and nearly every displayed count (open PRs, issue count) was live-calculated with no caching. Her take: counts beyond a threshold don't need precision. Display \"99+\" instead of burning an expensive live query for a number no one cares about."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Thundering herd",
+   "def": "Massive simultaneous client requests for the same resource, overwhelming the system instantly."
+  },
+  {
+   "term": "Event flood",
+   "def": "Client overwhelmed by WebSocket-pushed events in a burst; distinct from thundering herd."
+  },
+  {
+   "term": "Scatter query",
+   "def": "A query without a shard key or primary key, forced to scan every database shard to return results."
+  },
+  {
+   "term": "Vitess",
+   "def": "MySQL sharding middleware enabling more flexible dynamic horizontal partitioning than a single database."
+  },
+  {
+   "term": "Shadow read",
+   "def": "New and old system read in parallel with results compared but only the old result used, validating migration correctness."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Slack message custom emoji reaction limit",
+   "v": "23"
+  },
+  {
+   "k": "Headless Chrome load test per-instance cost",
+   "v": "$0.37 per 5 hours"
+  },
+  {
+   "k": "MySQL queries for GitHub page load",
+   "v": "Over 100 across at least 3 clusters"
+  },
+  {
+   "k": "Vitess shards for GitHub PR and issue data",
+   "v": "16"
+  },
+  {
+   "k": "IBM admin simultaneous workspace logins",
+   "v": "About 30"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "People had completely blank sidebars for about half an hour.",
+   "translated": false
+  },
+  {
+   "text": "So one custom emoji turns into 100,000 custom emojis being sent to everyone who's connected.",
+   "translated": false
+  },
+  {
+   "text": "Yeah, we're talking about $150,000 for that one test.",
+   "translated": false
+  },
+  {
+   "text": "So those are queries that are coming in where you do not have the primary key in them.",
+   "translated": false
+  },
+  {
+   "text": "And she's like, Mo, that's the million-dollar question.",
+   "translated": false
+  },
+  {
+   "text": "Almost every single count you see on a GitHub page is live calculated. None of those are cached.",
+   "translated": false
+  },
+  {
+   "text": "But now we're at this point where like the spaghetti has like a life of its own and it like actively wants to spill out of the plate.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}

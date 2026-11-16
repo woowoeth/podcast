@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitHub 的 PR 頁面曾要跑超百條 SQL 查詢才能加載出來 — The Pragmatic Engineer · 原聲</title>
+<meta name="description" content="Slack 和 GitHub 的擴容故事都指向同一個真相：早期為了多拿一個客戶打的補丁，會在幾年後變成拖垮整個系統的技術債，而修復它比當初寫下它難十倍。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/tw/p/2026-11-05-pragmatic-github-的-pr-页面曾要跑超百条-sql-查询才能加载出来/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原聲">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:title" content="GitHub 的 PR 頁面曾要跑超百條 SQL 查詢才能加載出來 — The Pragmatic Engineer · 原聲">
+<meta property="og:description" content="Slack 和 GitHub 的擴容故事都指向同一個真相：早期為了多拿一個客戶打的補丁，會在幾年後變成拖垮整個系統的技術債，而修復它比當初寫下它難十倍。">
+<meta property="og:url" content="https://ourword.ai/podcast/tw/p/2026-11-05-pragmatic-github-的-pr-页面曾要跑超百条-sql-查询才能加载出来/">
+<meta property="og:image" content="https://ourword.ai/podcast/assets/cover/7865d13239a64450.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-11-05T15:58:00Z">
+<meta property="article:modified_time" content="2026-11-16T04:43:17Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="GitHub 的 PR 頁面曾要跑超百條 SQL 查詢才能加載出來 — The Pragmatic Engineer · 原聲">
+<meta name="twitter:description" content="Slack 和 GitHub 的擴容故事都指向同一個真相：早期為了多拿一個客戶打的補丁，會在幾年後變成拖垮整個系統的技術債，而修復它比當初寫下它難十倍。">
+<meta name="twitter:image" content="https://ourword.ai/podcast/assets/cover/7865d13239a64450.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/tw/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/tw/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原聲" href="/podcast/tw/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-11-05-pragmatic-github-的-pr-页面曾要跑超百条-sql-查询才能加载出来/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-11-05-pragmatic-github-的-pr-页面曾要跑超百条-sql-查询才能加载出来/">
+<link rel="alternate" hreflang="en" href="https://ourword.ai/podcast/en/p/2026-11-05-pragmatic-github-的-pr-页面曾要跑超百条-sql-查询才能加载出来/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-11-05-pragmatic-github-的-pr-页面曾要跑超百条-sql-查询才能加载出来/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=6982a60148">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/tw/p/2026-11-05-pragmatic-github-的-pr-页面曾要跑超百条-sql-查询才能加载出来/#episode", "name": "GitHub 的 PR 頁面曾要跑超百條 SQL 查詢才能加載出來", "headline": "GitHub 的 PR 頁面曾要跑超百條 SQL 查詢才能加載出來", "description": "Slack 和 GitHub 的擴容故事都指向同一個真相：早期為了多拿一個客戶打的補丁，會在幾年後變成拖垮整個系統的技術債，而修復它比當初寫下它難十倍。", "abstract": "Slack 和 GitHub 的擴容故事都指向同一個真相：早期為了多拿一個客戶打的補丁，會在幾年後變成拖垮整個系統的技術債，而修復它比當初寫下它難十倍。", "datePublished": "2026-11-05T15:58:00Z", "dateModified": "2026-11-16T04:43:17Z", "url": "https://ourword.ai/podcast/tw/p/2026-11-05-pragmatic-github-的-pr-页面曾要跑超百条-sql-查询才能加载出来/", "timeRequired": "PT78M", "partOfSeries": {"@type": "PodcastSeries", "name": "The Pragmatic Engineer", "url": "https://ourword.ai/podcast/tw/s/pragmatic/"}, "inLanguage": "zh-TW", "isBasedOn": "https://newsletter.pragmaticengineer.com/p/scaling-slack-and-github-with-maude", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "數據庫分片, 負載測試, Slack, GitHub, Rails, 系統擴容, Thundering herd, Event flood, Scatter query, Vitess, Shadow read, Slack一條消息自定義表情反應上限, headless Chrome壓測單實例成本, GitHub文件消歧頁加載所需MySQL查詢數, GitHub全部PR/Issue對應的Vitess分片數, IBM管理員當時同時登錄的工作區數上限", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}, "associatedMedia": {"@type": "AudioObject", "contentUrl": "https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3"}}, {"@type": "Article", "@id": "https://ourword.ai/podcast/tw/p/2026-11-05-pragmatic-github-的-pr-页面曾要跑超百条-sql-查询才能加载出来/#deepread", "headline": "GitHub 的 PR 頁面曾要跑超百條 SQL 查詢才能加載出來", "description": "Slack 和 GitHub 的擴容故事都指向同一個真相：早期為了多拿一個客戶打的補丁，會在幾年後變成拖垮整個系統的技術債，而修復它比當初寫下它難十倍。", "articleBody": "Slack 和 GitHub 的擴容故事都指向同一個真相：早期為了多拿一個客戶打的補丁，會在幾年後變成拖垮整個系統的技術債，而修復它比當初寫下它難十倍。\n[15:32] 企業版把公司偽裝成多個小公司。Slack早期數據按團隊分片，一個客戶一個庫。企業版上線後，為了複用這套架構，工程團隊把IBM這樣的大公司內部的市場部、工程部偽裝成獨立的小團隊，再造出一個Enterprise實體把它們粘合起來，讓跨團隊私信和頻道能工作。結果是IBM全公司所有人查私信、查大頻道時都打在同一個Enterprise分片上，這個分片很快就扛不住了。\n[17:34] 一次遷移差點刪光全公司的Slack消息。為了合併DM、公開頻道、私密頻道三張分裂的表，Maude手寫了一層薄薄的抽象，做雙寫、影子讀對比數據。驗證通過後她在週四的Gather Hour把開關打到全公司，結果發現數據有點不對，於是她像平時清本地環境一樣直接刪表重跑回填——卻忘了這個開關對全Slack都生效。結果全公司的人側邊欄空白了大約半小時，期間幾乎沒人發現，因為大家都在Gather Hour聚會。\n[28:47] CEO一句「放假」能引發表情符號雪崩。CEO在十萬人頻道發「大家週五放假」,這條消息通過WebSocket廣播給所有人，幾秒內所有人湧入頻道、拉取歷史、瘋狂點表情慶祝。每一個表情反應也要再廣播給所有人，一個表情變成十萬條，十個表情就是百萬條。Slack的解法不是優化架構，而是產品層面直接把一條消息上的自定義表情種類上限設成23個，多出來的直接不算。\n[32:57] 身兼多職的管理員每條消息收到30遍。IBM的Slack管理員Jeff同時登錄在大約30個工作區裡。當時架構是每個工作區各自建一條WebSocket連接，企業級的一條消息如果在這30個工作區裡都共享可見，就會毫無去重地給他的客戶端推送30次，導致他的客戶端經常直接崩潰。這種「事件洪流」只折磨重度用戶，而重度用戶恰恰是Slack最忠實的擁護者。\n[41:14] 50萬真實連接的壓測，一次就花15萬美元。為了驗證能否扛住一個50萬座席的大客戶，Slack最初用Kubernetes跑海量headless Chrome實例模擬真實用戶點擊，但光雲端算力成本就高到離譜——每個headless Chrome實例每小時3毛7分錢，一次五小時的測試就要燒掉約15萬美元，而且一半時間都在重啟崩潰的Pod。團隊後來放棄高保真方案，改用輕量級Go進程建立真實WebSocket連接並回放錄製好的API請求序列，犧牲一些保真度換取可重複、低成本的壓測。\n[52:46] 只有16個分片撐起GitHub全部PR和Issue。GitHub用Vitess給MySQL做動態分片，但Maude加入時發現所有pull request和issue數據只分布在16個分片上，遠遠少於她在Slack習慣的「每個分片鍵配幾千個分片」。原因是系統裡已經存在大量「scatter查詢」——沒帶主鍵、必須掃遍每個分片才能返回結果的查詢——分片越多這類查詢反而越慢，這形成了一個死結：想擴容必須先清理scatter查詢，但清理比想像中難得多。\n[57:51] 五行代碼，查不出一句SQL在哪裡。在用ActiveRecord重寫GitHub的Rails代碼時，Maude和同事想揪出一個調用stars表的查詢源頭，結果定位到一個只有五行的函數，卻完全看不到任何SQL語句的影子。她問同事「SQL在哪」,對方回答「Mo,這就是那個價值百萬美元的問題」。這正是她對比Slack所用的Flamework式「SQL直接寫在代碼裡」和GitHub ActiveRecord式「抽象到看不見SQL」兩種風格後，體會最深的落差。\n[59:54] GitHub頁面上的計數器幾乎全是實時算出來的。ActiveRecord只有在查詢條件完全一致時才會命中緩存，稍微換個條件就重新查庫。Maude發現GitHub一個代碼庫主頁要跑超過100條MySQL查詢、橫跨至少三個MySQL集群，而且幾乎所有頁面上顯示的計數(open PR數、issue數)都是實時計算、完全沒有緩存的。她的判斷是這類計數超過某個閾值後根本不需要精確——顯示「99+」就夠了，沒必要為了一個沒人在乎的數字去跑一次昂貴的實時統計。\n[24:43] Maude：「所有人的側邊欄空白了大約半小時。」\n[28:47] Maude：「於是一個自定義表情就變成了發送給所有在線用戶的十萬個自定義表情。」\n[42:14] Maude：「沒錯，那一次測試大概花了十五萬美元。」\n[53:49] Maude：「這些查詢的問題在於，發過來的請求里根本不帶主鍵。」\n[57:51] Maude：「她說，Mo,這就是那個價值百萬美元的問題。」\n[1:00:56] Maude：「你在GitHub頁面上看到的幾乎每一個計數都是實時計算出來的，沒有一個是被緩存的。」\n[1:16:42] Maude：「但現在我們到了這樣一個地步：意大利麵代碼已經有了自己的生命，它會主動想從盤子裡溢出來。」\n[29:52] Slack一條消息自定義表情反應上限：23個\n[41:14] headless Chrome壓測單實例成本：每5小時37美分/實例\n[59:54] GitHub文件消歧頁加載所需MySQL查詢數：超過100條，橫跨至少3個MySQL集群\n[52:46] GitHub全部PR/Issue對應的Vitess分片數：16個\n[32:57] IBM管理員當時同時登錄的工作區數上限：約30個", "wordCount": 1506, "inLanguage": "zh-TW", "datePublished": "2026-11-05T15:58:00Z", "dateModified": "2026-11-16T04:43:17Z", "url": "https://ourword.ai/podcast/tw/p/2026-11-05-pragmatic-github-的-pr-页面曾要跑超百条-sql-查询才能加载出来/", "about": {"@id": "https://ourword.ai/podcast/tw/p/2026-11-05-pragmatic-github-的-pr-页面曾要跑超百条-sql-查询才能加载出来/#episode"}, "isBasedOn": "https://newsletter.pragmaticengineer.com/p/scaling-slack-and-github-with-maude", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "isAccessibleForFree": true}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首頁", "item": "https://ourword.ai/podcast/tw/"}, {"@type": "ListItem", "position": 2, "name": "The Pragmatic Engineer", "item": "https://ourword.ai/podcast/tw/s/pragmatic/"}, {"@type": "ListItem", "position": 3, "name": "GitHub 的 PR 頁面曾要跑超百條 SQL 查詢才能加載出來"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/tw/"><span class="wordmark">原聲<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<button class="pill ghost" id="lang-toggle" type="button" data-en="1" data-sc="繁體" data-tw="簡體"></button>
+<button class="icon-btn" data-theme-toggle aria-label="切換深淺色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，來原聲聽播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/tw/">首頁</a><span class="sep">/</span>
+<a href="/podcast/tw/c/ai/">AI / 技術</a><span class="sep">/</span><a href="/podcast/tw/s/pragmatic/">The Pragmatic Engineer</a>
+<span class="sep">/</span><span>2026-11-05</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">The Pragmatic Engineer</span>
+<time class="date" datetime="2026-11-05T15:58:00Z">2026-11-05</time>
+<button class="share-btn" type="button" data-share data-share-title="GitHub 的 PR 頁面曾要跑超百條 SQL 查詢才能加載出來" data-share-url="https://ourword.ai/podcast/tw/e/pragmatic-040db4a9a9/" data-share-text="GitHub 的 PR 頁面曾要跑超百條 SQL 查詢才能加載出來&#10;The Pragmatic Engineer · 78 分鐘 · 原聲深讀&#10;&#10;Slack 和 GitHub 的擴容故事都指向同一個真相：早期為了多拿一個客戶打的補丁，會在幾年後變成拖垮整個系統的技術債，而修復它比當初寫下它難十倍。&#10;&#10;https://ourword.ai/podcast/tw/e/pragmatic-040db4a9a9/" aria-label="複製分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>GitHub 的 PR 頁面曾要跑超百條 SQL 查詢才能加載出來</h1>
+<p class="dek-lead">Slack 和 GitHub 的擴容故事都指向同一個真相：早期為了多拿一個客戶打的補丁，會在幾年後變成拖垮整個系統的技術債，而修復它比當初寫下它難十倍。</p>
+<div class="ep-meta"><span class="tag">數據庫分片</span><span class="tag">負載測試</span><span class="tag">Slack</span><span class="tag">GitHub</span><span class="tag">Rails</span><span class="tag">系統擴容</span></div>
+</div>
+<div class="player" data-player-box>
+  <div class="strip" data-audio-strip>
+    <p class="afallback">原視頻在 YouTube 上放不出來，用音頻聽：</p>
+    <audio data-player controls preload="none" src="https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3"></audio>
+    <div class="aui" data-audio-ui data-dur="4713" hidden>
+      <button class="aplay" type="button" aria-label="播放"></button>
+      <div class="abar" role="slider" tabindex="0" aria-label="播放進度"
+           aria-valuemin="0" aria-valuemax="100"><div class="afill"></div></div>
+      <span class="atime"><span class="acur">0:00</span><span class="asep">/</span><span class="atot">--:--</span></span>
+    </div>
+  </div>
+</div>
+
+<section class="section"><div class="why">兩段擴容實戰的細節密度極高，從WebSocket壓測到Rails抽象層的具體坑，適合想理解大規模系統演進的工程師。</div></section>
+
+<section class="section"><h2>核心論點 · 點時間戳可跳到原聲</h2><div class="point" id="p0"><a class="ts" data-t="932" href="https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3#t=932" target="_blank" rel="noopener">15:32</a><div><h4>企業版把公司偽裝成多個小公司</h4>
+<p class="body">Slack早期數據按團隊分片，一個客戶一個庫。企業版上線後，為了複用這套架構，工程團隊把IBM這樣的大公司內部的市場部、工程部偽裝成獨立的小團隊，再造出一個Enterprise實體把它們粘合起來，讓跨團隊私信和頻道能工作。結果是IBM全公司所有人查私信、查大頻道時都打在同一個Enterprise分片上，這個分片很快就扛不住了。</p>
+<span class="spk">— Maude</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="1054" href="https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3#t=1054" target="_blank" rel="noopener">17:34</a><div><h4>一次遷移差點刪光全公司的Slack消息</h4>
+<p class="body">為了合併DM、公開頻道、私密頻道三張分裂的表，Maude手寫了一層薄薄的抽象，做雙寫、影子讀對比數據。驗證通過後她在週四的Gather Hour把開關打到全公司，結果發現數據有點不對，於是她像平時清本地環境一樣直接刪表重跑回填——卻忘了這個開關對全Slack都生效。結果全公司的人側邊欄空白了大約半小時，期間幾乎沒人發現，因為大家都在Gather Hour聚會。</p>
+<span class="spk">— Maude</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="1727" href="https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3#t=1727" target="_blank" rel="noopener">28:47</a><div><h4>CEO一句「放假」能引發表情符號雪崩</h4>
+<p class="body">CEO在十萬人頻道發「大家週五放假」,這條消息通過WebSocket廣播給所有人，幾秒內所有人湧入頻道、拉取歷史、瘋狂點表情慶祝。每一個表情反應也要再廣播給所有人，一個表情變成十萬條，十個表情就是百萬條。Slack的解法不是優化架構，而是產品層面直接把一條消息上的自定義表情種類上限設成23個，多出來的直接不算。</p>
+<span class="spk">— Maude</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="1977" href="https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3#t=1977" target="_blank" rel="noopener">32:57</a><div><h4>身兼多職的管理員每條消息收到30遍</h4>
+<p class="body">IBM的Slack管理員Jeff同時登錄在大約30個工作區裡。當時架構是每個工作區各自建一條WebSocket連接，企業級的一條消息如果在這30個工作區裡都共享可見，就會毫無去重地給他的客戶端推送30次，導致他的客戶端經常直接崩潰。這種「事件洪流」只折磨重度用戶，而重度用戶恰恰是Slack最忠實的擁護者。</p>
+<span class="spk">— Maude</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="2474" href="https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3#t=2474" target="_blank" rel="noopener">41:14</a><div><h4>50萬真實連接的壓測，一次就花15萬美元</h4>
+<p class="body">為了驗證能否扛住一個50萬座席的大客戶，Slack最初用Kubernetes跑海量headless Chrome實例模擬真實用戶點擊，但光雲端算力成本就高到離譜——每個headless Chrome實例每小時3毛7分錢，一次五小時的測試就要燒掉約15萬美元，而且一半時間都在重啟崩潰的Pod。團隊後來放棄高保真方案，改用輕量級Go進程建立真實WebSocket連接並回放錄製好的API請求序列，犧牲一些保真度換取可重複、低成本的壓測。</p>
+<span class="spk">— Maude</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="3166" href="https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3#t=3166" target="_blank" rel="noopener">52:46</a><div><h4>只有16個分片撐起GitHub全部PR和Issue</h4>
+<p class="body">GitHub用Vitess給MySQL做動態分片，但Maude加入時發現所有pull request和issue數據只分布在16個分片上，遠遠少於她在Slack習慣的「每個分片鍵配幾千個分片」。原因是系統裡已經存在大量「scatter查詢」——沒帶主鍵、必須掃遍每個分片才能返回結果的查詢——分片越多這類查詢反而越慢，這形成了一個死結：想擴容必須先清理scatter查詢，但清理比想像中難得多。</p>
+<span class="spk">— Maude</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="3471" href="https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3#t=3471" target="_blank" rel="noopener">57:51</a><div><h4>五行代碼，查不出一句SQL在哪裡</h4>
+<p class="body">在用ActiveRecord重寫GitHub的Rails代碼時，Maude和同事想揪出一個調用stars表的查詢源頭，結果定位到一個只有五行的函數，卻完全看不到任何SQL語句的影子。她問同事「SQL在哪」,對方回答「Mo,這就是那個價值百萬美元的問題」。這正是她對比Slack所用的Flamework式「SQL直接寫在代碼裡」和GitHub ActiveRecord式「抽象到看不見SQL」兩種風格後，體會最深的落差。</p>
+<span class="spk">— Maude</span></div></div>
+<div class="point" id="p7"><a class="ts" data-t="3594" href="https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3#t=3594" target="_blank" rel="noopener">59:54</a><div><h4>GitHub頁面上的計數器幾乎全是實時算出來的</h4>
+<p class="body">ActiveRecord只有在查詢條件完全一致時才會命中緩存，稍微換個條件就重新查庫。Maude發現GitHub一個代碼庫主頁要跑超過100條MySQL查詢、橫跨至少三個MySQL集群，而且幾乎所有頁面上顯示的計數(open PR數、issue數)都是實時計算、完全沒有緩存的。她的判斷是這類計數超過某個閾值後根本不需要精確——顯示「99+」就夠了，沒必要為了一個沒人在乎的數字去跑一次昂貴的實時統計。</p>
+<span class="spk">— Maude</span></div></div></section>
+<section class="section"><h2>原話 · 已逐字校驗</h2><blockquote class="quote"><p class="raw">People had completely blank sidebars for about half an hour.</p>
+<p class="zh">所有人的側邊欄空白了大約半小時。</p>
+<div class="attrib"><b>Maude</b><a class="ts" data-t="1483" href="https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3#t=1483" target="_blank" rel="noopener">24:43</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">So one custom emoji turns into 100,000 custom emojis being sent to everyone who&#x27;s connected.</p>
+<p class="zh">於是一個自定義表情就變成了發送給所有在線用戶的十萬個自定義表情。</p>
+<div class="attrib"><b>Maude</b><a class="ts" data-t="1727" href="https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3#t=1727" target="_blank" rel="noopener">28:47</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">Yeah, we&#x27;re talking about $150,000 for that one test.</p>
+<p class="zh">沒錯，那一次測試大概花了十五萬美元。</p>
+<div class="attrib"><b>Maude</b><a class="ts" data-t="2534" href="https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3#t=2534" target="_blank" rel="noopener">42:14</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">So those are queries that are coming in where you do not have the primary key in them.</p>
+<p class="zh">這些查詢的問題在於，發過來的請求里根本不帶主鍵。</p>
+<div class="attrib"><b>Maude</b><a class="ts" data-t="3229" href="https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3#t=3229" target="_blank" rel="noopener">53:49</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">And she&#x27;s like, Mo, that&#x27;s the million-dollar question.</p>
+<p class="zh">她說，Mo,這就是那個價值百萬美元的問題。</p>
+<div class="attrib"><b>Maude</b><a class="ts" data-t="3471" href="https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3#t=3471" target="_blank" rel="noopener">57:51</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">Almost every single count you see on a GitHub page is live calculated. None of those are cached.</p>
+<p class="zh">你在GitHub頁面上看到的幾乎每一個計數都是實時計算出來的，沒有一個是被緩存的。</p>
+<div class="attrib"><b>Maude</b><a class="ts" data-t="3656" href="https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3#t=3656" target="_blank" rel="noopener">1:00:56</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">But now we&#x27;re at this point where like the spaghetti has like a life of its own and it like actively wants to spill out of the plate.</p>
+<p class="zh">但現在我們到了這樣一個地步：意大利麵代碼已經有了自己的生命，它會主動想從盤子裡溢出來。</p>
+<div class="attrib"><b>Maude</b><a class="ts" data-t="4602" href="https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3#t=4602" target="_blank" rel="noopener">1:16:42</a></div>
+</blockquote></section>
+<section class="section"><h2>數字與實體</h2><table class="facts"><tr><td class="k">Slack一條消息自定義表情反應上限</td><td class="v">23個</td><td class="t"><a class="ts" data-t="1792" href="https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3#t=1792" target="_blank" rel="noopener">29:52</a></td></tr>
+<tr><td class="k">headless Chrome壓測單實例成本</td><td class="v">每5小時37美分/實例</td><td class="t"><a class="ts" data-t="2474" href="https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3#t=2474" target="_blank" rel="noopener">41:14</a></td></tr>
+<tr><td class="k">GitHub文件消歧頁加載所需MySQL查詢數</td><td class="v">超過100條，橫跨至少3個MySQL集群</td><td class="t"><a class="ts" data-t="3594" href="https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3#t=3594" target="_blank" rel="noopener">59:54</a></td></tr>
+<tr><td class="k">GitHub全部PR/Issue對應的Vitess分片數</td><td class="v">16個</td><td class="t"><a class="ts" data-t="3166" href="https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3#t=3166" target="_blank" rel="noopener">52:46</a></td></tr>
+<tr><td class="k">IBM管理員當時同時登錄的工作區數上限</td><td class="v">約30個</td><td class="t"><a class="ts" data-t="1977" href="https://api.substack.com/feed/podcast/223203725/9c8f08e6a7e44ca75657aad14c0bf02f.mp3#t=1977" target="_blank" rel="noopener">32:57</a></td></tr></table></section>
+<section class="section"><h2>術語</h2><dl class="terms"><div><dt>Thundering herd<span>驚群效應</span></dt><dd>大量客戶端在同一瞬間對同一資源發起請求導致系統過載</dd></div>
+<div><dt>Event flood<span>事件洪流</span></dt><dd>客戶端被WebSocket推來的大量事件瞬間淹沒，區別於驚群效應</dd></div>
+<div><dt>Scatter query<span>掃全分片查詢</span></dt><dd>不帶分片鍵/主鍵的查詢，必須命中每一個數據庫分片才能返回結果</dd></div>
+<div><dt>Vitess<span>Vitess</span></dt><dd>MySQL分片中間件，支持比單庫更靈活的動態水平分片</dd></div>
+<div><dt>Shadow read<span>影子讀</span></dt><dd>新舊系統並行讀取並比對結果差異，但只採用舊結果，用於驗證遷移正確性</dd></div></dl></section>
+<section class="section"><h2>收聽指南</h2>
+<div class="panel guide">
+<div><span class="k">誰該聽</span><p>做數據庫分片/遷移、負責壓測體系、或在Rails/ActiveRecord這類遺留框架裡掙扎的後端與平臺工程師。</p></div>
+<div><span class="k">可跳過</span><p>7:32-9:17 關於Rent the Runway和HipChat數據洩露的個人背景部分可以跳過。</p></div>
+</div></section>
+<section class="related"><h2 class="sec-title">順著這個話題</h2><ul class="rel-list"><li><a href="/podcast/tw/p/2026-08-04-darknetdiaries-ubiquiti-内鬼自导自演勒索比特币-败在自家路由器/"><span class="rel-t">年薪 25 萬美元仍嫌少，他自導自演勒索自家公司</span><span class="rel-s">Darknet Diaries</span></a></li></ul></section>
+<nav class="prevnext"><a href="/podcast/tw/p/2026-11-05-eightythousand-中美ai协议靠的不是互信-而是总统感到自己可能被炸死的那一刻/"><span class="lbl">← 更新</span><strong>中美AI協議靠的不是互信，而是總統感到自己可能被炸死的那一刻</strong></a><a class="r" href="/podcast/tw/p/2026-11-05-laoshi-光刻机已经到了人类工程极限-却仍锁不住微环芯片的波长/"><span class="lbl">更早 →</span><strong>光刻機已經到了人類工程極限，卻仍鎖不住微環芯片的波長</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原節目</h4>
+<div class="row"><span>節目</span><span>The Pragmatic Engineer</span></div>
+<div class="row"><span>原標題</span><span>Scaling Slack and GitHub with Maude Lemaire</span></div>
+<div class="row"><span>發布</span><span>2026-11-05</span></div>
+<div class="row"><span>時長</span><span>1:18:33</span></div>
+<a class="row" href="https://newsletter.pragmaticengineer.com/p/scaling-slack-and-github-with-maude" target="_blank" rel="noopener"><span>原頁面</span><span>打開 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇結構</h4><nav class="toc"><a href="#p0"><span class="t">15:32</span><span>企業版把公司偽裝成多個小公司</span></a>
+<a href="#p1"><span class="t">17:34</span><span>一次遷移差點刪光全公司的Slack消息</span></a>
+<a href="#p2"><span class="t">28:47</span><span>CEO一句「放假」能引發表情符號雪崩</span></a>
+<a href="#p3"><span class="t">32:57</span><span>身兼多職的管理員每條消息收到30遍</span></a>
+<a href="#p4"><span class="t">41:14</span><span>50萬真實連接的壓測，一次就花15萬美元</span></a>
+<a href="#p5"><span class="t">52:46</span><span>只有16個分片撐起GitHub全部PR和Issue</span></a>
+<a href="#p6"><span class="t">57:51</span><span>五行代碼，查不出一句SQL在哪裡</span></a>
+<a href="#p7"><span class="t">59:54</span><span>GitHub頁面上的計數器幾乎全是實時算出來的</span></a></nav></div>
+
+<div class="panel"><h4>這篇是怎麼來的</h4>
+<div class="row"><span>成稿評分</span><span>7 / 10</span></div>
+<div class="row"><span>文稿來源</span><span>官方逐字稿</span></div>
+<div class="row"><span>文稿字數</span><span>14008</span></div>
+<div class="row"><span>語速核驗</span><span>178.3 wpm</span></div>
+<div class="row"><span>逐字校驗金句</span><span>7 條</span></div>
+<div class="row"><span>回溯校驗數字</span><span>5 條</span></div>
+<div class="row"><span>質檢剔除</span><span>1 處</span></div>
+<p class="note">金句在逐字稿裡逐字比對過，數字回原文核對過；對不上的當場刪掉，不上站。
+成稿另經一道獨立評審（信息密度／忠實度／選擇力／具體性／中文），低於 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原聲 · <a href="https://ourword.ai">OurWord.ai</a>的播客線。內容為原播客的中文深讀，
+版權歸各節目所有；每篇都附原節目鏈接，請去支持原作者。</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/tw/" lang="zh">人類世界生存法則</a> · <a href="/podcast/tw/">原聲</a></div>
+<div class="links"><a href="/podcast/tw/">首頁</a><a href="/podcast/tw/zt/founders/">專題</a><a href="/podcast/tw/sources/">信源</a>
+<a href="/podcast/tw/log/">更新日誌</a><a href="/podcast/tw/feed.xml">RSS</a>
+<a href="/podcast/tw/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源碼</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=2457e29027" defer></script>
+</body></html>
