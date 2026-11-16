@@ -5984,7 +5984,10 @@ class MechanismsMustLeaveEvidenceTheyWorked(unittest.TestCase):
         import run as R
         with tempfile.TemporaryDirectory() as td:
             f = pathlib.Path(td) / "catchup.json"
-            f.write_text(json.dumps({"at": "2026-11-05T03:43:34Z", "pending": 134, "published": 2}))
+            # 旧记录的时间要**相对现在**写。第一版写死 2026-11-05，到 11-16 超出 10 天保留期被
+            # 正常丢掉，判据就红了 —— 代码没坏，是测试自己过期了（POSTMORTEM §45）。
+            recent = R.iso(R.now() - R.dt.timedelta(days=1))
+            f.write_text(json.dumps({"at": recent, "pending": 134, "published": 2}))
             with mock.patch.object(R, "DATA", pathlib.Path(td)), \
                  mock.patch.dict(R._catchup_note, {"pending": ["a", "b"]}):
                 R._write_catchup_note(3)
@@ -5992,6 +5995,23 @@ class MechanismsMustLeaveEvidenceTheyWorked(unittest.TestCase):
             d = json.loads(f.read_text())
         self.assertEqual([134, 2, 2], [h["pending"] for h in d["hist"]], "旧记录没接进历史，部署后要白攒几天")
         self.assertEqual([2, 3, 1], [h["published"] for h in d["hist"]])
+
+    def test_history_older_than_ten_days_is_dropped(self):
+        """保留期本身：10 天前的那条要丢，9 天前的要留。时间都相对现在算，不会过期。"""
+        import tempfile
+        from unittest import mock
+        import run as R
+        t = R.now()
+        old = [{"at": R.iso(t - R.dt.timedelta(days=11)), "pending": 9, "published": 9},
+               {"at": R.iso(t - R.dt.timedelta(days=9)), "pending": 5, "published": 5}]
+        with tempfile.TemporaryDirectory() as td:
+            f = pathlib.Path(td) / "catchup.json"
+            f.write_text(json.dumps({"at": old[-1]["at"], "pending": 5, "hist": old}))
+            with mock.patch.object(R, "DATA", pathlib.Path(td)), \
+                 mock.patch.dict(R._catchup_note, {"pending": ["a"]}):
+                R._write_catchup_note(1)
+            d = json.loads(f.read_text())
+        self.assertEqual([5, 1], [h["pending"] for h in d["hist"]])
 
 
 class PipelineModulesMustNotShadowInstalledPackages(unittest.TestCase):
