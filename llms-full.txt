@@ -1,6 +1,6 @@
 # 原声 — 世界太吵，来原声听播客
 
-1642 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
+1644 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
 
 ==============================================================================
 
@@ -131,6 +131,77 @@
 谁该听 / who: 关注大模型研发组织内部流程、以及想判断AI自动化研究到底进展到哪一步的从业者、投资人。
 可跳过 / skip: 开场对RSI定义和历史的铺垫（00:00-01:01）信息密度低，可直接跳到03:04的具体工作流描述。
 标签 / tags: RSI, AI对齐, 前沿研究, OpenAI, Thinking Machines, 算力
+
+==============================================================================
+
+## 把文本压到每字符不到1比特：算术编码揭示压缩即预测
+
+- URL: https://ourword.ai/podcast/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/
+- 节目 / show: Andrej Karpathy (https://ourword.ai/podcast/s/karpathy/)
+- 原集标题 / original episode: How to compress text to 1 bit per character | Compression is Intelligence Part 3
+- 发布 / published: 2026-11-17 · 时长 / duration: 37:41
+- 文稿来源 / transcript: YouTube 字幕 · 7112 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 4 numbers traced to the transcript, review score 7/10
+
+**任何文本预测器都能通过算术编码几乎无损地变成压缩器，反过来压缩器也能还原出预测分布——压缩率本质上取决于语言模型预测的好坏。**
+
+为什么听 / why: 用可视化方式讲清算术编码的数学原理，并延伸到预训练的本质和「压缩即智能」的论证，信息密度高但偏理论，适合想理解语言模型训练原理的人。
+
+### 核心论点 / points
+
+[6:05] (Grant Sanderson) **每段文本对应数轴上一个实数** — 算法把任意一段文本编码成0到1之间一个极其特定的实数。想法是把每个可能的字符串视为占据数轴上一段区间，区间宽度等于模型给这段文本的概率。字符串越常见，占的区间越宽；只要给出落在该区间内的任意一个数，加上文本长度，接收方就能唯一还原出原文。整个压缩算法的核心就是在这个区间里找一个二进制表示尽量短的数。
+
+[11:08] (Grant Sanderson) **解码只需反复调用同一个模型** — 解码过程是编码的镜像：接收方先用空上下文跑一次模型得到第一层分布，根据收到的数字落在哪个字符对应的区间，推出第一个字符；再把这个字符喂回模型得到下一层分布，继续判断数字落在哪里，如此反复，直到凑满发送方告知的字符数。关键前提是双方用的必须是完全相同的模型，否则解码出的分布会对不上，整个方案就失效。
+
+[15:12] (Grant Sanderson) **所需比特数就是香农信息量本身** — 要保证能用k比特或更少表示出落在某个概率为p的区间内的数，需要2^-k小于p，整理后得到k必须大于等于负的log2(p)——这正是香农定义的信息量。这意味着这套算术编码在近似意义上就是香农极限的具体实现：压缩后消息的大小几乎就等于文本在模型眼中的信息量，只多出一点舍入误差和用于记录消息长度的固定开销。
+
+[22:21] (Grant Sanderson) **预训练本质是在最小化压缩后的比特数** — 模型给文本的概率可以展开成一连串单字符预测概率的乘积，取负对数后就变成了一串「代价」求和，这正是交叉熵，也正是预训练中被最小化的损失函数。于是预训练可以换一种心理框架来理解：目标不是训练一个「下一个词预测器」，而是训练「最好的文本压缩器」——要最小化的数字就是每个训练样本能被压缩到多少比特，就这么简单。
+
+[23:21] (Grant Sanderson) **模型越大，对可预测文本压缩得越狠** — 用370万参数的NanoGPT编码一段数学史文本要254比特、约每字符2比特，是香农估计值的两倍；换成5亿参数的开源模型Qwen，同样的文本最后两个词只需要5比特，整体压到每字符不到1比特。对美国宪法序言这种高度可预测的文本，Qwen在开头短语之后几乎不再需要增加比特，全文只用了10比特，比开头演示的霍夫曼编码提升了两个数量级。
+
+[31:25] (Grant Sanderson) **真正公平的压缩率要把模型本身算进去** — 如果不把解码程序（包括模型本身）的体积计入最终压缩大小，就能作弊：让解码程序里硬编码一份维基百科原文，这样所谓的压缩载荷可以任意小，Hutter Prize正是为了防止这种作弊才把解码程序大小计入评分。按这种算法，两个预测能力相同的模型中，参数更少的那个才算压缩得更好，这呼应了「更清晰的理解依赖更少的通用原则，而不是大量死记硬背的事实」这一直觉。
+
+[33:26] (Grant Sanderson) **让模型边压缩边微调，学习速度也被计入压缩率** — 如果编码解码过程中让模型根据沿途看到的每个新token做反向传播、持续微调自身权重，只要编码端和解码端的更新完全确定性地同步进行，双方就能保持预测一致。这样一来，最终压缩率不再只取决于模型静态的预测能力，还取决于模型适应新语境的速度——学习率越好，压缩效果越好，这为「压缩即智能」提供了第三层支撑：好的压缩算法需要模型既擅长预测、体积又小，还要学得快。
+
+### 原话 / verbatim quotes
+
+[2:02] Grant Sanderson: "each time a probability gets chopped in half, the information content increases by one bit"
+    译 / zh: 每当一个概率被对半砍一次，信息量就增加一比特。
+
+[20:18] Grant Sanderson: "this quantity, the negative log p that we wrote down, Is not actually the Shannon information of the message, because this value p is representing the probability of the text according to the model, not the true probability of seeing that text"
+    译 / zh: 我们写下的这个负对数p，其实并不是消息真正的香农信息量，因为这个p是模型给出的文本概率，而不是这段文本真实出现的概率。
+
+[22:21] Grant Sanderson: "a mathematically equivalent, but I think psychologically distinct, framing is to say that the objective is not prediction per se. It's to create the best possible text compressor"
+    译 / zh: 一种在数学上等价、但我认为心理感受上截然不同的框架是：目标其实不是预测本身，而是打造最好的文本压缩器。
+
+[24:21] Grant Sanderson: "isn't it kind of disingenuous to praise an algorithm for compressing this passage so much if it's just calling out to some massive model that's basically memorized that passage somewhere in its hundreds of millions of weights"
+    译 / zh: 如果这个算法只是调用了一个把这段话几乎背下来的庞大模型，那我们还夸它压缩得好，是不是有点不诚实？
+
+[31:25] Grant Sanderson: "if you actually wanted to send somebody a gigabyte of Wikipedia in a compressed package, the raw data stream coming out of that arithmetic coding would be useless if you didn't also give them the means of decoding it"
+    译 / zh: 如果你真的想把一GB的维基百科压缩打包发给别人，算术编码输出的原始数据流，如果不附带解码方法，是毫无用处的。
+
+[33:26] Grant Sanderson: "the better the learning rate, the better the compression"
+    译 / zh: 学习率越好，压缩效果就越好。
+
+[35:27] Grant Sanderson: "I was just genuinely surprised that compression takes off many more boxes than I would have guessed the first time that I ever thought about the seemingly innocent task of making files smaller"
+    译 / zh: 我真心感到惊讶，压缩这个概念能够解释的东西，远比我第一次想到「把文件变小」这个看似无害的任务时猜测的要多得多。
+
+### 数字 / figures
+
+- NanoGPT参数量: 370万 [22:21]
+- NanoGPT编码示例文本所用比特数: 254比特（约每字符2比特） [23:21]
+- 美国宪法序言用Qwen编码所需比特数: 约10比特 [23:21]
+- 编码单词math所需比特数: 10比特 [15:12]
+
+### 术语 / glossary
+
+- arithmetic coding (算术编码): 把任意预测模型转换为近乎最优无损压缩器的编码方法。
+- Hutter Prize (胡特奖): 奖励能把1GB维基百科压缩得最小（含解码程序体积）的算法。
+- cross-entropy (交叉熵): 模型预测分布与真实分布之间差异的度量，也是预训练的损失函数。
+- asymmetric numeral system (非对称数字系统): 2013年提出的另一种预测转压缩的方法，用整数而非实数编码，速度更快。
+
+谁该听 / who: 想理解语言模型预训练本质、对信息论和压缩算法感兴趣的工程师和AI研究者。
+标签 / tags: 信息论, 语言模型, 算术编码, 预训练, 压缩
 
 ==============================================================================
 
@@ -20585,6 +20656,72 @@
 谁该听 / who: 关心AI监管走向的创业者、投资人与政策研究者，尤其是想懂「公司为何无法自愿减速」背后机制的人。
 可跳过 / skip: 开头的背景导入(0:00–1:17)信息量低，可直接跳过
 标签 / tags: AI监管, 算力治理, 军备竞赛, 可解释性, 国际协议, 安全测试
+
+==============================================================================
+
+## 艾伦·瓦兹：你脑中那个控制者不是真正的你
+
+- URL: https://ourword.ai/podcast/p/2026-10-27-philosophize-艾伦-瓦兹-你脑中那个控制者不是真正的你/
+- 节目 / show: Philosophize This! (https://ourword.ai/podcast/s/philosophize/)
+- 原集标题 / original episode: Episode #253 ... The Philosophy of Alan Watts - What Am I?
+- 发布 / published: 2026-10-27 · 时长 / duration: 36:04
+- 文稿来源 / transcript: 音频转写 · 7667 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 0 numbers traced to the transcript, review score 8/10
+
+**瓦兹认为，人们习惯性认同的那个自我监督、自我控制的「内在声音」只是一种习得的肌肉紧张习惯，而真正的自我更像一个在更大过程中保持形状的漩涡。**
+
+为什么听 / why: 适合想理解Alan Watts常被引用却常被误读的「自我」观点的人；论证节奏偏慢，中段物理学类比部分信息密度较低。
+
+### 核心论点 / points
+
+[1:03] (Stephen West) **餐桌上那个「监工自我」从哪来** — 瓦兹用一个日常场景切入：和朋友吃饭时，除了那个在说话吃饭的你，似乎还有一个躲在脑后、不断审视这场对话的「你」，在问「我刚才说那话显得聪明吗」「他们真的喜欢我吗」。他认为理解这个习惯性自我审视的来源，是理解他全部哲学的起点。
+
+[4:14] (Stephen West) **父母教你「做自己」本身就是矛盾** — 瓦兹引用人类学家Gregory Bateson的「双重束缚」概念：孩子从小被教导要做自由自主的个体，但这个「自由」本身是被规定出来的——比如父母说「你该爱妈妈，但不能只因为我让你爱她，你得真心爱她」。这种矛盾让孩子被迫放弃真正的自发性去证明自己的自发性，久而久之内化成一个持续评判自己情感是否「真诚」的内在监工。
+
+[8:24] (Stephen West) **那个声音只是一种练出来的肌肉习惯** — 瓦兹提出一个关键问题：这个控制者式的自我监督到底占了你多大比例？他认为人们之所以强烈认同这个声音，只是因为反复做这件事变得熟练了，就像天天去健身房做同一个动作，久了会觉得这动作是身体天生该做的。这种心理图像加上身体上的习惯性紧张（咬紧下巴、聚焦眼神），共同制造出「这个我是真实存在的」的错觉。
+
+[12:31] (Stephen West) **注意力像雷达，但雷达不是全部的你** — 瓦兹把人的注意力比作船上的多普勒雷达，总是扫描变化、威胁和机会，所以我们容易把雷达扫到的那点东西误认成自己生活的全部。但心跳、消化、无数潜意识计算一直在进行，呼吸可以自主控制也可以自动进行——这说明「你」远远超出你主动聚焦的那一小部分。
+
+[16:41] (Stephen West) **皮肤是桥梁，不只是屏障** — 常识认为自我止于皮肤，但瓦兹指出皮肤恰恰是你与一切接触的地方：呼吸时气体不断进出身体，说话时声波在房间里反弹进入对方耳朵。他说「它既是桥梁，也是屏障」，质疑把皮肤当作自我边界的默认设定。
+
+[17:45] (Stephen West) **蜜蜂和花离开彼此就无法被理解** — 瓦兹借生物学例子说明，蜜蜂和花在生物学活动上互相依存，理解其中一个就必须理解另一个，二者构成一个相互关联的生命系统，而不是两个各自独立、可单独理解的存在。他借此类推人和环境的关系同样如此。
+
+[21:55] (Stephen West) **你更像漩涡，不是固定的东西** — 瓦兹用漩涡作为核心意象：构成漩涡的水一直在流动更换，但漩涡本身保持着可被识别的形状，人们可以指着它说「那是个漩涡」。他说「关于我们唯一恒定的东西是行动而非存在」——你的个体性依然存在，但不是脑后那个固定的小控制者，而是在更大过程中保持的一种可识别模式。
+
+[28:07] (Stephen West) **吠檀多：你的最深自我就是终极实在** — 瓦兹引入印度吠檀多哲学中Atman（最深自我）与Brahman（终极实在）的关系，核心主张是二者其实是同一件事。他用苹果与苹果树的比喻：你不是从别处空降到宇宙中的陌生人，而是这棵树此刻正在做的事——你是实在本身在做的事情。这也呼应了他那句挑衅性的说法：我们本质上就是神。
+
+### 原话 / verbatim quotes
+
+[1:03] Alan Watts（转述自Stephen West）: "what do you mean? What do you feel when you say the word I?"
+    译 / zh: 你是什么意思？当你说「我」这个词时，你感受到的是什么？
+
+[5:16] Stephen West: "I'm supposed to abdicate my freedom and spontaneity in order to establish my freedom and spontaneity."
+    译 / zh: 我被要求放弃我的自由和自发性，才能确立我的自由和自发性。
+
+[9:28] Stephen West: "the physical referent for the psychological image of ourselves"
+    译 / zh: 对我们自身心理图像的身体性指涉物
+
+[10:29] Stephen West: "what we take to be the thinker is itself just one of the thoughts. And what we take to be the feeler is itself just one of the feelings."
+    译 / zh: 我们以为是思考者的那个东西，本身只是众多念头中的一个；我们以为是感受者的那个东西，本身只是众多感受中的一个。
+
+[17:45] Stephen West: "it is as much a bridge as it is a barrier"
+    译 / zh: 它既是桥梁，也同样是屏障。
+
+[21:55] Stephen West: "The only thing constant about us at all is the doing rather than the being"
+    译 / zh: 关于我们唯一恒定不变的东西，是「行动」而非「存在」。
+
+[32:16] Stephen West: "the universe playing hide-and-seek with itself"
+    译 / zh: 宇宙在跟自己玩捉迷藏。
+
+### 术语 / glossary
+
+- double bind (双重束缚): Gregory Bateson提出的概念，指两条相互矛盾的指令同时施加在人身上
+- Vedanta / Atman / Brahman (吠檀多 / 阿特曼 /梵): 印度哲学流派，主张个体最深自我（阿特曼）与终极实在（梵）本质同一
+- the transaction (交易/关系性存在): 哲学家John Dewey的概念，指买卖等活动本质是一件事的两面，不能分开理解
+
+谁该听 / who: 对东方哲学如何重构西方「自我」观念感兴趣的人，尤其是听过瓦兹片段但觉得零散、想系统理解其论证脉络的人。
+可跳过 / skip: 23:58附近讲量子电子实验那段转写混乱重复，可直接跳到薛定谔部分（约27:07）。
+标签 / tags: 自我意识, 东方哲学, 吠檀多, 自我与环境, 过程哲学, Alan Watts
 
 ==============================================================================
 

@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>把文本壓到每字符不到1比特：算術編碼揭示壓縮即預測 — Andrej Karpathy · 原聲</title>
+<meta name="description" content="任何文本預測器都能通過算術編碼幾乎無損地變成壓縮器，反過來壓縮器也能還原出預測分布——壓縮率本質上取決於語言模型預測的好壞。">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/tw/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="原聲">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:title" content="把文本壓到每字符不到1比特：算術編碼揭示壓縮即預測 — Andrej Karpathy · 原聲">
+<meta property="og:description" content="任何文本預測器都能通過算術編碼幾乎無損地變成壓縮器，反過來壓縮器也能還原出預測分布——壓縮率本質上取決於語言模型預測的好壞。">
+<meta property="og:url" content="https://ourword.ai/podcast/tw/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/">
+<meta property="og:image" content="https://ourword.ai/podcast/assets/cover/574b8c7bf81d687f.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-11-17T16:43:16Z">
+<meta property="article:modified_time" content="2026-11-18T03:25:54Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="把文本壓到每字符不到1比特：算術編碼揭示壓縮即預測 — Andrej Karpathy · 原聲">
+<meta name="twitter:description" content="任何文本預測器都能通過算術編碼幾乎無損地變成壓縮器，反過來壓縮器也能還原出預測分布——壓縮率本質上取決於語言模型預測的好壞。">
+<meta name="twitter:image" content="https://ourword.ai/podcast/assets/cover/574b8c7bf81d687f.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/tw/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/tw/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="原聲" href="/podcast/tw/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/">
+<link rel="alternate" hreflang="en" href="https://ourword.ai/podcast/en/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=6982a60148">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/tw/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/#episode", "name": "把文本壓到每字符不到1比特：算術編碼揭示壓縮即預測", "headline": "把文本壓到每字符不到1比特：算術編碼揭示壓縮即預測", "description": "任何文本預測器都能通過算術編碼幾乎無損地變成壓縮器，反過來壓縮器也能還原出預測分布——壓縮率本質上取決於語言模型預測的好壞。", "abstract": "任何文本預測器都能通過算術編碼幾乎無損地變成壓縮器，反過來壓縮器也能還原出預測分布——壓縮率本質上取決於語言模型預測的好壞。", "datePublished": "2026-11-17T16:43:16Z", "dateModified": "2026-11-18T03:25:54Z", "url": "https://ourword.ai/podcast/tw/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/", "timeRequired": "PT37M", "partOfSeries": {"@type": "PodcastSeries", "name": "Andrej Karpathy", "url": "https://ourword.ai/podcast/tw/s/karpathy/"}, "inLanguage": "zh-TW", "isBasedOn": "https://www.youtube.com/watch?v=qbsb9DpdZ6s", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "信息論, 語言模型, 算術編碼, 預訓練, 壓縮, arithmetic coding, Hutter Prize, cross-entropy, asymmetric numeral system, NanoGPT參數量, NanoGPT編碼示例文本所用比特數, 美國憲法序言用Qwen編碼所需比特數, 編碼單詞math所需比特數", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}}, {"@type": "Article", "@id": "https://ourword.ai/podcast/tw/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/#deepread", "headline": "把文本壓到每字符不到1比特：算術編碼揭示壓縮即預測", "description": "任何文本預測器都能通過算術編碼幾乎無損地變成壓縮器，反過來壓縮器也能還原出預測分布——壓縮率本質上取決於語言模型預測的好壞。", "articleBody": "任何文本預測器都能通過算術編碼幾乎無損地變成壓縮器，反過來壓縮器也能還原出預測分布——壓縮率本質上取決於語言模型預測的好壞。\n[6:05] 每段文本對應數軸上一個實數。算法把任意一段文本編碼成0到1之間一個極其特定的實數。想法是把每個可能的字符串視為佔據數軸上一段區間，區間寬度等於模型給這段文本的概率。字符串越常見，佔的區間越寬；只要給出落在該區間內的任意一個數，加上文本長度，接收方就能唯一還原出原文。整個壓縮算法的核心就是在這個區間裡找一個二進制表示儘量短的數。\n[11:08] 解碼只需反覆調用同一個模型。解碼過程是編碼的鏡像：接收方先用空上下文跑一次模型得到第一層分布，根據收到的數字落在哪個字符對應的區間，推出第一個字符；再把這個字符喂回模型得到下一層分布，繼續判斷數字落在哪裡，如此反覆，直到湊滿發送方告知的字符數。關鍵前提是雙方用的必須是完全相同的模型，否則解碼出的分布會對不上，整個方案就失效。\n[15:12] 所需比特數就是香農信息量本身。要保證能用k比特或更少表示出落在某個概率為p的區間內的數，需要2^-k小於p，整理後得到k必須大於等於負的log2(p)——這正是香農定義的信息量。這意味著這套算術編碼在近似意義上就是香農極限的具體實現：壓縮後消息的大小几乎就等於文本在模型眼中的信息量，只多出一點舍入誤差和用於記錄消息長度的固定開銷。\n[22:21] 預訓練本質是在最小化壓縮後的比特數。模型給文本的概率可以展開成一連串單字符預測概率的乘積，取負對數後就變成了一串「代價」求和，這正是交叉熵，也正是預訓練中被最小化的損失函數。於是預訓練可以換一種心理框架來理解：目標不是訓練一個「下一個詞預測器」，而是訓練「最好的文本壓縮器」——要最小化的數字就是每個訓練樣本能被壓縮到多少比特，就這麼簡單。\n[23:21] 模型越大，對可預測文本壓縮得越狠。用370萬參數的NanoGPT編碼一段數學史文本要254比特、約每字符2比特，是香農估計值的兩倍；換成5億參數的開源模型Qwen，同樣的文本最後兩個詞只需要5比特，整體壓到每字符不到1比特。對美國憲法序言這種高度可預測的文本，Qwen在開頭短語之後幾乎不再需要增加比特，全文只用了10比特，比開頭演示的霍夫曼編碼提升了兩個數量級。\n[31:25] 真正公平的壓縮率要把模型本身算進去。如果不把解碼程序（包括模型本身）的體積計入最終壓縮大小，就能作弊：讓解碼程序裡硬編碼一份維基百科原文，這樣所謂的壓縮載荷可以任意小，Hutter Prize正是為了防止這種作弊才把解碼程序大小計入評分。按這種算法，兩個預測能力相同的模型中，參數更少的那個才算壓縮得更好，這呼應了「更清晰的理解依賴更少的通用原則，而不是大量死記硬背的事實」這一直覺。\n[33:26] 讓模型邊壓縮邊微調，學習速度也被計入壓縮率。如果編碼解碼過程中讓模型根據沿途看到的每個新token做反向傳播、持續微調自身權重，只要編碼端和解碼端的更新完全確定性地同步進行，雙方就能保持預測一致。這樣一來，最終壓縮率不再只取決於模型靜態的預測能力，還取決於模型適應新語境的速度——學習率越好，壓縮效果越好，這為「壓縮即智能」提供了第三層支撐：好的壓縮算法需要模型既擅長預測、體積又小，還要學得快。\n[2:02] Grant Sanderson：「每當一個概率被對半砍一次，信息量就增加一比特。」\n[20:18] Grant Sanderson：「我們寫下的這個負對數p，其實並不是消息真正的香農信息量，因為這個p是模型給出的文本概率，而不是這段文本真實出現的概率。」\n[22:21] Grant Sanderson：「一種在數學上等價、但我認為心理感受上截然不同的框架是：目標其實不是預測本身，而是打造最好的文本壓縮器。」\n[24:21] Grant Sanderson：「如果這個算法只是調用了一個把這段話幾乎背下來的龐大模型，那我們還誇它壓縮得好，是不是有點不誠實？」\n[31:25] Grant Sanderson：「如果你真的想把一GB的維基百科壓縮打包發給別人，算術編碼輸出的原始數據流，如果不附帶解碼方法，是毫無用處的。」\n[33:26] Grant Sanderson：「學習率越好，壓縮效果就越好。」\n[35:27] Grant Sanderson：「我真心感到驚訝，壓縮這個概念能夠解釋的東西，遠比我第一次想到「把文件變小」這個看似無害的任務時猜測的要多得多。」\n[22:21] NanoGPT參數量：370萬\n[23:21] NanoGPT編碼示例文本所用比特數：254比特（約每字符2比特）\n[23:21] 美國憲法序言用Qwen編碼所需比特數：約10比特\n[15:12] 編碼單詞math所需比特數：10比特", "wordCount": 1500, "inLanguage": "zh-TW", "datePublished": "2026-11-17T16:43:16Z", "dateModified": "2026-11-18T03:25:54Z", "url": "https://ourword.ai/podcast/tw/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/", "about": {"@id": "https://ourword.ai/podcast/tw/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/#episode"}, "isBasedOn": "https://www.youtube.com/watch?v=qbsb9DpdZ6s", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "isAccessibleForFree": true}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首頁", "item": "https://ourword.ai/podcast/tw/"}, {"@type": "ListItem", "position": 2, "name": "Andrej Karpathy", "item": "https://ourword.ai/podcast/tw/s/karpathy/"}, {"@type": "ListItem", "position": 3, "name": "把文本壓到每字符不到1比特：算術編碼揭示壓縮即預測"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/tw/"><span class="wordmark">原聲<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<button class="pill ghost" id="lang-toggle" type="button" data-en="1" data-sc="繁體" data-tw="簡體"></button>
+<button class="icon-btn" data-theme-toggle aria-label="切換深淺色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">世界太吵，來原聲聽播客</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/tw/">首頁</a><span class="sep">/</span>
+<a href="/podcast/tw/c/ai/">AI / 技術</a><span class="sep">/</span><a href="/podcast/tw/s/karpathy/">Andrej Karpathy</a>
+<span class="sep">/</span><span>2026-11-17</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">Andrej Karpathy</span>
+<time class="date" datetime="2026-11-17T16:43:16Z">2026-11-17</time>
+<button class="share-btn" type="button" data-share data-share-title="把文本壓到每字符不到1比特：算術編碼揭示壓縮即預測" data-share-url="https://ourword.ai/podcast/tw/e/karpathy-32e0251daa/" data-share-text="把文本壓到每字符不到1比特：算術編碼揭示壓縮即預測&#10;Andrej Karpathy · 37 分鐘 · 原聲深讀&#10;&#10;任何文本預測器都能通過算術編碼幾乎無損地變成壓縮器，反過來壓縮器也能還原出預測分布——壓縮率本質上取決於語言模型預測的好壞。&#10;&#10;https://ourword.ai/podcast/tw/e/karpathy-32e0251daa/" aria-label="複製分享文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>分享</span></button></div>
+<h1>把文本壓到每字符不到1比特：算術編碼揭示壓縮即預測</h1>
+<p class="dek-lead">任何文本預測器都能通過算術編碼幾乎無損地變成壓縮器，反過來壓縮器也能還原出預測分布——壓縮率本質上取決於語言模型預測的好壞。</p>
+<div class="ep-meta"><span class="tag">信息論</span><span class="tag">語言模型</span><span class="tag">算術編碼</span><span class="tag">預訓練</span><span class="tag">壓縮</span></div>
+</div>
+<div class="player" data-player-box>
+  <button class="video-facade" data-yt="qbsb9DpdZ6s" type="button"
+          aria-label="播放原節目視頻">
+    <span class="frame">
+      <img src="https://i.ytimg.com/vi/qbsb9DpdZ6s/hq720.jpg" alt="" loading="lazy" width="1280"
+           onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/qbsb9DpdZ6s/hqdefault.jpg'">
+      <span class="play" aria-hidden="true"><svg viewBox="0 0 44 44" width="44" height="44" focusable="false"><circle cx="22" cy="22" r="21" fill="rgba(18,16,13,.55)" stroke="rgba(255,255,255,.92)" stroke-width="1.5"/><path d="M17 14.5 32 22 17 29.5Z" fill="#fff"/></svg></span>
+    </span>
+  </button>
+</div>
+
+<section class="section"><div class="why">用可視化方式講清算術編碼的數學原理，並延伸到預訓練的本質和「壓縮即智能」的論證，信息密度高但偏理論，適合想理解語言模型訓練原理的人。</div></section>
+
+<section class="section"><h2>核心論點 · 點時間戳可跳到原聲</h2><div class="point" id="p0"><a class="ts" data-t="365" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=365s" target="_blank" rel="noopener">6:05</a><div><h4>每段文本對應數軸上一個實數</h4>
+<p class="body">算法把任意一段文本編碼成0到1之間一個極其特定的實數。想法是把每個可能的字符串視為佔據數軸上一段區間，區間寬度等於模型給這段文本的概率。字符串越常見，佔的區間越寬；只要給出落在該區間內的任意一個數，加上文本長度，接收方就能唯一還原出原文。整個壓縮算法的核心就是在這個區間裡找一個二進制表示儘量短的數。</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="668" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=668s" target="_blank" rel="noopener">11:08</a><div><h4>解碼只需反覆調用同一個模型</h4>
+<p class="body">解碼過程是編碼的鏡像：接收方先用空上下文跑一次模型得到第一層分布，根據收到的數字落在哪個字符對應的區間，推出第一個字符；再把這個字符喂回模型得到下一層分布，繼續判斷數字落在哪裡，如此反覆，直到湊滿發送方告知的字符數。關鍵前提是雙方用的必須是完全相同的模型，否則解碼出的分布會對不上，整個方案就失效。</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="912" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=912s" target="_blank" rel="noopener">15:12</a><div><h4>所需比特數就是香農信息量本身</h4>
+<p class="body">要保證能用k比特或更少表示出落在某個概率為p的區間內的數，需要2^-k小於p，整理後得到k必須大於等於負的log2(p)——這正是香農定義的信息量。這意味著這套算術編碼在近似意義上就是香農極限的具體實現：壓縮後消息的大小几乎就等於文本在模型眼中的信息量，只多出一點舍入誤差和用於記錄消息長度的固定開銷。</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="1341" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=1341s" target="_blank" rel="noopener">22:21</a><div><h4>預訓練本質是在最小化壓縮後的比特數</h4>
+<p class="body">模型給文本的概率可以展開成一連串單字符預測概率的乘積，取負對數後就變成了一串「代價」求和，這正是交叉熵，也正是預訓練中被最小化的損失函數。於是預訓練可以換一種心理框架來理解：目標不是訓練一個「下一個詞預測器」，而是訓練「最好的文本壓縮器」——要最小化的數字就是每個訓練樣本能被壓縮到多少比特，就這麼簡單。</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="1401" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=1401s" target="_blank" rel="noopener">23:21</a><div><h4>模型越大，對可預測文本壓縮得越狠</h4>
+<p class="body">用370萬參數的NanoGPT編碼一段數學史文本要254比特、約每字符2比特，是香農估計值的兩倍；換成5億參數的開源模型Qwen，同樣的文本最後兩個詞只需要5比特，整體壓到每字符不到1比特。對美國憲法序言這種高度可預測的文本，Qwen在開頭短語之後幾乎不再需要增加比特，全文只用了10比特，比開頭演示的霍夫曼編碼提升了兩個數量級。</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="1885" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=1885s" target="_blank" rel="noopener">31:25</a><div><h4>真正公平的壓縮率要把模型本身算進去</h4>
+<p class="body">如果不把解碼程序（包括模型本身）的體積計入最終壓縮大小，就能作弊：讓解碼程序裡硬編碼一份維基百科原文，這樣所謂的壓縮載荷可以任意小，Hutter Prize正是為了防止這種作弊才把解碼程序大小計入評分。按這種算法，兩個預測能力相同的模型中，參數更少的那個才算壓縮得更好，這呼應了「更清晰的理解依賴更少的通用原則，而不是大量死記硬背的事實」這一直覺。</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="2006" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=2006s" target="_blank" rel="noopener">33:26</a><div><h4>讓模型邊壓縮邊微調，學習速度也被計入壓縮率</h4>
+<p class="body">如果編碼解碼過程中讓模型根據沿途看到的每個新token做反向傳播、持續微調自身權重，只要編碼端和解碼端的更新完全確定性地同步進行，雙方就能保持預測一致。這樣一來，最終壓縮率不再只取決於模型靜態的預測能力，還取決於模型適應新語境的速度——學習率越好，壓縮效果越好，這為「壓縮即智能」提供了第三層支撐：好的壓縮算法需要模型既擅長預測、體積又小，還要學得快。</p>
+<span class="spk">— Grant Sanderson</span></div></div></section>
+<section class="section"><h2>原話 · 已逐字校驗</h2><blockquote class="quote"><p class="raw">each time a probability gets chopped in half, the information content increases by one bit</p>
+<p class="zh">每當一個概率被對半砍一次，信息量就增加一比特。</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="122" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=122s" target="_blank" rel="noopener">2:02</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">this quantity, the negative log p that we wrote down, Is not actually the Shannon information of the message, because this value p is representing the probability of the text according to the model, not the true probability of seeing that text</p>
+<p class="zh">我們寫下的這個負對數p，其實並不是消息真正的香農信息量，因為這個p是模型給出的文本概率，而不是這段文本真實出現的概率。</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="1218" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=1218s" target="_blank" rel="noopener">20:18</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">a mathematically equivalent, but I think psychologically distinct, framing is to say that the objective is not prediction per se. It&#x27;s to create the best possible text compressor</p>
+<p class="zh">一種在數學上等價、但我認為心理感受上截然不同的框架是：目標其實不是預測本身，而是打造最好的文本壓縮器。</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="1341" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=1341s" target="_blank" rel="noopener">22:21</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">isn&#x27;t it kind of disingenuous to praise an algorithm for compressing this passage so much if it&#x27;s just calling out to some massive model that&#x27;s basically memorized that passage somewhere in its hundreds of millions of weights</p>
+<p class="zh">如果這個算法只是調用了一個把這段話幾乎背下來的龐大模型，那我們還誇它壓縮得好，是不是有點不誠實？</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="1461" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=1461s" target="_blank" rel="noopener">24:21</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">if you actually wanted to send somebody a gigabyte of Wikipedia in a compressed package, the raw data stream coming out of that arithmetic coding would be useless if you didn&#x27;t also give them the means of decoding it</p>
+<p class="zh">如果你真的想把一GB的維基百科壓縮打包發給別人，算術編碼輸出的原始數據流，如果不附帶解碼方法，是毫無用處的。</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="1885" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=1885s" target="_blank" rel="noopener">31:25</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">the better the learning rate, the better the compression</p>
+<p class="zh">學習率越好，壓縮效果就越好。</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="2006" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=2006s" target="_blank" rel="noopener">33:26</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">I was just genuinely surprised that compression takes off many more boxes than I would have guessed the first time that I ever thought about the seemingly innocent task of making files smaller</p>
+<p class="zh">我真心感到驚訝，壓縮這個概念能夠解釋的東西，遠比我第一次想到「把文件變小」這個看似無害的任務時猜測的要多得多。</p>
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="2127" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=2127s" target="_blank" rel="noopener">35:27</a></div>
+</blockquote></section>
+<section class="section"><h2>數字與實體</h2><table class="facts"><tr><td class="k">NanoGPT參數量</td><td class="v">370萬</td><td class="t"><a class="ts" data-t="1341" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=1341s" target="_blank" rel="noopener">22:21</a></td></tr>
+<tr><td class="k">NanoGPT編碼示例文本所用比特數</td><td class="v">254比特（約每字符2比特）</td><td class="t"><a class="ts" data-t="1401" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=1401s" target="_blank" rel="noopener">23:21</a></td></tr>
+<tr><td class="k">美國憲法序言用Qwen編碼所需比特數</td><td class="v">約10比特</td><td class="t"><a class="ts" data-t="1401" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=1401s" target="_blank" rel="noopener">23:21</a></td></tr>
+<tr><td class="k">編碼單詞math所需比特數</td><td class="v">10比特</td><td class="t"><a class="ts" data-t="912" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=912s" target="_blank" rel="noopener">15:12</a></td></tr></table></section>
+<section class="section"><h2>術語</h2><dl class="terms"><div><dt>arithmetic coding<span>算術編碼</span></dt><dd>把任意預測模型轉換為近乎最優無損壓縮器的編碼方法。</dd></div>
+<div><dt>Hutter Prize<span>胡特獎</span></dt><dd>獎勵能把1GB維基百科壓縮得最小（含解碼程序體積）的算法。</dd></div>
+<div><dt>cross-entropy<span>交叉熵</span></dt><dd>模型預測分布與真實分布之間差異的度量，也是預訓練的損失函數。</dd></div>
+<div><dt>asymmetric numeral system<span>非對稱數字系統</span></dt><dd>2013年提出的另一種預測轉壓縮的方法，用整數而非實數編碼，速度更快。</dd></div></dl></section>
+<section class="section"><h2>收聽指南</h2>
+<div class="panel guide">
+<div><span class="k">誰該聽</span><p>想理解語言模型預訓練本質、對信息論和壓縮算法感興趣的工程師和AI研究者。</p></div>
+
+</div></section>
+<section class="related"><h2 class="sec-title">順著這個話題</h2><ul class="rel-list"><li><a href="/podcast/tw/p/2026-06-07-karpathy-压缩就是智能-预测与压缩是同一枚硬币的两面/"><span class="rel-t">壓縮就是智能：預測與壓縮是同一枚硬幣的兩面</span><span class="rel-s">Andrej Karpathy</span></a></li><li><a href="/podcast/tw/p/2026-07-16-karpathy-训练语言模型本质上是在训练一个文本压缩器/"><span class="rel-t">交叉熵損失為何勝出：它在訓練一個文本壓縮器</span><span class="rel-s">Andrej Karpathy</span></a></li><li><a href="/podcast/tw/p/2026-08-26-zhangxiaojun-k3无颠覆性创新-但把模型规模推上一个数量级/"><span class="rel-t">K3無顛覆創新，但把激活參數推到100B量級</span><span class="rel-s">張小珺·商業訪談錄</span></a></li><li><a href="/podcast/tw/p/2026-08-19-zhangxiaojun-17岁ai原住民-学数学的理由-变成了向大学证明能吃苦/"><span class="rel-t">17歲AI原住民：學數學的理由，變成了向大學證明能吃苦</span><span class="rel-s">張小珺·商業訪談錄</span></a></li><li><a href="/podcast/tw/p/2026-07-22-zhangxiaojun-具身数据没scale-up-gpt-1时刻就还没到/"><span class="rel-t">具身智能還沒到GPT-1時刻，卡在數據沒scale up</span><span class="rel-s">張小珺·商業訪談錄</span></a></li></ul></section>
+<nav class="prevnext"><a href="/podcast/tw/p/2026-11-17-a16z-ai研究员已经存在-但还没学会-品味/"><span class="lbl">← 更新</span><strong>AI研究員已經存在，但還沒學會「品味」</strong></a><a class="r" href="/podcast/tw/p/2026-11-17-ilt-美国已为7000万儿童自动开户-账户永久不可被国会撤销/"><span class="lbl">更早 →</span><strong>美國已為7000萬兒童自動開戶，賬戶永久不可被國會撤銷</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>原節目</h4>
+<div class="row"><span>節目</span><span>Andrej Karpathy</span></div>
+<div class="row"><span>原標題</span><span>How to compress text to 1 bit per character | Compression is Intelligence Part 3</span></div>
+<div class="row"><span>發布</span><span>2026-11-17</span></div>
+<div class="row"><span>時長</span><span>37:41</span></div>
+<a class="row" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s" target="_blank" rel="noopener"><span>原頁面</span><span>打開 ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>本篇結構</h4><nav class="toc"><a href="#p0"><span class="t">6:05</span><span>每段文本對應數軸上一個實數</span></a>
+<a href="#p1"><span class="t">11:08</span><span>解碼只需反覆調用同一個模型</span></a>
+<a href="#p2"><span class="t">15:12</span><span>所需比特數就是香農信息量本身</span></a>
+<a href="#p3"><span class="t">22:21</span><span>預訓練本質是在最小化壓縮後的比特數</span></a>
+<a href="#p4"><span class="t">23:21</span><span>模型越大，對可預測文本壓縮得越狠</span></a>
+<a href="#p5"><span class="t">31:25</span><span>真正公平的壓縮率要把模型本身算進去</span></a>
+<a href="#p6"><span class="t">33:26</span><span>讓模型邊壓縮邊微調，學習速度也被計入壓縮率</span></a></nav></div>
+
+<div class="panel"><h4>這篇是怎麼來的</h4>
+<div class="row"><span>成稿評分</span><span>7 / 10</span></div>
+<div class="row"><span>文稿來源</span><span>YouTube 字幕</span></div>
+<div class="row"><span>文稿字數</span><span>7112</span></div>
+<div class="row"><span>語速核驗</span><span>188.7 wpm</span></div>
+<div class="row"><span>逐字校驗金句</span><span>7 條</span></div>
+<div class="row"><span>回溯校驗數字</span><span>4 條</span></div>
+<div class="row"><span>質檢剔除</span><span>1 處</span></div>
+<p class="note">金句在逐字稿裡逐字比對過，數字回原文核對過；對不上的當場刪掉，不上站。
+成稿另經一道獨立評審（信息密度／忠實度／選擇力／具體性／中文），低於 7 分不展示。
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>原聲 · <a href="https://ourword.ai">OurWord.ai</a>的播客線。內容為原播客的中文深讀，
+版權歸各節目所有；每篇都附原節目鏈接，請去支持原作者。</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/tw/" lang="zh">人類世界生存法則</a> · <a href="/podcast/tw/">原聲</a></div>
+<div class="links"><a href="/podcast/tw/">首頁</a><a href="/podcast/tw/zt/founders/">專題</a><a href="/podcast/tw/sources/">信源</a>
+<a href="/podcast/tw/log/">更新日誌</a><a href="/podcast/tw/feed.xml">RSS</a>
+<a href="/podcast/tw/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">源碼</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=2457e29027" defer></script>
+</body></html>

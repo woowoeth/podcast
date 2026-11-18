@@ -1,0 +1,114 @@
+{
+ "slug": "2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测",
+ "of": "karpathy-32e0251daa",
+ "source_lang": "en",
+ "title": "Compress text to under 1 bit per character: arithmetic coding reveals compression is prediction",
+ "dek": "Any text predictor can be transformed into a nearly lossless compressor via arithmetic coding, and conversely any compressor can recover the prediction distribution—compression rates fundamentally depend on how well the language model predicts.",
+ "why": "Uses visualization to clarify the mathematics of arithmetic coding, extends to the essence of pretraining and the‘compression is intelligence’argument. High information density but theoretical; suited for those wanting to understand language model training principles.",
+ "who": "Engineers and AI researchers interested in understanding the essence of language model pretraining, information theory, and compression algorithms.",
+ "skip": "",
+ "tags": [
+  "Information theory",
+  "Language models",
+  "Arithmetic coding",
+  "Pretraining",
+  "Compression"
+ ],
+ "points": [
+  {
+   "h": "Any text maps to a unique real number on the number line",
+   "body": "The algorithm encodes any text into an extremely specific real number between 0 and 1. The idea is to view every possible string as occupying a range on the number line, where the range's width equals the probability the model assigns to that text. The more common a string, the wider its range; given any number falling within that range, plus the text length, a receiver can uniquely recover the original text. The entire compression algorithm's core is finding a number in that range with the shortest binary representation."
+  },
+  {
+   "h": "Decoders need an identical model to recover the prediction",
+   "body": "Decoding mirrors encoding: the receiver first runs the model on empty context to get the first distribution, then infers the first character by seeing which character's range the received number falls into. The character is then fed back into the model to get the next distribution, and the process continues checking where the number falls—repeating until reaching the character count the sender specified. The critical requirement is that both sides must use exactly the same model; otherwise the distributions won't match and the entire scheme fails."
+  },
+  {
+   "h": "Required bits equal Shannon's information measure exactly",
+   "body": "To guarantee representing a number within a range of probability p using k bits or fewer requires 2^-k < p; rearranging shows k must be at least -log2(p)—precisely Shannon's definition of information. This means arithmetic coding is in an approximate sense a concrete implementation of the Shannon limit: the compressed message size nearly equals the text's information content as seen by the model, with only some rounding error and fixed overhead for recording message length."
+  },
+  {
+   "h": "Pretraining is fundamentally about minimizing compressed bit count",
+   "body": "A model's probability for text can be expanded as a product of successive single-character prediction probabilities; taking the negative logarithm converts it to a sum of‘costs’—this is cross-entropy, the loss function minimized during pretraining. Thus pretraining can be reframed: the goal is not training a‘next-word predictor’but rather training‘the best text compressor’—the number to minimize is simply how many bits each training sample can be compressed to."
+  },
+  {
+   "h": "Larger models compress highly predictable text far more aggressively",
+   "body": "Encoding a mathematics history text with the 3.7 million-parameter NanoGPT requires 254 bits—roughly 2 bits per character, double Shannon's estimate. Switching to the open-source Qwen model with 500 million parameters, the same text's last two words require only 5 bits, compressing the whole to under 1 bit per character. For highly predictable text like the U.S. Constitution preamble, Qwen barely needs additional bits after the opening phrases—the entire text uses only about 10 bits, two orders of magnitude better than the Huffman encoding demonstrated at the start."
+  },
+  {
+   "h": "Fair compression rates must include the model's own size",
+   "body": "Without including the decoder program's (including the model itself) size in the final compressed total, you can cheat: hardcode Wikipedia into the decoder so the alleged compression payload can be arbitrarily small. The Hutter Prize accounts for this by including decoder size in its scoring precisely to prevent such cheating. By this metric, of two models with equal predictive ability, the one with fewer parameters compresses better—echoing the intuition that‘clearer understanding depends on fewer universal principles, not massive memorized facts’."
+  },
+  {
+   "h": "Learning speed during adaptation counts as part of compression rate",
+   "body": "If during encoding and decoding the model backpropagates on each new token and continuously fine-tunes its weights, as long as updates are deterministic and perfectly synchronized on both encoding and decoding sides, both parties can maintain prediction consistency. Then the final compression rate depends not only on the model's static predictive ability but also on how fast it adapts to new context—better learning rates yield better compression. This provides a third pillar for‘compression is intelligence’: effective compression algorithms need models that both predict well, are small in size, and learn fast."
+  }
+ ],
+ "terms": [
+  {
+   "term": "arithmetic coding",
+   "def": "An encoding method that transforms any prediction model into a near-optimal lossless compressor."
+  },
+  {
+   "term": "Hutter Prize",
+   "def": "An award for algorithms that compress 1GB of Wikipedia to the smallest size, including decoder program volume."
+  },
+  {
+   "term": "cross-entropy",
+   "def": "A measure of the difference between a model's predicted distribution and the true distribution; the loss function minimized during pretraining."
+  },
+  {
+   "term": "asymmetric numeral system",
+   "def": "An alternative method proposed in 2013 to convert predictions into compression, using integer rather than real number encoding, with faster speed."
+  }
+ ],
+ "facts": [
+  {
+   "k": "NanoGPT parameter count",
+   "v": "3.7 million"
+  },
+  {
+   "k": "Sample text encoding with NanoGPT",
+   "v": "254"
+  },
+  {
+   "k": "U.S. Constitution preamble with Qwen",
+   "v": "about 10"
+  },
+  {
+   "k": "Bits to encode word \"math\"",
+   "v": "10"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "each time a probability gets chopped in half, the information content increases by one bit",
+   "translated": false
+  },
+  {
+   "text": "this quantity, the negative log p that we wrote down, Is not actually the Shannon information of the message, because this value p is representing the probability of the text according to the model, not the true probability of seeing that text",
+   "translated": false
+  },
+  {
+   "text": "a mathematically equivalent, but I think psychologically distinct, framing is to say that the objective is not prediction per se. It's to create the best possible text compressor",
+   "translated": false
+  },
+  {
+   "text": "isn't it kind of disingenuous to praise an algorithm for compressing this passage so much if it's just calling out to some massive model that's basically memorized that passage somewhere in its hundreds of millions of weights",
+   "translated": false
+  },
+  {
+   "text": "if you actually wanted to send somebody a gigabyte of Wikipedia in a compressed package, the raw data stream coming out of that arithmetic coding would be useless if you didn't also give them the means of decoding it",
+   "translated": false
+  },
+  {
+   "text": "the better the learning rate, the better the compression",
+   "translated": false
+  },
+  {
+   "text": "I was just genuinely surprised that compression takes off many more boxes than I would have guessed the first time that I ever thought about the seemingly innocent task of making files smaller",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}

@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compress text to under 1 bit per character: arithmetic coding reveals compression is prediction — Andrej Karpathy · Podcast</title>
+<meta name="description" content="Any text predictor can be transformed into a nearly lossless compressor via arithmetic coding, and conversely any compressor can recover the prediction distribution—compression rates fundamentally depend on how well the language model predicts.">
+<meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+<link rel="canonical" href="https://ourword.ai/podcast/en/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Podcast">
+<meta property="og:locale" content="en_US">
+<meta property="og:title" content="Compress text to under 1 bit per character: arithmetic coding reveals compression is prediction — Andrej Karpathy · Podcast">
+<meta property="og:description" content="Any text predictor can be transformed into a nearly lossless compressor via arithmetic coding, and conversely any compressor can recover the prediction distribution—compression rates fundamentally depend on how well the language model predicts.">
+<meta property="og:url" content="https://ourword.ai/podcast/en/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/">
+<meta property="og:image" content="https://ourword.ai/podcast/assets/cover/574b8c7bf81d687f.jpg"><meta property="og:image:width" content="600"><meta property="og:image:height" content="600">
+<meta property="article:published_time" content="2026-11-17T16:43:16Z">
+<meta property="article:modified_time" content="2026-11-18T03:25:54Z">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Compress text to under 1 bit per character: arithmetic coding reveals compression is prediction — Andrej Karpathy · Podcast">
+<meta name="twitter:description" content="Any text predictor can be transformed into a nearly lossless compressor via arithmetic coding, and conversely any compressor can recover the prediction distribution—compression rates fundamentally depend on how well the language model predicts.">
+<meta name="twitter:image" content="https://ourword.ai/podcast/assets/cover/574b8c7bf81d687f.jpg">
+<link rel="icon" type="image/svg+xml" href="/podcast/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/podcast/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="Podcast" href="/podcast/en/feed.xml">
+<link rel="alternate" hreflang="zh-Hans" href="https://ourword.ai/podcast/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/">
+<link rel="alternate" hreflang="zh-Hant" href="https://ourword.ai/podcast/tw/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/">
+<link rel="alternate" hreflang="en" href="https://ourword.ai/podcast/en/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/">
+<link rel="alternate" hreflang="x-default" href="https://ourword.ai/podcast/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/">
+<script>(function(){try{var K='hwx_lang',p=location.pathname;var tw=/^\/podcast\/tw(\/|$)/.test(p),en=/^\/podcast\/en(\/|$)/.test(p);var cur=en?'en':(tw?'tw':'sc');var bare=p.replace(/^\/podcast\/(tw|en)/,'/podcast')||'/podcast/';var to={sc:bare,tw:bare.replace(/^\/podcast/,'/podcast/tw'),en:bare.replace(/^\/podcast/,'/podcast/en')};var saved=null;try{saved=localStorage.getItem(K)}catch(e){}if(cur!=='sc'){if(!saved){try{localStorage.setItem(K,cur)}catch(e){}}}else{var L=(navigator.languages||[navigator.language||'']).join(',');var want=saved||(/zh-(hant|tw|hk|mo)/i.test(L)?'tw':'sc');if(want==='en'){var g=document.getElementById('lang-toggle');if(!(g&&g.getAttribute('data-en')))want='sc'}if(want!=='sc'){location.replace(to[want]);return}}document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('lang-toggle');if(!b)return;var hasEn=!!b.getAttribute('data-en');var sel=document.createElement('select');sel.id='lang-toggle';sel.className=b.className;var _en=document.documentElement.lang.slice(0,2)==='en';sel.setAttribute('aria-label',_en?'Language':'\u8bed\u8a00 Language');var opts=[['sc','\u7b80','zh-Hans'],['tw','\u7e41','zh-Hant']];if(hasEn)opts.push(['en','EN','en']);opts.forEach(function(kv){var o=document.createElement('option');o.value=kv[0];o.textContent=kv[1];if(kv[2])o.lang=kv[2];if(kv[0]===cur)o.selected=true;sel.appendChild(o)});sel.onchange=function(){if(sel.value===cur)return;try{localStorage.setItem(K,sel.value)}catch(e){};location.href=to[sel.value]};b.parentNode.replaceChild(sel,b)})}catch(e){}})();</script>
+<link rel="stylesheet" href="/podcast/assets/site.css?v=6982a60148">
+<script>try{var t=localStorage.getItem('podcast-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/podcast/*"},{"not":{"href_matches":"/podcast/*.xml"}},{"not":{"href_matches":"/podcast/*.json"}},{"not":{"href_matches":"/podcast/*.txt"}},{"not":{"href_matches":"/podcast/assets/*"}}]},"eagerness":"moderate"}]}</script>
+<script>window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config','G-DHD3WEXQ8T');
+(function(){function go(){var s=document.createElement('script');s.async=1;
+s.src='https://www.googletagmanager.com/gtag/js?id=G-DHD3WEXQ8T';
+document.head.appendChild(s)}
+if(window.requestIdleCallback){addEventListener('load',function(){
+requestIdleCallback(go,{timeout:3000})})}
+else{addEventListener('load',function(){setTimeout(go,1200)})}})();</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "PodcastEpisode", "@id": "https://ourword.ai/podcast/en/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/#episode", "name": "Compress text to under 1 bit per character: arithmetic coding reveals compression is prediction", "headline": "Compress text to under 1 bit per character: arithmetic coding reveals compression is prediction", "description": "Any text predictor can be transformed into a nearly lossless compressor via arithmetic coding, and conversely any compressor can recover the prediction distribution—compression rates fundamentally depend on how well the language model predicts.", "abstract": "Any text predictor can be transformed into a nearly lossless compressor via arithmetic coding, and conversely any compressor can recover the prediction distribution—compression rates fundamentally depend on how well the language model predicts.", "datePublished": "2026-11-17T16:43:16Z", "dateModified": "2026-11-18T03:25:54Z", "url": "https://ourword.ai/podcast/en/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/", "timeRequired": "PT37M", "partOfSeries": {"@type": "PodcastSeries", "name": "Andrej Karpathy", "url": "https://ourword.ai/podcast/en/s/karpathy/"}, "inLanguage": "en", "isBasedOn": "https://www.youtube.com/watch?v=qbsb9DpdZ6s", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "keywords": "Information theory, Language models, Arithmetic coding, Pretraining, Compression, arithmetic coding, Hutter Prize, cross-entropy, asymmetric numeral system, NanoGPT parameter count, Sample text encoding with NanoGPT, U.S. Constitution preamble with Qwen, Bits to encode word \"math\"", "isAccessibleForFree": true, "speakable": {"@type": "SpeakableSpecification", "cssSelector": [".dek-lead", ".point .body"]}}, {"@type": "Article", "@id": "https://ourword.ai/podcast/en/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/#deepread", "headline": "Compress text to under 1 bit per character: arithmetic coding reveals compression is prediction", "description": "Any text predictor can be transformed into a nearly lossless compressor via arithmetic coding, and conversely any compressor can recover the prediction distribution—compression rates fundamentally depend on how well the language model predicts.", "articleBody": "Any text predictor can be transformed into a nearly lossless compressor via arithmetic coding, and conversely any compressor can recover the prediction distribution—compression rates fundamentally depend on how well the language model predicts.\n[6:05] Any text maps to a unique real number on the number line。The algorithm encodes any text into an extremely specific real number between 0 and 1. The idea is to view every possible string as occupying a range on the number line, where the range's width equals the probability the model assigns to that text. The more common a string, the wider its range; given any number falling within that range, plus the text length, a receiver can uniquely recover the original text. The entire compression algorithm's core is finding a number in that range with the shortest binary representation.\n[11:08] Decoders need an identical model to recover the prediction。Decoding mirrors encoding: the receiver first runs the model on empty context to get the first distribution, then infers the first character by seeing which character's range the received number falls into. The character is then fed back into the model to get the next distribution, and the process continues checking where the number falls—repeating until reaching the character count the sender specified. The critical requirement is that both sides must use exactly the same model; otherwise the distributions won't match and the entire scheme fails.\n[15:12] Required bits equal Shannon's information measure exactly。To guarantee representing a number within a range of probability p using k bits or fewer requires 2^-k < p; rearranging shows k must be at least -log2(p)—precisely Shannon's definition of information. This means arithmetic coding is in an approximate sense a concrete implementation of the Shannon limit: the compressed message size nearly equals the text's information content as seen by the model, with only some rounding error and fixed overhead for recording message length.\n[22:21] Pretraining is fundamentally about minimizing compressed bit count。A model's probability for text can be expanded as a product of successive single-character prediction probabilities; taking the negative logarithm converts it to a sum of‘costs’—this is cross-entropy, the loss function minimized during pretraining. Thus pretraining can be reframed: the goal is not training a‘next-word predictor’but rather training‘the best text compressor’—the number to minimize is simply how many bits each training sample can be compressed to.\n[23:21] Larger models compress highly predictable text far more aggressively。Encoding a mathematics history text with the 3.7 million-parameter NanoGPT requires 254 bits—roughly 2 bits per character, double Shannon's estimate. Switching to the open-source Qwen model with 500 million parameters, the same text's last two words require only 5 bits, compressing the whole to under 1 bit per character. For highly predictable text like the U.S. Constitution preamble, Qwen barely needs additional bits after the opening phrases—the entire text uses only about 10 bits, two orders of magnitude better than the Huffman encoding demonstrated at the start.\n[31:25] Fair compression rates must include the model's own size。Without including the decoder program's (including the model itself) size in the final compressed total, you can cheat: hardcode Wikipedia into the decoder so the alleged compression payload can be arbitrarily small. The Hutter Prize accounts for this by including decoder size in its scoring precisely to prevent such cheating. By this metric, of two models with equal predictive ability, the one with fewer parameters compresses better—echoing the intuition that‘clearer understanding depends on fewer universal principles, not massive memorized facts’.\n[33:26] Learning speed during adaptation counts as part of compression rate。If during encoding and decoding the model backpropagates on each new token and continuously fine-tunes its weights, as long as updates are deterministic and perfectly synchronized on both encoding and decoding sides, both parties can maintain prediction consistency. Then the final compression rate depends not only on the model's static predictive ability but also on how fast it adapts to new context—better learning rates yield better compression. This provides a third pillar for‘compression is intelligence’: effective compression algorithms need models that both predict well, are small in size, and learn fast.\n[2:02] Grant Sanderson：「each time a probability gets chopped in half, the information content increases by one bit」\n[20:18] Grant Sanderson：「this quantity, the negative log p that we wrote down, Is not actually the Shannon information of the message, because this value p is representing the probability of the text according to the model, not the true probability of seeing that text」\n[22:21] Grant Sanderson：「a mathematically equivalent, but I think psychologically distinct, framing is to say that the objective is not prediction per se. It's to create the best possible text compressor」\n[24:21] Grant Sanderson：「isn't it kind of disingenuous to praise an algorithm for compressing this passage so much if it's just calling out to some massive model that's basically memorized that passage somewhere in its hundreds of millions of weights」\n[31:25] Grant Sanderson：「if you actually wanted to send somebody a gigabyte of Wikipedia in a compressed package, the raw data stream coming out of that arithmetic coding would be useless if you didn't also give them the means of decoding it」\n[33:26] Grant Sanderson：「the better the learning rate, the better the compression」\n[35:27] Grant Sanderson：「I was just genuinely surprised that compression takes off many more boxes than I would have guessed the first time that I ever thought about the seemingly innocent task of making files smaller」\n[22:21] NanoGPT parameter count：3.7 million\n[23:21] Sample text encoding with NanoGPT：254\n[23:21] U.S. Constitution preamble with Qwen：about 10\n[15:12] Bits to encode word \"math\"：10", "wordCount": 915, "inLanguage": "en", "datePublished": "2026-11-17T16:43:16Z", "dateModified": "2026-11-18T03:25:54Z", "url": "https://ourword.ai/podcast/en/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/", "about": {"@id": "https://ourword.ai/podcast/en/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/#episode"}, "isBasedOn": "https://www.youtube.com/watch?v=qbsb9DpdZ6s", "publisher": {"@type": "Organization", "name": "OurWord.ai", "url": "https://ourword.ai/"}, "isAccessibleForFree": true}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://ourword.ai/podcast/en/"}, {"@type": "ListItem", "position": 2, "name": "Andrej Karpathy", "item": "https://ourword.ai/podcast/en/s/karpathy/"}, {"@type": "ListItem", "position": 3, "name": "Compress text to under 1 bit per character: arithmetic coding reveals compression is prediction"}]}]}</script>
+</head>
+<body>
+<header class="mast"><div class="wrap">
+<div class="mast-top">
+<a class="brand" href="/podcast/en/"><span class="wordmark">Podcast<span class="dot">.</span></span></a>
+<div class="mast-side">
+
+<a class="pill ghost" id="lang-toggle" lang="zh" data-cur="en" data-en="1" href="/podcast/">中文</a>
+<button class="icon-btn" data-theme-toggle aria-label="Toggle light/dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v1.5M12 19.5V21M3 12h1.5M19.5 12H21M5.6 5.6l1.1 1.1M17.3 17.3l1.1 1.1M18.4 5.6l-1.1 1.1M6.7 17.3l-1.1 1.1"/><circle cx="12" cy="12" r="4"/></svg></button>
+</div></div>
+<p class="slogan">The world is too loud. Read what matters.</p>
+</div></header>
+<main class="wrap ep">
+<nav class="crumb"><a href="/podcast/en/">Home</a><span class="sep">/</span>
+<a href="/podcast/en/c/ai/">AI &amp; Tech</a><span class="sep">/</span><a href="/podcast/en/s/karpathy/">Andrej Karpathy</a>
+<span class="sep">/</span><span>2026-11-17</span></nav>
+
+<div class="ep-grid">
+<article>
+<div class="ep-head">
+<div class="kicker" data-cat="ai"><span class="src">Andrej Karpathy</span>
+<time class="date" datetime="2026-11-17T16:43:16Z">2026-11-17</time>
+<button class="share-btn" type="button" data-share data-share-title="Compress text to under 1 bit per character: arithmetic coding reveals compression is prediction" data-share-url="https://ourword.ai/podcast/en/e/karpathy-32e0251daa/" data-share-text="Compress text to under 1 bit per character: arithmetic coding reveals compression is prediction&#10;Andrej Karpathy · 37 min&#10;&#10;Any text predictor can be transformed into a nearly lossless compressor via arithmetic coding, and conversely any…&#10;&#10;https://ourword.ai/podcast/en/e/karpathy-32e0251daa/" aria-label="Copy share text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M12 3 8.5 6.5M12 3l3.5 3.5"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12"/></svg><span>Share</span></button></div>
+<h1>Compress text to under 1 bit per character: arithmetic coding reveals compression is prediction</h1>
+<p class="dek-lead">Any text predictor can be transformed into a nearly lossless compressor via arithmetic coding, and conversely any compressor can recover the prediction distribution—compression rates fundamentally depend on how well the language model predicts.</p>
+<div class="ep-meta"><span class="tag">Information theory</span><span class="tag">Language models</span><span class="tag">Arithmetic coding</span><span class="tag">Pretraining</span><span class="tag">Compression</span></div>
+</div>
+<div class="player" data-player-box>
+  <button class="video-facade" data-yt="qbsb9DpdZ6s" type="button"
+          aria-label="Play the original video">
+    <span class="frame">
+      <img src="https://i.ytimg.com/vi/qbsb9DpdZ6s/hq720.jpg" alt="" loading="lazy" width="1280"
+           onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/qbsb9DpdZ6s/hqdefault.jpg'">
+      <span class="play" aria-hidden="true"><svg viewBox="0 0 44 44" width="44" height="44" focusable="false"><circle cx="22" cy="22" r="21" fill="rgba(18,16,13,.55)" stroke="rgba(255,255,255,.92)" stroke-width="1.5"/><path d="M17 14.5 32 22 17 29.5Z" fill="#fff"/></svg></span>
+    </span>
+  </button>
+</div>
+
+<section class="section"><div class="why">Uses visualization to clarify the mathematics of arithmetic coding, extends to the essence of pretraining and the‘compression is intelligence’argument. High information density but theoretical; suited for those wanting to understand language model training principles.</div></section>
+
+<section class="section"><h2>The argument · tap a timestamp to hear it</h2><div class="point" id="p0"><a class="ts" data-t="365" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=365s" target="_blank" rel="noopener">6:05</a><div><h4>Any text maps to a unique real number on the number line</h4>
+<p class="body">The algorithm encodes any text into an extremely specific real number between 0 and 1. The idea is to view every possible string as occupying a range on the number line, where the range&#x27;s width equals the probability the model assigns to that text. The more common a string, the wider its range; given any number falling within that range, plus the text length, a receiver can uniquely recover the original text. The entire compression algorithm&#x27;s core is finding a number in that range with the shortest binary representation.</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p1"><a class="ts" data-t="668" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=668s" target="_blank" rel="noopener">11:08</a><div><h4>Decoders need an identical model to recover the prediction</h4>
+<p class="body">Decoding mirrors encoding: the receiver first runs the model on empty context to get the first distribution, then infers the first character by seeing which character&#x27;s range the received number falls into. The character is then fed back into the model to get the next distribution, and the process continues checking where the number falls—repeating until reaching the character count the sender specified. The critical requirement is that both sides must use exactly the same model; otherwise the distributions won&#x27;t match and the entire scheme fails.</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p2"><a class="ts" data-t="912" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=912s" target="_blank" rel="noopener">15:12</a><div><h4>Required bits equal Shannon&#x27;s information measure exactly</h4>
+<p class="body">To guarantee representing a number within a range of probability p using k bits or fewer requires 2^-k &lt; p; rearranging shows k must be at least -log2(p)—precisely Shannon&#x27;s definition of information. This means arithmetic coding is in an approximate sense a concrete implementation of the Shannon limit: the compressed message size nearly equals the text&#x27;s information content as seen by the model, with only some rounding error and fixed overhead for recording message length.</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p3"><a class="ts" data-t="1341" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=1341s" target="_blank" rel="noopener">22:21</a><div><h4>Pretraining is fundamentally about minimizing compressed bit count</h4>
+<p class="body">A model&#x27;s probability for text can be expanded as a product of successive single-character prediction probabilities; taking the negative logarithm converts it to a sum of‘costs’—this is cross-entropy, the loss function minimized during pretraining. Thus pretraining can be reframed: the goal is not training a‘next-word predictor’but rather training‘the best text compressor’—the number to minimize is simply how many bits each training sample can be compressed to.</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p4"><a class="ts" data-t="1401" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=1401s" target="_blank" rel="noopener">23:21</a><div><h4>Larger models compress highly predictable text far more aggressively</h4>
+<p class="body">Encoding a mathematics history text with the 3.7 million-parameter NanoGPT requires 254 bits—roughly 2 bits per character, double Shannon&#x27;s estimate. Switching to the open-source Qwen model with 500 million parameters, the same text&#x27;s last two words require only 5 bits, compressing the whole to under 1 bit per character. For highly predictable text like the U.S. Constitution preamble, Qwen barely needs additional bits after the opening phrases—the entire text uses only about 10 bits, two orders of magnitude better than the Huffman encoding demonstrated at the start.</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p5"><a class="ts" data-t="1885" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=1885s" target="_blank" rel="noopener">31:25</a><div><h4>Fair compression rates must include the model&#x27;s own size</h4>
+<p class="body">Without including the decoder program&#x27;s (including the model itself) size in the final compressed total, you can cheat: hardcode Wikipedia into the decoder so the alleged compression payload can be arbitrarily small. The Hutter Prize accounts for this by including decoder size in its scoring precisely to prevent such cheating. By this metric, of two models with equal predictive ability, the one with fewer parameters compresses better—echoing the intuition that‘clearer understanding depends on fewer universal principles, not massive memorized facts’.</p>
+<span class="spk">— Grant Sanderson</span></div></div>
+<div class="point" id="p6"><a class="ts" data-t="2006" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=2006s" target="_blank" rel="noopener">33:26</a><div><h4>Learning speed during adaptation counts as part of compression rate</h4>
+<p class="body">If during encoding and decoding the model backpropagates on each new token and continuously fine-tunes its weights, as long as updates are deterministic and perfectly synchronized on both encoding and decoding sides, both parties can maintain prediction consistency. Then the final compression rate depends not only on the model&#x27;s static predictive ability but also on how fast it adapts to new context—better learning rates yield better compression. This provides a third pillar for‘compression is intelligence’: effective compression algorithms need models that both predict well, are small in size, and learn fast.</p>
+<span class="spk">— Grant Sanderson</span></div></div></section>
+<section class="section"><h2>In their own words · checked verbatim</h2><blockquote class="quote"><p class="raw">each time a probability gets chopped in half, the information content increases by one bit</p>
+
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="122" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=122s" target="_blank" rel="noopener">2:02</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">this quantity, the negative log p that we wrote down, Is not actually the Shannon information of the message, because this value p is representing the probability of the text according to the model, not the true probability of seeing that text</p>
+
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="1218" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=1218s" target="_blank" rel="noopener">20:18</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">a mathematically equivalent, but I think psychologically distinct, framing is to say that the objective is not prediction per se. It&#x27;s to create the best possible text compressor</p>
+
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="1341" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=1341s" target="_blank" rel="noopener">22:21</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">isn&#x27;t it kind of disingenuous to praise an algorithm for compressing this passage so much if it&#x27;s just calling out to some massive model that&#x27;s basically memorized that passage somewhere in its hundreds of millions of weights</p>
+
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="1461" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=1461s" target="_blank" rel="noopener">24:21</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">if you actually wanted to send somebody a gigabyte of Wikipedia in a compressed package, the raw data stream coming out of that arithmetic coding would be useless if you didn&#x27;t also give them the means of decoding it</p>
+
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="1885" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=1885s" target="_blank" rel="noopener">31:25</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">the better the learning rate, the better the compression</p>
+
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="2006" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=2006s" target="_blank" rel="noopener">33:26</a></div>
+</blockquote>
+<blockquote class="quote"><p class="raw">I was just genuinely surprised that compression takes off many more boxes than I would have guessed the first time that I ever thought about the seemingly innocent task of making files smaller</p>
+
+<div class="attrib"><b>Grant Sanderson</b><a class="ts" data-t="2127" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=2127s" target="_blank" rel="noopener">35:27</a></div>
+</blockquote></section>
+<section class="section"><h2>Figures</h2><table class="facts"><tr><td class="k">NanoGPT parameter count</td><td class="v">3.7 million</td><td class="t"><a class="ts" data-t="1341" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=1341s" target="_blank" rel="noopener">22:21</a></td></tr>
+<tr><td class="k">Sample text encoding with NanoGPT</td><td class="v">254</td><td class="t"><a class="ts" data-t="1401" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=1401s" target="_blank" rel="noopener">23:21</a></td></tr>
+<tr><td class="k">U.S. Constitution preamble with Qwen</td><td class="v">about 10</td><td class="t"><a class="ts" data-t="1401" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=1401s" target="_blank" rel="noopener">23:21</a></td></tr>
+<tr><td class="k">Bits to encode word &quot;math&quot;</td><td class="v">10</td><td class="t"><a class="ts" data-t="912" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s&amp;t=912s" target="_blank" rel="noopener">15:12</a></td></tr></table></section>
+<section class="section"><h2>Glossary</h2><dl class="terms"><div><dt>arithmetic coding<span></span></dt><dd>An encoding method that transforms any prediction model into a near-optimal lossless compressor.</dd></div>
+<div><dt>Hutter Prize<span></span></dt><dd>An award for algorithms that compress 1GB of Wikipedia to the smallest size, including decoder program volume.</dd></div>
+<div><dt>cross-entropy<span></span></dt><dd>A measure of the difference between a model&#x27;s predicted distribution and the true distribution; the loss function minimized during pretraining.</dd></div>
+<div><dt>asymmetric numeral system<span></span></dt><dd>An alternative method proposed in 2013 to convert predictions into compression, using integer rather than real number encoding, with faster speed.</dd></div></dl></section>
+<section class="section"><h2>How to listen</h2>
+<div class="panel guide">
+<div><span class="k">Who it's for</span><p>Engineers and AI researchers interested in understanding the essence of language model pretraining, information theory, and compression algorithms.</p></div>
+
+</div></section>
+<section class="related"><h2 class="sec-title">More on this</h2><ul class="rel-list"><li><a href="/podcast/en/p/2026-06-07-karpathy-压缩就是智能-预测与压缩是同一枚硬币的两面/"><span class="rel-t">Compression Is Intelligence: Prediction and Compression Are Two Sides of the Same Coin</span><span class="rel-s">Andrej Karpathy</span></a></li><li><a href="/podcast/en/p/2026-07-16-karpathy-训练语言模型本质上是在训练一个文本压缩器/"><span class="rel-t">Why cross-entropy loss wins: it trains a text compressor</span><span class="rel-s">Andrej Karpathy</span></a></li><li><a href="/podcast/en/p/2026-08-26-zhangxiaojun-k3无颠覆性创新-但把模型规模推上一个数量级/"><span class="rel-t">K3 Has No Disruptive Innovation, but Pushes Activated Parameters to the 100B Scale</span><span class="rel-s" lang="zh">张小珺·商业访谈录</span></a></li><li><a href="/podcast/en/p/2026-08-19-zhangxiaojun-17岁ai原住民-学数学的理由-变成了向大学证明能吃苦/"><span class="rel-t">17-Year-Old AI Native: The Reason to Study Math Has Become Proving to Universities That I Can Endure Hardship</span><span class="rel-s" lang="zh">张小珺·商业访谈录</span></a></li><li><a href="/podcast/en/p/2026-07-22-zhangxiaojun-具身数据没scale-up-gpt-1时刻就还没到/"><span class="rel-t">Embodied AI hasn&#x27;t reached its GPT-1 moment — it&#x27;s stuck because the data hasn&#x27;t scaled up</span><span class="rel-s" lang="zh">张小珺·商业访谈录</span></a></li></ul></section>
+<nav class="prevnext"><a href="/podcast/en/p/2026-11-17-a16z-ai研究员已经存在-但还没学会-品味/"><span class="lbl">← Newer</span><strong>AI research assistants exist, but lack the judgment to know what&#x27;s worth pursuing</strong></a><a class="r" href="/podcast/en/p/2026-11-17-ilt-美国已为7000万儿童自动开户-账户永久不可被国会撤销/"><span class="lbl">Older →</span><strong>The U.S. has automatically opened accounts for 70 million children; these accounts cannot permanently be revoked by Congress</strong></a></nav>
+</article>
+
+<aside class="aside">
+<div class="panel"><h4>The episode</h4>
+<div class="row"><span>Show</span><span>Andrej Karpathy</span></div>
+<div class="row"><span>Original title</span><span>How to compress text to 1 bit per character | Compression is Intelligence Part 3</span></div>
+<div class="row"><span>Published</span><span>2026-11-17</span></div>
+<div class="row"><span>Length</span><span>37:41</span></div>
+<a class="row" href="https://www.youtube.com/watch?v=qbsb9DpdZ6s" target="_blank" rel="noopener"><span>Episode page</span><span>Open ↗</span></a>
+
+</div>
+
+<div class="panel"><h4>On this page</h4><nav class="toc"><a href="#p0"><span class="t">6:05</span><span>Any text maps to a unique real number on the number line</span></a>
+<a href="#p1"><span class="t">11:08</span><span>Decoders need an identical model to recover the prediction</span></a>
+<a href="#p2"><span class="t">15:12</span><span>Required bits equal Shannon&#x27;s information measure exactly</span></a>
+<a href="#p3"><span class="t">22:21</span><span>Pretraining is fundamentally about minimizing compressed bit count</span></a>
+<a href="#p4"><span class="t">23:21</span><span>Larger models compress highly predictable text far more aggressively</span></a>
+<a href="#p5"><span class="t">31:25</span><span>Fair compression rates must include the model&#x27;s own size</span></a>
+<a href="#p6"><span class="t">33:26</span><span>Learning speed during adaptation counts as part of compression rate</span></a></nav></div>
+
+<div class="panel"><h4>How this was made</h4>
+<div class="row"><span>Editorial score</span><span>7 / 10</span></div>
+<div class="row"><span>Transcript</span><span>YouTube captions</span></div>
+<div class="row"><span>Transcript words</span><span>7112</span></div>
+<div class="row"><span>Words per minute</span><span>188.7 wpm</span></div>
+<div class="row"><span>Quotes checked verbatim</span><span>7 quotes</span></div>
+<div class="row"><span>Figures checked against source</span><span>4 figures</span></div>
+<div class="row"><span>Dropped in QA</span><span>1 dropped</span></div>
+<p class="note">Every quote is matched word for word against the transcript and every figure is checked back to the source. Anything that cannot be found is cut, not published.
+A separate model then scores the finished piece on density, fidelity, selection and specificity. Below 7 out of 10 it is not shown.
+</p>
+</div>
+</aside>
+</div></main>
+<footer class="foot"><div class="wrap"><div class="foot-in">
+<div>Podcast · <a href="https://ourword.ai">OurWord.ai</a> — the podcast desk. Deep reads of other people's podcasts;
+copyright stays with each show. Every piece links to the original — please go support them.</div>
+<div class="family" style="margin:0 0 14px;font-size:13px;opacity:.72"><a href="/en/">OurWord</a> · <a href="/podcast/en/">Podcast</a></div>
+<div class="links"><a href="/podcast/en/">Home</a><a href="/podcast/en/sources/">Shows</a>
+<a href="/podcast/en/log/">Changelog</a><a href="/podcast/en/feed.xml">RSS</a>
+<a href="/podcast/en/llms.txt">llms.txt</a>
+<a href="https://github.com/woowoeth/podcast">Source</a></div>
+</div></div></footer>
+<script src="/podcast/assets/site.js?v=2457e29027" defer></script>
+</body></html>

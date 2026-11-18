@@ -1,6 +1,6 @@
 # Podcast — The world is too loud. Read what matters.
 
-1642 entries. Source: https://ourword.ai/podcast/en/ · Generated from the sources listed in https://ourword.ai/podcast/en/llms.txt
+1644 entries. Source: https://ourword.ai/podcast/en/ · Generated from the sources listed in https://ourword.ai/podcast/en/llms.txt
 
 ==============================================================================
 
@@ -118,6 +118,70 @@ why listen: Two researchers actually on the front lines of cutting-edge model de
 who it is for: Practitioners and investors who want to understand the internal processes of large-model R&D organizations and gauge how far AI-automated research has actually progressed.
 what to skip: The opening segment on RSI definitions and history (00:00-01:01) is low on information density; skip ahead to 03:04 for concrete workflow descriptions.
 tags: RSI, AI Alignment, Cutting-edge Research, OpenAI, Thinking Machines, Compute Power
+
+==============================================================================
+
+## Compress text to under 1 bit per character: arithmetic coding reveals compression is prediction
+
+- URL: https://ourword.ai/podcast/en/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/
+- show: Andrej Karpathy (https://ourword.ai/podcast/en/s/karpathy/)
+- original episode: How to compress text to 1 bit per character | Compression is Intelligence Part 3
+- published: 2026-11-17 · duration: 37:41
+- transcript: YouTube captions · 7112 words · timestamps are exact
+- verification: 7 quotes matched verbatim, 4 numbers traced to the transcript, review score 7/10
+
+**Any text predictor can be transformed into a nearly lossless compressor via arithmetic coding, and conversely any compressor can recover the prediction distribution—compression rates fundamentally depend on how well the language model predicts.**
+
+why listen: Uses visualization to clarify the mathematics of arithmetic coding, extends to the essence of pretraining and the‘compression is intelligence’argument. High information density but theoretical; suited for those wanting to understand language model training principles.
+
+### points
+
+[6:05] (Grant Sanderson) **Any text maps to a unique real number on the number line** — The algorithm encodes any text into an extremely specific real number between 0 and 1. The idea is to view every possible string as occupying a range on the number line, where the range's width equals the probability the model assigns to that text. The more common a string, the wider its range; given any number falling within that range, plus the text length, a receiver can uniquely recover the original text. The entire compression algorithm's core is finding a number in that range with the shortest binary representation.
+
+[11:08] (Grant Sanderson) **Decoders need an identical model to recover the prediction** — Decoding mirrors encoding: the receiver first runs the model on empty context to get the first distribution, then infers the first character by seeing which character's range the received number falls into. The character is then fed back into the model to get the next distribution, and the process continues checking where the number falls—repeating until reaching the character count the sender specified. The critical requirement is that both sides must use exactly the same model; otherwise the distributions won't match and the entire scheme fails.
+
+[15:12] (Grant Sanderson) **Required bits equal Shannon's information measure exactly** — To guarantee representing a number within a range of probability p using k bits or fewer requires 2^-k < p; rearranging shows k must be at least -log2(p)—precisely Shannon's definition of information. This means arithmetic coding is in an approximate sense a concrete implementation of the Shannon limit: the compressed message size nearly equals the text's information content as seen by the model, with only some rounding error and fixed overhead for recording message length.
+
+[22:21] (Grant Sanderson) **Pretraining is fundamentally about minimizing compressed bit count** — A model's probability for text can be expanded as a product of successive single-character prediction probabilities; taking the negative logarithm converts it to a sum of‘costs’—this is cross-entropy, the loss function minimized during pretraining. Thus pretraining can be reframed: the goal is not training a‘next-word predictor’but rather training‘the best text compressor’—the number to minimize is simply how many bits each training sample can be compressed to.
+
+[23:21] (Grant Sanderson) **Larger models compress highly predictable text far more aggressively** — Encoding a mathematics history text with the 3.7 million-parameter NanoGPT requires 254 bits—roughly 2 bits per character, double Shannon's estimate. Switching to the open-source Qwen model with 500 million parameters, the same text's last two words require only 5 bits, compressing the whole to under 1 bit per character. For highly predictable text like the U.S. Constitution preamble, Qwen barely needs additional bits after the opening phrases—the entire text uses only about 10 bits, two orders of magnitude better than the Huffman encoding demonstrated at the start.
+
+[31:25] (Grant Sanderson) **Fair compression rates must include the model's own size** — Without including the decoder program's (including the model itself) size in the final compressed total, you can cheat: hardcode Wikipedia into the decoder so the alleged compression payload can be arbitrarily small. The Hutter Prize accounts for this by including decoder size in its scoring precisely to prevent such cheating. By this metric, of two models with equal predictive ability, the one with fewer parameters compresses better—echoing the intuition that‘clearer understanding depends on fewer universal principles, not massive memorized facts’.
+
+[33:26] (Grant Sanderson) **Learning speed during adaptation counts as part of compression rate** — If during encoding and decoding the model backpropagates on each new token and continuously fine-tunes its weights, as long as updates are deterministic and perfectly synchronized on both encoding and decoding sides, both parties can maintain prediction consistency. Then the final compression rate depends not only on the model's static predictive ability but also on how fast it adapts to new context—better learning rates yield better compression. This provides a third pillar for‘compression is intelligence’: effective compression algorithms need models that both predict well, are small in size, and learn fast.
+
+### verbatim quotes
+
+[2:02] Grant Sanderson: "each time a probability gets chopped in half, the information content increases by one bit"
+
+[20:18] Grant Sanderson: "this quantity, the negative log p that we wrote down, Is not actually the Shannon information of the message, because this value p is representing the probability of the text according to the model, not the true probability of seeing that text"
+
+[22:21] Grant Sanderson: "a mathematically equivalent, but I think psychologically distinct, framing is to say that the objective is not prediction per se. It's to create the best possible text compressor"
+
+[24:21] Grant Sanderson: "isn't it kind of disingenuous to praise an algorithm for compressing this passage so much if it's just calling out to some massive model that's basically memorized that passage somewhere in its hundreds of millions of weights"
+
+[31:25] Grant Sanderson: "if you actually wanted to send somebody a gigabyte of Wikipedia in a compressed package, the raw data stream coming out of that arithmetic coding would be useless if you didn't also give them the means of decoding it"
+
+[33:26] Grant Sanderson: "the better the learning rate, the better the compression"
+
+[35:27] Grant Sanderson: "I was just genuinely surprised that compression takes off many more boxes than I would have guessed the first time that I ever thought about the seemingly innocent task of making files smaller"
+
+### figures
+
+- NanoGPT parameter count: 3.7 million [22:21]
+- Sample text encoding with NanoGPT: 254 [23:21]
+- U.S. Constitution preamble with Qwen: about 10 [23:21]
+- Bits to encode word "math": 10 [15:12]
+
+### glossary
+
+- arithmetic coding: An encoding method that transforms any prediction model into a near-optimal lossless compressor.
+- Hutter Prize: An award for algorithms that compress 1GB of Wikipedia to the smallest size, including decoder program volume.
+- cross-entropy: A measure of the difference between a model's predicted distribution and the true distribution; the loss function minimized during pretraining.
+- asymmetric numeral system: An alternative method proposed in 2013 to convert predictions into compression, using integer rather than real number encoding, with faster speed.
+
+who it is for: Engineers and AI researchers interested in understanding the essence of language model pretraining, information theory, and compression algorithms.
+tags: Information theory, Language models, Arithmetic coding, Pretraining, Compression
 
 ==============================================================================
 
@@ -18878,6 +18942,65 @@ why listen: For anyone trying to understand exactly where the coordination probl
 who it is for: Founders, investors, and policy researchers interested in AI regulation's direction, especially those wanting to understand the mechanics behind why companies can't voluntarily slow down.
 what to skip: The opening background segment (0:00–1:17) has low information density and can be skipped.
 tags: AI governance, Compute governance, Arms race, Interpretability, International agreements, Safety testing
+
+==============================================================================
+
+## Alan Watts: The controller in your head is not the real you
+
+- URL: https://ourword.ai/podcast/en/p/2026-10-27-philosophize-艾伦-瓦兹-你脑中那个控制者不是真正的你/
+- show: Philosophize This! (https://ourword.ai/podcast/en/s/philosophize/)
+- original episode: Episode #253 ... The Philosophy of Alan Watts - What Am I?
+- published: 2026-10-27 · duration: 36:04
+- transcript: Machine transcription · 7667 words · timestamps are exact
+- verification: 7 quotes matched verbatim, 0 numbers traced to the transcript, review score 8/10
+
+**Watts argues that the inner voice we habitually identify with—the one monitoring and controlling ourselves—is merely a learned pattern of muscular tension, while the true self is more like a whirlpool maintaining its shape within a larger process.**
+
+why listen: For those seeking to understand Alan Watts's often-cited but frequently misunderstood concept of self; the argument's pacing is slow, and the middle section's physics analogies carry low information density.
+
+### points
+
+[1:03] (Stephen West) **The overseer self haunting your dinner was learned, not innate** — Watts begins with a daily scenario: when eating with friends, alongside the you that speaks and eats, there's apparently another you lurking behind your eyes, constantly scrutinizing the conversation and asking 'Did what I just said sound smart?' and 'Do they really like me?' He argues that understanding the source of this habitual self-examination is the starting point for grasping his entire philosophy.
+
+[4:14] (Stephen West) **Being told to be yourself is the trap itself** — Watts invokes anthropologist Gregory Bateson's concept of the double bind: children are taught from childhood to be free, autonomous individuals, yet this 'freedom' is itself prescribed—when parents say 'you should love your mother, but only if you truly love her, not because I told you to.' This contradiction forces children to abandon genuine spontaneity to prove their own spontaneity, and over time they internalize a persistent inner overseer that judges whether their feelings are 'authentic.'
+
+[8:24] (Stephen West) **That controlling voice is just a practiced habit** — Watts poses a crucial question: how much of you does this controller-like self-monitoring actually represent? He argues that we identify so strongly with this voice simply because we've practiced it repeatedly until it became natural—like doing the same gym movement daily until it feels innate to your body. This mental image, combined with physical habits of tension (jaw clenching, focused gaze), creates the illusion that 'this self is real.'
+
+[12:31] (Stephen West) **Your attention is a radar, but the radar isn't all of you** — Watts compares human attention to a Doppler radar on a ship, constantly scanning for changes, threats, and opportunities; we easily mistake what the radar sweeps up for the entirety of our lives. But heartbeat, digestion, countless unconscious calculations are always happening, and breathing can be both voluntary and automatic—this shows that 'you' vastly exceeds the small portion you actively focus on.
+
+[16:41] (Stephen West) **Your skin is a bridge, not a barrier** — Common sense treats skin as the boundary of self, but Watts argues that skin is precisely where you touch everything: when you breathe, gases constantly enter and leave your body; when you speak, sound waves bounce around the room and enter someone else's ear. He says 'it's both bridge and barrier,' questioning the default assumption that skin defines the self's edge.
+
+[17:45] (Stephen West) **A bee and flower apart lose all meaning** — Watts uses a biological example: a bee and a flower are interdependent in their biological activity—to understand one, you must understand the other; they form a single interconnected living system, not two independent entities you can understand separately. He extends this logic to the relationship between humans and their environment.
+
+[21:55] (Stephen West) **You're a whirlpool, not a fixed thing** — Watts uses the whirlpool as his central image: the water forming a whirlpool constantly flows and changes, yet the whirlpool itself maintains a recognizable shape—you can point and say 'that's a whirlpool.' He says 'the only constancy about us is activity, not substance'—your individuality still exists, but not as that fixed little controller behind your eyes; instead, as a recognizable pattern maintained within a larger process.
+
+[28:07] (Stephen West) **Vedanta: your deepest self is ultimate reality itself** — Watts introduces the Vedantic relationship between Atman (your deepest self) and Brahman (ultimate reality), arguing they're actually the same thing. He uses an apple and apple tree metaphor: you're not a stranger parachuted into the universe from elsewhere, but what this tree is doing right now—you are what reality itself is doing. This echoes his provocative claim: we are essentially divine.
+
+### verbatim quotes
+
+[1:03] Alan Watts (paraphrasing Stephen West): "what do you mean? What do you feel when you say the word I?"
+
+[5:16] Stephen West: "I'm supposed to abdicate my freedom and spontaneity in order to establish my freedom and spontaneity."
+
+[9:28] Stephen West: "the physical referent for the psychological image of ourselves"
+
+[10:29] Stephen West: "what we take to be the thinker is itself just one of the thoughts. And what we take to be the feeler is itself just one of the feelings."
+
+[17:45] Stephen West: "it is as much a bridge as it is a barrier"
+
+[21:55] Stephen West: "The only thing constant about us at all is the doing rather than the being"
+
+[32:16] Stephen West: "the universe playing hide-and-seek with itself"
+
+### glossary
+
+- double bind: Two contradictory instructions imposed on someone simultaneously, creating an impossible bind (Gregory Bateson).
+- Vedanta: An Indian philosophical tradition positing that individual consciousness (Atman) and ultimate reality (Brahman) are essentially identical.
+- the transaction: A fundamental process viewed from two sides that cannot be meaningfully separated; exemplified by buying and selling (John Dewey).
+
+who it is for: People interested in how Eastern philosophy reshapes Western conceptions of self, especially those familiar with scattered Watts clips who want to understand his argumentative framework systematically.
+what to skip: Near 23:58, the transcription of the quantum electron experiments section is confused and repetitive; skip directly to the Schrödinger part (around 27:07).
+tags: Self-awareness, Eastern philosophy, Vedanta, Self and environment, Process philosophy, Alan Watts
 
 ==============================================================================
 

@@ -1,6 +1,6 @@
 # 原聲 — 世界太吵，來原聲聽播客
 
-1642 entries. Source: https://ourword.ai/podcast/tw/ · Generated from the sources listed in https://ourword.ai/podcast/tw/llms.txt
+1644 entries. Source: https://ourword.ai/podcast/tw/ · Generated from the sources listed in https://ourword.ai/podcast/tw/llms.txt
 
 ==============================================================================
 
@@ -134,6 +134,77 @@
 
 ==============================================================================
 
+## 把文本壓到每字符不到1比特：算術編碼揭示壓縮即預測
+
+- URL: https://ourword.ai/podcast/tw/p/2026-11-17-karpathy-把文本压到每字符不到1比特-算术编码揭示压缩即预测/
+- 節目 / show: Andrej Karpathy (https://ourword.ai/podcast/tw/s/karpathy/)
+- 原集標題 / original episode: How to compress text to 1 bit per character | Compression is Intelligence Part 3
+- 發布 / published: 2026-11-17 · 時長 / duration: 37:41
+- 文稿來源 / transcript: YouTube 字幕 · 7112 words · timestamps are exact
+- 校驗 / verification: 7 quotes matched verbatim, 4 numbers traced to the transcript, review score 7/10
+
+**任何文本預測器都能通過算術編碼幾乎無損地變成壓縮器，反過來壓縮器也能還原出預測分布——壓縮率本質上取決於語言模型預測的好壞。**
+
+為什麼聽 / why: 用可視化方式講清算術編碼的數學原理，並延伸到預訓練的本質和「壓縮即智能」的論證，信息密度高但偏理論，適合想理解語言模型訓練原理的人。
+
+### 核心論點 / points
+
+[6:05] (Grant Sanderson) **每段文本對應數軸上一個實數** — 算法把任意一段文本編碼成0到1之間一個極其特定的實數。想法是把每個可能的字符串視為佔據數軸上一段區間，區間寬度等於模型給這段文本的概率。字符串越常見，佔的區間越寬；只要給出落在該區間內的任意一個數，加上文本長度，接收方就能唯一還原出原文。整個壓縮算法的核心就是在這個區間裡找一個二進制表示儘量短的數。
+
+[11:08] (Grant Sanderson) **解碼只需反覆調用同一個模型** — 解碼過程是編碼的鏡像：接收方先用空上下文跑一次模型得到第一層分布，根據收到的數字落在哪個字符對應的區間，推出第一個字符；再把這個字符喂回模型得到下一層分布，繼續判斷數字落在哪裡，如此反覆，直到湊滿發送方告知的字符數。關鍵前提是雙方用的必須是完全相同的模型，否則解碼出的分布會對不上，整個方案就失效。
+
+[15:12] (Grant Sanderson) **所需比特數就是香農信息量本身** — 要保證能用k比特或更少表示出落在某個概率為p的區間內的數，需要2^-k小於p，整理後得到k必須大於等於負的log2(p)——這正是香農定義的信息量。這意味著這套算術編碼在近似意義上就是香農極限的具體實現：壓縮後消息的大小几乎就等於文本在模型眼中的信息量，只多出一點舍入誤差和用於記錄消息長度的固定開銷。
+
+[22:21] (Grant Sanderson) **預訓練本質是在最小化壓縮後的比特數** — 模型給文本的概率可以展開成一連串單字符預測概率的乘積，取負對數後就變成了一串「代價」求和，這正是交叉熵，也正是預訓練中被最小化的損失函數。於是預訓練可以換一種心理框架來理解：目標不是訓練一個「下一個詞預測器」，而是訓練「最好的文本壓縮器」——要最小化的數字就是每個訓練樣本能被壓縮到多少比特，就這麼簡單。
+
+[23:21] (Grant Sanderson) **模型越大，對可預測文本壓縮得越狠** — 用370萬參數的NanoGPT編碼一段數學史文本要254比特、約每字符2比特，是香農估計值的兩倍；換成5億參數的開源模型Qwen，同樣的文本最後兩個詞只需要5比特，整體壓到每字符不到1比特。對美國憲法序言這種高度可預測的文本，Qwen在開頭短語之後幾乎不再需要增加比特，全文只用了10比特，比開頭演示的霍夫曼編碼提升了兩個數量級。
+
+[31:25] (Grant Sanderson) **真正公平的壓縮率要把模型本身算進去** — 如果不把解碼程序（包括模型本身）的體積計入最終壓縮大小，就能作弊：讓解碼程序裡硬編碼一份維基百科原文，這樣所謂的壓縮載荷可以任意小，Hutter Prize正是為了防止這種作弊才把解碼程序大小計入評分。按這種算法，兩個預測能力相同的模型中，參數更少的那個才算壓縮得更好，這呼應了「更清晰的理解依賴更少的通用原則，而不是大量死記硬背的事實」這一直覺。
+
+[33:26] (Grant Sanderson) **讓模型邊壓縮邊微調，學習速度也被計入壓縮率** — 如果編碼解碼過程中讓模型根據沿途看到的每個新token做反向傳播、持續微調自身權重，只要編碼端和解碼端的更新完全確定性地同步進行，雙方就能保持預測一致。這樣一來，最終壓縮率不再只取決於模型靜態的預測能力，還取決於模型適應新語境的速度——學習率越好，壓縮效果越好，這為「壓縮即智能」提供了第三層支撐：好的壓縮算法需要模型既擅長預測、體積又小，還要學得快。
+
+### 原話 / verbatim quotes
+
+[2:02] Grant Sanderson: "each time a probability gets chopped in half, the information content increases by one bit"
+    譯 / zh: 每當一個概率被對半砍一次，信息量就增加一比特。
+
+[20:18] Grant Sanderson: "this quantity, the negative log p that we wrote down, Is not actually the Shannon information of the message, because this value p is representing the probability of the text according to the model, not the true probability of seeing that text"
+    譯 / zh: 我們寫下的這個負對數p，其實並不是消息真正的香農信息量，因為這個p是模型給出的文本概率，而不是這段文本真實出現的概率。
+
+[22:21] Grant Sanderson: "a mathematically equivalent, but I think psychologically distinct, framing is to say that the objective is not prediction per se. It's to create the best possible text compressor"
+    譯 / zh: 一種在數學上等價、但我認為心理感受上截然不同的框架是：目標其實不是預測本身，而是打造最好的文本壓縮器。
+
+[24:21] Grant Sanderson: "isn't it kind of disingenuous to praise an algorithm for compressing this passage so much if it's just calling out to some massive model that's basically memorized that passage somewhere in its hundreds of millions of weights"
+    譯 / zh: 如果這個算法只是調用了一個把這段話幾乎背下來的龐大模型，那我們還誇它壓縮得好，是不是有點不誠實？
+
+[31:25] Grant Sanderson: "if you actually wanted to send somebody a gigabyte of Wikipedia in a compressed package, the raw data stream coming out of that arithmetic coding would be useless if you didn't also give them the means of decoding it"
+    譯 / zh: 如果你真的想把一GB的維基百科壓縮打包發給別人，算術編碼輸出的原始數據流，如果不附帶解碼方法，是毫無用處的。
+
+[33:26] Grant Sanderson: "the better the learning rate, the better the compression"
+    譯 / zh: 學習率越好，壓縮效果就越好。
+
+[35:27] Grant Sanderson: "I was just genuinely surprised that compression takes off many more boxes than I would have guessed the first time that I ever thought about the seemingly innocent task of making files smaller"
+    譯 / zh: 我真心感到驚訝，壓縮這個概念能夠解釋的東西，遠比我第一次想到「把文件變小」這個看似無害的任務時猜測的要多得多。
+
+### 數字 / figures
+
+- NanoGPT參數量: 370萬 [22:21]
+- NanoGPT編碼示例文本所用比特數: 254比特（約每字符2比特） [23:21]
+- 美國憲法序言用Qwen編碼所需比特數: 約10比特 [23:21]
+- 編碼單詞math所需比特數: 10比特 [15:12]
+
+### 術語 / glossary
+
+- arithmetic coding (算術編碼): 把任意預測模型轉換為近乎最優無損壓縮器的編碼方法。
+- Hutter Prize (胡特獎): 獎勵能把1GB維基百科壓縮得最小（含解碼程序體積）的算法。
+- cross-entropy (交叉熵): 模型預測分布與真實分布之間差異的度量，也是預訓練的損失函數。
+- asymmetric numeral system (非對稱數字系統): 2013年提出的另一種預測轉壓縮的方法，用整數而非實數編碼，速度更快。
+
+誰該聽 / who: 想理解語言模型預訓練本質、對信息論和壓縮算法感興趣的工程師和AI研究者。
+標籤 / tags: 信息論, 語言模型, 算術編碼, 預訓練, 壓縮
+
+==============================================================================
+
 ## 美國已為7000萬兒童自動開戶，賬戶永久不可被國會撤銷
 
 - URL: https://ourword.ai/podcast/tw/p/2026-11-17-ilt-美国已为7000万儿童自动开户-账户永久不可被国会撤销/
@@ -149,7 +220,7 @@
 
 ### 核心論點 / points
 
-[2:02] (Geoffrey Canada) **教育解決不了一次意外支出** — Geoffrey Canada 從自己的機構經驗出髮指出，哈林兒童區送出兩千多名大學畢業生，仍有上千名在校生隨時可能因為一次家庭急事（車壞了、要應急現金）而被迫中斷軌跡。他說窮人不是不存錢，是「沒有賬戶可以存」——這是他投身這個項目的起點，而不是教育不夠努力的問題。
+[2:02] (Geoffrey Canada) **教育解決不了一次意外支出** — Geoffrey Canada 從自己的機構經驗出發指出，哈林兒童區送出兩千多名大學畢業生，仍有上千名在校生隨時可能因為一次家庭急事（車壞了、要應急現金）而被迫中斷軌跡。他說窮人不是不存錢，是「沒有賬戶可以存」——這是他投身這個項目的起點，而不是教育不夠努力的問題。
 
 [12:18] (Brad Gerstner) **每個孩子出生自動獲得1000美元** — Invest America Act 在今年7月4日簽署生效：孩子一拿到社會安全號，就自動在美國財政部名下開一個賬戶，聯邦出資1000美元投入標普500指數。家長、企業、慈善家之後可以隨時用二維碼像買杯咖啡一樣追加幾美元，錢次日自動掃入指數基金，家長沒有任何投資決策要做。
 
@@ -20585,6 +20656,72 @@
 誰該聽 / who: 關心AI監管走向的創業者、投資人與政策研究者，尤其是想懂「公司為何無法自願減速」背後機制的人。
 可跳過 / skip: 開頭的背景導入(0:00–1:17)信息量低，可直接跳過
 標籤 / tags: AI監管, 算力治理, 軍備競賽, 可解釋性, 國際協議, 安全測試
+
+==============================================================================
+
+## 艾倫·瓦茲：你腦中那個控制者不是真正的你
+
+- URL: https://ourword.ai/podcast/tw/p/2026-10-27-philosophize-艾伦-瓦兹-你脑中那个控制者不是真正的你/
+- 節目 / show: Philosophize This! (https://ourword.ai/podcast/tw/s/philosophize/)
+- 原集標題 / original episode: Episode #253 ... The Philosophy of Alan Watts - What Am I?
+- 發布 / published: 2026-10-27 · 時長 / duration: 36:04
+- 文稿來源 / transcript: 音頻轉寫 · 7667 words · timestamps are exact
+- 校驗 / verification: 7 quotes matched verbatim, 0 numbers traced to the transcript, review score 8/10
+
+**瓦茲認為，人們習慣性認同的那個自我監督、自我控制的「內在聲音」只是一種習得的肌肉緊張習慣，而真正的自我更像一個在更大過程中保持形狀的漩渦。**
+
+為什麼聽 / why: 適合想理解Alan Watts常被引用卻常被誤讀的「自我」觀點的人；論證節奏偏慢，中段物理學類比部分信息密度較低。
+
+### 核心論點 / points
+
+[1:03] (Stephen West) **餐桌上那個「監工自我」從哪來** — 瓦茲用一個日常場景切入：和朋友吃飯時，除了那個在說話吃飯的你，似乎還有一個躲在腦後、不斷審視這場對話的「你」，在問「我剛才說那話顯得聰明嗎」「他們真的喜歡我嗎」。他認為理解這個習慣性自我審視的來源，是理解他全部哲學的起點。
+
+[4:14] (Stephen West) **父母教你「做自己」本身就是矛盾** — 瓦茲引用人類學家Gregory Bateson的「雙重束縛」概念：孩子從小被教導要做自由自主的個體，但這個「自由」本身是被規定出來的——比如父母說「你該愛媽媽，但不能只因為我讓你愛她，你得真心愛她」。這種矛盾讓孩子被迫放棄真正的自發性去證明自己的自發性，久而久之內化成一個持續評判自己情感是否「真誠」的內在監工。
+
+[8:24] (Stephen West) **那個聲音只是一種練出來的肌肉習慣** — 瓦茲提出一個關鍵問題：這個控制者式的自我監督到底佔了你多大比例？他認為人們之所以強烈認同這個聲音，只是因為反覆做這件事變得熟練了，就像天天去健身房做同一個動作，久了會覺得這動作是身體天生該做的。這種心理圖像加上身體上的習慣性緊張（咬緊下巴、聚焦眼神），共同製造出「這個我是真實存在的」的錯覺。
+
+[12:31] (Stephen West) **注意力像雷達，但雷達不是全部的你** — 瓦茲把人的注意力比作船上的多普勒雷達，總是掃描變化、威脅和機會，所以我們容易把雷達掃到的那點東西誤認成自己生活的全部。但心跳、消化、無數潛意識計算一直在進行，呼吸可以自主控制也可以自動進行——這說明「你」遠遠超出你主動聚焦的那一小部分。
+
+[16:41] (Stephen West) **皮膚是橋梁，不只是屏障** — 常識認為自我止於皮膚，但瓦茲指出皮膚恰恰是你與一切接觸的地方：呼吸時氣體不斷進出身體，說話時聲波在房間裡反彈進入對方耳朵。他說「它既是橋梁，也是屏障」，質疑把皮膚當作自我邊界的默認設定。
+
+[17:45] (Stephen West) **蜜蜂和花離開彼此就無法被理解** — 瓦茲借生物學例子說明，蜜蜂和花在生物學活動上互相依存，理解其中一個就必須理解另一個，二者構成一個相互關聯的生命系統，而不是兩個各自獨立、可單獨理解的存在。他藉此類推人和環境的關係同樣如此。
+
+[21:55] (Stephen West) **你更像漩渦，不是固定的東西** — 瓦茲用漩渦作為核心意象：構成漩渦的水一直在流動更換，但漩渦本身保持著可被識別的形狀，人們可以指著它說「那是個漩渦」。他說「關於我們唯一恆定的東西是行動而非存在」——你的個體性依然存在，但不是腦後那個固定的小控制者，而是在更大過程中保持的一種可識別模式。
+
+[28:07] (Stephen West) **吠檀多：你的最深自我就是終極實在** — 瓦茲引入印度吠檀多哲學中Atman（最深自我）與Brahman（終極實在）的關係，核心主張是二者其實是同一件事。他用蘋果與蘋果樹的比喻：你不是從別處空降到宇宙中的陌生人，而是這棵樹此刻正在做的事——你是實在本身在做的事情。這也呼應了他那句挑釁性的說法：我們本質上就是神。
+
+### 原話 / verbatim quotes
+
+[1:03] Alan Watts（轉述自Stephen West）: "what do you mean? What do you feel when you say the word I?"
+    譯 / zh: 你是什麼意思？當你說「我」這個詞時，你感受到的是什麼？
+
+[5:16] Stephen West: "I'm supposed to abdicate my freedom and spontaneity in order to establish my freedom and spontaneity."
+    譯 / zh: 我被要求放棄我的自由和自發性，才能確立我的自由和自發性。
+
+[9:28] Stephen West: "the physical referent for the psychological image of ourselves"
+    譯 / zh: 對我們自身心理圖像的身體性指涉物
+
+[10:29] Stephen West: "what we take to be the thinker is itself just one of the thoughts. And what we take to be the feeler is itself just one of the feelings."
+    譯 / zh: 我們以為是思考者的那個東西，本身只是眾多念頭中的一個；我們以為是感受者的那個東西，本身只是眾多感受中的一個。
+
+[17:45] Stephen West: "it is as much a bridge as it is a barrier"
+    譯 / zh: 它既是橋梁，也同樣是屏障。
+
+[21:55] Stephen West: "The only thing constant about us at all is the doing rather than the being"
+    譯 / zh: 關於我們唯一恆定不變的東西，是「行動」而非「存在」。
+
+[32:16] Stephen West: "the universe playing hide-and-seek with itself"
+    譯 / zh: 宇宙在跟自己玩捉迷藏。
+
+### 術語 / glossary
+
+- double bind (雙重束縛): Gregory Bateson提出的概念，指兩條相互矛盾的指令同時施加在人身上
+- Vedanta / Atman / Brahman (吠檀多 / 阿特曼 /梵): 印度哲學流派，主張個體最深自我（阿特曼）與終極實在（梵）本質同一
+- the transaction (交易/關係性存在): 哲學家John Dewey的概念，指買賣等活動本質是一件事的兩面，不能分開理解
+
+誰該聽 / who: 對東方哲學如何重構西方「自我」觀念感興趣的人，尤其是聽過瓦茲片段但覺得零散、想系統理解其論證脈絡的人。
+可跳過 / skip: 23:58附近講量子電子實驗那段轉寫混亂重複，可直接跳到薛定諤部分（約27:07）。
+標籤 / tags: 自我意識, 東方哲學, 吠檀多, 自我與環境, 過程哲學, Alan Watts
 
 ==============================================================================
 
