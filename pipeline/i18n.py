@@ -40,6 +40,15 @@ UI: dict[str, str] = {
     "信源": "Shows",
     "分享": "Share",
     "分类": "Topics",
+    # —— 人物频道（2026-11-18）——
+    "人物": "People",
+    "人物频道": "People",
+    "视频线索": "Video leads",
+    "线索出处": "Leads from",
+    "按人归档：只收本人出场的访谈、播客、演讲和发布会。每篇都从原视频独立写成，要点与原话带时间戳，可回到原声核对。":
+        "Filed by who is talking: interviews, podcasts, talks and product events where they speak themselves. Each piece is written from the original video, with timestamps on every point and quote.",
+    "{name}本人出场的 {n} 篇深读：访谈、播客、演讲与发布会，要点与原话都带时间戳。":
+        "{n} deep reads where {name} does the talking: interviews, podcasts, talks and product events, timestamped.",
     # 「最新」取代了「全部」：默认只看最近七天。
     "必看": "Essential",
     "最新": "Latest",

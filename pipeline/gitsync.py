@@ -44,7 +44,7 @@ import tempfile
 # 一次建站写出的全部顶层路径：build.py 往仓库根和 en/ 写的，加上 tw.py 生成的繁体树。
 # 加了新产物就加在这里；漏了守护会红（它从 build.py 的写入点推导，不看这张表）。
 SITE = ("index.html", "hot.json", "sources", "404.html", "feed.xml", "sitemap.xml",
-        "search.json", "api.json", "log", "zt", "s", "c", "robots.txt",
+        "search.json", "api.json", "log", "zt", "s", "c", "people", "robots.txt",
         "llms.txt", "llms-full.txt", ".nojekyll", "p", "e",
         "cards-*.json",   # 分页数随篇数变：通配，而且要连被删掉的那几页一起提交
         "cards.json",     # 第一版的单文件分页；build.py 见到就删，删除也要进提交

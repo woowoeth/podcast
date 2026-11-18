@@ -495,6 +495,7 @@ def _en_lists() -> dict[str, set]:
         tr = [x for x in load()[0] if _has_en(f"/p/{x.get('slug')}/")]
         _EN_LISTS["s"] = {x.get("source_id") for x in tr}
         _EN_LISTS["c"] = {x.get("cat") for x in tr}
+        _EN_LISTS["people"] = {p["id"] for p, rows in people_rows(tr)}
     return _EN_LISTS
 
 
@@ -514,6 +515,11 @@ def _has_en(path: str) -> bool:
         # 「不是 /p/ 就有」，zt/founders/ 和它的繁体页都声明了一个 404 的
         # 英文版，下拉里也给了 EN（2026-09-26 审计查出）。
         return False
+    if path.startswith("/people/"):
+        # 人物页和信源页同一条规则：英文树里只有「名下还有译完的集」的人。
+        key = path.split("/")[2] if path.count("/") > 2 else ""
+        live = _en_lists()["people"]
+        return bool(live) if not key else key in live
     if path.startswith(("/s/", "/c/")):
         # 一档新收录、还没有一集译完的信源，英文树里没有它的页。
         # 原来这两种页也落进「总是有」—— 只是碰巧 175 档每档都有译文。
@@ -1354,6 +1360,7 @@ def index_page(eps: list[dict], srcs: dict) -> str:
 {share_button(site_share_text(eps), url=SITE + "/", title=f"{NAME} · {TAGLINE}", label=T("分享本站"))}
 </div></div></div>
 {zt_banner()}
+{people_strip(people_rows(eps))}
 <main class="wrap">{f'<section class="hot" data-hot hidden aria-label="{e(T("热门信源"))}"><p class="hot-note">{T("正在载入…")}</p></section>' if hot else ""}<div class="feed" data-feed data-total="{len(eps)}" data-new-total="{n_new}"
      data-page-size="{FIRST_PAGE}" data-head="{head_n}"
      data-pages="{max(0, (len(eps) - head_n + FIRST_PAGE - 1) // FIRST_PAGE)}">
@@ -1975,6 +1982,106 @@ KIND_TONE = {"added": "add", "removed": "drop", "demoted": "down", "dormant": "d
              "restored": "add", "promoted": "add", "pinned": "add"}
 
 
+# ---------------------------------------------------------------- 人物频道
+
+
+def _people_blob() -> dict:
+    import people as _ppl
+    return _ppl.load(DATA / "people.json")
+
+
+def people_rows(eps: list[dict]) -> list[tuple[dict, list[dict]]]:
+    """[(人, 名下的集)]，只留名下至少有一集的人——和信源页、分类页一样不建空页。
+    归属规则在 pipeline/people.py（线索表命中，或本人出场的要点＋原话够数），构建时现算。"""
+    import people as _ppl
+    ps = _people_blob().get("people") or []
+    mem = _ppl.members(eps, ps)
+    return [(p, mem[p["id"]]) for p in ps if mem[p["id"]]]
+
+
+def person_name(p: dict) -> str:
+    return p.get("en") if LANG == "en" else p.get("zh")
+
+
+def people_strip(rows: list[tuple[dict, list[dict]]]) -> str:
+    """首页入口。人物页是跨信源的归档，信息流里没有它的位置；不挂入口就是孤儿页。"""
+    if not rows:
+        return ""
+    links = "".join(f'<a class="chip" href="{BASE}/people/{e(p["id"])}/">{e(person_name(p))}'
+                    f'<span class="n">{len(r)}</span></a>' for p, r in rows)
+    return (f'<div class="wrap"><nav class="chips people-strip" aria-label="{e(T("人物"))}" '
+            f'style="margin:12px 0 0"><a class="chip" href="{BASE}/people/">{T("人物")} →</a>'
+            f'{links}</nav></div>')
+
+
+def _people_credit() -> str:
+    c = _people_blob().get("credit") or {}
+    if not c.get("url"):
+        return ""
+    note = c.get("note_en") if LANG == "en" else c.get("note_zh")
+    return (f'<p class="lede" style="margin-top:22px;font-size:13px;color:var(--faint)">'
+            f'{e(note or "")} <a href="{e(c["url"])}" rel="noopener">{e(c.get("name") or c["url"])}</a></p>')
+
+
+def people_index_page(rows: list[tuple[dict, list[dict]]], n_eps: int) -> str:
+    path = "/people/"
+    desc = T("按人归档：只收本人出场的访谈、播客、演讲和发布会。每篇都从原视频独立写成，要点与原话带时间戳，可回到原声核对。")
+    ld = _ld({"@context": "https://schema.org", "@type": "CollectionPage",
+              "name": f'{T("人物频道")} — {NAME}', "description": desc, "url": SITE + path,
+              "isPartOf": {"@id": SITE + "/#site"},
+              "hasPart": [{"@type": "ProfilePage", "url": f"{SITE}/people/{p['id']}/",
+                           "about": {"@type": "Person", "name": p.get("en")}} for p, _ in rows]})
+    panels = "".join(
+        f'<a class="panel" href="{BASE}/people/{e(p["id"])}/" style="display:block;margin:0 0 12px;max-width:560px">'
+        f'<div class="row"><span><b>{e(person_name(p))}</b></span>'
+        f'<span>{i18n.n(len(r), "read", "篇深读")}</span></div>'
+        f'<div class="row"><span style="color:var(--faint)">'
+        f'{e(p.get("desc_en") if LANG == "en" else p.get("desc_zh"))}</span></div></a>'
+        for p, r in rows)
+    return (head(f'{T("人物频道")} — {NAME}', desc, path=path, extra=ld)
+            + masthead(n_eps, home=False, path=path)
+            + f"""<main class="wrap">
+<nav class="crumb" style="margin-top:26px"><a href="{BASE}/">{T("首页")}</a><span class="sep">/</span><span>{T("人物")}</span></nav>
+<div class="page-head"><h1 class="sec-title" style="margin-top:0">{T("人物频道")}</h1></div>
+<p class="lede">{e(desc)}</p>
+<div style="margin-top:18px">{panels}</div>
+{_people_credit()}
+</main>""" + foot())
+
+
+def person_page(p: dict, eps: list[dict], all_rows: list[tuple[dict, list[dict]]], n_eps: int) -> str:
+    name = person_name(p)
+    path = f"/people/{p['id']}/"
+    desc = T("{name}本人出场的 {n} 篇深读：访谈、播客、演讲与发布会，要点与原话都带时间戳。").format(
+        name=name, n=len(eps))
+    cards = "\n".join(card(x, hero=(i == 0)) for i, x in enumerate(eps))
+    nav = "".join(
+        (f'<span class="chip on">{e(person_name(q))}<span class="n">{len(r)}</span></span>'
+         if q["id"] == p["id"] else
+         f'<a class="chip" href="{BASE}/people/{e(q["id"])}/">{e(person_name(q))}'
+         f'<span class="n">{len(r)}</span></a>') for q, r in all_rows)
+    ld = _ld({"@context": "https://schema.org", "@graph": [
+        {"@type": "ProfilePage", "url": SITE + path, "name": f"{name} — {NAME}",
+         "description": desc, "isPartOf": {"@id": SITE + "/#site"},
+         "mainEntity": {"@type": "Person", "name": p.get("en"), "alternateName": p.get("zh")}},
+        {"@type": "BreadcrumbList", "itemListElement": [
+            {"@type": "ListItem", "position": 1, "name": T("首页"), "item": SITE + "/"},
+            {"@type": "ListItem", "position": 2, "name": T("人物"), "item": SITE + "/people/"},
+            {"@type": "ListItem", "position": 3, "name": name}]}]})
+    lede = p.get("desc_en") if LANG == "en" else p.get("desc_zh")
+    return (head(f"{name} — {NAME}", desc, path=path, extra=ld)
+            + masthead(n_eps, home=False, path=path)
+            + f"""<main class="wrap">
+<nav class="crumb" style="margin-top:26px"><a href="{BASE}/">{T("首页")}</a><span class="sep">/</span>
+<a href="{BASE}/people/">{T("人物")}</a><span class="sep">/</span><span>{e(name)}</span></nav>
+<div class="page-head"><h1 class="sec-title" style="margin-top:0">{e(name)}</h1></div>
+<p class="lede">{e(lede or "")}</p>
+<nav class="chips" style="margin:14px 0 6px">{nav}</nav>
+<div class="feed" data-feed>{cards}</div>
+{_people_credit()}
+</main>""" + foot())
+
+
 def zt_topics() -> list[dict]:
     """专题只在简体站出：它是编辑写的中文读物，英文站没有译文，繁体由 tw.py 转出来。"""
     if i18n.LANG != "zh":
@@ -2327,6 +2434,14 @@ def sitemap(eps: list[dict]) -> str:
             urls.append(f"<url><loc>{xesc(SITE)}/c/{xesc(c)}/</loc>"
                         + (f"<lastmod>{xesc(newest)}</lastmod>" if newest else "")
                         + "<changefreq>daily</changefreq><priority>0.7</priority></url>")
+    prow = people_rows(eps)
+    if prow:
+        urls.append(f"<url><loc>{xesc(SITE)}/people/</loc><changefreq>weekly</changefreq>"
+                    f"<priority>0.7</priority></url>")
+        for p, _ in prow:
+            urls.append(f"<url><loc>{xesc(SITE)}/people/{xesc(p['id'])}/</loc>"
+                        + (f"<lastmod>{xesc(newest)}</lastmod>" if newest else "")
+                        + "<changefreq>daily</changefreq><priority>0.7</priority></url>")
     for sid in sorted({x["source_id"] for x in eps}):
         urls.append(f"<url><loc>{xesc(SITE)}/s/{xesc(sid)}/</loc><changefreq>weekly</changefreq></url>")
     for x in eps:
@@ -2473,6 +2588,26 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
             if d.is_dir() and d.name not in live_cat:
                 shutil.rmtree(d)
     log(f"  {len(live_cat)} category pages")
+
+    # 人物频道。没有任何人名下有集时整个 people/ 不存在（和分类页同理：不建空页）。
+    pdir_people = out / "people"
+    prow = people_rows(eps)
+    live_people = set()
+    if prow:
+        pdir_people.mkdir(parents=True, exist_ok=True)
+        (pdir_people / "index.html").write_text(people_index_page(prow, len(eps)))
+        for p, rows in prow:
+            pout = pdir_people / p["id"]
+            pout.mkdir(parents=True, exist_ok=True)
+            (pout / "index.html").write_text(person_page(p, rows, prow, len(eps)))
+            live_people.add(p["id"])
+    if pdir_people.exists():
+        for d in pdir_people.iterdir():
+            if d.is_dir() and d.name not in live_people:
+                shutil.rmtree(d)
+        if not prow:
+            shutil.rmtree(pdir_people)
+    log(f"  {len(live_people)} people pages：" + "、".join(f"{p['id']} {len(r)}" for p, r in prow))
 
     # 显式放行答案引擎的爬虫。这个站的价值就是被引用时能带出可核对的判断，
     # 所以默认允许而不是默认拦——沉默的 User-agent: * 在有些爬虫那里等于不确定。

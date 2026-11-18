@@ -71,6 +71,39 @@ SYSTEM = """你在给一个中文播客深读站做选题。站点有多分类�
 简介基本是赞助与订阅链接，**简介空洞在这种情况下不构成任何减分理由**。
 只有节目介绍、没有字幕时，介绍空洞本身才是信号。"""
 
+# 人物频道的尺子（2026-11-18 用户定）：「这些视频标准跟其他的标准不一样，
+# 核心是视频是否含有有价值的值得学习的信息和内容。」
+# 和上面那把的区别：不看体裁、不要求一手访谈或可反驳的论断——发布会、演讲都可以高分；
+# 只问这个人讲出的东西值不值得学。及格线仍是 7（MIN_SCORE），成稿评审照旧。
+PEOPLE_SYSTEM = """你在给一个中文深读站的「人物频道」选视频。每个频道是一个人
+（比如马斯克、黄仁勋、乔布斯），收的是**他本人出场**的访谈、播客、演讲和发布会。
+
+这里的标准和普通播客不同：**不看体裁，不看是不是访谈，不看论断能不能被反驳。
+只问一件事：这段视频里，他有没有讲出值得学习的东西**——看完的人能学到
+他怎么想问题、怎么做决定、怎么做事，或者学到一件他讲清楚了的事。
+
+**高分（7-10）：**
+- 思考方法：他怎么拆问题、从什么第一性原理出发、用什么框架判断
+- 决策与取舍：做过的关键决定，当时的选项、代价和理由
+- 做事的具体做法：管理、招人、产品、工程、制造、融资——具体到步骤与细节
+- 经验与教训：失败、踩坑、改主意，以及为什么改
+- 有理由的判断：对技术、行业、产品、未来的看法，**而且讲清了为什么**
+- 讲清楚的原理：技术是怎么工作的、设计为什么这样做
+发布会和主题演讲**可以高分**：只要里面有讲清楚的设计思路、技术原理、
+产品取舍与背后的理由，而不只是展示和喊口号。
+
+**中间（5-6）：** 有一些干货，但大部分是他反复讲过的观点，或泛泛而谈。
+
+**低分（0-4）：**
+- 纯产品展示、性能吹嘘、价格与上市时间播报
+- 财报数字念稿、例行问答
+- 寒暄、花絮、颁奖致辞、几句话就能概括完的新闻片段
+- 政治表态、口水战、八卦
+- 他本人几乎没说话（主要是别人在讲他）
+
+值不值得学看内容本身，**不看他名气多大、话题多热**。
+判断以字幕原文为准；YouTube 简介多是链接，空洞不减分。7 分及以上才做深读。"""
+
 SCHEMA = """输出 JSON：{"score": 0-10 的数字, "why": "不超过 40 字的中文理由",
 "kind": "一手访谈|机制拆解|新闻综述|宣传|闲聊|其他"}"""
 
@@ -143,7 +176,10 @@ def _brief(ep: dict, src: dict) -> str:
     notes = strip_html(ep.get("notes"))
     # 章节表比宣传语更能说明这一集讲了什么
     notes = squeeze(notes)[:NOTES_CHARS]
-    parts = [f"分类：{src.get('cat','ai')}",
+    parts = []
+    if src.get("person"):
+        parts.append(f"人物：{src['person']}")
+    parts += [f"分类：{src.get('cat','ai')}",
              f"节目：{src.get('zh') or src['name']}（{src.get('desc', '')}）",
              f"这一集标题：{ep['title']}"]
     if ep.get("duration"):
@@ -218,7 +254,12 @@ def classify(ep: dict, d: dict, src: dict) -> dict | None:
             "sure": r.get("sure")}
 
 
-def rubric_id() -> str:
+def _system_for(src: dict | None) -> str:
+    """这一集用哪把尺子：人物频道的视频用 PEOPLE_SYSTEM，其余用 SYSTEM。"""
+    return PEOPLE_SYSTEM if (src or {}).get("rubric") == "people" else SYSTEM
+
+
+def rubric_id(src: dict | None = None) -> str:
     """当前这把尺子的指纹。
 
     判决要连着**判它的那把尺子**一起存。不存的话，尺子一改，账本里就躺着
@@ -229,7 +270,7 @@ def rubric_id() -> str:
     所以这次做成机制：指纹不一致 = 这条判决不算数。
     """
     import hashlib
-    return hashlib.sha1(SYSTEM.encode("utf-8")).hexdigest()[:10]
+    return hashlib.sha1(_system_for(src).encode("utf-8")).hexdigest()[:10]
 
 
 def score(ep: dict, src: dict) -> dict | None:
@@ -249,7 +290,7 @@ def score(ep: dict, src: dict) -> dict | None:
     if (src.get("kind") or "") == "youtube":
         basis = "captions" if _caption_sample(ep, src) else "notes"
     try:
-        r = llm.call_json(SYSTEM, _brief(ep, src) + "\n\n" + SCHEMA,
+        r = llm.call_json(_system_for(src), _brief(ep, src) + "\n\n" + SCHEMA,
                           max_tokens=300, temperature=0.1, retries=1, role="triage")
     except Exception as ex:
         log(f"    选题闸门调用失败（放行）：{type(ex).__name__}")
@@ -262,7 +303,7 @@ def score(ep: dict, src: dict) -> dict | None:
             "why": squeeze(str(r.get("why") or ""))[:60],
             "kind": squeeze(str(r.get("kind") or ""))[:12],
             "basis": basis,
-            "rubric": rubric_id()}
+            "rubric": rubric_id(src)}
 
 
 def passes(v: dict | None, minimum: float = MIN_SCORE) -> bool:

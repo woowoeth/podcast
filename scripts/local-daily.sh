@@ -611,6 +611,16 @@ PYEOF
   python3 pipeline/run.py --catchup 180 $CATCHUP_ONLY --no-build \
       --per-source 2 --limit "$CATCHUP_LIMIT" --triage-min 7 --review-min 7 $EXTRA || true
 
+  # ---- 人物频道：每轮顺带补几条线索（data/people.json，见 pipeline/people.py）----
+  # 2026-11-18 用户定：每轮 4 条，不挤日更——排在主轮和补课之后，额度先给新集。
+  # 只在本机线跑：线索全是 YouTube，字幕只有住宅 IP 取得到。
+  # 手动 ONLY=… 跑单个源时不碰它（那是在救某一档，不该顺手花别的额度）。
+  : "${PEOPLE_LIMIT:=4}"
+  if [ -z "$ONLY" ] && [ "$PEOPLE_LIMIT" -gt 0 ]; then
+    echo "===== 人物频道（每轮 $PEOPLE_LIMIT 条）====="
+    python3 pipeline/people.py --next "$PEOPLE_LIMIT" || echo "人物频道这轮没跑成（不致命）"
+  fi
+
   # ---- 每周一趟：YouTube 观察名单 ----
   # 只有这条线取得到 YouTube 字幕（住宅 IP；云端机房 IP 会被判成机器人）。
   # 而字幕是走 YouTube 的**全部理由**：全站 158 篇文稿走 ASR，每集都要花钱

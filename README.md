@@ -214,6 +214,22 @@ gh workflow run backfill.yml --repo woowoeth/podcast -f only=oddlots -f days=365
 它和日更任务共用一把 concurrency 锁，不会互相踩。每源上限默认 4，避免首页被
 单一节目占满。
 
+## 人物频道（`/people/`）
+
+按「谁在说」归档：马斯克、黄仁勋、乔布斯本人出场的访谈、播客、演讲和发布会。
+
+- **线索**：`data/people.json`，每人一张视频线索表（YouTube 编号、标题、频道、日期、时长、类型）。
+  第一批取自 silicon-valley.tech 的公开索引，只取事实字段；对方的语录、译文、文稿不进仓库。
+  官方频道 ≥15 分钟；搬运号 ≥20 分钟（标 `re`），同一场已有官方版的搬运版不收（同日、时长差 ≤3%）。
+- **补库**：`python3 pipeline/people.py --next 4`，本机日更每轮在补课之后顺带跑（`PEOPLE_LIMIT`，0 关掉）。
+  4 是**发出**的篇数，每轮最多试 12 条（选题会拦下一大半）。官方在前、最新在前、三人轮流；
+  失败的隔 7 天再试，累计 3 次放弃。
+- **选题尺子不同**：人物视频用 `lib/triage.PEOPLE_SYSTEM`——只问「有没有值得学习的信息和内容」，
+  不看体裁（发布会、演讲也能高分）。及格线仍是 7，成稿评审照旧。
+- **归属**（构建时现算，不写进集数据）：集的 `youtube_id` 在线索表里，或归给此人的要点＋原话 ≥3 条（「转述」不算）。
+- **它通常在哪骗人**：同姓的别人（Greg Jensen）、只被提到一次、「转述」——都有测试（`tests/test_people.py`）。
+- `python3 pipeline/people.py --status` 看每人线索数与站上篇数。
+
 ## 测试
 
 ```bash
