@@ -1,0 +1,115 @@
+{
+ "slug": "2026-11-18-a16z-ai给你建一个-第二人格-连创始人都看不到你的那份",
+ "of": "a16z-e9e0221ee4",
+ "source_lang": "en",
+ "title": "AI Builds You a ‘Second Self’ That Even the Founder Can't See",
+ "dek": "First Person Labs separates data from inference: models run locally or in confidential computing, the company itself cannot prove it can see your content, trust rests on hardware not promises.",
+ "why": "This episode covers the system architecture and privacy design of personal AI assistant ‘Second’, technically oriented—skip the product intro at the beginning, the real information points are in the middle and later sections on confidential computing and cost modeling.",
+ "who": "Engineers and investors who care how personal data can safely interface with AI agents, especially those interested in confidential computing architecture and token-cost economics.",
+ "skip": "Product intros and promotional dialogue at the start and end can be skipped; substantive information concentrates in the middle sections on architecture and cost.",
+ "tags": [
+  "Personal AI",
+  "Confidential Computing",
+  "Data Privacy",
+  "AI Agent",
+  "AI Infrastructure",
+  "Token Economics"
+ ],
+ "points": [
+  {
+   "h": "Preferences sync in seconds, no need to re-brief the agent",
+   "body": "Ken Liu's example: flight-seat preference, early-airport time, first-class interest—these things used to need re-explaining every time you switched to a new tool (like from GrokBot to Codex). Second's approach is to continuously build a model of a person's preferences, relationships, and intentions in the background; when users switch to any agent, this model can sync ‘in seconds’ without multiple follow-up questions. Ken mentioned switching to OpenAI's newly-released Codex model, where work context accumulated in Second was directly usable."
+  },
+  {
+   "h": "Your computer already knows what you're doing—no one's just been analyzing it",
+   "body": "Ken Liu points out that systems already have an endless stream of events at the system level: app switches, page dwell time, typing speed, Wi-Fi connection state—data already exposed by Apple, Microsoft, and Linux systems themselves. First Person Labs does what a 24/7 agent does: analyze this stream layer by layer, inferring ‘checking messages’ from a single keystroke, and ‘doing research’ or ‘writing a document’ from cross-app switching, building a layered understanding of what a person is doing. Ken's conclusion: people severely underestimate how much computers already know."
+  },
+  {
+   "h": "Real productivity isn't answering messages—it's connecting the dots",
+   "body": "Ken Liu divides personal AI output into two layers: ‘reactive’ productivity just responds to single events, like notifying when an email arrives—this layer is easy and already overabundant. The harder part is ‘reflective’ productivity—understanding across months and multiple events, like remembering goals stated months ago, spotting how recent behavior pushes toward that goal, combined with known preferences for judgment. He believes the future direction of personal computing isn't users constantly asking questions, but systems actively deciding when to intervene: ‘people still have to speak up and ask now, but that's really the problem—you shouldn't have to constantly ask a super-intelligent agent’."
+  },
+  {
+   "h": "Trust is built on hardware, not company promises",
+   "body": "Ken Liu separates AI into two things: data and inference. Users can bring their own tokens and hand their data to inference providers of their own choosing, with no need to trust First Person Labs at all. A further step is ‘confidential inference’—putting models inside GPUs that support confidential computing, where after enabling a hardware switch you can cryptographically prove ‘only this model runs inside, no one can see in’. The object of trust shifts from company to Nvidia hardware. This is completely different from the common ‘zero data retention’ promise: the latter is just a policy-level guarantee from the company (even if legally binding); the former is a verifiable technical fact."
+  },
+  {
+   "h": "Data stays entirely local, just like a password vault",
+   "body": "Second offers two storage approaches. One called Second Local keeps data only on the user's machine, leaving only when the user picks a reasoning service—like locking a password vault locally instead of uploading to Dropbox. The other is cloud backup, following the iCloud or password-manager approach: encrypt locally then upload, decryption only happens when users actively operate (briefly existing in memory) or the entire storage environment sits inside a container that can be remotely verified like confidential inference. The two paths together form ‘local encryption → cloud upload → decryption only inside a trusted container’."
+  },
+  {
+   "h": "Analyzing one person 24/7 costs this much per day",
+   "body": "Ken Liu did the math on stage: assuming an agent running 24 hours, 60 tokens per second, and to handle the volume you need 10 such agents running simultaneously, using Opus pricing this comes to about 1000 dollars per day. Switch to DeepSeek Flash at the same volume and it's only about 60 dollars per day. He believes this cost will drop rapidly as new models replace each other—since First Person Labs was founded, token prices have dropped over 50%. This is why Second now feels aimed at ‘busy professionals’ willing to pay for deep personal context rather than everyone."
+  },
+  {
+   "h": "Screenshot plus ‘fix’ saves you from explaining context",
+   "body": "Ken Liu shared the most surprising use case in development: because Second has such strong memory of ‘what we're doing’, users no longer need to brief a coding agent about background—just screenshot and say ‘fix’, the agent knows what to change. He also mentioned ‘context continuity’: browsing through on a notebook then closing, switching to a phone, the same context continues on the phone, even continuing to write the same email on mobile."
+  },
+  {
+   "h": "Company deliberately limits interaction to text and API only",
+   "body": "Responding to ‘you're doing both foundational secure infrastructure and delightful user experience—isn't that schizophrenia?’, Ken Liu admits the team once pushed hard on interaction design, then discovered the difficulty was immense—‘delightful experience’ has too many details to polish. So the company's decision was to narrow the interfaces it exposes: ‘only text, only API, nothing else’, leaving the real work of building personalized interfaces and applications to users and developers, while they themselves first solidify the bottom layer: ‘everyone will eventually need a Second’."
+  }
+ ],
+ "terms": [
+  {
+   "term": "confidential inference",
+   "def": "Running a model on a GPU with confidential computing support where you can cryptographically prove only the model runs inside and no one can see the data."
+  },
+  {
+   "term": "zero data retention",
+   "def": "A provider's policy promise not to retain user data—a promise at the policy level, not technically verifiable."
+  },
+  {
+   "term": "Second Local",
+   "def": "Data stays only on the user's machine, leaving only when sent to the user's chosen inference service."
+  },
+  {
+   "term": "reflective productivity",
+   "def": "Understanding across time by connecting multiple events to user goals and priorities, not just reacting to single events."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Opus model cost for 24/7 analysis",
+   "v": "About 1000 dollars per day"
+  },
+  {
+   "k": "DeepSeek Flash model cost at same volume",
+   "v": "About 60 dollars per day"
+  },
+  {
+   "k": "Token price decline since company founding",
+   "v": "Over 50%"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "I think people are underestimating how much the computer already knows.",
+   "translated": false
+  },
+  {
+   "text": "So we were planning an event yesterday. There was a 20% chance of weather. And in real time, it was continually updating the forecast for us to let us know if we needed to get a tent or not, which is just like incredibly powerful.",
+   "translated": false
+  },
+  {
+   "text": "Like people have to ask. You're not supposed to ask. It's a super intelligence.",
+   "translated": false
+  },
+  {
+   "text": "So if you don't trust, let's say, us, in principle, you should be able to bring your own tokens.",
+   "translated": false
+  },
+  {
+   "text": "And when you turn it on, you can basically prove that there's only the model running inside. No one can see inside.",
+   "translated": false
+  },
+  {
+   "text": "Let's say you have one agent or actually one agent running 24-7. And let's say at 60 tokens per second. And let's say you run 10 of those because there's so much to analyze. And at Opus 5i's pricing, that leads to $1,000 per day.",
+   "translated": false
+  },
+  {
+   "text": "There's only texting. There's only API and there's nothing else.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}

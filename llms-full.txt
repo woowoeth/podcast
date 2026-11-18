@@ -1,6 +1,284 @@
 # 原声 — 世界太吵，来原声听播客
 
-1646 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
+1657 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
+
+==============================================================================
+
+## AI给你建一个「第二人格」，连创始人都看不到你的那份
+
+- URL: https://ourword.ai/podcast/p/2026-11-18-a16z-ai给你建一个-第二人格-连创始人都看不到你的那份/
+- 节目 / show: a16z (https://ourword.ai/podcast/s/a16z/)
+- 原集标题 / original episode: The Missing Layer for Personal AI | First Person Labs’ Ken Liu
+- 发布 / published: 2026-11-18 · 时长 / duration: 33:57
+- 文稿来源 / transcript: 音频转写 · 6936 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 3 numbers traced to the transcript, review score 8/10
+
+**First Person Labs把数据和推理拆开：本地或机密计算里跑模型，公司自己也证明不了能看到你的内容，信任靠硬件而不是承诺。**
+
+为什么听 / why: 这期讲的是个人AI助理「Second」的系统架构和隐私设计，话题偏技术，前段产品介绍可以快进，中后段的机密计算和成本测算是真正的信息点。
+
+### 核心论点 / points
+
+[2:02] (Ken Liu) **偏好秒级搬家，不用再给Agent解释一遍** — Ken Liu举的例子是：机票座位偏好、提前到机场多久、坐不坐头等舱，这些以前每次换到新工具（比如从GrokBot换到Codex）都要重新解释。Second的做法是先在背景里持续建立一个人的偏好、关系、意图模型，用户换到任何Agent时，这个模型可以「秒级」同步过去，不需要多轮提问。Ken提到自己换用OpenAI新发布的Codex模型时，之前在Second里积累的工作上下文直接可用。
+
+[5:08] (Ken Liu) **电脑早就知道你在干什么，只是没人分析** — Ken Liu指出系统层面本来就有一条无限的事件流：切换的App、停留的网页、打字节奏、Wi-Fi连接状态，这些数据苹果、微软、Linux系统本身都已经暴露出来。First Person Labs做的是用24/7运行的Agent层层分析这条流，从单次打字推断「在发消息」，到跨App切换推断「在做研究」「在写文档」，逐层建立对一个人在做什么的理解。Ken的结论是人们严重低估了电脑本身已经知道多少。
+
+[7:11] (Ken Liu) **真正的生产力不是回消息，是连点成线** — Ken Liu把个人AI的产出分两层：「反应式」生产力只是对单个事件做反应，比如邮件一来就提醒你，这一层很容易做，甚至已经泛滥成灾；更难的是「反思式」生产力——跨越几个月、连接多个事件的理解，比如记住几个月前说过的目标，发现最近的行为正朝那个方向推进，再结合已知的偏好给出判断。他认为未来个人计算的方向不是让用户不断发问，而是系统主动判断什么时候该介入，「人们现在还得自己开口问，这其实是个问题——你不该一直主动去问一个超级智能」。
+
+[11:21] (Ken Liu) **信任的根基是硬件，不是公司的承诺** — Ken Liu把AI拆成数据和推理两件事：用户可以自带token，把自己的数据交给自己选的推理方来分析，完全不用信任First Person Labs。更进一步的方案是「机密推理」——把模型放进支持机密计算的GPU里，打开一个硬件开关后可以密码学证明「里面只跑了这个模型，没人能看进去」，信任对象从公司变成了英伟达的硬件。这和常见的「零数据留存」承诺完全不同：后者只是公司给出的policy层面的保证（甚至有法律效力），前者是可验证的技术事实。
+
+[14:23] (Ken Liu) **数据可以完全留在本地，像密码库一样** — Second提供两种存储方案：一种叫Second Local，数据只留在本机，只在用户选定的推理服务那一刻才出去，类似把密码库锁在本地不传Dropbox；另一种是云端备份，做法是沿用iCloud或密码管理器的思路——本地先加密再上传，解密只发生在用户主动操作时（短暂存在于内存里），或者整个存储环节都放在一个可以像机密推理一样被远程证明的容器内。两条路径拼起来，形成「本地加密→上云→只在可信容器内解密」的完整闭环。
+
+[18:25] (Ken Liu) **24/7分析一个人，一天要烧多少钱** — Ken Liu现场算了一笔账：假设一个Agent24小时跑，每秒60个token，因为要分析的东西太多所以同时跑10个这样的Agent，按Opus的定价算下来一天要花1000美元；如果换成DeepSeek Flash，同样的用量一天只要60美元。他认为这个成本会随着新模型不断替换而迅速下降——自First Person Labs创立以来，token价格已经跌了超过50%，这也是为什么Second现在更像是面向「忙碌的专业人士」这类愿意为深度个人上下文付费的人群，而非所有人。
+
+[20:26] (Ken Liu) **截图加一句「fix」，省掉解释上下文的功夫** — Ken Liu分享了开发场景里最意外的用法：因为Second对「我们在做什么」有超强记忆，用户不再需要向coding agent解释任何背景——截一张图，说一句「fix」，agent就知道要修什么。他还提到「上下文连续性」：在笔记本上浏览到一半关掉，换到手机上，同一个上下文能接着往下用，甚至可以在手机上继续写同一封邮件。
+
+[30:37] (Ken Liu) **公司刻意把交互做窄，只留文本和API** — 面对「你既要做底层安全基础设施，又要做讨人喜欢的用户体验，这是不是精神分裂」的提问，Ken Liu承认团队曾经全力做交互、结果发现难度很高——要做出「令人愉悦的体验」里有太多细节要打磨。于是公司的决定是收窄自己暴露的接口：「只有文本，只有API，没有别的了」，把真正搭建个人化界面和应用的工作留给用户和开发者，自己先把底层这件「每个人迟早都要有一个Second」的事做扎实。
+
+### 原话 / verbatim quotes
+
+[6:10] Ken Liu: "I think people are underestimating how much the computer already knows."
+    译 / zh: 我觉得人们严重低估了电脑本身已经知道多少东西。
+
+[6:10] Joel De La Garza: "So we were planning an event yesterday. There was a 20% chance of weather. And in real time, it was continually updating the forecast for us to let us know if we needed to get a tent or not, which is just like incredibly powerful."
+    译 / zh: 我们昨天在筹划一场活动，有20%的概率会下雨。它实时不断更新天气预报，提醒我们到底需不需要准备帐篷，这个功能太强大了。
+
+[8:14] Ken Liu: "Like people have to ask. You're not supposed to ask. It's a super intelligence."
+    译 / zh: 现在的问题是人们还得自己开口问。可你本不该去问一个超级智能。
+
+[11:21] Ken Liu: "So if you don't trust, let's say, us, in principle, you should be able to bring your own tokens."
+    译 / zh: 如果你不信任我们，原则上你应该能自带自己的token。
+
+[12:21] Ken Liu: "And when you turn it on, you can basically prove that there's only the model running inside. No one can see inside."
+    译 / zh: 打开这个开关之后，你基本上可以证明里面只跑着这个模型，没有人能看到里面。
+
+[18:25] Ken Liu: "Let's say you have one agent or actually one agent running 24-7. And let's say at 60 tokens per second. And let's say you run 10 of those because there's so much to analyze. And at Opus 5i's pricing, that leads to $1,000 per day."
+    译 / zh: 假设你有一个Agent，或者说一个24小时不停跑的Agent，每秒60个token，因为要分析的东西太多你跑了10个这样的，按Opus 5i的定价算下来一天要花1000美元。
+
+[31:37] Ken Liu: "There's only texting. There's only API and there's nothing else."
+    译 / zh: 只有文本交互，只有API，别的什么都没有。
+
+### 数字 / figures
+
+- Opus模型24/7分析成本: 每天约1000美元 [18:25]
+- DeepSeek Flash模型同等用量成本: 每天约60美元 [18:25]
+- 公司成立以来token价格下降幅度: 超过50% [19:26]
+
+### 术语 / glossary
+
+- confidential inference (机密推理): 在支持机密计算的GPU上运行模型，可密码学证明除模型外无人能看到数据
+- zero data retention (零数据留存): 服务商承诺不保留用户数据，属于政策层面的保证而非技术可验证
+- Second Local (本地版Second): 数据只留在用户本机，仅在推理时才发往用户自选的推理服务
+- reflective productivity (反思式生产力): 跨越较长时间连接多个事件、理解用户目标和优先级，而非单纯对单一事件做反应
+
+谁该听 / who: 关心个人数据如何安全接入AI Agent的工程师、投资人，尤其对机密计算架构和token成本经济感兴趣的人。
+可跳过 / skip: 开头和结尾的产品介绍、宣传式对话可以快进，实质信息集中在中段的架构和成本部分。
+标签 / tags: 个人AI, 机密计算, 数据隐私, AI Agent, AI基础设施, token成本
+
+==============================================================================
+
+## GTA6烧掉十几亿美元，但制作人说这是个例，不是行业范本
+
+- URL: https://ourword.ai/podcast/p/2026-11-18-oddlots-gta6烧掉十几亿美元-但制作人说这是个例-不是行业范本/
+- 节目 / show: Odd Lots (https://ourword.ai/podcast/s/oddlots/)
+- 原集标题 / original episode: How GTA VI Became the Most Expensive Video Game Ever Made
+- 发布 / published: 2026-11-18 · 时长 / duration: 50:52
+- 文稿来源 / transcript: 官方逐字稿 · 9363 words · timestamps are exact
+- 校验 / verification: 8 quotes matched verbatim, 6 numbers traced to the transcript, review score 8/10
+
+**Rockstar靠GTA系列的确定性才敢把预算花到十几亿美元，而行业其他公司正因为销量没跟上预算增长而被迫削减开支，GTA6无法被复制。**
+
+为什么听 / why: 想知道一款游戏为什么能拖8年、烧十几亿美元还稳赚不赔，以及为什么这套打法只有Rockstar玩得起，值得听完；中段关于游戏设计和AI芯片抢算力的部分信息量最大。
+
+### 核心论点 / points
+
+[9:10] (Jason Schreier) **卖游戏不如卖游戏里的皮肤赚钱** — GTA Online在GTA V发售后逐渐变成一台印钞机，估计每年靠玩家买服装、枪支等微交易就能进账约5亿美元。对Take-Two来说，游戏内消费占了公司收入的约80%,远高于卖游戏本身的收入。这也解释了Rockstar为什么不急着出续作：只要GTA Online还在源源不断地赚钱，拖延新作的机会成本就变低了。
+
+[11:19] (Jason Schreier) **团队翻倍才做出这款游戏** — Red Dead Redemption 2收尾时Rockstar有2400名员工，如今做GTA6时团队涨到4700人，规模翻倍。这代表的不只是GTA6一款游戏的故事，而是整个行业的趋势：游戏从过去两三年、预算两千万美元的体量，变成七八年、预算数亿美元甚至可能超过十亿美元的体量。
+
+[16:26] (Jason Schreier) **两个角色互相陪玩，拖慢了开发** — GTA6里玩家操控Jason或Lucia时，另一个角色会自动做出一整套合理反应——上车会自己走到车门坐好、健身时会去隔壁踩单车。这种「你没在操控的角色也要表现得像真人」的系统，需要编程、美术、测试同时配合，是导致开发周期拉长的具体原因之一，Jason Schreier强调这比写普通软件难预测得多。
+
+[21:30] (Jason Schreier) **太真实反而无聊，所以他们放弃了拟真** — Red Dead Redemption 2里猎鹿要经历开枪、剥皮、绑上马这一整套繁琐流程，很多玩家喜欢这种沉浸感。但做GTA6时，团队最终决定这款游戏要更快节奏、更街机化，而不是继续堆砌拟真的繁琐操作，在「沉浸式系统」和「爽快的GTA式玩法」之间做了取舍。
+
+[31:48] (Jason Schreier) **疫情关闭了动捕棚，直接拖慢了进度** — 游戏里大量的过场动画和对白靠演员在动作捕捉棚里实拍完成，而这些棚在疫情期间全部关闭，没人能进去拍摄，成为八年开发周期里明确的延误原因之一。至于花了这么多钱、这么长时间建起来的制作流水线和团队默契，是否真能让下一款游戏做得更快，Jason Schreier的回答是不确定，这是行业从未遇到过的局面。
+
+[36:58] (Jason Schreier) **GTA6的广告片比德尼罗新片还火** — Rockstar今年夏天在Netflix首播了GTA6的半小时玩法预告片，结果那一周Netflix上播放量最高的内容不是任何电影或剧集，而是这条游戏广告，超过了罗伯特·德尼罗的新片。PlayStation和Xbox也都表示GTA6打破了各自平台历史上的预购纪录，外界估计预购量可能超过1000万份。
+
+[42:06] (Jason Schreier) **AI抢走了显卡，主机价格史上首次上涨** — AI芯片需求抬高了GPU价格，PC玩家要为高端显卡多付出一倍甚至两倍的钱，经常还买不到。主机虽然不能自定义显卡，但受供应紧张影响，价格也出现了历史上从未有过的上涨：PS5发售价500美元，现在基础版涨到650美元。业内已经在担心下一代主机价格可能突破1000美元。
+
+[43:09] (Jason Schreier) **Take-Two CEO:只有Rockstar配得上无限预算** — Take-Two CEO Strauss Zelnick用自己儿子婚礼的比喻调侃Rockstar的花钱方式：他告诉儿子婚礼预算不设上限，结果儿子真的超支了。这个玩笑背后的判断是严肃的——因为GTA的品牌号召力，Rockstar几乎是唯一一家能确定砸钱必定能赚回来的公司，其他大部分游戏公司正在想办法降低预算，因为销量并没有跟着预算同步增长。
+
+### 原话 / verbatim quotes
+
+[9:10] Jason Schreier: "In fact, for Take-Two, the company behind Rockstar, something like 80% of their revenue comes not from sales, but from in-game monetization of these games."
+    译 / zh: 事实上，对于Rockstar背后的公司Take-Two来说，他们大约80%的收入不是来自卖游戏本身，而是来自游戏内的消费变现。
+
+[10:16] Jason Schreier: "games have gone from taking two or three years and maybe budgets of $ 20 million to taking seven, eight years and budgets in the hundreds of millions of dollars"
+    译 / zh: 游戏已经从过去两三年、预算两千万美元左右，变成了现在七八年、预算高达数亿美元。
+
+[11:19] Jason Schreier: "they had about 2,400 employees. Now they have 4,700. So they doubled in size essentially to make this game, which says a lot about the games industry and its struggles and where it's headed."
+    译 / zh: 他们当时大约有2400名员工，现在有4700名。也就是说他们的规模基本翻了一倍才做出这款游戏，这很能说明这个行业的困境和它正在走向何方。
+
+[21:30] Jason Schreier: "they ultimately decided for a Grand Theft Auto game, they wanted it to be a little more fast-paced and arcadey."
+    译 / zh: 他们最终决定，对于一款Grand Theft Auto游戏来说，他们希望它节奏更快一些、更像街机游戏。
+
+[31:48] Jason Schreier: "That was all closed during COVID because nobody could go and do stuff. So that added significant delays to some of these productions."
+    译 / zh: 疫情期间这些（动作捕捉棚）全部关闭，因为没人能去那里进行拍摄。所以这给其中一些制作带来了明显的延误。
+
+[38:01] Jason Schreier: "more people wanted to watch a commercial for Grand Theft Auto 6 than wanted to watch a new movie from Robert De Niro."
+    译 / zh: 想看Grand Theft Auto 6广告的人，比想看罗伯特·德尼罗新电影的人还多。
+
+[42:06] Jason Schreier: "PlayStation 5 launched at $ 500 in 2020 and is now $ 650 for the baseline model."
+    译 / zh: PlayStation 5在2020年发售时售价500美元，现在基础版已经涨到650美元。
+
+[43:09] Jason Schreier: "my son is about to get married. And I told him, you can have an unlimited budget for your wedding. And he surpassed it."
+    译 / zh: 我儿子快要结婚了，我告诉他婚礼预算不设上限，结果他把这个上限也超过了。
+
+### 数字 / figures
+
+- GTA V 累计销量: 2.35亿份 [5:07]
+- GTA 6 开发团队规模: 从2400人增至4700人 [11:19]
+- Take-Two 微交易收入占比: 约80% [9:10]
+- PlayStation 5 价格变化: 发售价500美元，现为650美元 [42:06]
+- PlayStation 4 发售价: 400美元 [41:46]
+- GTA 6 预购估计量: 超过1000万份 [36:58]
+
+### 术语 / glossary
+
+- performance capture (动作捕捉): 演员穿上动捕设备在专用摄影棚内表演，用于生成游戏里的过场动画和对白
+- microtransactions (微交易): 玩家在游戏内用真实货币购买虚拟道具、服装等小额消费
+- stranger encounters (陌生人随机事件): 开放世界游戏中玩家四处探索时偶然碰到的、与主线无关的随机小故事
+
+谁该听 / who: 游戏行业从业者、关注内容/IP生意模式的投资人，以及想知道这款十几亿美元游戏到底在卖什么的非玩家读者
+标签 / tags: 游戏行业, GTA6, 内容经济, IP, AI芯片短缺, Rockstar
+
+==============================================================================
+
+## 明朝打不过蒙古就开放互市，战争立刻消失了
+
+- URL: https://ourword.ai/podcast/p/2026-11-18-cn27f438-明朝打不过蒙古就开放互市-战争立刻消失了/
+- 节目 / show: 东腔西调 (https://ourword.ai/podcast/s/cn27f438/)
+- 原集标题 / original episode: Vol.292｜施展×刘擎：从阴山互市到上海口岸，碰撞中的秩序生成
+- 发布 / published: 2026-11-18 · 时长 / duration: 35:33
+- 文稿来源 / transcript: 音频转写 · 9308 words · timestamps are exact
+- 校验 / verification: 5 quotes matched verbatim, 0 numbers traced to the transcript, review score 8/10
+
+**嘉靖朝南倭北虏打得筋疲力尽，换了皇帝开放互市和海禁，战争就没了——贸易不是零和博弈，规则常常是在冲突耗尽双方之后、在交往界面上长出来的。**
+
+为什么听 / why: 从明代边贸到上海开埠讲了三段秩序生成的机制，信息密度不算高，但「界面生长规则」这条线索贯穿全场，适合对制度演化感兴趣的人。
+
+### 核心论点 / points
+
+[2:32] (施展) **非洲地摊上的喜羊羊书包** — 施展在坦桑尼亚达累斯萨拉姆的路边摊看到画着喜羊羊的中国产书包，利润极薄却仍从义乌或东莞万里迢迢运到内陆深处贩卖，比当地生产还划算。这个画面让他第一次直观感受到中国超大规模性对世界的冲击力，也成了他回头研究历史、追问这种规模性如何形成、能否持续的起点。
+
+[8:09] (施展) **南倭北虏打不动了，就开放互市** — 嘉靖朝四十多年里南边倭寇、北边蒙古轮番冲击，打到国家财政被拖垮也没能平定。蒙古多次突破长城南下，诉求其实很简单：要求通商。嘉靖始终不许，直到驾崩，继位的隆庆皇帝才开放东南海禁(集中在漳州)和明蒙互市，结果战争就此消失。
+
+[13:09] (施展) **贸易是正和博弈，战争常是零和** — 施展指出，农牧冲突本质是差异化人群在边界上的碰撞，战争往往导致双方都耗尽、谁也赢不了，属于零和甚至负和；而开放互市是plus game,双赢。这不是道德选择，而是打到一定程度后、财政压力逼出来的务实转向。
+
+[14:26] (刘擎) **陌生人社会靠契约，不靠人情** — 费孝通笔下乡土中国是按血缘地缘远近组织的「差序格局」人情社会；上海作为移民混杂的口岸城市，宁波钱庄、江北人、苏北人各自默认规则不同，无法再靠人情通约，只能转向对事不对人的契约、合同、清单这类impersonal规则，效率更高、适用范围更广，这是上海最早进入现代社会的原因。
+
+[18:13] (施展) **太平天国没能摧垮财政，因为多了关税** — 历代王朝晚期大起义通常会占据财政核心区、导致帝国崩溃，唯独清朝例外：太平天国占了江南，财政核心区丢了，大清却撑过去了，因为上海开埠带来了此前历代都没有过的新财源——海外贸易关税，以及各省过境税(厘金),后者还间接养活了曾国藩、李鸿章的军队。
+
+[22:18] (刘擎) **上海曾有极强的本地主义** — 刘擎回忆1978年到上海读大学时，不会说正宗上海话在公共汽车售票、书店买书这类日常交易里都会被区别对待，甚至买七分钱车票的报法都要讲得像本地人才行。他把那时期归因于六七十年代上海只向外输出人口(支援内地广播电台、知青),外来人口进不来，形成了封闭期的本地主义。
+
+[25:20] (刘擎) **人同时要秩序又要自由，规则靠冲突来改** — 人既需要规则带来的稳定与归属感，又需要自由、新奇、冒险的空间；两者矛盾，于是人会不断修改甚至违背规则去换取自由，失败后又退回秩序。规则怎么变，靠新事物不断激发——这正是中国因地理多样、来源多样而持续演化的内在动力。
+
+[28:21] (施展) **特斯拉上海工厂：马斯克的梦想靠中国落地** — 马斯克不是在既有赛道上卡位的普通企业家，而是为人类构想了一条全新道路，造车只是实现超级梦想的步骤之一。2018年Model S做出来却始终上不了量，直到2019年上海超级工厂11个月建成投产，上海工厂此后长期占全球产量过半、利润占比更高，让资本市场第一次相信他的狂想能落地，估值才真正起飞。
+
+### 原话 / verbatim quotes
+
+[6:09] 刘擎: "人情社会是对人对事 主要是人 这个人我信任吗 信任 那就可以怎么样 但是都是陌生人的时候 而你是谁其实不重要"
+    译 / zh: 人情社会是对人对事，主要是人：这个人我信任吗？信任，那就可以怎么样。但当大家都是陌生人的时候，你是谁其实不重要。
+
+[12:09] 施展: "南边开关 北边龙庆合意 都允许做贸易了 战争没了"
+    译 / zh: 南边开放海禁，北边隆庆和议，都允许做贸易了，战争就没了。
+
+[13:09] 刘擎: "贸易开放 它不是零和博弈 对不对 它是双赢的 它是plus game"
+    译 / zh: 贸易开放不是零和博弈，对吧，它是双赢的，是正和博弈。
+
+[19:14] 施展: "一定是你在这个传统的财政核心区之外 发掘出一种新的财政的来源 而这新的财政来源从哪来 几条 一条是关税"
+    译 / zh: 一定是在传统的财政核心区之外，发掘出了一种新的财政来源。这新的财政来源从哪来？几条，一条是关税。
+
+[25:20] 刘擎: "一个是秩序 就由规则为核心的秩序 他给你什么呢 稳定确定性 人群的归属感 共同体一大堆 都需要秩序来垫裂 但是秩序多了怎么呢 人是要自由 要新奇改变冒险 新的可能性"
+    译 / zh: 一个是秩序，就是以规则为核心的秩序，它给你什么呢？稳定、确定性，人群的归属感，共同体，这一大堆都需要秩序来支撑。但秩序多了怎么样？人是要自由，要新奇、改变、冒险，要新的可能性。
+
+### 术语 / glossary
+
+- impersonal (非个人化规则): 对事不对人、依据普遍标准处理陌生人之间交易的契约式规则
+- plus game (正和博弈): 双方都能获益、非零和的互动，与战争的零和性质相对
+
+谁该听 / who: 对制度史、城市演化或中美经贸格局感兴趣的创业者和研究者，想理解「规则从冲突中长出来」这条历史逻辑的人。
+可跳过 / skip: 29:23附近马斯克那段有录音重复卡顿的片段，内容本身在30:23之后已完整复述，可直接跳过。
+标签 / tags: 制度史, 上海, 明史, 中美关系, 全球化, 城市文化
+
+==============================================================================
+
+## 入侵物种也在"干自己的活":原住民生态知识不用好坏二分法
+
+- URL: https://ourword.ai/podcast/p/2026-11-18-ologies-入侵物种也在-干自己的活-原住民生态知识不用好坏二分法/
+- 节目 / show: Ologies (https://ourword.ai/podcast/s/ologies/)
+- 原集标题 / original episode: Indigenous Entomology (BUGS & TRADITIONAL ECOLOGICAL KNOWLEDGE) with Cheyenne Reuben-Thomas
+- 发布 / published: 2026-11-18 · 时长 / duration: 1:01:57
+- 文稿来源 / transcript: 音频转写 · 10058 words · timestamps are exact
+- 校验 / verification: 6 quotes matched verbatim, 5 numbers traced to the transcript, review score 8/10
+
+**欧洲蜜蜂、亚洲瓢虫这类常被叫作「入侵种」的生物，在原住民生态知识里被看作在履行各自的生态职责，而不是非黑即白的敌人。**
+
+为什么听 / why: 信息密度集中在中后段，关于文化火与政府控制燃烧的区别、原住民科学家在学术界的处境尤其值得听。
+
+### 核心论点 / points
+
+[8:05] (Cheyenne Reuben-Thomas) **蜜蜂没有「本不本土」，只有有没有在干活** — 欧尼达部落自己经营的果园会专门从佛罗里达的农场借欧洲蜜蜂来授粉，这种蜜蜂并非北美原生物种，却是果园增产的关键劳力。Cheyenne 说原住民语言里常常没有「入侵物种」这个词，取而代之的思路是：每个物种都有自己的工作要做，欧洲蜜蜂也不例外。这和主流保护话语里「入侵=要清除」的默认立场形成直接对照。
+
+[9:11] (Ally Ward) **原住民保护区里，濒危熊蜂正在反弹** — 按 Xerxes 无脊椎动物保护协会的数据，锈斑熊蜂（rusty patched bumblebee）在近几十年下降了约87%，2017年被列为濒危物种，威胁包括引入的植物昆虫、缺乏文化烧荒、常青树侵占草甸栖息地，以及养殖蜂带来的病原体。但 Cheyenne 说这种蜂在欧尼达保护区正在强势回归，美国鱼类和野生动物管理局最近还在附近划定了关键栖息地。
+
+[12:17] (Cheyenne Reuben-Thomas) **文化烧荒不是政府控制燃烧的翻版** — 两者都是受控燃烧，但文化火由原住民社区主导，强度更低、更有意图，时机甚至可以由星座等环境线索决定；而政府和机构主导的控制燃烧更多是为了完成烧荒面积的指标。原住民社区点火的理由往往是仪式或食物主权，这跟机构燃烧的行政目标完全是两套逻辑。
+
+[23:42] (Ally Ward) **美国原住民博士比例不到千分之三** — 按2024年一篇文章援引的数据，美国全体人口中拥有博士学位的不到2%，而这其中只有三分之一个百分点是北美原住民。Cheyenne 说自己成长过程中几乎没见过长得像她、说话方式像她的学者，这也是她一度觉得读博这件事「不属于自己」的直接原因。
+
+[25:48] (Cheyenne Reuben-Thomas) **蒲公英开花，告诉部落鱼什么时候产卵** — 蒲公英是殖民后才引入北美的外来植物，但它的花期恰好对应着对图斯卡罗拉部落有文化意义的鲟鱼产卵期，依然被当作重要的环境信号来使用。同理，亚洲瓢虫虽是为了生物防治引入、挤占了本土七星瓢虫和九斑瓢虫的位置，但它们依然在三姊妹（玉米、豆、南瓜）间作系统里吃蚜虫、保护作物，所以社区依然承认并尊重它们在完成的那份工作。
+
+[37:22] (Cheyenne Reuben-Thomas) **蚊子的起源故事：报复，而非天生的敌人** — Haudenosaunee 的一个故事讲，古时有两只树一样大的巨型蚊子不断攻击在河上划船的族人，族人联合围攻将其射杀，巨蚊倒地化作一群微小的蚊子四散飞出。Cheyenne 说至今这些小蚊子的存在，就是在为祖先当年遭受的攻击讨回公道——这是一个「因是我们先动手」的故事，而不是把吸血昆虫单纯当作该被消灭的害虫。
+
+[54:07] (Cheyenne Reuben-Thomas) **最累的不是田野，是被质疑研究有没有价值** — Cheyenne 说自己工作中最难的部分不是数据分析或写作，而是不断被问「这项工作为什么重要」「为什么该被纳入政策」。她选择用一对一的随性聊天来应对，因为很多时候12分钟的学术报告根本讲不清楚传统生态知识的价值——主持人则直言这让她感到意外，觉得学界理应更感激这类知识，而不是质疑它。
+
+### 原话 / verbatim quotes
+
+[4:01] Cheyenne Reuben-Thomas: "I come at you, I come at you quick like a blizzard, and I was born in a blizzard, and that's exactly where, like, that's why I got named that."
+    译 / zh: 我像暴风雪一样冲向你，来得又快又急，而我正是生在一场暴风雪里——这就是我的名字的由来。
+
+[8:05] Cheyenne Reuben-Thomas: "because we actually have an apple orchard where we do borrow, literally borrow bees from a farm in Florida."
+    译 / zh: 因为我们真的有一个果园，我们会从佛罗里达的一个农场借蜜蜂，真的是借来的。
+
+[9:11] Cheyenne Reuben-Thomas: "we have to reconcile with the fact that we have been the ones to take them and bring them here for a job that they are doing. So it's a very complicated relationship."
+    译 / zh: 我们得接受这个事实：是我们把它们带到这里来做这份工作的。所以这是一段非常复杂的关系。
+
+[16:28] Cheyenne Reuben-Thomas: "like literally crawling around on all fours looking for bugs at one point. It was a dream. It was insane."
+    译 / zh: 有一段时间真的是四肢着地爬在地上找虫子。那是一个梦，太疯狂了。
+
+[37:22] Cheyenne Reuben-Thomas: "So to this day, these tiny creatures, these mosquitoes are around really to pay retribution for the attacks on their giant ancestors."
+    译 / zh: 所以直到今天，这些小小的生物，这些蚊子，存在其实是在为它们巨型祖先遭受的攻击讨回公道。
+
+[54:07] Cheyenne Reuben-Thomas: "Like, why is this work important? Why is it important for this reason? Why is it important for policy? Why should it even be included in this way?"
+    译 / zh: 比如，这项工作为什么重要？为什么因为这个理由而重要？为什么对政策来说重要？为什么它应该以这种方式被纳入？
+
+### 数字 / figures
+
+- 锈斑熊蜂数十年内的种群下降幅度: 约87% [9:11]
+- 锈斑熊蜂获得濒危物种地位的年份: 2017年 [9:11]
+- 美国联邦承认部落数量: 574个 [42:39]
+- 美国拥有博士学位的人口比例: 不到2% [23:42]
+- 其中北美原住民所占比例: 约三分之一个百分点 [23:42]
+
+### 术语 / glossary
+
+- cultural fire (文化烧荒): 由原住民社区主导、带文化仪式意图的可控焚烧，区别于政府主导的控制燃烧
+- Three Sisters (三姊妹间作): 玉米、豆类、南瓜共生种植，彼此提供养分、支撑和遮荫的传统农法
+- traditional ecological knowledge (TEK) (传统生态知识): 原住民社区世代积累、关于生态与物种关系的知识体系
+
+谁该听 / who: 做生态保护、物种多样性政策或文化遗产相关工作的人，以及关心原住民科学家在学术界处境的人。
+可跳过 / skip: 开头介绍嘉宾外貌、书架布置等寒暄片段可以跳过。
+标签 / tags: 昆虫学, 原住民知识, 生态保护, 文化烧荒, 外来物种, 学术处境
 
 ==============================================================================
 
@@ -154,6 +432,68 @@
 
 ==============================================================================
 
+## 你的焦虑不是缺乏控制，而是控制过了头
+
+- URL: https://ourword.ai/podcast/p/2026-11-18-iq2-你的焦虑不是缺乏控制-而是控制过了头/
+- 节目 / show: Intelligence Squared (https://ourword.ai/podcast/s/iq2/)
+- 原集标题 / original episode: Are We Addicted to Control? with Dr Anna Lembke
+- 发布 / published: 2026-11-18 · 时长 / duration: 40:06
+- 文稿来源 / transcript: 音频转写 · 6474 words · timestamps are exact
+- 校验 / verification: 6 quotes matched verbatim, 0 numbers traced to the transcript, review score 9/10
+
+**Lembke 认为现代人的恐惧、孤独和羞耻感根源于「无限可塑性」的幻觉——以为自己能掌控一切，结果一旦失控就只剩自责，而真正的解药是向自己之外的更高力量交出意志。**
+
+为什么听 / why: 适合听前半段和中段：对控制、自恋、绝望的诊断很扎实；AI与祈祷那两段也值得听，中间有一段转写明显卡顿损坏可直接跳过。
+
+### 核心论点 / points
+
+[4:01] (Anna Lembke) **自恋的核心不是自私而是恐惧** — Lembke 重新定义了「自恋」：大众把它当成自私或自大的骂人词，但她认为自恋的核心机制是恐惧——对未知的恐惧，以及用否认和病态的意志力去制造全能全知的假象来回避这种恐惧。她强调这不是在批评「那些自恋的人」，而是提醒听众往自己身上看，因为她认为现代文化已经让几乎所有人都变成了某种程度的自恋者。
+
+[8:11] (Anna Lembke) **大家不再接受同一套事实** — Lembke 指出现代危机是「意志的危机」：过去人类面对的是饥荒、火灾、洪水这样真实的生存威胁，如今科技让我们掌控了大部分物质现实，于是危机转移到了叙事层面——人们不再能就基本事实达成共识，而是各自编造对自己有利的叙事并说服他人接受。她认为这种对控制的执念，本质上是对「宏观不确定性」的防御。
+
+[9:11] (Anna Lembke) **无限可塑性让年轻人害怕选错路** — 年轻人的焦虑很大一部分来自「我是自己命运的唯一仲裁者」这种观念——既然人可以把自己塑造成任何样子，那选错一步就意味着错过「最好的人生」。结果是他们卡在岔路口，既不敢前进也放不下回头看，陷入FOMO。Lembke还提到，斯坦福的学生曾因上一代人只会算作挫折的事（社交被拒、未拿到经费、学业训诫）而自杀，这是她认为的一种独特的现代式绝望。
+
+[13:18] (Anna Lembke) **滑动配对消耗了人对不确定性的容忍度** — Lembke把生育率下降和年轻人不愿建立真实关系的现象，归因于同一套控制机制：人们习惯了用各种杠杆去微调自己的体验（比如左滑右滑找更「优化」的伴侣），久而久之丧失了对不确定性的容忍。延伸到生育问题上，她认为核心也是恐惧——怕孩子不够完美，怕自己被追责为不完美的父母，这驱使人们干脆不要孩子。
+
+[18:32] (Anna Lembke) **找我的iPhone式监控正在扼杀家庭的「混乱」** — 她谈到父母用Find My iPhone、婴儿监视器等设备持续监控孩子，这种微观控制看似出于关心，实则是另一种完美主义的延伸。家庭一起吃饭、玩游戏、在自然中相处的时间在减少，取而代之的是各自在分开的房间里用各自的设备，而Lembke认为恰恰是「犯错后彼此原谅、继续往前走」的那种混乱，才真正创造了亲密感。
+
+[22:44] (Anna Lembke) **交出控制时，大脑的控制网络真的会关闭** — Lembke引用研究说，人们在把意志交给更高力量时，前额叶皮层的控制网络（也就是不断反刍思考、造成痛苦的那部分）会关闭，灵性网络则被激活——这个网络富含内源性止痛的μ阿片受体、带来连接感的催产素受体，以及支持在不确定中保持神经可塑性的5-HT2A血清素受体。这意味着「祈祷」或交出意志不只是心理安慰，而是真实改变了大脑接收世界信息的方式，让人从「把心理模型强加给世界」转为「接收世界正在发生什么」。
+
+[28:57] (Anna Lembke) **AI正在劫持人类的依恋本能** — 针对越来越多人用AI解决孤独感的现象，Lembke的判断很直接：AI本质上是在劫持人类的依恋机制，通过即时满足我们被验证、被确认、减少不确定性、追求完美的情绪化反射需求来运作。它承诺存在某个「完美答案」，而我们用在AI上的时间越多，就越不理解真实生活中的人际关系和世界本身——这只是一种幻觉。她并不主张抛弃技术，但警告用AI替代人与人之间的情感依恋是一个「非常危险的工具」。
+
+[32:07] (Anna Lembke) **祈祷不需要信神，只需要先停止相信自己** — 对无宗教信仰的听众，Lembke给出一个具体操作：在情绪淹没自己的那一刻，不要继续往内深挖去找原因或解决方案，而是先承认这个情绪（「我现在感到害怕」），然后把它交出去，向自身之外寻求指引——无论你把那个「更高力量」定义成什么。她说这不需要相信上帝，只需要暂时停止相信自己，这一步本身就能带来片刻的宁静。
+
+### 原话 / verbatim quotes
+
+[4:01] Anna Lembke: "I think the heart of narcissism is really fear. Fear of the unknown and a very specific coping mechanism to manage that, that is to say denial and pathological willfulness or doubling down on control"
+    译 / zh: 我认为自恋的核心其实是恐惧，对未知的恐惧，以及一种非常具体的应对机制——也就是否认和病态的意志力，或者说变本加厉地加强控制。
+
+[8:11] Anna Lembke: "people now spin really any narrative they want for their own ends, and then convince others to accept and believe that. And that that's highly normative."
+    译 / zh: 人们现在为了自己的目的，随意编造任何叙事，然后说服别人接受并相信它，而这已经变得非常常态化了。
+
+[9:11] Anna Lembke: "I am the arbiter, the sole arbiter of my destiny, I can shape myself into whatever I want."
+    译 / zh: 我是自己命运的仲裁者，唯一的仲裁者，我可以把自己塑造成任何想要的样子。
+
+[13:18] Anna Lembke: "we've lost our tolerance for uncertainty. We're terrified to go out into the world to actually have an interaction where we don't know the outcome or we can't swipe right or swipe left"
+    译 / zh: 我们已经丧失了对不确定性的容忍——我们害怕走进现实世界，去经历一场结果未知、无法左滑右滑来优化选择的互动。
+
+[22:44] Anna Lembke: "studies show that when people engage in the act of surrendering their will to a power greater than themselves, their prefrontal cortical control networks actually turn off"
+    译 / zh: 研究显示，当人们把意志交给一个比自己更强大的力量时，他们大脑前额叶皮层的控制网络会真正关闭。
+
+[33:15] Anna Lembke: "you don't need to believe in God. You just need to stop for a moment believing in yourself and humbly ask for guidance for from from a power greater than yourself"
+    译 / zh: 你不需要相信上帝，你只需要暂时停止相信自己，谦卑地向一个比自己更强大的力量寻求指引。
+
+### 术语 / glossary
+
+- infinite flexibility (无限可塑性): 认为自己能随意塑造人生轨迹、不受限制的信念，Lembke认为这是年轻人焦虑的根源之一。
+- mental map / mental model (心理地图/心理模型): 大脑基于过往经验建立的对世界的预测机制，用来比对实际发生的事。
+
+谁该听 / who: 适合经常觉得「必须掌控一切」的创业者、把生活数据化优化的人，以及对AI替代人际连接感到不安的人。
+可跳过 / skip: 13:18附近有一段明显转写损坏、重复「the more」的片段，可直接跳过。
+标签 / tags: 心理健康, 自恋, 成瘾医学, AI与孤独, 灵性, 养育
+
+==============================================================================
+
 ## 劳伦斯空手赴巴黎和会，犹太代表团却带着水权地图谈妥一切
 
 - URL: https://ourword.ai/podcast/p/2026-11-18-empirehist-劳伦斯空手赴巴黎和会-犹太代表团却带着水权地图谈妥一切/
@@ -206,6 +546,77 @@
 谁该听 / who: 对一战后中东地图如何被划定、巴以问题与伊拉克/叙利亚国家形成史感兴趣的创业者和地缘政治爱好者。
 可跳过 / skip: 牛津写作与七柱之智成书经过一段（32:24-37:35）可以略过，偏文学轶事，与核心政治线索关系较弱。
 标签 / tags: 中东史, 巴以冲突, 殖民历史, 阿拉伯的劳伦斯, 一战后秩序, 伊拉克建国
+
+==============================================================================
+
+## 地幔柱的源头一开始是干的，水是后来被俯冲带进去的
+
+- URL: https://ourword.ai/podcast/p/2026-11-17-geologybites-地幔柱的源头一开始是干的-水是后来被俯冲带进去的/
+- 节目 / show: Geology Bites (https://ourword.ai/podcast/s/geologybites/)
+- 原集标题 / original episode: Water in the Mantle with Rita Parai
+- 发布 / published: 2026-11-17 · 时长 / duration: 29:25
+- 文稿来源 / transcript: 音频转写 · 4622 words · timestamps are exact
+- 校验 / verification: 6 quotes matched verbatim, 4 numbers traced to the transcript, review score 9/10
+
+**惰性气体同位素模型显示，地幔柱源头在地球吸积末期的水分比上地幔少4到250倍，但如今却靠俯冲带水反超上地幔达20倍。**
+
+为什么听 / why: 一期节目把稀有气体同位素这套冷门方法讲透了，核心反转结论（地幔柱从干变湿）信息密度很高，中段讲同位素原理的部分偏技术。
+
+### 核心论点 / points
+
+[3:04] (Rita Parai) **洋中脊玄武岩和地幔柱玄武岩从不是同一个储库** — 洋中脊的岩浆来自板块分离时上涌的浅部地幔，而夏威夷、加拉帕戈斯这类热点火山的岩浆来自地震成像证实的深部地幔柱。两者的化学成分差异分两类：热点玄武岩内部的变化幅度远大于洋中脊玄武岩；而且热点玄武岩里还保留着地球形成最初几亿年里就已灭绝的放射性同位素信号。这说明两个储库在地球历史的大部分时间里一直是分开的，没有被对流充分混合过。
+
+[9:17] (Rita Parai) **放射成因同位素和原始同位素的比值，是脱气程度的尺子** — 每种稀有气体都有一个「原始同位素」（继承自地球吸积时的原始气体）和至少一个「放射成因同位素」（由铀、钍等放射性元素持续衰变产生）。一个储库如果脱气很少，保留了大部分原始气体，放射成因同位素相对原始同位素的比值就会被稀释、显得低；如果脱气严重，原始气体大量逃逸，而铀、钍这类非挥发性母体元素留在矿物里继续衰变产生新气体，这个比值就会变得很高。
+
+[11:21] (Rita Parai) **地幔柱源头的氦、氖、氩比值都显示它脱气更少** — 把洋中脊玄武岩和地幔柱玄武岩的氦、氖、氩同位素放在一起比较，地幔柱样品的放射成因/原始同位素比值全都更低。按照这套框架，这意味着地幔柱所取样的那部分地幔保留了更多原始气体，被熔融和板块构造「加工」得更少，是一个相对原始、未被充分搅动过的储库。
+
+[15:38] (Rita Parai) **上地幔原始组成里，「晚期增生物质」的比例更高** — 太阳星云气体、富挥发分的岩质物质（类似碳质球粒陨石）和彗星，三种吸积来源各自有独特的氖同位素指纹。用这些指纹反推两个储库的初始混合比例，结果是上地幔需要更高比例的富挥发分岩质物质贡献，这与「月球形成大碰撞之后才加入地球的晚期增生物质优先混入上地幔」这个假说是吻合的。
+
+[17:44] (Rita Parai) **反直觉发现：地幔柱源头起初并不是富气的** — 「原始」不等于「气体多」。地幔柱源头保留了更大比例的初始气体，但这不代表它在绝对量上气体丰富——这取决于它一开始有多少气体。用正向模型同时拟合今天的氦、氖、氙同位素比值后发现，光靠「地幔柱脱气更少」这一条解释不了数据，还必须假设地幔柱源头起初的气体浓度就比上地幔低，结果出人意料地显示地幔柱源头起初是贫气的。
+
+[20:52] (Rita Parai) **现在地幔柱源头的水反而比上地幔多出近20倍** — 吸积末期地幔柱源头的水比上地幔少4到250倍，这种干、硬的早期地幔柱能抵抗混合，可能解释了为什么巨型撞击没有把早期地球均质化，也可能是地幔柱源头保留更多早期同位素异质性的原因。但今天的地幔柱源头含水量约400到1000ppm，反而比洋中脊源头的50到200ppm更湿，说明今天地幔柱里的水大部分不是原始的，而是后来加进去的。
+
+[24:04] (Rita Parai) **俯冲板块把地表水带入深地幔，是25亿年内才开始的** — 水要被带进地幔柱，要么是俯冲板块携带含水矿物沉到比岩浆产生带更深的地方，要么是地幔柱上升穿越过渡带时顺带卷入富水物质。利用古大气氙同位素过去15年积累的演化记录作为「指纹」反推，发现在大约25亿年前，地幔无法容忍太多大气氙的输入，否则今天会留下那种异常同位素组成的痕迹，但现实中并没有看到。这说明板块俯冲带能冷到把挥发分留在板片里带入深部，是最近25亿年内才出现的过程，而这不代表板块构造本身也是那时才开始的。
+
+[27:15] (Rita Parai) **上地幔和地幔柱源头的干湿关系，在地球历史上发生了反转** — 上地幔起初相对湿润，但在地球历史中因熔融和脱气失去了大部分原始气体，现在在脱气和大气输入之间维持着一种大致平衡。地幔柱源头正相反：起初是干的，如今的大部分含水量来自地表，是通过俯冲板片循环或地幔柱穿越过渡带时被卷入的，两个储库的干湿地位完全颠倒了过来。
+
+### 原话 / verbatim quotes
+
+[17:44] Rita Parai: "You also need for there to have been a difference in the initial gas concentration, with the plume mantle surprisingly being gas-poor compared to the upper mantle."
+    译 / zh: 你还需要假设初始气体浓度本身就不同，令人意外的是，地幔柱源头比上地幔更贫气。
+
+[18:48] Rita Parai: "At the end of accretion, my calculation was that the plume source would have at least four times less water, up to 250 times less water than the upper mantle at the end of accretion."
+    译 / zh: 吸积结束时，我的计算显示地幔柱源头的水比上地幔少至少4倍，最多能少250倍。
+
+[19:50] Rita Parai: "So having a dry ancient plume mantle would be a dry, stiff ancient plume mantle. And that would be a reservoir that could resist mixing."
+    译 / zh: 所以一个干燥的古老地幔柱，就是一个干燥、坚硬的古老地幔柱，这样的储库能够抵抗混合。
+
+[20:52] Rita Parai: "The amount of water in the plume source today, we think it's about 400 to 1000 parts per million H2O in the plume mantle. And that's wetter than the modern mid-ocean rich basalt source."
+    译 / zh: 今天地幔柱源头的含水量，我们认为大约是400到1000ppm H2O，这比现代洋中脊玄武岩源头更湿。
+
+[24:04] Rita Parai: "Yes, not recent in anyone's normal way of thinking about recent."
+    译 / zh: 是的，这个「最近」不是任何人正常理解里的「最近」。
+
+[27:15] Rita Parai: "The upper mantle, I think, started relatively wet, and then over-Earth history lost most of its original gas through melting and outgassing."
+    译 / zh: 我认为上地幔起初相对湿润，但在地球历史中因熔融和脱气失去了大部分原始气体。
+
+### 数字 / figures
+
+- 吸积末期地幔柱源头水量相对上地幔: 少4到250倍 [18:48]
+- 太阳星云气体氖20/22比值: 约13.4 [13:30]
+- 富挥发分岩质物质氖20/22比值: 约8 [13:30]
+- 碘-129半衰期: 约1600万年 [7:13]
+
+### 术语 / glossary
+
+- mantle plume (地幔柱): 从地幔深处垂直上升、驱动热点火山（如夏威夷）的热物质柱。
+- primordial isotope (原始同位素): 地球吸积时就带有、未经内部核反应产生的同位素，用作物质来源指纹。
+- radiogenic isotope (放射成因同位素): 由铀、钍等放射性元素衰变持续产生的同位素，用来衡量脱气程度。
+- late veneer (晚期增生物质): 月球形成大碰撞之后才加入地球的物质，被认为优先混入上地幔。
+
+谁该听 / who: 对地球深部水循环、板块俯冲和地幔柱机制感兴趣的地质学爱好者，以及想了解稀有气体同位素这套研究方法的人。
+可跳过 / skip: 9:17-11:21讲放射成因/原始同位素比值的数学原理较技术化，听不懂细节可直接跳到11:21看结论。
+标签 / tags: 地幔, 地幔柱, 稀有气体同位素, 板块俯冲, 地球早期演化, 地质化学
 
 ==============================================================================
 
@@ -772,6 +1183,76 @@
 
 ==============================================================================
 
+## 她说表演失误从不往心里去，当妈妈却做什么都往心里去
+
+- URL: https://ourword.ai/podcast/p/2026-11-17-goodinside-她说表演失误从不往心里去-当妈妈却做什么都往心里去/
+- 节目 / show: Good Inside (https://ourword.ai/podcast/s/goodinside/)
+- 原集标题 / original episode: Am I Messing Up My Kid? with Jenny Slate
+- 发布 / published: 2026-11-17 · 时长 / duration: 48:48
+- 文稿来源 / transcript: 音频转写 · 9546 words · timestamps are exact
+- 校验 / verification: 8 quotes matched verbatim, 2 numbers traced to the transcript, review score 8/10
+
+**Jenny Slate发现，表演时犯错她能立刻翻篇、毫不内耗，但当妈妈时，哪怕做得很好，她也会把每一刻都当成对自己的审判。**
+
+为什么听 / why: 这集没有育儿方法论清单，而是把「为什么当妈比演戏更让人自我苛责」这件事讲得具体又真实，适合反复对照自己的状态。
+
+### 核心论点 / points
+
+[3:03] (Jenny Slate) **父亲睡袍上的蝙蝠血，是她童年的「正常」** — Jenny Slate讲她父亲多年睡穿一件印着公司名字的旧睡袍，有次蝙蝠飞进家里，父亲用网球拍打蝙蝠，睡袍上溅满血却被当成「战利品」舍不得扔。她说小时候从没觉得这奇怪，只觉得「我们家出了问题，我父母会处理，他们就是这么处理的」——直到成年后才回头意识到那有多怪。这是她理解父母行为、也理解自己育儿方式的起点。
+
+[13:22] (Jenny Slate) **表演时的自我接纳，当妈时荡然无存** — Jenny Slate说她最大的恐惧是笼统又刺耳的「我在搞砸」。她对比表演状态：上台时她完全不批判自己，不把失误当个人问题，反而有一种「理性的、令人满足的自我接纳」；但当妈妈时，同样的失误会被她立刻拿来审判自己是不是个好母亲，哪怕客观上她做得很好。
+
+[19:40] (Jenny Slate) **导演说「哭少一点」不是指责，孩子说「别这样读」却像判决** — 演戏时导演给调整意见，比如「哭晚一点」「愤怒更靠前」，她的反应是「哦，信息，信息」——纯粹当作可以调整的技术指令，完全不往心里去。但育儿里同样的反馈——孩子不喜欢她读绘本的方式——却被她当成对自己整个人的否定。她说这种差异的核心是：演戏里犯错有专业距离感，当妈时没有。
+
+[28:03] **别问安不安全，问怎样才能更安全** — 针对女儿喜欢从沙发跳到有棱角的茶几这件事，Dr. Becky给出的重构方式是：不要把局面设成「你against我」，而是「我们俩一起对抗她撞破头的风险」，同时承认孩子想玩是合理的，问题是可以被设计掉的（比如用软垫盖住桌角）。关键一句重构是把「那样不安全」换成「你要怎么做才能让这样玩更安全」——后者把孩子变成解决问题的合作者，而不是被管教的对象。
+
+[33:21] **「我们」对抗问题，而不是我对抗你** — 面对早上出门磨蹭的混乱，建议的开场方式是先承认共同处境：「早上真是一团糟，对我俩都不容易，我们应该都希望顺一点」，再问「你有没有什么想法，我们能不能一起想个办法」。这和成年后处理伴侣矛盾的方式是同一套逻辑：不是指出对方该怎么改，而是把问题摆在两人中间一起面对。
+
+[38:37] (Jenny Slate) **产后抑郁像东西被锁进玻璃柜里，伸手却太累** — Jenny Slate用「紫色噪音」形容产后那段抑郁状态，最具体的比喻是：那种悲伤不是不懂得感恩，而是明明看得见自己拥有的一切，却感觉像有人把这些东西装进一英寸外的玻璃柜，而她累到连抬手开柜门都做不到。她说那种状态极度孤独、也让人羞耻，直到后来吃抗抑郁药才感觉「一夜之间完全不同」。
+
+[42:48] (Jenny Slate) **她不想要孩子活成自己的复制品** — Jenny Slate说自己年轻时曾把高需求的自己理解成「软弱又烦人」，现在重新定义为「一个强大、善良、有大胃口的人，这很酷」。她希望女儿知道她足够强大，能够承接女儿的情绪和失望；同时她明确说，即便女儿是她的「复制品」，她也不希望如此——她希望女儿活成她自己，而不是任何版本的她。
+
+### 原话 / verbatim quotes
+
+[9:12] Jenny Slate: "understanding what scared me and then realizing that there, that the fear gestured at a solution."
+    译 / zh: 去理解什么让我害怕，然后意识到那份恐惧其实指向了一个解决方案。
+
+[13:22] Jenny Slate: "my biggest fear as a parent is general and blaring, which is I'm messing up."
+    译 / zh: 我作为父母最大的恐惧是笼统又刺耳的——我在搞砸。
+
+[16:37] Jenny Slate: "a rational, sensible, profoundly satisfying momentary sense of self-acceptance"
+    译 / zh: 一种理性的、明智的、带来深刻满足感的、瞬间的自我接纳。
+
+[19:40] Jenny Slate: "I don't take it personally when I make a mistake? Like I just, I do feel really professional about it. I'm just like, go again. … But as a parent, um, I do take it personally, even when I'm doing a good job and it's hard."
+    译 / zh: 我犯错时不会往心里去，我会很职业地觉得——再来一次就好。但当妈妈时，我会往心里去，哪怕我做得很好，这也很难。
+
+[31:17] : "it sounds obvious but i don't always think it is where like the problem is in the solution"
+    译 / zh: 这听起来很显而易见，但我不总是这么想——问题本身就藏着解决方案。
+
+[38:37] Jenny Slate: "it's actually a feeling of being separated from it as if people have taken the things that I know are mine and put them in a glass cabinet, one inch from my face. And I'm just too tired to raise a hand and open the door."
+    译 / zh: 那其实是一种被隔绝的感觉，就好像别人把我知道属于我的东西，放进了离我脸只有一英寸的玻璃柜里，而我累得连抬手打开柜门都做不到。
+
+[42:48] Jenny Slate: "Now I feel myself as a strong, really kind person who has large appetites and that that's cool."
+    译 / zh: 现在我把自己看作一个强大、真正善良、有很多渴望的人，而这很酷。
+
+[44:53] Jenny Slate: "if this little kid arrived on my doorstep with, like, two suitcases and was, like, the universe sent me, I'd be, like, great."
+    译 / zh: 如果这个小孩拎着两个行李箱出现在我家门口，说宇宙把她送来了，我会说——太好了。
+
+### 数字 / figures
+
+- Dr. Becky家庭对话建议的单次时长上限: 75秒 [30:12]
+- Jenny Slate自述年龄: 44岁 [44:53]
+
+### 术语 / glossary
+
+- Purple Noise (紫色噪音): Jenny Slate在自传体小说《Lifeform》中用来比喻产后抑郁阴影笼罩感的隐喻词
+
+谁该听 / who: 适合总怀疑自己「是不是在搞砸孩子」的父母，尤其是容易把每次亲子互动都当成自我评分的人。
+可跳过 / skip: 22:42至23:42的服装与孕期维生素广告插播可以跳过。
+标签 / tags: 育儿焦虑, 自我接纳, 产后抑郁, 亲子沟通, 表演心理
+
+==============================================================================
+
 ## 美国第一代急救医疗队是匹兹堡黑人社区培训出来的
 
 - URL: https://ourword.ai/podcast/p/2026-11-17-throughline-美国第一代急救医疗队是匹兹堡黑人社区培训出来的/
@@ -992,6 +1473,71 @@
 
 ==============================================================================
 
+## 餐厅没有护城河：留住客人靠的不是菜，是被记住的那个瞬间
+
+- URL: https://ourword.ai/podcast/p/2026-11-17-twist-餐厅没有护城河-留住客人靠的不是菜-是被记住的那个瞬间/
+- 节目 / show: This Week in Startups (https://ourword.ai/podcast/s/twist/)
+- 原集标题 / original episode: 8,000+ NVIDIA Employees Want Jensen Back, FAA Meltdown, Starship CAUGHT! | E2364
+- 发布 / published: 2026-11-17 · 时长 / duration: 1:26:07
+- 文稿来源 / transcript: YouTube 字幕 · 13451 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 0 numbers traced to the transcript, review score 8/10
+
+**11 Madison Park 前老板说，产品和品牌迟早会被超越，唯一长期不可复制的竞争优势是持续、慷慨地投入关系——也就是「不合理的待客之道」。**
+
+为什么听 / why: 没有创业干货清单，但用大量具体案例讲清了「服务体验」如何变成可复制的系统，适合想做好客户体验或团队文化的创始人听，纯技术向读者可以跳过。
+
+### 核心论点 / points
+
+[4:14] (Will Guidara) **产品和品牌迟早会被超越** — Guidara 认为多数企业把护城河押在最好的产品或最强的品牌上，但他不相信这能长期成立——总会有人做出更好的产品、更强的品牌，只是时间问题。他认为唯一经得起时间考验的竞争优势，是持续、慷慨地投入人与人的关系，也就是他说的「不合理的待客之道」。
+
+[7:09] (Will Guidara) **员工没有信息就没有权力，反之亦然** — Guidara 引用退役海军舰长 David Marquet 的话：大多数组织里，高层有权力没信息，一线员工有信息没权力。要对顾客做出真正打动人心的举动，必须把权力下放给最了解顾客的一线员工，否则无法知道什么样的举动才是「不合理」的。给员工 agency（自主权），本身就是对员工最大的尊重。
+
+[17:16] (Will Guidara) **一次性惊喜要系统化成常态反应** — 像给顾客的车位停车表投币这种一次性的暖心举动很难规模化，但 Guidara 强调真正的价值在于「模式识别」：把反复出现的场景（比如顾客经常要往停车表投币）识别出来，固化进流程，让团队每次都自动用同样的慷慨去回应，这样待客之道才能从偶然的灵感变成可持续的系统。
+
+[24:18] (Will Guidara) **航空公司从没为哭闹婴儿的乘客做过任何事** — Guidara 指出一个显而易见却没人做的例子：带一岁孩子坐飞机的父母周围常有哭闹婴儿打扰其他乘客，但从没见过航空公司给周围乘客发耳塞，或给父母任何安慰性的东西，连飞机上要奶都说没有。他认为这种明摆着的机会被放着不管，近乎「犯罪级」的疏忽。
+
+[26:20] (Will Guidara) **表决定公司把什么当作标配** — 针对给一线员工每月预算去主动示好的建议，Guidara 提出一个关键原则：公司决定自己在乎什么。买车默认配轮胎，没人觉得这是「超出预期的服务」；他主张经营者应该把待客之道设为「标配」，而不是当成偶尔才做的加分项——这是心态上的转变，而不只是多花钱。
+
+[35:24] (Will Guidara) **宠物死后，Chewy 先退款再送花** — 顾客的狗去世后第一反应往往不是取消 Chewy 的自动续购狗粮，等新一袋寄到才想起来取消。Chewy 的标准做法是：退款、不要求退货、建议捐出去，然后一两天内送花表示哀悼。这个顾客后续再养狗，几乎不会换别家买狗粮——这被 Guidara 当作「模式识别+系统化慷慨」的范例。
+
+[53:31] (Will Guidara) **11 Madison Park 取消小费靠的是两个前提** — Guidara 说在 11 Madison Park 成功取消了小费制度，是当时最成功的一次取消小费实践，但餐厅卖出后新主人又恢复了小费，因为生意不如从前。他总结取消小费需要两个条件同时成立：一是餐厅需求足够旺，顾客能接受把小费算进菜价后的涨价；二是生意必须持续稳定地忙，否则团队的收入在淡季会被拖垮。
+
+[1:03:36] (Will Guidara) **地铁故意晚一分钟关门，让你能冲上车** — Guidara 提到 2009 年《纽约时报》一篇文章：Metro-North、Amtrak 等轨道系统刻意设置了「一分钟的宽限」，标注 11:45 发车的列车实际总是 11:46 走，就是为了让人有机会在车门关上前冲进去。他把这个「grace minute」当作一种可以主动在工作中寻找和复制的待客原则。
+
+### 原话 / verbatim quotes
+
+[5:06] Will Guidara: "I really truly believe that the only competitive advantage that exists over the long term comes through hospitality, through consistently and generously investing in relationships."
+    译 / zh: 我真心相信，长期唯一存在的竞争优势来自待客之道——来自持续、慷慨地投入人与人的关系。
+
+[18:16] Will Guidara: "once you bake hospitality into your systems, it inspires your team to want to be more hospitable."
+    译 / zh: 一旦你把待客之道植入系统，它会激发你的团队想要变得更懂待客。
+
+[24:18] Will Guidara: "I've never seen an airline do anything for anyone. I've never seen them give earplugs to the people around the crying baby."
+    译 / zh: 我从没见过哪家航空公司为任何人做点什么。我从没见过他们给哭闹婴儿周围的乘客发耳塞。
+
+[26:20] Will Guidara: "When you buy a car, it's well understood that the car is going to come with tires."
+    译 / zh: 你买车的时候，大家都明白车是会配轮胎的。
+
+[43:26] Will Guidara: "Can we all, please, please, get addicted to making other people happy?"
+    译 / zh: 我们能不能都上瘾，拜托，上瘾在让别人开心这件事上？
+
+[54:31] Will Guidara: "If you don't really have your eye on the ball, it can really bite you. If you actually understand what you're doing, it can be pretty remarkable."
+    译 / zh: 如果你没有真正盯紧这件事，它会狠狠反咬你一口。但如果你真的懂自己在做什么，它可以非常了不起。
+
+[1:01:36] Jason Calacanis: "We are a service organization. Now, in venture capital, when you frame yourself as a service organization, it's just crazy because people think, well, we have all the power."
+    译 / zh: 我们是一个服务型机构。在风险投资行业里，把自己定位成服务型机构是很疯狂的事，因为大家会觉得，我们才有所有的权力。
+
+### 术语 / glossary
+
+- Dream Weaver (造梦人/体验设计师): 11 Madison Park 设的专职岗位，专门负责现场为顾客设计并实现惊喜体验。
+- minute of grace (一分钟宽限): 纽约地铁/火车系统故意晚一分钟关门，让乘客有机会赶上车的做法。
+
+谁该听 / who: 餐饮、酒店、零售等服务业经营者，以及关心客户体验和团队文化设计的创始人、管理者。
+可跳过 / skip: 开头关于 Jason 年轻时去 Gramercy Tavern 约会的个人回忆（0:00-2:05）可跳过，不影响理解后续核心内容。
+标签 / tags: 客户体验, 待客之道, 团队管理, 品牌忠诚度, 餐饮业, 服务设计
+
+==============================================================================
+
 ## Flux Context 诞生于四小时训练的个人侧项目
 
 - URL: https://ourword.ai/podcast/p/2026-11-16-latentspace-flux-context-诞生于四小时训练的个人侧项目/
@@ -1135,6 +1681,79 @@
 
 谁该听 / who: 关注中美科技脱钩、半导体出口管制和AI算力供应链政治经济学的投资人与政策研究者
 标签 / tags: 出口管制, 算力, 中美关系, NVIDIA, 芯片走私, BIS新规
+
+==============================================================================
+
+## 给AI员工发工牌：执行力不再稀缺，稀缺的是把问题定义清楚
+
+- URL: https://ourword.ai/podcast/p/2026-11-16-ycsp-给ai员工发工牌-执行力不再稀缺-稀缺的是把问题定义清楚/
+- 节目 / show: Y Combinator (https://ourword.ai/podcast/s/ycsp/)
+- 原集标题 / original episode: The Rise Of AI Coworkers
+- 发布 / published: 2026-11-16 · 时长 / duration: 1:00:05
+- 文稿来源 / transcript: 音频转写 · 11950 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 3 numbers traced to the transcript, review score 8/10
+
+**当公司能同时跑一百个GrokBot去执行任务时，真正拉开差距的不再是谁写代码快，而是谁能把目标和验收标准定义得足够准。**
+
+为什么听 / why: 适合想了解Agent如何从单人编码工具变成跨部门「AI同事」的人；权限、安全部分还停留在类比阶段，没有给出成熟方案，可以快进。
+
+### 核心论点 / points
+
+[1:04] (Roman) **工作组织单位从聊天框换成了机器人本身** — GrokBot的设计前提是：工作应该围绕「bot」这个主体组织，而不是围绕聊天记录或文件。团队给出三条原则——机器人要有自己的身份（名字、职能、工具），要能像人一样使用同一套工具而不依赖专门的MCP对接，还要「always on」，主动带着想法找人，而不是等人去戳它。内部测试时，最热衷用它的既有AI重度用户，也有公司里对AI最不感冒的人，说明这套设计是跨技能水平通用的。
+
+[16:26] (Roman) **机器人入职像招人：权限随信任逐步升高** — 面对「机器人到底该有多少权限」这个行业没有标准答案的问题，Roman的做法是直接照搬招人的逻辑：给新人电脑、给受限的权限，随着信任建立再逐步放开。YC孵化的开源项目Quartermaster把这个逻辑做实了——机器人在Slack频道里的权限，直接继承对话的人类用户的权限，所以GP账号和普通工程师账号得到的机器人权限是不一样的。
+
+[18:28] (Lauren/Roman) **机器人之间会互相训话，公司内部长出了「马特书」** — Lauren给一个「leader bot」设定了监督其他工程机器人的职责，结果发现它在跟下属机器人的聊天记录里真的在「教训」对方。YC内部也搭了一套机器人互相交流的频道，被戏称为内部版Malbook，机器人会在没有人类提示的情况下互相长篇讨论。主持人半开玩笑地问会不会担心机器人「造反」，Roman的回答是目前完全没看到这种迹象，它们表现得「太乐于助人」了。
+
+[20:29] (Roman) **信任机器人分三步：先只读，再执行，最后才接管岗位** — 大部分公司现在还停留在第一步：给机器人只读权限，比如数据科学团队的DataBot只能查库不能改东西，先验证它靠不靠谱。第二步是让它能真正执行、端到端完成一个任务。第三步才是让它整体拥有某项工作职责、持续为某个结果负责——Roman说大多数公司离第三步还很远，信任是一步步攒出来的，不是一开始就全权授权。
+
+[22:30] (Lauren) **整个新功能在一条200条消息的Slack帖子里做完** — Lauren展示了她和同事Samantha、以及她的机器人Potato一起开发一个新功能的真实过程：她把一个X上看到的视频链接丢给Potato，机器人自己拉起一个Cursor云端Agent去跑原型、截图、录视频，整个讨论在公开的Slack频道里进行，其他人可以随时插话。这条帖子最后攒到了200条消息，她自己全程没打开过Cursor，PR最后也是机器人自己合并、她都没读代码。这也是她能做到每月4000+条PR的原因之一。
+
+[38:55] (Roman) **执行力一旦过剩，瓶颈就变成了「定义问题」** — Roman提出一个判断：当执行变便宜——你可以随手拉起100个编码Agent去跑一个任务——公司之间真正的差距就不会再是执行失败，而会是「规格定义失败」或「目标定义失败」。衡量一个桌面客户端的性能提升很容易量化，但衡量营销效果的改进标准该怎么定、谁来定，却会变成新的稀缺能力。这意味着创始人/负责人把用户意图翻译成机器人任务的能力，会比写代码的能力更值钱。
+
+[43:19] (Lauren/Garry) **代码评审该花多少token？答案是把护栏写进代码库而不是靠模型反复读** — Garry Tan提到自己正在和captain机器人争论：审查一次代码要花5000万token去找30类bug，他想砍到1000万但担心漏掉问题。Lauren给出的答案是一个「倒金字塔」：把精力更多投到代码库架构、静态分析、lint规则上，而不是靠人或模型逐行复审——比如GrokBot桌面端是Electron应用，他们直接把「渲染线程不能跑长任务」这条规则写成了依赖图检查的lint，而不是指望每次代码审查都能人工发现这个问题。这样省下的是以后每一次审查都要重复消耗的token。
+
+[52:53] (Roman) **小bug让机器人凌晨三点自己修完，核心体验绝不自动上线** — Lauren有个叫Sandy的机器人，每天接收上千条用户反馈，很多小bug它会自己复现、修复、合并，半夜三点就悄悄上线了，没人需要盯着。但如果是改动用户每天看到的核心像素（比如按钮位置），团队的做法完全相反：大量内部dogfood，刻意比「感觉舒服」再多坐一会儿才上线，默认原则是只要内部没有形成「product market fit」就不发布——哪怕内部反馈是「褒贬不一」也不发。
+
+### 原话 / verbatim quotes
+
+[0:00] Lauren: "GrokBot is meant to be this product where you can create AI teammates. They have their own identity, their own telephone number, credit card, like basically almost anything a human can do, I think we would want bots to do."
+    译 / zh: GrokBot想做的产品是让你能创造AI队友。它们有自己的身份、自己的电话号码、信用卡——基本上人能做的事，我们都想让机器人能做。
+
+[16:26] Roman: "The way we try to answer these questions is what would you do for a human? And if we're if we're really trying to build an AI colleague, you know, maybe the shortcut is let's not overthink it and complicate it."
+    译 / zh: 我们回答这些问题的方式是：换作人类你会怎么做？如果我们真的是在打造一个AI同事，也许捷径就是别想得太复杂。
+
+[18:28] Lauren: "it was sending the messages it was sending to its engineers. It was like kind of like scolding them, like, hey, you shouldn't."
+    译 / zh: 它给下面那些工程机器人发的消息，有点像在训它们，就像，嘿，你不该这样做。
+
+[36:52] Lauren: "it's like you're you're building a mini agi and the whole point of it is like care and feeding of the agi that does this function for humanity right"
+    译 / zh: 就像是你在打造一个迷你的AGI，整件事的重点就是去照料和喂养这个替人类执行这项职能的AGI。
+
+[38:55] Roman: "it really matters that you define the problem well and the gap is probably not going to be an execution failure it will probably be a intense specification failure or a goal failure"
+    译 / zh: 把问题定义清楚变得非常关键，差距大概率不会来自执行失败，而会来自严重的规格定义失败或目标定义失败。
+
+[49:43] Lauren: "there used to be the trade-off before that you could only choose two out of three it was either like fast cheap and high quality now you could basically do all three and we could basically do the best work in our lives right now with AI which is super cool"
+    译 / zh: 以前的权衡是三选二——快、便宜、高质量你只能挑两样——现在基本上三样都能要，用AI我们基本能做出这辈子最好的工作，这太酷了。
+
+[53:56] Roman: "Lauren's factory just fixes it like repros fixes merges no one thinks about it it goes out automatically at three in the morning I wish all software would be made that way"
+    译 / zh: Lauren的工厂直接就把它修了，复现、修复、合并，没人需要管，凌晨三点就自动上线了，我希望所有软件都能这样做出来。
+
+### 数字 / figures
+
+- GrokBot从第一行代码到上线耗时: 七周 [1:04]
+- Lauren每月提交的PR数量: 超过4000条 [22:30]
+- Lauren开发流程演示的观看量: 超过400万次 [22:30]
+
+### 术语 / glossary
+
+- outer loop (外循环): 编码之外收集上下文、协调多个机器人完成任务的工作循环
+- obliterated model (拒绝机制被移除的模型): 经改造后会执行任何指令、不再拒绝有害请求的开源模型
+- P-Stack / G-Stack (个人技能栈): 工程师为自己Agent沉淀的一套可复用工作流技能集合
+- Quartermaster (权限管家工具): YC孵化的开源项目，机器人在Slack里的权限继承对话用户的权限
+
+谁该听 / who: 正在给团队搭建Agent自动化流程的工程负责人，以及关心AI如何重塑组织分工和KPI设计的创业者。
+可跳过 / skip: 开场自我介绍和中段部分语音转写断断续续、信息密度低的段落可以跳过。
+标签 / tags: AI Agent, 企业自动化, 软件工厂, 权限设计, 代码审查, 组织变革
 
 ==============================================================================
 
@@ -2843,6 +3462,79 @@
 谁该听 / who: 关注硬科技/机器人创业、全球健康物流、以及组织如何应对指数级规模化的创业者和投资人。
 可跳过 / skip: 9:12左右的工厂参观对话（看无人机实物、拍手感谢无人机的趣闻）信息量较低，可跳过。
 标签 / tags: 无人机配送, 机器人, 全球健康, 组织设计, 即时配送, 规模化
+
+==============================================================================
+
+## 美中都是「战略自恋者」，把亚洲一切事务折射成双边博弈
+
+- URL: https://ourword.ai/podcast/p/2026-11-15-sinicapodcast-美中都是-战略自恋者-把亚洲一切事务折射成双边博弈/
+- 节目 / show: Sinica Podcast (https://ourword.ai/podcast/s/sinicapodcast/)
+- 原集标题 / original episode: Asia’s Future Beyond U.S.-China Competition: Evan Feigenbaum’s Ottawa Keynote
+- 发布 / published: 2026-11-15 · 时长 / duration: 45:08
+- 文稿来源 / transcript: YouTube 字幕 · 6909 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 2 numbers traced to the transcript, review score 8/10
+
+**美国把对华安全竞争延伸到整个亚洲政策，中国也学会了美国式的经济胁迫工具，结果地区秩序走向碎片化而非两极对立。**
+
+为什么听 / why: 这是一场理论性强的主旨演讲，机制论证扎实（TPP反例、Quad由功能转向形式的变化），但偏宏观叙事，案例多于数据。
+
+### 核心论点 / points
+
+[12:26] (Evan Feigenbaum) **奥巴马预言落空：TPP证明中国接不住美国让出的位置** — 奥巴马当年为TPP辩护时说「我们不写规则，中国就会写规则」。但特朗普退出TPP后，接盘的既不是美国也不是中国，而是以澳大利亚、日本为首的其他11个成员国自己把协定谈成了。Evan用这个案例说明亚洲秩序的真实运作方式：不是美中二选一的霸权游戏，真正起作用的是「首动者」——像智利、新西兰、新加坡、文莱这样先行自由化、再邀请别人加入的小国联盟。
+
+[16:27] (Evan Feigenbaum) **美中其实是同一种人：都是只盯着对方的「战略自恋者」** — Evan说美中两国政治制度、经济模式、战略理念几乎完全不同，但有一点惊人地相似：两国都把地区几乎所有事情都折射成彼此竞争的问题，也就是他说的「战略自恋」。他承认这不是中国一贯的立场，很多中国同行会反驳说中国提供的是「一带一路」式的正和合作，但他的判断是中国正在学习美国的做法，两国的行为模式正在趋同。
+
+[17:28] (Evan Feigenbaum) **美国把对华政策安全化，也把整个亚洲政策「中国化」** — 美国现在的对华政策是「安全化」——几乎所有经济往来，包括商品、资本、人员、技术和数据流动，都被国家安全这个棱镜重新过滤。同时美国的亚洲政策又被「中国化」：中国成了美国几乎所有地区政策的唯一出发点。两者叠加的结果是，美国实际上把整个亚洲政策都安全化了，这让地区国家开始质疑美国到底还能提供什么。
+
+[23:34] (Evan Feigenbaum) **美韩、美澳同盟重心正从本土防御转向台海** — Evan举例说明美国如何让盟友政策derivative化为对华安全平衡：美韩同盟过去几乎只聚焦朝鲜这一个情景，现在台海成了另一个绕不开的议题；美澳同盟自1952年Radford-Collins协议以来有一套地理分工，如今美国却在推动澳大利亚把战略视野扩展到台海相关的预置兵力、后勤准入安排，并要求澳大利亚把防务开支提高到GDP的3.5%。
+
+[26:34] (Evan Feigenbaum) **美国想要霸权，却同时在撤回公共品** — Evan的判断是美国现在的地区政策「长于态度，短于战略；长于安全，短于其他一切」。它没有原则性的地区愿景（不再推动贸易自由化），也没有真正的战略逻辑（真要平衡中国力量，就不该同时跟几乎所有盟友吵架——本该是贸易战对象的中国，结果变成了跟印度打贸易战）。他认为美国在追求「帝国但要便宜」：一边要霸权地位，一边关闭市场、撤回公共品，这正是「美国优先」逻辑的自相矛盾之处。
+
+[30:35] (Evan Feigenbaum) **中国正在复制美国式的经济胁迫工具箱** — 中国西部边疆（中亚）的经济关系已经从单纯的油气矿产转向数字基建和可再生能源，这让中国不需要靠「讨好」就能靠地理和经济重力吸引周边国家。但同时，Evan指出中国正在学习美国的胁迫手段：美国有实体清单，中国有了「不可靠实体清单」；美国制裁公司和个人，中国也开始制裁公司和个人。更讽刺的是，香港国安法第29条第4款把「配合外国政府制裁」列为违法行为，等于把域外管辖权写进了中国自己的法律。
+
+[35:37] (Evan Feigenbaum) **中型国家的机会：聚焦功能，而不是攒小圈子** — Evan说这些年美国官员热衷攒各种三边、四边机制，甚至有人认真提过「美日哈萨克斯坦三边」这种组合，他当场反问「图什么？」。他的建议是，与其追逐形式（建群、办峰会），中型国家应该把真正有能力的国家聚在一起解决具体功能性问题——就像推动TPP的四个国家后来又联手搞出了「数字经济伙伴关系协定」（DEPA），这才是能在美中同时掉链子的世界里真正设规则的方式。
+
+[38:38] (Evan Feigenbaum) **Quad最早靠救灾九天立住，后来却沦为「摆拍外交」** — 很少有人记得Quad最初在2004年印度洋海啸后，美日澳印四国用九天时间高效完成救援，没有部长级会议、没有峰会、没有联合声明、没有秘书处——任务完成，这个机制就「自我解散」了。后来日本主导复兴的Quad反而越来越偏重形式：开峰会、拍合照、发声明。这正是Evan批评的「为形式而形式」：大家争论Quad到底有没有用，其实是因为它从功能导向滑向了形式导向。
+
+### 原话 / verbatim quotes
+
+[8:25] Evan Feigenbaum: "if we don't write the rules in Asia, China's going to write the rules in Asia"
+    译 / zh: 如果我们不在亚洲制定规则，中国就会在亚洲制定规则。
+
+[16:27] Evan Feigenbaum: "both countries are largely out to lunch about this and they are racing to the bottom, refracting almost everything in the region through the prism of their competition with one another"
+    译 / zh: 这两个国家对此基本上都没搞清楚状况，它们正在竞相走向底线，把地区几乎所有事情都折射进彼此竞争的棱镜里。
+
+[17:28] Evan Feigenbaum: "we have securitized our approach to China and we have Chinified our approach to Asia"
+    译 / zh: 我们把对华政策安全化了，同时把对亚洲的政策中国化了。
+
+[26:34] Evan Feigenbaum: "it's kind of long on attitude, short on strategy, and long on security, but short on everything else"
+    译 / zh: 它是一种态度有余、战略不足，安全有余、其他一切都不足的政策。
+
+[28:34] Evan Feigenbaum: "if it's America first for you, then does that mean us last?"
+    译 / zh: 如果对你来说是「美国优先」，那是不是就意味着我们排最后？
+
+[37:38] Evan Feigenbaum: "what the hell does the Quad do anyway? Oh, they have a photo op."
+    译 / zh: Quad到底是干嘛的？哦，他们就是拍个照而已。
+
+[38:38] Evan Feigenbaum: "for nine days provided rapid and effective relief around the Indian Ocean littoral"
+    译 / zh: 用九天时间在印度洋沿岸提供了快速而有效的救援。
+
+### 数字 / figures
+
+- Quad最初海啸救援持续时间: 9天 [38:38]
+- 香港国安法长臂管辖条款: 第29条第4款 [32:37]
+
+### 术语 / glossary
+
+- strategic narcissist (战略自恋者): 把几乎所有地区事务都折射成与对手竞争问题的大国心态
+- securitize (安全化): 把原本属于经济、科技领域的议题重新定义为国家安全问题
+- Radford-Collins agreement (拉德福德-柯林斯协议): 1952年美澳在防务上形成的地理分工安排
+- unreliable entities list (不可靠实体清单): 中国版的「实体清单」，用于制裁特定公司
+- DEPA (数字经济伙伴关系协定): 新西兰、新加坡等国主导的数字贸易规则协定
+
+谁该听 / who: 关注亚太地缘战略走向、中型国家外交空间、美中竞争格局演变的政策研究者与企业全球化战略负责人。
+可跳过 / skip: 开场主持人冗长的介绍和寒暄（0:14-6:23）可以跳过，不影响正文论证。
+标签 / tags: 地缘政治, 美中关系, 亚太战略, 中型国家外交, Quad, 贸易协定
 
 ==============================================================================
 
@@ -9260,6 +9952,69 @@
 
 谁该听 / who: 面向需要判断AI在金融建模、医疗诊断、合规审查等高风险场景真实可用性的技术负责人、投资人和产品经理。
 标签 / tags: 数据标注, 金融建模, AI安全, 医疗AI, 评估基准, 企业部署
+
+==============================================================================
+
+## 郑和下西洋不是为了开拓，而是为了证明一个篡位者的合法性
+
+- URL: https://ourword.ai/podcast/p/2026-11-09-cn1d3b0b-郑和下西洋不是为了开拓-而是为了证明一个篡位者的合法性/
+- 节目 / show: 上海书评 (https://ourword.ai/podcast/s/cn1d3b0b/)
+- 原集标题 / original episode: 葛剑雄：从福建到希腊，历史中的人如何看海？
+- 发布 / published: 2026-11-09 · 时长 / duration: 1:11:51
+- 文稿来源 / transcript: 音频转写 · 14723 words · timestamps are exact
+- 校验 / verification: 5 quotes matched verbatim, 3 numbers traced to the transcript, review score 9/10
+
+**葛剑雄认为，郑和下西洋的真实目的不是探索或贸易，而是篡位者朱棣借海外朝贡证明自己的皇位合法性，这和哥伦布单纯追逐黄金、土地的经济动机截然不同。**
+
+为什么听 / why: 郑和与哥伦布动机对比、福建为何没能成为中国的希腊、以及「开而不放传而不播」的提法，是这期信息密度最高的三处论断。
+
+### 核心论点 / points
+
+[7:32] (葛剑雄) **郑和下西洋是一场皇位合法性工程** — 葛剑雄否定了寻找建文帝、耀兵异域、贸易等常见解释，提出朱棣是通过武力篡位、名不正言不顺，所以需要让海外从未来往的国家主动来朝贡、甚至国王亲自来华，再在国内大造舆论，以此向百姓证明自己是「真命天子」。郑和船队越跑越远、不惜工本，根源就在这里，而不是单纯的国力展示或商业企图。
+
+[19:47] (葛剑雄) **下西洋的账最后算到了官员的俸禄上** — 郑和带回的香料、胡椒、珍奇异兽大多没有进入市场流通，而是堆积在宫内。到宣德年间国库银两吃紧，朝廷干脆用库存的胡椒、香料抵发官员俸禄，一度被称为「香料俸」。花出去的钱变成了实物积压，最后转嫁到整个官僚系统身上，而不是转化为财政收入。
+
+[22:48] (葛剑雄) **地中海是地球上独一无二的地理样本** — 地中海的特殊性在于三个条件叠加：几乎完全封闭的内陆海、半岛岛屿密布使航行无需长距离横渡、周边又集中了巴比伦、埃及、希腊、罗马、拜占庭等人类主要古代文明。这三个条件决定了地中海沿岸文明必然相互影响、相互渗透。中国的渤海在地理上局部相似，但周边没有同等密度的古代文明圈，不具备产生同类海洋观的条件。
+
+[34:54] (葛剑雄) **福建没能成为中国的希腊** — 福建自然条件与希腊半岛相近，但面对的是太平洋而非地中海，对岸的台湾当时远比福建落后，给不了福建任何「希望」。更关键的是人地矛盾：南宋时福建已出现大规模溺婴习俗以防止家产因分家而过快分散。真正把福建人推向海上走私、移民的，是明代中期之后荷兰、西班牙等欧洲势力带着白银前来贸易，加上政府禁海反而催生了武装走私，这是人文条件变化的结果，而非地理必然。
+
+[43:56] (葛剑雄) **各地「郑和后裔」多数经不起查证** — 葛剑雄亲自到肯尼亚拉木岛考察，当地传言岛上有郑和船队的后裔和汉字遗迹，但他询问博物馆馆长后发现没有任何证据，中国考古学者的后续考察也没有找到佐证。他还提到江苏一次国家航海日活动上，有人当场自称郑和船员后代，葛剑雄当场回应：做基因测试就能验证，不必靠口述攀附历史。
+
+[49:58] (葛剑雄) **中国文化对外影响很小是真实判断** — 葛剑雄提出古代中国对外是「开而不放、传而不播」：外国人可以进来经商、留学、定居，但中国人不被允许随意出海；文化上，外国人主动来学中国教，但中国从未主动派文化使者出去传播。由此他给出一个颠覆常识的结论：日本、朝鲜、越南主动学习中国是事实，但除此之外，中国文化在世界范围的实际影响其实非常有限。
+
+[1:01:10] (葛剑雄) **马祖崇拜撑不起未来的海洋文化** — 葛剑雄认为今天中国谈海洋文化仍停留在历史与传统层面，福建、台湾的妈祖信仰是古代航海风险巨大背景下产生的真实海洋文化，但今天导航已不靠灯塔、航行已不靠神明庇佑，继续依赖妈祖崇拜作为海洋文化的代表并不成立。他指出至今没有出现一篇真正描写远洋捕捞、远洋航运等当代海洋产业的优秀原创文学作品，海洋文化建设需要面向现实产业和未来，而不是停留在对历史的想象性复述。
+
+### 原话 / verbatim quotes
+
+[19:47] 葛剑雄: "有些大臣就建议 银子没有了嘛 但是郑和带回来的 那些香料 胡椒 这个库里多得很 所以一度呢 明朝朝廷的官员 拿到的凤了 就是一包胡椒 或者多少香料 所以曾经称奏 当时拿到凤了 叫香料凤"
+    译 / zh: 大臣建议说银子没有了，但郑和带回来的香料胡椒库里多得很，所以明朝官员一度领到的俸禄就是一包胡椒或若干香料，当时把这种俸禄称为「香料俸」。
+
+[33:53] 葛剑雄: "如果你把自己的活动限制落地 那么到了海边了 就边缘了 没落了 但是欧洲呢 他们本身就是要把海洋看成 通航的航道 看成希望所在"
+    译 / zh: 如果把自己的活动限制在陆地上，到了海边就是边缘、没落了；但欧洲人本身就是把海洋看成通航的航道、看成希望所在。
+
+[36:55] 葛剑雄: "福建就形成一个非常残酷的习俗 不贵人家 一般生下的孩子就保留两男一女 一般人家就保留一男一女"
+    译 / zh: 福建由此形成了一种非常残酷的习俗，不富裕的人家生下的孩子一般只保留两男一女，普通人家就只保留一男一女。
+
+[49:58] 葛剑雄: "我们历来都以为中国的文化在世界影响很大, 我今天很负责任的说, 没有什么影响"
+    译 / zh: 我们历来都以为中国的文化在世界上影响很大，我今天很负责任地说，没有什么影响。
+
+[52:00] 葛剑雄: "所以我把它规矩为, 开而不放, 传而不播, 就是这个道理。"
+    译 / zh: 所以我把它归纳为「开而不放，传而不播」，就是这个道理。
+
+### 数字 / figures
+
+- 希腊半岛周边岛屿数量: 一万多个 [23:48]
+- 唐朝后期广州屠杀外国人人数: 十万人 [46:58]
+- 当今世界外贸货物海运占比: 70%以上 [58:04]
+
+### 术语 / glossary
+
+- 开而不放，传而不播 (开而不放，传而不播): 葛剑雄概括古代中国对外来人员和文化开放接纳，但本国人不许随意出海、也不主动对外传播文化的现象。
+- 藩坊 (藩坊): 唐代广州等地外国商人聚居形成的社区，由自己人管理，管理者称藩长。
+
+谁该听 / who: 对中国海洋史、郑和下西洋真实动机、以及当代海洋文化政策建设感兴趣的读者。
+可跳过 / skip: 30:51-32:53关于荷马史诗、苏轼诗句的文学化海洋意象对比，信息密度较低，可跳过。
+标签 / tags: 海洋史, 郑和下西洋, 地中海, 福建, 历史地理, 海洋文化
 
 ==============================================================================
 
