@@ -451,5 +451,56 @@ class BackfillTakesTheRunLock(unittest.TestCase):
         self.assertEqual(calls, [], "拿不到锁还在干活／留痕")
 
 
+class FewerYoutubeRequests(unittest.TestCase):
+    """2026-11-19：补跑第一批 4 条就撞上 YouTube「要登录」。少发请求是唯一能加速的地方。"""
+
+    def test_captions_for_a_video_are_fetched_once_per_process(self):
+        from lib import transcript as T
+        calls = []
+
+        def fake(vid, lang):
+            calls.append(vid)
+            return {"segments": [{"text": "hi"}], "words": 1}
+        old = (T._from_youtube, T.shutil.which)
+        T._from_youtube, T.shutil.which = fake, (lambda *_: "/usr/bin/yt-dlp")
+        T._YT_MEMO.clear()
+        try:
+            a = T.from_youtube("abcdefghijk", "en")
+            a["segments"].append({"text": "调用方改了自己那份"})
+            b = T.from_youtube("abcdefghijk", "en")
+        finally:
+            T._from_youtube, T.shutil.which = old
+            T._YT_MEMO.clear()
+        self.assertEqual(calls, ["abcdefghijk"], "选题取样和取稿各下了一次")
+        self.assertEqual(len(b["segments"]), 1, "缓存被调用方改脏了")
+
+    def test_a_failed_fetch_is_not_remembered(self):
+        from lib import transcript as T
+        calls = []
+        old = (T._from_youtube, T.shutil.which)
+        T._from_youtube = lambda vid, lang: calls.append(vid)   # 返回 None：可能只是限流
+        T.shutil.which = lambda *_: "/usr/bin/yt-dlp"
+        T._YT_MEMO.clear()
+        try:
+            T.from_youtube("abcdefghijk", "en")
+            T.from_youtube("abcdefghijk", "en")
+        finally:
+            T._from_youtube, T.shutil.which = old
+            T._YT_MEMO.clear()
+        self.assertEqual(len(calls), 2)
+
+    def test_lead_metadata_skips_the_watch_page(self):
+        import addvideo as A
+        old = A.yt_thumb
+        A.yt_thumb = lambda vid: f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg"
+        try:
+            m = P.lead_meta({"yt": "abcdefghijk", "t": "Title", "sec": 1800, "d": "2026-01-01"})
+            none = P.lead_meta({"yt": "abcdefghijk", "d": "2026-01-01"})
+        finally:
+            A.yt_thumb = old
+        self.assertEqual((m["title"], m["duration"]), ("Title", 1800))
+        self.assertIsNone(none, "线索缺字段时应回落到 watch 页")
+
+
 if __name__ == "__main__":
     unittest.main()

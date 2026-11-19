@@ -214,6 +214,19 @@ def _registered() -> list[dict]:
     return _REG
 
 
+def lead_meta(v: dict) -> dict | None:
+    """线索表里已经有标题、时长、日期，就不去敲 YouTube 的 watch 页。
+
+    addvideo.meta 每条都要读一次 watch 页——又一次 YouTube 请求，而补跑卡在 YouTube
+    限流上（2026-11-19）。线索缺字段时才回落到 meta()。封面走 i.ytimg.com，不算在内。
+    """
+    if not (v.get("t") and v.get("sec")):
+        return None
+    from addvideo import yt_thumb
+    return {"title": v["t"], "duration": int(v["sec"]), "published": "",
+            "image": yt_thumb(v["yt"])}
+
+
 def event_date(lead: str, upload: str) -> str:
     """这段话是哪天说的。线索里的日期是**事件日**，YouTube 的是**上传日**——
     乔布斯 2011-06-07 在库比蒂诺市议会的那次，上传日是 2012-02-02。
@@ -273,7 +286,7 @@ def run_next(n: int, dry: bool) -> int:
             break
         tried += 1
         s = channel_source(v.get("ch") or "", p, _registered())
-        m = meta(v["yt"]) or {}
+        m = lead_meta(v) or meta(v["yt"]) or {}
         title = m.get("title") or v.get("t")
         if not title:
             log(f"  {v['yt']} 拿不到标题，跳过")

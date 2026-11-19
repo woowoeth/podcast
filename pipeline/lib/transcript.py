@@ -603,13 +603,30 @@ def _yt_skip_while_cooling() -> bool:
     return True
 
 
+# **同一个进程里，同一支视频的字幕只下一次。** 选题闸门（triage._caption_sample）先取一次
+# 当样本，过了闸门取稿时（下面 fetch 的 youtube 层）再取一次——每条通过的视频两次字幕请求。
+# YouTube 的限流是按请求数算的：2026-11-19 人物频道补跑，第一批 4 条就撞上「要登录」。
+# 只记成功的结果（None 可能是限流，下次还该再试）；交出去的是副本，调用方改了不串。
+_YT_MEMO: dict = {}
+_YT_MEMO_MAX = 16
+
+
 def from_youtube(vid: str, lang: str) -> dict | None:
     if not vid or not shutil.which("yt-dlp"):
         return None
+    import copy
     with _YT_LOCK:
+        hit = _YT_MEMO.get((vid, lang))
+        if hit is not None:
+            return copy.deepcopy(hit)
         if _yt_skip_while_cooling():     # 在锁里查：排队等锁的时候前一个线程可能刚熔断
             return None
-        return _from_youtube(vid, lang)
+        out = _from_youtube(vid, lang)
+        if out:
+            if len(_YT_MEMO) >= _YT_MEMO_MAX:
+                _YT_MEMO.pop(next(iter(_YT_MEMO)))
+            _YT_MEMO[(vid, lang)] = copy.deepcopy(out)
+        return out
 
 
 # yt-dlp 为什么没拿到字幕。**判据必须看全文**，不能看拼接后的尾巴：

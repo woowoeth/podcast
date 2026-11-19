@@ -21,6 +21,9 @@ fi
 BATCH="${BATCH:-6}"
 GAP="${GAP:-60}"
 THROTTLE_REST="${THROTTLE_REST:-1800}"
+# 连着限流就加倍歇（30 → 60 → 120 分钟封顶）：「要登录确认不是机器人」通常要几个小时才解开，
+# 每 30 分钟去撞一次只会把解封往后推（见 lib/transcript.py 的限流熔断）。
+REST_MAX="${REST_MAX:-7200}"
 UNTIL="${UNTIL:-21:00}"
 cd "${BACKFILL_REPO:?}"
 set -a; . ~/.config/podcast/env 2>/dev/null; set +a
@@ -47,10 +50,10 @@ wait_turn() {
   done
 }
 last() {  # people-runs.json 最后一行的某个字段
-  python3 -c "import json,sys;r=json.load(open('data/people-runs.json'))[-1];print(r.get(sys.argv[1]) or '')" "$1" 2>/dev/null
+  python3 -c "import json,sys;r=json.load(open('data/people-runs.json'))[-1];v=r.get(sys.argv[1]);print('' if v is None else v)" "$1" 2>/dev/null
 }
 
-total=0; miss=0
+total=0; miss=0; rest=$THROTTLE_REST
 while ! past_until; do
   wait_turn
   before=$(last at)
@@ -68,8 +71,11 @@ while ! past_until; do
   echo "----- 本批试 ${tried} 发 ${n}，累计 $total 篇，剩 ${left} 条线索 -----"
   if [ "${tried:-0}" = "0" ]; then echo "########## 线索做完了 ##########"; break; fi
   if [ -n "$(last stopped)" ]; then
-    echo "----- YouTube 限流，歇 $((THROTTLE_REST / 60)) 分钟 -----"; sleep "$THROTTLE_REST"; continue
+    echo "----- YouTube 限流，歇 $((rest / 60)) 分钟 -----"; sleep "$rest"
+    rest=$((rest * 2)); [ "$rest" -gt "$REST_MAX" ] && rest=$REST_MAX
+    continue
   fi
+  rest=$THROTTLE_REST
   sleep "$GAP"
 done
 echo "########## $(date +%H:%M) 人物频道补跑结束：本次共 $total 篇 ##########"
