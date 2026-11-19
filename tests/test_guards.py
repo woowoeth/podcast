@@ -12956,14 +12956,19 @@ class BackfillUsesTheLeanModels(unittest.TestCase):
 
     def test_both_scripts_agree(self):
         daily = self._defaults((ROOT / "scripts" / "local-daily.sh").read_text())
-        back = self._defaults((ROOT / "scripts" / "backfill-source.sh").read_text())
         self.assertTrue(daily, "local-daily.sh 里找不到模型默认值")
-        self.assertEqual(back, daily, "补存量和日更的模型配置不一致 —— 补跑会用别的（可能是默认的 opus）")
+        # 每一份补跑脚本都要和日更一致（2026-11-19 加了 backfill-people.sh）
+        for f in sorted((ROOT / "scripts").glob("backfill-*.sh")):
+            back = self._defaults(f.read_text())
+            self.assertEqual(back, daily, f"{f.name} 和日更的模型配置不一致 —— 补跑会用别的（可能是默认的 opus）")
 
     def test_the_backfill_yields_before_every_batch(self):
         sh = (ROOT / "scripts" / "backfill-source.sh").read_text()
         i, j = sh.index("wait_turn\n"), sh.index("python3 pipeline/run.py")
         self.assertLess(i, j, "开新批之前没有先让出日更的窗口 —— 补跑占着锁，那一班日更整轮跳过")
+        sh = (ROOT / "scripts" / "backfill-people.sh").read_text()
+        i, j = sh.index("  wait_turn\n"), sh.index("python3 pipeline/people.py")
+        self.assertLess(i, j, "人物补跑开新批之前没有先让出日更")
 
     def test_the_quiet_window_logic(self):
         import subprocess

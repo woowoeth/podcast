@@ -249,6 +249,12 @@ def run_next(n: int, dry: bool) -> int:
             continue
         if y:
             have.add(y)
+    # **和 run.py 抢同一把跑批锁。** 补人物频道（scripts/backfill-people.sh）在两班日更之间连着跑，
+    # 不拿锁的话会和日更同时写 state.json——并发写账本静默丢数据，出过不止一次。
+    # 日更里这一步排在 run.py 退出之后，锁是空的；日更在跑时补跑拿不到，就让。
+    if not dry and not R.acquire_run_lock():
+        log("人物频道：跑批锁被占着（日更或补存量在跑），这一轮不做")
+        return 0
     state = R.load_state()
     todo = pending(blob, state, have)
     cap = n * TRIES_PER_PUBLISH

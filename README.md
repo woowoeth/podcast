@@ -232,6 +232,8 @@ gh workflow run backfill.yml --repo woowoeth/podcast -f only=oddlots -f days=365
   不看体裁（发布会、演讲也能高分）。及格线仍是 7，成稿评审照旧。
 - **归属**（构建时现算，不写进集数据）：集的 `youtube_id` 在线索表里，或归给此人的要点＋原话 ≥3 条（「转述」不算）。
 - **它通常在哪骗人**：同姓的别人（Greg Jensen）、只被提到一次、「转述」——都有测试（`tests/test_people.py`）。
+- **连续补**：`scripts/backfill-people.sh`（默认每批发 6 篇、跑到 21:00）。日更在跑就让，people.py 拿跑批锁；
+  限流提前停时歇 30 分钟；只产稿不碰 git，发布靠下一班日更。
 - `python3 pipeline/people.py --status` 看每人线索数与站上篇数。
 
 ## 测试

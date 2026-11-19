@@ -430,5 +430,26 @@ class YoutubeCoversAreRealImages(unittest.TestCase):
         self.assertTrue(argv, "没走到 curl 那条路")
 
 
+class BackfillTakesTheRunLock(unittest.TestCase):
+    """人物补跑在日更空档里连着跑，必须和 run.py 抢同一把锁——并发写 state.json 会静默丢数据。"""
+
+    def test_no_lock_means_no_work_and_no_log(self):
+        import run as R
+        import addvideo as A
+        calls = []
+        # 全部打桩：万一锁的判断回退了，这条测试也不许真的写账本、真的上网
+        old = (R.acquire_run_lock, R.process, R.save_state, P.record_run, A.meta)
+        R.acquire_run_lock = lambda *a, **k: False
+        R.process = lambda *a, **k: calls.append("process") or "published"
+        R.save_state = lambda *a, **k: calls.append("save")
+        P.record_run = lambda *a, **k: calls.append("record")
+        A.meta = lambda *a, **k: {"title": "t"}
+        try:
+            self.assertEqual(P.run_next(1, dry=False), 0)
+        finally:
+            R.acquire_run_lock, R.process, R.save_state, P.record_run, A.meta = old
+        self.assertEqual(calls, [], "拿不到锁还在干活／留痕")
+
+
 if __name__ == "__main__":
     unittest.main()
