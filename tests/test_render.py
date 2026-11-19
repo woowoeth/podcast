@@ -392,7 +392,13 @@ class Render(Harness):
 
     # ------------------------------------------------- ② 不许横向溢出
     def test_no_horizontal_overflow(self):
-        for path in ["/", "/sources/", "/log/"] + [f"/p/{s}/" for s in _episode_slugs(2)]:
+        paths = ["/", "/sources/", "/log/"] + [f"/p/{s}/" for s in _episode_slugs(2)]
+        # 人物页（2026-11-19）：简介撑出卡片、被屏幕边裁掉，而这条检查是绿的——见下面 bad 的断言
+        import pathlib
+        pdir = pathlib.Path(ROOT) / "people"
+        if pdir.exists():
+            paths += ["/people/"] + [f"/people/{d.name}/" for d in sorted(pdir.iterdir()) if d.is_dir()][:2]
+        for path in paths:
             for w in (320, 375, 768, 1280):
                 p = self.page(width=w)
                 p.goto(self.url(path), wait_until="load")
@@ -418,6 +424,9 @@ class Render(Harness):
                 p.context.close()
                 self.assertFalse(over["docWider"],
                                  f"{path} @{w}px 横向能滚：{over['bad']}")
+                # **页面不能横滚不等于没溢出。** 原来只断言上面那条，bad 收集了却不看：
+                # /people/ 的简介撑出卡片、被屏幕边直接裁掉，文档宽度没变，于是一直是绿的。
+                self.assertEqual(over["bad"], [], f"{path} @{w}px 有元素伸到屏幕外（被裁掉）")
 
     # --------------------------------------------- ③ hidden 必须真的藏住
     def test_hidden_elements_are_actually_hidden(self):
@@ -630,6 +639,64 @@ if __name__ == "__main__":
     if not HAVE_PW:
         print("没装 playwright，渲染层这一层不会跑", file=sys.stderr)
     unittest.main()
+
+
+def _tiny_png(w: int, h: int) -> bytes:
+    """一张 w×h 的灰色 PNG（不依赖 PIL）。用来冒充 YouTube 的 404 占位图。"""
+    import struct
+    import zlib
+    raw = b"".join(b"\x00" + b"\x80" * w for _ in range(h))
+    def chunk(t, d):
+        return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xffffffff)
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 0, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
+
+
+class UiDetails20261119(Harness):
+    """2026-11-19 用户：「界面样式有很多细节体验问题，你自己检查下」。逐条对应当时查出来的。"""
+
+    def test_the_sticky_toolbar_stays_short_on_phones(self):
+        # 原来 375px 宽：搜索 + 三行分类标签 + 一行「分享本站」= 约 260px，吸顶后一直压着内容
+        p = self.page()
+        p.goto(self.url("/"), wait_until="load")
+        h = p.evaluate("() => document.querySelector('.toolbar').getBoundingClientRect().height")
+        p.context.close()
+        self.assertLessEqual(h, 120, f"手机上吸顶工具栏高 {h:.0f}px")
+
+    def test_a_shared_tab_link_shows_its_chip(self):
+        # 分类标签在手机上是一行横向滑动；?c=parent 进来，亮着的那个必须在视野里
+        p = self.page()
+        p.goto(self.url("/?c=parent"), wait_until="load")
+        p.wait_for_timeout(300)
+        r = p.evaluate("""() => {
+          const o = document.querySelector('[data-cat-chip][aria-pressed="true"]');
+          const row = o.parentElement.getBoundingClientRect(), c = o.getBoundingClientRect();
+          return {on: o.getAttribute('data-cat-chip'), left: c.left, right: c.right,
+                  rl: row.left, rr: row.right};
+        }""")
+        p.context.close()
+        self.assertEqual(r["on"], "parent")
+        self.assertTrue(r["left"] >= r["rl"] - 1 and r["right"] <= r["rr"] + 1,
+                        f"选中的标签在视野外：{r}")
+
+    def test_video_poster_recovers_from_youtubes_placeholder(self):
+        # YouTube 没有 hq720 时回 404 + 一张 120×90 的合法图片，onerror 不触发，播放器一块灰
+        slugs = _episode_slugs(1, want_video=True)
+        if not slugs:
+            self.skipTest("没有带视频的集")
+        p = self.page()
+        p.route("**/hq720.jpg", lambda route: route.fulfill(
+            status=404, content_type="image/png", body=_tiny_png(120, 90)))
+        p.route("**/hqdefault.jpg", lambda route: route.fulfill(
+            status=200, content_type="image/png", body=_tiny_png(480, 360)))
+        p.goto(self.url(f"/p/{slugs[0]}/"), wait_until="load")
+        p.evaluate("() => { const i = document.querySelector('.video-facade img'); i.loading = 'eager'; }")
+        p.wait_for_timeout(1500)
+        got = p.evaluate("() => { const i = document.querySelector('.video-facade img');"
+                         " return [i.currentSrc, i.naturalWidth]; }")
+        p.context.close()
+        self.assertIn("hqdefault", got[0], f"占位图没换掉：{got}")
+        self.assertEqual(got[1], 480)
 
 
 class SearchMatchesWhatTheCardSays(Harness):

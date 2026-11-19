@@ -472,6 +472,20 @@ h1.sec-title, h2.sec-title, .sec-title{font-family:var(--serif);
 /* .toolbar-in 是 row + wrap：margin-left:auto 在桌面把它推到同一行右端，
    在手机上换行后同样贴右——不需要额外的断点覆盖 */
 .toolbar-in .share-btn{margin-left:auto; flex:none}
+/* **手机上工具栏是吸顶的，三行标签会吃掉三分之一屏。** 2026-11-19 实测 375px 宽：
+   搜索 + 三行分类标签 + 单独一行「分享本站」= 260px，滚动时一直盖在内容上面。
+   改成两行：搜索框和分享图标一行，分类标签一行横向滑动（标签本来就不需要一眼看全）。 */
+@media (max-width:640px){
+  .toolbar-in{gap:8px; padding:8px 0}
+  .toolbar-in .search{order:1; flex:1 1 0; height:36px}
+  .toolbar-in .search kbd{display:none}
+  .toolbar-in .share-btn{order:2; margin-left:0; width:36px; height:36px; padding:0; justify-content:center}
+  .toolbar-in .share-btn span{display:none}
+  .toolbar-in .chips{order:3; flex:1 0 100%; flex-wrap:nowrap; overflow-x:auto;
+    scrollbar-width:none; -webkit-overflow-scrolling:touch;
+    margin:0 calc(-1 * clamp(18px,4vw,44px)); padding:0 clamp(18px,4vw,44px) 2px}
+  .toolbar-in .chips::-webkit-scrollbar{display:none}
+}
 
 .toast{position:fixed; left:50%; bottom:26px; z-index:60; max-width:min(92vw,420px);
   transform:translate(-50%,14px); opacity:0; pointer-events:none;

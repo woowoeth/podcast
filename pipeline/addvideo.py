@@ -41,6 +41,26 @@ def video_id(s: str) -> str:
     return s if re.fullmatch(r"[\w-]{11}", s) else ""
 
 
+def yt_thumb(vid: str) -> str:
+    """真实存在的那一档缩略图。
+
+    **注释里一直写着「取不到再退 hqdefault」，代码从没退过。** 没有高清图的视频，
+    maxresdefault 返回 404 加一张 1 KB 的灰色占位图，封面缓存把它当成封面存了下来——
+    乔布斯斯坦福演讲那张卡片就是一个灰框里三个点（2026-11-19）。
+    用 curl 探：本机网络有 TLS 拦截代理，Python 的证书库不认（见 cache_covers._fetch）。
+    """
+    for q in ("maxresdefault", "hq720", "hqdefault"):
+        url = f"https://i.ytimg.com/vi/{vid}/{q}.jpg"
+        try:
+            r = subprocess.run(["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}",
+                                "--max-time", "15", url], capture_output=True, text=True)
+            if r.stdout.strip() == "200":
+                return url
+        except Exception:
+            break
+    return f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg"   # 每个视频都有这一档
+
+
 def meta(vid: str) -> dict:
     """标题、时长、发布日、封面。
 
@@ -67,7 +87,7 @@ def meta(vid: str) -> dict:
         # 之类的转义（我第一版就把 `\u0026` 原样写进了 og:image，链接是坏的），
         # 而且那张是带 sqp= 的小图，og 要的是大图。
         # maxresdefault 不是每个视频都有，hq720 也是 1280×720，取不到再退 hqdefault。
-        out["image"] = f"https://i.ytimg.com/vi/{vid}/maxresdefault.jpg"
+        out["image"] = yt_thumb(vid)
     if not (out.get("title") and out.get("duration")) and shutil.which("yt-dlp"):
         try:
             r = subprocess.run(

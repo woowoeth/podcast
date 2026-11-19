@@ -234,7 +234,11 @@ class PageStructureStaysValid(unittest.TestCase):
         nested = set(re.findall(
             r"((?:\.[a-z][\w-]*)+)\s+\.([a-z][\w-]*)\s*\{([^}]*)\}", css))
         allowed = {("hero", "cover"), ("ep-head", "kicker"), ("brand", "slogan"),
-                   ("brand", "wordmark"), ("guide", "k"), ("empty", "h1")}
+                   ("brand", "wordmark"), ("guide", "k"), ("empty", "h1"),
+                   # 2026-11-19：手机上工具栏里的那排分类标签改成横滑（不换行、overflow-x）。
+                   # 只作用在工具栏里，人物条、分类页、人物页的 .chips 照旧换行——渲染层
+                   # UiDetails20261119 / test_no_horizontal_overflow 在这些页上都跑过。
+                   ("toolbar-in", "chips")}
 
         def same_family(parent: str, child: str) -> bool:
             """同族的作用域覆盖不算串味：`.ev.add .ev-what` 只是给 `.ev-what`

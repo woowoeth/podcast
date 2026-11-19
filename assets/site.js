@@ -207,12 +207,20 @@
     });
     feed._limit = function () { return limit; };
     feed._reveal = function (n) { if (n > limit) { limit = n; run(); } };
+    // 手机上分类标签是一行横向滑动（site.css 的 640px 断点）。从分享链接（?c=hist）
+    // 或返回恢复进来时，选中的那个可能在屏幕外——读者看到的是「最新」没亮、也找不到哪个亮了。
+    // 只滚标签那一行，不动页面（scrollIntoView 会连带滚整页）。
+    function revealChip(o) {
+      var row = o.parentElement;
+      if (!row || row.scrollWidth <= row.clientWidth) return;
+      row.scrollLeft = Math.max(0, o.offsetLeft - row.offsetLeft - 16);
+    }
     feed._restore = function (st, done) {
       if (input && typeof st.q === 'string') input.value = st.q;
       if (st.cat) chips.forEach(function (o) {
         var on = o.getAttribute('data-cat-chip') === st.cat;
         o.setAttribute('aria-pressed', String(on));
-        if (on) cat = st.cat;
+        if (on) { cat = st.cat; revealChip(o); }
       });
       limit = Math.max(firstBatch(), st.lim || 0);
       run();
@@ -518,7 +526,7 @@
       chips.forEach(function (o) {
         var on = o.getAttribute('data-cat-chip') === want;
         o.setAttribute('aria-pressed', String(on));
-        if (on) cat = want;
+        if (on) { cat = want; revealChip(o); }
       });
     }
     if (qs.get('q') && input) input.value = qs.get('q');

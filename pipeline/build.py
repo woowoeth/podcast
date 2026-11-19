@@ -999,7 +999,10 @@ def both_scripts(text: str) -> str:
 def card(ep: dict, *, hero: bool, is_new: bool = False) -> str:
     d = D(ep)
     q = d.get("quality") or {}
-    date = (ep.get("published") or "")[5:10].replace("-", "")
+    pub = ep.get("published") or ""
+    # 只写「月日」的话，2005 年的斯坦福演讲在卡片上就是「0612」——读者会以为是今年 6 月。
+    # 不是当年的就写年份。「当年」取全站最新一集的年份，不取系统时钟：构建要可重复。
+    date = pub[5:10].replace("-", "") if pub[:4] == _CUR_YEAR[0] else pub[:4]
     # 这里**只放本树的字形**。两种字形都塞进来的话首屏 gzip 从 26.0 涨到
     # 31.9 KB（+23%）—— 另一种字形是真正不同的文本，压不掉。
     # 简繁互搜放在懒加载的 search.json 里（见 search_index），只有真去搜的
@@ -1439,6 +1442,9 @@ def player_block(ep: dict) -> str:
     out = ['<div class="player" data-player-box>']
     if vid:
         # hq720 是真 16:9；hqdefault 是 4:3 补黑边的，只当兜底
+        # **onerror 不够：** 没有 hq720 的视频，YouTube 回 404 但正文是一张合法的
+        # 120×90 灰色占位图，浏览器照常显示、不触发 onerror——播放器就是一块灰（2026-11-19
+        # 乔布斯斯坦福演讲）。所以 onload 再看一眼尺寸：小于 200 宽就是占位图，换兜底。
         poster = f"https://i.ytimg.com/vi/{vid}/hq720.jpg"
         fallback = f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg"
         out.append(
@@ -1446,7 +1452,8 @@ def player_block(ep: dict) -> str:
             f'          aria-label="{T("播放原节目视频")}">\n'
             f'    <span class="frame">\n'
             f'      <img src="{e(poster)}" alt="" loading="lazy" width="1280"\n'
-            f'           onerror="this.onerror=null;this.src=\'{e(fallback)}\'">\n'
+            f'           onerror="this.onerror=null;this.src=\'{e(fallback)}\'"\n'
+            f'           onload="if(this.naturalWidth&lt;200){{this.onload=null;this.src=\'{e(fallback)}\'}}">\n'
             f'      <span class="play" aria-hidden="true">{PLAY_SVG}</span>\n'
             '    </span>\n'
             '  </button>')
@@ -1999,6 +2006,8 @@ def people_rows(eps: list[dict]) -> list[tuple[dict, list[dict]]]:
     return [(p, mem[p["id"]]) for p in ps if mem[p["id"]]]
 
 
+_CUR_YEAR = [""]          # render_site 每趟设：全站最新一集的年份
+
 # slug → 这一集归属的人。render_site 每趟开头按这一趟的集重算（英文树只含译完的集）。
 _PEOPLE_OF: dict[str, list[dict]] = {}
 
@@ -2011,7 +2020,7 @@ def people_tag(ep: dict) -> str:
         return ""
     links = "".join(f'<a class="chip" href="{BASE}/people/{e(p["id"])}/">{e(person_name(p))} →</a>'
                     for p in ps)
-    return (f'<nav class="chips people-tag" aria-label="{e(T("人物"))}" style="margin:6px 0 0">'
+    return (f'<nav class="chips people-tag" aria-label="{e(T("人物"))}" style="margin:2px 0 14px">'
             f'{links}</nav>')
 
 
@@ -2051,8 +2060,10 @@ def people_index_page(rows: list[tuple[dict, list[dict]]], n_eps: int) -> str:
         f'<a class="panel" href="{BASE}/people/{e(p["id"])}/" style="display:block;margin:0 0 12px;max-width:560px">'
         f'<div class="row"><span><b>{e(person_name(p))}</b></span>'
         f'<span>{i18n.n(len(r), "read", "篇深读")}</span></div>'
-        f'<div class="row"><span style="color:var(--faint)">'
-        f'{e(p.get("desc_en") if LANG == "en" else p.get("desc_zh"))}</span></div></a>'
+        # 简介不能放进 .row：.row 的第一个 span 是 flex:none（给「分类」这种短标签用的），
+        # 一整句话放进去不会换行，手机上直接撑出卡片外（2026-11-19）。
+        f'<p style="margin:4px 0 2px;color:var(--muted);font-size:13.5px;line-height:1.65">'
+        f'{e(p.get("desc_en") if LANG == "en" else p.get("desc_zh"))}</p></a>'
         for p, r in rows)
     return (head(f'{T("人物频道")} — {NAME}', desc, path=path, extra=ld)
             + masthead(n_eps, home=False, path=path)
@@ -2515,6 +2526,7 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
         # 没译文的不进英文站。宁可少几篇，也不要中英混排的页面。
         eps = [x for x in eps if x.get("slug") in _EN]
     log(f"building {len(eps)} episodes, {len(srcs.get('sources') or [])} sources")
+    _CUR_YEAR[0] = max((x.get("published") or "" for x in eps), default="")[:4]
     _PEOPLE_OF.clear()
     for _p, _rows in people_rows(eps):
         for _x in _rows:

@@ -386,5 +386,49 @@ class PeopleVerdictsAreNotCoreVerdicts(unittest.TestCase):
         self.assertFalse(self.R._verdict_is_stale(v, {"tier": 1}, self.t.rubric_id()))
 
 
+class YoutubeCoversAreRealImages(unittest.TestCase):
+    """2026-11-19：乔布斯斯坦福演讲的封面是 YouTube 的 404 灰色占位图。"""
+
+    def test_thumb_falls_back_to_a_size_that_exists(self):
+        import subprocess
+        import addvideo as A
+        seen = []
+
+        def fake(cmd, **kw):
+            seen.append(cmd[-1])
+            code = "200" if cmd[-1].endswith("hqdefault.jpg") else "404"
+            return subprocess.CompletedProcess(cmd, 0, stdout=code, stderr="")
+        old, A.subprocess.run = A.subprocess.run, fake
+        try:
+            got = A.yt_thumb("Hd_ptbiPoXM")
+        finally:
+            A.subprocess.run = old
+        self.assertTrue(got.endswith("/hqdefault.jpg"), got)
+        self.assertTrue(seen[0].endswith("/maxresdefault.jpg"), "先试最大的那档")
+
+    def test_cover_cache_refuses_an_http_error_body(self):
+        import subprocess
+        import cache_covers as C
+        argv = []
+
+        def boom(*a, **k):
+            raise OSError("python 的证书库不认本机代理")
+
+        def fake(cmd, **kw):
+            argv.append(cmd)
+            # curl -f 遇到 404：退出码 22、没有正文
+            fail = "-f" in "".join(x for x in cmd if x.startswith("-") and not x.startswith("--"))
+            return subprocess.CompletedProcess(cmd, 22 if fail else 0,
+                                               stdout=b"" if fail else b"GIF89a-placeholder", stderr=b"404")
+        old_u, old_r = C.urllib.request.urlopen, subprocess.run
+        C.urllib.request.urlopen, subprocess.run = boom, fake
+        try:
+            with self.assertRaises(Exception):
+                C._fetch("https://i.ytimg.com/vi/x/maxresdefault.jpg")
+        finally:
+            C.urllib.request.urlopen, subprocess.run = old_u, old_r
+        self.assertTrue(argv, "没走到 curl 那条路")
+
+
 if __name__ == "__main__":
     unittest.main()

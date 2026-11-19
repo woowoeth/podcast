@@ -54,7 +54,9 @@ def _fetch(url):
         return urllib.request.urlopen(req, timeout=30, context=_CTX).read()
     except Exception:
         import subprocess
-        r = subprocess.run(["curl", "-sSL", "--max-time", "30",
+        # -f：HTTP 4xx/5xx 算失败。没有它，404 的响应体（YouTube 那张 1 KB 灰色占位图）
+        # 会被当成封面存下来（2026-11-19 乔布斯斯坦福演讲）。
+        r = subprocess.run(["curl", "-fsSL", "--max-time", "30",
                             "-A", UA["User-Agent"], url],
                            capture_output=True)
         if r.returncode or not r.stdout:
