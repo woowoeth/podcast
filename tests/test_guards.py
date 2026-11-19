@@ -9776,7 +9776,9 @@ class PromotingASourceMustReopenWhatTheOldBarRejected(unittest.TestCase):
                  if isinstance(v, dict) and v.get("skip") == "off-brief"
                  and v.get("src") in tiers
                  and tiers[v["src"]].get("tier", 3) in self.run.NO_FILTER_TIERS
-                 and not self.run._core_blocks(v)]
+                 and not self.run._core_blocks(v)
+                 # 人物频道的视频按人物尺子判（2026-11-19：Lex 夜市那集），不归 tier 规则管
+                 and not self.run.is_people_verdict(v)]
         self.assertFalse(
             stuck, f"{len(stuck)} 集卡在升 tier 之前的旧判决里："
                    f"{[(v.get('src'), v.get('score')) for v in stuck[:3]]}")
@@ -9819,7 +9821,8 @@ class TheCheckMustUseTheSameRulerAsTheCode(unittest.TestCase):
         done = json.loads(f.read_text()).get("done") or {}
         bad = [v for v in done.values()
                if isinstance(v, dict) and v.get("skip") == "off-brief"
-               and v.get("src") in ids and not run._core_blocks(v)]
+               and v.get("src") in ids and not run._core_blocks(v)
+               and not run.is_people_verdict(v)]
         self.assertFalse(
             bad, f"{len(bad)} 集优质源被判掉，但按当前规则不该拦："
                  f"{[(v.get('src'), v.get('score')) for v in bad[:3]]}")

@@ -878,6 +878,18 @@ CORE_TIER = 1          # 「核心源」仍只指 tier 1（体检、挑选优先
 AD_KINDS = ("宣传", "廣告", "广告")
 
 
+def is_people_verdict(v) -> bool:
+    """这条「不做」是不是按**人物频道的尺子**判的（pipeline/people.py，lib/triage.PEOPLE_SYSTEM）。
+
+    人物视频可能来自登记过的优质源（Lex、All-In 是 T1/T2），账本里 src 记的是那档源。
+    但它是按人物尺子、当 T3 判的——「优质源只拦广告」这条规则管不到它。
+    不认出来的话，体检和守护会把它当成「优质源被分数错拦」（2026-11-19 CI 因此红了：Lex 夜市那集）。
+    凡是按 src 的 tier 判「这条判决对不对」的地方，都先用这个函数排除它。
+    """
+    from lib import triage as _t
+    return isinstance(v, dict) and v.get("rubric") == _t.rubric_id({"rubric": "people"})
+
+
 def _verdict_is_stale(prior: dict, s: dict, rubric: str) -> bool:
     """账本里这条「不做」还算不算数。
 
@@ -899,6 +911,8 @@ def _verdict_is_stale(prior: dict, s: dict, rubric: str) -> bool:
     """
     if not isinstance(prior, dict) or prior.get("skip") != "off-brief":
         return False
+    if is_people_verdict(prior):
+        return False          # 人物尺子判的归 people.pending 管（尺子变了它自己重开）
     if prior.get("rubric") != rubric:
         return True
     return (s.get("tier", 3) in NO_FILTER_TIERS) and not _core_blocks(prior, s)

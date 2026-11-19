@@ -261,5 +261,130 @@ class DailyRunWiring(unittest.TestCase):
         self.assertIn('[ -z "$ONLY" ]', block)
 
 
+class ThrottleIsNotTheVideosFault(unittest.TestCase):
+    """11-19 第一轮：12 条里 4 条栽在 YouTube 限流。限流不该让好视频永久出局。"""
+    T = dt.date(2026, 11, 19)
+
+    def test_transient_failure_waits_two_days_not_seven(self):
+        f = {"n": 0, "soft": 1, "why": "transcript-transient", "at": "2026-11-18T00:00:00Z"}
+        self.assertFalse(P.retry_ok(f, self.T))
+        self.assertTrue(P.retry_ok(dict(f, at="2026-11-17T00:00:00Z"), self.T))
+
+    def test_three_throttles_do_not_kill_a_lead(self):
+        f = {"n": 0, "soft": 3, "why": "triage-unreliable", "at": "2026-11-01T00:00:00Z"}
+        self.assertTrue(P.retry_ok(f, self.T))
+
+    def test_but_endless_throttles_eventually_stop(self):
+        f = {"n": 0, "soft": P.TRANSIENT_MAX, "why": "triage-unreliable", "at": "2026-01-01"}
+        self.assertFalse(P.retry_ok(f, self.T))
+
+    def test_hard_failures_still_give_up_at_three(self):
+        f = {"n": 3, "soft": 0, "why": "transcript-transient", "at": "2026-01-01"}
+        self.assertFalse(P.retry_ok(f, self.T))
+
+    def test_only_this_rounds_records_count_toward_the_streak(self):
+        st = {"fail": {"k": {"why": "transcript-transient", "at": "2026-11-18T00:00:00Z"}}}
+        self.assertFalse(P.hit_throttle(st, "k", "2026-11-19T03:00:00Z", "off-brief"))
+        st["fail"]["k"]["at"] = "2026-11-19T03:05:00Z"
+        self.assertTrue(P.hit_throttle(st, "k", "2026-11-19T03:00:00Z", "no-transcript"))
+        self.assertFalse(P.hit_throttle(st, "k", "2026-11-19T03:00:00Z", "published"))
+
+
+class SharedVideoQueuedOnce(unittest.TestCase):
+    def test_a_video_in_two_peoples_lists_is_tried_once(self):
+        # 实测：America.Gov 那场同时在马斯克和黄仁勋的表里，一轮试了两次
+        a = {"id": "a", "zh": "甲", "aliases": [], "videos": [{"yt": "same", "d": "2026-10-01", "ch": "X"}]}
+        b = {"id": "b", "zh": "乙", "aliases": [], "videos": [{"yt": "same", "d": "2026-10-01", "ch": "X"},
+                                                            {"yt": "b2", "d": "2026-09-01", "ch": "X"}]}
+        q = P.pending({"people": [a, b]}, {"done": {}, "fail": {}}, set())
+        self.assertEqual([v["yt"] for _, v in q], ["same", "b2"])
+
+
+class RunsAreLoggedForTheHealthcheck(unittest.TestCase):
+    def test_log_keeps_the_last_runs(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            f = pathlib.Path(d) / "runs.json"
+            for i in range(P.KEEP_RUNS + 5):
+                P.record_run({"at": str(i)}, f)
+            rows = json.loads(f.read_text())
+            self.assertEqual(len(rows), P.KEEP_RUNS)
+            self.assertEqual(rows[-1]["at"], str(P.KEEP_RUNS + 4))
+
+    def run_check(self, runs, now="2026-11-19T12:00:00"):
+        import tempfile
+        import healthcheck as H
+        with tempfile.TemporaryDirectory() as d:
+            d = pathlib.Path(d)
+            (d / "people.json").write_text(json.dumps({"people": [{"videos": [{"yt": "x"}]}]}))
+            if runs is not None:
+                (d / "people-runs.json").write_text(json.dumps(runs))
+            old, H.DATA = H.DATA, d
+            try:
+                r = H.Report()
+                H.check_people_channel(r, dt.datetime.fromisoformat(now).replace(tzinfo=dt.timezone.utc))
+            finally:
+                H.DATA = old
+        return r
+
+    def test_stalled_step_is_a_hard_failure(self):
+        r = self.run_check([{"at": "2026-11-16T02:00:00Z", "tried": 4, "published": 1, "pending": 700}])
+        self.assertTrue(r.bad, r.warn)
+
+    def test_four_empty_rounds_warn(self):
+        row = {"at": "2026-11-19T02:00:00Z", "tried": 12, "published": 0, "pending": 700,
+               "results": {"off-brief": 12}}
+        r = self.run_check([row] * 4)
+        self.assertFalse(r.bad)
+        self.assertTrue(any("一篇没发" in w for w in r.warn), r.warn)
+
+    def test_a_healthy_round_is_green(self):
+        r = self.run_check([{"at": "2026-11-19T02:00:00Z", "tried": 12, "published": 3, "pending": 700}])
+        self.assertFalse(r.bad)
+        self.assertFalse(r.warn)
+        self.assertTrue(r.ok)
+
+    def test_never_ran_is_a_note_not_a_failure(self):
+        r = self.run_check(None)
+        self.assertFalse(r.bad)
+        self.assertTrue(r.warn)
+
+
+class ArticlesLinkToTheirPerson(unittest.TestCase):
+    def test_every_member_article_links_its_person_page(self):
+        eps = [json.loads(f.read_text()) for f in (ROOT / "data" / "episodes").glob("*.json")]
+        ps = P.load()["people"]
+        for p, rows in zip(ps, P.members(eps, ps).values()):
+            for x in rows:
+                html = (ROOT / "p" / x["slug"] / "index.html").read_text()
+                self.assertIn(f'href="/podcast/people/{p["id"]}/"', html, x["slug"])
+
+
+class PeopleVerdictsAreNotCoreVerdicts(unittest.TestCase):
+    """2026-11-19 CI 红：Lex（优质源）的夜市那集按人物尺子判了 4 分，账本 src=lex，
+    两条「优质源只拦广告」的守护把它当成错拦。人物尺子判的要能被认出来——而且只认它。"""
+
+    def setUp(self):
+        import run as R
+        from lib import triage
+        self.R, self.t = R, triage
+
+    def v(self, rubric):
+        return {"skip": "off-brief", "src": "lex", "tier": 3, "score": 4.0, "kind": "闲聊",
+                "rubric": rubric}
+
+    def test_people_rubric_verdict_is_recognised(self):
+        self.assertTrue(self.R.is_people_verdict(self.v(self.t.rubric_id({"rubric": "people"}))))
+
+    def test_regular_verdicts_are_not_excused(self):
+        self.assertFalse(self.R.is_people_verdict(self.v(self.t.rubric_id())))
+        self.assertFalse(self.R.is_people_verdict(self.v("oldoldold0")))
+        self.assertFalse(self.R.is_people_verdict(self.v(None)))
+
+    def test_the_feed_side_does_not_reopen_people_verdicts(self):
+        v = self.v(self.t.rubric_id({"rubric": "people"}))
+        self.assertFalse(self.R._verdict_is_stale(v, {"tier": 1}, self.t.rubric_id()))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1604,7 +1604,7 @@ def episode_page(ep: dict, prev: dict | None, nxt: dict | None,
 <nav class="crumb"><a href="{BASE}/">{T("首页")}</a><span class="sep">/</span>
 {cat_crumb(ep)}<a href="{BASE}/s/{e(ep.get('source_id'))}/"{zh_attr(src_label)}>{e(src_label)}</a>
 <span class="sep">/</span><span>{e(date)}</span></nav>
-
+{people_tag(ep)}
 <div class="ep-grid">
 <article>
 <div class="ep-head">
@@ -1997,6 +1997,22 @@ def people_rows(eps: list[dict]) -> list[tuple[dict, list[dict]]]:
     ps = _people_blob().get("people") or []
     mem = _ppl.members(eps, ps)
     return [(p, mem[p["id"]]) for p in ps if mem[p["id"]]]
+
+
+# slug → 这一集归属的人。render_site 每趟开头按这一趟的集重算（英文树只含译完的集）。
+_PEOPLE_OF: dict[str, list[dict]] = {}
+
+
+def people_tag(ep: dict) -> str:
+    """集页通向人物页的链接。人物页是跨信源的归档，从单篇走不过去的话，
+    读者读完黄仁勋这一篇，不知道站上还有他另外几篇。"""
+    ps = _PEOPLE_OF.get(ep.get("slug") or "") or []
+    if not ps:
+        return ""
+    links = "".join(f'<a class="chip" href="{BASE}/people/{e(p["id"])}/">{e(person_name(p))} →</a>'
+                    for p in ps)
+    return (f'<nav class="chips people-tag" aria-label="{e(T("人物"))}" style="margin:6px 0 0">'
+            f'{links}</nav>')
 
 
 def person_name(p: dict) -> str:
@@ -2499,6 +2515,10 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
         # 没译文的不进英文站。宁可少几篇，也不要中英混排的页面。
         eps = [x for x in eps if x.get("slug") in _EN]
     log(f"building {len(eps)} episodes, {len(srcs.get('sources') or [])} sources")
+    _PEOPLE_OF.clear()
+    for _p, _rows in people_rows(eps):
+        for _x in _rows:
+            _PEOPLE_OF.setdefault(_x["slug"], []).append(_p)
     (out / "index.html").write_text(index_page(eps, srcs))
     (out / "hot.json").write_text(hot_json(eps, srcs))
     (out / "sources").mkdir(exist_ok=True)

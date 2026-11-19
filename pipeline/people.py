@@ -122,8 +122,14 @@ def _who(person: dict) -> str:
     return f"{zh}（{en}）" if zh and en else (zh or en)
 
 
-MAX_TRIES = 3                # 失败（没字幕、成稿没过线、出错）累计这么多次就不再试
-RETRY_DAYS = 7               # 失败过的，隔这么多天才再试一次
+MAX_TRIES = 3                # 视频本身的失败（成稿没过线、出错）累计这么多次就不再试
+RETRY_DAYS = 7               # 视频本身失败过的，隔这么多天才再试一次
+# **限流不是视频的错。** 11-19 第一轮：12 条里 4 条栽在 YouTube 限流（字幕取不到 →
+# transcript-transient；选题只看到简介 → triage-unreliable），记账全是 soft。
+# 原来 soft 和硬失败一起数到 3 就放弃——限流几轮，好视频就永久出局了。
+TRANSIENT = ("transcript-transient", "triage-unreliable")
+TRANSIENT_DAYS = 2
+TRANSIENT_MAX = 8
 
 
 def retry_ok(f: dict | None, today: dt.date | None = None) -> bool:
@@ -135,15 +141,19 @@ def retry_ok(f: dict | None, today: dt.date | None = None) -> bool:
     """
     if not f:
         return True
-    tries = int(f.get("n") or 0) + int(f.get("soft") or 0)
-    if f.get("why") == "too-long" or tries >= MAX_TRIES:
+    hard, soft = int(f.get("n") or 0), int(f.get("soft") or 0)
+    if f.get("why") == "too-long" or hard >= MAX_TRIES or soft >= TRANSIENT_MAX:
+        return False
+    transient = f.get("why") in TRANSIENT
+    if not transient and hard + soft >= MAX_TRIES:
         return False
     at = str(f.get("at") or "")[:10]
     try:
         last = dt.date.fromisoformat(at)
     except ValueError:
         return True
-    return ((today or dt.date.today()) - last).days >= RETRY_DAYS
+    wait = TRANSIENT_DAYS if transient else RETRY_DAYS
+    return ((today or dt.date.today()) - last).days >= wait
 
 
 def _stale_off_brief(prior) -> bool:
@@ -182,11 +192,16 @@ def pending(blob: dict, state: dict, have_yt: set[str]) -> list[tuple[dict, dict
                 continue
             q.append((p, v))
         queues.append(q)
-    out = []
+    # 同一支视频可能在两个人的表里（马斯克和黄仁勋同台的那场）：只排一次
+    out, seen = [], set()
     while any(queues):
         for q in queues:
-            if q:
-                out.append(q.pop(0))
+            while q:
+                p, v = q.pop(0)
+                if v["yt"] not in seen:
+                    seen.add(v["yt"])
+                    out.append((p, v))
+                    break
     return out
 
 
@@ -238,9 +253,17 @@ def run_next(n: int, dry: bool) -> int:
     todo = pending(blob, state, have)
     cap = n * TRIES_PER_PUBLISH
     log(f"人物频道：待做 {len(todo)} 条线索，本轮发 {n} 篇为止（最多试 {cap} 条）")
-    published = tried = 0
+    published = tried = streak = 0
+    results: dict[str, int] = {}
+    stopped = ""
+    t0 = iso_now()
     for p, v in todo:
         if published >= n or tried >= cap:
+            break
+        if streak >= THROTTLE_STOP:
+            # 连着几条都是限流：再试只会继续撞墙、给更多好视频记上失败
+            stopped = f"连续 {streak} 条限流，本轮提前停"
+            log(f"  {stopped}")
             break
         tried += 1
         s = channel_source(v.get("ch") or "", p, _registered())
@@ -261,12 +284,46 @@ def run_next(n: int, dry: bool) -> int:
         log(f"  [{p['zh']}] {v.get('d')} · {s['name']} · {title[:60]}")
         r = R.process(ep, state, dry=dry)
         log(f"    结果：{r}")
+        results[r] = results.get(r, 0) + 1
         if r == "published":
             published += 1
+        streak = streak + 1 if hit_throttle(state, ep["_key"], t0, r) else 0
         if not dry:
             R.save_state(state)
     log(f"人物频道：本轮试 {tried} 条，发布 {published} 篇")
+    if not dry:
+        record_run({"at": iso_now(), "tried": tried, "published": published,
+                    "results": results, "pending": len(todo) - tried, "stopped": stopped})
     return 0
+
+
+THROTTLE_STOP = 3
+
+
+def hit_throttle(state: dict, key: str, since: str, result: str) -> bool:
+    """这一条是不是**这一轮**撞上了限流。只看本轮写下的失败记录——上一轮留下的不算。"""
+    if result == "published":
+        return False
+    f = (state.get("fail") or {}).get(key) or {}
+    return f.get("why") in TRANSIENT and str(f.get("at") or "") >= since
+RUNS = DATA / "people-runs.json"
+KEEP_RUNS = 40               # 一天两轮，留 20 天
+
+
+def iso_now() -> str:
+    return dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def record_run(row: dict, path: pathlib.Path | None = None) -> None:
+    """每轮留痕：体检读它判「人物频道在不在产出」（healthcheck.check_people_channel）。
+    这一步在日更里是 `|| echo 不致命`，不留痕的话它坏了、或长期零产出，不会有任何输出提到。"""
+    path = path or RUNS
+    try:
+        rows = json.loads(path.read_text()) if path.exists() else []
+    except Exception:
+        rows = []
+    rows = (rows + [row])[-KEEP_RUNS:]
+    path.write_text(json.dumps(rows, ensure_ascii=False, indent=1) + "\n")
 
 
 # ---------------------------------------------------------------- 导入线索

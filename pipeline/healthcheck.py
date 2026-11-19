@@ -783,15 +783,19 @@ def check_core_sources(r: Report) -> None:
     try:
         sys.path.insert(0, str(ROOT / "pipeline"))
         import importlib
-        _blocks = importlib.import_module("run")._core_blocks
+        _run = importlib.import_module("run")
+        _blocks = _run._core_blocks
+        _people = _run.is_people_verdict
     except Exception:
         _blocks = lambda v: "宣传" in str(v.get("kind") or "")
+        _people = lambda v: False
     # 只追究**判的时候**就在优质层的（记了 tier 的）。源后来才升上来的，旧判决是按当时的
     # 7 分线判的，不是闸门坏了 —— run.py 的 _verdict_is_stale 下一轮扫到就重开。不分开的话，
     # curate 每恢复一档源，这里就红到本机下一轮（2026-10-15 审查：unruffled 恢复到 T2）。
     wrong = [v for v in done.values()
              if isinstance(v, dict) and v.get("skip") == "off-brief"
-             and v.get("src") in ids and v.get("tier") in (1, 2) and not _blocks(v)]
+             and v.get("src") in ids and v.get("tier") in (1, 2) and not _blocks(v)
+             and not _people(v)]   # 人物尺子判的不归「优质源只拦广告」管
     if wrong:
         r.fail(f"{len(wrong)} 集优质源的稿被**分数**判掉了（判词不是「宣传」）——"
                f"核心源只该拦广告：" + "；".join(
@@ -1188,6 +1192,64 @@ def check_local_asr(r: Report) -> None:
                "去看 LOCAL_ON 开关和 ffmpeg")
         return
     r.good("转写：本机 mlx-whisper 可用")
+
+
+def check_people_channel(r: Report, now_utc=None) -> None:
+    """人物频道**在产出吗**（pipeline/people.py，每轮留痕在 data/people-runs.json）。
+
+    和建档同一个形状：日更里这一步是 `|| echo 不致命`。它崩掉（脚本异常，留痕写不出来）
+    或长期零产出（全被选题拦、全撞限流），不会有任何输出提到——首页的人物入口照样在，
+    只是再也不长了。
+    """
+    import datetime as _dt
+    leads = DATA / "people.json"
+    if not leads.exists():
+        return
+    try:
+        n_leads = sum(len(p.get("videos") or []) for p in
+                      json.loads(leads.read_text()).get("people") or [])
+    except Exception:
+        r.note("data/people.json 读不了")
+        return
+    if not n_leads:
+        return
+    f = DATA / "people-runs.json"
+    try:
+        runs = json.loads(f.read_text()) if f.exists() else []
+    except Exception:
+        r.note("data/people-runs.json 读不了")
+        return
+    if not runs:
+        r.note(f"人物频道有 {n_leads} 条线索，还没有一轮留过痕（刚上线时正常；超过一天就是这一步没跑）")
+        return
+    last = runs[-1]
+    now_utc = now_utc or _dt.datetime.now(_dt.timezone.utc)
+    try:
+        t = _dt.datetime.strptime(last["at"][:19], "%Y-%m-%dT%H:%M:%S").replace(
+            tzinfo=_dt.timezone.utc)
+        age = (now_utc - t).total_seconds() / 3600
+    except Exception:
+        age = None
+    if last.get("pending", 0) <= 0 and last.get("tried", 0) == 0:
+        r.good("人物频道：线索都做完了")
+        return
+    if age is not None and age > 48:
+        r.fail(f"人物频道 {age / 24:.0f} 天没跑过了，还有 {last.get('pending')} 条线索 —— "
+               f"日更里这一步失败不致命，坏了不会有人知道")
+        return
+    recent = runs[-4:]
+    pub = sum(x.get("published", 0) for x in recent)
+    if len(recent) >= 4 and pub == 0:
+        agg: dict = {}
+        for x in recent:
+            for k, v in (x.get("results") or {}).items():
+                agg[k] = agg.get(k, 0) + v
+        r.note(f"人物频道最近 {len(recent)} 轮一篇没发（{agg}）—— 选题标准太严，还是取不到字幕？")
+        return
+    if last.get("stopped"):
+        r.note(f"人物频道上一轮{last['stopped']}（YouTube 限流）；发了 {last.get('published', 0)} 篇")
+        return
+    r.good(f"人物频道：最近 {len(recent)} 轮发了 {pub} 篇，还剩 {last.get('pending')} 条线索")
 
 
 def check_catchup_is_working(r: Report) -> None:
@@ -1811,6 +1873,7 @@ def main(argv: list[str] | None = None) -> int:
     check_token_usage(r)
     check_local_asr(r)
     check_catchup_is_working(r)
+    check_people_channel(r)
     check_source_status_is_fresh(r)
     check_llm_calls_have_no_tools(r)
     if a.cloud_watch:
