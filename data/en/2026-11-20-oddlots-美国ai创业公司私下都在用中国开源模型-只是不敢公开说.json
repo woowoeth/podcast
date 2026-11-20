@@ -1,0 +1,127 @@
+{
+ "slug": "2026-11-20-oddlots-美国ai创业公司私下都在用中国开源模型-只是不敢公开说",
+ "of": "oddlots-da2776b0b4",
+ "source_lang": "en",
+ "title": "American AI startups are using Chinese open-weight models in private, they just won't say it publicly",
+ "dek": "The real moat is not choosing a foundation model—it's fine-tuning open-weight models with proprietary data to build specialized solutions cheaper and more accurate than a giant's single API call.",
+ "why": "From a startup actually deploying AI, this breaks down the real costs of open-weight versus closed-weight models—more grounded than abstract discussions of ‘distillation’ and ‘benchmarks’. But the ending's speculation about compute and model self-iteration drifts off-topic.",
+ "who": "Founders and engineering leaders deciding whether to build with closed-weight flagship models or fine-tuned open-weight models, and investors tracking AI infrastructure cost structures.",
+ "skip": "After 46:09, the ending chat about model self-iteration and AGI speculation drifts off-topic—skip it.",
+ "tags": [
+  "open-weight",
+  "fine-tuning",
+  "inference cost",
+  "distillation",
+  "compute shortage",
+  "enterprise AI"
+ ],
+ "points": [
+  {
+   "h": "Use closed-weight flagship models to build, switch to fine-tuned open-weight for production",
+   "body": "Minerva's approach: use cutting-edge closed-weight models like Claude and Astra during development—developer time costs more than tokens, don't waste cycles on loops and errors. Once a task becomes repeatable and needs only \"customer satisfaction\" quality, switch to a framework with completely different economics: stop measuring by price per million tokens, measure by cost per completed task. That's when open-weight models become your workhorse. This means closed and open aren't substitutes but serve two different economic stages."
+  },
+  {
+   "h": "Open-weight models themselves are worthless—the value is in fine-tuning",
+   "body": "According to Daniel, application-layer companies get real value from open-weight models through fine-tuning, not the models themselves. Labs rely on bought massive datasets; startups can't replicate that scale, so they fine-tune on thousands of their own customer data points to specialize a general model. Example: converting user natural-language requests to SQL using OpenAI models was slow and expensive; after fine-tuning Quen, it's faster and more accurate, giving the company a \"small advantage\"—the logic Harvey and Cognition use when fine-tuning Kimi with proprietary data to build differentiation."
+  },
+  {
+   "h": "Cost is the first reason for choosing open-weight, but not the only one",
+   "body": "Daniel ranks enterprise motivations for choosing open-weight models by importance: first is cost—verify that upfront and operating expenses are lower than OpenAI or Anthropic bills. Second is data sovereignty and control: enterprises send data to closed-weight model APIs and get answers, but the model doesn't improve for your use case. Fine-tuning lets the model continuously improve with your data. Third is negotiating power: once you hold \"models trained on our own data,\" you can pressure closed-weight vendors to price by value, not lock you to a single supplier."
+  },
+  {
+   "h": "Fine-tuning infrastructure is cheap now, but data quality moats remain",
+   "body": "A year ago, fine-tuning and self-hosting a model needed a full inference engineering team. Now services like Fireworks and Modal let you do it for about 7 to 9 dollars per million tokens in and out; some achieved solid final training for just 90 dollars. Daniel notes Harvey spent roughly 6 million dollars in compute to build its legal Tenant model; now similar work costs \"two or three orders of magnitude less.\" But what hasn't been commodified is data and evaluation system quality—that's the difference between good and bad fine-tuning, and why data companies like Mercor and Surge can charge labs enormous fees."
+  },
+  {
+   "h": "The real risk from open-weight models is obliterated models, not data theft",
+   "body": "When preparing this episode, Daniel tested a DeepSeek version with the \"refusal\" neurons turned off—an obliterated model. It performed near Astra from February this year but costs about 1/100th of Fable. Labs don't actually worry about \"China stealing your data.\" The real threat is anyone tweaking a few parameters to run thousands of PhD-level, zero-guardrail \"hacker clones\" in the cloud simultaneously—a real security risk happening now, and Daniel admits he hasn't seen a convincing policy solution yet."
+  },
+  {
+   "h": "Distillation exists, but Chinese open-weight leadership comes from more than copying",
+   "body": "To the charge that Chinese open-weight models secretly distill from Claude, Daniel offers a counterexample: Reflection AI is a US open-source company backed by Nvidia, running tens of thousands of Blackwell GPUs, strictly following terms of service—yet its flagship model still lags Chinese open-weight models by three to six months. This shows that even with compute and talent and no rule-breaking distillation, you can't keep up with Chinese labs' pace, suggesting distillation isn't the whole story. Chinese labs have made real innovations in sparse model architectures and open-sourced inference frameworks that leading labs have adopted."
+  },
+  {
+   "h": "Skip benchmarks—judge open-weight models by whether they handle your daily work",
+   "body": "According to Daniel, benchmarks are almost useless now. A higher score on some benchmark doesn't tell you if it's actually better in real work. His test: can you drop Kimi straight into your existing coding or customer-service workflow and get equal performance? Half-joking, he says the standard is \"how often I swear at my terminal\"—if that frequency hasn't dropped, the model hasn't caught up yet."
+  },
+  {
+   "h": "Every knowledge worker using AI agents will need dedicated GPU compute",
+   "body": "When debating whether compute is enough, Daniel applies first principles: the US has deployed roughly 5 to 10 million top-tier Blackwell GPUs, while knowledge workers number about 100 million. If every knowledge worker gets a full-time agent running 24/7, we'd need far more compute than deployed today. That's why Musk and Huang reportedly found each other at the White House to discuss compute swaps: even the labs themselves face chronic shortages."
+  }
+ ],
+ "terms": [
+  {
+   "term": "open weight",
+   "def": "Publishing final model parameters without training code, data, or methods—different from full open source."
+  },
+  {
+   "term": "obliterated model",
+   "def": "A version with internal \"refusal\" parameters disabled, producing outputs without guardrails or boundaries."
+  },
+  {
+   "term": "RL environment",
+   "def": "A simulation of real tasks where AI trains repeatedly through trial and error."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Harvey Tenant model compute cost",
+   "v": "approximately 6 million dollars"
+  },
+  {
+   "k": "Fireworks fine-tuning price",
+   "v": "7 to 9 dollars per million tokens"
+  },
+  {
+   "k": "Cheapest fine-tuning case training cost",
+   "v": "90 dollars"
+  },
+  {
+   "k": "Cost vs. Sonnet",
+   "v": "about 10 times cheaper"
+  },
+  {
+   "k": "Cost vs. Fable",
+   "v": "about 1/100th"
+  },
+  {
+   "k": "US knowledge workers",
+   "v": "about 100 million"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "The main difference is open source means that you're disclosing all of the code, all of the data, the exact recipe that was used to train a model. And that's not what the Chinese labs are doing. What they're doing is they're releasing the weights of the model.",
+   "translated": false
+  },
+  {
+   "text": "I think the most important thing is cost. And what you have to do as a business is essentially do the calculation of I have to pay some upfront costs and then some operating costs. And is that cheaper than paying OpenAI and Anthropic?",
+   "translated": false
+  },
+  {
+   "text": "Harvey on their tenant model spent about $ 6 million in compute to get to the absolute frontier of legal tasks. You compare that to how much it costs probably to run the new Fable model. And we're off by, you know, two, three orders of magnitude.",
+   "translated": false
+  },
+  {
+   "text": "And you can tell it to do anything. And so if you see all these hacks that are going on right now, the theory on the internet is people are running swarms of these deep-seek obliterated models.",
+   "translated": false
+  },
+  {
+   "text": "What that basically tells you is the distillation is not the pure reason that the Chinese labs are where they are. They have lots of evidence of coming up with very novel techniques.",
+   "translated": false
+  },
+  {
+   "text": "But if I can take Kimmy 3.2 and start replacing it as my daily driver in how I'm coding, okay, now I know that things have caught up. And how do I know that it's replaced? Am I yelling expletives into the terminal anymore? If I'm not, probably not.",
+   "translated": false
+  },
+  {
+   "text": "a fully kind of like AI native employee should have about a GPU's worth of token consumption per year.",
+   "translated": false
+  },
+  {
+   "text": "A lot of them will talk about like Quinn and Kimmy, but not in public.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
