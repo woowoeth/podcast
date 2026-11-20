@@ -159,7 +159,9 @@ def _caption_sample_uncached(ep: dict, src: dict) -> str:
             return ""
     try:
         from lib import transcript as T
-        tr = T.from_youtube(vid, src.get("lang") or "en")
+        # 本机已经有这一集的文稿（人物补跑先转写、或者上一轮取到过）就用它，不再去要字幕：
+        # 字幕是最容易被限流的那个请求，而样本只是开头几段，哪份文稿都一样能判。
+        tr = T.cached(ep) or T.from_youtube(vid, src.get("lang") or "en")
     except Exception:
         return ""
     if not tr or not tr.get("segments"):
@@ -192,6 +194,16 @@ def _brief(ep: dict, src: dict) -> str:
             parts.append(f"视频简介（多为赞助与订阅链接，仅作参考）：\n{notes[:400]}")
     else:
         parts.append(f"节目介绍：\n{notes or '（没有介绍）'}")
+        if not notes and (src.get("kind") or "") == "youtube":
+            # **只限 YouTube 源**：只有那里「按简介判的低分」会记成软失败、下一轮重判
+            # （run.py 的 triage-unreliable）；别的源低分直接落成永久「不做」，不能劝它往低了给。
+            # **只有标题时模型会拒答。** 人物频道的线索没有简介，字幕又被限流时，
+            # haiku 回「我需要字幕才能按你的标准评分，请提供……」—— 不是 JSON，
+            # 重问一次再失败就「放行」。2026-11-19 → 20 补跑约 51 次选题调用，22 次头一回答成这样、12 次最后放行。
+            # 照样要一个分：拿不准就给低分，调用方会把「按简介判的低分」记成软失败、下一轮重判。
+            parts.append("（字幕和介绍这次都没有：只凭上面的标题、节目、时长估一个分。"
+                         "必须照样只输出 JSON，不要索要材料；拿不准就给 5 分以下，"
+                         "why 里写「仅凭标题」。）")
     return "\n".join(parts)
 
 

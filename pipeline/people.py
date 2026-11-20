@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import os
 import pathlib
 import re
 import sys
@@ -245,14 +246,22 @@ def event_date(lead: str, upload: str) -> str:
 TRIES_PER_PUBLISH = 3        # 每轮最多试 n×3 条：选题拦下的很多（干跑 9 条过了 3 条），只试 n 条一轮只出一两篇
 
 
+def _audio_mode(T, why: str) -> bool:
+    T.hold_captions(12 * 3600)       # 整个进程不再要字幕
+    from lib.util import log
+    log(f"  {why}：后面的线索改走音频＋本机转写（不花 token、不再请求字幕）")
+    return True
+
+
 def run_next(n: int, dry: bool) -> int:
     """这一轮**发出** n 篇为止，最多试 n×TRIES_PER_PUBLISH 条。
 
     「每轮 4 篇」是用户定的产出，不是尝试数。被选题拦下的只花一次选题钱（几百 token）
-    和一次免费的字幕请求；真正贵的深读和评审只发生在通过的那几条上。"""
+    和一次字幕请求（或一次本机转写，见下面的 audio）；真正贵的深读和评审只发生在通过的那几条上。"""
     import run as R
     from addvideo import meta
     from lib.util import log
+    from lib import transcript as T
     blob = load()
     have = set()
     for f in (DATA / "episodes").glob("*.json"):
@@ -272,6 +281,13 @@ def run_next(n: int, dry: bool) -> int:
     todo = pending(blob, state, have)
     cap = n * TRIES_PER_PUBLISH
     log(f"人物频道：待做 {len(todo)} 条线索，本轮发 {n} 篇为止（最多试 {cap} 条）")
+    # **字幕一被限流就改走音频。** 字幕是 YouTube 最先限流的请求：2026-11-19 → 20 补跑一天一夜，
+    # 几乎每批都是一两条之后就 429，熔断 30 分钟、歇 30–120 分钟，一共发了 2 篇。
+    # 而同一时刻下音频照常（实测 15 分钟的音频 6 秒下完）。本机转写不花 token，一小时的视频约 5 分钟。
+    # 先转写、落进 .cache/tr，选题样本和成稿都从那份缓存读，字幕一次都不再要。
+    # PEOPLE_AUDIO_FIRST=1（补跑脚本设）从第一条就走音频：补跑量大，迟早会撞上限流。
+    audio = (os.environ.get("PEOPLE_AUDIO_FIRST") == "1" and not dry
+             and _audio_mode(T, "补跑：一开始就走音频"))
     published = tried = streak = 0
     results: dict[str, int] = {}
     stopped = ""
@@ -284,6 +300,8 @@ def run_next(n: int, dry: bool) -> int:
             stopped = f"连续 {streak} 条限流，本轮提前停"
             log(f"  {stopped}")
             break
+        if not audio and T.yt_cooling():
+            audio = _audio_mode(T, "字幕被限流")
         tried += 1
         s = channel_source(v.get("ch") or "", p, _registered())
         m = lead_meta(v) or meta(v["yt"]) or {}
@@ -301,6 +319,13 @@ def run_next(n: int, dry: bool) -> int:
               "youtube_id": v["yt"], "feed_kind": "youtube",
               "_src": s, "_key": R.eid(s["id"], v["yt"])}
         log(f"  [{p['zh']}] {v.get('d')} · {s['name']} · {title[:60]}")
+        if audio and not dry and not T.cached(ep):
+            try:
+                T.acquire(ep, s.get("lang") or "en", src=s, allow=("asr",),
+                          asr_after_throttle=True)
+            except Exception as ex:
+                log(f"    音频转写失败：{type(ex).__name__}")
+            # 拿不到也照常往下走：R.process 会按限流记软失败（字幕已停），连着三条就整轮停
         r = R.process(ep, state, dry=dry)
         log(f"    结果：{r}")
         results[r] = results.get(r, 0) + 1

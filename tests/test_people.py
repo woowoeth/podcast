@@ -504,3 +504,99 @@ class FewerYoutubeRequests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ThrottledCaptionsSwitchToAudio(unittest.TestCase):
+    """2026-11-20：字幕一被限流整批就停，一天一夜发 2 篇；同一时刻音频照常能下。"""
+
+    def _run(self, cooling_until, env=None):
+        import os
+        import time
+        import run as R
+        import addvideo as A
+        from lib import transcript as T
+        calls, rows = [], []
+        old = (R.acquire_run_lock, R.process, R.save_state, R.load_state,
+               P.record_run, A.meta, P.lead_meta, T.acquire, T.cached,
+               T._YT_COOL["until"], os.environ.get("PEOPLE_AUDIO_FIRST"))
+        R.acquire_run_lock = lambda *a, **k: True
+        R.process = lambda *a, **k: calls.append("process") or "off-brief"
+        R.save_state = lambda *a, **k: None
+        R.load_state = lambda *a, **k: {"done": {}, "fail": {}, "fp": {}}
+        P.record_run = lambda row, *a, **k: rows.append(row)
+        A.meta = lambda *a, **k: {"title": "t"}
+        P.lead_meta = lambda *a, **k: {"title": "t", "duration": 3600}
+        T.acquire = lambda ep, lang, **k: calls.append(("acquire", k.get("allow"))) or None
+        T.cached = lambda ep: None
+        T._YT_COOL["until"] = time.time() + cooling_until
+        os.environ.pop("PEOPLE_AUDIO_FIRST", None)
+        if env:
+            os.environ["PEOPLE_AUDIO_FIRST"] = env
+        try:
+            P.run_next(1, dry=False)
+            cooling_after = T.yt_cooling()
+        finally:
+            (R.acquire_run_lock, R.process, R.save_state, R.load_state,
+             P.record_run, A.meta, P.lead_meta, T.acquire, T.cached,
+             T._YT_COOL["until"], prev) = old
+            os.environ.pop("PEOPLE_AUDIO_FIRST", None)
+            if prev is not None:
+                os.environ["PEOPLE_AUDIO_FIRST"] = prev
+        return calls, cooling_after
+
+    def test_cooling_means_transcribe_audio_before_processing(self):
+        calls, _ = self._run(600)
+        self.assertEqual(calls[:2], [("acquire", ("asr",)), "process"],
+                         "字幕限流时没有先走音频转写")
+
+    def test_audio_first_holds_captions_for_the_whole_process(self):
+        calls, cooling_after = self._run(-600, env="1")
+        self.assertEqual(calls[0], ("acquire", ("asr",)))
+        self.assertTrue(cooling_after, "走音频之后还会去要字幕")
+
+    def test_no_throttle_no_audio(self):
+        calls, cooling_after = self._run(-600)
+        self.assertNotIn(("acquire", ("asr",)), calls, "字幕好好的也去转写，白烧机器")
+        self.assertIn("process", calls)
+        self.assertFalse(cooling_after)
+
+
+class TriageSampleReadsTheLocalTranscript(unittest.TestCase):
+    """先转写落了缓存，选题样本就从缓存读——不能再去要一次字幕。"""
+
+    def test_cached_transcript_is_used_without_asking_youtube(self):
+        from lib import triage
+        from lib import transcript as T
+        asked = []
+        old = (T.cached, T.from_youtube)
+        T.cached = lambda ep: {"segments": [{"text": "first principles " * 50}]}
+        T.from_youtube = lambda *a, **k: asked.append(a) or None
+        try:
+            out = triage._caption_sample_uncached(
+                {"youtube_id": "abcdefghijk", "guid": "abcdefghijk", "title": "t"},
+                {"kind": "youtube", "lang": "en"})
+        finally:
+            T.cached, T.from_youtube = old
+        self.assertIn("first principles", out)
+        self.assertEqual(asked, [], "有本机文稿还去要字幕")
+
+
+class TitleOnlyTriageMustStillAnswer(unittest.TestCase):
+    """只有标题时 haiku 回「请提供字幕」而不是 JSON（11-19→20 约 51 次里 22 次）。"""
+
+    def _brief(self, kind):
+        from lib import triage
+        old = triage._caption_sample
+        triage._caption_sample = lambda ep, src: ""
+        try:
+            return triage._brief({"title": "Steve Jobs D8", "notes": "", "duration": 5000},
+                                 {"name": "x", "kind": kind, "cat": "biz", "person": "乔布斯"})
+        finally:
+            triage._caption_sample = old
+
+    def test_youtube_title_only_asks_for_a_score_anyway(self):
+        self.assertIn("不要索要材料", self._brief("youtube"))
+
+    def test_other_sources_are_not_told_to_score_low(self):
+        # 非 YouTube 源的低分会落成永久「不做」，不能劝它往低了给
+        self.assertNotIn("5 分以下", self._brief("podcast"))

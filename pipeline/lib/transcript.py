@@ -603,6 +603,25 @@ def _yt_skip_while_cooling() -> bool:
     return True
 
 
+def yt_cooling() -> bool:
+    """字幕熔断是不是开着。只读，不记失败、不打日志 —— 给「要不要开始下一条」用。"""
+    return time.time() < _YT_COOL["until"]
+
+
+def hold_captions(seconds: float) -> None:
+    """本进程接下来这段时间不再请求字幕（照「被限流」记软失败）。人物补跑改走音频时用。"""
+    _YT_COOL["until"] = max(_YT_COOL["until"], time.time() + seconds)
+
+
+def cached(ep: dict) -> dict | None:
+    """本机缓存里这一集的文稿（acquire 落的那份）；没有就 None。不联网。"""
+    try:
+        got = json.loads(_cache_path(ep).read_text())
+    except Exception:
+        return None
+    return got if got.get("segments") else None
+
+
 # **同一个进程里，同一支视频的字幕只下一次。** 选题闸门（triage._caption_sample）先取一次
 # 当样本，过了闸门取稿时（下面 fetch 的 youtube 层）再取一次——每条通过的视频两次字幕请求。
 # YouTube 的限流是按请求数算的：2026-11-19 人物频道补跑，第一批 4 条就撞上「要登录」。

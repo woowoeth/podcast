@@ -58,7 +58,8 @@ while ! past_until; do
   wait_turn
   before=$(last at)
   echo "----- $(date +%H:%M) 批次开始（累计 $total 篇）-----"
-  python3 pipeline/people.py --next "$BATCH" 2>&1 | grep -avE "frames/s|^ *[0-9]+%|it/s"
+  # 一开始就走音频＋本机转写：字幕一两条之后必被限流（2026-11-20，见 people.run_next）
+  PEOPLE_AUDIO_FIRST="${PEOPLE_AUDIO_FIRST:-1}" python3 pipeline/people.py --next "$BATCH" 2>&1 | grep -avE "frames/s|^ *[0-9]+%|it/s"
   if [ "$(last at)" = "$before" ]; then
     miss=$((miss + 1))
     # 连着几批都没留痕 = people.py 在报错，不是锁被占（锁被占时 wait_turn 已经等过日更）
