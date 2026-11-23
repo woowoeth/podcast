@@ -12943,8 +12943,13 @@ class DailyAndBackfillTakeTurns(unittest.TestCase):
                 "f = open(os.environ['ORIG'], 'r+'); n = len(f.read()); f.seek(0)\n"
                 "f.write(('echo BAD >> \"$TRACE\"\\n' * (n // 10 + 50))); f.truncate(); f.close()\n")
             trace = pathlib.Path(tmp) / "trace"
+            # 脚本开头会自检 claude / yt-dlp / python3（BackfillsFindTheirTools），这里给桩
+            stub = pathlib.Path(tmp) / "bin"; stub.mkdir()
+            for t in ("claude", "yt-dlp"):
+                (stub / t).write_text("#!/bin/sh\nexit 0\n"); (stub / t).chmod(0o755)
+            (stub / "python3").symlink_to(sys.executable)
             r = subprocess.run(["bash", str(repo / "scripts" / "backfill-source.sh"), "x"], capture_output=True, text=True,
-                               timeout=60, env={"PATH": "/usr/bin:/bin", "HOME": tmp, "TRACE": str(trace),
+                               timeout=60, env={"PATH": f"{stub}:/usr/bin:/bin", "HOME": tmp, "TRACE": str(trace),
                                                 "ORIG": str(repo / "scripts" / "backfill-source.sh"),
                                                 "STEPS": "0", "GAP": "0", "QUIET": ""})
             self.assertEqual(r.returncode, 0, r.stderr[-300:])
@@ -15711,3 +15716,32 @@ class TheDigestRunsAtTheEffortItWasTestedAt(unittest.TestCase):
         self.assertRegex(sh, r':\s*"\$\{LLM_EFFORT_DIGEST:=medium\}"', "日更没把写稿设成 medium")
         exp = re.search(r"^\s*export LLM_MODEL_DIGEST[^\n]*$", sh, re.M)
         self.assertTrue(exp and "LLM_EFFORT_DIGEST" in exp.group(0), "设了没 export，run.py 看不到")
+
+
+class BackfillsFindTheirTools(unittest.TestCase):
+    """补跑脚本可能由 launchd／launchctl submit 起，PATH 很窄。2026-11-23 因此在没有 claude、
+    没有 yt-dlp 的环境里跑了十批，给 54 条线索白记失败。PATH 必须和日更同一行，缺工具当场退出。"""
+
+    def _path_line(self, text):
+        return [l for l in text.splitlines() if l.startswith('export PATH="/Library/Frameworks')]
+
+    def test_every_backfill_uses_the_daily_path(self):
+        daily = self._path_line((ROOT / "scripts" / "local-daily.sh").read_text())
+        self.assertTrue(daily)
+        for f in sorted((ROOT / "scripts").glob("backfill-*.sh")):
+            self.assertEqual(self._path_line(f.read_text()), daily, f"{f.name} 的 PATH 和日更不一致")
+
+    def test_a_missing_tool_stops_the_backfill_before_any_batch(self):
+        import subprocess, tempfile, shutil
+        for name in ("backfill-people.sh", "backfill-source.sh"):
+            with tempfile.TemporaryDirectory() as tmp:
+                repo = pathlib.Path(tmp) / "repo"
+                (repo / "scripts").mkdir(parents=True); (repo / "data").mkdir()
+                shutil.copy(ROOT / "scripts" / name, repo / "scripts" / name)
+                # 空的 PATH 前缀目录：只给 bash 基础命令，没有 claude / yt-dlp
+                env = {"PATH": "/usr/bin:/bin", "HOME": tmp, "TMPDIR": tmp, "UNTIL": "23:59", "QUIET": ""}
+                r = subprocess.run(["/bin/bash", str(repo / "scripts" / name), "x"], capture_output=True,
+                                   text=True, timeout=30, env=env)
+                self.assertNotEqual(r.returncode, 0, f"{name}：缺工具还接着跑")
+                self.assertIn("找不到", r.stdout + r.stderr, name)
+                self.assertNotIn("批次开始", r.stdout, f"{name}：缺工具还开了一批")

@@ -36,6 +36,16 @@ DAYS="${DAYS:-1700}"
 STEPS="${STEPS:-60 90 120 180 0}"
 cd "${BACKFILL_REPO:?}"
 set -a; . ~/.config/podcast/env 2>/dev/null; set +a
+# launchd／launchctl submit 给的 PATH 很窄（/usr/bin:/bin…）：claude、yt-dlp、3.14 的 python3 都找不到。
+# 2026-11-23 用 launchctl submit 起补跑，十分钟跑了十批：没有模型（选题放行、写稿报错）、
+# 没有 yt-dlp（音频下不来，按「没文稿」记失败），54 条线索白记了失败。PATH 照抄日更那一行，
+# 缺工具就当场退出 —— 不许在残缺的环境里一批接一批地跑。
+export PATH="/Library/Frameworks/Python.framework/Versions/3.14/bin:/opt/homebrew/bin:/usr/local/bin:$HOME/bin/node/bin:$HOME/.local/bin:$PATH"
+need=(yt-dlp python3)
+[ -z "${LLM_API_KEY:-}" ] && need+=(claude)
+for t in "${need[@]}"; do
+  command -v "$t" >/dev/null || { echo "########## 找不到 ${t}，补跑不开始（PATH=${PATH}）##########"; exit 1; }
+done
 export JOBS="${JOBS:-4}"
 
 # 没有 API key 时和本机日更（local-daily.sh）用同一套省 token 的模型。不设的话 CLI 后端每个角色

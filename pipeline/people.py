@@ -274,6 +274,12 @@ def run_next(n: int, dry: bool) -> int:
     # **和 run.py 抢同一把跑批锁。** 补人物频道（scripts/backfill-people.sh）在两班日更之间连着跑，
     # 不拿锁的话会和日更同时写 state.json——并发写账本静默丢数据，出过不止一次。
     # 日更里这一步排在 run.py 退出之后，锁是空的；日更在跑时补跑拿不到，就让。
+    # **没有模型就不跑。** 没有模型时选题闸门返回 None ＝ 放行，写稿再报错：每条线索白记一次失败。
+    # 2026-11-23 launchctl submit 起的补跑 PATH 里没有 claude，十分钟跑了十批、记了 54 条。
+    from lib import llm
+    if not dry and not llm.available():
+        log("人物频道：没有可用的模型（找不到 claude CLI，也没有 LLM_API_KEY），这一轮不做")
+        return 0
     if not dry and not R.acquire_run_lock():
         log("人物频道：跑批锁被占着（日更或补存量在跑），这一轮不做")
         return 0
@@ -452,4 +458,9 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    import atexit
+    from lib import llm as _llm
+    # 用量进账本（data/usage.json）：人物步骤的选题、写稿、评审原来一次都没记 ——
+    # 守护 TheStateFileRulerMeasuresTheRealCode 在 2026-11-23 这一改里才认出它调模型（见 lib/llm.persist_usage）
+    atexit.register(lambda: _llm.persist_usage())
     raise SystemExit(main())

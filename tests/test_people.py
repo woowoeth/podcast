@@ -650,3 +650,22 @@ class OldPeopleRubricsAreStillPeople(unittest.TestCase):
                        if isinstance(v, dict) and str(v.get("src", "")).startswith("ch-")
                        and v.get("rubric") and not R.is_people_verdict(v)})
         self.assertEqual(miss, [], "人物尺子改过指纹，旧指纹没登记进 PEOPLE_RUBRICS_PAST")
+
+
+class NoModelNoRun(unittest.TestCase):
+    """2026-11-23：补跑的 PATH 里没有 claude，选题放行、写稿报错，十分钟给 54 条线索记了失败。"""
+
+    def test_without_a_model_nothing_is_tried_or_recorded(self):
+        import run as R
+        from lib import llm
+        calls = []
+        old = (llm.available, R.acquire_run_lock, R.process, P.record_run)
+        llm.available = lambda: False
+        R.acquire_run_lock = lambda *a, **k: calls.append("lock") or True
+        R.process = lambda *a, **k: calls.append("process") or "error"
+        P.record_run = lambda *a, **k: calls.append("record")
+        try:
+            self.assertEqual(P.run_next(1, dry=False), 0)
+        finally:
+            llm.available, R.acquire_run_lock, R.process, P.record_run = old
+        self.assertEqual(calls, [], "没有模型还在处理线索／留痕")

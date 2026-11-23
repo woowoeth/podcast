@@ -27,6 +27,16 @@ REST_MAX="${REST_MAX:-7200}"
 UNTIL="${UNTIL:-21:00}"
 cd "${BACKFILL_REPO:?}"
 set -a; . ~/.config/podcast/env 2>/dev/null; set +a
+# launchd／launchctl submit 给的 PATH 很窄（/usr/bin:/bin…）：claude、yt-dlp、3.14 的 python3 都找不到。
+# 2026-11-23 用 launchctl submit 起补跑，十分钟跑了十批：没有模型（选题放行、写稿报错）、
+# 没有 yt-dlp（音频下不来，按「没文稿」记失败），54 条线索白记了失败。PATH 照抄日更那一行，
+# 缺工具就当场退出 —— 不许在残缺的环境里一批接一批地跑。
+export PATH="/Library/Frameworks/Python.framework/Versions/3.14/bin:/opt/homebrew/bin:/usr/local/bin:$HOME/bin/node/bin:$HOME/.local/bin:$PATH"
+need=(yt-dlp python3)
+[ -z "${LLM_API_KEY:-}" ] && need+=(claude)
+for t in "${need[@]}"; do
+  command -v "$t" >/dev/null || { echo "########## 找不到 ${t}，补跑不开始（PATH=${PATH}）##########"; exit 1; }
+done
 
 if [ -z "${LLM_API_KEY:-}" ]; then
   : "${LLM_MODEL:=sonnet}"
