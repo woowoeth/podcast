@@ -1,6 +1,6 @@
 # 原声 — 世界太吵，来原声听播客
 
-1725 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
+1728 entries. Source: https://ourword.ai/podcast/ · Generated from the sources listed in https://ourword.ai/podcast/llms.txt
 
 ==============================================================================
 
@@ -287,6 +287,74 @@
 谁该听 / who: 对计算机史、苏联科技体制、或开源协作治理机制感兴趣的工程师和创业者，想理解「建个仓库」为什么解决不了软件碎片化问题。
 可跳过 / skip: 6:11-9:21讲苏联早期用户协会和子程序目录的细节，可以跳过，不影响理解后续GosFAP失败的核心逻辑。
 标签 / tags: 计算机史, 苏联, 开源协作, 软件标准化, 企业内部工具
+
+==============================================================================
+
+## DeepSeek 限流不是省钱，是在算力上追不上美国的无奈
+
+- URL: https://ourword.ai/podcast/p/2026-11-22-cn561550-deepseek-限流不是省钱-是在算力上追不上美国的无奈/
+- 节目 / show: 科技乱炖 (https://ourword.ai/podcast/s/cn561550/)
+- 原集标题 / original episode: 从 DeepSeek 限流到国产芯片困局，中国 AI 还能靠什么追上美国？
+- 发布 / published: 2026-11-22 · 时长 / duration: 58:25
+- 文稿来源 / transcript: 官方逐字稿 · 19426 words · timestamps are exact
+- 校验 / verification: 4 quotes matched verbatim, 8 numbers traced to the transcript, review score 7/10
+
+**DeepSeek 对 C 端限流的真实原因不是省钱，而是国产卡在数量和代差上远落后海外头部厂商，模型公司宁可把卡收回去做训练也不愿服务普通用户。**
+
+为什么听 / why: 信息密度很高，把卡脖子问题拆成数据、人才、算力三层讲透，适合想弄清国产AI真实处境的人认真听完。
+
+### 核心论点 / points
+
+[3:31] **字节卡多是因为买得早且买得猛** — 主播提到字节大概有一百万张GPU，今年八月还新到一万张H两百，所以相比之下比较富裕。这解释了为什么同样面临限流压力的环境下，字节的豆包没有像DeepSeek一样对用户做限制——不是技术选择不同，而是库存厚度不同。
+
+[7:59] (小白) **你的聊天记录对模型厂商来说是脏数据** — 小白解释，模型训练前要清洗数据、追求多样性，普通聊天数据反而会让模型沾染奇怪的说话习惯，后期对齐还要花大量人力纠正回来。角色扮演这类场景已经被证伪没有商业前景，模型厂商真正想要的是agentic数据，比如coding agent留下的操作轨迹，这类数据能直接反哺AGI路线上的能力提升，所以聊天服务对他们而言纯粹是成本负担。
+
+[15:56] **国产主力卡比海外主力卡落后两年以上** — 按时间线梳理：英伟达2022到2024年主力卡是H100到H800，国内大厂目前用的大头正是这批卡（外加阉割版H20），而2025年海外厂商已经在用B200、GB200、B300这一代。代差之外是规模差距：国内三大厂加起来几十万张卡，而XAI已有七十八万张在跑、另有近六十万张订单在途，到货后总量过百万张，且卡更新。
+
+[21:21] (小白) **卡调度能力曾经比卡本身更稀缺** — 小白提出一个判断：训模型真正吃紧的从来不只是数据和人才，而是AI infra团队能否把算力调度起来——有一万张卡但分不出去给人才做实验，等于白搭。这解释了为什么前两年AI infra人才格外值钱：不是卡不够多，而是没人能把集群真正用顺。
+
+[27:48] (小白) **训练模型的坑，AI暂时替代不了工程师** — 小白区分了两件事：用AI把推理方案从CUDA硬翻译到华为或阿里架构上，这类转换问题AI擅长，大力出奇迹能解决；但真正的模型训练过程充满全新的优化需求和各种莫名其妙的infra报错，AI未必能处理，而一旦工程师被AI取代、断了层，遇到更深的优化需求时反而没人能接得住。
+
+[33:32] **最新国产模型仍是在海外用最新卡训出来的** — 海外实验室通过抓取模型指纹发现，DeepSeek V3.2、Kimi K2、K2 Pro这些较先进的国产模型用的是B300/B200训练出来的，意味着训练实际发生在海外云上。而海外数据中心对中国的远程算力限制正在收紧，这条绕开国内卡荒的路径也正在被堵死。
+
+[39:52] **华为910C已到英伟达卡的一半水平** — 推特上流传的信息显示，华为较新的910C芯片性能已达到英伟达H20级别的一半，虽然不是最先进的卡，但做推理已经够用，可以把英伟达的卡省出来专门做训练，这被认为是当下现实可行的过渡方案。
+
+[55:30] (小白) **国产卡缺的不是技术是生态** — 小白拿Google Colab举例：新人可以直接免费领到一张卡练手，这是培养下一代AI人才的重要工具，而国产卡生态目前还没有类似方案，核心原因是量还不够——卡本身被几个大厂包圆，还轮不到普惠给个人开发者。他认为产能上来后这类生态建设自然会跟上。
+
+### 原话 / verbatim quotes
+
+[7:59] 小白: "模型厂商根本不想要你的聊天数据。因为那个数据第一它很好造。第二呢，你聊天数据其实很脏"
+    译 / zh: 模型厂商根本不想要你的聊天数据，因为这类数据很容易自己造，而且聊天数据其实很脏
+
+[19:10] : "大家在算力上的差距是非常巨大的。这个时候人家难免会觉得说我为什么一定要拿这么好的卡来给你们提供服务"
+    译 / zh: 大家在算力上的差距是非常巨大的，这时候人家难免会觉得，为什么一定要拿这么好的卡来给你们提供服务
+
+[38:50] : "那这候就怕嘛说比如说对于AGI这个目标来说人家就可以做了。如果只是大家只是提供在现在这个党上提供服务，那肯定是有上限的"
+    译 / zh: 就怕对于AGI这个目标来说人家已经能做到了。如果只是在现在这个水平上提供服务，那肯定是有上限的
+
+[49:57] : "这个事情就是没有一成不变的事，就是考验大家智慧的事儿和耐心"
+    译 / zh: 这件事没有一成不变的，考验的是大家的智慧和耐心
+
+### 数字 / figures
+
+- 字节GPU总量: 约一百万张 [2:19]
+- 字节2025年8月新增H200: 一万张 [2:19]
+- XAI在线GPU: 七十八万张 [18:00]
+- XAI在途订单: 近六十万张 [18:00]
+- 中国2025年GPU总量: 约四百万张 [25:38]
+- 中国2025年英伟达卡占比: 二百二十万张，占55% [25:38]
+- 华为卡国内份额: 近八十万张 [25:38]
+- 华为910C性能: 约为英伟达H20的一半 [39:52]
+
+### 术语 / glossary
+
+- harness (agent执行框架): 模型厂商为coding agent等场景搭建的基础工具层和任务定义方案
+- agentic data (智能体行为数据): agent执行任务过程中产生的操作轨迹，用于反哺模型训练
+- CUDA (库达): 英伟达GPU的软件生态护城河，国产卡需做适配转换才能兼容已有训练方案
+
+谁该听 / who: 关注国产AI模型和算力自主化进程的创业者、投资人，以及想弄清DeepSeek限流真实原因的AI从业者。
+可跳过 / skip: 开头关于DeepSeek具体限流规则的吐槽部分信息量较低，可直接跳到算力代差分析。
+标签 / tags: 算力, 国产芯片, DeepSeek, 华为, AI基础设施, 中美AI竞争
 
 ==============================================================================
 
@@ -117403,6 +117471,84 @@
 
 ==============================================================================
 
+## 黄仁勋：电子变token的炼金术才是护城河，不是芯片本身
+
+- URL: https://ourword.ai/podcast/p/2026-05-01-ch-dwarkesh-patel-黄仁勋-电子变token的炼金术才是护城河-不是芯片本身/
+- 节目 / show: Dwarkesh Patel (https://ourword.ai/podcast/s/ch-dwarkesh-patel/)
+- 原集标题 / original episode: Jensen Huang – Will Nvidia’s moat persist?
+- 发布 / published: 2026-05-01 · 时长 / duration: 1:43:13
+- 文稿来源 / transcript: 音频转写 · 17878 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 8 numbers traced to the transcript, review score 8/10
+
+**黄仁勋认为NVIDIA的护城河不在制造环节，而在「把电子变成token、让每个token更值钱」这件远未被理解透的工程；中国算力争论上，他和主持人就「卖芯片到底是帮美国还是资敌」正面互怼，谁也没说服谁。**
+
+为什么听 / why: 前半段是对NVIDIA商业模式、CUDA护城河、供应链逻辑最直接的一次自我辩护，后半段的中美芯片出口对线是全集最硬核、分歧最真实的部分，值得完整听完。
+
+### 核心论点 / points
+
+[0:00] (Jensen Huang) **芯片是炼金术，不是制造业** — 主持人提出一个「朴素」质疑：NVIDIA本质上是把设计图发给台积电代工，自己并不「制造」什么，如果软件被AI商品化，NVIDIA会不会也被商品化？黄仁勋的回应是重新定义公司角色：输入是电子，输出是token，中间NVIDIA做的是把电子转化为token、并让每个token更值钱这件事。他强调这个转化过程背后的科学和工程「远未被深刻理解」，所以很难被彻底商品化。这个框架贯穿了他之后几乎所有关于护城河的论证。
+
+[3:08] (Jensen Huang) **工具不会被AI取代，会被AI用得更多** — 针对「AI会让企业软件工具公司商品化」的流行担忧，黄仁勋给出相反判断：智能体数量和工具使用量会指数级增长，像Synopsys的设计工具、布局工具今天受限于工程师数量，明天会被大量agent使用，反而会带来工具实例数的暴涨。他认为这种担忧还没兑现，只是因为agent还不够擅长使用工具，但这要么会被模型公司自己解决，要么会被工具公司自己做agent解决。
+
+[8:23] (Jensen Huang) **供应链瓶颈从不超过两三年** — 面对NVIDIA在TSMC N3/N2产能占比已逼近饱和、如何继续每年翻番产量的质疑，黄仁勋承认瞬时需求确实会超过供给（甚至被水管工数量卡住），但他强调任何单一瓶颈——CoWoS封装、HBM、EUV机台——一旦被行业「蜂拥而上」投入，两三年内必然解决；真正让他担心的是下游的能源政策这类无法快速扩容的问题。
+
+[39:02] (Jensen Huang) **错过Anthropic早期投资是他承认的失误** — 主持人追问NVIDIA为何没有更早像现在一样大手笔投资OpenAI、Anthropic，当时这些公司估值只有现在的十分之一。黄仁勋坦承这是他的误判——他没有意识到像Anthropic这样的实验室根本无法靠传统VC的5到10亿美元融资走出来，必须靠云厂商用算力换股权的方式绑定，而当时NVIDIA自己还没有能力或心态去做这种对外投资。他说如果能重来，会更早做。
+
+[44:18] (Jensen Huang) **做云厂商的后盾，但绝不自己做云厂商** — 面对「NVIDIA现金这么多，为什么不自己做超大规模云、出租算力」的问题，黄仁勋给出公司哲学：只做「必要且最少」的事——如果CoreWeave、Nebius这些Neocloud不被NVIDIA投资扶持就不会存在，NVIDIA就该出手；但一旦生态能自己转起来，NVIDIA就不该变成金融机构去抢云厂商的生意。他强调NVIDIA不挑赢家，投资所有主要模型公司而非押注一家。
+
+[53:28] (Jensen Huang) **从不坐地起价，靠报价稳定换长期信任** — 针对「NVIDIA靠分配稀缺GPU资源偏袒特定云厂商」的指控，黄仁勋否认存在刻意分裂市场的行为，分配逻辑就是先下单先得；他特别强调NVIDIA从不根据需求暴涨而临时抬价——这被他视为与TSMC三十年零合同、全靠信任维系关系的同一种商业哲学：可预测性本身就是护城河。
+
+[58:39] **中美芯片出口的核心分歧：资产论 vs 阈值论** — 针对Anthropic的Claude Mythos模型展现出的网络攻击能力，主持人质疑把芯片卖给中国是否等于资敌。黄仁勋的反驳是：中国早已拥有训练出类似模型所需的算力、能源和一半的世界AI研究者，芯片出口管制挡不住的是「已经拥有的资产」，真正该做的是建立对话机制而非把中国变成敌人。两人围绕「边际算力是否总是有害」反复拉锯，谁也没有说服对方，黄仁勋最后把问题归结为「不要把世界非黑即白地推向极端」。
+
+[1:24:36] (Jensen Huang) **卖得越好越该卖——因为生态锁定比芯片本身更值钱** — 黄仁勋承认一个表面矛盾：NVIDIA芯片之所以被中国争相购买，是因为「更好」（更好编程、更好生态），而中国即使拿不到NVIDIA芯片也会用华为自研芯片达到同样能力。但他认为正因如此，放弃中国市场只会让中国的AI模型被迫针对华为架构优化，长期反而让美国技术栈失去全球扩散的标准地位——他把这类比为美国电信行业当年因保护主义政策被挤出全球市场的教训。
+
+### 原话 / verbatim quotes
+
+[1:04] Jensen Huang: "it's like making one molecule more valuable than another molecule, making one token more valuable than another. The amount of artistry, engineering, science, invention that goes into making that token valuable."
+    译 / zh: 这就像让一个分子比另一个分子更值钱，让一个token比另一个token更值钱。要让那个token变得有价值，需要投入的艺术、工程、科学和发明量是惊人的。
+
+[36:56] Jensen Huang: "Anthropic is a unique instance and not a trend. Without Anthropic, why would there be any TPU growth at all? It's 100% Anthropic."
+    译 / zh: Anthropic是一个独特的个案，而不是一个趋势。如果没有Anthropic，TPU凭什么会有任何增长？百分之百是Anthropic撑起来的。
+
+[39:02] Jensen Huang: "a VC would never put in $5, $10 billion of investment into an AI lab with the hopes of it turning out to be anthropic."
+    译 / zh: 一个VC永远不会抱着「希望它成为Anthropic」的念头，往一家AI实验室里投50亿、100亿美元。
+
+[47:19] Jensen Huang: "We don't pick winners. And we need to support everyone."
+    译 / zh: 我们不挑赢家。我们需要支持所有人。
+
+[54:29] Jensen Huang: "I prefer to be, to be, um, uh, dependable, uh, to be the foundation of the industry."
+    译 / zh: 我更愿意做一个可靠的、成为这个产业基石的角色。
+
+[1:30:48] Jensen Huang: "We shouldn't concede it. If we lose it, we lose it. But why do we concede it?"
+    译 / zh: 我们不应该主动放弃它。如果我们输掉了，那就是输了。但为什么要主动让出去？
+
+[1:32:52] Jensen Huang: "AI is about the stack above as much as it is about the architecture below."
+    译 / zh: AI既取决于底层架构，也同样取决于上层的技术栈。
+
+### 数字 / figures
+
+- Blackwell相对Hopper能效提升: 50倍 [22:21]
+- NVIDIA在最新财报中的采购承诺: 近1000亿美元 [4:08]
+- 据semi-analysis报告的采购承诺规模: 2500亿美元 [4:08]
+- NVIDIA毛利率: 约70% [29:49]
+- ASIC（如Broadcom）毛利率: 约65% [38:02]
+- NVIDIA对OpenAI的投资额: 最高300亿美元 [41:14]
+- NVIDIA对Anthropic的投资额: 100亿美元 [41:14]
+- Hopper到Blackwell制程层面的晶体管提升: 约75% [31:51]
+
+### 术语 / glossary
+
+- CoWoS (CoWoS先进封装): 台积电的芯片堆叠封装技术，用于把逻辑芯片和HBM内存集成
+- MoE (混合专家模型): 一种只激活部分参数的模型架构，可大幅降低推理算力需求
+- EUV (极紫外光刻机): 制造最先进制程芯片必需的光刻设备，对华出口受限
+- Pareto frontier (帕累托前沿): 这里指推理市场中响应速度与吞吐量之间可权衡的最优曲线
+
+谁该听 / who: 关注NVIDIA估值逻辑、算力供应链瓶颈的投资人和从业者，以及想看懂中美AI芯片出口管制真实分歧的人
+可跳过 / skip: 1:50:23前后的赞助商广告片段可以跳过
+标签 / tags: NVIDIA, CUDA, 算力供应链, 中美芯片管制, AI投资, GPU护城河
+
+==============================================================================
+
 ## Agent 的瓶颈不是智能，是它学不会成为专家
 
 - URL: https://ourword.ai/podcast/p/2026-05-01-zhangxiaojun-agent-的瓶颈不是智能-是它学不会成为专家/
@@ -129940,6 +130086,81 @@
 谁该听 / who: 想了解苹果如何用一体成型铝工艺重塑产品线、并把Pro特性下放到入门款来打中间市场的硬件创业者、产品经理和工程师。
 可跳过 / skip: 31:00-32:30和41:00-42:30两段各型号详细配置报价重复度高，只看价格和配置差异即可。
 标签 / tags: 硬件设计, 一体成型工艺, 产品定价策略, 显卡性能, 环保供应链, 苹果发布会
+
+==============================================================================
+
+## 乔布斯说日本家电巨头做不好软件，这就是iPod和iPhone能赢的原因
+
+- URL: https://ourword.ai/podcast/p/2007-05-30-ch-video-insider-乔布斯说日本家电巨头做不好软件-这就是ipod和iphone能赢的原因/
+- 节目 / show: Video Insider (https://ourword.ai/podcast/s/ch-video-insider/)
+- 原集标题 / original episode: D5 2007: Steve Jobs interviewed by Walt Mossberg
+- 发布 / published: 2007-05-30 · 时长 / duration: 53:11
+- 文稿来源 / transcript: 音频转写 · 8757 words · timestamps are exact
+- 校验 / verification: 7 quotes matched verbatim, 4 numbers traced to the transcript, review score 8/10
+
+**乔布斯认为苹果真正的护城河不是硬件，而是软件能力差距——日本消费电子巨头和手机厂商始终造不出像样的软件，这才是iPod和iPhone能赢的根本原因。**
+
+为什么听 / why: iPhone发布前夕的罕见内部视角：定价逻辑、与Cingular的信任交易、为什么Apple TV只敢叫「爱好」，讲得很细。
+
+### 核心论点 / points
+
+[1:00] (Steve Jobs) **苹果三大业务，Apple TV只敢叫「爱好」** — 乔布斯说苹果当时有两门年收入各约100亿美元的业务——Mac和音乐（iPod），即将加入第三门业务手机。而Apple TV被他刻意称为「爱好」而非生意，理由是此前从微软到所有消费电子公司都试图把内容从电脑搬到客厅电视却都失败了，这是公认的难题，苹果也还没把它做成规模化的业务。
+
+[8:08] (Steve Jobs) **Cingular在没看过iPhone的情况下签了约** — 乔布斯透露，Cingular是在从未见过iPhone实机的情况下与苹果签订合作协议的，这打破了运营商一贯的流程规则。他把这种信任类比成风险投资的逻辑：顶级VC投资的是人而不是点子，Cingular这次押注的也是苹果这家公司，而不是某个具体产品方案。
+
+[9:09] (Steve Jobs) **运营商赌iPhone,是想给3G网络投资找回本的出口** — 乔布斯分析Cingular愿意破例合作的深层原因：运营商已经为3G网络砸了大量资金，但用户却用不起来——手机上网体验太差，视频下载更是无从谈起。他们希望iPhone能真正把互联网装进手机，从而让已经建好的网络投资产生回报。
+
+[14:21] (Steve Jobs) **反驳「iTunes把用户锁死在iPod上」的说法** — 面对「DRM锁定用户只能买苹果设备」的指控，乔布斯给出一个反直觉数字：平均每台iPod里来自iTunes商店购买的歌曲不到25首，用户大部分音乐都是从别处（翻录CD等）获得的。他由此反驳锁定论在两个方向上都站不住脚——iPod能播放任何来源的MP3，iTunes音乐也能在竞争对手设备上播放。苹果能赢是因为音乐播放器和音乐商店本身做得更好，而不是靠锁定。
+
+[22:36] (Steve Jobs) **iPod和iPhone能赢，靠的是软件而非硬件壁垒** — 乔布斯提出核心论断：iPod本质上是一个「包裹在漂亮硬件里的软件产品」，日本消费电子巨头虽然硬件做得最好，却始终跨不过软件这道坎；而做手机的厂商同样精通硬件，却同样没能跨到软件这一步。他认为iPhone的软件至少领先业界五年，对手即便能很快仿制外形，也很难复制软件能力。
+
+[26:51] (Steve Jobs) **Apple TV放弃做机顶盒，改走「互联网时代DVD播放器」思路** — 乔布斯解释苹果其实想替代机顶盒想了好几年，但一旦要进入机顶盒市场，就必须应对CableCARD和OCAP这类繁琐的有线电视行业标准、接入运营商的计费系统，这不是苹果愿意做的事，所以一直没有合理的入市策略。转折点是意识到市面上DVD播放器的数量比机顶盒还多——苹果不需要替代机顶盒，只需要做「互联网时代的DVD播放器」，这就绕开了整个行业壁垒。
+
+[33:02] (Steve Jobs) **iTunes装机量是iPod的数倍，几乎全在Windows上** — 乔布斯透露iTunes的安装量已经是iPod销量（1亿台）的数倍，达到约3亿份，而这些装机几乎全部统计在Windows电脑上——意味着苹果事实上成了一个相当成功的Windows软件开发商。他用一句自嘲总结这种反差：把好软件装到Windows上，就像给地狱里的人递上一杯冰水。
+
+[34:06] (Steve Jobs) **乔布斯承认自己曾看走眼视频需求** — 乔布斯承认自己此前公开说过不认为用户会想在小屏设备上看视频，甚至在iPod支持视频之后仍然private持怀疑。但用户用行动证明他错了——视频后来成为人们购买iPod的第一或第二大理由，使用频率也很高，这促使苹果持续加大对便携视频的投入。
+
+[42:30] (Steve Jobs) **iPhone暂不对第三方App开放，是安全与开放的权衡** — 面对开发者希望为iPhone写应用的呼声，乔布斯回应这是「安全与开放之间非常重要的权衡」，苹果希望两者都要。他举例说市面上很多智能手机一天崩溃不止一次，第三方应用装得越多崩溃越频繁，苹果不想要这种结果，所以暂不开放第三方开发权限，但计划在年内找到既能开放又能保证安全的办法。
+
+### 原话 / verbatim quotes
+
+[8:08] Steve Jobs: "Mereka membuat kesepakatan dengan kami. Kami membuat kesepakatan yang sangat berbeda dari yang pernah mereka lakukan sebelumnya. Dan itu melanggar banyak aturan mereka. Mereka tidak pernah melakukan hal seperti ini. Dan mereka melakukannya dengan kami tanpa pernah melihat ponselnya."
+    译 / zh: 他们跟我们签了协议。我们达成的协议跟他们以前做过的完全不一样，打破了他们很多规矩，他们从来没这样做过。而他们是在从未见过这部手机的情况下跟我们签的约。
+
+[9:09] Steve Jobs: "Jika anda berbicara dengan pemodal Ventura hebat, mereka akan memberitahu anda bahwa mereka berinvestasi pada orang, bukan ide. Bahkan jika idenya bagus, mereka benar-benar berinvestasi pada orang. Dan saya pikir singular berinvestasi pada kami."
+    译 / zh: 如果你去问优秀的风险投资人，他们会告诉你，他们投资的是人，不是点子。就算点子再好，他们真正投资的是人。我觉得Cingular投资的就是我们。
+
+[15:23] Steve Jobs: "gagasan bahwa entah bagaimana kita memiliki kunci di ETH yang mengunci orang untuk membeli IPOT adalah konyol"
+    译 / zh: 说我们靠在iTunes上设锁，逼人们买iPod，这种说法很可笑。
+
+[22:36] Steve Jobs: "Karena perusahaan elektronik konsumen Jepang yang merupakan pembuat perangkat keras elektronik konsumen terkemuka hingga saat ini tidak dapat membuat perangkat lunak sebaik yang seharusnya."
+    译 / zh: 因为日本消费电子公司虽然是目前最顶尖的消费电子硬件制造商，却始终做不出应有水准的软件。
+
+[33:02] Steve Jobs: "Seperti memberikan segelas air es kepada seseorang di neraka."
+    译 / zh: 就像给地狱里的人递上一杯冰水。
+
+[34:06] Steve Jobs: "Mereka membuktikan kepada kami salah. Dan banyak orang... Video telah menjadi alasan nomor satu atau dua orang membeli produk itu dan mereka banyak menggunakannya."
+    译 / zh: 他们证明我们错了。很多人……视频成了人们购买这个产品的第一或第二大理由，而且他们用得很多。
+
+[42:30] Steve Jobs: "Ini adalah pertukaran yang sangat penting antara keamanan dan keterbukaan, bukan? Dan yang kami inginkan adalah kami menginginkan keduanya. Kami ingin mendapatkan kue dan memakannya juga."
+    译 / zh: 这是安全和开放之间非常重要的权衡，对吧？而我们想要的是两者都要——我们想把蛋糕吃掉，还想把蛋糕留着。
+
+### 数字 / figures
+
+- Mac市场份额增长速度: 约为整体PC市场增速的3倍 [3:06]
+- Apple TV售价: 299美元 [26:51]
+- 平均每台iPod来自iTunes商店的歌曲数: 不到25首 [14:21]
+- DRM-free歌曲升级费用: 每首0.30美元 [13:20]
+
+### 术语 / glossary
+
+- iTunes Plus (iTunes Plus): 苹果推出的无DRM、高品质音频版本的歌曲格式
+- OCAP (OCAP): 有线电视机顶盒行业要求厂商适配的专用软件标准
+- AAC (AAC编码): 苹果采用的音频编码格式，音质和体积优于MP3
+
+谁该听 / who: 关注苹果早期商业策略、想了解iPhone发布前夕谈判细节的创业者和产品经理
+可跳过 / skip: 关于MP3与AAC编码授权细节的观众提问环节偏技术，可以跳过
+标签 / tags: 苹果, iPhone, 产品策略, Apple TV, iTunes, 商业史
 
 ==============================================================================
 
