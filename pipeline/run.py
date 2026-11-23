@@ -887,7 +887,8 @@ def is_people_verdict(v) -> bool:
     凡是按 src 的 tier 判「这条判决对不对」的地方，都先用这个函数排除它。
     """
     from lib import triage as _t
-    return isinstance(v, dict) and v.get("rubric") == _t.rubric_id({"rubric": "people"})
+    return isinstance(v, dict) and (v.get("rubric") == _t.rubric_id({"rubric": "people"})
+                                    or v.get("rubric") in _t.PEOPLE_RUBRICS_PAST)
 
 
 def _verdict_is_stale(prior: dict, s: dict, rubric: str) -> bool:

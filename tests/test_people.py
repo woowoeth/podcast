@@ -600,3 +600,53 @@ class TitleOnlyTriageMustStillAnswer(unittest.TestCase):
     def test_other_sources_are_not_told_to_score_low(self):
         # 非 YouTube 源的低分会落成永久「不做」，不能劝它往低了给
         self.assertNotIn("5 分以下", self._brief("podcast"))
+
+
+class PeopleTriageSeesWholeParagraphs(unittest.TestCase):
+    """12 段 × 200 字时，人物尺子的判词反复是「字幕碎片化」——在给抽样扣分（2026-11-23）。"""
+
+    def _sample(self, src):
+        from lib import triage
+        from lib import transcript as T
+        words = " ".join(f"w{i}" for i in range(20000))
+        old = (T.cached, T.from_youtube)
+        T.cached = lambda ep: {"segments": [{"text": words}]}
+        T.from_youtube = lambda *a, **k: None
+        try:
+            return triage._caption_sample_uncached(
+                {"youtube_id": "abcdefghijk", "guid": "abcdefghijk", "title": "t"}, src)
+        finally:
+            T.cached, T.from_youtube = old
+
+    def test_people_rubric_gets_four_long_windows(self):
+        out = self._sample({"kind": "youtube", "lang": "en", "rubric": "people"})
+        parts = out.split(" …… ")
+        self.assertEqual(len(parts), 4)
+        self.assertGreaterEqual(min(len(x) for x in parts), 1900)
+
+    def test_default_rubric_is_unchanged(self):
+        out = self._sample({"kind": "youtube", "lang": "en"})
+        self.assertEqual(len(out.split(" …… ")), 12)
+        self.assertLessEqual(len(out), 2400 + 12 * 4)
+
+    def test_rubric_change_reopens_old_people_rejections(self):
+        # 尺子改了，旧尺子判掉的人物视频要重判；指纹不变就不会
+        self.assertTrue(P._stale_off_brief({"skip": "off-brief", "rubric": "6404b08f74"}))
+
+
+class OldPeopleRubricsAreStillPeople(unittest.TestCase):
+    """改了人物尺子之后，旧尺子判的人物视频仍归人物，不能被当成「优质源被错拦」。"""
+
+    def test_the_first_people_fingerprint_is_recognised(self):
+        import run as R
+        self.assertTrue(R.is_people_verdict({"skip": "off-brief", "rubric": "6404b08f74"}))
+
+    def test_every_people_fingerprint_in_the_ledger_is_recognised(self):
+        # 从产物出发：账本里 src 是 ch-* 的判决一定是人物尺子判的；它们的指纹都得认得
+        import json
+        import run as R
+        st = json.loads((P.DATA / "state.json").read_text())
+        miss = sorted({v.get("rubric") for v in st["done"].values()
+                       if isinstance(v, dict) and str(v.get("src", "")).startswith("ch-")
+                       and v.get("rubric") and not R.is_people_verdict(v)})
+        self.assertEqual(miss, [], "人物尺子改过指纹，旧指纹没登记进 PEOPLE_RUBRICS_PAST")

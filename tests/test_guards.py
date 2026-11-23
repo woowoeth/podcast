@@ -12890,9 +12890,19 @@ class DailyAndBackfillTakeTurns(unittest.TestCase):
         first_git = min(body.index(w) for w in ("git config", "git pull", "git rebase", "git fetch") if w in body)
         self.assertLess(i, first_git, "日更先动了 git 才等补存量 —— 两边同时写 data/ 会把账本写乱")
 
+    def _skip_if_a_real_daily_is_running(self):
+        # 这两条跑的是真的 wait_turn，pgrep 看的是整台机器：本机日更正在跑时它们只会干等到超时
+        # （2026-11-23 全量测试撞上 10:30 那班，两条 ERROR，和代码无关）。CI 里永远没有日更，照常验；
+        # 本机撞上就明说跳过，不装绿也不报假红。
+        import subprocess
+        if subprocess.run(["pgrep", "-f", r"^(/bin/)?bash .*scripts/local-daily\.sh( |$)"],
+                          capture_output=True).returncode == 0:
+            self.skipTest("本机日更正在跑：等它跑完再验这一条")
+
     def test_the_backfill_yields_only_to_a_real_daily_run(self):
         """命令行里提到 scripts/local-daily.sh 的别的进程（grep、监控循环）不算日更在跑。"""
         import subprocess, tempfile, time
+        self._skip_if_a_real_daily_is_running()
         sh = (ROOT / "scripts" / "backfill-source.sh").read_text()
         fn = sh[sh.index("in_quiet() {"):sh.index('    echo "----- $(date -u +%H:%M:%SZ) 批次开始')]
         fn = fn[:fn.index("total=0")] if "total=0" in fn else fn
@@ -12918,6 +12928,7 @@ class DailyAndBackfillTakeTurns(unittest.TestCase):
 
     def test_the_backfill_runs_from_a_copy_in_the_right_repo(self):
         """补存量一跑十几个钟头，中间日更会 git pull：脚本要从副本执行，工作目录还是原仓库。"""
+        self._skip_if_a_real_daily_is_running()
         import tempfile, subprocess, shutil
         with tempfile.TemporaryDirectory() as tmp:
             repo = pathlib.Path(tmp) / "repo"
@@ -13051,13 +13062,28 @@ class TheHotListIsCompleteAndItsMarksAreTrue(unittest.TestCase):
         for sid, body in items:
             self.assertEqual(sid in pinned, 'class="hot-must"' in body,
                              f"{sid}：{'是' if sid in pinned else '不是'}用户指定的必读，页面上「必读」标记不对")
+        # **「近 7 天」是按构建那一刻算的，不是按跑测试这一刻。** 原来拿 now() 重算：
+        # 站点昨晚建好、今天下午跑测试，窗口滑过一天，a16z 页面写 8 篇、这里算出 7 篇 ——
+        # 页面没有错，测试却红（2026-11-23，origin/main 上照样红，下一次构建前一直红）。
+        # 构建没留时间戳，所以认「最近几天里**有一天**能让每一项都对上」：
+        # 页面要是真写错了数，没有哪一天能让所有项同时对上，照样红。
+        def mismatch(cut):
+            bad = []
+            for sid, body in items:
+                k = sum(1 for x in eps if x.get("source_id") == sid
+                        and (x.get("published") or "")[:10] >= cut)
+                on = 'class="hot-up on"' in body
+                if (k > 0) != on:
+                    bad.append(f"{sid}：近 7 天 {k} 篇，页面上{'标了' if on else '没标'}有更新")
+                elif k and f"更新 {k} 篇" not in body:
+                    bad.append(f"{sid}：该写「近 7 天更新 {k} 篇」")
+            return bad
+        cuts = [(self.b.now() - dt.timedelta(days=self.b.NEW_DAYS + back)).date().isoformat()
+                for back in range(4)]
+        tries = [mismatch(c) for c in cuts]
+        self.assertTrue(any(not t for t in tries), tries[0][:3])
         for sid, body in items:
-            k = sum(1 for x in eps if x.get("source_id") == sid and (x.get("published") or "")[:10] >= cut)
-            on = 'class="hot-up on"' in body
-            self.assertEqual(k > 0, on, f"{sid}：近 7 天 {k} 篇，页面上{'标了' if on else '没标'}有更新")
-            if k:
-                self.assertIn(f"更新 {k} 篇", body, f"{sid}：该写「近 7 天更新 {k} 篇」")
-            else:
+            if 'class="hot-up on"' not in body:
                 self.assertRegex(body, r"\d+月\d+日", f"{sid}：没更新却没写上次更新的日期")
             self.assertIn(f"本站 {per[sid][0]} 篇", body, f"{sid}：篇数写错了")
 

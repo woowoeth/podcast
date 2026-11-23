@@ -102,7 +102,9 @@ PEOPLE_SYSTEM = """你在给一个中文深读站的「人物频道」选视频�
 - 他本人几乎没说话（主要是别人在讲他）
 
 值不值得学看内容本身，**不看他名气多大、话题多热**。
-判断以字幕原文为准；YouTube 简介多是链接，空洞不减分。7 分及以上才做深读。"""
+判断以字幕原文为准；YouTube 简介多是链接，空洞不减分。7 分及以上才做深读。
+字幕样本是从全文均匀抽出的几段，段与段之间用 …… 隔开：不连贯是抽样造成的，
+不是字幕残缺，**不要因此扣分**，按讲出来的内容判。"""
 
 SCHEMA = """输出 JSON：{"score": 0-10 的数字, "why": "不超过 40 字的中文理由",
 "kind": "一手访谈|机制拆解|新闻综述|宣传|闲聊|其他"}"""
@@ -128,6 +130,19 @@ CAPTION_SAMPLE = 2400
 # （`step = len(segs) // 20`，铺开取 20 段）—— 同样的总长度，段越多越有
 # 代表性：3 段容易整段落在某个跑题的地方，12 段不会。
 CAPTION_WINDOWS = tuple(round(0.04 + i * 0.08, 2) for i in range(12))
+
+# **人物频道取更长的样本：4 段 × 2000 字。** 人物尺子问的是「有没有讲清楚」，
+# 12 段 × 200 字只看得到句子碎片 —— 模型的判词里反复出现「字幕碎片化／截断严重」，
+# 它在给抽样扣分。2026-11-23 同一批 12 条成对重判（haiku，各一次）：
+# 原来被拦的 8 条里 3 条回到 7 分以上（皮克斯 1996 访谈 5→8，正是首轮干跑判 8 的那条），
+# 合作宣传、政治话题那 5 条仍是 5–6；已发的 4 条原样本 7/7/6/5、长样本 8/8/8/6。
+# 多出约 1500 token 的 haiku 输入，相对一篇深读可以忽略。普通尺子没有对照过，不动。
+# 人物尺子**用过的**指纹。尺子一改指纹就变，可旧尺子判的那些仍是人物判决：
+# run.is_people_verdict 只认当前指纹的话，它们会被当成「优质源被错拦」，CI 跟着红
+# （2026-11-23 改样本时全量测试当场抓到：Lex 夜市那集）。改 PEOPLE_SYSTEM 时把旧指纹加进来。
+PEOPLE_RUBRICS_PAST = ("6404b08f74",)
+PEOPLE_SAMPLE = 8000
+PEOPLE_WINDOWS = (0.05, 0.275, 0.5, 0.725)
 
 
 # 一集只取一次字幕。score() 要判 basis、_brief() 要拿样本，各调一次就等于
@@ -167,11 +182,13 @@ def _caption_sample_uncached(ep: dict, src: dict) -> str:
     if not tr or not tr.get("segments"):
         return ""
     text = squeeze(" ".join((x.get("text") or "") for x in tr["segments"]))
-    if len(text) <= CAPTION_SAMPLE:
+    total, wins = ((PEOPLE_SAMPLE, PEOPLE_WINDOWS) if src.get("rubric") == "people"
+                   else (CAPTION_SAMPLE, CAPTION_WINDOWS))
+    if len(text) <= total:
         return text
-    w = CAPTION_SAMPLE // len(CAPTION_WINDOWS)
+    w = total // len(wins)
     n = len(text)
-    return " …… ".join(text[int(n * f):int(n * f) + w] for f in CAPTION_WINDOWS)
+    return " …… ".join(text[int(n * f):int(n * f) + w] for f in wins)
 
 
 def _brief(ep: dict, src: dict) -> str:
