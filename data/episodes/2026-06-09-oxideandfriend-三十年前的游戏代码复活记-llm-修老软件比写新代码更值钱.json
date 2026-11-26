@@ -1,0 +1,158 @@
+{
+ "id": "oxideandfriend-2b585a4ee8",
+ "slug": "2026-06-09-oxideandfriend-三十年前的游戏代码复活记-llm-修老软件比写新代码更值钱",
+ "fingerprint": "6b56a7bc4cc2315d",
+ "source_id": "oxideandfriend",
+ "source": "Oxide and Friends",
+ "source_zh": "Oxide and Friends",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "展示 LLM 在遗留代码修复中的技术应用与诊断机制",
+ "tier": 3,
+ "lang": "en",
+ "title_original": "This Old Repo: LLMs and the Restoration of BattleTris",
+ "published": "2026-06-09T14:00:00Z",
+ "duration": 4707,
+ "audio": "https://media.transistor.fm/b5fcf24b/cd6bd4ad.mp3",
+ "link": "https://share.transistor.fm/s/b5fcf24b",
+ "image": "https://img.transistorcdn.com/lXkzOpkU6flZ-iQLZFSXFnuv-jspXfr4CyY1o7N42T8/rs:fill:0:0:1/w:1400/h:1400/q:60/mb:500000/aHR0cHM6Ly9pbWct/dXBsb2FkLXByb2R1/Y3Rpb24udHJhbnNp/c3Rvci5mbS9jZjU4/ZTA2NjAxM2I0MGY3/M2UzN2VhODU5OTRk/MzI5NS5wbmc.jpg",
+ "youtube_id": "",
+ "video_len": 1532,
+ "transcript_url": "https://share.transistor.fm/s/b5fcf24b/transcription.json",
+ "digest": {
+  "title": "三十年前的游戏代码复活记：LLM 修老软件比写新代码更值钱",
+  "dek": "两个老程序员用 Claude 复活了一款 1993 年写的对战版俄罗斯方块，过程中 LLM 修好了连 32 位转 64 位都没出现过的整数宽度 bug，诊断链条清晰到让人意外。",
+  "why": "没有重大行业新闻或数字，是一期轻松的个人故事+技术复盘，但其中关于 LLM 修复遗留代码、开源项目未来的几段判断值得工程师一听。",
+  "points": [
+   {
+    "t": 330,
+    "h": "一次意外的快跑暴露了被压抑多年的运动天赋",
+    "body": "Bryan 回忆 1993 年从科罗拉多返校时，为了不弄丢唯一一份 BattleTris 代码，徒手追上已经开动的机场摆渡车并追上了它。飞盘队队友目睹后震惊地问他是不是跑得很快，他才意识到自己大一到大二之间运动能力有了明显提升。这段故事解释了为什么这款游戏对他来说不只是代码，而是「生命的全部心血」的具体分量。",
+    "spk": "Bryan Cantrill"
+   },
+   {
+    "t": 1540,
+    "h": "复活老项目最难的不是技术，是看不到终点的不确定感",
+    "body": "Adam 指出修复这种陈年项目的真正痛苦在于：你能看到每一步的增量进展，却不知道自己是离完成还有十五分钟还是六天。如果提前知道要花多久，人就会直接动手；但正是这种不确定性让人迟迟不敢开始去碰旧代码。",
+    "spk": "Adam Leventhal"
+   },
+   {
+    "t": 1740,
+    "h": "LLM 修的不是荣耀问题，而是当年的隐式假设",
+    "body": "Bryan 强调横在复活旧软件和「完成」之间的，不是什么有趣的算法难题，而是几十年前写代码时做出的、现在早已不成立的隐式假设——这些问题修起来没有成就感，只是让软件恢复到它「本该已经做到」的样子。他们用 Theo Schlossnagle 讲过的 Stack Overflow 糊涂案例做类比：互联网上充满了别人复制根本不可能对自己管用的「fix」。",
+    "spk": "Bryan Cantrill"
+   },
+   {
+    "t": 2430,
+    "h": "Claude 独立找到了一个连作者自己都没想到的整数宽度 bug",
+    "body": "两人对战时游戏在栈损坏后崩溃，Bryan 手头除了「发生了核爆交换」之外什么调试数据都没有，却直接把这个模糊描述丢给 Claude。Claude 找出了一个只有在 64 位系统下运行才会触发的整数宽度 bug——而 BattleTris 从写出来到现在从未以 64 位编译过。Bryan 形容这件事「genuinely wild」。",
+    "spk": "Bryan Cantrill"
+   },
+   {
+    "t": 2870,
+    "h": "LLM 让开源的许可证分叉焦虑可能被釜底抽薪",
+    "body": "Bryan 把这次经历和 Cockroach、Terraform 等项目被「gaslight」成「社区不可能独立维护分叉版本」的案例联系起来，认为如果目标只是在旧版本里找 bug、修 bit rot，LLM 实实在在地改变了这个计算：原本担心要花一个月才能修好的隐式假设问题，现在变成了有界得多的工作量。",
+    "spk": "Bryan Cantrill"
+   },
+   {
+    "t": 3050,
+    "h": "Bun 用一次 PR 把整个代码库从 Zig 重写成 Rust",
+    "body": "两人讨论了 Bun 项目的极端案例：有人直接用 LLM 把整个代码库从 Zig 重写为 Rust 并作为一个 PR 合并，里面还带着被社区认为明显不安全（unsound）的 unsafe 代码。Bryan 调侃说这下所有其他未合并的 PR 一夜之间语言都不对了，必须去解决巨量的 merge conflict。",
+    "spk": "Bryan Cantrill"
+   },
+   {
+    "t": 3390,
+    "h": "他们那条「AI 巨头将和教皇联名发白皮书」的预言成真了",
+    "body": "Bryan 提到年初和 Adam、Simon Wilson 一起做的预测：AI 实验室会从「这东西要毁掉所有工作」转向「这东西造福全人类」的叙事，并类比烟草公司资助的医学研究，开玩笑说接下来会请奥巴马甚至教皇联名背书。结果这件事真的发生了，三人都觉得这个原本像段子的预测变成了现实。",
+    "spk": "Bryan Cantrill"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 330,
+    "spk": "Bryan Cantrill",
+    "raw": "I scream, my computer and take off after the super shuttle. And I catch up to the super shuttle after like four blocks of it driving like more or less full speed.",
+    "zh": "我大喊「我的电脑」，然后朝着那辆摆渡车追了上去。它差不多全速开了四个街区，我还是追上了它。"
+   },
+   {
+    "t": 1540,
+    "spk": "Adam Leventhal",
+    "raw": "you can see each incremental step, but you don't know, am I fifteen minutes away or am I six days away? And if you knew a priori, like, okay, this is gonna take three hours, four hours, a weekend, whatever, you just do it. But without that certainty, like, I ever gonna get it done?",
+    "zh": "你能看到每一步的增量进展，但不知道自己是离完成还有十五分钟还是六天。如果事先就知道这要花三小时、四小时还是一个周末，你就会直接去做；但没有这种确定性时，你会想，我到底能不能做完？"
+   },
+   {
+    "t": 1740,
+    "spk": "Bryan Cantrill",
+    "raw": "these are the things that are implicit assumptions that was be that were being made decades ago that are now no longer correct, that don't they don't feel like vindicating to solve because you're just getting back to what it used to do, what you feel it should already do.",
+    "zh": "这些都是几十年前做出的隐式假设，如今已经不成立了，修复它们没有成就感，因为你只是在让它恢复到本该已经做到的样子。"
+   },
+   {
+    "t": 2430,
+    "spk": "Bryan Cantrill",
+    "raw": "I found a bug that's consistent with Stack Overflow and it would have required a weapon that I didn't think you through. And then I asked you, I was like, okay, this looks like it's definitely a bug, but it would require you to have thrown a weapon where you would have been spying on me. Bryan Cantrill: And you said you had done that.",
+    "zh": "我发现了一个和栈溢出表现一致的 bug，而且这需要你扔出一种我以为你没用过的武器。然后我问你：这看起来肯定是个 bug，但它要求你扔过一个用来监视我的武器——你说你确实这么做了。"
+   },
+   {
+    "t": 3050,
+    "spk": "Bryan Cantrill",
+    "raw": "there was a PR to change the language that this thing is written in and like that's just got we land that. That's it. Like, oh, we're in a different language now.",
+    "zh": "有一个 PR 把整个项目的编写语言给改了，然后就这么合并了。就这样，哦，我们现在换了一种语言了。"
+   }
+  ],
+  "facts": [],
+  "terms": [
+   {
+    "term": "bit rot",
+    "zh": "代码腐化",
+    "def": "软件本身没变，但周围依赖的接口、环境逐渐过时导致无法运行的现象。"
+   }
+  ],
+  "who": "喜欢老软件考古、对 LLM 辅助调试遗留代码感兴趣的工程师，以及单纯想听两个老友怀旧闲聊的听众。",
+  "skip": "开场约 10 分钟关于飞盘队、Ultimate Frisbee 社交细节的怀旧闲聊可以跳过，不影响后续技术内容。",
+  "tags": [
+   "LLM辅助编程",
+   "遗留代码",
+   "开源",
+   "怀旧",
+   "Claude",
+   "调试"
+  ],
+  "quality": {
+   "transcript_source": "feed",
+   "transcript_detail": "application/json",
+   "words": 14731,
+   "wpm": 187.8,
+   "timed": true,
+   "verified_quotes": 5,
+   "grounded_facts": 0,
+   "points": 7,
+   "pruned": 1,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-11-26T03:08:54Z",
+ "triage": {
+  "score": 7.0,
+  "why": "用LLM恢复20年老项目的一手经历，项目、时间、工具明确，涉及工程实践细节。",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 7.0,
+  "dims": {
+   "density": 8,
+   "faithful": 7,
+   "selection": 6,
+   "concrete": 8,
+   "chinese": 8
+  },
+  "verdict": "拦下",
+  "why": "金句[40:30]翻译含混误导；[47:50]漏掉LLM对开源implicit vendor化的风险，仅强调正面，失衡。",
+  "worst": "金句[40:30]的「用来监视我的武器」——这是逐字稿本身的transcription问题导致的confusing，但成稿直译而未澄清游戏context，导致readers无法理解这个crucial moment。建议查证原意后重新表述，或",
+  "model": "haiku",
+  "evidence": "full",
+  "rubric": "33dcd8b985"
+ },
+ "model": "claude-cli:sonnet"
+}
