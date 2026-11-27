@@ -609,7 +609,9 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
     _soft_so_far = (state["fail"].get(key) or {}).get("soft", 0)
     tr = T.acquire(ep, s.get("lang", "en"), src=s, allow=_tiers["allow"],
                    asr_after_throttle=_soft_so_far >= YT_THROTTLE_PATIENCE
-                   or bool(_pin["slug"]))
+                   or bool(_pin["slug"])
+                   # 人物补跑走音频：选题已经按转写样本过了，这里直接转全文，不等字幕
+                   or bool(ep.get("_asr_ok")))
     if tr and tr.get("lang") in ("en", "zh") and tr["lang"] != (s.get("lang") or "en"):
         # **这一集的语言跟着文稿走，不跟源。** 英文节目的中文版（ChinaTalk 11-04）：
         # 深读要按中文节目写（金句抄中文原文），集记录的 lang 也要是 zh ——

@@ -164,6 +164,14 @@ def _caption_sample(ep: dict, src: dict) -> str:
     return _caption_sample_uncached(ep, src)
 
 
+def prime_sample(ep: dict, text: str) -> None:
+    """调用方已经拿到选题样本（人物补跑只转写那 4 段，见 transcript.asr_sample）：直接用它。"""
+    vid0 = ep.get("youtube_id") or (ep.get("guid") or "").split(":")[-1]
+    if vid0 and text:
+        with _SAMPLE_LOCK:
+            _SAMPLE_CACHE[vid0] = text
+
+
 def _caption_sample_uncached(ep: dict, src: dict) -> str:
     if (src.get("kind") or "") != "youtube":
         return ""

@@ -335,11 +335,24 @@ def run_next(n: int, dry: bool) -> int:
               "_src": s, "_key": R.eid(s["id"], v["yt"])}
         log(f"  [{p['zh']}] {v.get('d')} · {s['name']} · {title[:60]}")
         if audio and not dry and not T.cached(ep):
+            # **先只转写选题要看的 4 段，过了再转全文。** 选题拦下约 5/6；原来每条先整段转写，
+            # 一条 15–20 分钟，八成花在最后不要的视频上（2026-11-27）。样本拿不到就照旧整段转。
+            ep["_asr_ok"] = True
+            from lib import triage
             try:
-                T.acquire(ep, s.get("lang") or "en", src=s, allow=("asr",),
-                          asr_after_throttle=True)
+                smp = T.asr_sample(ep, s.get("lang") or "en", triage.PEOPLE_WINDOWS)
             except Exception as ex:
-                log(f"    音频转写失败：{type(ex).__name__}")
+                smp = ""
+                log(f"    样本转写失败：{type(ex).__name__}")
+            if smp:
+                triage.prime_sample(ep, smp)
+                log(f"    选题样本：只转写了 4 段（{len(smp)} 字），过了再转全文")
+            else:
+                try:
+                    T.acquire(ep, s.get("lang") or "en", src=s, allow=("asr",),
+                              asr_after_throttle=True)
+                except Exception as ex:
+                    log(f"    音频转写失败：{type(ex).__name__}")
             # 拿不到也照常往下走：R.process 会按限流记软失败（字幕已停），连着三条就整轮停
         r = R.process(ep, state, dry=dry)
         log(f"    结果：{r}")

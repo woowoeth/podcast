@@ -797,6 +797,52 @@ def _local_asr(path: pathlib.Path, lang: str) -> list[dict] | None:
     return segs
 
 
+SAMPLE_MIN_CHARS = 400        # 150 秒正常讲话约 2000 字；不到 400 字多半是静音、音乐或掌声
+
+
+def asr_sample(ep: dict, lang: str, fracs: tuple, clip_sec: int = 150, per_clip: int = 2000) -> str:
+    """只转写选题要看的那几段：下音频，在 fracs 各处截 clip_sec 秒，本机转写，拼成样本。
+
+    为什么：人物补跑原来每条都先整段转写再选题，而选题拦下约 5/6——2026-11-27 实测一条
+    15–20 分钟，八成时间花在转写最后不要的视频上。选题本来就只看全文里均匀抽的 4 段，
+    这里直接只转那 4 段（约 10 分钟音频，一分钟内转完）；通过了再转全文。
+    拿不到（没时长、下载失败、转写失败）返回 ""，调用方退回整段转写。
+    """
+    import tempfile
+    vid = ep.get("youtube_id") or ""
+    dur = int(ep.get("duration") or 0)
+    ff = _ffmpeg()
+    if not vid or dur < MIN_EPISODE_SEC or not ff or not local_available():
+        return ""
+    with tempfile.TemporaryDirectory() as td:
+        audio = _yt_audio(vid, td, want_dur=dur)
+        if not audio:
+            return ""
+        parts = []
+        for i, f in enumerate(fracs):
+            # 落在静音上就往后挪：直播转载前面常有很长的空白暖场，Whisper 对着静音会编出
+            # 「Thank you. Thank you.」（11-27 实测 News Central 那条第 600 秒起 -91 dB，150 秒只出 55 字）。
+            text = ""
+            for k in range(3):
+                start = max(0, min(int(dur * f) + k * clip_sec, dur - clip_sec))
+                clip = pathlib.Path(td) / f"clip{i}-{k}.wav"
+                r = subprocess.run([ff, "-nostdin", "-loglevel", "error", "-ss", str(start), "-t", str(clip_sec),
+                                    "-i", str(audio), "-ac", "1", "-ar", "16000", "-y", str(clip)],
+                                   capture_output=True, text=True, timeout=120)
+                if r.returncode != 0 or not clip.exists():
+                    return ""
+                segs = _local_asr(clip, lang)
+                if segs is None:
+                    return ""
+                text = squeeze(" ".join(x["text"] for x in segs))
+                if len(text) >= SAMPLE_MIN_CHARS:
+                    break
+            if len(text) >= SAMPLE_MIN_CHARS:
+                parts.append(text[:per_clip])
+    # 一半以上的段都是空的：这不是一条能凭样本判的视频，退回整段转写
+    return " …… ".join(parts) if len(parts) * 2 > len(fracs) else ""
+
+
 # ---------------------------------------------------------------- tier 5: ASR
 
 def _ffmpeg() -> str | None:

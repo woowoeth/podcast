@@ -807,3 +807,89 @@ class SameTalkFromAnotherUploaderIsNotWrittenTwice(unittest.TestCase):
     def test_the_threshold_sits_in_the_measured_gap(self):
         # 实测：重复的 ≥0.47，不同的场 ≤0.07
         self.assertTrue(0.07 < P.TWIN_OVERLAP < 0.47)
+
+
+class TriageOnlyTranscribesTheSampleFirst(unittest.TestCase):
+    """2026-11-27：每条先整段转写再选题，一条 15–20 分钟，而选题拦下约 5/6。
+    改成只转写选题要看的 4 段（实测 4 条：样本分和全文分一模一样），过了再转全文。"""
+
+    def _sample(self, texts_by_start, dur=3000):
+        import pathlib, types, unittest.mock as mock
+        from lib import transcript as T
+        starts = []
+
+        def run(cmd, **kw):
+            starts.append(int(cmd[cmd.index("-ss") + 1]))
+            pathlib.Path(cmd[-1]).write_bytes(b"x")
+            return types.SimpleNamespace(returncode=0, stdout="", stderr="")
+
+        def asr(path, lang):
+            return [{"t": 0, "text": texts_by_start(starts[-1])}]
+        with mock.patch.object(T, "_yt_audio", lambda vid, td, want_dur=0: pathlib.Path(td) / "yt.m4a"), \
+                mock.patch.object(T, "_ffmpeg", lambda: "/usr/bin/ffmpeg"), \
+                mock.patch.object(T, "local_available", lambda: True), \
+                mock.patch.object(T.subprocess, "run", run), \
+                mock.patch.object(T, "_local_asr", asr):
+            out = T.asr_sample({"youtube_id": "AAAAAAAAAAA", "duration": dur}, "en", (0.05, 0.275, 0.5, 0.725))
+        return out, starts
+
+    def test_four_windows_at_the_same_places_the_triage_samples(self):
+        out, starts = self._sample(lambda s: f"talk{s} " * 300)
+        self.assertEqual(starts, [150, 825, 1500, 2175])
+        self.assertEqual(out.count(" …… "), 3)
+        self.assertTrue(all(len(p) <= 2000 for p in out.split(" …… ")))
+
+    def test_a_window_on_silence_moves_later(self):
+        # 直播转载的暖场：Whisper 对着静音只会编「Thank you.」
+        out, starts = self._sample(lambda s: "Thank you. " if s < 300 else f"talk{s} " * 300)
+        self.assertEqual(starts[:3], [150, 300, 825], "落在静音上没有往后挪")
+        self.assertNotIn("Thank you", out)
+
+    def test_mostly_silent_means_no_sample(self):
+        out, _ = self._sample(lambda s: "Thank you. " if s < 1400 else f"talk{s} " * 300)
+        self.assertEqual(out, "", "一半以上没话还拿去判，样本就是垃圾")
+
+    def test_no_duration_no_sample(self):
+        out, starts = self._sample(lambda s: "x " * 999, dur=0)
+        self.assertEqual((out, starts), ("", []))
+
+    def _people_round(self, sample):
+        import os, unittest.mock as mock
+        import run as R
+        import addvideo as A
+        from lib import transcript as T, triage, llm
+        calls = []
+        os.environ["PEOPLE_AUDIO_FIRST"] = "1"
+        try:
+            with mock.patch.object(llm, "available", lambda: True), \
+                    mock.patch.object(R, "acquire_run_lock", lambda *a, **k: True), \
+                    mock.patch.object(R, "process", lambda ep, *a, **k: calls.append(("process", ep.get("_asr_ok"))) or "off-brief"), \
+                    mock.patch.object(R, "save_state", lambda *a, **k: None), \
+                    mock.patch.object(R, "load_state", lambda *a, **k: {"done": {}, "fail": {}, "fp": {}}), \
+                    mock.patch.object(P, "record_run", lambda *a, **k: None), \
+                    mock.patch.object(A, "meta", lambda *a, **k: {"title": "t"}), \
+                    mock.patch.object(P, "lead_meta", lambda *a, **k: {"title": "t", "duration": 3600}), \
+                    mock.patch.object(T, "cached", lambda ep: None), \
+                    mock.patch.object(T, "asr_sample", lambda *a, **k: sample), \
+                    mock.patch.object(T, "acquire", lambda *a, **k: calls.append("full")), \
+                    mock.patch.object(triage, "prime_sample", lambda ep, s: calls.append(("primed", len(s)))):
+                P.run_next(1, dry=False)
+        finally:
+            os.environ.pop("PEOPLE_AUDIO_FIRST", None)
+            T._YT_COOL["until"] = 0
+        return calls
+
+    def test_with_a_sample_no_full_transcription_before_triage(self):
+        calls = self._people_round("x" * 5000)
+        self.assertEqual(calls[:2], [("primed", 5000), ("process", True)])
+        self.assertNotIn("full", calls, "样本有了还先整段转写")
+
+    def test_without_a_sample_it_falls_back_to_the_full_transcript(self):
+        calls = self._people_round("")
+        self.assertEqual(calls[:2], ["full", ("process", True)])
+
+    def test_after_triage_passes_the_full_transcript_is_not_deferred(self):
+        """选题过了、字幕还在冷却：run.process 取全文时不能「留给下一轮」。"""
+        src = (ROOT / "pipeline" / "run.py").read_text()
+        i = src.index("tr = T.acquire(ep, s.get(\"lang\", \"en\")")
+        self.assertIn('ep.get("_asr_ok")', src[i:i + 500])
