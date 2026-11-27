@@ -1,0 +1,202 @@
+{
+ "id": "pragmatic-e41ae3b208",
+ "slug": "2026-11-25-pragmatic-anthropic五个月将核心api从python重写成rust-没人逐行审查代",
+ "fingerprint": "3e8d09d0fa25b2ae",
+ "source_id": "pragmatic",
+ "source": "The Pragmatic Engineer",
+ "source_zh": "The Pragmatic Engineer",
+ "cat": "ai",
+ "cat_by": "episode",
+ "cat_why": "Agent架构优化、CPU算力管理与技术验证方案",
+ "tier": 2,
+ "lang": "en",
+ "title_original": "How Anthropic builds software in 2026 with Katelyn Lesse",
+ "published": "2026-11-25T17:31:32Z",
+ "duration": 6585,
+ "audio": "https://api.substack.com/feed/podcast/226291266/eac6e7c7161fd068378012a45f4a2418.mp3",
+ "link": "https://newsletter.pragmaticengineer.com/p/how-anthropic-builds-software-in",
+ "image": "https://substackcdn.com/feed/podcast/458709/post/226291266/889feaf48fc083cc463abc875dde8b19.jpg",
+ "youtube_id": "9oNvKMd7xJo",
+ "video_len": 6645,
+ "transcript_url": "https://api.substack.com/feed/podcast/transcript/226291266/20b9b88812e1a3e1c65c316f99c13d84.vtt",
+ "digest": {
+  "title": "Anthropic五个月将核心API从Python重写成Rust，没人逐行审查代码",
+  "dek": "验证靠的不是读代码，而是让新旧系统跑影子流量比对输出；同一套思路后来被用在把CPU占用砍到三分之一的Agent架构重建上。",
+  "why": "一线工程管理者坦率讲了AI真正改变了什么：不是写代码变快，而是验证、审核和问责的方式被整体重构。",
+  "points": [
+   {
+    "t": 607,
+    "h": "CPU不再是能随便加购的资源",
+    "body": "Anthropic最早的API是研究团队为了方便和模型、研究代码互通而选的Python单体服务，只跑在单个GCP区域。随着请求量暴涨——尤其是今年投放超级碗广告后出现的流量尖峰——这套单体服务开始撑不住CPU需求。Caitlyn说这是她职业生涯里第一次感到「哪怕愿意付钱，云厂商也给不出你想要的CPU量」，这倒逼团队放弃靠加机器横向扩容的老办法，开始考虑用更底层的语言重写整个API层。",
+    "spk": "Caitlyn"
+   },
+   {
+    "t": 1333,
+    "h": "验证靠影子流量比对，不靠人读代码",
+    "body": "因为数据隐私，团队看不到用户的原始请求内容，无法直接debug Python和Rust两套系统的输出差异。他们的办法是搭一个极薄的Python前门，把请求同时shadow到Rust系统，先确保进入推理前的处理结果一致，再在返回时核对token计数，日复一日把两套系统的差异率压到接近于零，最后才拆掉前门。Caitlyn说团队估计约80%由agent提交的PR，没有被人逐行深读过。",
+    "spk": "Caitlyn"
+   },
+   {
+    "t": 2687,
+    "h": "第一版Managed Agents能用，团队却选择推倒重来",
+    "body": "第一版直接在sandbox里启动Cloud Code，撞上四个问题：sandbox挂了agent就死、启动延迟高、模型凭证和agent被塞进同一个sandbox不安全、每个会话都要占满CPU。团队没有逐个打补丁，而是从第一性原理重新设计：harness跑在持久服务器上，只在需要执行时才临时拉起sandbox，凭证放进独立vault、在请求出口才注入。结果新架构CPU占用降到原来的约三分之一，Caitlyn承认当时「决定推倒重来确实是个重大决定」，但因为实现成本大幅降低，这种选择比过去容易接受得多。",
+    "spk": "Caitlyn"
+   },
+   {
+    "t": 3554,
+    "h": "机械式改动可以绕过人类审核直接上线",
+    "body": "像SDK版本号升级这类高度重复、结果可预测的变更，Anthropic训练了一个分类agent先判断这是不是「机械式变更」：如果是，就由另一个Claude审查后直接合并部署，不需要人去看；只有被判定有风险的变更才会升级给人类。团队的明确目标是持续扩大这个可以无人值守通过的变更范围，而不是停在现有比例上。",
+    "spk": "Caitlyn"
+   },
+   {
+    "t": 3988,
+    "h": "报警先交给Claude过滤噪音",
+    "body": "API的on-call轮值让Claude先接收所有报警，第一步只做一件事：判断这是噪音还是真实问题。如果是噪音就不打扰人；如果是真实问题，Claude一边把报警升级给值班工程师，一边自己开始诊断，等工程师真正打开电脑时，往往已经有了诊断结果和修复建议。Caitlyn强调目前还没做到让Claude独立处理真实故障，但光是「判断是不是噪音」这一层，就已经省下了大量人力和被叫醒的次数。",
+    "spk": "Caitlyn"
+   },
+   {
+    "t": 4173,
+    "h": "产品经理也能把代码推上生产环境",
+    "body": "developer console里的prompt caching诊断功能，整个实现是一个产品经理和Claude在Slack里来回对话做出来的，工程师只负责审查代码质量。Caitlyn说「谁可以直接推生产」这条线正在不断后移，但系统最终出问题时，被叫起来负责的仍然是拥有该系统的工程团队，而不是写代码的产品经理——问责主体没变，变的只是谁能动手写代码的门槛。",
+    "spk": "Caitlyn"
+   },
+   {
+    "t": 5036,
+    "h": "算法编程面试被淘汰，但替代方案还没定型",
+    "body": "Anthropic发现候选人经常在传统coding interview里考砸，却能在系统设计、项目经历等其他面试环节表现很好——原因很简单，他们已经很久不手写代码了。公司没有直接删掉这道面试，而是在试验一批「以agent为中心」的新题型：审查agent写的代码、评估agent做的系统设计、用coding agent完成一个具体任务，试图找到真正能测出「会不会用工具把事情做成」的方法。",
+    "spk": "Caitlyn"
+   },
+   {
+    "t": 5593,
+    "h": "身份焦虑的解法是把野心调高，而不是躺平",
+    "body": "Caitlyn认为工程师的身份危机，根源是过去的自我认同建立在「手敲代码」上。她的建议是：要让大规模多agent系统去解决治病、新药审批这类真正宏大的问题，前提是先有人把security、auth、infra这些底层工程问题解决好，否则一大群agent解决不了好问题，只会先一起捅出大篓子。她同时提醒，哪怕只有Claude Max套餐、没有frontier lab级别预算的工程师，也应该持续把自己负责的系统的野心调高，而不是因为「agent迟早能做」就停下来。",
+    "spk": "Caitlyn"
+   }
+  ],
+  "quotes": [
+   {
+    "t": 848,
+    "spk": "Caitlyn",
+    "raw": "earlier this year, we had some engineers who started to say, like, we got to do something more drastic if we're going to continue to see this growth in request volume. And it really was one engineer in particular who was like, I think we got to try Rust.",
+    "zh": "今年早些时候，有工程师开始说，如果请求量还要这样持续增长，我们得做点更激进的事。真的是有一位工程师直接说：我觉得我们得试试Rust。"
+   },
+   {
+    "t": 1638,
+    "spk": "Caitlyn",
+    "raw": "If you were to ask the team, they would probably say something like 80% of the pull requests that got opened by agents, they didn't like Deeply read through all of the code that had gotten written. And then I would say like 20 % probably is where you were running into issues.",
+    "zh": "如果你去问团队，他们大概会说，agent打开的那些pull request里，大概80%他们并没有深入读过所有写出来的代码。剩下大概20%，才是真正需要去深挖细节、解决问题的地方。"
+   },
+   {
+    "t": 2937,
+    "spk": "Caitlyn",
+    "raw": "we found ourselves running on average around a third of the CPU for this system as the original system. And so we threw the whole thing out and we rebuilt it.",
+    "zh": "我们发现新系统平均只用了原来系统大约三分之一的CPU。于是我们把整个东西推倒重来了。"
+   },
+   {
+    "t": 3554,
+    "spk": "Caitlyn",
+    "raw": "Claude will go and open the pull request. Then we've got a Claude that reviews it first and decides, like, is this actually fitting into one of these, like, mechanical changes we know how to do? Or is it a riskier change?",
+    "zh": "Claude会去打开pull request，然后我们有另一个Claude先去审查它，判断这是不是属于我们已经摸清楚的那种机械式变更，还是一个风险更高的变更。"
+   },
+   {
+    "t": 3988,
+    "spk": "Caitlyn",
+    "raw": "the goal is to get to a point where when a page comes in and we're just starting to do this, when a page comes in, it goes to that cloud first. And that cloud can decide, is this noise or is this real? And that's just the first gate.",
+    "zh": "我们的目标是——我们才刚开始做这件事——当一个报警进来时，先交给那个Claude处理，由它判断这是噪音还是真实问题。这只是第一道关卡。"
+   },
+   {
+    "t": 5036,
+    "spk": "Caitlyn",
+    "raw": "someone might not pass that coding interview, but they would like crush all the rest of the interviews. And it's because they're not writing code by hand all the time anymore, right?",
+    "zh": "有人可能过不了那种编程面试，但在其余所有面试环节都表现得非常出色。原因就是他们已经不再总是手写代码了。"
+   },
+   {
+    "t": 5593,
+    "spk": "Caitlyn",
+    "raw": "this is for the engineers feeling an identity crisis because they think their knowledge and skills won't be important, even though your skills can be the difference in whether or not these complex problems will be tackled.",
+    "zh": "这是写给那些感到身份危机的工程师的——他们觉得自己的知识和技能不再重要，但其实你的技能恰恰可能决定这些复杂问题最终能不能被解决。"
+   }
+  ],
+  "facts": [
+   {
+    "k": "Rust重写耗时",
+    "v": "五到六个月",
+    "t": 2438
+   },
+   {
+    "k": "重建后Managed Agents架构CPU占用",
+    "v": "约为原来架构的三分之一",
+    "t": 2937
+   },
+   {
+    "k": "Caitlyn加入时API团队规模",
+    "v": "约30名工程师",
+    "t": 3060
+   }
+  ],
+  "terms": [
+   {
+    "term": "shadow traffic",
+    "zh": "影子流量",
+    "def": "把同一请求同时发给新旧两套系统，只比对输出而不切换真实流量"
+   },
+   {
+    "term": "borrow checker",
+    "zh": "借用检查器",
+    "def": "Rust编译器在编译期强制检查内存安全的机制"
+   },
+   {
+    "term": "MCP",
+    "zh": "模型上下文协议",
+    "def": "让AI agent连接外部工具和数据源的通用协议"
+   }
+  ],
+  "who": "平台/基础设施工程师、工程管理者，以及想了解大模型实验室内部真实协作方式的人",
+  "skip": "开头到约7分钟关于个人职业经历（Betterment、Stripe）的部分可以跳过",
+  "tags": [
+   "Rust重写",
+   "智能体架构",
+   "代码审查",
+   "技术招聘",
+   "绩效考核",
+   "工程文化"
+  ],
+  "quality": {
+   "transcript_source": "feed",
+   "transcript_detail": "text/vtt",
+   "words": 23020,
+   "wpm": 209.7,
+   "timed": true,
+   "verified_quotes": 7,
+   "grounded_facts": 3,
+   "points": 8,
+   "pruned": 0,
+   "approx_timestamps": false
+  }
+ },
+ "generated": "2026-11-27T02:47:31Z",
+ "triage": {
+  "score": 7.0,
+  "why": "Anthropic 工程负责人讲述 API 重写、基础设施决策与工程实践，涉及 CPU 瓶颈、验证方法。",
+  "kind": "一手访谈",
+  "basis": "notes",
+  "rubric": "3960d9cba5"
+ },
+ "review": {
+  "score": 9.0,
+  "dims": {
+   "density": 9,
+   "faithful": 10,
+   "selection": 9,
+   "concrete": 9,
+   "chinese": 9
+  },
+  "verdict": "上站",
+  "why": "每条要点都是判断或机制或数字，没有转述。影子流量、80%PR无人深读、推倒重来反而更快等多处洞察让人意外。信息选择和具体程度都在位。",
+  "worst": "",
+  "model": "haiku",
+  "evidence": "full",
+  "rubric": "33dcd8b985"
+ },
+ "model": "claude-cli:sonnet"
+}

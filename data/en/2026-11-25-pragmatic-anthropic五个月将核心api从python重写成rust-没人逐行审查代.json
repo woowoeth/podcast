@@ -1,0 +1,111 @@
+{
+ "slug": "2026-11-25-pragmatic-anthropic五个月将核心api从python重写成rust-没人逐行审查代",
+ "of": "pragmatic-e41ae3b208",
+ "source_lang": "en",
+ "title": "Anthropic rewrote its core API from Python to Rust in five months; almost no code was reviewed line-by-line",
+ "dek": "Validation relied not on reading code but on running shadow traffic between old and new systems to compare outputs; this same approach later rebuilt the agent architecture that cut CPU consumption to one-third.",
+ "why": "A front-line engineering manager speaks frankly about what AI actually changed: not that code writing got faster, but that the entire approach to validation, review, and accountability was rebuilt.",
+ "who": "Platform and infrastructure engineers, engineering managers, and anyone wanting to understand how AI labs actually collaborate internally.",
+ "skip": "The opening through about seven minutes on personal career history (Betterment, Stripe) can be skipped.",
+ "tags": [
+  "Rust rewrites",
+  "Agent architecture",
+  "Code review",
+  "Technical hiring",
+  "Accountability",
+  "Engineering culture"
+ ],
+ "points": [
+  {
+   "h": "CPU became a resource no cloud vendor could sell you in unlimited quantity",
+   "body": "Anthropic's earliest API was a Python monolith—built by researchers to work conveniently with model and research code—running in a single GCP region. As request volume exploded, especially after this year's Super Bowl ad campaign, the monolith couldn't handle CPU demand. For the first time in her career, Caitlyn faced a situation where even unlimited spending couldn't buy enough CPU from cloud providers. This forced the team to abandon horizontal scaling and consider rewriting the entire API layer in a lower-level language."
+  },
+  {
+   "h": "Shadow traffic, not code review, validated the rewrite",
+   "body": "Because of data privacy, the team couldn't see raw user requests, making it impossible to directly debug differences between Python and Rust outputs. Their approach: a thin Python façade that shadowed requests to the Rust system, first ensuring pre-inference processing matched, then verifying token counts on return. Day after day they narrowed the gap between systems to nearly zero before removing the façade. Caitlyn noted that roughly 80% of PRs submitted by agents never received line-by-line human review."
+  },
+  {
+   "h": "Complete rewrites pay off in CPU savings when patching multiplies the cost",
+   "body": "The first version launched Cloud Code directly in the sandbox, hitting four problems: sandbox failure killed the agent, startup latency was high, mixing credentials and agent in the same sandbox was unsafe, and each session maxed out CPU. Rather than patching each issue, the team redesigned from first principles: a harness runs on persistent servers, spinning up sandbox only when execution is needed; credentials go in a separate vault, injected only at request exit. The new architecture reduced CPU consumption to roughly one-third of the original. Caitlyn admits ‘deciding to rebuild was definitely a major decision,’ but with implementation costs dropping sharply, it became easier to justify than patching."
+  },
+  {
+   "h": "Claude now approves routine code changes; humans only see the risky ones",
+   "body": "For highly repetitive, predictable changes like SDK version bumps, Anthropic trained a classifier agent to identify what counts as ‘mechanical.’ If it qualifies, another Claude instance reviews it and merges and deploys directly—no human involvement needed. Only changes flagged as risky escalate to humans. The team's explicit goal is to continuously expand the range of changes that pass through unsupervised, rather than settle at the current level."
+  },
+  {
+   "h": "Claude screens every alert for noise before escalating to engineers",
+   "body": "For API on-call rotation, Claude receives all alerts first and handles one task only: distinguishing signal from noise. If it's noise, no human gets disturbed. If it's a real problem, Claude escalates to the on-call engineer while simultaneously starting diagnosis; by the time the engineer opens their laptop, they typically have a diagnosis and repair suggestions. The team hasn't yet reached the point where Claude handles real failures independently, but just the ‘is this noise’ filter saves enormous people-time and wake-up calls."
+  },
+  {
+   "h": "Product managers now deploy code; accountability didn't follow capability",
+   "body": "The prompt-caching diagnostic feature in the developer console was built entirely through PM-and-Claude dialog in Slack; engineers only reviewed code quality. The line of ‘who can directly deploy’ keeps shifting backward, but when the system breaks, the engineering team that owns it still gets called—not the PM who wrote the code. Accountability didn't move; only the barrier to writing code did."
+  },
+  {
+   "h": "Algorithm interviews stopped working; agent-centric formats are still unproven",
+   "body": "Anthropic found candidates often bombing traditional coding interviews while excelling at system design and project retrospectives—the simple reason being they haven't hand-written code in years. The company didn't just delete the interview; instead it's experimenting with agent-centric formats: reviewing agent-written code, evaluating agent system design decisions, running candidates through coding-agent tasks. The goal is finding what actually tests ‘can you use tools to ship things.’"
+  },
+  {
+   "h": "The cure for coding anxiety is bigger problems, not smaller ones",
+   "body": "Caitlyn traces engineers' identity crisis to their self-concept being built on ‘hand-coding.’ Her answer: scale to multi-agent systems solving real grand challenges—disease, drug approval—but first someone has to solve security, auth, infrastructure at the foundation. Otherwise you just get a fleet of agents shipping larger disasters. Even engineers working with just Claude Max, without frontier-lab budgets, should keep raising their system's ambition rather than stepping back because ‘agents will do it anyway.’"
+  }
+ ],
+ "terms": [
+  {
+   "term": "shadow traffic",
+   "def": "Running the same request against old and new systems in parallel, comparing outputs to validate without affecting production."
+  },
+  {
+   "term": "borrow checker",
+   "def": "Rust's compile-time mechanism for enforcing memory safety through ownership analysis."
+  },
+  {
+   "term": "MCP",
+   "def": "A standard protocol enabling AI agents to access external tools and data sources."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Time to rewrite core API in Rust",
+   "v": "Five to six months"
+  },
+  {
+   "k": "CPU consumption after Managed Agents rebuild",
+   "v": "Approximately one-third of the original"
+  },
+  {
+   "k": "API team size when Caitlyn joined",
+   "v": "Approximately 30 engineers"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "earlier this year, we had some engineers who started to say, like, we got to do something more drastic if we're going to continue to see this growth in request volume. And it really was one engineer in particular who was like, I think we got to try Rust.",
+   "translated": false
+  },
+  {
+   "text": "If you were to ask the team, they would probably say something like 80% of the pull requests that got opened by agents, they didn't like Deeply read through all of the code that had gotten written. And then I would say like 20 % probably is where you were running into issues.",
+   "translated": false
+  },
+  {
+   "text": "we found ourselves running on average around a third of the CPU for this system as the original system. And so we threw the whole thing out and we rebuilt it.",
+   "translated": false
+  },
+  {
+   "text": "Claude will go and open the pull request. Then we've got a Claude that reviews it first and decides, like, is this actually fitting into one of these, like, mechanical changes we know how to do? Or is it a riskier change?",
+   "translated": false
+  },
+  {
+   "text": "the goal is to get to a point where when a page comes in and we're just starting to do this, when a page comes in, it goes to that cloud first. And that cloud can decide, is this noise or is this real? And that's just the first gate.",
+   "translated": false
+  },
+  {
+   "text": "someone might not pass that coding interview, but they would like crush all the rest of the interviews. And it's because they're not writing code by hand all the time anymore, right?",
+   "translated": false
+  },
+  {
+   "text": "this is for the engineers feeling an identity crisis because they think their knowledge and skills won't be important, even though your skills can be the difference in whether or not these complex problems will be tackled.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}

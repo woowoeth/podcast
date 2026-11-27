@@ -1,0 +1,139 @@
+{
+ "slug": "2026-11-26-latentspace-clay-的客户里-一半人干脆用-claude-code-而不是-clay-自家",
+ "of": "latentspace-41e6544d19",
+ "source_lang": "en",
+ "title": "Half of Clay's customers simply use Claude Code instead of Clay's own agent",
+ "dek": "This AI agent company for sales teams is explicit: it does not want its own agent to outperform using Clay plus Claude Code, because it wants to be underlying infrastructure for go-to-market, not another gatekeeping chat interface.",
+ "why": "Engineering details and architectural decisions can be directly adapted to other projects, but the content leans toward engineering leads building vertical agents; general readers can jump to the second half.",
+ "who": "Founders building vertical AI agent products, engineering leads choosing agent infrastructure for their companies, and practitioners wanting to understand go-to-market and sales automation implementation details.",
+ "skip": "The opening three minutes on Clay's brand character and office atmosphere has low information density; skip directly to the section defining go-to-market engineer.",
+ "tags": [
+  "GTM automation",
+  "Agent engineering",
+  "Enterprise AI products",
+  "Model routing",
+  "Post-training",
+  "Organizational decision-making"
+ ],
+ "points": [
+  {
+   "h": "Go-to-market engineers represent a shift from hiring more salespeople to building systems",
+   "body": "Jeff Barg explains the term's origin. In the 2010s, companies grew sales by hiring more salespeople and marketers. With LLMs, agents can now crawl the web, score customers, and execute decisions—so a new type of person emerged: someone who uses software engineering methods for growth, writing prompts, doing data engineering, building automation systems. This role combines agent engineering, data engineering, and traditional software engineering. It previously lived scattered across revenue operations without a distinct identity."
+  },
+  {
+   "h": "Without CRM data, agents cannot function as sales representatives",
+   "body": "The first version of Sculptor's biggest limitation wasn't model capability but context. The agent couldn't access CRM data or see the actual results after an outbound email was sent, so it couldn't make judgments like a real sales rep. The team rebuilt the entire platform's data layer (Audiences), aligning first-party data from CRMs, Gong call recordings, and Clay's own company dataset into a single source of truth for customers and contacts—now the agent has something to work with."
+  },
+  {
+   "h": "Post-training becomes cost-effective above roughly ten million dollars in inference spending",
+   "body": "Jeff said Clay spent the past 18 months thinking in-house model training was unrealistic, only recently reconsidering. He gave an experience threshold: only when inference costs reach roughly $10 million to $100 million does savings become \"chunky\" enough to justify open-source model fine-tuning or distillation; otherwise most companies arrive too early with insufficient inference volume to make the savings meaningful."
+  },
+  {
+   "h": "Scoring 40 million companies costs roughly fifteen hundred dollars in total",
+   "body": "Clay's company dataset has 40 million companies; each LinkedIn profile is about 1,000 tokens, plus a customer's ideal customer profile (ICP) is roughly 500 tokens, so one \"is this company right for my product?\" judgment requires 1,500 tokens. At $42 per billion tokens, scoring every company in the world costs roughly $1,500. For comparison: qualified leads typically cost $1–$10 each; phone appointments run $10–$100."
+  },
+  {
+   "h": "Users hate choosing models, but Clay won't eliminate manual selection",
+   "body": "Jeff says directly: \"Our users hate the model selector.\" Most customers dislike having to choose which model—they want to get the job done, not study each new model's eval scores. Clay is launching \"auto mode,\" handing model selection back to the system, since task-level routing (finding Apple's CEO versus a rare startup's CEO need very different model capability) is more rational than manual choice. But he concedes this requires customers to \"trust that we spend your tokens well\"—a trust mechanism, not a transparency one."
+  },
+  {
+   "h": "Production-grade agent experience remains nearly unavailable in the job market",
+   "body": "The hardest hire for Clay is someone with real production-agent engineering experience. This scarcity is steeper in New York than the Bay Area. The reason is straightforward: ChatGPT is only four years old; the pool of people with one-plus years building production agents is small to begin with, further narrowing the hiring range beyond just geography."
+  },
+  {
+   "h": "Clay deliberately avoids making its own agent better than using Clay plus Claude Code",
+   "body": "Clay built a CLI and agent sandbox, nearly matching all capabilities of external coding agents, but Jeff is explicit: \"We deliberately do not want our agent to be obviously better than directly using Clay plus Claude Code.\" The team measured usage of their own harness versus external ones (mainly Claude Code) and found nearly 50/50 split, more balanced than expected. Clay's positioning is to become \"agent infrastructure for the go-to-market space,\" not to seize the entry point—why it invests across CLI, MCP, and API forms."
+  },
+  {
+   "h": "OpenAI cancelled partnership days before launch, then reversed the decision",
+   "body": "Clay was an early commercial partner for ChatGPT apps, so it pulled a quarter of engineering for a month-long sprint. Two days before launch, OpenAI notified them of an indefinite delay. Clay judged the bet itself still sound and chose to keep developing on schedule. Three to four days later, OpenAI reversed course and resumed the partnership. Jeff uses this to illustrate \"institutional courage\": in a fast-moving moment, decisions reverse often; teams cannot abandon bets just because one rejection arrives."
+  },
+  {
+   "h": "Current language models cannot diagnose their own reasoning failures",
+   "body": "Even now, models struggle to diagnose where they get stuck in a long agent trace—not from lacking capability, but from completely wrong intuition, often mistaking normal long-running steps for actual failures. This forces Clay to hand-write skills and rules rather than enable self-improvement. Jeff sees this as the biggest gap that the next generation of models should solve but hasn't yet."
+  }
+ ],
+ "terms": [
+  {
+   "term": "Go-to-market engineer",
+   "def": "A new role using software engineering methods to build customer acquisition systems, combining agent, data, and traditional engineering skills."
+  },
+  {
+   "term": "Claygent",
+   "def": "A table column in Clay that runs an agent to independently web-search and structure data."
+  },
+  {
+   "term": "Sculptor",
+   "def": "Clay's first-party agent for generating and orchestrating end-to-end go-to-market workflows."
+  },
+  {
+   "term": "Auto mode",
+   "def": "Clay's upcoming model-selection feature that automatically routes tasks to the right model, replacing manual model choice."
+  },
+  {
+   "term": "Noisy neighbor problem",
+   "def": "When large customers' bulk tasks consume shared resources and degrade experience for smaller customers."
+  }
+ ],
+ "facts": [
+  {
+   "k": "Clay's company dataset size",
+   "v": "40 million companies"
+  },
+  {
+   "k": "Cost to score every company globally",
+   "v": "approximately $1,500"
+  },
+  {
+   "k": "Cost per qualified lead",
+   "v": "$1–$10"
+  },
+  {
+   "k": "Cost per phone appointment",
+   "v": "$10–$100"
+  },
+  {
+   "k": "Team size when Avenue joined Clay",
+   "v": "Avenue: 5 people; Clay: 50 people"
+  },
+  {
+   "k": "Business growth since Jeff joined",
+   "v": "approximately 10x"
+  },
+  {
+   "k": "New data integrations launched recently",
+   "v": "25–30"
+  }
+ ],
+ "quotes": [
+  {
+   "text": "we didn't have CRM data, and we didn't have, you know... If someone was gonna send a campaign, we didn't have access to the actual results of that campaign.",
+   "translated": false
+  },
+  {
+   "text": "You can imagine just asking a question like, \"Is this customer a good fit for my product or service?\" And you could run that across every company in the world, and it comes out to, I think, around 1,500 bucks",
+   "translated": false
+  },
+  {
+   "text": "Our users hate our model selector. I think most, most customers, like, don't wanna see it. Like, they're upset when they see it.",
+   "translated": false
+  },
+  {
+   "text": "the thing that's really hard to find is people who have, like, hands-on experience building production agents.",
+   "translated": false
+  },
+  {
+   "text": "we explicitly don't want our agent to be markedly better than just using Clay and Claude Code. Like, if you use Clay and Claude Code, that's great.",
+   "translated": false
+  },
+  {
+   "text": "I think two days before we were supposed to launch, they were like, \"We're gonna cancel it. We're gonna just, uh, we're, we're gonna postpone this indefinitely.",
+   "translated": false
+  },
+  {
+   "text": "model capability is being able to look at an agent trace and figure out what's wrong with it. I mean, maybe it's just, like, too self-reflective, but it still really doesn't work.",
+   "translated": false
+  }
+ ],
+ "model": "claude-cli:sonnet"
+}
