@@ -515,10 +515,15 @@ class ThrottledCaptionsSwitchToAudio(unittest.TestCase):
         import run as R
         import addvideo as A
         from lib import transcript as T
+        from lib import llm
         calls, rows = [], []
         old = (R.acquire_run_lock, R.process, R.save_state, R.load_state,
                P.record_run, A.meta, P.lead_meta, T.acquire, T.cached,
                T._YT_COOL["until"], os.environ.get("PEOPLE_AUDIO_FIRST"))
+        old_avail = llm.available
+        # CI 上既没有 claude 也没有 key：不桩掉，run_next 在「没有模型」那一步就退了，
+        # 测试量到的是一个空列表（11-25 起 CI 连红两天就是这个）。
+        llm.available = lambda: True
         R.acquire_run_lock = lambda *a, **k: True
         R.process = lambda *a, **k: calls.append("process") or "off-brief"
         R.save_state = lambda *a, **k: None
@@ -542,6 +547,7 @@ class ThrottledCaptionsSwitchToAudio(unittest.TestCase):
             os.environ.pop("PEOPLE_AUDIO_FIRST", None)
             if prev is not None:
                 os.environ["PEOPLE_AUDIO_FIRST"] = prev
+            llm.available = old_avail
         return calls, cooling_after
 
     def test_cooling_means_transcribe_audio_before_processing(self):

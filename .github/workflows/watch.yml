@@ -84,6 +84,24 @@ jobs:
           done
           exit $bad
 
+      - name: main 上的 ci 还绿着吗
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # CI 是推完才跑的，红了不拦部署：11-25 起连红两天，体检一直绿、没人知道。
+          # 连着 3 次红才报（单次红多半是抖）；取不到记录不算绿。判据在 cistreak.py。
+          # 结论要写进 hc.txt：issue 正文只贴它，本机体检（手机推送）也只从里面认「坏了」那几行。
+          set -o pipefail
+          out="${RUNNER_TEMP}/ci.txt"
+          if gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs?branch=main&status=completed&per_page=30" \
+               | python pipeline/cistreak.py > "$out" 2>&1; then
+            cat "$out"; echo "  ok    $(cat "$out")" >> "${RUNNER_TEMP}/hc.txt"
+          else
+            cat "$out"; echo "  坏了  $(sed 's/^::error:://' "$out" | head -1)" >> "${RUNNER_TEMP}/hc.txt"
+            exit 1
+          fi
+
       - name: 坏了就开 issue
         if: failure()
         env:
