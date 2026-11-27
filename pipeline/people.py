@@ -34,6 +34,7 @@ import os
 import pathlib
 import re
 import sys
+import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
@@ -298,8 +299,16 @@ def run_next(n: int, dry: bool) -> int:
     results: dict[str, int] = {}
     stopped = ""
     t0 = iso_now()
+    # **到点就不再开新的线索。** 补跑脚本只在两批之间看钟，而一批（发 6 篇为止、最多试 18 条）
+    # 走音频＋本机转写约 20 分钟一条，能跑六个多小时：20:50 开的一批会一直占着跑批锁到后半夜，
+    # 21:30 那班日更等满 180 分钟后 run.py 拿不到锁、整班跳过（2026-11-27 算出来的，没出事前拦下）。
+    # 手上这一条照常做完——中途杀掉才会把账本写乱。
+    stop_at = float(os.environ.get("PEOPLE_STOP_AT") or 0)
     for p, v in todo:
         if published >= n or tried >= cap:
+            break
+        if stop_at and time.time() >= stop_at:
+            log(f"  到点了（{dt.datetime.fromtimestamp(stop_at):%H:%M}），不再开新的线索")
             break
         if streak >= THROTTLE_STOP:
             # 连着几条都是限流：再试只会继续撞墙、给更多好视频记上失败

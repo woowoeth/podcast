@@ -675,3 +675,60 @@ class NoModelNoRun(unittest.TestCase):
         finally:
             llm.available, R.acquire_run_lock, R.process, P.record_run = old
         self.assertEqual(calls, [], "没有模型还在处理线索／留痕")
+
+
+class BackfillStopsTakingLeadsAtTheDeadline(unittest.TestCase):
+    """2026-11-27：一批能跑六个多小时，20:50 开的一批会压住 21:30 的日更。到点就不再开新的线索。"""
+
+    def _run(self, stop_at):
+        import os
+        import run as R
+        import addvideo as A
+        from lib import transcript as T
+        from lib import llm
+        calls = []
+        old = (llm.available, R.acquire_run_lock, R.process, R.save_state, R.load_state,
+               P.record_run, A.meta, P.lead_meta, T.cached, os.environ.get("PEOPLE_STOP_AT"))
+        llm.available = lambda: True
+        R.acquire_run_lock = lambda *a, **k: True
+        R.process = lambda *a, **k: calls.append("process") or "off-brief"
+        R.save_state = lambda *a, **k: None
+        R.load_state = lambda *a, **k: {"done": {}, "fail": {}, "fp": {}}
+        P.record_run = lambda *a, **k: None
+        A.meta = lambda *a, **k: {"title": "t"}
+        P.lead_meta = lambda *a, **k: {"title": "t", "duration": 3600}
+        T.cached = lambda ep: {"segments": [1]}
+        os.environ["PEOPLE_STOP_AT"] = str(stop_at)
+        try:
+            P.run_next(1, dry=False)
+        finally:
+            (llm.available, R.acquire_run_lock, R.process, R.save_state, R.load_state,
+             P.record_run, A.meta, P.lead_meta, T.cached, prev) = old
+            os.environ.pop("PEOPLE_STOP_AT", None)
+            if prev is not None:
+                os.environ["PEOPLE_STOP_AT"] = prev
+        return calls
+
+    def test_past_the_deadline_no_new_lead_is_started(self):
+        import time
+        self.assertEqual(self._run(time.time() - 60), [], "到点了还在开新的线索")
+
+    def test_before_the_deadline_nothing_changes(self):
+        import time
+        self.assertEqual(self._run(time.time() + 3600), ["process"] * 3)
+
+    def test_no_deadline_set_nothing_changes(self):
+        self.assertEqual(self._run(0), ["process"] * 3)
+
+    def test_the_backfill_script_exports_the_deadline_from_until(self):
+        import datetime as dt
+        import re
+        import subprocess
+        sh = (ROOT / "scripts" / "backfill-people.sh").read_text()
+        line = next(l for l in sh.splitlines() if l.startswith("PEOPLE_STOP_AT="))
+        self.assertRegex(sh, r"\n\s*export PEOPLE_STOP_AT\n")
+        self.assertLess(sh.index("PEOPLE_STOP_AT="), sh.index("pipeline/people.py --next"))
+        got = subprocess.run(["bash", "-c", f'UNTIL=21:00; {line}; echo "$PEOPLE_STOP_AT"'],
+                             capture_output=True, text=True).stdout.strip()
+        want = dt.datetime.combine(dt.date.today(), dt.time(21, 0)).timestamp()
+        self.assertEqual(int(got), int(want), "截止时间不是今天的 UNTIL")

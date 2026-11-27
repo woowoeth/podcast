@@ -25,6 +25,11 @@ THROTTLE_REST="${THROTTLE_REST:-1800}"
 # 每 30 分钟去撞一次只会把解封往后推（见 lib/transcript.py 的限流熔断）。
 REST_MAX="${REST_MAX:-7200}"
 UNTIL="${UNTIL:-21:00}"
+# 到点的检查也要进到批次里面（people.py 每开一条新线索前看一眼）：只在两批之间看钟的话，
+# 一批能跑六个多小时，压住 21:30 那班日更（见 people.run_next）。
+# macOS 是 date -j，CI（Linux）是 date -d；都不认就是 0＝不设（退回只在两批之间看钟）。
+PEOPLE_STOP_AT="$(date -j -f '%H:%M:%S' "${UNTIL}:00" +%s 2>/dev/null || date -d "$UNTIL" +%s 2>/dev/null || echo 0)"
+export PEOPLE_STOP_AT
 cd "${BACKFILL_REPO:?}"
 set -a; . ~/.config/podcast/env 2>/dev/null; set +a
 # launchd／launchctl submit 给的 PATH 很窄（/usr/bin:/bin…）：claude、yt-dlp、3.14 的 python3 都找不到。
