@@ -831,7 +831,8 @@ def asr_sample(ep: dict, lang: str, fracs: tuple, clip_sec: int = 150, per_clip:
                                    capture_output=True, text=True, timeout=120)
                 if r.returncode != 0 or not clip.exists():
                     return ""
-                segs = _local_asr(clip, lang)
+                with _ASR_LOCK:               # MLX 只能一个线程进（见 test_local_asr_is_called_under_a_lock）
+                    segs = _local_asr(clip, lang)
                 if segs is None:
                     return ""
                 text = squeeze(" ".join(x["text"] for x in segs))
