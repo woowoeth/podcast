@@ -24,6 +24,16 @@ def _redirected(kind: str) -> dict:
     return (json.loads(f.read_text()).get(kind) or {}) if f.exists() else {}
 sys.path.insert(0, str(ROOT / "pipeline"))
 
+def _episode_dirs() -> list:
+    """p/ 下真正的正文页目录（排好序），不含撤稿留下的跳转页。
+
+    跳转页只有一行 refresh，没有 h1、主题链接、播放器——抽样检查正文的测试抽到它就红。
+    11-27 撤了 6 篇之后，test_every_episode_links_up_to_its_topic 随机抽中达沃斯那张，CI 红了；
+    其余只取前 N 页的测试没红，只是因为跳转页正好排在 153 位以后。
+    """
+    red = _redirected("p")
+    return [d for d in sorted((ROOT / "p").iterdir()) if d.is_dir() and d.name not in red]
+
 
 # **测试不许真的去敲 IndexNow。** 整个测试进程里挂一道网络层的绊线（见 TestsNeverReachIndexNow）：
 # 解析或经代理隧道到 IndexNow 主机，当场拦下、记账，抛一个 ping() 的 `except Exception` 吞不掉的错。
@@ -222,7 +232,7 @@ class PageStructureStaysValid(unittest.TestCase):
     def test_every_built_page_has_exactly_one_h1(self):
         pages = [ROOT / "index.html", ROOT / "404.html",
                  ROOT / "sources/index.html"]
-        pages += list((ROOT / "p").glob("*/index.html"))[:6]
+        pages += [d / "index.html" for d in _episode_dirs()[:6]]
         pages += list((ROOT / "s").glob("*/index.html"))[:3]
         for f in pages:
             if not f.exists():
@@ -2524,7 +2534,7 @@ class ShareSheetGetsOnlyTheLink(unittest.TestCase):
     def test_rendered_buttons_carry_a_url_and_no_dead_fields(self):
         """产物上验：每个按钮都有 url；没人读的 data-share-desc 不许回来 ——
         它回来就说明有人又想把它喂给分享面板。"""
-        for f in [ROOT / "index.html", *sorted(ROOT.glob("p/*/index.html"))[:5],
+        for f in [ROOT / "index.html", *[d / "index.html" for d in _episode_dirs()[:5]],
                   *sorted(ROOT.glob("s/*/index.html"))[:3]]:
             h = f.read_text()
             self.assertIn('data-share-url="https://', h, f"{f.relative_to(ROOT)} 没有 data-share-url")
@@ -2850,7 +2860,7 @@ class ShareCardsUseTheRightPicture(unittest.TestCase):
         同一页两张图，推特和 Slack 抓到的还是外站大图。"""
         bad = []
         pages = [ROOT / "index.html", ROOT / "en" / "index.html", ROOT / "tw" / "index.html",
-                 *sorted(ROOT.glob("p/*/index.html"))[:60], *sorted(ROOT.glob("en/p/*/index.html"))[:20],
+                 *[d / "index.html" for d in _episode_dirs()[:60]], *sorted(ROOT.glob("en/p/*/index.html"))[:20],
                  *sorted(ROOT.glob("s/*/index.html"))[:10]]
         for f in pages:
             h = f.read_text()
@@ -3566,7 +3576,7 @@ class AssetVersioning(unittest.TestCase):
         # 仓库根目录下跑才有效，从 tests/ 跑是 FileNotFoundError——
         # 而"报错"和"没查到东西"在 discover 的输出里长得不一样，但都不是"过了"。
         for page in (ROOT / "index.html",
-                     next(iter(sorted((ROOT / "p").iterdir())))/"index.html"):
+                     _episode_dirs()[0] / "index.html"):
             html = page.read_text()
             for m in re.findall(r'(?:href|src)="[^"]*site\.(?:css|js)[^"]*"', html):
                 self.assertRegex(m, r"\?v=[0-9a-f]{6,}",
@@ -3616,9 +3626,9 @@ class DegradesWithoutStylesheet(unittest.TestCase):
         build = (ROOT / "pipeline" / "build.py").read_text()
         self.assertIn("PLAY_SVG", build)
         self.assertIn("<svg viewBox=", build)
-        page = next(iter(sorted((ROOT / "p").iterdir()))) / "index.html"
+        page = _episode_dirs()[0] / "index.html"
         # 找一篇有视频的
-        for d in sorted((ROOT / "p").iterdir()):
+        for d in _episode_dirs():
             h = (d / "index.html").read_text()
             if "video-facade" in h:
                 self.assertIn("<svg viewBox=", h.split("video-facade")[1][:600],
@@ -3814,7 +3824,7 @@ class HiddenAttributeMustActuallyHide(unittest.TestCase):
         with_display = self._classes_with_display()
         bad = []
         pages = [ROOT / "index.html"]
-        pages += [d / "index.html" for d in sorted((ROOT / "p").iterdir())[:40]]
+        pages += [d / "index.html" for d in _episode_dirs()[:40]]
         for page in pages:
             if not page.exists():
                 continue
@@ -3976,7 +3986,7 @@ class ProvenancePanelMustHaveContent(unittest.TestCase):
     def test_the_panel_renders_something(self):
         """数据齐全不等于页面上渲染出来了。抽查构建产物里那块面板有内容。"""
         import re as _re
-        for d in sorted((ROOT / "p").iterdir())[:8]:
+        for d in _episode_dirs()[:8]:
             f = d / "index.html"
             if not f.exists():
                 continue
@@ -4223,7 +4233,7 @@ class HreflangIsPerPage(unittest.TestCase):
             self.skipTest("英文站还没建")
         have = {d.name for d in en_p.iterdir() if d.is_dir()}
         bad = []
-        for d in sorted((ROOT / "p").iterdir())[:120]:
+        for d in _episode_dirs()[:120]:
             f = d / "index.html"
             if not f.exists():
                 continue
@@ -4327,7 +4337,7 @@ class LanguageSwitchIsOneControl(unittest.TestCase):
             self.skipTest("英文站还没建")
         have = {d.name for d in en_p.iterdir() if d.is_dir()}
         bad = []
-        for d in sorted((ROOT / "p").iterdir())[:120]:
+        for d in _episode_dirs()[:120]:
             f = d / "index.html"
             if not f.exists():
                 continue
@@ -8493,7 +8503,7 @@ class ATopicMustHaveAUrlNotJustAJsFilter(unittest.TestCase):
 
     def test_every_episode_links_up_to_its_topic(self):
         import re, random
-        eps = list((ROOT / "p").glob("*/index.html"))
+        eps = [d / "index.html" for d in _episode_dirs()]
         if not eps:
             self.skipTest("还没有集页")
         random.seed(3)
