@@ -439,9 +439,11 @@ def check_build_consistency(r: Report) -> None:
     这两种都真发生过。
     """
     n_data = len(list((DATA / "episodes").glob("*.json")))
-    n_pages = len([d for d in (ROOT / "p").iterdir() if d.is_dir()]) \
+    # 撤下的稿旧地址留着跳转页（data/redirects.json）：只扣登记过的那几个，别的多余目录照样算不一致
+    red = json.loads((DATA / "redirects.json").read_text()) if (DATA / "redirects.json").exists() else {}
+    n_pages = len([d for d in (ROOT / "p").iterdir() if d.is_dir() and d.name not in (red.get("p") or {})]) \
         if (ROOT / "p").exists() else 0
-    n_alias = len([d for d in (ROOT / "e").iterdir() if d.is_dir()]) \
+    n_alias = len([d for d in (ROOT / "e").iterdir() if d.is_dir() and d.name not in (red.get("e") or {})]) \
         if (ROOT / "e").exists() else 0
     if n_data == n_pages == n_alias:
         r.good(f"构建一致：数据／正文页／短链都是 {n_data}")

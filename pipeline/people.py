@@ -369,6 +369,53 @@ RUNS = DATA / "people-runs.json"
 KEEP_RUNS = 40               # 一天两轮，留 20 天
 
 
+# ---------------------------------------------------------------- 同一场的不同上传（按内容判）
+
+# 2026-11-27：马斯克达沃斯那场对谈发了 6 篇（APT、DRM News 两条、Yahoo、DWS、News Central），
+# 黄仁勋 CES 2026 主题演讲同一批里发了 2 篇。搬运号标题各起各的、日期只写到年、
+# 时长差 16%（带不带开场），导入时的「同一天、时长差 3%」（_same_talk）一条都认不出来。
+# 只有内容认得出来：两份转写的 6 词片段，重合量占较短那份的比例。
+# 实测 44 篇已发稿两两比：重复的 ≥0.47，不同的场 ≤0.07（标题几乎一样的 Astro Awani 那条 0.06）。
+TWIN_OVERLAP = 0.3
+TWIN_MIN_SHINGLES = 200      # 太短的转写（或中文转写，英文分词取不出词）不比，免得两份空集合「完全重合」
+_SHINGLES: dict[str, frozenset] = {}
+
+
+def shingles(tr: dict | None) -> frozenset:
+    words = re.findall(r"[a-z0-9']+", " ".join(x.get("text", "") for x in (tr or {}).get("segments") or []).lower())
+    return frozenset(" ".join(words[i:i + 6]) for i in range(len(words) - 5))
+
+
+def overlap(a: frozenset, b: frozenset) -> float:
+    if len(a) < TWIN_MIN_SHINGLES or len(b) < TWIN_MIN_SHINGLES:
+        return 0.0
+    return len(a & b) / min(len(a), len(b))
+
+
+def twin(tr: dict, state: dict, key: str, blob: dict | None = None) -> tuple[str, float] | None:
+    """这份转写是不是已发的人物稿里某一场的另一份上传。返回 (那一篇的 key, 重合度)。
+
+    已发的集合每次从账本现读：同一批里先发的那条，后面的也要比得到（CES 那两篇就是同一批发的）。
+    转写按视频 id 缓存，不会变。"""
+    import run as R
+    from lib import transcript as T
+    mine = shingles(tr)
+    if len(mine) < TWIN_MIN_SHINGLES:
+        return None
+    best = None
+    for p in (blob or load()).get("people") or []:
+        for v in p.get("videos") or []:
+            k = R.eid(channel_source(v.get("ch") or "", p, _registered())["id"], v["yt"])
+            if k == key or not (state["done"].get(k) or {}).get("slug"):
+                continue
+            if v["yt"] not in _SHINGLES:
+                _SHINGLES[v["yt"]] = shingles(T.cached({"guid": v["yt"], "title": ""}))
+            c = overlap(mine, _SHINGLES[v["yt"]])
+            if c >= TWIN_OVERLAP and (best is None or c > best[1]):
+                best = (k, c)
+    return best
+
+
 def iso_now() -> str:
     return dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 

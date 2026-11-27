@@ -365,6 +365,18 @@ def D(ep: dict) -> dict:
     return merged
 
 
+def redirects() -> dict:
+    """撤下的稿：旧地址跳到留下的那一篇。{"p": {旧 slug: 留下那篇的 id}, "e": {旧 id: 留下那篇的 id}}。
+
+    2026-11-27 马斯克达沃斯那场发了 6 篇（同一场的不同搬运），撤 5 留 1。已经上线几天的页面
+    直接 404 的话，外面的链接和搜索结果都断了；跳到留下的那篇，canonical 也指过去。
+    单独一份文件、不读 state.json：账本每轮都变，建站读它就不再是「同样的输入建出同样的站」。
+    目标那篇不在（以后也被撤了）就不建这条跳转——守护 WithdrawnPagesRedirect 会因此变红。
+    """
+    f = DATA / "redirects.json"
+    return json.loads(f.read_text()) if f.exists() else {}
+
+
 def load() -> tuple[list[dict], dict]:
     srcs = json.loads((DATA / "sources.json").read_text())
     eps = []
@@ -2684,6 +2696,13 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
         pout.mkdir(parents=True, exist_ok=True)
         (pout / "index.html").write_text(episode_page(x, prev, nxt, by_slug))
         live.add(x["slug"])
+    by_id = {x["id"]: x for x in eps}
+    red = redirects()
+    for old, to in (red.get("p") or {}).items():
+        if to in by_id and old not in live:
+            (pdir / old).mkdir(parents=True, exist_ok=True)
+            (pdir / old / "index.html").write_text(alias_page(by_id[to]))
+            live.add(old)
     if pdir.exists():                      # drop pages whose record is gone
         for d in pdir.iterdir():
             if d.is_dir() and d.name not in live:
@@ -2710,6 +2729,11 @@ def render_site(out: pathlib.Path, lang: str = "zh") -> int:
         eout.mkdir(parents=True, exist_ok=True)
         (eout / "index.html").write_text(alias_page(x))
         alive.add(x["id"])
+    for old, to in (red.get("e") or {}).items():
+        if to in by_id and old not in alive:
+            (edir / old).mkdir(parents=True, exist_ok=True)
+            (edir / old / "index.html").write_text(alias_page(by_id[to]))
+            alive.add(old)
     if edir.exists():
         for d in edir.iterdir():
             if d.is_dir() and d.name not in alive:

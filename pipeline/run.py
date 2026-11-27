@@ -672,6 +672,21 @@ def process(ep: dict, state: dict, *, dry: bool) -> str:
         _release(state, fp, key)
         return "no-transcript"
 
+    if s.get("rubric") == "people":
+        # **同一场的另一份上传不再写一篇。** 放在调模型之前：拿到转写之后、写稿之前，
+        # 判出来的重复一分 token 都不花。见 people.twin（2026-11-27 达沃斯那场发了 6 篇）。
+        import people as _people
+        tw = _people.twin(tr, state, key)
+        if tw:
+            log(f"    不做：和已发的 {tw[0]} 是同一场（转写重合 {tw[1]:.2f}）")
+            with _STATE_LOCK:
+                state["fail"].pop(key, None)
+                state["done"][key] = {"skip": "duplicate", "of": tw[0], "how": "transcript",
+                                      "overlap": round(tw[1], 2), "title": ep["title"][:120],
+                                      "src": s["id"], "pub": iso(ep["published"]), "at": iso(now())}
+            _release(state, fp, key)
+            return "duplicate"
+
     ch = T.chapters(ep)
     if dry:
         log("    dry-run: stopping before the model call")

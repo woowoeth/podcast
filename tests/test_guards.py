@@ -16,6 +16,12 @@ import unittest
 import urllib.parse
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+
+def _redirected(kind: str) -> dict:
+    """data/redirects.json 里登记的跳转（撤下的稿的旧地址）。计页数时只扣这几个。"""
+    f = ROOT / "data" / "redirects.json"
+    return (json.loads(f.read_text()).get(kind) or {}) if f.exists() else {}
 sys.path.insert(0, str(ROOT / "pipeline"))
 
 
@@ -642,7 +648,7 @@ class SharingWorksWithoutAPlatformSDK(unittest.TestCase):
 
     def test_every_episode_has_an_alias_on_disk(self):
         n = len(list((ROOT / "data" / "episodes").glob("*.json")))
-        built = len([d for d in (ROOT / "e").iterdir() if d.is_dir()]) \
+        built = len([d for d in (ROOT / "e").iterdir() if d.is_dir() and d.name not in _redirected("e")]) \
             if (ROOT / "e").exists() else 0
         self.assertEqual(built, n, "短链页数量和篇数对不上")
 
@@ -4199,7 +4205,7 @@ class RenderSiteMustNotShadowItsOutputRoot(unittest.TestCase):
 
     def test_alias_count_matches_episodes(self):
         n_eps = len(list((ROOT / "data" / "episodes").glob("*.json")))
-        n_alias = len([d for d in (ROOT / "e").iterdir() if d.is_dir()]) \
+        n_alias = len([d for d in (ROOT / "e").iterdir() if d.is_dir() and d.name not in _redirected("e")]) \
             if (ROOT / "e").exists() else 0
         self.assertEqual(n_eps, n_alias, "短链页数量和篇数对不上")
 
@@ -8297,6 +8303,8 @@ class EveryEpisodeMustBeAFewHopsFromTheFrontPage(unittest.TestCase):
         import re, pathlib as _p
         graph = {}
         for p in (ROOT / "p").glob("*/index.html"):
+            if p.parent.name in _redirected("p"):   # 撤下的稿的跳转页：不是一篇，不该从首页走得到
+                continue
             hs = set(re.findall(r'href="/podcast/p/([^"]+)/"', p.read_text()))
             hs.discard(p.parent.name)
             graph[p.parent.name] = hs

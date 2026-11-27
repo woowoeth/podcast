@@ -732,3 +732,78 @@ class BackfillStopsTakingLeadsAtTheDeadline(unittest.TestCase):
                              capture_output=True, text=True).stdout.strip()
         want = dt.datetime.combine(dt.date.today(), dt.time(21, 0)).timestamp()
         self.assertEqual(int(got), int(want), "截止时间不是今天的 UNTIL")
+
+
+class SameTalkFromAnotherUploaderIsNotWrittenTwice(unittest.TestCase):
+    """2026-11-27：马斯克达沃斯那场发了 6 篇，CES 2026 同一批发了 2 篇。标题、日期、时长都对不上，
+    只有转写对得上。这里真跑 run.process：重复的那条要在调模型之前停下。"""
+
+    TALK = " ".join(f"word{i}" for i in range(3000))
+    OTHER = " ".join(f"other{i}" for i in range(3000))
+
+    def _process(self, text, published_text=TALK, published=True, extra_done=None):
+        import contextlib, io, unittest.mock as mock
+        import run as R
+        person = {"id": "musk", "zh": "马斯克", "videos": [
+            {"yt": "AAAAAAAAAAA", "ch": "DWS News", "d": "2026"},
+            {"yt": "BBBBBBBBBBB", "ch": "Yahoo Finance", "d": "2026"}]}
+        blob = {"people": [person]}
+        src_a = P.channel_source("DWS News", person, P._registered())
+        src_b = P.channel_source("Yahoo Finance", person, P._registered())
+        key_a, key_b = R.eid(src_a["id"], "AAAAAAAAAAA"), R.eid(src_b["id"], "BBBBBBBBBBB")
+        state = {"done": dict(extra_done or {}), "fail": {}, "fp": {}}
+        if published:
+            state["done"][key_a] = {"slug": "x", "at": "2026-11-27T00:00:00Z"}
+        cache = {"AAAAAAAAAAA": {"segments": [{"text": published_text}]}}
+        ep = {"_src": src_b, "_key": key_b, "title": "Jensen at CES", "duration": 6641,
+              "published": dt.datetime(2026, 1, 1, 12, tzinfo=dt.timezone.utc),
+              "guid": "BBBBBBBBBBB", "youtube_id": "BBBBBBBBBBB", "link": "", "audio": "", "notes": ""}
+        mine = {"segments": [{"text": text}], "words": 3000, "lang": "en", "kind": "asr"}
+
+        def reached_the_model(*a, **k):
+            raise AssertionError("走到写稿了")
+        P._SHINGLES.clear()
+        with mock.patch.object(R.T, "acquire", lambda *a, **k: mine), \
+                mock.patch.object(R.T, "cached", lambda ep: cache.get(ep.get("guid"))), \
+                mock.patch.object(R.T, "chapters", reached_the_model), \
+                mock.patch.object(P, "load", lambda *a, **k: blob), \
+                mock.patch.dict(R._triage, {"on": False}), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            try:
+                got = R.process(ep, state, dry=False)
+            except AssertionError as ex:
+                got = str(ex)
+        return got, state, key_a, key_b
+
+    def test_the_same_talk_stops_before_the_model_with_its_reason(self):
+        got, st, key_a, key_b = self._process(self.TALK)
+        self.assertEqual("duplicate", got)
+        rec = st["done"][key_b]
+        self.assertEqual(("duplicate", key_a, "transcript"), (rec["skip"], rec["of"], rec["how"]))
+        self.assertGreaterEqual(rec["overlap"], 0.99)
+        self.assertTrue(rec.get("pub"), "没带 pub")
+        self.assertEqual({}, st["fp"], "指纹没还回去")
+
+    def test_a_longer_upload_with_a_preshow_is_still_the_same_talk(self):
+        # CES 那两条：一条带 17 分钟开场。重合量按较短那份算
+        got, *_ = self._process(" ".join(f"pre{i}" for i in range(600)) + " " + self.TALK)
+        self.assertEqual("duplicate", got)
+
+    def test_a_different_talk_goes_on_to_be_written(self):
+        got, st, _, key_b = self._process(self.OTHER)
+        self.assertEqual("走到写稿了", got)
+        self.assertNotIn(key_b, st["done"])
+
+    def test_only_published_ones_count(self):
+        # 被选题拦下的那条（没有 slug）不是「已经写过」
+        got, *_ = self._process(self.TALK, published=False)
+        self.assertEqual("走到写稿了", got)
+
+    def test_tiny_transcripts_are_not_compared(self):
+        # 两份几乎空的转写「完全重合」不说明任何事
+        got, *_ = self._process("a b c d e f g h", published_text="a b c d e f g h")
+        self.assertEqual("走到写稿了", got)
+
+    def test_the_threshold_sits_in_the_measured_gap(self):
+        # 实测：重复的 ≥0.47，不同的场 ≤0.07
+        self.assertTrue(0.07 < P.TWIN_OVERLAP < 0.47)
