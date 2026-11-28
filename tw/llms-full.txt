@@ -1,6 +1,296 @@
 # 原聲 — 世界太吵，來原聲聽播客
 
-1849 entries. Source: https://ourword.ai/podcast/tw/ · Generated from the sources listed in https://ourword.ai/podcast/tw/llms.txt
+1856 entries. Source: https://ourword.ai/podcast/tw/ · Generated from the sources listed in https://ourword.ai/podcast/tw/llms.txt
+
+==============================================================================
+
+## Lovable 用形式化驗證證明數據不可洩露，而非靠人工打補丁
+
+- URL: https://ourword.ai/podcast/tw/p/2026-11-28-cogrev-lovable-用形式化验证证明数据不可泄露-而非靠人工打补丁/
+- 節目 / show: Cognitive Revolution (https://ourword.ai/podcast/tw/s/cogrev/)
+- 原集標題 / original episode: 1M+ Projects a Week, $600M ARR: Lovable CTO Fabian Hedin on Empowering Everyone to Shape the World
+- 發布 / published: 2026-11-28 · 時長 / duration: 1:32:05
+- 文稿來源 / transcript: 官方文稿頁 · 18542 words · timestamps are estimated from position in the transcript
+- 校驗 / verification: 8 quotes matched verbatim, 10 numbers traced to the transcript, review score 8/10
+
+**Lovable 的核心賣點不再是「能生成代碼」，而是把安全維護變成後臺自動完成的事：依賴自動升級、單元測試隨構建生成、行級權限規則被形式化證明不可繞過。**
+
+為什麼聽 / why: 適合想了解 vibe coding 平臺如何從「能用」走到「企業能託管」的人；關於競爭格局和模型路由那段也有具體細節，但談 AI 風險那段比較泛，可以快進。
+
+### 核心論點 / points
+
+[9:45] (Fabian Hedin) **軟件變快變廉價一百倍，催生無數小眾應用** — Fabian 說過去一年行業出現了明顯躍遷：做軟件「快一百倍、便宜一百倍」。他以自己做承包商的經歷對比——過去做一個原型要來回溝通幾週、花幾千美元，現在一天之內、二十美元就能做出來。結果是大量過去「見不到天日」的小眾軟件被做出來並投入使用，不管是給家庭內部用、給企業內部用，還是直接拿去對外服務並圍繞它創辦公司。
+
+[12:22] (Fabian Hedin) **巴西女性獨自45天做出約會背景調查App** — Fabian 舉了巴西（Lovable第三大市場）的例子：Sabrine 在一起femicide（女性被殺害）事件後受到觸動，獨自一人、沒有軟件經驗，花45天做出一款可以查詢約會對象公開犯罪記錄的平臺 Plinq，做到了43萬美元ARR。另一個例子是 Rafael 創辦的 AI 教育公司，內部約50人用的SaaS工具全部是在Lovable上自建的，相當於給自己公司搭了一整套可以隨時迭代的「操作系統」。
+
+[16:53] (Fabian Hedin) **企業裡的「紅膠帶」是有道理的，不是官僚** — 大企業和個人創始人用Lovable的體驗完全不同：個人創始人上手就跑，企業則有Fabian稱之為「紅膠帶」（red tape）的約束——但他強調這些約束通常是有正當理由的，比如要對客戶負責、受監管、風險偏好更保守。關鍵問題變成了如何讓應用對接企業已有的審計日誌系統、按財務數據和HR數據等不同層級做權限隔離，最終目標是讓大企業員工也能獲得和個人創始人一樣「打開聊天框、看預覽」的簡單體驗。
+
+[26:10] (Fabian Hedin) **安全策略從「發郵件提醒你點修復」轉向全自動** — Fabian用十年之久才被曝出的NGINX HTTP/2遠程代碼執行漏洞類比：軟件裡總會有潛伏多年的坑。Lovable對每個項目免費做安全掃描、自動保持託管基礎設施最新、自動升級有漏洞的依賴。過去發現漏洞是發郵件、彈窗提示用戶自己點「修復」，因為擔心自動改動影響業務邏輯；現在小改動的可靠性已經高到可以越來越多地做成用戶完全不用管的自動修復。
+
+[37:45] (Fabian Hedin) **用形式化方法證明用戶數據「不可被訪問」** — 單元測試和端到端測試都不是形式化驗證。Lovable在創建數據庫時會生成行級安全規則（row-level security），其安全掃描器能對這些規則做形式化驗證，直接判斷某條數據在當前規則下是否可被訪問到，並把結果反饋給agent，讓它不斷修補，直到能確認「數據不可訪問」為止——這是一個閉環，而不是靠跑測試去碰運氣。
+
+[57:54] (Fabian Hedin) **換框架是為了讓網站能被AI爬蟲搜到，不是技術潔癖** — Lovable把新項目默認框架從舊的React設置換成TanStack Start（底層仍是Vite上的React），核心驅動是服務端渲染：Google等爬蟲對純客戶端渲染的單頁應用需要用headless browser才能抓取，而服務端渲染的頁面可以直接拿到完整內容。隨著越來越多人通過非Google的AI機器人發現網站，這一點變得更重要。已有超過三千萬個老項目沒有被強制遷移，而是加上了預渲染能力。
+
+[1:02:06] (Fabian Hedin) **沒有模型選擇器：複雜任務用頂級模型，簡單改動用微調開源模型** — Fabian認為人類並不擅長為每次請求挑選最優模型，所以Lovable把選擇權交給系統：持續做線上A/B測試和離線LLM評測，複雜構建路由給前沿模型，中等複雜度路由給「合理」模型，像「改個按鈕顏色」這種簡單編輯則路由給經過微調的開源模型，做到更快更便宜。他強調的原則是「永遠不會用降低質量的方式給你路由，只會用提速降本的方式路由」。
+
+[1:08:13] (Fabian Hedin) **SaaS要活下去，得學會服務agent而不是人** — 針對「SaaS末日論」，Fabian認為Lovable因為模型變強而受益、不會被取代，因為自己專注在為這些模型打造運行系統（每天跑數百萬個沙盒、託管七千萬個項目）。真正承壓的是那些只為人類設計交互的傳統SaaS——它們要生存，必須把能力（比如CRM裡發郵件、搜客戶）開放給agent調用，而不是只服務人類界面，因為「agent流量已經超過了人類流量」。
+
+[1:20:22] (Fabian Hedin) **現在的早期採用者會互相導入項目，但不代表競爭已經定型** — Lovable App裡現在能從其他平臺導入項目，反過來也一樣，這讓人覺得幾家「萬能平臺」正在同質化競爭。Fabian的回應是：目前還處在早期採用者階段，真正的用戶群體幾乎還沒用過AI——很多人甚至從沒為AI付費過，所以當某個競爭對手做得好、引發關注時，整個品類反而受益。他認為專注創作與業務搭建這一聚焦點，會持續讓Lovable留在能力前沿。
+
+### 原話 / verbatim quotes
+
+[9:45] Fabian Hedin: "the major thing that has changed is that it's a hundred times faster and it's a hundred times cheaper uh uh than before to build this software"
+    譯 / zh: 最大的變化是：做軟件現在比以前快一百倍、便宜一百倍。
+
+[9:45] Fabian Hedin: "Now you can do that within a day and pay uh twenty dollars, you know?"
+    譯 / zh: 現在你可以一天之內搞定，花二十美元就行。
+
+[31:15] Fabian Hedin: "the more and more um we uh verify your app when you build it, the easier we just make this kind of uh continuous maintenance of the app"
+    譯 / zh: 我們在你構建應用時驗證得越多，之後對應用的持續維護就越容易。
+
+[1:02:06] Fabian Hedin: "we'll actually never route you in a way where we would lower the quality"
+    譯 / zh: 我們絕不會用降低質量的方式給你做路由。
+
+[1:06:44] Fabian Hedin: "as soon as these models get better uh our product gets better"
+    譯 / zh: 這些模型一旦變強，我們的產品就會跟著變強。
+
+[1:08:13] Fabian Hedin: "that, I think, is kind of the critical thing for um f- for these uh uh SaaS companies to uh transition to where they're not serving humans anymore, they're serving agents"
+    譯 / zh: 我認為這對這些SaaS公司來說是關鍵的轉型方向：不再是服務人類，而是服務agent。
+
+[1:20:22] Fabian Hedin: "the real users of of our platforms uh have barely used AI yet"
+    譯 / zh: 我們平臺真正的用戶群體幾乎還沒怎麼用過AI。
+
+[1:24:52] Fabian Hedin: "one of the really the the reason behind funding Lovable is to to be able to shape a world that is uh uh shaped by everyone in it"
+    譯 / zh: 創辦Lovable背後真正的原因之一，就是希望能塑造一個由所有人共同塑造的世界。
+
+### 數字 / figures
+
+- Lovable累計項目數: 超過7000萬個 [5:19]
+- Lovable每週新增項目數: 120萬個 [5:19]
+- Lovable全職員工數: 約400人 [6:23]
+- Lovable付費客戶數: 約80萬 [6:23]
+- Lovable公開ARR: 6億美元 [6:23]
+- Plinq的ARR: 43萬美元 [12:22]
+- Plinq開發週期: 45天 [12:22]
+- Fortune 500中使用過Lovable的員工比例: 三分之二 [12:22]
+- 主動表達盈利/變現意圖的用戶比例: 十分之八 [46:16]
+- Paul Christiano估計的AI失控概率: 未來一年約10% [1:24:52]
+
+### 術語 / glossary
+
+- row-level security (行級安全（規則）): 數據庫層面按行限制誰能訪問哪些數據的權限規則
+- formal verification (形式化驗證): 用數學方法證明程序行為符合預期，而非靠測試抽樣檢查
+- forward-deployed engineers (前沿部署工程師): 公司派駐到客戶現場、幫客戶落地產品的工程師
+- AIUC-1 (AIUC-1認證): AI承保公司AIUC針對agent構建方式的安全認證，類似SOC 2但專注agent
+- SaaSpocalypse (SaaS末日論): 指AI讓大量傳統SaaS訂閱被模型自動生成的軟件取代的觀點
+
+誰該聽 / who: 想了解vibe coding平臺如何做企業級安全與權限治理的工程負責人、關注AI對SaaS行業衝擊的投資人，以及想知道如何靠AI獨立做產品的創業者。
+可跳過 / skip: 開場對Fruitopia項目和主持人個人經歷的介紹（4:06前）信息量較低，可以跳過。
+標籤 / tags: vibe coding, AI編程助手, 企業安全, 模型路由, SaaS末日論, AI創業
+
+==============================================================================
+
+## 「人人平等」曾是一句為等級辯護的話，直到1646年6月被徹底改寫
+
+- URL: https://ourword.ai/podcast/tw/p/2026-11-28-goodfight-人人平等-曾是一句为等级辩护的话-直到1646年6月被彻底改写/
+- 節目 / show: The Good Fight (https://ourword.ai/podcast/tw/s/goodfight/)
+- 原集標題 / original episode: Teresa Bejan on Why Equality Is More Fragile Than We Think
+- 發布 / published: 2026-11-28 · 時長 / duration: —
+- 文稿來源 / transcript: 官方全文 · 8697 words · timestamps are estimated from position in the transcript
+- 校驗 / verification: 6 quotes matched verbatim, 0 numbers traced to the transcript, review score 8/10
+
+**古羅馬和早期基督教講的「人人平等」，本意是人人同等地臣服於法律或上帝，恰恰用來為等級制辯護；萊爾本在1646年把它誤讀成「人人是彼此的同儕」，現代平權政治由此誕生。**
+
+為什麼聽 / why: 一期紮實的政治思想史訪談，核心論證清晰但鋪墊較長；對關心平等、平權、身份政治話語根源的人很值，純想要時政熱點的人可以跳過。
+
+### 核心論點 / points
+
+[0:00] (Teresa Bejan) **牛津直呼教名的傳統其實強化了等級** — 貝揚發現，牛津表面上人人互稱教名、顯得平等，實際運作卻相反：資深男性教授可以大方說「叫我約翰就行」，而年輕教師、女性教師、少數族裔教師往往被學生直接默認用教名對待，甚至在她第一次自我介紹為「貝揚教授」後收到學生郵件糾正她「我們這裡不這麼稱呼」。她認為，統一用教名反而掩蓋了真實的權力差異，讓握有權力的人不必反思自己對學生的責任。
+
+[16:40] (Teresa Bejan) **吉爾·拜登堅持被稱為「Dr.」踩了民主規範的線** — 蒙克舉吉爾·拜登堅持被稱為Dr. Jill Biden為例，貝揚認為這確實逾越了一條重要的民主規範：頭銜在學術語境裡相關且提供信息，但在民主公共領域裡試圖挪用這種權威是不恰當的。她同時為拜登辯護：女性和少數族裔學者常常得不到男性、白人同行默認享有的權威，這可能是她們更傾向於堅持頭銜的原因，她援引《The Authority Gap》一書及撒切爾夫人請聲音教練把嗓音降低的例子來說明這種權威赤字。
+
+[23:20] (Teresa Bejan) **阿倫特：教育必須承認等級，政治必須拒絕等級** — 貝揚引用漢娜·阿倫特的《教育的危機》：教育活動本質上建立在教師對學生的等級權威之上，學生是世界的「新來者」，教師的職責就是把他們引入既有的文明秩序，這種等級必須被教育者自己承認為合理且保守的；但政治是成年人之間以成年人身份相處的領域。貝揚由此提出她整本書的核心訴求：現代平等主義的問題在於，它堅持認為等級本身就違背了我們作為平等者的地位，而沒有看到我們的平等地位恰恰常常依賴於運作良好、有權威的等級制度的存在。
+
+[34:30] (Teresa Bejan) **古羅馬講「人人平等」從不意味著人人一樣** — 烏爾比安在《學說彙纂》裡說「所有人依自然法平等」，貝揚指出這裡的「平等」指的是一種「無差別」：在自然法面前，人與人的差異不重要，大家同等地臣服於這套法律，但這絕不意味著具體權利或結果相同。拉丁語區分aequalis（平等/同等受約束）和pares（同儕，社會或評價意義上的平等），現代英語已經丟失了這個區分，這正是今天爭論「平等」時各說各話的根源之一。
+
+[48:10] (Teresa Bejan) **羅馬的正義女神是睜眼的，不是矇眼的** — 貝揚提到，正義女神矇眼的形象是15、16世紀才出現的現代產物；羅馬時代的正義女神是睜著眼睛的，因為她恰恰要依據身份做出區分——羅馬公民身份不同，權利和政治發言權就不同，但大家仍同屬一套法律之下、同為aequalis。這個細節直觀地展示了古代「法律面前平等」與現代「法律面前人人相同」之間的巨大落差。
+
+[55:40] (Teresa Bejan) **一個不懂拉丁文的囚犯改寫了平等的政治含義** — 1646年6月，平等派領袖約翰·萊爾本在獄中讀《大憲章》評註，發現第29章「自由人應由同儕審判」（judicium parium suorum）被譯註為「by his peers or equals」。萊爾本抓住這個翻譯上的巧合，宣稱既然上帝創造人人平等，那人人也就是彼此的同儕（peer），因此審判他的貴族院根本不是他的「同儕」，沒有資格審判他——而他反過來有資格評判那些貴族。貝揚稱他為「憤怒企業家」，他的論證邏輯上並不嚴密，卻極具煽動力和行動力。
+
+[59:00] (Teresa Bejan) **「人人平等」撬動了普選權、請願權與宗教自由** — 萊爾本偷運出獄的小冊子《自由人的自由得到伸張》中寫道，上帝創造的每一個男人女人「在權力、尊嚴、權威和威嚴上都是平等且相似的」，因此必須經其同意才能被統治。貝揚指出，這句看似附帶的論斷迅速被追隨者（即「平等派」）採納，用來主張普選權、請願權、出版與言論自由、宗教自由，科羅內爾·雷恩伯勒在普特尼辯論中那句著名的「英格蘭最窮的人和最尊貴的人一樣享有生命」正是同一套邏輯的延伸。貝揚認為，1640年代的平等派比1776年的美國《獨立宣言》更早完成了現代平權政治的關鍵概念與實踐突破。
+
+[1:07:30] (Teresa Bejan) **平權與反平權之爭，其實是兩種「平等」在打架** — 貝揚指出，當代關於種族或性別平等的爭論中，一方主張法律面前應一視同仁、無視差異（對應古代的「無差別」式平等），另一方主張恰恰要正視並納入差異才能讓弱勢群體獲得與特權者同等的社會地位（對應萊爾本意義上的「同儕」式平等）。「equity 對 equality」之爭本質上就是這兩種被英語語言混為一談的古老概念在互相拉扯，二者存在張力，但未必是矛盾——釐清這一點，是走出「誰支持平等、誰反對平等」這種無效爭吵的關鍵。
+
+### 原話 / verbatim quotes
+
+[23:50] Teresa Bejan: "Arendt is very emphatic that the educational activity must be recognized by educators themselves to be intrinsically hierarchical and conservative, but that this is in contradistinction to politics, which is the sphere in which we relate to other adults as adults."
+    譯 / zh: 阿倫特非常強調，教育活動必須被教育者自己承認為本質上是等級化且保守的，但這與政治截然相對——政治是我們以成年人身份與其他成年人相處的領域。
+
+[36:30] Teresa Bejan: "Equality really never meant sameness, but it did mean the absence of difference where you would normally expect to find it."
+    譯 / zh: 平等其實從不意味著相同，但它確實意味著在你原本以為會存在差異的地方，差異並不存在。
+
+[55:40] Teresa Bejan: "In the book, I argue that you can pinpoint the moment at which equality starts being used in this way pretty precisely: June, in the summer of 1646. The guy responsible seems to have been this guy, John Lilburne, who's known as one of the leaders of the Leveller movement."
+    譯 / zh: 在書裡我論證，可以相當精確地指出平等開始以這種方式被使用的那一刻：1646年夏天的六月。那個責任人似乎就是約翰·萊爾本，平等派運動的領袖之一。
+
+[1:00:10] Teresa Bejan: "We are all created "equal and alike in power, dignity, authority, and majesty," and therefore we all have to have a say in by whom and how we're governed."
+    譯 / zh: 我們生來「在權力、尊嚴、權威和威嚴上都是平等且相似的」，因此我們每個人都必須對由誰以及如何來統治我們擁有發言權。
+
+[1:01:40] Teresa Bejan: "Really, I think that the poorest he that is in England has a life to live as the greatest he, and therefore, truly, sir, I think it's clear that the poorest man must have a voice."
+    譯 / zh: 我真的認為，英格蘭最窮的那個男人和最尊貴的那個男人一樣擁有要去過的生命，因此，先生，我認為很清楚，最窮的人也必須有發言權。
+
+[1:08:00] Teresa Bejan: "My hope is that by just recovering some of this history and restoring some of this conceptual complexity, we can begin to understand that it's not a matter of who's for equality, who's against equality, that we're just talking about different things."
+    譯 / zh: 我希望，通過重新找回這段歷史、恢復這些概念上的複雜性，我們能開始理解這不是誰支持平等、誰反對平等的問題，而是我們其實在談論不同的東西。
+
+### 術語 / glossary
+
+- aequalis / pares (同等受約束 / 同儕): 拉丁語區分法律上同受約束（aequalis）與社會評價上的平輩（pares），現代英語已不再區分。
+- complex equality (複合平等): 沃爾澤提出的概念：不同社會領域各有自己的等級標準，彼此不應互相滲透。
+- Levellers (平等派): 17世紀英國內戰時期主張普選權、請願權、宗教自由的激進政治運動。
+
+誰該聽 / who: 關心平權、身份政治、法律平等與實質平等之爭的讀者，以及對政治思想史感興趣、想弄清「平等」一詞概念譜系的人。
+可跳過 / skip: 開頭關於牛津、劍橋稱謂禮儀的私人軼事部分信息密度較低，可直接跳到萊爾本與1646年那段。
+標籤 / tags: 政治理論, 平等, 身份政治, 法律史, 思想史, 平權行動
+
+==============================================================================
+
+## 合夥人別急著交朋友：先是盟友，再談哥們
+
+- URL: https://ourword.ai/podcast/tw/p/2026-11-28-masterscale-合伙人别急着交朋友-先是盟友-再谈哥们/
+- 節目 / show: Masters of Scale (https://ourword.ai/podcast/tw/s/masterscale/)
+- 原集標題 / original episode: Allies, pals, and companions: Adam Grant on relationships that make or break business
+- 發布 / published: 2026-11-28 · 時長 / duration: 23:32
+- 文稿來源 / transcript: 音頻轉寫 · 5086 words · timestamps are exact
+- 校驗 / verification: 6 quotes matched verbatim, 0 numbers traced to the transcript, review score 7/10
+
+**Adam Grant說創始人最常犯的錯是急著和聯合創始人變成好朋友，結果不敢吵架、繞著矛盾走，最後公司垮了友情也跟著垮。**
+
+為什麼聽 / why: 密度不算高，但對創始人、管理者關於合夥關係、修復衝突有具體可操作的框架，值得聽前半部分核心段落。
+
+### 核心論點 / points
+
+[3:28] (Adam Grant) **人際關係分三種，不能混為一談** — Adam Grant提出人生中有三種有意義的連接：盟友（ally，一起追求目標）、哥們（pal，一起玩樂）、夥伴/知己（companion，彼此傾訴）。他認為很多「不對付」的感覺來自雙方對關係類型的預期不一致——你以為是知己關係，對方只當你是盟友，錯位由此產生。
+
+[4:09] (Adam Grant) **一半的朋友其實不認為你是朋友** — Adam Grant引用研究：如果你列出自己的朋友名單，再去問這些人誰是他們的朋友，結果只有大約一半的人會把你也列為朋友。更反直覺的是，這種錯位是雙向的——我們同樣會低估有多少人其實把我們當朋友，而不僅僅是普通相識。
+
+[8:14] (Adam Grant) **合夥人先做盟友，別急著當哥們** — Grant觀察到很多聯合創始人會犯同一個錯誤：以為關係越近、合作就會越好，於是急著從「盟友」升級成「哥們」和「知己」。但這恰恰危險——一旦變成好朋友、玩得很開心，雙方就會迴避難談的話題，繞開衝突，直到生意出問題，友情也跟著崩掉。他認為聯合創始人最重要的第一次對話，是先確認彼此是「盟友」：使命一致、核心價值觀一致，並明確哪些行為算是違背價值觀。
+
+[9:33] (Adam Grant) **和Brene Brown的意外公開撕逼** — Grant講述自己曾在《紐約時報》引用Brene Brown的話，本意是致敬，結果對方覺得是斷章取義的攻擊，兩人反目四年不說話。修復的契機不是和解對話，而是2020年美國女足國家隊請Grant幫忙做團隊文化諮詢，球員們投票點名要Brene Brown來做分享——Grant不得不硬著頭皮邀請她，結果看到了對方完全不同的、極其慷慨的一面，意識到自己之前只見過她極窄的一個切面。
+
+[12:21] (Adam Grant) **修復關係的關鍵：先讓對方感到被聽見** — Grant在20多年前做過沖突調解訓練，學到的最有價值一課是：想要修復一段關係，必須先讓對方感受到你願意傾聽他們——而大多數人修復衝突時第一反應是急於澄清自己的動機、解釋自己沒有被誤解的意圖，這恰恰是本末倒置的。
+
+[15:28] (Adam Grant) **解釋「為什麼要說」比解釋「說了什麼」更重要** — Grant指出，當我們要和對方進行一場艱難對話時，常常忘了先說明自己為什麼要發起這次對話——比如「我人生中幫助我最多的人，都是給過我逆耳忠言的人，我想把這份恩情傳遞下去」，或者「我很在意我們的關係，如果不說出來我擔心關係會受損」。這樣一句話會完全改變接下來對話的意義。
+
+[16:28] (Adam Grant) **長得好看的人社交能力也更強** — Grant提到Stefan Tao等人的研究：外貌有吸引力的人不僅會得到別人更積極的回應，久而久之他們的社交技能也會真的變得更好，因為別人一次次激發出他們更好的那一面，讓他們在互動中不斷被正向強化，從而越來越擅長與人相處。
+
+[18:29] (Adam Grant) **用聊天機器人背話術，會廢掉你的社交肌肉** — Grant擔憂人們使用生成式AI的方式：不是用來學習「如何在第一次約會或面試中進行更好的對話」，而是直接背誦話術腳本，結果根本沒有真正練出這項技能。他更推薦用一個簡單的開場問題（比如「熱狗算三明治嗎」）把對話自然帶起來，這種無關緊要卻能引發爭論的小話題，恰恰是練習處理大分歧的最好熱身。
+
+### 原話 / verbatim quotes
+
+[1:04] Adam Grant: "And then you become afraid to have hard conversations. And so you tiptoe around conflict and then the business tanks and the friendship falls apart with it."
+    譯 / zh: 然後你會變得不敢進行艱難的對話。於是你繞著衝突走，結果生意垮了，友情也跟著垮了。
+
+[4:09] Adam Grant: "it turns out that if you list your friends and then we survey them about who their friends are, only about half of your friends see you as a friend"
+    譯 / zh: 結果發現，如果你列出自己的朋友名單，再去調查這些人誰是他們的朋友，你的朋友裡只有大約一半會把你當作朋友。
+
+[8:14] Adam Grant: "I think people assume that the closer we get, the better we'll work together. And so it's not enough to just be associates or allies. We need to be pals and companions too. And I think that's a mistake."
+    譯 / zh: 我覺得人們以為我們關係越近，合作就會越好。於是覺得只當相識或盟友還不夠，我們還得變成哥們和知己。我認為這是個錯誤。
+
+[15:28] Adam Grant: "people need to feel understood before they want to understand"
+    譯 / zh: 人們需要先感到自己被理解，才會願意去理解別人。
+
+[16:28] Adam Grant: "if you are conventionally physically attractive, not only do other people react more positively to you, you actually end up, on average, having higher social skills"
+    譯 / zh: 如果你長得符合傳統意義上的有吸引力，不僅別人會對你反應更積極，你平均而言社交技能也會真的更高。
+
+[20:30] Adam Grant: "we are so conflict-averse that we often don't practice on the easy stuff. And then we expect to have the skills when we have to work out some really hard disagreements."
+    譯 / zh: 我們太迴避衝突了，以至於連簡單的事都不去練習爭論，然後卻指望在真正棘手的分歧上能有處理好的能力。
+
+### 術語 / glossary
+
+- ally / pal / companion (盟友／哥們／知己): Adam Grant劃分的三種關係類型：共事目標、共享娛樂、互相傾訴。
+- certified asshole / temporary asshole (認證型混蛋／臨時型混蛋): Bob Sutton提出的區分：一貫讓人不爽的人，與偶爾情緒失控的人。
+
+誰該聽 / who: 創始人和聯合創始人、正在合夥或招募合夥人的人、以及關心如何修復職場人際衝突的管理者
+可跳過 / skip: 開頭兩段廣告（JIRA、Creative Planning）可以跳過
+標籤 / tags: 創始人關係, 人際溝通, 衝突修復, 團隊文化, Adam Grant
+
+==============================================================================
+
+## Sequoia 剛打款當天，他拒絕了兩倍估值的加碼條款
+
+- URL: https://ourword.ai/podcast/tw/p/2026-11-28-twentyvc-sequoia-刚打款当天-他拒绝了两倍估值的加码条款/
+- 節目 / show: 20VC (https://ourword.ai/podcast/tw/s/twentyvc/)
+- 原集標題 / original episode: 20VC: Why ARR Per Employee is a BS Metric | Message-Market Fit vs. Product-Market Fit: Why Founders Should Launch Broken Products | The Biggest Mistakes Founders Make When Scaling Sales Teams with David Paffenholz, Juicebox
+- 發布 / published: 2026-11-28 · 時長 / duration: 1:00:34
+- 文稿來源 / transcript: 音頻轉寫 · 13652 words · timestamps are exact
+- 校驗 / verification: 8 quotes matched verbatim, 7 numbers traced to the transcript, review score 8/10
+
+**Sequoia 領投 A 輪的當天就有人開出兩倍以上估值的加碼協議，創始人算的賬是：錢根本用不上，反而會把 B 輪估值底線抬得太高，於是沒拿。**
+
+為什麼聽 / why: 融資決策、銷售提成設計、跨國擴張薪酬這幾段信息密度高；中段關於音樂 App 轉型的故事性強但對判斷力貢獻有限。
+
+### 核心論點 / points
+
+[8:15] (David Paffenholz) **兩個人撐了兩年半才等到增長拐點** — Juicebox 有兩年半時間只有創始人和聯合創始人兩個人，David 是公司唯一的銷售，反覆失敗地演示產品。這段時間他說「depressing as hell」,本想盡快逃離，但正是這段經歷讓他親自摸清了公司每個職能，也對客戶的痛點和銷售流程的難度有了同理心。回頭看，產品能跑起來的解法「有點無聊」:持續迭代同一個目標——幫公司找到並引入最優秀的候選人，隨著 LLM 變強、數據聚合能力變好、對招聘流程理解加深，產品才慢慢成了。
+
+[12:28] (David Paffenholz) **VC 討厭招聘科技，但蛋糕比想像的大得多** — David 承認投資人普遍討厭招聘賽道，這個領域長期沒有大型 IPO。但他認為原因在於多數招聘科技公司沒有解決核心問題——交付「有意願的新候選人」。真正做到這件事、規模巨大的只有 LinkedIn 和 Indeed,再加上體量更大的招聘代理行業，市場空間遠超外界對「招聘軟件」的想像，這也是 Juicebox 堅持只做這件事、不被周邊功能分心的原因。
+
+[14:28] (David Paffenholz) **先驗證「消息」賣不賣得動，再做產品** — David 把「message-market fit」和「product-market fit」拆開：前者是發布後看市場是否真的對你說的那個方案有需求，即便產品還沒做到位；後者才是產品是否真能解決那個已驗證的痛點。他建議創始人哪怕產品是半成品也要立刻發布去測試消息是否有市場，但發布和實際交付之間不能拖太久，否則用戶的熱情會消散。Juicebox 第一次發布的 Demo 視頻就是「好日子裡才能跑出來的」理想流程，上線後獲得大量免費註冊和首批付費用戶，這批早期用戶後來幾乎全部流失，但給了團隊持續打磨產品的空間。
+
+[34:44] (David Paffenholz) **銷售提成一開始定得比行業高一倍以上** — 傳統 B2B SaaS 的銷售提成通常在 8% 到 12%,Juicebox 早期直接給到 20%。David 的邏輯是：早期銷售是在和公司一起下注，業績好就該分享更大的上行收益。隨著團隊擴大、交易更可預測、品牌和支持系統到位，提成比例逐步下調，但因為成交規模在漲，銷售的實際收入從未下降。
+
+[38:50] (David Paffenholz) **倫敦團隊工資對標舊金山，而不是圖便宜** — 很多人以為海外擴張是為了降成本，Juicebox 的做法相反：倫敦的薪資帶幾乎和舊金山的薪資帶一致(按匯率換算),並經常為薪資帶破例。目的是想吸引同等甚至更好的人才。他也觀察到一個文化差異：英國員工成長過程中較少見到身邊人靠科技公司股權致富，所以團隊普遍低估了股權的價值。
+
+[40:58] (David Paffenholz) **AI 招聘代理不會讓這門生意變大十倍** — 針對「AI 賦能的服務型公司」熱潮，David 給出了反例：招聘代理公司真正的瓶頸不是獲客，而是填補職位——即便是最優秀的代理機構，平均也只能填滿大約一半的職位需求。這意味著無論多麼 AI 原生，核心業務本質仍是人力勞動，利潤率的提升空間只是在原有生意上疊加幾個百分點，而不是讓生意本身大十倍。
+
+[44:04] (David Paffenholz) **拒絕兩倍估值，是為了不抬高下一輪的地板價** — Sequoia 的 A 輪資金剛到賬，就有投資人開出翻倍以上估值的加碼條款，Juicebox 沒有接受。David 的三點理由：一是公司沒有明確用途要花這筆額外資金；二是立刻拉高估值會人為設定一個更高的地板，反而傷害未來 B 輪的定價空間；三是品牌和戰略價值的說法站不住腳，因為同一家機構在 B 輪大概率還是會想投。
+
+[56:00] (David Paffenholz) **ARR per employee 是虛榮指標，只有增速重要** — David 曾經認為人均 ARR 高代表組織效率好，公司一直保持著較高的人均 ARR 數字。但他現在認為這個指標幾乎在所有情況下都是虛榮指標：如果銷售團隊擴張更快，總 ARR 可能會更高，即便人均 ARR 因此下降。他說現在唯一在意的是 ARR 的增長速度，而不是分攤到每個員工頭上的數字好不好看。
+
+### 原話 / verbatim quotes
+
+[12:28] David Paffenholz: "We raised $400,000 in our YC round plus YC's $500,000. And that was all the funding we had for two and a half years."
+    譯 / zh: 我們在 YC 那一輪融了 40 萬美元，加上 YC 自己的 50 萬美元，這就是我們兩年半里擁有的全部資金。
+
+[14:28] David Paffenholz: "Message market fit is distinctly different from product market fit."
+    譯 / zh: 「消息-市場契合」和「產品-市場契合」是完全不同的兩件事。
+
+[28:40] David Paffenholz: "If you can predict how the deal will go, that means you know the deal and the sales process well enough to hand it off to someone else."
+    譯 / zh: 如果你能預判一筆交易的走向，就說明你對這筆交易和銷售流程的理解已經足夠深，可以把它交給別人去做了。
+
+[34:44] David Paffenholz: "We just said 20% of whatever you close was our commission model."
+    譯 / zh: 我們當時就直接定了：你成交的金額的 20% 就是提成模式。
+
+[38:50] David Paffenholz: "our UK salary bands are actually almost identical to our SF salary bands, of course, converted to pounds"
+    譯 / zh: 我們英國的薪資帶其實和舊金山的薪資帶幾乎一樣，當然是換算成英鎊。
+
+[40:58] David Paffenholz: "I don't see, you know, an AI native recruitment agency being a particularly more compelling business than a regular recruiting agency."
+    譯 / zh: 我並不覺得一家 AI 原生的招聘代理公司，會比普通招聘代理公司更有吸引力。
+
+[44:04] David Paffenholz: "actually the day we received the wire from Sequoia, we already had a paper term sheet more than doubling the valuation for like an A extension, which we did not take."
+    譯 / zh: 實際上，我們收到 Sequoia 打款的當天，就已經有一份把估值翻了一倍還多的 A 輪加碼條款擺在那，但我們沒有接受。
+
+[56:00] David Paffenholz: "ARR per employee is a vanity metric in almost all cases. And actually, the only thing that matters is ARR growth."
+    譯 / zh: 人均 ARR 在幾乎所有情況下都是一個虛榮指標。真正重要的其實只有 ARR 的增長速度。
+
+### 數字 / figures
+
+- Indeed 年收入: 約50億美元 [12:28]
+- 全球招聘代理行業規模: 約1000億美元 [12:28]
+- A 輪融資額: 3000萬美元 [24:36]
+- 銷售起始提成比例: 20% [34:44]
+- 英國 ARR 佔總 ARR 比例: 約15% [37:47]
+- A 輪到 B 輪間隔: 約6個月 [43:03]
+- 頂級候選人六個月內被觸達次數: 240次，僅回覆3次 [50:25]
+
+### 術語 / glossary
+
+- message-market fit (消息-市場契合): 發布的宣傳說法是否真的打中市場需求，早於產品本身是否做到位
+- MCP (模型上下文協議接口): 讓客戶通過該協議把 Juicebox 能力接入自己工作流的接口方式
+- ARR per employee (人均年度經常性收入): 公司 ARR 除以員工人數，常被誤用來衡量組織效率
+
+誰該聽 / who: 早期階段創始人、正在搭建銷售團隊或籌劃海外擴張的運營負責人，以及關心融資節奏與估值判斷的投資人。
+可跳過 / skip: 開場從音樂 App 轉型到招聘軟件的個人成長故事信息量較低，可以跳過前幾分鐘直接聽兩年半空窗期之後的內容。
+標籤 / tags: 招聘科技, 企業銷售, 融資策略, 國際化擴張, SaaS指標, AI應用層
 
 ==============================================================================
 
@@ -78,6 +368,85 @@
 
 誰該聽 / who: 想理解AI訓練數據這門生意怎麼賺錢的創業者、關注後訓練/RL環境供應鏈的工程師和投資人
 標籤 / tags: 訓練數據, RL環境, 人工標註, 後訓練, 供應鏈風險, 創業
+
+==============================================================================
+
+## 零負債、不追求規模擴張，這家信託十年客戶流失率不到1%
+
+- URL: https://ourword.ai/podcast/tw/p/2026-11-27-mastersinbiz-零负债-不追求规模扩张-这家信托十年客户流失率不到1/
+- 節目 / show: Masters in Business (https://ourword.ai/podcast/tw/s/mastersinbiz/)
+- 原集標題 / original episode: Managing $300 Billion for Ultra Wealthy Families: Masters in Business with Holly MacDonald
+- 發布 / published: 2026-11-27 · 時長 / duration: 1:08:13
+- 文稿來源 / transcript: 官方逐字稿 · 11405 words · timestamps are exact
+- 校驗 / verification: 7 quotes matched verbatim, 10 numbers traced to the transcript, review score 8/10
+
+**貝塞麥由最大客戶家族私有、賬上零負債，不靠規模擴張賺錢，而是靠深度服務留住客戶——十年客戶流失率不到1%,下一代留存率接近行業平均的兩倍。**
+
+為什麼聽 / why: 少見的是能從家族辦公室內部視角講清「創造財富」和「守住財富」是兩種完全不同的能力，中段關於集中倉位、恐慌拋售的具體機制很有參考價值。
+
+### 核心論點 / points
+
+[14:23] (Holly MacDonald) **67年只服務一個家族才對外開放** — 貝塞麥1907年由Henry Phipps出售Carnegie Steel所得財富創立，直到1974年才接受創始家族以外的客戶。如今管理3000億美元，服務約3000個客戶家庭，同時擔任超過15000個信託的受託人或共同受託人。近120年的歷史讓貝塞麥在風險投資、私募資產等領域都是早期參與者，甚至早於「風險投資」這個詞被發明。
+
+[18:33] (Holly MacDonald) **七成新客戶是創業者，不是繼承人** — 貝塞麥三分之二的客戶是第一代財富創造者，去年新客戶中70%是創業者。創造財富和守住財富需要完全不同的能力：成功的創業者習慣在自己深耕的單一領域裡承擔巨大風險，但要讓財富延續，恰恰需要在自己不擅長的領域避免過度冒險。主持人舉了Larry Ellison幾十年仍持有約四分之一Oracle股份的例子，說明讓創業者從極端集中走向分散配置，需要的是一次思維方式的轉變。
+
+[21:37] (Holly MacDonald) **創始人以為自己掌控一切，其實只掌控了一家公司** — 把財富管理權交出去時，創業者常常感到失控，哪怕他們信任並認可受託機構的業績。原因在於創業者執掌自己公司時，往往產生了比實際更強的控制幻覺——企業仍然受宏觀經濟、估值波動和市場情緒左右，並不是創始人能完全掌控的。貝塞麥的做法是分批次、分用途處理財富：一部分做代際傳承的分散配置，另一部分可以按客戶意願留出資金讓其繼續創業或自己交易。
+
+[37:03] (Holly MacDonald) **減持10%就能大幅降低歸零概率** — 即便是今天看起來極其優質的股票，拉長到20到30年的時間維度，歸零的概率也不是零。貝塞麥發現，哪怕只把某隻集中持倉減持10%,客戶損失全部本金的概率就會顯著下降——這意味著處理集中倉位不必是「全部賣出」或「完全不動」的二選一，而是可以逐年小幅削減。由於貝塞麥是私人所有、不被外部股東施壓要求短期調倉，他們可以從容地結合稅務損失收割等工具，分步推進分散化。
+
+[41:12] (Holly MacDonald) **最貴的錯誤是在恐慌中改變資產配置** — 客戶最常犯、也是代價最大的錯誤，是在不恰當的時機改變資產配置，也就是恐慌性拋售。貝塞麥的應對方式是提前做好流動性規劃：通過對各種極端情景（包括很壞的情形）跑蒙特卡洛模擬，向客戶證明即便在糟糕的市場環境下，他們的流動性需求也能被滿足。只有客戶真正相信自己不會被迫在低點賣出，才能在世界看起來很不確定的時候，堅持長期配置，這才是複利得以實現的關鍵。
+
+[46:23] (Holly MacDonald) **下一代客戶留存率接近行業平均的兩倍** — 行業平均只有約一半的客戶能在財富傳給下一代後繼續留住，貝塞麥的這一比例是80%;如果只是財富在配偶之間傳承，這個數字達到90%。關鍵在於保持靈活：嚴格按照創始人當年的具體遺囑條款執行往往行不通，真正重要的是守住「意圖」而非每一條細節。在處理家族矛盾甚至離婚這類更棘手的場景時，由貝塞麥作為中立的企業受託人介入，反而比家族成員互相開口要錢更容易達成好的結果。
+
+[47:23] (Holly MacDonald) **用AI不是讓顧問服務更多人，而是服務得更深** — 貝塞麥沒有自上而下規定AI的具體用法，而是先在內部封閉系統裡讓員工低風險地自由試驗，再由敏捷評審小組挑出有效的用法推廣——AI助手Ava就是這樣跑出來的。公司明確的策略是不用AI去擴大每個顧問能覆蓋的客戶數量來做大規模，而是把省下來的時間用於加深與現有客戶的關係、挖掘更深的洞察。這也呼應了貝塞麥超過99%的客戶留存率以及比行業平均高出約10個百分點的員工留存率——穩定的人際關係本身就是高淨值客戶看重的東西。
+
+[58:42] (Holly MacDonald) **AI討論要麼太樂觀要麼太末日** — 對於AI帶來的倫理風險，目前市場上的討論質量並不高——要麼是徹底樂觀，要麼是歇斯底里的末日論調，缺少中間地帶的理性討論。那些站在AI最前沿的公司本應更有能力去主導一場負責任的對話，因為他們最瞭解這項技術，也最有條件自我約束風險。以長期視角看，現在該被追問的問題是：哪些行業和公司會在數年後受到影響，以及哪些風險目前根本沒人討論——而不是簡單地爭論AI到底是福是禍。
+
+### 原話 / verbatim quotes
+
+[18:33] Holly MacDonald: "two-thirds of our clients, Barry, are actually first-generation wealth. So they're entrepreneurs. Last year, 70% of our new clients were entrepreneurs."
+    譯 / zh: 我們三分之二的客戶其實是第一代財富創造者，他們是創業者。去年我們的新客戶裡有70%是創業者。
+
+[21:37] Holly MacDonald: "I think often they had the illusion that they had even more control maybe than they had, meaning businesses are still subject to macroeconomic forces and valuation shifts and sentiment shifts."
+    譯 / zh: 我認為他們往往產生了一種幻覺，以為自己擁有的控制權比實際更多——其實企業仍然受宏觀經濟、估值波動和市場情緒變化的左右。
+
+[37:03] Holly MacDonald: "even if you reduce that position by, say, 10%, your probability of losing all of your capital goes down meaningfully"
+    譯 / zh: 哪怕你只是把那筆倉位減持比如10%,你損失全部本金的概率也會顯著下降。
+
+[41:12] Holly MacDonald: "I think the biggest mistakes that we're helping our clients avoid is changing asset allocation at an inopportune time."
+    譯 / zh: 我認為我們幫客戶避免的最大錯誤，就是在不恰當的時機改變資產配置。
+
+[46:23] Holly MacDonald: "we've been able to continue to work with 80% of the next generation of our clients, the average industry stat is closer to 50%. And for us, it's at 90% when it's just the spouse."
+    譯 / zh: 我們能夠繼續為80%的客戶下一代提供服務，而行業平均水平接近50%;如果只是傳給配偶，我們這個數字是90%。
+
+[47:23] Holly MacDonald: "We're using it so that advisors will have more time to build deeper relationships with their clients and derive greater insights in their work."
+    譯 / zh: 我們使用AI,是為了讓顧問有更多時間和客戶建立更深的關係，並在工作中獲得更深的洞察。
+
+[58:42] Holly MacDonald: "I think that's where there could just be a more informed conversation that isn't this hysterical boom or doom. You know, it's either totally rosy or completely doom. I think there's a more nuanced discussion in the middle."
+    譯 / zh: 我認為這正是需要更理性的對話的地方，而不是現在這種歇斯底里的「繁榮論」或「末日論」——要麼把一切說得太美好，要麼說得一片灰暗。我認為中間地帶應該有更細緻的討論。
+
+### 數字 / figures
+
+- 貝塞麥創立年份: 1907年 [14:23]
+- 對外部客戶開放年份: 1974年 [14:23]
+- 管理資產規模: 超過3000億美元 [14:23]
+- 服務客戶數: 約3000個客戶 [14:23]
+- 擔任受託人的信託數量: 超過15000個 [14:23]
+- 員工與客戶比例: 約3比1,正接近2比1 [19:34]
+- 第一代財富客戶佔比: 三分之二 [18:33]
+- 去年新客戶中創業者佔比: 70% [18:33]
+- 下一代客戶留存率: 80%(行業平均約50%);僅傳給配偶時為90% [46:23]
+- 客戶留存率: 超過99% [48:26]
+
+### 術語 / glossary
+
+- family office (家族辦公室): 專為單一或多個富裕家族管理財富、信託與家庭事務的機構。
+- Monte Carlo simulations (蒙特卡洛模擬): 通過大量隨機情景測算，評估投資組合在不同市場環境下表現的建模方法。
+- corporate trustee (企業受託人): 由機構而非家族成員擔任信託受託人，作為中立第三方處理財產和家族事務。
+
+誰該聽 / who: 家族辦公室、私人銀行和財富傳承顧問，以及正在經歷財富積累期、思考如何向下一代傳承資產的創業者或企業主。
+可跳過 / skip: 開頭關於求學經歷、跑步訓練和結尾聊電影、橄欖球的閒聊部分可以跳過。
+標籤 / tags: 家族辦公室, 財富傳承, 私人信託, 資產配置, 超高淨值客戶, AI應用
 
 ==============================================================================
 
@@ -279,6 +648,75 @@
 
 ==============================================================================
 
+## 想拯救世界的符號發明家，最後把殘障兒童項目告上法庭
+
+- URL: https://ourword.ai/podcast/tw/p/2026-11-27-radiolab-想拯救世界的符号发明家-最后把残障儿童项目告上法庭/
+- 節目 / show: Radiolab (https://ourword.ai/podcast/tw/s/radiolab/)
+- 原集標題 / original episode: Bliss
+- 發布 / published: 2026-11-27 · 時長 / duration: 51:11
+- 文稿來源 / transcript: 音頻轉寫 · 8739 words · timestamps are exact
+- 校驗 / verification: 6 quotes matched verbatim, 4 numbers traced to the transcript, review score 7/10
+
+**Charles Bliss 發明了一套想替代所有語言的符號系統，當殘障兒童真的用它開口說話時，他卻因為老師們擅自改動符號而起訴了幫助這些孩子的項目，最終拿走了$160,000的和解金。**
+
+為什麼聽 / why: 前半段的 Charles Bliss 故事信息密度極高，情感反轉和歷史細節都很紮實；後半段雪花故事偏科普閒談，可以選擇性聽。
+
+### 核心論點 / points
+
+[17:25] **納粹改了一個詞的意思，卻沒改詞本身** — Bliss 發現「Deutschland über alles」原本是1848年的統一口號，意思是「國家高於各邦」,希特勒把它扭轉成「國家高於其他一切國家」。詞沒變，含義被徹底翻轉，卻照樣能讓好人去配合種族滅絕。這正是他後來認定「文字本身就危險」、必須發明一套不依賴語言的符號系統的直接觸發點。
+
+[18:28] **他想用符號系統消滅戰爭本身** — Bliss 相信如果他的符號被採納，法語區、芬蘭人、英國人、愛沙尼亞人之間的語言障礙會消失，連交通事故和健康問題都能避免。他甚至反覆主張，如果德國人民看懂了符號而不是被詞語操縱，希特勒根本不會發生。這是一個把語言改革等同於世界和平方案的巨大野心，也是後面悲劇落差的起點。
+
+[22:38] **耗盡積蓄寄出六千本書，無人回應** — Bliss花七年寫出《Semantography》,寄給六千名教授、政府官員和國家元首，等待訂單上門。結果沒人回應。妻子去世後，他進了通用汽車做焊接工，自稱這是人生最低谷——直到1971年一封信意外出現在他桌上。
+
+[25:47] **腦癱兒童靠符號說出第一句「我愛你」** — Shirley McNaughton在圖書館偶然翻到這本沒人借閱過的書，帶回去教那些因腦癱無法說話的孩子。孩子們用「我」「你」加一個心形穿箭的符號拼出句子，一位母親形容孩子第一次說出「我愛你」是她人生最快樂的時刻。符號系統第一次真正幫到了人，而不是停留在理論設想裡。
+
+[28:50] **發明者痛恨別人把他的系統教活了** — Shirley和老師們為了適應孩子的實際需要，加了「反義詞」符號、補上代詞變化規則——這些改動讓孩子受益，卻被Bliss視為對他「宇宙通用語言」的背叛。更讓他無法接受的是，老師們把符號當成通向英語、法語等「正常語言」的過渡工具，而這恰恰是他終生想擺脫的東西。
+
+[32:56] **他起訴了用他符號救孩子的項目** — 憤怒積累十多年後，Bliss正式起訴安大略殘障兒童中心和Shirley McNaughton本人，甚至在錄音裡暗示要把她「關一輩子」。1982年雙方達成$160,000的financial settlement,而這只是「地下室裡的一個小班」能拿出的全部籌碼。一個想拯救世界語言的人，最終從一群說不了話的孩子手裡拿走了錢。
+
+[36:00] **被告贏了官司，卻還替他滴耳藥水** — 即便在法律糾紛最激烈的時候，Shirley 對 Bliss 沒有一絲怨恨——庭審結束，律師收拾文件時他照樣請她幫忙，她也照樣陪他吃飯，晚上去他酒店給他滴耳藥水。她至今仍相信 Bliss 符號是「純粹形式的詩」,能表達語言說不出的意思。
+
+[46:26] **雪花攝影先驅被指控用刀篡改底片** — 德國氣象學家 Gustav Hellmann 僱人拍的雪花照片歪斜破碎，與 Wilson Bentley 一生拍攝的五千張對稱完美雪晶完全不同。調查發現 Bentley 會用削筆刀刮掉底片背景、甚至深入晶體內部修出「完全任意的圖案」,德國人直指這是造假。Bentley 反駁說修正瑕疵不是作假，而是更接近「真正的雪花」。
+
+### 原話 / verbatim quotes
+
+[17:25] Erika Okrent: "Instead of the nation above all states, he changed it to the nation above all other nations."
+    譯 / zh: 希特勒把「國家高於各邦」改成了「國家高於其他所有國家」。
+
+[18:28] Charles Bliss: "And the idea came up to me that I should invent symbols. Like the Chinese symbols, but even clearer."
+    譯 / zh: 於是我想到，我應該發明一套符號。像中文符號一樣，但更清楚。
+
+[26:47] Shirley McNaughton: "One of our mothers, it's the happiest moment she's ever had with her child, was when her child came home and said, I love you."
+    譯 / zh: 我們有一位母親說，她和孩子在一起最快樂的時刻，就是孩子回家對她說「我愛你」的那一刻。
+
+[31:55] Charles Bliss: "Shelley McNaughton has perverted my work. Has perverted and perverted and perverted."
+    譯 / zh: Shirley McNaughton歪曲了我的作品。歪曲又歪曲又歪曲。
+
+[33:56] Shirley McNaughton: "We were a little program in the basement of the Ontario Crippled Children's Center. We were, you know, just a classroom."
+    譯 / zh: 我們只是安大略殘障兒童中心地下室裡一個小項目。就是，你知道的，一間教室而已。
+
+[47:28] Charles Bliss: "A true scientist wishes above all to have his photographs as true to nature as possible. And if retouching will help in this respect, then it is fully justified."
+    譯 / zh: 真正的科學家最希望自己的照片儘可能忠於自然。如果修飾有助於這一點，那就完全是正當的。
+
+### 數字 / figures
+
+- Bliss書的贈閱冊數: 約6000本 [21:35]
+- 訴訟和解金額: $160,000 [34:00]
+- Bentley一生拍攝雪晶數量: 約5000張 [43:23]
+- Ken Liebrecht拍攝雪花數量: 約10000張 [49:31]
+
+### 術語 / glossary
+
+- Bliss Symbolics (布利斯符號系統): Charles Bliss發明的圖形符號語言，試圖替代所有口語和文字
+- human evaluation symbol (V) (人類評價符號): Bliss系統中標註「這是主觀看法/意見」的特殊符號
+
+誰該聽 / who: 對語言學、發明家執念、殘障輔助溝通(AAC)歷史感興趣的人，以及好奇「完美」在自然界是否真實存在的人。
+可跳過 / skip: 44:00之後的雪花段落偏輕鬆科普，信息密度明顯低於Bliss故事，時間緊可以跳過。
+標籤 / tags: 語言發明, 輔助溝通, 歷史人物, 執念與偏執, 科普, 自然攝影
+
+==============================================================================
+
 ## 指數基金根本不是被動的：選股的人換了，選擇沒有消失
 
 - URL: https://ourword.ai/podcast/tw/p/2026-11-27-moneystuff-指数基金根本不是被动的-选股的人换了-选择没有消失/
@@ -415,6 +853,70 @@
 誰該聽 / who: 想做社交或網絡效應產品冷啟動的創業者，以及對 Tinder 早期增長戰術和產品哲學感興趣的從業者。
 可跳過 / skip: 開頭音樂行業經歷與 Adly 創業背景（0:00-2:05）可跳過，不影響理解後續產品與增長內容。
 標籤 / tags: 社交產品, 冷啟動, 網絡效應, 增長黑客, 產品哲學, 移動互聯網
+
+==============================================================================
+
+## AI 開始獨立解開數學難題，卻講不出證明背後的道理
+
+- URL: https://ourword.ai/podcast/tw/p/2026-11-27-hardfork-ai-开始独立解开数学难题-却讲不出证明背后的道理/
+- 節目 / show: Hard Fork (https://ourword.ai/podcast/tw/s/hardfork/)
+- 原集標題 / original episode: How A.I. Is Transforming Mathematics
+- 發布 / published: 2026-11-27 · 時長 / duration: 37:50
+- 文稿來源 / transcript: 音頻轉寫 · 7708 words · timestamps are exact
+- 校驗 / verification: 7 quotes matched verbatim, 0 numbers traced to the transcript, review score 8/10
+
+**OpenAI 和 Anthropic 的模型已經能獨立解出懸而未決的數學問題，但陶哲軒說這些證明常常引用不全、缺乏透明度，人類甚至讀不懂它們是怎麼被解出來的。**
+
+為什麼聽 / why: 陶哲軒是極少數真正深度參與 AI 解數學難題全過程的頂尖數學家，他對「大廠到底在怎麼用 AI 做研究」的描述比任何旁觀評論都更具體。
+
+### 核心論點 / points
+
+[15:27] (Terence Tao) **數學題只是大廠調模型的訓練燃料** — 陶哲軒說，數學問題恰好是訓練大模型的絕佳客觀測試：能打分、能持續調優。而且一旦模型在數學上變強，它在編程、甚至入侵網站這類任務上也會同步變強——這是大廠真正在意數學的原因，不是為了數學本身。他特意指出這「有好有壞」。
+
+[16:30] (Terence Tao) **AI 解出了題，卻講不出證明的道理** — 陶哲軒用「800磅大猩猩」比喻現在的處境：這頭猩猩資金雄厚，能把一道懸而未決的難題啃下來，但它遞給你證明之後，沒法像人類數學家那樣開講座、寫教材、帶學生理解其中的邏輯。數學家們現在要反過來去啃這些上百頁的 AI 生成證明，試圖弄清楚裡面到底有沒有新東西，而這遠不如人類從頭參與來得有收穫。
+
+[18:32] (Terence Tao) **直升機直達瀑布，但錯過了沿途的風景** — 陶哲軒把傳統做數學比作徒步：試錯、繞路、順便發現意外的野生動物和更壯觀的瀑布，這些「沿途發現」本身就是數學進步的一部分。而當前的 AI 更像一架沒有窗戶的直升機，直接飛到瀑布邊拍張照就回家——目標達成了，但錯過了大量本該產生的新洞見和新問題。
+
+[20:40] (Terence Tao) **證明只是大廠訓練模型時的「副產品」** — 陶哲軒直言，很多大廠的科學部門已經被關閉、縮編或人員被調走，因為公司間競爭激烈，誰先把模型推出去才是重點。數學證明只是餵了大量數學題之後偶爾吐出來的東西，公司本身並不把它當主要目標，所以才會「坐在一堆需要處理的廢料上」，做最低限度的清理就發布。
+
+[21:41] (Terence Tao) **引用缺失、流程不透明，疑點並未被證實** — 早期 AI 生成的論文引用做得很差，很多建立在前人工作之上卻完全不提。更讓人起疑的是：有數學家用 ChatGPT 之類工具上傳自己正在研究的問題尋求幫助，一個月後公司就發了解決同一問題的新聞稿。陶哲軒強調這可能只是巧合，但大廠不願披露用了多少算力、多少數據，使得這種懷疑無法被證實也無法被排除。
+
+[25:50] (Terence Tao) **沒人看得懂的數學部署到現實會出事** — 陶哲軒擔心的不只是學術趣味的流失，而是安全：如果未來空中交通管制之類的系統依賴極其先進、卻沒有任何人類真正理解的數學模型，遲早會在某個環節付出代價。他同時擔心年輕學者如果只接觸 AI 產出的結果，會進入一個「比誰的 AI 更強」的貧瘠行業，而失去人與人之間的學術連接。
+
+[32:00] (Terence Tao) **期刊正被 AI 量產的「論文形狀」淹沒** — AI 非常擅長生成看起來像論文的 PDF——確實解決了某個未解問題，卻往往不引用、不解釋、不給出新的研究方向。陶哲軒認為學術評價體系必須從「發了多少篇論文」轉向獎勵能讓人興奮、願意深入瞭解的工作，否則招聘、評獎的標準會繼續被這種「論文產品」鑽空子。
+
+[37:08] (Terence Tao) **古德哈特定律：指標一旦成為目標就會失靈** — 陶哲軒用經濟學裡的古德哈特定律收尾：曾經「解題數量」是衡量數學理解深度的好指標，但被 AI 過度優化後，機器現在能解題卻不能推進對領域的理解。他提醒所有行業都該反問自己真正在追求什麼指標，以及是否存在一臺機器能「刷」那個指標卻偏離了真正目標——這同樣是寫作者該問自己的問題。
+
+### 原話 / verbatim quotes
+
+[11:18] Terence Tao: "So math is kind of like a computer game where you have like an infinite number of reloads."
+    譯 / zh: 所以數學有點像一個可以無限讀檔重來的電腦遊戲。
+
+[15:27] Terence Tao: "it turns out that if you do that, they tend to be better at solving other things like coding or hacking into websites and things like that."
+    譯 / zh: 結果是，如果你這樣做，它們也會更擅長解決編程、甚至入侵網站之類的其他任務。
+
+[16:30] Terence Tao: "We have this 800-pound gorilla in our midst now, much better funded."
+    譯 / zh: 我們中間現在多了一頭資金雄厚得多的「800磅大猩猩」。
+
+[18:32] Terence Tao: "AI, at least current models of AI, is like taking a helicopter with no windows, just flying straight to the waterfall. You land there, you take your Instagram shot, and then you go home."
+    譯 / zh: AI，至少目前的 AI 模型，就像坐上一架沒有窗戶的直升機，直接飛到瀑布邊。你降落，拍張 Instagram 照片，然後回家。
+
+[20:40] Terence Tao: "they're sitting on this pile of toxic waste that they need to deal with."
+    譯 / zh: 他們坐在一堆需要處理的有毒廢料上。
+
+[25:50] Terence Tao: "we'll be losing quite a bit of what makes math useful and enjoyable and fun and also safe, actually."
+    譯 / zh: 我們會失去很多讓數學變得有用、令人愉悅、有趣——而且其實也是安全的——那些東西。
+
+[37:08] Terence Tao: "There's this law in economics called Good Heart's Law that any metric that becomes a target ceases to be a good measure."
+    譯 / zh: 經濟學裡有個古德哈特定律：任何一旦成為目標的指標，就不再是好的衡量標準。
+
+### 術語 / glossary
+
+- Goodhart's Law (古德哈特定律): 當一個指標被當作追求的目標時，它就不再能準確反映原本想衡量的東西。
+
+誰該聽 / who: 關心 AI 如何衝擊知識型職業的人、數學和科研從業者、以及在思考自己專業會不會被同樣方式改寫的創作者。
+可跳過 / skip: 開頭關於《六個數學基本概念》成書背景和數學家日常工作分工的部分信息密度較低，可直接跳到 13:18 處的 AI 話題。
+標籤 / tags: AI與科學, 數學, 學術透明度, OpenAI, Anthropic, 科研倫理
 
 ==============================================================================
 
